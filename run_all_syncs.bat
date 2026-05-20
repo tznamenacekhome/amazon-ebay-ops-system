@@ -1,0 +1,11 @@
+@echo off
+cd /d C:\users\timz\OneDrive\documents\github\amazon-ebay-ops-system
+
+echo ================================ >> logs\scheduler.log
+echo Starting sync at %date% %time% >> logs\scheduler.log
+
+.venv\Scripts\python.exe run_all_syncs.py >> logs\scheduler.log 2>&1
+
+echo Finished sync at %date% %time% >> logs\scheduler.log
+echo Exit code: %ERRORLEVEL% >> logs\scheduler.log
+echo ================================ >> logs\scheduler.log
