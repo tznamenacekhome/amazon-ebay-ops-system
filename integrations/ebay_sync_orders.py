@@ -25,12 +25,19 @@ def now_utc():
 
 
 def iso(dt):
-    return dt.isoformat().replace("+00:00", "Z")
+    return (
+        dt.astimezone(timezone.utc)
+        .replace(microsecond=0)
+        .isoformat()
+        .replace("+00:00", "Z")
+    )
 
 
 def get_access_token():
     credentials = f"{client_id}:{client_secret}"
-    encoded_credentials = base64.b64encode(credentials.encode("utf-8")).decode("utf-8")
+    encoded_credentials = base64.b64encode(
+        credentials.encode("utf-8")
+    ).decode("utf-8")
 
     response = requests.post(
         "https://api.ebay.com/identity/v1/oauth2/token",
@@ -61,9 +68,10 @@ def get_last_successful_sync():
     )
 
     if result.data:
-        return result.data[0]["last_successful_sync_at"]
+        raw_value = result.data[0]["last_successful_sync_at"]
+        parsed = datetime.fromisoformat(raw_value.replace("Z", "+00:00"))
+        return iso(parsed)
 
-    # First run: look back 7 days
     return iso(now_utc() - timedelta(days=7))
 
 
