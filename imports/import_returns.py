@@ -41,13 +41,14 @@ def clean_date(value):
 
 
 def main():
-    print("Starting returns import...")
+    print("Starting corrected returns import...")
 
     load_dotenv()
 
-    url = os.environ["SUPABASE_URL"]
-    key = os.environ["SUPABASE_SERVICE_ROLE_KEY"]
-    supabase = create_client(url, key)
+    supabase = create_client(
+        os.environ["SUPABASE_URL"],
+        os.environ["SUPABASE_SERVICE_ROLE_KEY"]
+    )
 
     df = pd.read_csv(RETURNS_CSV, dtype=str)
     df.columns = [clean_column_name(col) for col in df.columns]
@@ -59,25 +60,26 @@ def main():
 
     batch_result = supabase.table("import_batches").insert({
         "source_name": "ebay purchases - Returns.csv",
-        "notes": "Initial historical supplier returns import from Google Sheets CSV"
+        "notes": "Corrected supplier returns import using actual CSV column names"
     }).execute()
 
     import_batch_id = batch_result.data[0]["import_batch_id"]
     print(f"Created import batch: {import_batch_id}")
 
     inserted_count = 0
+    linked_count = 0
     skipped_count = 0
 
     for index, row in df.iterrows():
         source_row_number = index + 2
 
-        order_number = clean_text(row.get("Order Number"))
+        order_number = clean_text(row.get("Order ID"))
         asin = clean_text(row.get("ASIN"))
-        title = clean_text(row.get("Item title")) or clean_text(row.get("Title"))
-        supplier = clean_text(row.get("Supplier")) or "eBay"
-        date_opened = clean_date(row.get("Date Opened"))
+        title = clean_text(row.get("Title"))
+        supplier = clean_text(row.get("Source")) or "eBay"
+        date_opened = clean_date(row.get("Date opened"))
         date_sent = clean_date(row.get("Date Sent"))
-        refund_expected = clean_money(row.get("Total")) or clean_money(row.get("Cost"))
+        refund_expected = clean_money(row.get("Total Price")) or clean_money(row.get("Price Paid"))
 
         if not title and not asin and not order_number:
             skipped_count += 1
@@ -85,8 +87,7 @@ def main():
 
         raw_json = json.loads(row.to_json())
 
-        # Try to find matching purchase item by order number first
-        matching_item = None
+        matching_item_id = None
 
         if order_number:
             purchase_match = (
@@ -109,10 +110,11 @@ def main():
                 )
 
                 if item_match.data:
-                    matching_item = item_match.data[0]["item_id"]
+                    matching_item_id = item_match.data[0]["item_id"]
+                    linked_count += 1
 
         payload = {
-            "item_id": matching_item,
+            "item_id": matching_item_id,
             "supplier": supplier,
             "supplier_order_id": order_number,
             "return_reason": None,
@@ -123,18 +125,18 @@ def main():
             "opened_date": date_opened,
             "shipped_date": date_sent,
             "refund_verified": False,
-            "notes": f"Imported from returns CSV row {source_row_number}",
+            "notes": f"Imported from corrected returns CSV row {source_row_number}",
         }
 
         supabase.table("supplier_returns").insert(payload).execute()
-
         inserted_count += 1
 
         if inserted_count % 50 == 0:
             print(f"Inserted {inserted_count} return rows...")
 
-    print("Returns import complete.")
+    print("Corrected returns import complete.")
     print(f"Inserted rows: {inserted_count}")
+    print(f"Linked to purchase_items: {linked_count}")
     print(f"Skipped rows: {skipped_count}")
 
 
