@@ -3,13 +3,20 @@ import sys
 from datetime import datetime
 
 
+SCRIPTS_TO_RUN = [
+    "integrations/ebay_sync_buyer_purchases.py",
+    "integrations/ebay_sync_supplier_returns.py",
+    "integrations/sync_revseller_sheet.py",
+]
+
+
 def run_script(script_path):
     print(f"\n--- Running {script_path} ---")
 
     result = subprocess.run(
         [sys.executable, script_path],
         capture_output=False,
-        text=True
+        text=True,
     )
 
     if result.returncode != 0:
@@ -22,8 +29,8 @@ def main():
     print("Starting all syncs...")
     print(datetime.now())
 
-    run_script("integrations/ebay_sync_orders.py")
-    run_script("integrations/ebay_sync_supplier_returns.py")
+    for script_path in SCRIPTS_TO_RUN:
+        run_script(script_path)
 
     print("\nAll syncs completed successfully.")
     print(datetime.now())

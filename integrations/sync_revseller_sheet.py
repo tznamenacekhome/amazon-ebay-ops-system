@@ -12,7 +12,7 @@ from supabase import create_client
 
 ALLOW_REENRICHMENT = True
 PURCHASE_ITEMS_PAGE_SIZE = 1000
-DIAGNOSTIC_OUTPUT_PATH = "revseller_enrichment_diagnostics.csv"
+DIAGNOSTIC_OUTPUT_PATH = f"data/revseller_enrichment_diagnostics_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
 
 REVSELLER_SHEET_ID = None
 REVSELLER_WORKSHEET_NAME = None
