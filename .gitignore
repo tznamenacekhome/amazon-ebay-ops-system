@@ -1,6 +1,41 @@
+# Environment variables
 .env
+.env.*
+
+# Python virtual environment
 .venv/
+
+# Python cache
 __pycache__/
 *.pyc
-data/*.csv
+
+# Logs
 logs/
+*.log
+
+# Local data exports
+data/*.csv
+*.csv
+
+# RevSeller diagnostics
+revseller_enrichment_diagnostics.csv
+
+# Google credentials
+credentials/
+google-service-account.json
+
+# VS Code
+.vscode/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Node / Next.js
+node_modules/
+.next/
+out/
+
+# Build artifacts
+dist/
+build/
