@@ -1,0 +1,99 @@
+# AGENTS.md
+
+## Project Overview
+
+This repository contains the Amazon/eBay Operations System.
+
+Purpose:
+- automate eBay purchase ingestion
+- automate shipment tracking
+- support Amazon resale workflows
+- reduce spreadsheet maintenance
+- support receiving workflows
+- support future AI-assisted operations
+
+The system is evolving from a collection of automation scripts into a full operational workflow platform.
+
+---
+
+# Core Architecture
+
+Python Integrations
+→ Supabase PostgreSQL
+→ Next.js API Routes
+→ React Frontend
+
+Supabase is the operational source of truth.
+
+Frontend never talks directly to Supabase.
+
+Pattern:
+Frontend
+→ API Routes
+→ Supabase
+
+---
+
+# Critical Architectural Rules
+
+## Cost Calculation Rule
+
+Frontend MUST NEVER recalculate landed cost.
+
+Authoritative field:
+vw_purchases_dashboard.unit_cost
+
+Backend logic is authoritative.
+
+---
+
+## Workflow Separation Rule
+
+Purchases workflow != Receiving workflow
+
+Purchases workflow:
+- sourcing verification
+- operational review
+- ASIN review
+- shipment visibility
+
+Receiving workflow:
+- warehouse verification
+- quantity verification
+- split shipment handling
+- exception handling
+
+Do not merge these workflows into one UI.
+
+---
+
+## Matching Engine Rule
+
+Video games are platform-specific.
+
+Never auto-match across systems.
+
+Examples:
+- Minecraft PS4 != Minecraft Switch
+- Madden Xbox != Madden PS5
+
+Matching logic must consider:
+- title
+- system/platform
+- ambiguity handling
+
+---
+
+# Frontend Philosophy
+
+Optimize for:
+- operational throughput
+- large monitors
+- dense information layouts
+- minimal clicks
+- keyboard efficiency
+
+Explicitly NOT:
+- consumer UX
+- card-heavy layouts
+- mobile-first design
