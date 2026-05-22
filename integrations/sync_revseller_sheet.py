@@ -9,6 +9,21 @@ import gspread
 from dotenv import load_dotenv
 from supabase import create_client
 
+try:
+    from system_detection import (
+        detect_system_from_title,
+        normalize_spaces,
+        normalize_system,
+        remove_system_terms,
+    )
+except ImportError:
+    from integrations.system_detection import (
+        detect_system_from_title,
+        normalize_spaces,
+        normalize_system,
+        remove_system_terms,
+    )
+
 
 ALLOW_REENRICHMENT = False
 PURCHASE_ITEMS_PAGE_SIZE = 1000
@@ -22,33 +37,6 @@ REQUIRED_REVSELLER_COLUMNS = {
     "Title",
     "BuyBox Price",
     "Today's Date",
-}
-
-
-SYSTEM_ALIASES = {
-    "nintendo switch 2": ["nintendo switch 2", "switch 2"],
-    "nintendo switch": ["nintendo switch", "switch"],
-    "nintendo 3ds": ["nintendo 3ds", "3ds"],
-    "nintendo ds": ["nintendo ds", "ds"],
-    "nintendo wii u": ["nintendo wii u", "wii u"],
-    "nintendo wii": ["nintendo wii", "wii"],
-    "gamecube": ["gamecube", "game cube", "nintendo gamecube"],
-    "nintendo 64": ["nintendo 64", "n64"],
-    "super nintendo": ["super nintendo", "snes"],
-    "nes": ["nes", "nintendo entertainment system"],
-    "playstation 5": ["playstation 5", "ps5"],
-    "playstation 4": ["playstation 4", "ps4"],
-    "playstation 3": ["playstation 3", "ps3"],
-    "playstation 2": ["playstation 2", "ps2"],
-    "playstation": ["playstation", "ps1", "psx"],
-    "psp": ["psp", "playstation portable"],
-    "playstation vita": ["playstation vita", "ps vita", "vita"],
-    "xbox series x": ["xbox series x", "series x"],
-    "xbox series s": ["xbox series s", "series s"],
-    "xbox one": ["xbox one", "xbone"],
-    "xbox 360": ["xbox 360", "360"],
-    "xbox": ["original xbox", "xbox"],
-    "pc": ["pc", "windows pc"],
 }
 
 
@@ -71,72 +59,6 @@ GENERIC_TITLE_WORDS = {
     "edition",
     "standard",
 }
-
-
-def normalize_spaces(value: str) -> str:
-    return re.sub(r"\s+", " ", value or "").strip()
-
-
-def normalize_system(value: str | None) -> str | None:
-    if not value:
-        return None
-
-    text = normalize_spaces(value.lower())
-    text = re.sub(r"[^a-z0-9]+", " ", text)
-    text = normalize_spaces(text)
-
-    for canonical, aliases in SYSTEM_ALIASES.items():
-        for alias in aliases:
-            alias_norm = normalize_spaces(re.sub(r"[^a-z0-9]+", " ", alias.lower()))
-            if text == alias_norm:
-                return canonical
-
-    for canonical, aliases in SYSTEM_ALIASES.items():
-        for alias in aliases:
-            alias_norm = normalize_spaces(re.sub(r"[^a-z0-9]+", " ", alias.lower()))
-            if re.search(rf"\b{re.escape(alias_norm)}\b", text):
-                return canonical
-
-    return None
-
-
-def detect_system_from_title(title: str | None) -> str | None:
-    if not title:
-        return None
-
-    text = title.lower()
-    matches = []
-
-    for canonical, aliases in SYSTEM_ALIASES.items():
-        for alias in aliases:
-            pattern = rf"(?<![a-z0-9]){re.escape(alias.lower())}(?![a-z0-9])"
-            if re.search(pattern, text):
-                matches.append((len(alias), canonical))
-
-    if not matches:
-        return None
-
-    matches.sort(reverse=True)
-    return matches[0][1]
-
-
-def remove_system_terms(text: str) -> str:
-    cleaned = text
-
-    aliases = []
-    for alias_list in SYSTEM_ALIASES.values():
-        aliases.extend(alias_list)
-
-    aliases.sort(key=len, reverse=True)
-
-    for alias in aliases:
-        cleaned = re.sub(
-            rf"(?<![a-z0-9]){re.escape(alias.lower())}(?![a-z0-9])",
-            " ",
-            cleaned,
-        )
-
-    return cleaned
 
 
 def normalize_title(title: str | None) -> str:
@@ -275,28 +197,13 @@ def build_revseller_indexes(rows):
 
         by_title[title_key].append(row)
 
-    latest_by_unique_title = {}
-
-    for title_key, title_rows in by_title.items():
-        systems = {
-            row["system"]
-            for row in title_rows
-            if row["system"]
-        }
-
-        if len(systems) == 1:
-            latest_by_unique_title[title_key] = max(
-                title_rows,
-                key=lambda row: row["row_date"],
-            )
-
     ambiguous_titles = {
         title_key
         for title_key, title_rows in by_title.items()
         if len({row["system"] for row in title_rows if row["system"]}) > 1
     }
 
-    return by_title_system, latest_by_unique_title, ambiguous_titles, by_title
+    return by_title_system, ambiguous_titles, by_title
 
 
 def get_supabase_client():
@@ -357,7 +264,6 @@ def update_purchase_item(supabase, item_id, asin, target_price):
 def match_purchase_item(
     item,
     by_title_system,
-    latest_by_unique_title,
     ambiguous_titles,
     by_title,
 ):
@@ -381,11 +287,6 @@ def match_purchase_item(
 
     if normalized_title in ambiguous_titles:
         return None, "skipped_ambiguous_system"
-
-    matched_row = latest_by_unique_title.get(normalized_title)
-
-    if matched_row:
-        return matched_row, "matched_unique_title_no_system"
 
     if normalized_title in by_title:
         return None, "skipped_no_detected_system"
@@ -436,13 +337,11 @@ def main():
 
     (
         by_title_system,
-        latest_by_unique_title,
         ambiguous_titles,
         by_title,
     ) = build_revseller_indexes(revseller_rows)
 
     print(f"RevSeller title+system keys: {len(by_title_system)}")
-    print(f"RevSeller unique-title keys: {len(latest_by_unique_title)}")
     print(f"RevSeller ambiguous title keys: {len(ambiguous_titles)}")
 
     purchase_items = fetch_purchase_items(supabase)
@@ -450,7 +349,6 @@ def main():
 
     counts = {
         "matched_with_system": 0,
-        "matched_unique_title_no_system": 0,
         "skipped_ambiguous_system": 0,
         "skipped_no_match": 0,
         "skipped_no_detected_system": 0,
@@ -464,7 +362,6 @@ def main():
         matched_row, status = match_purchase_item(
             item,
             by_title_system,
-            latest_by_unique_title,
             ambiguous_titles,
             by_title,
         )

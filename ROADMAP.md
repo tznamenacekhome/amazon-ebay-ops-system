@@ -56,3 +56,8 @@ Goals:
 - ambiguity handling
 - review queue
 - diagnostics expansion
+
+Completed foundation:
+- centralized backend system detection
+- strict title+system matching for ASIN enrichment
+- existing missing systems backfilled where recognized

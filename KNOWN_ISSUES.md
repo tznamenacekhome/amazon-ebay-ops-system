@@ -43,3 +43,8 @@ Recommended next mitigation:
 - surface system/platform prominently
 - rely on backend-provided matching diagnostics and confidence
 - never infer matching confidence in the frontend
+
+Current mitigation:
+- backend system detection has been centralized
+- eBay import/sync populates purchase_items.system from recognized title terms
+- RevSeller enrichment requires system-aware matching before ASIN assignment

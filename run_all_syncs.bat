@@ -1,5 +1,5 @@
 @echo off
-cd /d C:\users\timz\OneDrive\documents\github\amazon-ebay-ops-system
+cd /d C:\Dev\amazon-ebay-ops-system
 
 echo ================================ >> logs\scheduler.log
 echo Starting sync at %date% %time% >> logs\scheduler.log

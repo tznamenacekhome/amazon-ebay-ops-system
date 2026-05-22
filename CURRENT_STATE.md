@@ -55,6 +55,8 @@ Implemented:
 - diagnostics
 - ambiguity handling
 - system-aware matching
+- shared backend system detection
+- strict title+system RevSeller matching
 
 Current result:
 ~760 successful matches
@@ -85,3 +87,8 @@ web/app/page.tsx is now the composition layer.
 
 Primary remaining UI opportunity:
 iterate on ASIN review and operational throughput without merging receiving workflow concerns.
+
+Recent backend update:
+- eBay buyer purchase sync now populates purchase_items.system from recognized eBay title platform terms
+- existing empty systems were backfilled where recognized
+- RevSeller enrichment no longer applies unique-title matches without a recognized system

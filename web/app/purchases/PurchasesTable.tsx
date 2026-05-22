@@ -11,6 +11,7 @@ import {
   getEbayTitle,
   getPrimaryTitle,
   getShipmentStatus,
+  isDelivered,
   rowKey,
 } from "./utils";
 
@@ -48,7 +49,6 @@ export function PurchasesTable({
             <th className="w-[135px] px-3 py-2">Sell Price</th>
             <th className="w-[115px] px-3 py-2">Carrier</th>
             <th className="w-[145px] px-3 py-2">ETA</th>
-            <th className="w-[145px] px-3 py-2">Delivered</th>
             <th className="w-[145px] px-3 py-2">Status</th>
             <th className="w-[70px] px-3 py-2 text-center">Details</th>
           </tr>
@@ -57,13 +57,13 @@ export function PurchasesTable({
         <tbody>
           {loading ? (
             <tr>
-              <td className="px-3 py-6 text-center text-slate-500" colSpan={13}>
+              <td className="px-3 py-6 text-center text-slate-500" colSpan={12}>
                 Loading purchases...
               </td>
             </tr>
           ) : rows.length === 0 ? (
             <tr>
-              <td className="px-3 py-6 text-center text-slate-500" colSpan={13}>
+              <td className="px-3 py-6 text-center text-slate-500" colSpan={12}>
                 No purchases found.
               </td>
             </tr>
@@ -72,6 +72,10 @@ export function PurchasesTable({
               const key = rowKey(row);
               const primaryTitle = getPrimaryTitle(row);
               const ebayTitle = getEbayTitle(row);
+              const delivered = isDelivered(row);
+              const deliveryDate = delivered
+                ? row.delivered_date
+                : row.estimated_delivery_date;
               const priceValue =
                 priceDrafts[key] ??
                 (row.sell_price ?? row.target_price ?? "").toString();
@@ -157,11 +161,12 @@ export function PurchasesTable({
                   </td>
 
                   <td className="px-3 py-2">{row.carrier || ""}</td>
-                  <td className="whitespace-nowrap px-3 py-2">
-                    {formatDate(row.estimated_delivery_date)}
-                  </td>
-                  <td className="whitespace-nowrap px-3 py-2">
-                    {formatDate(row.delivered_date)}
+                  <td
+                    className={`whitespace-nowrap px-3 py-2 font-medium ${
+                      delivered ? "text-green-700" : "text-amber-700"
+                    }`}
+                  >
+                    {formatDate(deliveryDate)}
                   </td>
                   <td className="px-3 py-2">{getShipmentStatus(row)}</td>
 

@@ -8,6 +8,11 @@ from zoneinfo import ZoneInfo
 from dotenv import load_dotenv
 from supabase import create_client
 
+try:
+    from system_detection import detect_system_from_title, normalize_system
+except ImportError:
+    from integrations.system_detection import detect_system_from_title, normalize_system
+
 
 DAYS_BACK = 90
 LOCAL_TIMEZONE = "America/Los_Angeles"
@@ -552,13 +557,16 @@ def build_item_payload(
     existing_item=None,
 ):
     quantity = transaction_quantity(transaction)
+    title = transaction_title(transaction)
+    existing_system = normalize_system(existing_item.get("system")) if existing_item else None
+    detected_system = detect_system_from_title(title)
 
     return {
         "purchase_id": purchase_id,
         "asin": existing_item.get("asin") if existing_item else None,
         "supplier_sku": transaction_line_id(transaction),
-        "title": transaction_title(transaction),
-        "system": existing_item.get("system") if existing_item else None,
+        "title": title,
+        "system": existing_system or detected_system,
         "quantity": quantity,
         "unit_cost": transaction_unit_cost(transaction),
         "target_price": existing_item.get("target_price") if existing_item else None,
@@ -636,13 +644,16 @@ def build_unknown_item_payload(
     raw_order,
     existing_item=None,
 ):
+    title = (
+        existing_item.get("title")
+        if existing_item and existing_item.get("title")
+        else "Unknown eBay item"
+    )
+    existing_system = normalize_system(existing_item.get("system")) if existing_item else None
+
     return {
         "purchase_id": purchase_id,
-        "title": (
-            existing_item.get("title")
-            if existing_item and existing_item.get("title")
-            else "Unknown eBay item"
-        ),
+        "title": title,
         "quantity": (
             existing_item.get("quantity")
             if existing_item and existing_item.get("quantity")
@@ -651,7 +662,7 @@ def build_unknown_item_payload(
         "unit_cost": existing_item.get("unit_cost") if existing_item else None,
         "asin": existing_item.get("asin") if existing_item else None,
         "target_price": existing_item.get("target_price") if existing_item else None,
-        "system": existing_item.get("system") if existing_item else None,
+        "system": existing_system or detect_system_from_title(title),
         "current_status": (
             "delivered"
             if dates.get("actual_delivery_time")

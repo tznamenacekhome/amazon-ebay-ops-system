@@ -99,6 +99,9 @@ Matching logic must consider:
 - system/platform
 - ambiguity handling
 
+System/platform must be populated by backend import/enrichment logic.
+Frontend may display system, but must not infer it from titles.
+
 ---
 
 # Frontend Philosophy
