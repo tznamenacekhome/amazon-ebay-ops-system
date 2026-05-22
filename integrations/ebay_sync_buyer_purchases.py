@@ -11,6 +11,7 @@ from supabase import create_client
 
 DAYS_BACK = 90
 LOCAL_TIMEZONE = "America/Los_Angeles"
+SKIP_EXISTING_ORDERS_WITH_TRACKING = True
 
 load_dotenv()
 
@@ -234,10 +235,39 @@ def get_existing_purchase(order_id):
     return None
 
 
+def purchase_has_tracking(purchase_id):
+    shipment_result = (
+        supabase.table("inbound_shipments")
+        .select("inbound_shipment_id")
+        .eq("purchase_id", purchase_id)
+        .not_.is_("tracking_number", "null")
+        .limit(1)
+        .execute()
+    )
+
+    if shipment_result.data:
+        return True
+
+    item_result = (
+        supabase.table("purchase_items")
+        .select("item_id")
+        .eq("purchase_id", purchase_id)
+        .not_.is_("tracking_number", "null")
+        .limit(1)
+        .execute()
+    )
+
+    return bool(item_result.data)
+
+
 def get_existing_purchase_items(purchase_id):
     result = (
         supabase.table("purchase_items")
-        .select("item_id, title, quantity, supplier_sku, raw_import_json, created_at")
+        .select(
+            "item_id,title,quantity,supplier_sku,raw_import_json,created_at,"
+            "asin,target_price,system,tracking_number,condition,"
+            "supplier_listing_url,current_status"
+        )
         .eq("purchase_id", purchase_id)
         .order("created_at")
         .execute()
@@ -482,9 +512,7 @@ def upsert_inbound_shipment(purchase_id, tracking, dates):
 
         return shipment_id
 
-    result = supabase.table("inbound_shipments").insert(
-        payload
-    ).execute()
+    result = supabase.table("inbound_shipments").insert(payload).execute()
 
     return result.data[0]["inbound_shipment_id"]
 
@@ -515,26 +543,43 @@ def link_shipment_item(shipment_id, item_id, quantity):
     }).execute()
 
 
-def build_item_payload(purchase_id, transaction, tracking, dates, import_batch_id):
+def build_item_payload(
+    purchase_id,
+    transaction,
+    tracking,
+    dates,
+    import_batch_id,
+    existing_item=None,
+):
     quantity = transaction_quantity(transaction)
 
     return {
         "purchase_id": purchase_id,
-        "asin": None,
+        "asin": existing_item.get("asin") if existing_item else None,
         "supplier_sku": transaction_line_id(transaction),
         "title": transaction_title(transaction),
-        "system": None,
+        "system": existing_item.get("system") if existing_item else None,
         "quantity": quantity,
         "unit_cost": transaction_unit_cost(transaction),
-        "target_price": None,
+        "target_price": existing_item.get("target_price") if existing_item else None,
         "current_status": (
             "delivered"
             if dates.get("actual_delivery_time")
+            else existing_item.get("current_status", "ordered")
+            if existing_item
             else "ordered"
         ),
-        "condition": "unknown",
+        "condition": (
+            existing_item.get("condition")
+            if existing_item and existing_item.get("condition")
+            else "unknown"
+        ),
         "tracking_number": tracking.get("tracking_number"),
-        "supplier_listing_url": None,
+        "supplier_listing_url": (
+            existing_item.get("supplier_listing_url")
+            if existing_item
+            else None
+        ),
         "import_batch_id": import_batch_id,
         "raw_import_json": element_to_dict(transaction),
     }
@@ -549,18 +594,19 @@ def upsert_purchase_item(
     existing_items,
     used_item_ids,
 ):
+    matched_item = match_existing_item(
+        existing_items=existing_items,
+        transaction=transaction,
+        used_item_ids=used_item_ids,
+    )
+
     payload = build_item_payload(
         purchase_id=purchase_id,
         transaction=transaction,
         tracking=tracking,
         dates=dates,
         import_batch_id=import_batch_id,
-    )
-
-    matched_item = match_existing_item(
-        existing_items=existing_items,
-        transaction=transaction,
-        used_item_ids=used_item_ids,
+        existing_item=matched_item,
     )
 
     if matched_item:
@@ -574,9 +620,7 @@ def upsert_purchase_item(
 
         return item_id
 
-    item_result = supabase.table("purchase_items").insert(
-        payload
-    ).execute()
+    item_result = supabase.table("purchase_items").insert(payload).execute()
 
     item_id = item_result.data[0]["item_id"]
     used_item_ids.add(item_id)
@@ -584,13 +628,67 @@ def upsert_purchase_item(
     return item_id
 
 
+def build_unknown_item_payload(
+    purchase_id,
+    tracking,
+    dates,
+    import_batch_id,
+    raw_order,
+    existing_item=None,
+):
+    return {
+        "purchase_id": purchase_id,
+        "title": (
+            existing_item.get("title")
+            if existing_item and existing_item.get("title")
+            else "Unknown eBay item"
+        ),
+        "quantity": (
+            existing_item.get("quantity")
+            if existing_item and existing_item.get("quantity")
+            else 1
+        ),
+        "unit_cost": existing_item.get("unit_cost") if existing_item else None,
+        "asin": existing_item.get("asin") if existing_item else None,
+        "target_price": existing_item.get("target_price") if existing_item else None,
+        "system": existing_item.get("system") if existing_item else None,
+        "current_status": (
+            "delivered"
+            if dates.get("actual_delivery_time")
+            else existing_item.get("current_status", "ordered")
+            if existing_item
+            else "ordered"
+        ),
+        "condition": (
+            existing_item.get("condition")
+            if existing_item and existing_item.get("condition")
+            else "unknown"
+        ),
+        "tracking_number": tracking.get("tracking_number"),
+        "supplier_listing_url": (
+            existing_item.get("supplier_listing_url")
+            if existing_item
+            else None
+        ),
+        "import_batch_id": import_batch_id,
+        "raw_import_json": raw_order,
+    }
+
+
 def upsert_purchase(order, import_batch_id):
     order_id = child_text(order, "OrderID")
 
     if not order_id:
-        return "skipped"
+        return "skipped_missing_order_id"
 
     existing_purchase = get_existing_purchase(order_id)
+
+    if (
+        SKIP_EXISTING_ORDERS_WITH_TRACKING
+        and existing_purchase
+        and purchase_has_tracking(existing_purchase["purchase_id"])
+    ):
+        return "skipped_existing_with_tracking"
 
     tracking = extract_tracking(order)
     dates = extract_delivery_dates(order)
@@ -611,9 +709,7 @@ def upsert_purchase(order, import_batch_id):
     if existing_purchase:
         purchase_id = existing_purchase["purchase_id"]
 
-        supabase.table("purchases").update(
-            purchase_payload
-        ).eq(
+        supabase.table("purchases").update(purchase_payload).eq(
             "purchase_id",
             purchase_id
         ).execute()
@@ -630,7 +726,7 @@ def upsert_purchase(order, import_batch_id):
     shipment_id = upsert_inbound_shipment(
         purchase_id=purchase_id,
         tracking=tracking,
-        dates=dates
+        dates=dates,
     )
 
     existing_items = get_existing_purchase_items(purchase_id)
@@ -639,25 +735,19 @@ def upsert_purchase(order, import_batch_id):
     transactions = extract_transactions(order)
 
     if not transactions:
-        item_payload = {
-            "purchase_id": purchase_id,
-            "title": "Unknown eBay item",
-            "quantity": 1,
-            "unit_cost": None,
-            "current_status": (
-                "delivered"
-                if dates.get("actual_delivery_time")
-                else "ordered"
-            ),
-            "condition": "unknown",
-            "tracking_number": tracking.get("tracking_number"),
-            "supplier_listing_url": None,
-            "import_batch_id": import_batch_id,
-            "raw_import_json": raw_order,
-        }
+        existing_item = existing_items[0] if existing_items else None
 
-        if existing_items:
-            item_id = existing_items[0]["item_id"]
+        item_payload = build_unknown_item_payload(
+            purchase_id=purchase_id,
+            tracking=tracking,
+            dates=dates,
+            import_batch_id=import_batch_id,
+            raw_order=raw_order,
+            existing_item=existing_item,
+        )
+
+        if existing_item:
+            item_id = existing_item["item_id"]
             supabase.table("purchase_items").update(item_payload).eq(
                 "item_id",
                 item_id
@@ -671,7 +761,7 @@ def upsert_purchase(order, import_batch_id):
         link_shipment_item(
             shipment_id=shipment_id,
             item_id=item_id,
-            quantity=1
+            quantity=item_payload["quantity"],
         )
 
         return "updated" if existing_purchase else "inserted"
@@ -692,7 +782,7 @@ def upsert_purchase(order, import_batch_id):
         link_shipment_item(
             shipment_id=shipment_id,
             item_id=item_id,
-            quantity=quantity
+            quantity=quantity,
         )
 
     return "updated" if existing_purchase else "inserted"
@@ -700,6 +790,7 @@ def upsert_purchase(order, import_batch_id):
 
 def main():
     print("Starting eBay buyer purchase sync...")
+    print(f"SKIP_EXISTING_ORDERS_WITH_TRACKING: {SKIP_EXISTING_ORDERS_WITH_TRACKING}")
 
     access_token = get_access_token()
     orders = get_buyer_orders(access_token)
@@ -710,7 +801,9 @@ def main():
 
     inserted = 0
     updated = 0
-    skipped = 0
+    skipped_existing_with_tracking = 0
+    skipped_missing_order_id = 0
+    skipped_other = 0
 
     for index, order in enumerate(orders, start=1):
         result = upsert_purchase(order, import_batch_id)
@@ -719,8 +812,12 @@ def main():
             inserted += 1
         elif result == "updated":
             updated += 1
+        elif result == "skipped_existing_with_tracking":
+            skipped_existing_with_tracking += 1
+        elif result == "skipped_missing_order_id":
+            skipped_missing_order_id += 1
         else:
-            skipped += 1
+            skipped_other += 1
 
         if index % 25 == 0:
             print(f"Processed {index} of {len(orders)} orders...")
@@ -729,7 +826,9 @@ def main():
     print("eBay buyer purchase sync complete.")
     print(f"Inserted: {inserted}")
     print(f"Updated: {updated}")
-    print(f"Skipped: {skipped}")
+    print(f"Skipped existing with tracking: {skipped_existing_with_tracking}")
+    print(f"Skipped missing order id: {skipped_missing_order_id}")
+    print(f"Skipped other: {skipped_other}")
 
 
 if __name__ == "__main__":

@@ -10,7 +10,7 @@ from dotenv import load_dotenv
 from supabase import create_client
 
 
-ALLOW_REENRICHMENT = True
+ALLOW_REENRICHMENT = False
 PURCHASE_ITEMS_PAGE_SIZE = 1000
 DIAGNOSTIC_OUTPUT_PATH = f"data/revseller_enrichment_diagnostics_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
 
