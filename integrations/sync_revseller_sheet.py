@@ -1,5 +1,6 @@
 import os
 import re
+import csv
 from datetime import datetime, date
 from decimal import Decimal, InvalidOperation
 from collections import defaultdict
@@ -11,6 +12,7 @@ from supabase import create_client
 
 ALLOW_REENRICHMENT = True
 PURCHASE_ITEMS_PAGE_SIZE = 1000
+DIAGNOSTIC_OUTPUT_PATH = "revseller_enrichment_diagnostics.csv"
 
 REVSELLER_SHEET_ID = None
 REVSELLER_WORKSHEET_NAME = None
@@ -391,6 +393,30 @@ def match_purchase_item(
     return None, "skipped_no_match"
 
 
+def write_diagnostics(diagnostic_rows):
+    if not diagnostic_rows:
+        print("Diagnostic CSV skipped: no diagnostic rows.")
+        return
+
+    fieldnames = [
+        "item_id",
+        "status",
+        "purchase_item_title",
+        "purchase_item_system",
+        "detected_system",
+        "normalized_title",
+        "existing_asin",
+        "existing_target_price",
+    ]
+
+    with open(DIAGNOSTIC_OUTPUT_PATH, "w", newline="", encoding="utf-8") as csvfile:
+        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+        writer.writeheader()
+        writer.writerows(diagnostic_rows)
+
+    print(f"Diagnostic CSV written: {DIAGNOSTIC_OUTPUT_PATH}")
+
+
 def main():
     global REVSELLER_SHEET_ID
     global REVSELLER_WORKSHEET_NAME
@@ -432,6 +458,8 @@ def main():
         "errors": 0,
     }
 
+    diagnostic_rows = []
+
     for item in purchase_items:
         matched_row, status = match_purchase_item(
             item,
@@ -444,6 +472,20 @@ def main():
         counts[status] += 1
 
         if not matched_row:
+            raw_title = item.get("title") or ""
+            diagnostic_rows.append(
+                {
+                    "item_id": item.get("item_id"),
+                    "status": status,
+                    "purchase_item_title": raw_title,
+                    "purchase_item_system": item.get("system"),
+                    "detected_system": normalize_system(item.get("system"))
+                    or detect_system_from_title(raw_title),
+                    "normalized_title": normalize_title(raw_title),
+                    "existing_asin": item.get("asin"),
+                    "existing_target_price": item.get("target_price"),
+                }
+            )
             continue
 
         try:
@@ -457,6 +499,8 @@ def main():
         except Exception as exc:
             counts["errors"] += 1
             print(f"ERROR updating item_id={item.get('item_id')}: {exc}")
+
+    write_diagnostics(diagnostic_rows)
 
     print("\nRevSeller enrichment complete.")
     print("--------------------------------")
