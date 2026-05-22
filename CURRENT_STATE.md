@@ -8,7 +8,7 @@ Last Updated: 2026-05-22
 |---|---|
 | eBay ingestion | Mature |
 | RevSeller enrichment | Functional but evolving |
-| Purchases UI | Operational but unstable |
+| Purchases UI | Operational and componentized |
 | Receiving workflow | Designed only |
 | Shipment enrichment | Partial |
 | Sync orchestration | Mature |
@@ -58,3 +58,30 @@ Implemented:
 
 Current result:
 ~760 successful matches
+
+---
+
+# Current Frontend State
+
+## Purchases UI
+
+Status: OPERATIONAL / COMPONENTIZED
+
+Implemented:
+- purchases workspace in Next.js / React
+- API-route-only data access
+- purchase table extraction
+- detail drawer extraction
+- editable price cell extraction
+- filter bar extraction
+- metric extraction
+- usePurchases hook for loading, save status, errors, and API mutations
+- usePurchaseFilters hook for filter state and filtered rows
+- purchaseStats helper for dashboard metrics
+- local documentation in web/app/purchases/README.md
+
+Current architecture:
+web/app/page.tsx is now the composition layer.
+
+Primary remaining UI opportunity:
+iterate on ASIN review and operational throughput without merging receiving workflow concerns.

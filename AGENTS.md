@@ -19,9 +19,9 @@ The system is evolving from a collection of automation scripts into a full opera
 # Core Architecture
 
 Python Integrations
-→ Supabase PostgreSQL
-→ Next.js API Routes
-→ React Frontend
+-> Supabase PostgreSQL
+-> Next.js API Routes
+-> React Frontend
 
 Supabase is the operational source of truth.
 
@@ -29,8 +29,25 @@ Frontend never talks directly to Supabase.
 
 Pattern:
 Frontend
-→ API Routes
-→ Supabase
+-> API Routes
+-> Supabase
+
+---
+
+# Current Frontend Structure
+
+Purchases UI lives under:
+- web/app/page.tsx
+- web/app/purchases/
+
+Current pattern:
+- page.tsx composes the workspace and owns UI-local workflow state
+- usePurchases owns purchase loading, save status, errors, and API mutations
+- usePurchaseFilters owns filter state and filtered row derivation
+- purchaseStats owns dashboard metric calculation
+- table, filters, metrics, price cell, and drawer are separate components
+
+Do not reintroduce large JSX blocks into page.tsx.
 
 ---
 

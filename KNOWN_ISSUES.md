@@ -4,19 +4,26 @@
 
 ## page.tsx Monolith
 
-Status: ACTIVE
+Status: RESOLVED / MONITOR
 
 File:
 web/app/page.tsx
 
-Issues:
-- large JSX blocks
-- difficult maintenance
-- truncation corruption risk
-- alignment regressions
+Resolution:
+- extracted purchases table
+- extracted detail drawer
+- extracted editable price cell
+- extracted filter bar
+- extracted metrics
+- moved purchase API state into usePurchases
+- moved filtering into usePurchaseFilters
+- moved metric calculation into purchaseStats
 
-Recommended fix:
-component extraction
+Remaining risk:
+Future UI work could reintroduce large JSX blocks or mixed responsibilities.
+
+Recommended guardrail:
+Keep page.tsx focused on composition and UI-local workflow state.
 
 ---
 
@@ -30,3 +37,9 @@ same game titles exist across multiple systems.
 Risks:
 - incorrect ASIN assignment
 - incorrect sell price enrichment
+
+Recommended next mitigation:
+- build an explicit ASIN review workflow in the purchases UI
+- surface system/platform prominently
+- rely on backend-provided matching diagnostics and confidence
+- never infer matching confidence in the frontend
