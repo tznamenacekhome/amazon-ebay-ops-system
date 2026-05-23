@@ -186,6 +186,10 @@ Constraints:
 - keep system/platform handling explicit and backend-owned
 - automated catalog search must return candidates for review before any auto-assignment
 
+Recent progress:
+- created a 100-row missing-ASIN Google Sheet training set
+- applied first-pass rules for condition/shipping/media clutter, publisher/studio noise, unicode punctuation, and the `Wii Play` title special case
+
 ---
 
 ## RevSeller Matching Improvements
@@ -200,6 +204,8 @@ Goals:
 Completed foundation:
 - centralized backend system detection
 - strict title+system matching for ASIN enrichment
+- unique compact same-system fallback for spacing/compound-word variants
+- manual UI match corrections can become reusable match memory
 - existing missing systems backfilled where recognized
 - canonical system display names normalized
 - matched Amazon/RevSeller titles stored separately from eBay titles

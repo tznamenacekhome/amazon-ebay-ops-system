@@ -54,12 +54,6 @@ Purchases table display rules:
 - ETA shows carrier estimated delivery when available, otherwise eBay estimated delivery for undelivered items, and delivered date when delivered
 - carrier ETA dates are displayed as date-only values to avoid timezone day shifts
 
-Purchases detail drawer display rules:
-- Status must use the same derived operational status as the table
-- Carrier Status must show only carrier/shipment status fields, never purchase item current_status
-- ETA appears next to Order Date and uses the same display date as the table
-- when ASIN is missing, Amazon Title displays "--"; the eBay title remains visible separately
-
 Do not reintroduce large JSX blocks into page.tsx.
 
 ---

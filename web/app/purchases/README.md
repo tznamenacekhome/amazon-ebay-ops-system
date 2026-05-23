@@ -25,12 +25,22 @@ This folder contains the purchases workflow UI.
 - `Carrier Status` shows only carrier/shipment status fields, never item `current_status`.
 - `ETA` appears next to `Order Date` and uses the same display-date logic as the table.
 - When ASIN is missing, `Amazon Title` displays `--`; the eBay supplier title remains visible separately.
+- ASIN and sell price are edited together with one drawer save action.
 
 ## Title Cleaning
 
 - Amazon search links use `cleanMarketplaceTitleForSearch`.
 - The Python integration mirror is `clean_marketplace_title_for_search`.
+- Matching-key helpers live in `matchingKeys.ts`.
 - Keep frontend search-link cleaning aligned with backend matching/search automation cleaning.
+- Title-cleaning spreadsheet notes can define broad cleanup rules even when repeated rows are not manually corrected one by one.
+
+## Manual Match Propagation
+
+- Manual ASIN and sell-price saves go through `/api/purchases`.
+- The API propagates corrections to other rows with the same normalized title and system.
+- Existing different ASINs are not overwritten.
+- Manual match memory is written to `manual_item_matches` when the database migration has been applied.
 
 ## Operational Rules
 

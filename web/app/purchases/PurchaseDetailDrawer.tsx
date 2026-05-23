@@ -15,22 +15,27 @@ import {
 type PurchaseDetailDrawerProps = {
   row: PurchaseRow;
   drawerAsin: string;
+  drawerSellPrice: string;
   savingKey: string | null;
   onAsinChange: (value: string) => void;
-  onSaveAsin: () => void;
+  onSellPriceChange: (value: string) => void;
+  onSave: () => void;
   onClose: () => void;
 };
 
 export function PurchaseDetailDrawer({
   row,
   drawerAsin,
+  drawerSellPrice,
   savingKey,
   onAsinChange,
-  onSaveAsin,
+  onSellPriceChange,
+  onSave,
   onClose,
 }: PurchaseDetailDrawerProps) {
   const operationalStatus = getOperationalStatus(row);
   const drawerAmazonTitle = row.asin ? getPrimaryTitle(row) : "--";
+  const isSaving = savingKey === rowKey(row);
 
   return (
     <div className="fixed inset-0 z-40">
@@ -79,25 +84,40 @@ export function PurchaseDetailDrawer({
           </section>
 
           <section className="rounded-xl border border-slate-200 p-4">
-            <label className="text-xs font-medium uppercase tracking-wide text-slate-500">
-              ASIN
-            </label>
+            <div className="grid gap-3">
+              <label className="grid gap-1 text-xs font-medium uppercase tracking-wide text-slate-500">
+                ASIN
+                <input
+                  value={drawerAsin}
+                  onChange={(event) => onAsinChange(event.target.value)}
+                  className="rounded-lg border border-slate-300 px-3 py-2 text-sm font-normal normal-case tracking-normal text-slate-900"
+                  placeholder="Enter ASIN"
+                />
+              </label>
 
-            <div className="mt-2 flex gap-2">
-              <input
-                value={drawerAsin}
-                onChange={(event) => onAsinChange(event.target.value)}
-                className="flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm"
-                placeholder="Enter ASIN"
-              />
+              <label className="grid gap-1 text-xs font-medium uppercase tracking-wide text-slate-500">
+                Sell Price
+                <div className="relative">
+                  <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm font-normal normal-case tracking-normal text-slate-500">
+                    $
+                  </span>
+                  <input
+                    value={drawerSellPrice}
+                    onChange={(event) => onSellPriceChange(event.target.value)}
+                    className="w-full rounded-lg border border-slate-300 py-2 pl-7 pr-3 text-sm font-normal normal-case tracking-normal text-slate-900"
+                    inputMode="decimal"
+                    placeholder="0.00"
+                  />
+                </div>
+              </label>
 
               <button
-                onClick={onSaveAsin}
-                disabled={savingKey === rowKey(row)}
-                className="inline-flex items-center gap-2 rounded-lg bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-60"
+                onClick={onSave}
+                disabled={isSaving}
+                className="inline-flex items-center justify-center gap-2 rounded-lg bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-60"
               >
                 <Save className="h-4 w-4" />
-                Save
+                {isSaving ? "Saving" : "Save"}
               </button>
             </div>
           </section>
@@ -109,10 +129,6 @@ export function PurchaseDetailDrawer({
             <Detail label="System" value={row.system || ""} />
             <Detail label="Quantity" value={String(row.quantity ?? "")} />
             <Detail label="Unit Cost" value={formatMoney(row.unit_cost)} />
-            <Detail
-              label="Sell Price"
-              value={formatMoney(row.sell_price ?? row.target_price)}
-            />
             <Detail label="Carrier" value={row.carrier || ""} />
             <Detail label="Delivered" value={formatDate(row.delivered_date)} />
             <Detail label="Status" value={operationalStatus.label} />

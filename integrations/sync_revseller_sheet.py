@@ -43,7 +43,6 @@ REQUIRED_REVSELLER_COLUMNS = {
 
 
 GENERIC_TITLE_WORDS = {
-    "new",
     "brand",
     "sealed",
     "factory",
@@ -61,6 +60,10 @@ GENERIC_TITLE_WORDS = {
     "edition",
     "standard",
 }
+
+
+def compact_title_key(title: str | None) -> str:
+    return re.sub(r"[^a-z0-9]+", "", title or "")
 
 
 def normalize_title(title: str | None) -> str:
@@ -182,9 +185,53 @@ def load_revseller_rows():
     return cleaned_rows
 
 
+def load_manual_match_rows(supabase):
+    try:
+        response = (
+            supabase.table("manual_item_matches")
+            .select(
+                "asin,amazon_title,source_title,normalized_title,compact_title,"
+                "system,target_price,updated_at"
+            )
+            .execute()
+        )
+    except Exception as exc:
+        print(f"Manual match memory skipped: {exc}")
+        return []
+
+    rows = []
+
+    for row in response.data or []:
+        asin = normalize_spaces(str(row.get("asin") or ""))
+        normalized_title = normalize_spaces(str(row.get("normalized_title") or ""))
+        system = normalize_system(row.get("system"))
+
+        if not asin or not normalized_title or not system:
+            continue
+
+        raw_title = normalize_spaces(
+            str(row.get("amazon_title") or row.get("source_title") or normalized_title)
+        )
+
+        rows.append(
+            {
+                "asin": asin,
+                "raw_title": raw_title,
+                "normalized_title": normalized_title,
+                "system": system,
+                "target_price": parse_money(row.get("target_price")),
+                "row_date": date.max,
+                "source": "manual_ui",
+            }
+        )
+
+    return rows
+
+
 def build_revseller_indexes(rows):
     by_title_system = {}
     by_title = defaultdict(list)
+    compact_rows_by_title_system = defaultdict(list)
 
     for row in rows:
         title_key = row["normalized_title"]
@@ -197,6 +244,11 @@ def build_revseller_indexes(rows):
             if existing is None or row["row_date"] >= existing["row_date"]:
                 by_title_system[compound_key] = row
 
+            compact_key = compact_title_key(title_key)
+
+            if compact_key:
+                compact_rows_by_title_system[(compact_key, system_key)].append(row)
+
         by_title[title_key].append(row)
 
     ambiguous_titles = {
@@ -205,7 +257,28 @@ def build_revseller_indexes(rows):
         if len({row["system"] for row in title_rows if row["system"]}) > 1
     }
 
-    return by_title_system, ambiguous_titles, by_title
+    by_compact_title_system = {}
+    ambiguous_compact_title_system = set()
+
+    for compound_key, compact_rows in compact_rows_by_title_system.items():
+        unique_asins = {row["asin"] for row in compact_rows}
+
+        if len(unique_asins) > 1:
+            ambiguous_compact_title_system.add(compound_key)
+            continue
+
+        by_compact_title_system[compound_key] = max(
+            compact_rows,
+            key=lambda row: row["row_date"],
+        )
+
+    return (
+        by_title_system,
+        ambiguous_titles,
+        by_title,
+        by_compact_title_system,
+        ambiguous_compact_title_system,
+    )
 
 
 def get_supabase_client():
@@ -269,6 +342,8 @@ def match_purchase_item(
     by_title_system,
     ambiguous_titles,
     by_title,
+    by_compact_title_system,
+    ambiguous_compact_title_system,
 ):
     raw_title = item.get("title") or ""
     normalized_title = normalize_title(raw_title)
@@ -286,6 +361,17 @@ def match_purchase_item(
         if matched_row:
             return matched_row, "matched_with_system"
 
+        compact_key = compact_title_key(normalized_title)
+        compact_compound_key = (compact_key, detected_system)
+
+        if compact_compound_key in ambiguous_compact_title_system:
+            return None, "skipped_ambiguous_compact_system"
+
+        matched_row = by_compact_title_system.get(compact_compound_key)
+
+        if matched_row:
+            return matched_row, "matched_compact_with_system"
+
         return None, "skipped_no_match"
 
     if normalized_title in ambiguous_titles:
@@ -301,6 +387,8 @@ def write_diagnostics(diagnostic_rows):
     if not diagnostic_rows:
         print("Diagnostic CSV skipped: no diagnostic rows.")
         return
+
+    os.makedirs(os.path.dirname(DIAGNOSTIC_OUTPUT_PATH), exist_ok=True)
 
     fieldnames = [
         "item_id",
@@ -337,22 +425,34 @@ def main():
 
     revseller_rows = load_revseller_rows()
     print(f"RevSeller usable rows loaded: {len(revseller_rows)}")
+    manual_match_rows = load_manual_match_rows(supabase)
+    print(f"Manual match rows loaded: {len(manual_match_rows)}")
+    match_rows = revseller_rows + manual_match_rows
 
     (
         by_title_system,
         ambiguous_titles,
         by_title,
-    ) = build_revseller_indexes(revseller_rows)
+        by_compact_title_system,
+        ambiguous_compact_title_system,
+    ) = build_revseller_indexes(match_rows)
 
     print(f"RevSeller title+system keys: {len(by_title_system)}")
     print(f"RevSeller ambiguous title keys: {len(ambiguous_titles)}")
+    print(f"RevSeller compact title+system keys: {len(by_compact_title_system)}")
+    print(
+        "RevSeller ambiguous compact title+system keys: "
+        f"{len(ambiguous_compact_title_system)}"
+    )
 
     purchase_items = fetch_purchase_items(supabase)
     print(f"Purchase items scanned: {len(purchase_items)}")
 
     counts = {
         "matched_with_system": 0,
+        "matched_compact_with_system": 0,
         "skipped_ambiguous_system": 0,
+        "skipped_ambiguous_compact_system": 0,
         "skipped_no_match": 0,
         "skipped_no_detected_system": 0,
         "updated": 0,
@@ -367,6 +467,8 @@ def main():
             by_title_system,
             ambiguous_titles,
             by_title,
+            by_compact_title_system,
+            ambiguous_compact_title_system,
         )
 
         counts[status] += 1

@@ -98,7 +98,9 @@ Implemented:
 - ambiguity handling
 - system-aware matching
 - shared backend system detection
-- strict title+system RevSeller matching
+- strict title+system RevSeller matching with a unique compact same-system fallback
+- manual UI ASIN/price corrections propagate to matching purchase items
+- manual match memory is supported through manual_item_matches once the SQL migration is applied
 - reusable marketplace title cleaner before RevSeller normalized matching
 
 Current result:
@@ -147,3 +149,4 @@ Recent backend update:
 - system names were normalized to operator-facing display values
 - purchase_items.amazon_title was added and backfilled from RevSeller where ASIN/title data was available
 - Amazon search links and RevSeller matching now share marketplace-title cleaning semantics
+- marketplace-title cleaning was refined from the 100-row missing-ASIN training sheet

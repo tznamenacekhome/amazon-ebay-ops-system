@@ -37,19 +37,57 @@ const LEADING_SYSTEM_ALIASES = [
 ];
 
 const NOISE_PHRASES = [
-  "new:",
-  "brand new sealed",
-  "brand new / sealed",
-  "brand new/sealed",
   "brand new factory sealed read",
   "brand new factory sealed",
-  "factory sealed",
-  "free shipping",
-  "fast shipping",
-  "ships fast",
-  "please read",
+  "complete with manual tested works",
+  "brand new and sealed",
+  "multiplayer music game",
+  "brand new / sealed",
+  "brand new/sealed",
+  "brand new sealed",
+  "complete video game",
+  "free us shipping",
+  "complete with manual",
+  "action & adventure",
+  "new and sealed",
+  "new & sealed",
   "read description",
+  "factory sealed",
+  "fast shipping",
+  "fast slipping",
+  "still sealed",
+  "sealed new",
+  "new unopened",
+  "1st printing",
+  "first printing",
+  "tested works",
+  "video game",
+  "electronic arts",
+  "warner bros multiplayer",
+  "free shipping",
+  "please read",
   "new sealed",
+  "ships fast",
+  "dvd-rom",
+  "dvd rom",
+  "2k games",
+  "firefly studios",
+  "ea / dice",
+  "ntsc-u/c",
+  "ntsc u c",
+  "action adventure",
+  "us version",
+  "us edition",
+  "game esrb",
+  "brand new",
+  "unopened",
+  "ea dice",
+  "read a10",
+  "slipping",
+  "new:",
+  "dvd",
+  "esrb",
+  "promo",
 ];
 
 const NOISE_WORDS = new Set([
@@ -57,17 +95,22 @@ const NOISE_WORDS = new Set([
   "factory",
   "fast",
   "free",
-  "new",
   "read",
   "sealed",
   "shipping",
   "ships",
+  "microsoft",
+  "sony",
 ]);
 
+const TRIM_NOISE_WORDS = NOISE_WORDS;
+
 export function cleanMarketplaceTitleForSearch(title: string) {
+  if (/\bwii\s+play\b/i.test(title)) return "Wii Play";
+
   const titleWithCleanParentheticals = removeParentheticalReleaseYears(title);
-  const titleWithoutNoise = trimNoiseWords(
-    removeNoisePhrases(titleWithCleanParentheticals)
+  const titleWithoutNoise = removeNoiseWords(
+    trimNoiseWords(removeNoisePhrases(titleWithCleanParentheticals))
   );
   const { title: cleanedTitle, leadingSystems } =
     moveLeadingSystemTerms(titleWithoutNoise);
@@ -102,15 +145,22 @@ function removeParentheticalReleaseYears(value: string) {
 function trimNoiseWords(value: string) {
   const words = cleanupSearchText(value).split(" ");
 
-  while (words.length > 0 && NOISE_WORDS.has(words[0].toLowerCase())) {
+  while (words.length > 0 && TRIM_NOISE_WORDS.has(words[0].toLowerCase())) {
     words.shift();
   }
 
-  while (words.length > 0 && NOISE_WORDS.has(words[words.length - 1].toLowerCase())) {
+  while (words.length > 0 && TRIM_NOISE_WORDS.has(words[words.length - 1].toLowerCase())) {
     words.pop();
   }
 
   return words.join(" ");
+}
+
+function removeNoiseWords(value: string) {
+  return cleanupSearchText(value)
+    .split(" ")
+    .filter((word) => !NOISE_WORDS.has(word.toLowerCase()))
+    .join(" ");
 }
 
 function moveLeadingSystemTerms(value: string) {
@@ -144,10 +194,10 @@ function moveLeadingSystemTerms(value: string) {
 
 function cleanupSearchText(value: string) {
   return value
-    .replace(/[()[\]{}]/g, " ")
-    .replace(/[.,!?]+/g, " ")
+    .replace(/[()[\]{}"]/g, " ")
+    .replace(/[.,!?*]+/g, " ")
     .replace(/\s*[/|]\s*/g, " ")
-    .replace(/\s*[-:]\s*/g, " ")
+    .replace(/\s*[-:\u2013\u2014\u2022]\s*/g, " ")
     .replace(/\s+/g, " ")
     .trim();
 }

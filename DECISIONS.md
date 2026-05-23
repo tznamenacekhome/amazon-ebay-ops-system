@@ -88,12 +88,31 @@ Names:
 Reason:
 eBay titles often include condition, shipping, punctuation, release years, and platform placement patterns that should be normalized consistently before search or fuzzy matching.
 
+Training rule:
+Corrections and notes from the title-cleaning training sheet may establish broad rules. A note such as "remove Microsoft" applies to later rows with the same noise pattern even if those rows were not individually edited.
+
 Current use:
 - purchases UI Search Amazon links
 - RevSeller enrichment normalized title preprocessing
 
 Future use:
 Amazon catalog search automation should use this cleaner before searching for candidate ASINs.
+
+---
+
+## Manual Matches Become Reusable Match Memory
+
+Decision:
+When an operator manually corrects an ASIN or target sell price in the purchases UI, the backend propagates that correction to other purchase_items with the same normalized title and system, and stores the correction as reusable match memory.
+
+Reason:
+Manual review should improve future automation. If a game is missing from the RevSeller sheet, correcting it once should help both current duplicate purchases and later purchases of the same title/system.
+
+Rules:
+- never propagate across systems
+- do not overwrite rows with a different existing ASIN
+- use the same normalized title semantics as RevSeller matching
+- store reusable corrections in manual_item_matches
 
 ---
 

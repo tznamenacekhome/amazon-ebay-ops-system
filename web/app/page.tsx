@@ -36,6 +36,7 @@ export default function PurchasesPage() {
 
   const [selectedRow, setSelectedRow] = useState<PurchaseRow | null>(null);
   const [drawerAsin, setDrawerAsin] = useState("");
+  const [drawerSellPrice, setDrawerSellPrice] = useState("");
   const [priceDrafts, setPriceDrafts] = useState<Record<string, string>>({});
 
   const stats = useMemo(() => {
@@ -73,15 +74,26 @@ export default function PurchasesPage() {
     });
   }
 
-  async function saveDrawerAsin() {
+  async function saveDrawerMatch() {
     if (!selectedRow) return;
+
+    const parsedSellPrice =
+      drawerSellPrice.trim() === "" ? null : Number(drawerSellPrice);
+
+    if (drawerSellPrice.trim() !== "" && Number.isNaN(parsedSellPrice)) {
+      setError("Sell price must be a valid number.");
+      return;
+    }
 
     const updatedRow = await patchPurchase(selectedRow, {
       asin: drawerAsin.trim().toUpperCase() || null,
+      sell_price: parsedSellPrice,
+      target_price: parsedSellPrice,
     });
 
     if (updatedRow) {
       setSelectedRow(updatedRow);
+      setDrawerSellPrice(formatPriceDraft(updatedRow.sell_price ?? updatedRow.target_price));
     }
   }
 
@@ -95,6 +107,7 @@ export default function PurchasesPage() {
   function openDetails(row: PurchaseRow) {
     setSelectedRow(row);
     setDrawerAsin(row.asin || "");
+    setDrawerSellPrice(formatPriceDraft(row.sell_price ?? row.target_price));
   }
 
   return (
@@ -147,12 +160,22 @@ export default function PurchasesPage() {
         <PurchaseDetailDrawer
           row={selectedRow}
           drawerAsin={drawerAsin}
+          drawerSellPrice={drawerSellPrice}
           savingKey={savingKey}
           onAsinChange={setDrawerAsin}
-          onSaveAsin={saveDrawerAsin}
+          onSellPriceChange={setDrawerSellPrice}
+          onSave={saveDrawerMatch}
           onClose={() => setSelectedRow(null)}
         />
       )}
     </main>
   );
+}
+
+function formatPriceDraft(value?: number | null) {
+  if (value === null || value === undefined || Number.isNaN(Number(value))) {
+    return "";
+  }
+
+  return Number(value).toFixed(2);
 }

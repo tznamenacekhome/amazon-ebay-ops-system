@@ -41,18 +41,57 @@ LEADING_SYSTEM_ALIASES = [
 
 NOISE_PHRASES = [
     "new:",
+    "brand new and sealed",
+    "brand new & sealed",
     "brand new sealed",
     "brand new / sealed",
     "brand new/sealed",
     "brand new factory sealed read",
     "brand new factory sealed",
+    "brand new",
     "factory sealed",
+    "new and sealed",
+    "new & sealed",
     "free shipping",
+    "free us shipping",
     "fast shipping",
+    "fast slipping",
     "ships fast",
     "please read",
     "read description",
     "new sealed",
+    "still sealed",
+    "sealed new",
+    "new unopened",
+    "1st printing",
+    "first printing",
+    "unopened",
+    "complete with manual tested works",
+    "complete with manual",
+    "tested works",
+    "complete video game",
+    "multiplayer music game",
+    "video game",
+    "dvd-rom",
+    "dvd rom",
+    "dvd",
+    "2k games",
+    "electronic arts",
+    "firefly studios",
+    "warner bros multiplayer",
+    "ea / dice",
+    "ea dice",
+    "ntsc-u/c",
+    "ntsc u c",
+    "action & adventure",
+    "action adventure",
+    "us version",
+    "us edition",
+    "game esrb",
+    "esrb",
+    "promo",
+    "read a10",
+    "slipping",
 ]
 
 NOISE_WORDS = {
@@ -60,12 +99,15 @@ NOISE_WORDS = {
     "factory",
     "fast",
     "free",
-    "new",
     "read",
     "sealed",
     "shipping",
     "ships",
+    "microsoft",
+    "sony",
 }
+
+TRIM_NOISE_WORDS = NOISE_WORDS
 
 
 def clean_marketplace_title_for_search(title: str | None) -> str:
@@ -78,9 +120,17 @@ def clean_marketplace_title_for_search(title: str | None) -> str:
     if not title:
         return ""
 
+    if re.search(r"\bwii\s+play\b", title, flags=re.IGNORECASE):
+        return "Wii Play"
+
     title_with_clean_parentheticals = remove_parenthetical_release_years(title)
-    title_without_noise = trim_noise_words(
-        remove_noise_phrases(title_with_clean_parentheticals)
+    title_with_special_cases = apply_special_cases(
+        title_with_clean_parentheticals
+    )
+    title_without_noise = remove_noise_words(
+        trim_noise_words(
+            remove_noise_phrases(title_with_special_cases)
+        )
     )
     cleaned_title, leading_systems = move_leading_system_terms(title_without_noise)
     search_term = cleanup_search_text(
@@ -90,10 +140,24 @@ def clean_marketplace_title_for_search(title: str | None) -> str:
     return search_term
 
 
+def apply_special_cases(value: str) -> str:
+    current_value = value
+
+    if re.search(r"\bwii\s+play\b", current_value, flags=re.IGNORECASE):
+        current_value = re.sub(
+            r"\bwii\s+play\b",
+            "Wii Play",
+            current_value,
+            flags=re.IGNORECASE,
+        )
+
+    return current_value
+
+
 def remove_noise_phrases(value: str) -> str:
     current_value = value
 
-    for phrase in NOISE_PHRASES:
+    for phrase in sorted(NOISE_PHRASES, key=len, reverse=True):
         current_value = re.sub(
             rf"(^|\b){re.escape(phrase)}(?=\s|\b|$)",
             " ",
@@ -119,11 +183,21 @@ def remove_parenthetical_release_years(value: str) -> str:
 def trim_noise_words(value: str) -> str:
     words = cleanup_search_text(value).split(" ")
 
-    while words and words[0].lower() in NOISE_WORDS:
+    while words and words[0].lower() in TRIM_NOISE_WORDS:
         words.pop(0)
 
-    while words and words[-1].lower() in NOISE_WORDS:
+    while words and words[-1].lower() in TRIM_NOISE_WORDS:
         words.pop()
+
+    return " ".join(words)
+
+
+def remove_noise_words(value: str) -> str:
+    words = [
+        word
+        for word in cleanup_search_text(value).split(" ")
+        if word.lower() not in NOISE_WORDS
+    ]
 
     return " ".join(words)
 
@@ -157,9 +231,9 @@ def move_leading_system_terms(value: str) -> tuple[str, list[str]]:
 
 
 def cleanup_search_text(value: str) -> str:
-    text = re.sub(r"[()[\]{}]", " ", value or "")
-    text = re.sub(r"[.,!?]+", " ", text)
+    text = re.sub(r"[()[\]{}\"]", " ", value or "")
+    text = re.sub(r"[.,!?*]+", " ", text)
     text = re.sub(r"\s*[/|]\s*", " ", text)
-    text = re.sub(r"\s*[-:]\s*", " ", text)
+    text = re.sub(r"\s*[-:\u2013\u2014\u2022]\s*", " ", text)
     text = re.sub(r"\s+", " ", text)
     return text.strip()

@@ -61,13 +61,49 @@ export function usePurchases() {
           throw new Error(message || `Save failed: ${response.status}`);
         }
 
-        setRows((currentRows) =>
-          currentRows.map((currentRow) =>
-            rowKey(currentRow) === key ? { ...currentRow, ...updates } : currentRow
-          )
+        const result = await response.json();
+        const patchedRows: PurchaseRow[] = [
+          result.item,
+          ...(result.propagated_items ?? []),
+        ].filter(Boolean);
+        const patchedRowsByItemId = new Map(
+          patchedRows
+            .filter((patchedRow) => patchedRow.item_id)
+            .map((patchedRow) => [patchedRow.item_id, patchedRow])
         );
 
-        return { ...row, ...updates };
+        setRows((currentRows) =>
+          currentRows.map((currentRow) => {
+            const patchedRow = currentRow.item_id
+              ? patchedRowsByItemId.get(currentRow.item_id)
+              : null;
+
+            if (patchedRow) {
+              return {
+                ...currentRow,
+                ...patchedRow,
+                sell_price:
+                  "target_price" in patchedRow
+                    ? patchedRow.target_price
+                    : currentRow.sell_price,
+              };
+            }
+
+            return rowKey(currentRow) === key
+              ? { ...currentRow, ...updates }
+              : currentRow;
+          })
+        );
+
+        return {
+          ...row,
+          ...updates,
+          ...(result.item ?? {}),
+          sell_price:
+            result.item && "target_price" in result.item
+              ? result.item.target_price
+              : updates.sell_price ?? row.sell_price,
+        };
       } catch (err) {
         setError(err instanceof Error ? err.message : "Save failed.");
         return null;
