@@ -91,3 +91,41 @@ Current use:
 
 Future use:
 Amazon catalog search automation should use this cleaner before searching for candidate ASINs.
+
+---
+
+## Carrier Tracking Status Comes From EasyPost
+
+Decision:
+Use eBay for purchase shipment ingestion and EasyPost for carrier tracking enrichment.
+
+Reason:
+eBay buyer purchase APIs provide tracking numbers, carrier names, seller shipped signals, estimated delivery fields, and sometimes actual delivery dates, but they do not reliably provide normal carrier scan states such as in transit, out for delivery, pickup available, or exception.
+
+Implementation:
+- eBay import creates/updates inbound shipment rows
+- EasyPost sync creates or reuses trackers and writes carrier status, normalized status, carrier ETA, events, and tracking URL
+- EasyPost sync stays at or below 5 requests per second and retries 429 responses with backoff
+- invalid placeholder tracking strings are ignored
+- EasyPost updates preserve existing ETA when EasyPost does not return a carrier ETA
+
+Display:
+The purchases ETA column uses carrier estimated delivery for undelivered items when available, falls back to eBay estimated delivery when no carrier ETA exists, and uses delivered date for delivered items. Shipment dates are displayed as date-only values to avoid UTC/local timezone display shifts.
+
+---
+
+## EasyPost Webhooks Are The Long-Term Tracking Update Path
+
+Decision:
+Move ongoing tracking updates toward EasyPost webhooks instead of frequent polling.
+
+Reason:
+Webhooks are more efficient for the operator, EasyPost, and tracking-update cost/traffic patterns.
+
+Implementation status:
+- webhook receiver exists at /api/easypost/webhook
+- receiver validates EasyPost HMAC headers
+- receiver handles tracker.updated events and updates inbound_shipments
+
+Remaining dependency:
+The app must be deployed to a public HTTPS server and EasyPost must be configured with the public webhook URL and shared secret.

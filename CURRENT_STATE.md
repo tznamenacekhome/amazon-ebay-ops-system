@@ -1,6 +1,6 @@
 # CURRENT_STATE.md
 
-Last Updated: 2026-05-22
+Last Updated: 2026-05-23
 
 # System Status Overview
 
@@ -10,7 +10,7 @@ Last Updated: 2026-05-22
 | RevSeller enrichment | Functional but evolving |
 | Purchases UI | Operational and componentized |
 | Receiving workflow | Designed only |
-| Shipment enrichment | Partial |
+| Shipment enrichment | Functional with remaining FedEx/webhook follow-up |
 | Sync orchestration | Mature |
 | Dashboard analytics | Early/planned |
 | Matching engine | Emerging subsystem |
@@ -41,6 +41,42 @@ SKIP_EXISTING_ORDERS_WITH_TRACKING = True
 
 Known inefficiency:
 Still fetches 90 days every sync.
+
+---
+
+## EasyPost Shipment Enrichment
+
+Status: FUNCTIONAL / WEBHOOK-READY
+
+Implemented:
+- EasyPost SDK dependency added to requirements.txt
+- shipment sync reuses stored easypost_tracker_id values
+- carrier is passed to EasyPost when known
+- invalid tracking placeholders are skipped
+- EasyPost calls are capped at 5 requests per second
+- 429 responses retry with exponential backoff
+- current EasyPost SDK tracker fields are read defensively
+- delivered date falls back to delivered tracking events when needed
+- EasyPost webhook route exists at /api/easypost/webhook
+- webhook route validates EasyPost HMAC headers before updating Supabase
+- purchases API falls back to eBay EstimatedDeliveryTimeMax when no carrier ETA exists
+- missing stored eBay ETA values were backfilled into inbound_shipments for 2026-05-01+ purchases
+
+Recent backfill:
+- purchases from 2026-05-01 to current were synced
+- 101 candidate shipment rows inspected
+- 97 shipment rows successfully processed
+- 87 trackers created
+- 10 trackers reused
+- 2 invalid untracked placeholder rows skipped
+- 2 FedEx rows remain unresolved due to EasyPost credential errors
+- 88 missing shipment ETA values were restored from stored eBay estimates
+
+Remaining setup:
+- deploy the app to a public HTTPS server
+- configure EASYPOST_WEBHOOK_SECRET
+- register the EasyPost webhook URL in EasyPost
+- resolve or intentionally bypass FedEx tracking credential errors
 
 ---
 
@@ -86,6 +122,9 @@ Implemented:
 - dense table layout pass
 - matched Amazon title display with eBay title subtitle
 - simplified ASIN column links
+- status filter uses derived operational status
+- ETA column uses carrier estimated delivery when available, otherwise eBay estimated delivery, and delivered date when delivered
+- date formatting treats shipment dates as date-only to avoid UTC/local timezone shifts
 
 Current architecture:
 web/app/page.tsx is now the composition layer.

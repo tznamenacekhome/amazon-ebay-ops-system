@@ -56,6 +56,9 @@ export async function GET() {
         orderStatus: purchase.order_status,
         sellerShipped: hasSellerShipped(purchase.raw_import_json),
         ebayCancelled: isEbayCancelled(purchase.raw_import_json, purchase.order_status),
+        ebayEstimatedDeliveryDate: getEbayEstimatedDeliveryDate(
+          purchase.raw_import_json
+        ),
       },
     ])
   );
@@ -67,6 +70,10 @@ export async function GET() {
       order_status: purchaseMetaById.get(row.purchase_id)?.orderStatus ?? null,
       seller_shipped: purchaseMetaById.get(row.purchase_id)?.sellerShipped ?? false,
       ebay_cancelled: purchaseMetaById.get(row.purchase_id)?.ebayCancelled ?? false,
+      estimated_delivery_date:
+        row.estimated_delivery_date ??
+        purchaseMetaById.get(row.purchase_id)?.ebayEstimatedDeliveryDate ??
+        null,
     }))
   );
 }
@@ -91,6 +98,17 @@ function isEbayCancelled(rawImportJson: unknown, orderStatus?: string | null) {
     cancelStatus.trim() !== "" &&
     normalizeText(cancelStatus) !== "notapplicable"
   );
+}
+
+function getEbayEstimatedDeliveryDate(rawImportJson: unknown) {
+  if (!rawImportJson || typeof rawImportJson !== "object") return null;
+
+  const order = "Order" in rawImportJson ? rawImportJson.Order : rawImportJson;
+  const estimate = findNestedValue(order, "EstimatedDeliveryTimeMax");
+
+  return typeof estimate === "string" && estimate.trim() !== ""
+    ? estimate
+    : null;
 }
 
 function hasNestedKey(value: unknown, key: string): boolean {

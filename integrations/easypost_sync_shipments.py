@@ -1,4 +1,6 @@
 import os
+import time
+import argparse
 from datetime import datetime, timezone, timedelta
 from dotenv import load_dotenv
 import easypost
@@ -7,6 +9,21 @@ from supabase import create_client
 
 MAX_NEW_TRACKERS_PER_RUN = 10
 LOOKBACK_DAYS = 30
+DEFAULT_START_DATE = "2026-05-01"
+MAX_EASYPOST_REQUESTS_PER_SECOND = 5
+MAX_EASYPOST_RETRIES = 4
+INVALID_TRACKING_VALUES = {
+    "no tracking",
+    "none",
+    "n/a",
+    "na",
+    "not available",
+    "refunded",
+    "cancelled",
+    "canceled",
+    "shipped untracked",
+    "shipped without tracking",
+}
 
 
 load_dotenv()
@@ -20,6 +37,8 @@ supabase = create_client(
     os.environ["SUPABASE_SERVICE_ROLE_KEY"]
 )
 
+last_easypost_request_at = 0
+
 
 def iso_now():
     return (
@@ -30,7 +49,65 @@ def iso_now():
     )
 
 
-def fetch_shipments():
+def parse_args():
+    parser = argparse.ArgumentParser(
+        description="Sync inbound shipment tracking status from EasyPost."
+    )
+    parser.add_argument(
+        "--start-date",
+        default=DEFAULT_START_DATE,
+        help="Only sync shipments for purchases on or after this date.",
+    )
+    parser.add_argument(
+        "--limit",
+        type=int,
+        default=100,
+        help="Maximum candidate shipment rows to inspect.",
+    )
+    parser.add_argument(
+        "--max-new-trackers",
+        type=int,
+        default=MAX_NEW_TRACKERS_PER_RUN,
+        help="Maximum new EasyPost trackers to create in this run.",
+    )
+    return parser.parse_args()
+
+
+def fetch_recent_purchase_ids(start_date):
+    result = (
+        supabase.table("purchases")
+        .select("purchase_id")
+        .gte("order_date", start_date)
+        .order("order_date", desc=True)
+        .limit(1000)
+        .execute()
+    )
+
+    return [
+        row["purchase_id"]
+        for row in result.data or []
+        if row.get("purchase_id")
+    ]
+
+
+def fetch_shipments(start_date=None, limit=100):
+    if start_date:
+        purchase_ids = fetch_recent_purchase_ids(start_date)
+
+        if not purchase_ids:
+            return []
+
+        result = (
+            supabase.table("inbound_shipments")
+            .select("*")
+            .in_("purchase_id", purchase_ids)
+            .order("updated_at", desc=True)
+            .limit(limit)
+            .execute()
+        )
+
+        return result.data or []
+
     cutoff = (
         datetime.now(timezone.utc) - timedelta(days=LOOKBACK_DAYS)
     ).date().isoformat()
@@ -49,6 +126,39 @@ def fetch_shipments():
     )
 
     return result.data or []
+
+
+def clean_tracking_number(value):
+    if not value:
+        return None
+
+    tracking_number = value.strip()
+
+    if len(tracking_number) < 8:
+        return None
+
+    if tracking_number.lower() in INVALID_TRACKING_VALUES:
+        return None
+
+    return tracking_number
+
+
+def normalize_carrier(value):
+    if not value:
+        return None
+
+    carrier = value.strip()
+
+    mapping = {
+        "us postal service": "USPS",
+        "united states postal service": "USPS",
+        "usps": "USPS",
+        "ups": "UPS",
+        "fedex": "FedEx",
+        "fed ex": "FedEx",
+    }
+
+    return mapping.get(carrier.lower(), carrier)
 
 
 def safe_datetime(value):
@@ -84,6 +194,93 @@ def extract_latest_event(tracker):
         return None
 
 
+def extract_delivered_time(tracker):
+    delivered_at = tracker_value(tracker, "delivered_at")
+
+    if delivered_at:
+        return delivered_at
+
+    tracking_details = tracker_value(tracker, "tracking_details") or []
+
+    delivered_events = [
+        detail
+        for detail in tracking_details
+        if getattr(detail, "status", None) == "delivered"
+    ]
+
+    if not delivered_events:
+        return None
+
+    latest = sorted(
+        delivered_events,
+        key=lambda detail: getattr(detail, "datetime", "") or "",
+        reverse=True,
+    )[0]
+
+    return getattr(latest, "datetime", None)
+
+
+def tracker_value(tracker, field):
+    try:
+        return getattr(tracker, field)
+    except AttributeError:
+        pass
+
+    try:
+        return tracker.to_dict().get(field)
+    except Exception:
+        return None
+
+
+def is_rate_limit_error(error):
+    status_code = getattr(error, "status_code", None)
+    if status_code == 429:
+        return True
+
+    response = getattr(error, "response", None)
+    if getattr(response, "status_code", None) == 429:
+        return True
+
+    return "429" in str(error) or "Too Many Requests" in str(error)
+
+
+def is_carrier_credential_error(error):
+    return "Credentials not found for the specified carrier" in str(error)
+
+
+def wait_for_easypost_slot():
+    global last_easypost_request_at
+
+    min_interval_seconds = 1 / MAX_EASYPOST_REQUESTS_PER_SECOND
+    elapsed = time.monotonic() - last_easypost_request_at
+
+    if elapsed < min_interval_seconds:
+        time.sleep(min_interval_seconds - elapsed)
+
+    last_easypost_request_at = time.monotonic()
+
+
+def call_easypost(action):
+    for attempt in range(MAX_EASYPOST_RETRIES + 1):
+        wait_for_easypost_slot()
+
+        try:
+            return action()
+        except Exception as error:
+            if not is_rate_limit_error(error):
+                raise
+
+            if attempt >= MAX_EASYPOST_RETRIES:
+                raise
+
+            delay_seconds = min(2 ** attempt, 30)
+            print(
+                f"EasyPost 429 rate limit hit; retrying in "
+                f"{delay_seconds}s..."
+            )
+            time.sleep(delay_seconds)
+
+
 def normalize_status(status):
     if not status:
         return "unknown"
@@ -106,42 +303,65 @@ def normalize_status(status):
     return mapping.get(status, status)
 
 
-def create_tracker(tracking_number):
-    return client.tracker.create(
-        tracking_code=tracking_number
-    )
+def create_tracker(tracking_number, carrier=None):
+    payload = {"tracking_code": tracking_number}
+
+    normalized_carrier = normalize_carrier(carrier)
+
+    if normalized_carrier:
+        payload["carrier"] = normalized_carrier
+
+    try:
+        return call_easypost(lambda: client.tracker.create(**payload))
+    except Exception as error:
+        if not normalized_carrier or not is_carrier_credential_error(error):
+            raise
+
+        print(
+            f"Retrying {tracking_number} without carrier "
+            f"{normalized_carrier}..."
+        )
+        return call_easypost(
+            lambda: client.tracker.create(tracking_code=tracking_number)
+        )
 
 
 def retrieve_tracker(tracker_id):
-    return client.tracker.retrieve(tracker_id)
+    return call_easypost(lambda: client.tracker.retrieve(tracker_id))
 
 
 def update_shipment(shipment, tracker):
     latest_event = extract_latest_event(tracker)
+    carrier_eta = safe_datetime(
+        tracker_value(tracker, "est_delivery_date")
+    )
+    delivered_date = safe_datetime(
+        extract_delivered_time(tracker)
+    )
 
     payload = {
-        "carrier": tracker.carrier,
-        "carrier_status": tracker.status,
-        "normalized_status": normalize_status(tracker.status),
-        "shipment_status": tracker.status,
-        "estimated_delivery_date": safe_datetime(
-            tracker.est_delivery_date
+        "carrier": tracker_value(tracker, "carrier"),
+        "carrier_status": tracker_value(tracker, "status"),
+        "normalized_status": normalize_status(
+            tracker_value(tracker, "status")
         ),
-        "delivered_date": safe_datetime(
-            tracker.delivered_at
-        ),
+        "shipment_status": tracker_value(tracker, "status"),
         "tracking_events_json": (
             [detail.to_dict() for detail in tracker.tracking_details]
             if tracker.tracking_details else None
         ),
         "tracking_url": (
-            tracker.public_url
-            if hasattr(tracker, "public_url")
-            else None
+            tracker_value(tracker, "public_url")
         ),
         "last_tracking_sync": iso_now(),
         "updated_at": iso_now(),
     }
+
+    if carrier_eta:
+        payload["estimated_delivery_date"] = carrier_eta
+
+    if delivered_date:
+        payload["delivered_date"] = delivered_date
 
     if latest_event:
         payload["last_checkpoint_time"] = latest_event["datetime"]
@@ -157,9 +377,18 @@ def update_shipment(shipment, tracker):
 
 
 def main():
+    args = parse_args()
     print("Starting EasyPost shipment sync...")
+    print(f"Purchase start date: {args.start_date}")
+    print(
+        "EasyPost request rate cap: "
+        f"{MAX_EASYPOST_REQUESTS_PER_SECOND}/second"
+    )
 
-    shipments = fetch_shipments()
+    shipments = fetch_shipments(
+        start_date=args.start_date,
+        limit=args.limit,
+    )
 
     print(f"Candidate shipments: {len(shipments)}")
 
@@ -170,15 +399,11 @@ def main():
     errors = 0
 
     for shipment in shipments:
-        tracking_number = shipment.get("tracking_number")
+        tracking_number = clean_tracking_number(
+            shipment.get("tracking_number")
+        )
 
         if not tracking_number:
-            skipped += 1
-            continue
-
-        tracking_number = tracking_number.strip()
-
-        if len(tracking_number) < 8:
             skipped += 1
             continue
 
@@ -190,7 +415,7 @@ def main():
                 reused_trackers += 1
 
             else:
-                if created_trackers >= MAX_NEW_TRACKERS_PER_RUN:
+                if created_trackers >= args.max_new_trackers:
                     print(
                         f"Skipping new tracker creation limit reached: "
                         f"{tracking_number}"
@@ -198,7 +423,10 @@ def main():
                     skipped += 1
                     continue
 
-                tracker = create_tracker(tracking_number)
+                tracker = create_tracker(
+                    tracking_number,
+                    carrier=shipment.get("carrier"),
+                )
 
                 supabase.table("inbound_shipments").update({
                     "easypost_tracker_id": tracker.id
@@ -215,8 +443,8 @@ def main():
 
             print(
                 f"Processed: {tracking_number} | "
-                f"{tracker.carrier} | "
-                f"{tracker.status}"
+                f"{tracker_value(tracker, 'carrier')} | "
+                f"{tracker_value(tracker, 'status')}"
             )
 
         except Exception as error:

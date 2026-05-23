@@ -51,9 +51,41 @@ Purchases table display rules:
 - matched ASIN rows show the matched Amazon/RevSeller title as the primary item title when available
 - matched ASIN rows show the eBay supplier title below, prefixed with "ebay: "
 - unmatched rows show the eBay supplier title and a one-line Search Amazon link
-- ETA shows estimated delivery when undelivered and delivered date when delivered
+- ETA shows carrier estimated delivery when available, otherwise eBay estimated delivery for undelivered items, and delivered date when delivered
+- carrier ETA dates are displayed as date-only values to avoid timezone day shifts
 
 Do not reintroduce large JSX blocks into page.tsx.
+
+---
+
+# Shipment Tracking Rules
+
+eBay import owns:
+- tracking number ingestion
+- carrier ingestion when eBay provides it
+- seller shipped/no-tracking signal
+- eBay delivery date when provided
+
+EasyPost owns carrier tracking enrichment:
+- carrier status
+- normalized status
+- carrier ETA
+- tracking events
+- public tracking URL
+
+ETA precedence:
+- delivered item: delivered date
+- undelivered item with carrier ETA: EasyPost/carrier ETA
+- undelivered item without carrier ETA: eBay estimated delivery date
+
+EasyPost sync must:
+- reuse existing easypost_tracker_id values
+- avoid invalid placeholder tracking values
+- stay at or below 5 EasyPost requests per second
+- retry 429 responses with backoff
+- pass known carrier when available
+
+Long-term tracking updates should come from EasyPost webhooks once the app has a public HTTPS endpoint.
 
 ---
 

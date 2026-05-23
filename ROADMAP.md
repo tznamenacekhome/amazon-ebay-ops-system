@@ -35,6 +35,7 @@ Recent UI cleanup:
 - removed external-link icons from text links
 - tightened purchases table spacing
 - consolidated ETA/delivered date display into one color-coded column
+- fixed shipment date display to avoid UTC/local timezone day shifts
 
 ---
 
@@ -66,6 +67,81 @@ Next steps:
 - define listing/FBA workflow tables/fields
 - decide when these workflow statuses override shipment-derived statuses
 - keep receiving/listing workflows separate from purchases review UI
+
+---
+
+## Public Server Deployment
+
+Goal:
+Put the Next.js application on a public HTTPS server so external services can call API routes.
+
+Needed for:
+- EasyPost webhooks
+- future external automation callbacks
+- production-like testing outside localhost
+
+Next steps:
+- choose hosting target
+- configure environment variables securely
+- deploy the web app
+- confirm /api/purchases and /api/easypost/webhook are reachable over HTTPS
+
+---
+
+## EasyPost Webhook Implementation
+
+Status:
+Route implemented locally; external EasyPost setup still pending.
+
+Completed:
+- added /api/easypost/webhook route
+- validates EasyPost HMAC headers
+- handles tracker.updated events
+- updates inbound_shipments by easypost_tracker_id or tracking_number
+
+Next steps:
+- configure EASYPOST_WEBHOOK_SECRET
+- register the public webhook URL in EasyPost after deployment
+- send/observe a real tracker.updated event
+- verify Supabase updates from webhook events
+- decide whether to reduce scheduled polling after webhook validation
+
+---
+
+## Shipment Tracking Improvements
+
+Completed:
+- EasyPost dependency added
+- EasyPost sync made date-scoped from 2026-05-01 by default
+- 5 requests/second cap added
+- 429 retry/backoff added
+- invalid tracking placeholders skipped
+- carrier passed when known
+- May-current shipment backfill completed for 97 of 101 candidate shipment rows
+- missing eBay ETA values restored for 88 shipment rows from 2026-05-01 onward
+
+Remaining:
+- resolve FedEx credential errors for tracking 381367337613 and 381418656302
+- decide whether FedEx should be configured in EasyPost or handled through a direct carrier fallback
+- add a recurring scheduler only if webhooks are not enough for operational freshness
+
+---
+
+## Late Delivery And Seller Case Workflow
+
+Use case:
+Identify purchases that have passed their expected delivery date so the operator can open an eBay case, request shipment from the seller, or pursue a refund.
+
+Foundation completed:
+- ETA uses carrier estimate when available
+- ETA falls back to eBay estimated delivery for shipments with no carrier ETA, including shipped-without-tracking items
+
+Next steps:
+- add a Late / Overdue derived status or filter
+- define lateness using the displayed ETA and non-delivered operational status
+- surface shipped-without-tracking overdue items prominently
+- support direct navigation to the relevant eBay order/case workflow
+- record case-opened and refund/resolution outcomes in backend-owned workflow data
 
 ---
 

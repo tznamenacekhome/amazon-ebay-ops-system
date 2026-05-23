@@ -15,7 +15,9 @@ This folder contains the purchases workflow UI.
 - Matched ASIN rows show the eBay supplier title below, prefixed with `ebay: `.
 - Unmatched rows use the eBay supplier title as the primary item title.
 - Unmatched rows show a one-line `Search Amazon` link in the ASIN column.
-- ETA displays estimated delivery for undelivered items and delivered date for delivered items.
+- ETA displays carrier estimated delivery when available, falls back to eBay estimated delivery for undelivered items without a carrier ETA, and displays delivered date for delivered items.
+- Shipment dates are formatted as date-only values to avoid UTC/local timezone day shifts.
+- Status displays derived operational status, not raw carrier text.
 
 ## Title Cleaning
 

@@ -19,13 +19,22 @@ export type OperationalStatusValue =
 
 export function formatDate(value?: string | null) {
   if (!value) return "";
+
+  const dateOnlyMatch = value.match(/^(\d{4})-(\d{2})-(\d{2})/);
+
+  if (dateOnlyMatch) {
+    const [, year, month, day] = dateOnlyMatch;
+    return `${month}/${day}/${year.slice(2)}`;
+  }
+
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "";
-  return date.toLocaleDateString("en-US", {
-    month: "2-digit",
-    day: "2-digit",
-    year: "2-digit",
-  });
+
+  const month = String(date.getUTCMonth() + 1).padStart(2, "0");
+  const day = String(date.getUTCDate()).padStart(2, "0");
+  const year = String(date.getUTCFullYear()).slice(2);
+
+  return `${month}/${day}/${year}`;
 }
 
 export function formatMoney(value?: number | null) {
@@ -80,6 +89,7 @@ export function getOperationalStatus(row: PurchaseRow): {
   value: OperationalStatusValue;
   label: string;
 } {
+  const hasTracking = hasUsableTrackingNumber(row.tracking_number);
   const itemStatus = normalizeStatus(row.current_status);
   const carrierStatus = normalizeStatus(
     row.normalized_status ||
@@ -103,10 +113,13 @@ export function getOperationalStatus(row: PurchaseRow): {
     return statusOption("available_for_pickup");
   }
   if (carrierStatus === "in_transit") return statusOption("in_transit");
-  if (carrierStatus === "pre_transit" || carrierStatus === "unknown") {
+  if (
+    hasTracking &&
+    (carrierStatus === "pre_transit" || carrierStatus === "unknown")
+  ) {
     return statusOption("awaiting_carrier_scan");
   }
-  if (row.tracking_number) return statusOption("awaiting_carrier_scan");
+  if (hasTracking) return statusOption("awaiting_carrier_scan");
   if (row.seller_shipped) return statusOption("shipped_no_tracking");
 
   return statusOption("no_tracking");
@@ -124,4 +137,23 @@ function normalizeStatus(value?: string | null) {
   if (!value) return "";
 
   return value.trim().toLowerCase().replace(/[\s-]+/g, "_");
+}
+
+function hasUsableTrackingNumber(value?: string | null) {
+  if (!value) return false;
+
+  const normalizedValue = value.trim().toLowerCase();
+
+  return ![
+    "no tracking",
+    "none",
+    "n/a",
+    "na",
+    "not available",
+    "refunded",
+    "cancelled",
+    "canceled",
+    "shipped untracked",
+    "shipped without tracking",
+  ].includes(normalizedValue);
 }
