@@ -4,7 +4,9 @@ import type { PurchaseRow } from "./types";
 import {
   formatDate,
   formatMoney,
+  getDisplayDeliveryDate,
   getEbayTitle,
+  getOperationalStatus,
   getPrimaryTitle,
   getShipmentStatus,
   rowKey,
@@ -27,6 +29,9 @@ export function PurchaseDetailDrawer({
   onSaveAsin,
   onClose,
 }: PurchaseDetailDrawerProps) {
+  const operationalStatus = getOperationalStatus(row);
+  const drawerAmazonTitle = row.asin ? getPrimaryTitle(row) : "--";
+
   return (
     <div className="fixed inset-0 z-40">
       <button
@@ -58,7 +63,7 @@ export function PurchaseDetailDrawer({
               Amazon Title
             </div>
 
-            <div className="mt-1 font-medium">{getPrimaryTitle(row)}</div>
+            <div className="mt-1 font-medium">{drawerAmazonTitle}</div>
 
             {getEbayTitle(row) && (
               <>
@@ -99,6 +104,7 @@ export function PurchaseDetailDrawer({
 
           <section className="grid grid-cols-2 gap-3 text-sm">
             <Detail label="Order Date" value={formatDate(row.order_date)} />
+            <Detail label="ETA" value={formatDate(getDisplayDeliveryDate(row))} />
             <Detail label="Order ID" value={row.supplier_order_id || ""} />
             <Detail label="System" value={row.system || ""} />
             <Detail label="Quantity" value={String(row.quantity ?? "")} />
@@ -108,9 +114,10 @@ export function PurchaseDetailDrawer({
               value={formatMoney(row.sell_price ?? row.target_price)}
             />
             <Detail label="Carrier" value={row.carrier || ""} />
-            <Detail label="ETA" value={formatDate(row.estimated_delivery_date)} />
             <Detail label="Delivered" value={formatDate(row.delivered_date)} />
-            <Detail label="Status" value={getShipmentStatus(row)} />
+            <Detail label="Status" value={operationalStatus.label} />
+            <Detail label="Carrier Status" value={getShipmentStatus(row)} />
+            <Detail label="eBay Status" value={row.order_status || ""} />
           </section>
 
           <section>

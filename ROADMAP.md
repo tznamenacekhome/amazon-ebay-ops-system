@@ -70,6 +70,22 @@ Next steps:
 
 ---
 
+## eBay Seller Order Workflow
+
+Future scope:
+Add seller-order functionality separately from purchases when needed.
+
+Constraints:
+- seller orders must not write to purchases or purchase_items
+- seller-order UI must remain separate from the purchases review screen
+- seller fulfillment, customer shipment, sales revenue, and marketplace fee data need their own backend model
+
+Completed guardrail:
+- legacy Sell Fulfillment sync write path disabled
+- historical seller orders removed from purchases
+
+---
+
 ## Public Server Deployment
 
 Goal:

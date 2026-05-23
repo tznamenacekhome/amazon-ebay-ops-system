@@ -78,7 +78,33 @@ export function getEbayTitle(row: PurchaseRow) {
 }
 
 export function getShipmentStatus(row: PurchaseRow) {
-  return row.normalized_status || row.shipment_status || row.current_status || "";
+  return (
+    row.normalized_status ||
+    row.shipment_status ||
+    row.carrier_status ||
+    row.delivery_status ||
+    ""
+  );
+}
+
+export function getDisplayDeliveryDate(row: PurchaseRow) {
+  return isDelivered(row) ? row.delivered_date : row.estimated_delivery_date;
+}
+
+export function getDisplayTitleParts(row: PurchaseRow) {
+  const hasMatchedAsin = !!row.asin;
+  const amazonTitle = row.amazon_title || "";
+  const ebayTitle = getEbayTitle(row) || row.title || "";
+  const primaryTitle = hasMatchedAsin
+    ? amazonTitle || ebayTitle || "Untitled item"
+    : ebayTitle || amazonTitle || "Untitled item";
+  const showEbaySubtitle = hasMatchedAsin && !!amazonTitle && !!ebayTitle;
+
+  return {
+    primaryTitle,
+    ebayTitle,
+    showEbaySubtitle,
+  };
 }
 
 export function isDelivered(row: PurchaseRow) {

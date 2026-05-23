@@ -19,6 +19,13 @@ This folder contains the purchases workflow UI.
 - Shipment dates are formatted as date-only values to avoid UTC/local timezone day shifts.
 - Status displays derived operational status, not raw carrier text.
 
+## Detail Drawer Display
+
+- `Status` uses the same derived operational status as the table.
+- `Carrier Status` shows only carrier/shipment status fields, never item `current_status`.
+- `ETA` appears next to `Order Date` and uses the same display-date logic as the table.
+- When ASIN is missing, `Amazon Title` displays `--`; the eBay supplier title remains visible separately.
+
 ## Title Cleaning
 
 - Amazon search links use `cleanMarketplaceTitleForSearch`.

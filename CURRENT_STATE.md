@@ -35,12 +35,17 @@ Implemented:
 - import batching
 - timezone normalization
 - duplicate prevention
+- buyer-purchase-only ingestion via Trading API OrderRole=Buyer
 
 Current optimization:
 SKIP_EXISTING_ORDERS_WITH_TRACKING = True
 
 Known inefficiency:
 Still fetches 90 days every sync.
+
+Recent cleanup:
+- removed 50 eBay seller orders that had been written to purchases by the legacy Sell Fulfillment sync
+- disabled the legacy seller-order sync write path so seller orders are not inserted into purchases
 
 ---
 
@@ -125,6 +130,9 @@ Implemented:
 - status filter uses derived operational status
 - ETA column uses carrier estimated delivery when available, otherwise eBay estimated delivery, and delivered date when delivered
 - date formatting treats shipment dates as date-only to avoid UTC/local timezone shifts
+- detail drawer status matches the table's derived operational status
+- detail drawer carrier status shows carrier/shipment fields only
+- detail drawer shows "--" for Amazon Title when ASIN is missing
 
 Current architecture:
 web/app/page.tsx is now the composition layer.

@@ -9,7 +9,8 @@ import {
   formatDate,
   formatMoney,
   getAmazonSearchTerm,
-  getEbayTitle,
+  getDisplayDeliveryDate,
+  getDisplayTitleParts,
   getOperationalStatus,
   isDelivered,
   rowKey,
@@ -70,19 +71,11 @@ export function PurchasesTable({
           ) : (
             rows.map((row) => {
               const key = rowKey(row);
-              const hasMatchedAsin = !!row.asin;
-              const amazonTitle = row.amazon_title || "";
-              const ebayTitle = getEbayTitle(row) || row.title || "";
-              const primaryTitle = hasMatchedAsin
-                ? amazonTitle || ebayTitle || "Untitled item"
-                : ebayTitle || amazonTitle || "Untitled item";
-              const showEbaySubtitle =
-                hasMatchedAsin && !!amazonTitle && !!ebayTitle;
+              const { primaryTitle, ebayTitle, showEbaySubtitle } =
+                getDisplayTitleParts(row);
               const delivered = isDelivered(row);
               const operationalStatus = getOperationalStatus(row);
-              const deliveryDate = delivered
-                ? row.delivered_date
-                : row.estimated_delivery_date;
+              const deliveryDate = getDisplayDeliveryDate(row);
               const priceValue =
                 priceDrafts[key] ??
                 (row.sell_price ?? row.target_price ?? "").toString();

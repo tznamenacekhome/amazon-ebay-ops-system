@@ -2,6 +2,24 @@
 
 # High Priority
 
+## eBay Seller Orders In Purchases
+
+Status: RESOLVED / MONITOR
+
+Problem:
+The legacy eBay Sell Fulfillment sync wrote seller/customer orders into purchases, causing sold items to appear on the purchases page.
+
+Resolution:
+- removed 50 seller orders from purchases
+- removed their 50 purchase_items
+- verified no seller-style eBay payloads remain in purchases
+- disabled integrations/ebay_sync_orders.py from writing seller orders to purchases
+
+Guardrail:
+Future eBay seller-order functionality must use separate tables/workflows and must not write to purchases or purchase_items.
+
+---
+
 ## page.tsx Monolith
 
 Status: RESOLVED / MONITOR

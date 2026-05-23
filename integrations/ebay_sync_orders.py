@@ -7,6 +7,11 @@ from supabase import create_client
 
 
 SYNC_NAME = "ebay_order_sync"
+DISABLED_REASON = (
+    "This script reads eBay Sell Fulfillment seller orders. Seller orders "
+    "must not be written to purchases; use ebay_sync_buyer_purchases.py "
+    "for purchase ingestion."
+)
 
 load_dotenv()
 
@@ -239,6 +244,10 @@ def upsert_order(order, import_batch_id):
 
 
 def main():
+    print("eBay seller order sync is disabled.")
+    print(DISABLED_REASON)
+    return
+
     print("Starting incremental eBay order sync...")
 
     last_sync = get_last_successful_sync()

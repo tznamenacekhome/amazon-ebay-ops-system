@@ -10,6 +10,9 @@ Use Trading API GetOrders for buyer purchases.
 Reason:
 Sell Fulfillment API unreliable/incomplete.
 
+Constraint:
+eBay Sell Fulfillment API returns seller orders. Those records must not be written to purchases or purchase_items.
+
 ---
 
 ## Supabase Is Operational Source of Truth
