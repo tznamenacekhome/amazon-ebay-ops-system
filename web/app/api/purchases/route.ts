@@ -20,7 +20,37 @@ export async function GET() {
     );
   }
 
-  return NextResponse.json(data ?? []);
+  const rows = (data ?? []).map((row) => ({
+    ...row,
+    ebay_title: row.title,
+  }));
+  const itemIds = rows
+    .map((row) => row.item_id)
+    .filter((itemId): itemId is string => typeof itemId === "string");
+
+  if (itemIds.length === 0) {
+    return NextResponse.json(rows);
+  }
+
+  const { data: itemTitles, error: itemTitlesError } = await supabase
+    .from("purchase_items")
+    .select("item_id,amazon_title")
+    .in("item_id", itemIds);
+
+  if (itemTitlesError) {
+    return NextResponse.json(rows);
+  }
+
+  const amazonTitleByItemId = new Map(
+    (itemTitles ?? []).map((item) => [item.item_id, item.amazon_title])
+  );
+
+  return NextResponse.json(
+    rows.map((row) => ({
+      ...row,
+      amazon_title: amazonTitleByItemId.get(row.item_id) ?? null,
+    }))
+  );
 }
 
 export async function PATCH(request: Request) {

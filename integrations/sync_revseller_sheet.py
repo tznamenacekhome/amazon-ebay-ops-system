@@ -225,7 +225,7 @@ def fetch_purchase_items(supabase):
     while True:
         query = (
             supabase.table("purchase_items")
-            .select("item_id,title,system,asin,target_price")
+            .select("item_id,title,amazon_title,system,asin,target_price")
             .range(offset, offset + PURCHASE_ITEMS_PAGE_SIZE - 1)
         )
 
@@ -245,9 +245,10 @@ def fetch_purchase_items(supabase):
     return all_items
 
 
-def update_purchase_item(supabase, item_id, asin, target_price):
+def update_purchase_item(supabase, item_id, asin, amazon_title, target_price):
     payload = {
         "asin": asin,
+        "amazon_title": amazon_title,
     }
 
     if target_price is not None:
@@ -390,6 +391,7 @@ def main():
                 supabase=supabase,
                 item_id=item["item_id"],
                 asin=matched_row["asin"],
+                amazon_title=matched_row["raw_title"],
                 target_price=matched_row["target_price"],
             )
             counts["updated"] += 1
