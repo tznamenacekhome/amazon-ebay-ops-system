@@ -27,11 +27,11 @@ export default function PurchasesPage() {
   const {
     searchText,
     asinFilter,
-    deliveryFilter,
+    statusFilter,
     filteredRows,
     setSearchText,
     setAsinFilter,
-    setDeliveryFilter,
+    setStatusFilter,
   } = usePurchaseFilters(rows);
 
   const [selectedRow, setSelectedRow] = useState<PurchaseRow | null>(null);
@@ -121,10 +121,10 @@ export default function PurchasesPage() {
       <PurchaseFilters
         searchText={searchText}
         asinFilter={asinFilter}
-        deliveryFilter={deliveryFilter}
+        statusFilter={statusFilter}
         onSearchTextChange={setSearchText}
         onAsinFilterChange={setAsinFilter}
-        onDeliveryFilterChange={setDeliveryFilter}
+        onStatusFilterChange={setStatusFilter}
       />
 
       {error && (

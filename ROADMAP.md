@@ -55,6 +55,20 @@ Constraints:
 
 ---
 
+## Receiving And Listing Workflows
+
+Future statuses:
+- Received: item has been warehouse-verified after delivery
+- Listed: item has been sent to Amazon FBA or listed on eBay
+
+Next steps:
+- define receiving workflow tables/fields
+- define listing/FBA workflow tables/fields
+- decide when these workflow statuses override shipment-derived statuses
+- keep receiving/listing workflows separate from purchases review UI
+
+---
+
 ## Marketplace Title Cleaning Improvements
 
 Problem:

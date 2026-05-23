@@ -93,6 +93,7 @@ def normalize_status(status):
     mapping = {
         "delivered": "delivered",
         "in_transit": "in_transit",
+        "out_for_delivery": "out_for_delivery",
         "pre_transit": "pre_transit",
         "available_for_pickup": "available_for_pickup",
         "return_to_sender": "return_to_sender",

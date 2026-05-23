@@ -10,7 +10,7 @@ import {
   formatMoney,
   getAmazonSearchTerm,
   getEbayTitle,
-  getShipmentStatus,
+  getOperationalStatus,
   isDelivered,
   rowKey,
 } from "./utils";
@@ -79,6 +79,7 @@ export function PurchasesTable({
               const showEbaySubtitle =
                 hasMatchedAsin && !!amazonTitle && !!ebayTitle;
               const delivered = isDelivered(row);
+              const operationalStatus = getOperationalStatus(row);
               const deliveryDate = delivered
                 ? row.delivered_date
                 : row.estimated_delivery_date;
@@ -164,12 +165,12 @@ export function PurchasesTable({
                   <td className="px-2 py-2">{row.carrier || ""}</td>
                   <td
                     className={`whitespace-nowrap px-2 py-2 font-medium ${
-                      delivered ? "text-green-700" : "text-amber-700"
+                      delivered ? "text-green-700" : "text-yellow-600"
                     }`}
                   >
                     {formatDate(deliveryDate)}
                   </td>
-                  <td className="px-2 py-2">{getShipmentStatus(row)}</td>
+                  <td className="px-2 py-2">{operationalStatus.label}</td>
 
                   <td className="px-2 py-2 text-center">
                     <button

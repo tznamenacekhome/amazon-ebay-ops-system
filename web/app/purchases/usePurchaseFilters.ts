@@ -3,15 +3,14 @@ import { useMemo, useState } from "react";
 import type { PurchaseRow } from "./types";
 import {
   getEbayTitle,
+  getOperationalStatus,
   getPrimaryTitle,
-  getShipmentStatus,
-  isDelivered,
 } from "./utils";
 
 export function usePurchaseFilters(rows: PurchaseRow[]) {
   const [searchText, setSearchText] = useState("");
   const [asinFilter, setAsinFilter] = useState("all");
-  const [deliveryFilter, setDeliveryFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState("all");
 
   const filteredRows = useMemo(() => {
     const search = searchText.trim().toLowerCase();
@@ -19,7 +18,7 @@ export function usePurchaseFilters(rows: PurchaseRow[]) {
     return rows.filter((row) => {
       const primaryTitle = getPrimaryTitle(row);
       const ebayTitle = getEbayTitle(row);
-      const status = getShipmentStatus(row);
+      const status = getOperationalStatus(row);
 
       const matchesSearch =
         !search ||
@@ -31,7 +30,7 @@ export function usePurchaseFilters(rows: PurchaseRow[]) {
           row.supplier_order_id,
           row.tracking_number,
           row.carrier,
-          status,
+          status.label,
         ]
           .filter(Boolean)
           .join(" ")
@@ -43,22 +42,20 @@ export function usePurchaseFilters(rows: PurchaseRow[]) {
         (asinFilter === "matched" && !!row.asin) ||
         (asinFilter === "needs_review" && !row.asin);
 
-      const matchesDelivery =
-        deliveryFilter === "all" ||
-        (deliveryFilter === "delivered" && isDelivered(row)) ||
-        (deliveryFilter === "not_delivered" && !isDelivered(row));
+      const matchesStatus =
+        statusFilter === "all" || statusFilter === status.value;
 
-      return matchesSearch && matchesAsin && matchesDelivery;
+      return matchesSearch && matchesAsin && matchesStatus;
     });
-  }, [rows, searchText, asinFilter, deliveryFilter]);
+  }, [rows, searchText, asinFilter, statusFilter]);
 
   return {
     searchText,
     asinFilter,
-    deliveryFilter,
+    statusFilter,
     filteredRows,
     setSearchText,
     setAsinFilter,
-    setDeliveryFilter,
+    setStatusFilter,
   };
 }

@@ -14,11 +14,16 @@ export type PurchaseRow = {
   target_price?: number | null;
   tracking_number?: string | null;
   carrier?: string | null;
+  carrier_status?: string | null;
+  delivery_status?: string | null;
   shipment_status?: string | null;
   normalized_status?: string | null;
   estimated_delivery_date?: string | null;
   delivered_date?: string | null;
   current_status?: string | null;
+  order_status?: string | null;
+  seller_shipped?: boolean | null;
+  ebay_cancelled?: boolean | null;
 };
 
 export type PurchaseStats = {

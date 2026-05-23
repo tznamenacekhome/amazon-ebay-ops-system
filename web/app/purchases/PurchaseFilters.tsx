@@ -1,21 +1,23 @@
 import { Search } from "lucide-react";
 
+import { OPERATIONAL_STATUS_OPTIONS } from "./utils";
+
 type PurchaseFiltersProps = {
   searchText: string;
   asinFilter: string;
-  deliveryFilter: string;
+  statusFilter: string;
   onSearchTextChange: (value: string) => void;
   onAsinFilterChange: (value: string) => void;
-  onDeliveryFilterChange: (value: string) => void;
+  onStatusFilterChange: (value: string) => void;
 };
 
 export function PurchaseFilters({
   searchText,
   asinFilter,
-  deliveryFilter,
+  statusFilter,
   onSearchTextChange,
   onAsinFilterChange,
-  onDeliveryFilterChange,
+  onStatusFilterChange,
 }: PurchaseFiltersProps) {
   return (
     <div className="mb-4 rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
@@ -41,13 +43,16 @@ export function PurchaseFilters({
         </select>
 
         <select
-          value={deliveryFilter}
-          onChange={(event) => onDeliveryFilterChange(event.target.value)}
+          value={statusFilter}
+          onChange={(event) => onStatusFilterChange(event.target.value)}
           className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
         >
-          <option value="all">All Deliveries</option>
-          <option value="delivered">Delivered</option>
-          <option value="not_delivered">Not Delivered</option>
+          <option value="all">All Status</option>
+          {OPERATIONAL_STATUS_OPTIONS.map((status) => (
+            <option key={status.value} value={status.value}>
+              {status.label}
+            </option>
+          ))}
         </select>
       </div>
     </div>

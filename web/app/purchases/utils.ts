@@ -1,6 +1,22 @@
 import type { PurchaseRow } from "./types";
 import { cleanMarketplaceTitleForSearch } from "./titleCleaning";
 
+export const OPERATIONAL_STATUS_OPTIONS = [
+  { value: "no_tracking", label: "No Tracking" },
+  { value: "shipped_no_tracking", label: "Shipped (No Tracking)" },
+  { value: "awaiting_carrier_scan", label: "Awaiting Carrier Scan" },
+  { value: "in_transit", label: "In Transit" },
+  { value: "available_for_pickup", label: "Out for Pickup / Pickup Available" },
+  { value: "out_for_delivery", label: "Out for Delivery" },
+  { value: "delivered", label: "Delivered" },
+  { value: "exception", label: "Exception" },
+  { value: "return_opened", label: "Return Opened" },
+  { value: "cancelled", label: "Cancelled" },
+] as const;
+
+export type OperationalStatusValue =
+  (typeof OPERATIONAL_STATUS_OPTIONS)[number]["value"];
+
 export function formatDate(value?: string | null) {
   if (!value) return "";
   const date = new Date(value);
@@ -57,6 +73,55 @@ export function getShipmentStatus(row: PurchaseRow) {
 }
 
 export function isDelivered(row: PurchaseRow) {
-  const status = getShipmentStatus(row).toLowerCase();
-  return !!row.delivered_date || status === "delivered";
+  return getOperationalStatus(row).value === "delivered";
+}
+
+export function getOperationalStatus(row: PurchaseRow): {
+  value: OperationalStatusValue;
+  label: string;
+} {
+  const itemStatus = normalizeStatus(row.current_status);
+  const carrierStatus = normalizeStatus(
+    row.normalized_status ||
+      row.shipment_status ||
+      row.carrier_status ||
+      row.delivery_status
+  );
+
+  if (itemStatus === "return_opened") return statusOption("return_opened");
+  if (row.ebay_cancelled || itemStatus === "cancelled") {
+    return statusOption("cancelled");
+  }
+  if (carrierStatus === "delivered" || !!row.delivered_date) {
+    return statusOption("delivered");
+  }
+  if (carrierStatus === "exception" || carrierStatus === "return_to_sender") {
+    return statusOption("exception");
+  }
+  if (carrierStatus === "out_for_delivery") return statusOption("out_for_delivery");
+  if (carrierStatus === "available_for_pickup") {
+    return statusOption("available_for_pickup");
+  }
+  if (carrierStatus === "in_transit") return statusOption("in_transit");
+  if (carrierStatus === "pre_transit" || carrierStatus === "unknown") {
+    return statusOption("awaiting_carrier_scan");
+  }
+  if (row.tracking_number) return statusOption("awaiting_carrier_scan");
+  if (row.seller_shipped) return statusOption("shipped_no_tracking");
+
+  return statusOption("no_tracking");
+}
+
+function statusOption(value: OperationalStatusValue) {
+  const option = OPERATIONAL_STATUS_OPTIONS.find((status) => status.value === value);
+
+  if (!option) return OPERATIONAL_STATUS_OPTIONS[0];
+
+  return option;
+}
+
+function normalizeStatus(value?: string | null) {
+  if (!value) return "";
+
+  return value.trim().toLowerCase().replace(/[\s-]+/g, "_");
 }

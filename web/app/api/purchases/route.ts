@@ -27,30 +27,95 @@ export async function GET() {
   const itemIds = rows
     .map((row) => row.item_id)
     .filter((itemId): itemId is string => typeof itemId === "string");
+  const purchaseIds = rows
+    .map((row) => row.purchase_id)
+    .filter((purchaseId): purchaseId is string => typeof purchaseId === "string");
 
-  if (itemIds.length === 0) {
+  if (itemIds.length === 0 && purchaseIds.length === 0) {
     return NextResponse.json(rows);
   }
 
-  const { data: itemTitles, error: itemTitlesError } = await supabase
+  const { data: itemTitles } = await supabase
     .from("purchase_items")
     .select("item_id,amazon_title")
     .in("item_id", itemIds);
 
-  if (itemTitlesError) {
-    return NextResponse.json(rows);
-  }
-
   const amazonTitleByItemId = new Map(
     (itemTitles ?? []).map((item) => [item.item_id, item.amazon_title])
+  );
+
+  const { data: purchases } = await supabase
+    .from("purchases")
+    .select("purchase_id,order_status,raw_import_json")
+    .in("purchase_id", purchaseIds);
+
+  const purchaseMetaById = new Map(
+    (purchases ?? []).map((purchase) => [
+      purchase.purchase_id,
+      {
+        orderStatus: purchase.order_status,
+        sellerShipped: hasSellerShipped(purchase.raw_import_json),
+        ebayCancelled: isEbayCancelled(purchase.raw_import_json, purchase.order_status),
+      },
+    ])
   );
 
   return NextResponse.json(
     rows.map((row) => ({
       ...row,
       amazon_title: amazonTitleByItemId.get(row.item_id) ?? null,
+      order_status: purchaseMetaById.get(row.purchase_id)?.orderStatus ?? null,
+      seller_shipped: purchaseMetaById.get(row.purchase_id)?.sellerShipped ?? false,
+      ebay_cancelled: purchaseMetaById.get(row.purchase_id)?.ebayCancelled ?? false,
     }))
   );
+}
+
+function hasSellerShipped(rawImportJson: unknown) {
+  if (!rawImportJson || typeof rawImportJson !== "object") return false;
+
+  const order = "Order" in rawImportJson ? rawImportJson.Order : rawImportJson;
+
+  return hasNestedKey(order, "ShippedTime");
+}
+
+function isEbayCancelled(rawImportJson: unknown, orderStatus?: string | null) {
+  if (normalizeText(orderStatus).includes("cancel")) return true;
+  if (!rawImportJson || typeof rawImportJson !== "object") return false;
+
+  const order = "Order" in rawImportJson ? rawImportJson.Order : rawImportJson;
+  const cancelStatus = findNestedValue(order, "CancelStatus");
+
+  return (
+    typeof cancelStatus === "string" &&
+    cancelStatus.trim() !== "" &&
+    normalizeText(cancelStatus) !== "notapplicable"
+  );
+}
+
+function hasNestedKey(value: unknown, key: string): boolean {
+  if (!value || typeof value !== "object") return false;
+
+  if (key in value) return Boolean(value[key as keyof typeof value]);
+
+  return Object.values(value).some((childValue) => hasNestedKey(childValue, key));
+}
+
+function findNestedValue(value: unknown, key: string): unknown {
+  if (!value || typeof value !== "object") return null;
+
+  if (key in value) return value[key as keyof typeof value];
+
+  for (const childValue of Object.values(value)) {
+    const foundValue = findNestedValue(childValue, key);
+    if (foundValue !== null && foundValue !== undefined) return foundValue;
+  }
+
+  return null;
+}
+
+function normalizeText(value?: string | null) {
+  return (value || "").trim().toLowerCase().replace(/[\s_-]+/g, "");
 }
 
 export async function PATCH(request: Request) {
