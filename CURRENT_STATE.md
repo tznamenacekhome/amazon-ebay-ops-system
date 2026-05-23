@@ -51,6 +51,7 @@ Status: PARTIAL
 Implemented:
 - Google Sheets API integration
 - ASIN enrichment
+- matched Amazon/RevSeller title storage in purchase_items.amazon_title
 - target price enrichment
 - diagnostics
 - ambiguity handling
@@ -81,6 +82,9 @@ Implemented:
 - usePurchaseFilters hook for filter state and filtered rows
 - purchaseStats helper for dashboard metrics
 - local documentation in web/app/purchases/README.md
+- dense table layout pass
+- matched Amazon title display with eBay title subtitle
+- simplified ASIN column links
 
 Current architecture:
 web/app/page.tsx is now the composition layer.
@@ -92,3 +96,5 @@ Recent backend update:
 - eBay buyer purchase sync now populates purchase_items.system from recognized eBay title platform terms
 - existing empty systems were backfilled where recognized
 - RevSeller enrichment no longer applies unique-title matches without a recognized system
+- system names were normalized to operator-facing display values
+- purchase_items.amazon_title was added and backfilled from RevSeller where ASIN/title data was available

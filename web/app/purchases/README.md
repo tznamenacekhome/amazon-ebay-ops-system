@@ -9,6 +9,14 @@ This folder contains the purchases workflow UI.
 - `usePurchaseFilters` owns filter state and filtered row derivation.
 - Table, filter, metric, price-cell, and drawer components stay presentation-focused.
 
+## Table Display
+
+- Matched ASIN rows use `amazon_title` as the primary item title when available.
+- Matched ASIN rows show the eBay supplier title below, prefixed with `ebay: `.
+- Unmatched rows use the eBay supplier title as the primary item title.
+- Unmatched rows show a one-line `Search Amazon` link in the ASIN column.
+- ETA displays estimated delivery for undelivered items and delivered date for delivered items.
+
 ## Operational Rules
 
 - The frontend must never recalculate landed cost.
@@ -16,3 +24,4 @@ This folder contains the purchases workflow UI.
 - Purchases and receiving are separate workflows. Do not merge receiving verification into this UI.
 - ASIN/manual review can live here, but matching confidence and ambiguity status must come from backend data.
 - Video-game matching is platform-specific. Do not introduce frontend matching shortcuts across systems.
+- Frontend displays `system`, but backend import/enrichment owns system detection and canonical display names.

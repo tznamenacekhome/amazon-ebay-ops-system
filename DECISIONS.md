@@ -57,3 +57,16 @@ Implementation:
 - shared system detection lives in integrations/system_detection.py
 - eBay buyer purchase sync populates purchase_items.system from eBay titles when a recognized system is present
 - RevSeller enrichment requires title+system alignment before assigning ASIN and target price
+
+---
+
+## Matched Amazon Title Is Stored Separately
+
+Decision:
+Store the matched Amazon/RevSeller title in purchase_items.amazon_title while preserving the eBay supplier title in purchase_items.title.
+
+Reason:
+Operators need to review the matched Amazon identity without losing the original supplier listing title used for traceability and ambiguity checks.
+
+Display:
+The purchases table uses amazon_title as the primary item title for matched ASIN rows when available, and shows the eBay title underneath prefixed with "ebay: ".

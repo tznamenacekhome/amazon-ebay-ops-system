@@ -48,3 +48,4 @@ Current mitigation:
 - backend system detection has been centralized
 - eBay import/sync populates purchase_items.system from recognized title terms
 - RevSeller enrichment requires system-aware matching before ASIN assignment
+- matched Amazon/RevSeller title is stored separately from the eBay supplier title for review clarity

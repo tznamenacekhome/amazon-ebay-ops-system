@@ -47,6 +47,12 @@ Current pattern:
 - purchaseStats owns dashboard metric calculation
 - table, filters, metrics, price cell, and drawer are separate components
 
+Purchases table display rules:
+- matched ASIN rows show the matched Amazon/RevSeller title as the primary item title when available
+- matched ASIN rows show the eBay supplier title below, prefixed with "ebay: "
+- unmatched rows show the eBay supplier title and a one-line Search Amazon link
+- ETA shows estimated delivery when undelivered and delivered date when delivered
+
 Do not reintroduce large JSX blocks into page.tsx.
 
 ---
@@ -101,6 +107,8 @@ Matching logic must consider:
 
 System/platform must be populated by backend import/enrichment logic.
 Frontend may display system, but must not infer it from titles.
+
+System display names are canonical backend values such as Switch, PS 5, Xbox One, and PC.
 
 ---
 

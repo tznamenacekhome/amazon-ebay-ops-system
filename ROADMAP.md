@@ -30,6 +30,12 @@ Next frontend focus:
 - preserve purchases/receiving separation
 - keep page.tsx as composition layer
 
+Recent UI cleanup:
+- removed redundant ASIN review text from unmatched rows
+- removed external-link icons from text links
+- tightened purchases table spacing
+- consolidated ETA/delivered date display into one color-coded column
+
 ---
 
 ## Purchases ASIN Review Workflow
@@ -61,3 +67,5 @@ Completed foundation:
 - centralized backend system detection
 - strict title+system matching for ASIN enrichment
 - existing missing systems backfilled where recognized
+- canonical system display names normalized
+- matched Amazon/RevSeller titles stored separately from eBay titles
