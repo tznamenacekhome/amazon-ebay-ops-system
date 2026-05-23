@@ -62,6 +62,27 @@ The RevSeller enrichment script loads these manual rows together with Google
 Sheet rows, so future purchases of the same title/system can be enriched even
 when the game is missing from the RevSeller sheet.
 
+## Legacy Purchases Sheet Backfill
+
+Historical spreadsheet data can be imported with:
+- `integrations/backfill_purchase_items_from_purchase_sheet.py`
+
+Source:
+- Google Sheet: `ebay purchases`
+- tab: `Purchases`
+
+The script:
+- parses an exported `.xlsx` workbook with `openpyxl`
+- matches purchase_items by eBay order number
+- disambiguates multi-row orders with normalized title and system
+- updates missing ASIN, amazon_title, and target sell price
+- skips ambiguous or missing order matches
+
+Latest run:
+- filled 340 ASINs
+- filled 2,141 target sell prices
+- left 37 missing ASINs and 62 missing target sell prices
+
 ---
 
 # Title Cleaning

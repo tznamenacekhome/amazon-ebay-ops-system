@@ -18,6 +18,7 @@ This folder contains the purchases workflow UI.
 - ETA displays carrier estimated delivery when available, falls back to eBay estimated delivery for undelivered items without a carrier ETA, and displays delivered date for delivered items.
 - Shipment dates are formatted as date-only values to avoid UTC/local timezone day shifts.
 - Status displays derived operational status, not raw carrier text.
+- Table headers sort the filtered row set by the displayed column values.
 
 ## Detail Drawer Display
 

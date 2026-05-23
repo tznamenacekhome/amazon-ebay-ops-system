@@ -4,3 +4,4 @@ supabase
 requests
 gspread
 easypost
+openpyxl

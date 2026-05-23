@@ -36,6 +36,8 @@ Recent UI cleanup:
 - tightened purchases table spacing
 - consolidated ETA/delivered date display into one color-coded column
 - fixed shipment date display to avoid UTC/local timezone day shifts
+- added sortable purchases table headers
+- added combined ASIN + sell price save in the detail drawer
 
 ---
 
@@ -48,6 +50,12 @@ Goals:
 - provide Amazon search / ASIN links
 - prepare for backend-provided matching diagnostics
 - reuse marketplace-title cleaning before any automated Amazon catalog search
+- propagate manual ASIN and sell price corrections to matching title/system rows
+
+Recent progress:
+- detail drawer now saves ASIN and sell price together
+- manual correction propagation updates duplicate title/system purchases
+- legacy Purchases sheet backfill filled 340 ASINs and 2,141 target sell prices
 
 Constraints:
 - frontend must not guess matching confidence
@@ -206,7 +214,12 @@ Completed foundation:
 - strict title+system matching for ASIN enrichment
 - unique compact same-system fallback for spacing/compound-word variants
 - manual UI match corrections can become reusable match memory
+- legacy Purchases sheet backfill script added for historical ASIN/price data
 - existing missing systems backfilled where recognized
 - canonical system display names normalized
 - matched Amazon/RevSeller titles stored separately from eBay titles
 - reusable marketplace-title cleaner added for frontend search and backend matching
+
+Remaining:
+- apply sql/2026-05-22_add_manual_item_matches.sql in Supabase
+- review unresolved legacy sheet matches: 28 ambiguous order matches and 30 missing order matches

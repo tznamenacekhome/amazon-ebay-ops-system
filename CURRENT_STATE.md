@@ -15,6 +15,7 @@ Last Updated: 2026-05-23
 | Dashboard analytics | Early/planned |
 | Matching engine | Emerging subsystem |
 | Export pipeline | Planned |
+| Legacy spreadsheet backfill | Recently used / repeatable script available |
 
 ---
 
@@ -102,9 +103,19 @@ Implemented:
 - manual UI ASIN/price corrections propagate to matching purchase items
 - manual match memory is supported through manual_item_matches once the SQL migration is applied
 - reusable marketplace title cleaner before RevSeller normalized matching
+- legacy Purchases sheet backfill script can fill missing ASINs and target sell prices by eBay order number
 
 Current result:
 ~760 successful matches
+
+Recent legacy sheet backfill:
+- source: Google Sheet "ebay purchases", Purchases tab
+- script: integrations/backfill_purchase_items_from_purchase_sheet.py
+- matched by eBay order number, with title/system disambiguation for multi-row orders
+- filled 340 missing ASINs
+- filled 2,141 missing target sell prices
+- remaining after backfill: 37 missing ASINs, 62 missing target sell prices
+- unresolved rows were left untouched when order matches were ambiguous or absent
 
 ---
 
@@ -135,6 +146,8 @@ Implemented:
 - detail drawer status matches the table's derived operational status
 - detail drawer carrier status shows carrier/shipment fields only
 - detail drawer shows "--" for Amazon Title when ASIN is missing
+- detail drawer saves ASIN and sell price together as one correction
+- table headers sort the currently filtered row set by displayed values
 
 Current architecture:
 web/app/page.tsx is now the composition layer.

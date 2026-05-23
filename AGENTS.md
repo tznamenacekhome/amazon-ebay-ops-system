@@ -53,6 +53,8 @@ Purchases table display rules:
 - unmatched rows show the eBay supplier title and a one-line Search Amazon link
 - ETA shows carrier estimated delivery when available, otherwise eBay estimated delivery for undelivered items, and delivered date when delivered
 - carrier ETA dates are displayed as date-only values to avoid timezone day shifts
+- table headers sort the currently filtered row set
+- detail drawer saves ASIN and sell price together as one manual correction
 
 Do not reintroduce large JSX blocks into page.tsx.
 
@@ -150,6 +152,11 @@ Marketplace title cleaning is shared by frontend search links and backend matchi
 - TypeScript: cleanMarketplaceTitleForSearch
 
 Use this cleaner before Amazon catalog searches or fuzzy matching against marketplace titles.
+
+Manual corrections:
+- ASIN/sell-price corrections should propagate only to matching title/system rows
+- never overwrite a different existing ASIN during propagation
+- manual match memory belongs in manual_item_matches after the SQL migration is applied
 
 ---
 

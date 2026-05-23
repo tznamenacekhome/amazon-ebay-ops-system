@@ -116,6 +116,26 @@ Rules:
 
 ---
 
+## Legacy Purchase Sheet Backfill Is A Controlled Import Path
+
+Decision:
+Use the historical "ebay purchases" Google Sheet Purchases tab as a controlled backfill source for missing purchase_items ASINs and target sell prices.
+
+Reason:
+The spreadsheet contains historical operator-reviewed ASIN and list price data that can reduce manual review work in the new system.
+
+Implementation:
+- script: integrations/backfill_purchase_items_from_purchase_sheet.py
+- exported workbook is parsed locally with openpyxl
+- matching starts with eBay order number
+- multi-row orders require title/system disambiguation
+- ambiguous or missing order matches are skipped
+
+Rule:
+This is a backfill/import aid, not a new operational source of truth. Supabase remains authoritative after import.
+
+---
+
 ## Carrier Tracking Status Comes From EasyPost
 
 Decision:

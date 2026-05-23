@@ -68,6 +68,31 @@ Current mitigation:
 - RevSeller enrichment requires system-aware matching before ASIN assignment
 - matched Amazon/RevSeller title is stored separately from the eBay supplier title for review clarity
 - shared marketplace-title cleaning now runs before RevSeller normalized matching
+- legacy Purchases sheet backfill filled many missing values but skipped ambiguous multi-row order matches
+
+---
+
+## Remaining Missing ASIN / Target Price Rows
+
+Status: ACTIVE
+
+Problem:
+After RevSeller enrichment and legacy Purchases sheet backfill, some purchase_items still lack ASINs and/or target sell prices.
+
+Current count after latest backfill:
+- 37 rows missing ASIN
+- 62 rows missing target sell price
+
+Known causes:
+- old Purchases sheet did not contain the order number
+- multi-row order matches were ambiguous
+- some items are not in RevSeller/Amazon catalog data yet
+
+Recommended next mitigation:
+- review the 28 ambiguous order matches from the legacy sheet backfill
+- review the 30 missing order-number matches
+- use manual drawer save so corrections propagate to matching rows
+- apply manual_item_matches SQL migration so manual corrections become reusable match memory
 
 ---
 
