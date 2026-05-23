@@ -70,3 +70,24 @@ Operators need to review the matched Amazon identity without losing the original
 
 Display:
 The purchases table uses amazon_title as the primary item title for matched ASIN rows when available, and shows the eBay title underneath prefixed with "ebay: ".
+
+---
+
+## Marketplace Title Cleaning Is Shared
+
+Decision:
+Use a named reusable title cleaner before Amazon search and before matching marketplace titles to RevSeller data.
+
+Names:
+- Python backend: clean_marketplace_title_for_search
+- TypeScript frontend: cleanMarketplaceTitleForSearch
+
+Reason:
+eBay titles often include condition, shipping, punctuation, release years, and platform placement patterns that should be normalized consistently before search or fuzzy matching.
+
+Current use:
+- purchases UI Search Amazon links
+- RevSeller enrichment normalized title preprocessing
+
+Future use:
+Amazon catalog search automation should use this cleaner before searching for candidate ASINs.

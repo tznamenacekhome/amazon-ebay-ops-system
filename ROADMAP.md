@@ -46,11 +46,39 @@ Goals:
 - support manual ASIN review with minimal clicks
 - provide Amazon search / ASIN links
 - prepare for backend-provided matching diagnostics
+- reuse marketplace-title cleaning before any automated Amazon catalog search
 
 Constraints:
 - frontend must not guess matching confidence
 - frontend must not auto-match across video game systems
 - receiving workflow must remain separate
+
+---
+
+## Marketplace Title Cleaning Improvements
+
+Problem:
+Amazon search and future matching still fail when eBay titles contain extra seller keywords, condition words, edition noise, packaging terms, or promotional fragments.
+
+Goals:
+- improve Search Amazon result quality
+- improve RevSeller/future fuzzy matching preprocessing
+- build toward automated Amazon catalog search and ASIN candidate lookup
+
+Next steps:
+- collect failing eBay title examples and expected cleaned search terms
+- create a reusable excluded-keyword/phrase list for marketplace title cleaning
+- add regression tests for `clean_marketplace_title_for_search` and `cleanMarketplaceTitleForSearch`
+- log/display the generated Amazon search term for diagnostics during ASIN review
+- separate always-excluded terms from terms that may be meaningful in some titles
+- consider preserving edition words only when they affect the product identity
+- add diagnostics comparing original eBay title, cleaned search term, detected system, and selected ASIN
+
+Constraints:
+- do not remove words that are part of the actual game title
+- do not infer ASINs from frontend-only logic
+- keep system/platform handling explicit and backend-owned
+- automated catalog search must return candidates for review before any auto-assignment
 
 ---
 
@@ -69,3 +97,4 @@ Completed foundation:
 - existing missing systems backfilled where recognized
 - canonical system display names normalized
 - matched Amazon/RevSeller titles stored separately from eBay titles
+- reusable marketplace-title cleaner added for frontend search and backend matching

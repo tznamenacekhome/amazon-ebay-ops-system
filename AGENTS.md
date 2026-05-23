@@ -110,6 +110,12 @@ Frontend may display system, but must not infer it from titles.
 
 System display names are canonical backend values such as Switch, PS 5, Xbox One, and PC.
 
+Marketplace title cleaning is shared by frontend search links and backend matching preparation:
+- Python: clean_marketplace_title_for_search
+- TypeScript: cleanMarketplaceTitleForSearch
+
+Use this cleaner before Amazon catalog searches or fuzzy matching against marketplace titles.
+
 ---
 
 # Frontend Philosophy

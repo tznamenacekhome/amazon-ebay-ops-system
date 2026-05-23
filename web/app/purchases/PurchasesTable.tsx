@@ -8,6 +8,7 @@ import {
   ebayOrderUrl,
   formatDate,
   formatMoney,
+  getAmazonSearchTerm,
   getEbayTitle,
   getShipmentStatus,
   isDelivered,
@@ -134,7 +135,7 @@ export function PurchasesTable({
                     ) : (
                       <div>
                         <a
-                          href={amazonSearchUrl(primaryTitle)}
+                          href={amazonSearchUrl(getAmazonSearchTerm(row))}
                           target="_blank"
                           rel="noreferrer"
                           className="whitespace-nowrap text-xs text-slate-500 hover:underline"

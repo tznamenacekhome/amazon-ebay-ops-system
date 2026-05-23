@@ -1,4 +1,5 @@
 import type { PurchaseRow } from "./types";
+import { cleanMarketplaceTitleForSearch } from "./titleCleaning";
 
 export function formatDate(value?: string | null) {
   if (!value) return "";
@@ -29,6 +30,13 @@ export function amazonAsinUrl(asin: string) {
 
 export function amazonSearchUrl(title: string) {
   return `https://www.amazon.com/s?k=${encodeURIComponent(title)}`;
+}
+
+export function getAmazonSearchTerm(row: PurchaseRow) {
+  const ebayTitle = row.ebay_title || row.title || row.amazon_title || "";
+  const searchTerm = cleanMarketplaceTitleForSearch(ebayTitle);
+
+  return searchTerm || ebayTitle || "video game";
 }
 
 export function ebayOrderUrl(orderId?: string | null) {

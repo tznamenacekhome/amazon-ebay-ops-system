@@ -10,6 +10,7 @@ from dotenv import load_dotenv
 from supabase import create_client
 
 try:
+    from title_cleaning import clean_marketplace_title_for_search
     from system_detection import (
         detect_system_from_title,
         normalize_spaces,
@@ -17,6 +18,7 @@ try:
         remove_system_terms,
     )
 except ImportError:
+    from integrations.title_cleaning import clean_marketplace_title_for_search
     from integrations.system_detection import (
         detect_system_from_title,
         normalize_spaces,
@@ -65,7 +67,7 @@ def normalize_title(title: str | None) -> str:
     if not title:
         return ""
 
-    text = title.lower()
+    text = clean_marketplace_title_for_search(title).lower()
     text = re.sub(r"\([^)]*\)", " ", text)
     text = re.sub(r"\[[^]]*\]", " ", text)
     text = remove_system_terms(text)

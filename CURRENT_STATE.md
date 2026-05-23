@@ -58,6 +58,7 @@ Implemented:
 - system-aware matching
 - shared backend system detection
 - strict title+system RevSeller matching
+- reusable marketplace title cleaner before RevSeller normalized matching
 
 Current result:
 ~760 successful matches
@@ -98,3 +99,4 @@ Recent backend update:
 - RevSeller enrichment no longer applies unique-title matches without a recognized system
 - system names were normalized to operator-facing display values
 - purchase_items.amazon_title was added and backfilled from RevSeller where ASIN/title data was available
+- Amazon search links and RevSeller matching now share marketplace-title cleaning semantics

@@ -17,6 +17,12 @@ This folder contains the purchases workflow UI.
 - Unmatched rows show a one-line `Search Amazon` link in the ASIN column.
 - ETA displays estimated delivery for undelivered items and delivered date for delivered items.
 
+## Title Cleaning
+
+- Amazon search links use `cleanMarketplaceTitleForSearch`.
+- The Python integration mirror is `clean_marketplace_title_for_search`.
+- Keep frontend search-link cleaning aligned with backend matching/search automation cleaning.
+
 ## Operational Rules
 
 - The frontend must never recalculate landed cost.
