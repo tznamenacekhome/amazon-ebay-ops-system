@@ -271,7 +271,8 @@ def get_existing_purchase_items(purchase_id):
         .select(
             "item_id,title,quantity,supplier_sku,raw_import_json,created_at,"
             "asin,target_price,system,tracking_number,condition,"
-            "supplier_listing_url,current_status"
+            "supplier_listing_url,current_status,unit_cost,"
+            "manual_title_override,manual_unit_cost_override,manual_split_child"
         )
         .eq("purchase_id", purchase_id)
         .order("created_at")
@@ -437,11 +438,17 @@ def match_existing_item(existing_items, transaction, used_item_ids):
             if item.get("item_id") in used_item_ids:
                 continue
 
+            if item.get("manual_split_child"):
+                continue
+
             if item.get("supplier_sku") == line_id:
                 return item
 
     for item in existing_items:
         if item.get("item_id") in used_item_ids:
+            continue
+
+        if item.get("manual_split_child"):
             continue
 
         raw = item.get("raw_import_json") or {}
@@ -461,11 +468,17 @@ def match_existing_item(existing_items, transaction, used_item_ids):
         if item.get("item_id") in used_item_ids:
             continue
 
+        if item.get("manual_split_child"):
+            continue
+
         if item.get("title") == title and int(item.get("quantity") or 1) == quantity:
             return item
 
     for item in existing_items:
         if item.get("item_id") in used_item_ids:
+            continue
+
+        if item.get("manual_split_child"):
             continue
 
         return item
@@ -557,9 +570,22 @@ def build_item_payload(
     existing_item=None,
 ):
     quantity = transaction_quantity(transaction)
-    title = transaction_title(transaction)
+    ebay_title = transaction_title(transaction)
+    title = (
+        existing_item.get("title")
+        if existing_item
+        and existing_item.get("manual_title_override")
+        and existing_item.get("title")
+        else ebay_title
+    )
+    unit_cost = (
+        existing_item.get("unit_cost")
+        if existing_item
+        and existing_item.get("manual_unit_cost_override")
+        else transaction_unit_cost(transaction)
+    )
     existing_system = normalize_system(existing_item.get("system")) if existing_item else None
-    detected_system = detect_system_from_title(title)
+    detected_system = detect_system_from_title(ebay_title)
 
     return {
         "purchase_id": purchase_id,
@@ -568,7 +594,7 @@ def build_item_payload(
         "title": title,
         "system": existing_system or detected_system,
         "quantity": quantity,
-        "unit_cost": transaction_unit_cost(transaction),
+        "unit_cost": unit_cost,
         "target_price": existing_item.get("target_price") if existing_item else None,
         "current_status": (
             "delivered"
@@ -587,6 +613,21 @@ def build_item_payload(
             existing_item.get("supplier_listing_url")
             if existing_item
             else None
+        ),
+        "manual_title_override": (
+            bool(existing_item.get("manual_title_override"))
+            if existing_item
+            else False
+        ),
+        "manual_unit_cost_override": (
+            bool(existing_item.get("manual_unit_cost_override"))
+            if existing_item
+            else False
+        ),
+        "manual_split_child": (
+            bool(existing_item.get("manual_split_child"))
+            if existing_item
+            else False
         ),
         "import_batch_id": import_batch_id,
         "raw_import_json": element_to_dict(transaction),
@@ -646,8 +687,17 @@ def build_unknown_item_payload(
 ):
     title = (
         existing_item.get("title")
-        if existing_item and existing_item.get("title")
+        if existing_item
+        and (
+            existing_item.get("manual_title_override")
+            or existing_item.get("title")
+        )
         else "Unknown eBay item"
+    )
+    unit_cost = (
+        existing_item.get("unit_cost")
+        if existing_item and existing_item.get("manual_unit_cost_override")
+        else None
     )
     existing_system = normalize_system(existing_item.get("system")) if existing_item else None
 
@@ -659,7 +709,7 @@ def build_unknown_item_payload(
             if existing_item and existing_item.get("quantity")
             else 1
         ),
-        "unit_cost": existing_item.get("unit_cost") if existing_item else None,
+        "unit_cost": unit_cost,
         "asin": existing_item.get("asin") if existing_item else None,
         "target_price": existing_item.get("target_price") if existing_item else None,
         "system": existing_system or detect_system_from_title(title),
@@ -680,6 +730,21 @@ def build_unknown_item_payload(
             existing_item.get("supplier_listing_url")
             if existing_item
             else None
+        ),
+        "manual_title_override": (
+            bool(existing_item.get("manual_title_override"))
+            if existing_item
+            else False
+        ),
+        "manual_unit_cost_override": (
+            bool(existing_item.get("manual_unit_cost_override"))
+            if existing_item
+            else False
+        ),
+        "manual_split_child": (
+            bool(existing_item.get("manual_split_child"))
+            if existing_item
+            else False
         ),
         "import_batch_id": import_batch_id,
         "raw_import_json": raw_order,

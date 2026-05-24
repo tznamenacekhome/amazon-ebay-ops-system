@@ -104,6 +104,8 @@ Implemented:
 - manual match memory is supported through manual_item_matches once the SQL migration is applied
 - reusable marketplace title cleaner before RevSeller normalized matching
 - legacy Purchases sheet backfill script can fill missing ASINs and target sell prices by eBay order number
+- manual eBay title and purchase-price overrides are supported with sync-preservation flags
+- manual split purchase item rows are supported for multi-game eBay listings
 
 Current result:
 ~760 successful matches
@@ -146,8 +148,11 @@ Implemented:
 - detail drawer status matches the table's derived operational status
 - detail drawer carrier status shows carrier/shipment fields only
 - detail drawer shows "--" for Amazon Title when ASIN is missing
-- detail drawer saves ASIN and sell price together as one correction
+- detail drawer saves eBay title, purchase price, ASIN, and sell price together
+- detail drawer can create a manual split item row for multi-game eBay listings
+- search input includes an inline clear button
 - table headers sort the currently filtered row set by displayed values
+- status filter includes Received for warehouse-verified delivered items
 
 Current architecture:
 web/app/page.tsx is now the composition layer.
@@ -163,3 +168,7 @@ Recent backend update:
 - purchase_items.amazon_title was added and backfilled from RevSeller where ASIN/title data was available
 - Amazon search links and RevSeller matching now share marketplace-title cleaning semantics
 - marketplace-title cleaning was refined from the 100-row missing-ASIN training sheet
+
+Manual override schema:
+- sql/2026-05-23_add_purchase_item_manual_overrides.sql adds purchase item flags for manual title overrides, manual unit-cost overrides, and manual split child rows
+- eBay buyer purchase sync preserves manual title/unit-cost overrides and skips manual split child rows during fallback matching

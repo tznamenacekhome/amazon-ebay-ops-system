@@ -9,6 +9,7 @@ export const OPERATIONAL_STATUS_OPTIONS = [
   { value: "available_for_pickup", label: "Out for Pickup / Pickup Available" },
   { value: "out_for_delivery", label: "Out for Delivery" },
   { value: "delivered", label: "Delivered" },
+  { value: "received", label: "Received" },
   { value: "exception", label: "Exception" },
   { value: "return_opened", label: "Return Opened" },
   { value: "cancelled", label: "Cancelled" },
@@ -108,7 +109,11 @@ export function getDisplayTitleParts(row: PurchaseRow) {
 }
 
 export function isDelivered(row: PurchaseRow) {
-  return getOperationalStatus(row).value === "delivered";
+  return ["delivered", "received"].includes(getOperationalStatus(row).value);
+}
+
+export function needsAsinReview(row: PurchaseRow) {
+  return !row.asin && getOperationalStatus(row).value !== "cancelled";
 }
 
 export function getOperationalStatus(row: PurchaseRow): {
@@ -128,6 +133,7 @@ export function getOperationalStatus(row: PurchaseRow): {
   if (row.ebay_cancelled || itemStatus === "cancelled") {
     return statusOption("cancelled");
   }
+  if (itemStatus === "received") return statusOption("received");
   if (carrierStatus === "delivered" || !!row.delivered_date) {
     return statusOption("delivered");
   }

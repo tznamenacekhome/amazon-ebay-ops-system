@@ -5,6 +5,7 @@ import {
   getEbayTitle,
   getOperationalStatus,
   getPrimaryTitle,
+  needsAsinReview,
 } from "./utils";
 
 export function usePurchaseFilters(rows: PurchaseRow[]) {
@@ -40,7 +41,7 @@ export function usePurchaseFilters(rows: PurchaseRow[]) {
       const matchesAsin =
         asinFilter === "all" ||
         (asinFilter === "matched" && !!row.asin) ||
-        (asinFilter === "needs_review" && !row.asin);
+        (asinFilter === "needs_review" && needsAsinReview(row));
 
       const matchesStatus =
         statusFilter === "all" || statusFilter === status.value;

@@ -1,4 +1,4 @@
-import { Save, X } from "lucide-react";
+import { Plus, Save, X } from "lucide-react";
 
 import type { PurchaseRow } from "./types";
 import {
@@ -16,9 +16,14 @@ type PurchaseDetailDrawerProps = {
   row: PurchaseRow;
   drawerAsin: string;
   drawerSellPrice: string;
+  drawerEbayTitle: string;
+  drawerUnitCost: string;
   savingKey: string | null;
   onAsinChange: (value: string) => void;
   onSellPriceChange: (value: string) => void;
+  onEbayTitleChange: (value: string) => void;
+  onUnitCostChange: (value: string) => void;
+  onAddSplitItem: () => void;
   onSave: () => void;
   onClose: () => void;
 };
@@ -27,9 +32,14 @@ export function PurchaseDetailDrawer({
   row,
   drawerAsin,
   drawerSellPrice,
+  drawerEbayTitle,
+  drawerUnitCost,
   savingKey,
   onAsinChange,
   onSellPriceChange,
+  onEbayTitleChange,
+  onUnitCostChange,
+  onAddSplitItem,
   onSave,
   onClose,
 }: PurchaseDetailDrawerProps) {
@@ -86,6 +96,24 @@ export function PurchaseDetailDrawer({
           <section className="rounded-xl border border-slate-200 p-4">
             <div className="grid gap-3">
               <label className="grid gap-1 text-xs font-medium uppercase tracking-wide text-slate-500">
+                eBay Title
+                <textarea
+                  value={drawerEbayTitle}
+                  onChange={(event) => onEbayTitleChange(event.target.value)}
+                  className="min-h-20 rounded-lg border border-slate-300 px-3 py-2 text-sm font-normal normal-case tracking-normal text-slate-900"
+                  placeholder="Enter eBay listing title"
+                />
+              </label>
+
+              <label className="grid gap-1 text-xs font-medium uppercase tracking-wide text-slate-500">
+                Purchase Price
+                <CurrencyInput
+                  value={drawerUnitCost}
+                  onChange={onUnitCostChange}
+                />
+              </label>
+
+              <label className="grid gap-1 text-xs font-medium uppercase tracking-wide text-slate-500">
                 ASIN
                 <input
                   value={drawerAsin}
@@ -97,28 +125,31 @@ export function PurchaseDetailDrawer({
 
               <label className="grid gap-1 text-xs font-medium uppercase tracking-wide text-slate-500">
                 Sell Price
-                <div className="relative">
-                  <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm font-normal normal-case tracking-normal text-slate-500">
-                    $
-                  </span>
-                  <input
-                    value={drawerSellPrice}
-                    onChange={(event) => onSellPriceChange(event.target.value)}
-                    className="w-full rounded-lg border border-slate-300 py-2 pl-7 pr-3 text-sm font-normal normal-case tracking-normal text-slate-900"
-                    inputMode="decimal"
-                    placeholder="0.00"
-                  />
-                </div>
+                <CurrencyInput
+                  value={drawerSellPrice}
+                  onChange={onSellPriceChange}
+                />
               </label>
 
-              <button
-                onClick={onSave}
-                disabled={isSaving}
-                className="inline-flex items-center justify-center gap-2 rounded-lg bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-60"
-              >
-                <Save className="h-4 w-4" />
-                {isSaving ? "Saving" : "Save"}
-              </button>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  onClick={onSave}
+                  disabled={isSaving}
+                  className="inline-flex flex-1 items-center justify-center gap-2 rounded-lg bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-60"
+                >
+                  <Save className="h-4 w-4" />
+                  {isSaving ? "Saving" : "Save"}
+                </button>
+
+                <button
+                  onClick={onAddSplitItem}
+                  disabled={isSaving}
+                  className="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-60"
+                >
+                  <Plus className="h-4 w-4" />
+                  Split Item
+                </button>
+              </div>
             </div>
           </section>
 
@@ -147,6 +178,29 @@ export function PurchaseDetailDrawer({
           </section>
         </div>
       </aside>
+    </div>
+  );
+}
+
+function CurrencyInput({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <div className="relative">
+      <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm font-normal normal-case tracking-normal text-slate-500">
+        $
+      </span>
+      <input
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        className="w-full rounded-lg border border-slate-300 py-2 pl-7 pr-3 text-sm font-normal normal-case tracking-normal text-slate-900"
+        inputMode="decimal"
+        placeholder="0.00"
+      />
     </div>
   );
 }

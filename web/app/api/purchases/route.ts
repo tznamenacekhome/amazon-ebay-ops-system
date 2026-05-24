@@ -157,6 +157,10 @@ export async function PATCH(request: Request) {
   const updates: {
     asin?: string | null;
     target_price?: number | null;
+    title?: string | null;
+    unit_cost?: number | null;
+    manual_title_override?: boolean;
+    manual_unit_cost_override?: boolean;
   } = {};
 
   if ("asin" in body) {
@@ -168,6 +172,35 @@ export async function PATCH(request: Request) {
       body.sell_price === null || body.sell_price === ""
         ? null
         : Number(body.sell_price);
+
+    if (Number.isNaN(updates.target_price)) {
+      return NextResponse.json(
+        { error: "sell_price must be a valid number" },
+        { status: 400 }
+      );
+    }
+  }
+
+  if ("title" in body) {
+    const title = body.title === null ? "" : String(body.title ?? "").trim();
+    updates.title = title || null;
+    updates.manual_title_override = true;
+  }
+
+  if ("unit_cost" in body) {
+    updates.unit_cost =
+      body.unit_cost === null || body.unit_cost === ""
+        ? null
+        : Number(body.unit_cost);
+
+    if (Number.isNaN(updates.unit_cost)) {
+      return NextResponse.json(
+        { error: "unit_cost must be a valid number" },
+        { status: 400 }
+      );
+    }
+
+    updates.manual_unit_cost_override = true;
   }
 
   const { data: sourceItem, error: sourceError } = await supabase
@@ -197,22 +230,152 @@ export async function PATCH(request: Request) {
     );
   }
 
-  const propagatedItems = await propagateManualMatch(sourceItem, data, updates);
+  const responseItem = {
+    ...data,
+    ebay_title: data.title,
+    sell_price: data.target_price,
+  };
+  const propagatedItems = await propagateManualMatch(
+    sourceItem,
+    responseItem,
+    updates
+  );
 
   return NextResponse.json({
     success: true,
-    item: data,
+    item: responseItem,
     propagated_items: propagatedItems,
   });
+}
+
+export async function POST(request: Request) {
+  const body = await request.json();
+  const sourceItemId = body.source_item_id as string | undefined;
+
+  if (!sourceItemId) {
+    return NextResponse.json(
+      { error: "source_item_id is required" },
+      { status: 400 }
+    );
+  }
+
+  const { data: sourceData, error: sourceError } = await supabase
+    .from("purchase_items")
+    .select(
+      "item_id,purchase_id,title,system,tracking_number,current_status,condition," +
+        "supplier_listing_url,import_batch_id,raw_import_json"
+    )
+    .eq("item_id", sourceItemId)
+    .single();
+
+  if (sourceError) {
+    return NextResponse.json(
+      { error: sourceError.message },
+      { status: 500 }
+    );
+  }
+
+  const sourceItem = sourceData as unknown as {
+    item_id: string;
+    purchase_id: string;
+    title: string | null;
+    system: string | null;
+    tracking_number: string | null;
+    current_status: string | null;
+    condition: string | null;
+    supplier_listing_url: string | null;
+    import_batch_id: string | null;
+    raw_import_json: unknown;
+  };
+
+  const title =
+    typeof body.title === "string" && body.title.trim()
+      ? body.title.trim()
+      : "Split item";
+  const unitCost =
+    body.unit_cost === null || body.unit_cost === undefined || body.unit_cost === ""
+      ? null
+      : Number(body.unit_cost);
+
+  const splitPayload: Record<string, unknown> = {
+    purchase_id: sourceItem.purchase_id,
+    title,
+    quantity: 1,
+    unit_cost: Number.isNaN(unitCost) ? null : unitCost,
+    asin: null,
+    target_price: null,
+    system: sourceItem.system,
+    tracking_number: sourceItem.tracking_number,
+    current_status: sourceItem.current_status,
+    condition: sourceItem.condition,
+    supplier_listing_url: sourceItem.supplier_listing_url,
+    import_batch_id: sourceItem.import_batch_id,
+    raw_import_json: sourceItem.raw_import_json,
+    manual_title_override: true,
+    manual_unit_cost_override: true,
+    manual_split_child: true,
+    manual_split_parent_item_id: sourceItem.item_id,
+  };
+
+  const { data: item, error } = await supabase
+    .from("purchase_items")
+    .insert(splitPayload)
+    .select()
+    .single();
+
+  if (error) {
+    return NextResponse.json(
+      { error: error.message },
+      { status: 500 }
+    );
+  }
+
+  await linkSplitItemToExistingShipments(item.item_id, sourceItem.purchase_id);
+
+  return NextResponse.json({ success: true, item });
+}
+
+async function linkSplitItemToExistingShipments(
+  itemId: string,
+  purchaseId: string
+) {
+  const { data: shipments, error } = await supabase
+    .from("inbound_shipments")
+    .select("inbound_shipment_id")
+    .eq("purchase_id", purchaseId);
+
+  if (error) {
+    console.warn("Split item was not linked to shipments", error.message);
+    return;
+  }
+
+  for (const shipment of shipments ?? []) {
+    const { error: linkError } = await supabase
+      .from("inbound_shipment_items")
+      .insert({
+        inbound_shipment_id: shipment.inbound_shipment_id,
+        item_id: itemId,
+        quantity_expected_in_package: 1,
+        quantity_received_from_package: null,
+        received_verified: false,
+        notes: "Linked from manual purchase item split",
+      });
+
+    if (linkError && !linkError.message.includes("duplicate")) {
+      console.warn("Split item shipment link failed", linkError.message);
+    }
+  }
 }
 
 type PurchaseItem = {
   item_id: string;
   title: string | null;
+  ebay_title?: string | null;
   amazon_title: string | null;
   system: string | null;
   asin: string | null;
   target_price: number | string | null;
+  sell_price?: number | string | null;
 };
 
 async function propagateManualMatch(
@@ -228,7 +391,8 @@ async function propagateManualMatch(
 
   if (!asinWasUpdated && !targetPriceWasUpdated) return [];
 
-  const normalizedTitle = normalizeMatchTitle(sourceItem.title);
+  const sourceTitle = updatedItem.title || sourceItem.title;
+  const normalizedTitle = normalizeMatchTitle(sourceTitle);
   const compactTitle = compactMatchTitle(normalizedTitle);
   const system = normalizeSystem(sourceItem.system);
   const correctedAsin = updatedItem.asin?.trim().toUpperCase() || null;
@@ -248,7 +412,7 @@ async function propagateManualMatch(
       amazonTitle: updatedItem.amazon_title,
       targetPrice: correctedTargetPrice,
       sourceItemId: updatedItem.item_id,
-      sourceTitle: sourceItem.title,
+      sourceTitle,
     });
   }
 
@@ -305,7 +469,11 @@ async function propagateManualMatch(
       continue;
     }
 
-    propagatedItems.push(propagatedItem);
+    propagatedItems.push({
+      ...propagatedItem,
+      ebay_title: propagatedItem.title,
+      sell_price: propagatedItem.target_price,
+    });
   }
 
   return propagatedItems;

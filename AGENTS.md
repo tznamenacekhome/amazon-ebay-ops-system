@@ -54,7 +54,9 @@ Purchases table display rules:
 - ETA shows carrier estimated delivery when available, otherwise eBay estimated delivery for undelivered items, and delivered date when delivered
 - carrier ETA dates are displayed as date-only values to avoid timezone day shifts
 - table headers sort the currently filtered row set
-- detail drawer saves ASIN and sell price together as one manual correction
+- status filter includes Received for items warehouse-verified by the future receiving workflow
+- detail drawer saves eBay title, purchase price, ASIN, and sell price together
+- detail drawer can create manual split item rows for multi-game eBay listings
 
 Do not reintroduce large JSX blocks into page.tsx.
 
@@ -123,6 +125,8 @@ Receiving workflow:
 
 Do not merge these workflows into one UI.
 
+Purchases may display the workflow status Received when the future receiving workflow sets purchase_items.current_status = received, but receiving verification itself belongs in the receiving workflow.
+
 eBay seller orders are not purchases. Seller-order functionality must use separate future tables/workflows and must not write to purchases or purchase_items.
 
 ---
@@ -157,6 +161,9 @@ Manual corrections:
 - ASIN/sell-price corrections should propagate only to matching title/system rows
 - never overwrite a different existing ASIN during propagation
 - manual match memory belongs in manual_item_matches after the SQL migration is applied
+- edited eBay titles and purchase prices are item-specific manual overrides and must not propagate by title/system
+- eBay sync must preserve manual_title_override and manual_unit_cost_override fields
+- manual split child rows must not be consumed by eBay sync fallback matching
 
 ---
 

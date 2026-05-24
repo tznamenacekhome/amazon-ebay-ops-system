@@ -114,6 +114,49 @@ export function usePurchases() {
     []
   );
 
+  const createSplitItem = useCallback(async (row: PurchaseRow) => {
+    const key = rowKey(row);
+    setSavingKey(key);
+    setError(null);
+
+    try {
+      const response = await fetch("/api/purchases", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          source_item_id: row.item_id,
+          title: "Split item",
+        }),
+      });
+
+      if (!response.ok) {
+        const message = await response.text();
+        throw new Error(message || `Split item failed: ${response.status}`);
+      }
+
+      const result = await response.json();
+      const item = result.item as PurchaseRow;
+      const newRow = {
+        ...row,
+        ...item,
+        ebay_title: item.title,
+        amazon_title: null,
+        asin: null,
+        sell_price: null,
+        target_price: null,
+      };
+
+      setRows((currentRows) => [newRow, ...currentRows]);
+
+      return newRow;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Split item failed.");
+      return null;
+    } finally {
+      setSavingKey(null);
+    }
+  }, []);
+
   return {
     rows,
     loading,
@@ -122,5 +165,6 @@ export function usePurchases() {
     setError,
     loadPurchases,
     patchPurchase,
+    createSplitItem,
   };
 }

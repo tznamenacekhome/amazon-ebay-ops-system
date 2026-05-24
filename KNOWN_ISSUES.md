@@ -131,3 +131,23 @@ Recommended next mitigation:
 - configure EASYPOST_WEBHOOK_SECRET
 - register /api/easypost/webhook in EasyPost
 - test webhook HMAC validation with a real EasyPost event
+
+---
+
+## Legacy Multi-Row Purchase Shape
+
+Status: ACTIVE / LOW RISK
+
+Problem:
+Some historical multi-game eBay listings were imported from the legacy spreadsheet as duplicate purchases with one purchase_item each instead of one purchase with multiple purchase_items.
+
+Example:
+- order 04-14542-23405 currently exists as two purchase records with the same eBay order ID
+
+Current mitigation:
+- new manual split item support can represent multi-game listings as multiple purchase_items under one purchase going forward
+- eBay sync preserves manual item overrides and skips manual split child rows during fallback matching
+
+Recommended next mitigation:
+- decide whether historical duplicate purchases should be merged into one purchase with multiple purchase_items
+- avoid bulk merging until receiving/shipment side effects are reviewed

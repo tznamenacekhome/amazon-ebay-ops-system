@@ -22,6 +22,7 @@ export default function PurchasesPage() {
     setError,
     loadPurchases,
     patchPurchase,
+    createSplitItem,
   } = usePurchases();
 
   const {
@@ -37,6 +38,8 @@ export default function PurchasesPage() {
   const [selectedRow, setSelectedRow] = useState<PurchaseRow | null>(null);
   const [drawerAsin, setDrawerAsin] = useState("");
   const [drawerSellPrice, setDrawerSellPrice] = useState("");
+  const [drawerEbayTitle, setDrawerEbayTitle] = useState("");
+  const [drawerUnitCost, setDrawerUnitCost] = useState("");
   const [priceDrafts, setPriceDrafts] = useState<Record<string, string>>({});
 
   const stats = useMemo(() => {
@@ -77,8 +80,15 @@ export default function PurchasesPage() {
   async function saveDrawerMatch() {
     if (!selectedRow) return;
 
+    const parsedUnitCost =
+      drawerUnitCost.trim() === "" ? null : Number(drawerUnitCost);
     const parsedSellPrice =
       drawerSellPrice.trim() === "" ? null : Number(drawerSellPrice);
+
+    if (drawerUnitCost.trim() !== "" && Number.isNaN(parsedUnitCost)) {
+      setError("Purchase price must be a valid number.");
+      return;
+    }
 
     if (drawerSellPrice.trim() !== "" && Number.isNaN(parsedSellPrice)) {
       setError("Sell price must be a valid number.");
@@ -89,11 +99,30 @@ export default function PurchasesPage() {
       asin: drawerAsin.trim().toUpperCase() || null,
       sell_price: parsedSellPrice,
       target_price: parsedSellPrice,
+      title: drawerEbayTitle.trim() || null,
+      ebay_title: drawerEbayTitle.trim() || null,
+      unit_cost: parsedUnitCost,
     });
 
     if (updatedRow) {
       setSelectedRow(updatedRow);
       setDrawerSellPrice(formatPriceDraft(updatedRow.sell_price ?? updatedRow.target_price));
+      setDrawerUnitCost(formatPriceDraft(updatedRow.unit_cost));
+      setDrawerEbayTitle(updatedRow.ebay_title || updatedRow.title || "");
+    }
+  }
+
+  async function addSplitItem() {
+    if (!selectedRow) return;
+
+    const newRow = await createSplitItem(selectedRow);
+
+    if (newRow) {
+      setSelectedRow(newRow);
+      setDrawerAsin("");
+      setDrawerSellPrice("");
+      setDrawerEbayTitle(newRow.ebay_title || newRow.title || "");
+      setDrawerUnitCost("");
     }
   }
 
@@ -108,6 +137,8 @@ export default function PurchasesPage() {
     setSelectedRow(row);
     setDrawerAsin(row.asin || "");
     setDrawerSellPrice(formatPriceDraft(row.sell_price ?? row.target_price));
+    setDrawerEbayTitle(row.ebay_title || row.title || "");
+    setDrawerUnitCost(formatPriceDraft(row.unit_cost));
   }
 
   return (
@@ -161,9 +192,14 @@ export default function PurchasesPage() {
           row={selectedRow}
           drawerAsin={drawerAsin}
           drawerSellPrice={drawerSellPrice}
+          drawerEbayTitle={drawerEbayTitle}
+          drawerUnitCost={drawerUnitCost}
           savingKey={savingKey}
           onAsinChange={setDrawerAsin}
           onSellPriceChange={setDrawerSellPrice}
+          onEbayTitleChange={setDrawerEbayTitle}
+          onUnitCostChange={setDrawerUnitCost}
+          onAddSplitItem={addSplitItem}
           onSave={saveDrawerMatch}
           onClose={() => setSelectedRow(null)}
         />

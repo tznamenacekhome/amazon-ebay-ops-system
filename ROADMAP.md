@@ -37,7 +37,9 @@ Recent UI cleanup:
 - consolidated ETA/delivered date display into one color-coded column
 - fixed shipment date display to avoid UTC/local timezone day shifts
 - added sortable purchases table headers
-- added combined ASIN + sell price save in the detail drawer
+- added combined eBay title, purchase price, ASIN, and sell price save in the detail drawer
+- added manual split item creation from the detail drawer
+- added search-box clear button
 
 ---
 
@@ -53,27 +55,35 @@ Goals:
 - propagate manual ASIN and sell price corrections to matching title/system rows
 
 Recent progress:
-- detail drawer now saves ASIN and sell price together
+- detail drawer now saves eBay title, purchase price, ASIN, and sell price together
 - manual correction propagation updates duplicate title/system purchases
 - legacy Purchases sheet backfill filled 340 ASINs and 2,141 target sell prices
+- manual eBay title and purchase price overrides are protected from eBay sync overwrite
+- manual split item rows are supported for multi-game eBay listings
 
 Constraints:
 - frontend must not guess matching confidence
 - frontend must not auto-match across video game systems
 - receiving workflow must remain separate
 
+Remaining:
+- decide whether to merge or otherwise clean up legacy duplicate purchases for multi-row historical orders such as 04-14542-23405
+
 ---
 
 ## Receiving And Listing Workflows
 
+Workflow statuses:
+- Received: item has been warehouse-verified after delivery; displayed in purchases once the future receiving workflow sets `purchase_items.current_status = received`
+
 Future statuses:
-- Received: item has been warehouse-verified after delivery
 - Listed: item has been sent to Amazon FBA or listed on eBay
 
 Next steps:
 - define receiving workflow tables/fields
+- define the API/action that sets `purchase_items.current_status = received`
 - define listing/FBA workflow tables/fields
-- decide when these workflow statuses override shipment-derived statuses
+- decide when Listed overrides shipment-derived and receiving-derived statuses
 - keep receiving/listing workflows separate from purchases review UI
 
 ---
@@ -222,4 +232,5 @@ Completed foundation:
 
 Remaining:
 - apply sql/2026-05-22_add_manual_item_matches.sql in Supabase
+- apply sql/2026-05-23_add_purchase_item_manual_overrides.sql in Supabase
 - review unresolved legacy sheet matches: 28 ambiguous order matches and 30 missing order matches

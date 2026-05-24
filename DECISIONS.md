@@ -136,6 +136,44 @@ This is a backfill/import aid, not a new operational source of truth. Supabase r
 
 ---
 
+## Manual Purchase Item Overrides Are Protected
+
+Decision:
+Allow operators to manually edit a purchase item eBay title and purchase price, and preserve those edits through later sync/enrichment processing.
+
+Reason:
+Some eBay listings contain multiple games or supplier-title noise that must be corrected at the purchase item level. Purchase price corrections are item-specific accounting inputs and should not be overwritten by a later import pass.
+
+Implementation:
+- `manual_title_override` protects edited purchase_items.title values
+- `manual_unit_cost_override` protects edited purchase_items.unit_cost values
+- eBay buyer purchase sync preserves those protected values when updating an existing item
+- ASIN and target sell price can still propagate to same title/system rows, but eBay title and purchase price edits do not propagate
+
+Rule:
+Manual source-title and purchase-price edits are item-specific overrides. They must not be used as broad title/system propagation updates.
+
+---
+
+## Multi-Game eBay Listings Use Split Purchase Items
+
+Decision:
+Represent a single eBay listing containing multiple games as multiple purchase_items rows under the relevant purchase.
+
+Reason:
+Receiving, ASIN review, resale pricing, and future listing workflows operate at the game/item level, not always at the original eBay listing level.
+
+Implementation:
+- the purchases drawer can create a manual split item row from an existing purchase item
+- split child rows inherit purchase/shipment context
+- split child rows are flagged with `manual_split_child`
+- eBay buyer purchase sync skips manual split child rows during fallback transaction matching so they are not overwritten by later eBay syncs
+
+Rule:
+Do not model multiple games in one eBay listing as a single combined game title when they need separate ASIN, price, receiving, or listing outcomes.
+
+---
+
 ## Carrier Tracking Status Comes From EasyPost
 
 Decision:
@@ -171,3 +209,16 @@ Implementation status:
 
 Remaining dependency:
 The app must be deployed to a public HTTPS server and EasyPost must be configured with the public webhook URL and shared secret.
+
+---
+
+## Received Is A Receiving Workflow Status
+
+Decision:
+Add Received as an operational status displayed by the purchases UI when `purchase_items.current_status = received`.
+
+Reason:
+After delivery, the operator needs a separate state indicating the item was physically verified as correct. This status belongs to the receiving workflow, but the purchases screen should display it for operational visibility.
+
+Rule:
+Purchases may display and filter Received, but the receiving workflow must own the action that sets it.

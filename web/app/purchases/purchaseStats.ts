@@ -1,5 +1,5 @@
 import type { PurchaseRow, PurchaseStats } from "./types";
-import { isDelivered } from "./utils";
+import { isDelivered, needsAsinReview } from "./utils";
 
 export function getPurchaseStats(
   rows: PurchaseRow[],
@@ -8,7 +8,7 @@ export function getPurchaseStats(
   return {
     total: rows.length,
     visible: visibleRows.length,
-    needsReview: rows.filter((row) => !row.asin).length,
+    needsReview: rows.filter(needsAsinReview).length,
     delivered: rows.filter(isDelivered).length,
   };
 }

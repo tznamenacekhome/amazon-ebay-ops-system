@@ -19,6 +19,9 @@ This folder contains the purchases workflow UI.
 - Shipment dates are formatted as date-only values to avoid UTC/local timezone day shifts.
 - Status displays derived operational status, not raw carrier text.
 - Table headers sort the filtered row set by the displayed column values.
+- Cancelled rows are excluded from the Needs Review ASIN filter and metric.
+- The status filter includes `Received` when `current_status` is set by the future receiving workflow.
+- The search input has an inline clear button.
 
 ## Detail Drawer Display
 
@@ -26,7 +29,8 @@ This folder contains the purchases workflow UI.
 - `Carrier Status` shows only carrier/shipment status fields, never item `current_status`.
 - `ETA` appears next to `Order Date` and uses the same display-date logic as the table.
 - When ASIN is missing, `Amazon Title` displays `--`; the eBay supplier title remains visible separately.
-- ASIN and sell price are edited together with one drawer save action.
+- eBay title, purchase price, ASIN, and sell price are edited together with one drawer save action.
+- `Split Item` creates a manual purchase item row for multi-game eBay listings.
 
 ## Title Cleaning
 
@@ -42,12 +46,16 @@ This folder contains the purchases workflow UI.
 - The API propagates corrections to other rows with the same normalized title and system.
 - Existing different ASINs are not overwritten.
 - Manual match memory is written to `manual_item_matches` when the database migration has been applied.
+- Manual eBay title and purchase-price edits are item-specific overrides and do not propagate.
+- Manual override fields come from `sql/2026-05-23_add_purchase_item_manual_overrides.sql`.
+- eBay sync preserves manual title/unit-cost overrides and skips manual split child rows during fallback matching.
 
 ## Operational Rules
 
 - The frontend must never recalculate landed cost.
 - Display `unit_cost` from `vw_purchases_dashboard`; backend logic is authoritative.
 - Purchases and receiving are separate workflows. Do not merge receiving verification into this UI.
+- `Received` can be displayed here, but the receiving workflow should own setting that status.
 - ASIN/manual review can live here, but matching confidence and ambiguity status must come from backend data.
 - Video-game matching is platform-specific. Do not introduce frontend matching shortcuts across systems.
 - Frontend displays `system`, but backend import/enrichment owns system detection and canonical display names.
