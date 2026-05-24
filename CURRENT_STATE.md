@@ -16,7 +16,7 @@ MBOP is the internal operations platform for Midnight Blue Enterprises, LLC.
 | Receiving workflow | First slice implemented |
 | Shipment enrichment | Functional with remaining FedEx/webhook follow-up |
 | Sync orchestration | Mature |
-| Dashboard analytics | Early/planned |
+| Dashboard analytics | First slice implemented |
 | Matching engine | Emerging subsystem |
 | Export pipeline | Planned |
 | Legacy spreadsheet backfill | Recently used / repeatable script available |
@@ -134,10 +134,32 @@ Status: OPERATIONAL
 
 Implemented:
 - compact shared left-side navigation
-- Purchases and Receiving menu items
+- Dashboard, Purchases, and Receiving menu items
 - active mode highlighting
 - content remains dense and table-focused
 - implementation lives in web/app/AppShell.tsx
+
+---
+
+## Dashboard UI
+
+Status: FIRST SLICE IMPLEMENTED
+
+Implemented:
+- dashboard workspace at /dashboard
+- dashboard API route at /api/dashboard/purchases
+- monthly purchase units and total cost view grouped by year/month
+- pivot-style table inspired by the legacy Excel purchase summary
+- horizontal monthly cost chart for quick outlier/completeness scanning
+- dashboard excludes Return Opened rows
+- dashboard aggregation uses vw_purchases_dashboard.unit_cost multiplied by quantity
+- frontend only renders API-provided aggregates and does not recalculate landed cost
+
+Current purpose:
+Help identify purchase data completeness and cost accuracy by comparing MBOP monthly totals to the legacy spreadsheet pivot.
+
+Known comparison note:
+May 2026 may not match the legacy spreadsheet until all missing historical spreadsheet orders are imported or intentionally reconciled.
 
 ---
 

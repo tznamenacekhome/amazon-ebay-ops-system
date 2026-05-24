@@ -48,9 +48,29 @@ Purchases and Receiving are separate workflows, but operators need fast switchin
 
 Implementation:
 - `web/app/AppShell.tsx`
-- current entries are Purchases and Receiving
+- current entries are Dashboard, Purchases, and Receiving
 - active mode is highlighted
 - the shell remains narrow so dense operational tables keep most of the viewport
+
+---
+
+## Dashboard Aggregations Are Backend-Owned
+
+Decision:
+Dashboard totals are produced by API routes, not recalculated in React components.
+
+Reason:
+The dashboard is intended to validate completeness and accuracy against legacy spreadsheet reporting. Cost totals must use the same authoritative backend landed-cost values as the purchases table.
+
+Implementation:
+- `/api/dashboard/purchases` reads `vw_purchases_dashboard`
+- monthly units are summed from `quantity`
+- monthly cost is summed from `unit_cost * quantity`
+- rows with `current_status = return_opened` are excluded
+- `/dashboard` renders the returned aggregates only
+
+Rule:
+Do not add frontend-only cost math or alternate landed-cost formulas to dashboard components.
 
 ---
 

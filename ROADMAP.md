@@ -49,6 +49,33 @@ Recent UI cleanup:
 
 ---
 
+## Dashboard Analytics
+
+Status:
+First purchase completeness slice implemented.
+
+Completed:
+- added Dashboard menu item to the MBOP left navigation
+- added /dashboard workspace
+- added /api/dashboard/purchases aggregation route
+- added monthly units and total cost chart
+- added year/month pivot-style table with grand total
+- excluded Return Opened rows from dashboard totals
+- kept landed-cost math backend-owned through vw_purchases_dashboard.unit_cost
+
+Near-term goals:
+- compare MBOP monthly totals against the legacy Excel pivot
+- identify missing historical purchase imports by month
+- surface data completeness gaps before deeper workflow redesign
+
+Next steps:
+- add drill-down from a dashboard month into the matching filtered purchases list
+- add reconciliation indicators once expected monthly spreadsheet totals are stored or imported
+- add filters for status, marketplace, received date, and system after the first chart proves useful
+- decide whether May 2026 missing spreadsheet orders should be imported or documented as a known variance
+
+---
+
 ## Purchases ASIN Review Workflow
 
 Goals:

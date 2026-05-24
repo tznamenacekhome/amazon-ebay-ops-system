@@ -40,8 +40,12 @@ Purchases UI lives under:
 - web/app/page.tsx
 - web/app/purchases/
 
+Dashboard UI lives under:
+- web/app/dashboard/
+- web/app/api/dashboard/
+
 Current pattern:
-- AppShell provides the shared left-side navigation for Purchases and Receiving
+- AppShell provides the shared left-side navigation for Dashboard, Purchases, and Receiving
 - page.tsx composes the workspace and owns UI-local workflow state
 - usePurchases owns purchase loading, save status, errors, and API mutations
 - usePurchaseFilters owns filter state and filtered row derivation
@@ -139,6 +143,8 @@ Receiving detail links eBay titles to the eBay listing when a listing URL or ite
 Amazon-bound received items must have ASIN and sell price before they can be marked Received; eBay-bound received items do not require Amazon title, ASIN, or sell price.
 
 eBay seller orders are not purchases. Seller-order functionality must use separate future tables/workflows and must not write to purchases or purchase_items.
+
+Dashboard metrics must use backend/API aggregation and authoritative purchase item unit_cost values. The first dashboard report groups purchase units and cost by order month and excludes Return Opened rows. Do not recalculate landed cost in frontend components.
 
 ---
 

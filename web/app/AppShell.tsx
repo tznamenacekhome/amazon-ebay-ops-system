@@ -2,9 +2,14 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { PackageCheck, ShoppingCart } from "lucide-react";
+import { BarChart3, PackageCheck, ShoppingCart } from "lucide-react";
 
 const navItems = [
+  {
+    href: "/dashboard",
+    label: "Dashboard",
+    icon: BarChart3,
+  },
   {
     href: "/",
     label: "Purchases",
