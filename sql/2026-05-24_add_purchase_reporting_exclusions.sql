@@ -38,3 +38,24 @@ where p.purchase_id = pi.purchase_id
   and p.supplier_order_id = '16-14113-30387'
   and pi.title = 'NBA 2K22'
   and pi.unit_cost is null;
+
+update purchase_items pi
+set
+  exclude_from_purchase_reporting = true,
+  exclusion_reason = 'Missing from reference spreadsheet after 2026-05-15 reconciliation'
+from purchases p
+where p.purchase_id = pi.purchase_id
+  and p.supplier_order_id in (
+    '08-14658-30729',
+    '10-14655-54530',
+    '18-14643-18650',
+    '21-14639-11943',
+    '27-14629-25991',
+    '27-14629-25992',
+    '26-14640-17463',
+    '26-14640-17464',
+    '26-14640-17467',
+    '26-14640-17468',
+    '26-14640-17469',
+    '26-14640-17470'
+  );

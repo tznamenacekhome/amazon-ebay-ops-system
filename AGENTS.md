@@ -100,6 +100,12 @@ Long-term tracking updates should come from EasyPost webhooks once the app has a
 
 # Critical Architectural Rules
 
+## SQL Change Workflow
+
+When a schema or migration SQL command is required, provide the SQL as the immediate next step for the operator to apply before continuing dependent development.
+
+After the operator confirms the SQL was applied, resume implementation and verification.
+
 ## Cost Calculation Rule
 
 Frontend MUST NEVER recalculate landed cost.

@@ -161,9 +161,12 @@ Help identify purchase data completeness and cost accuracy by comparing MBOP mon
 
 Recent reconciliation:
 - 2024 and 2025 dashboard totals match the legacy Excel pivot exactly
-- 2026 variances are primarily MBOP orders absent from the legacy spreadsheet
+- 2026 variances are primarily returns/cancellations and split-row quantity/cost differences between MBOP and the legacy spreadsheet
 - two zero-cost NBA 2K22 rows from order 16-14113-30387 were marked Received / eBay
 - personal purchase and business supply reporting exclusions were identified for migration-backed cleanup
+- eBay purchases after 2026-05-15 that were absent from both legacy spreadsheet Purchases and Returns tabs were excluded from reporting: 13 item rows across 12 orders
+- no strict after-2026-05-15 MBOP-only rows were found on the legacy Returns tab during that reconciliation
+- after the latest exclusions, remaining dashboard variance for 2026 is 92 units / $1,788.48 over the spreadsheet, concentrated in Jan-May 2026
 
 ---
 
@@ -256,5 +259,4 @@ Schema:
 - sql/2026-05-23_add_receiving_fields.sql adds nullable purchase_items.marketplace with Amazon/eBay allowed values and nullable purchase_items.received_date for received-date reporting
 
 Pending:
-- apply sql/2026-05-23_add_receiving_fields.sql in Supabase before using the receiving page
 - decide image source for eBay listing images
