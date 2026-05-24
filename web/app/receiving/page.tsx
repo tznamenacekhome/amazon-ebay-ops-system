@@ -1,0 +1,754 @@
+"use client";
+
+import { useEffect, useMemo, useRef, useState } from "react";
+import { ArrowDown, ArrowUp, Check, PackageCheck, Search, X } from "lucide-react";
+
+import type { PurchaseRow } from "../purchases/types";
+import {
+  amazonAsinUrl,
+  formatDate,
+  formatMoney,
+  getDisplayDeliveryDate,
+  getOperationalStatus,
+  rowKey,
+} from "../purchases/utils";
+
+type ReceivingDraft = {
+  quantityReceived: string;
+  returnPending: boolean;
+  marketplace: "Amazon" | "eBay";
+};
+
+type SortColumn =
+  | "date"
+  | "order"
+  | "item"
+  | "system"
+  | "quantity"
+  | "cost"
+  | "carrier"
+  | "tracking"
+  | "eta"
+  | "status";
+
+type SortDirection = "asc" | "desc";
+
+export default function ReceivingPage() {
+  const [rows, setRows] = useState<PurchaseRow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [searchText, setSearchText] = useState("");
+  const [selectedRow, setSelectedRow] = useState<PurchaseRow | null>(null);
+  const [drafts, setDrafts] = useState<Record<string, ReceivingDraft>>({});
+  const [sortColumn, setSortColumn] = useState<SortColumn>("date");
+  const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const lastAutoOpenedSearch = useRef("");
+
+  useEffect(() => {
+    loadQueue();
+  }, []);
+
+  useEffect(() => {
+    searchInputRef.current?.focus();
+  }, []);
+
+  const queueRows = useMemo(() => {
+    return rows.filter((row) => {
+      const status = getOperationalStatus(row).value;
+      return status === "delivered" || status === "shipped_no_tracking";
+    });
+  }, [rows]);
+
+  const filteredRows = useMemo(() => {
+    const needle = searchText.trim().toLowerCase();
+    if (!needle) return queueRows;
+
+    return queueRows.filter((row) =>
+      [
+        row.supplier_order_id,
+        row.tracking_number,
+        row.carrier,
+        row.title,
+        row.ebay_title,
+        row.amazon_title,
+        row.asin,
+        row.system,
+        row.current_status,
+      ]
+        .filter(Boolean)
+        .some((value) => String(value).toLowerCase().includes(needle))
+    );
+  }, [queueRows, searchText]);
+
+  const sortedRows = useMemo(() => {
+    return [...filteredRows].sort((left, right) => {
+      const result = compareRows(left, right, sortColumn);
+      return sortDirection === "asc" ? result : -result;
+    });
+  }, [filteredRows, sortColumn, sortDirection]);
+
+  useEffect(() => {
+    const normalizedSearch = searchText.trim();
+    if (
+      normalizedSearch &&
+      filteredRows.length === 1 &&
+      lastAutoOpenedSearch.current !== normalizedSearch
+    ) {
+      openDetail(filteredRows[0]);
+      lastAutoOpenedSearch.current = normalizedSearch;
+    }
+  }, [filteredRows, searchText]);
+
+  const detailRows = useMemo(() => {
+    if (!selectedRow) return [];
+
+    if (hasUsableTrackingNumber(selectedRow.tracking_number)) {
+      return rows.filter(
+        (row) => row.tracking_number === selectedRow.tracking_number
+      );
+    }
+
+    return rows.filter((row) => row.purchase_id === selectedRow.purchase_id);
+  }, [rows, selectedRow]);
+
+  async function loadQueue() {
+    setLoading(true);
+    setError(null);
+
+    try {
+      const response = await fetch("/api/receiving", { cache: "no-store" });
+
+      if (!response.ok) {
+        throw new Error(`Failed to load receiving queue: ${response.status}`);
+      }
+
+      setRows(await response.json());
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Failed to load receiving queue."
+      );
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function openDetail(row: PurchaseRow) {
+    const groupRows = hasUsableTrackingNumber(row.tracking_number)
+      ? rows.filter((candidate) => candidate.tracking_number === row.tracking_number)
+      : rows.filter((candidate) => candidate.purchase_id === row.purchase_id);
+
+    const nextDrafts: Record<string, ReceivingDraft> = {};
+
+    for (const groupRow of groupRows) {
+      nextDrafts[rowKey(groupRow)] = {
+        quantityReceived: String(groupRow.quantity ?? 1),
+        returnPending: false,
+        marketplace: "Amazon",
+      };
+    }
+
+    setDrafts(nextDrafts);
+    setSelectedRow(row);
+  }
+
+  async function saveReceiving() {
+    if (!selectedRow) return;
+
+    const items = detailRows.map((row) => {
+      const draft = drafts[rowKey(row)];
+      return {
+        item_id: row.item_id,
+        quantity_received: Number(draft?.quantityReceived ?? row.quantity ?? 1),
+        return_pending: draft?.returnPending ?? false,
+        marketplace: draft?.marketplace ?? "Amazon",
+      };
+    });
+
+    if (items.some((item) => !item.item_id)) {
+      setError("Every receiving row must have an item id.");
+      return;
+    }
+
+    if (
+      items.some(
+        (item) =>
+          !Number.isFinite(item.quantity_received) || item.quantity_received < 0
+      )
+    ) {
+      setError("Quantity received must be zero or greater.");
+      return;
+    }
+
+    setSaving(true);
+    setError(null);
+
+    try {
+      const response = await fetch("/api/receiving", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ items }),
+      });
+
+      if (!response.ok) {
+        const message = await response.text();
+        throw new Error(message || `Receiving save failed: ${response.status}`);
+      }
+
+      const itemIds = new Set(items.map((item) => item.item_id));
+      setRows((currentRows) =>
+        currentRows.filter((row) => !row.item_id || !itemIds.has(row.item_id))
+      );
+      setSelectedRow(null);
+      setSearchText("");
+      lastAutoOpenedSearch.current = "";
+      setTimeout(() => searchInputRef.current?.focus(), 0);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Receiving save failed.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  function updateDraft(row: PurchaseRow, patch: Partial<ReceivingDraft>) {
+    const key = rowKey(row);
+    const defaultDraft: ReceivingDraft = {
+      quantityReceived: String(row.quantity ?? 1),
+      returnPending: false,
+      marketplace: "Amazon",
+    };
+
+    setDrafts((current) => ({
+      ...current,
+      [key]: {
+        ...defaultDraft,
+        ...current[key],
+        ...patch,
+      },
+    }));
+  }
+
+  function changeSort(column: SortColumn) {
+    if (sortColumn === column) {
+      setSortDirection((current) => (current === "asc" ? "desc" : "asc"));
+      return;
+    }
+
+    setSortColumn(column);
+    setSortDirection(column === "date" ? "desc" : "asc");
+  }
+
+  return (
+    <main className="min-h-screen bg-slate-100 p-4 text-slate-900">
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight">Receiving</h1>
+          <p className="text-sm text-slate-600">
+            MBOP delivered item verification workspace
+          </p>
+        </div>
+
+        <div className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium shadow-sm">
+          Scan Ready
+        </div>
+      </div>
+
+      <div className="mb-4 rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
+        <div className="relative">
+          <Search className="absolute left-3 top-3 h-5 w-5 text-slate-400" />
+          <input
+            ref={searchInputRef}
+            value={searchText}
+            onChange={(event) => {
+              setSearchText(event.target.value);
+              lastAutoOpenedSearch.current = "";
+            }}
+            className="w-full rounded-lg border border-slate-300 py-3 pl-10 pr-10 text-lg"
+            placeholder="Scan tracking barcode or search receiving queue..."
+          />
+          {searchText && (
+            <button
+              onClick={() => {
+                setSearchText("");
+                lastAutoOpenedSearch.current = "";
+                searchInputRef.current?.focus();
+              }}
+              className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+              aria-label="Clear search"
+              type="button"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          )}
+        </div>
+      </div>
+
+      {error && (
+        <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+          {error}
+        </div>
+      )}
+
+      <section className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+        <table className="w-full table-fixed text-left text-sm">
+          <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
+            <tr>
+              <SortableHeader
+                className="w-[84px]"
+                label="Date"
+                column="date"
+                sortColumn={sortColumn}
+                sortDirection={sortDirection}
+                onSort={changeSort}
+              />
+              <SortableHeader
+                className="w-[130px]"
+                label="Order"
+                column="order"
+                sortColumn={sortColumn}
+                sortDirection={sortDirection}
+                onSort={changeSort}
+              />
+              <SortableHeader
+                label="Item"
+                column="item"
+                sortColumn={sortColumn}
+                sortDirection={sortDirection}
+                onSort={changeSort}
+              />
+              <SortableHeader
+                className="w-[110px]"
+                label="System"
+                column="system"
+                sortColumn={sortColumn}
+                sortDirection={sortDirection}
+                onSort={changeSort}
+              />
+              <SortableHeader
+                className="w-[64px]"
+                label="Qty"
+                column="quantity"
+                sortColumn={sortColumn}
+                sortDirection={sortDirection}
+                onSort={changeSort}
+              />
+              <SortableHeader
+                className="w-[100px]"
+                label="Cost"
+                column="cost"
+                sortColumn={sortColumn}
+                sortDirection={sortDirection}
+                onSort={changeSort}
+              />
+              <SortableHeader
+                className="w-[100px]"
+                label="Carrier"
+                column="carrier"
+                sortColumn={sortColumn}
+                sortDirection={sortDirection}
+                onSort={changeSort}
+              />
+              <SortableHeader
+                className="w-[130px]"
+                label="Tracking"
+                column="tracking"
+                sortColumn={sortColumn}
+                sortDirection={sortDirection}
+                onSort={changeSort}
+              />
+              <SortableHeader
+                className="w-[92px]"
+                label="ETA"
+                column="eta"
+                sortColumn={sortColumn}
+                sortDirection={sortDirection}
+                onSort={changeSort}
+              />
+              <SortableHeader
+                className="w-[120px]"
+                label="Status"
+                column="status"
+                sortColumn={sortColumn}
+                sortDirection={sortDirection}
+                onSort={changeSort}
+              />
+            </tr>
+          </thead>
+
+          <tbody>
+            {loading ? (
+              <tr>
+                <td className="px-2 py-6 text-center text-slate-500" colSpan={10}>
+                  Loading receiving queue...
+                </td>
+              </tr>
+            ) : sortedRows.length === 0 ? (
+              <tr>
+                <td className="px-2 py-6 text-center text-slate-500" colSpan={10}>
+                  No receiving candidates found.
+                </td>
+              </tr>
+            ) : (
+              sortedRows.map((row) => {
+                const status = getOperationalStatus(row);
+                return (
+                  <tr
+                    key={rowKey(row)}
+                    onClick={() => openDetail(row)}
+                    className="cursor-pointer border-t border-slate-100 align-top hover:bg-slate-50"
+                  >
+                    <td className="whitespace-nowrap px-2 py-2">
+                      {formatDate(row.order_date)}
+                    </td>
+                    <td className="px-2 py-2 text-blue-700">
+                      {row.supplier_order_id || "--"}
+                    </td>
+                    <td className="px-2 py-2">
+                      <div className="font-medium leading-snug">
+                        {row.amazon_title || row.ebay_title || row.title || "--"}
+                      </div>
+                      {row.amazon_title && (row.ebay_title || row.title) && (
+                        <div className="mt-1 line-clamp-2 text-xs text-slate-500">
+                          ebay: {row.ebay_title || row.title}
+                        </div>
+                      )}
+                    </td>
+                    <td className="px-2 py-2">{row.system || ""}</td>
+                    <td className="px-2 py-2">{row.quantity ?? ""}</td>
+                    <td className="whitespace-nowrap px-2 py-2">
+                      {formatMoney(row.unit_cost)}
+                    </td>
+                    <td className="px-2 py-2">{row.carrier || ""}</td>
+                    <td className="break-all px-2 py-2 text-xs">
+                      {row.tracking_number || "--"}
+                    </td>
+                    <td className="whitespace-nowrap px-2 py-2">
+                      {formatDate(getDisplayDeliveryDate(row))}
+                    </td>
+                    <td className="px-2 py-2">{status.label}</td>
+                  </tr>
+                );
+              })
+            )}
+          </tbody>
+        </table>
+      </section>
+
+      {selectedRow && (
+        <div className="fixed inset-0 z-40 bg-slate-900/30 p-6">
+          <section className="mx-auto flex max-h-full max-w-6xl flex-col overflow-hidden rounded-xl bg-white shadow-2xl">
+            <div className="flex items-start justify-between gap-4 border-b border-slate-200 p-5">
+                  <div className="min-w-0">
+                <div className="flex items-center gap-2 text-sm font-medium uppercase tracking-wide text-slate-500">
+                  <PackageCheck className="h-4 w-4" />
+                  Receiving Detail
+                </div>
+                <h2 className="mt-2 text-2xl font-semibold">
+                  {selectedRow.supplier_order_id || "No order id"}
+                </h2>
+                <div className="mt-2 grid gap-1 text-lg text-slate-700 md:grid-cols-3">
+                  <div>Carrier: {selectedRow.carrier || "--"}</div>
+                  <div className="break-all">
+                    Tracking: {selectedRow.tracking_number || "--"}
+                  </div>
+                  <div>Items: {detailRows.length}</div>
+                </div>
+              </div>
+
+              <button
+                onClick={() => {
+                  setSelectedRow(null);
+                  setTimeout(() => searchInputRef.current?.focus(), 0);
+                }}
+                className="rounded-lg border border-slate-300 p-2 hover:bg-slate-50"
+                type="button"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-5">
+              <div className="grid gap-4">
+                {detailRows.map((row) => {
+                  const key = rowKey(row);
+                  const ebayListingUrl = row.ebay_listing_url || getEbayListingUrl(row);
+                  const amazonDisplayTitle = getAmazonDisplayTitle(row);
+                  const draft = drafts[key] ?? {
+                    quantityReceived: String(row.quantity ?? 1),
+                    returnPending: false,
+                    marketplace: "Amazon" as const,
+                  };
+
+                  return (
+                    <div
+                      key={key}
+                      className="grid gap-5 rounded-lg border border-slate-200 p-5 lg:grid-cols-[minmax(0,1fr)_minmax(460px,520px)]"
+                    >
+                      <div className="min-w-0">
+                        <div className="text-xs uppercase tracking-wide text-slate-500">
+                          eBay Title
+                        </div>
+                        {ebayListingUrl ? (
+                          <a
+                            href={ebayListingUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="mt-1 block text-xl font-semibold text-blue-700 hover:underline"
+                          >
+                            {row.ebay_title || row.title || "--"}
+                          </a>
+                        ) : (
+                          <div className="mt-1 text-xl font-semibold">
+                            {row.ebay_title || row.title || "--"}
+                          </div>
+                        )}
+                        <div className="mt-4 text-xs uppercase tracking-wide text-slate-500">
+                          Amazon Title
+                        </div>
+                        {row.asin ? (
+                          <a
+                            href={amazonAsinUrl(row.asin)}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="mt-1 block text-lg font-medium text-blue-700 hover:underline"
+                          >
+                            {amazonDisplayTitle}
+                          </a>
+                        ) : (
+                          <div className="mt-1 text-lg text-slate-700">
+                            {amazonDisplayTitle || "--"}
+                          </div>
+                        )}
+                        <div className="mt-3 text-sm text-slate-500">
+                          Expected: {row.quantity ?? 1} | ASIN: {row.asin || "--"}
+                        </div>
+                      </div>
+
+                      <div className="grid min-w-0 gap-4 sm:grid-cols-[120px_minmax(150px,1fr)_140px]">
+                        <label className="grid min-w-0 content-start gap-2 text-sm font-medium uppercase tracking-wide text-slate-500">
+                          Qty Received
+                          <input
+                            value={draft.quantityReceived}
+                            onChange={(event) =>
+                              updateDraft(row, {
+                                quantityReceived: event.target.value,
+                              })
+                            }
+                            className="h-14 w-full rounded-lg border border-slate-300 px-3 text-2xl font-semibold normal-case tracking-normal text-slate-900"
+                            inputMode="numeric"
+                          />
+                        </label>
+
+                        <label className="grid min-w-0 content-start gap-2 text-sm font-medium uppercase tracking-wide text-slate-500">
+                          Marketplace
+                          <select
+                            value={draft.marketplace}
+                            onChange={(event) =>
+                              updateDraft(row, {
+                                marketplace: event.target.value as "Amazon" | "eBay",
+                              })
+                            }
+                            className="h-14 w-full rounded-lg border border-slate-300 px-3 text-lg font-medium normal-case tracking-normal text-slate-900"
+                            disabled={draft.returnPending}
+                          >
+                            <option value="Amazon">Amazon</option>
+                            <option value="eBay">eBay</option>
+                          </select>
+                        </label>
+
+                        <label className="mt-7 flex h-14 items-center justify-center gap-3 rounded-lg border border-slate-300 px-3 text-lg font-medium">
+                          <input
+                            type="checkbox"
+                            checked={draft.returnPending}
+                            onChange={(event) =>
+                              updateDraft(row, {
+                                returnPending: event.target.checked,
+                              })
+                            }
+                            className="h-5 w-5"
+                          />
+                          Return
+                        </label>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-3 border-t border-slate-200 p-5">
+              <button
+                onClick={() => setSelectedRow(null)}
+                className="rounded-lg border border-slate-300 px-4 py-3 text-sm font-medium hover:bg-slate-50"
+                type="button"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={saveReceiving}
+                disabled={saving}
+                className="inline-flex items-center gap-2 rounded-lg bg-slate-900 px-4 py-3 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-60"
+                type="button"
+              >
+                <Check className="h-4 w-4" />
+                {saving ? "Saving" : "Received"}
+              </button>
+            </div>
+          </section>
+        </div>
+      )}
+    </main>
+  );
+}
+
+function SortableHeader({
+  label,
+  column,
+  sortColumn,
+  sortDirection,
+  onSort,
+  className = "",
+}: {
+  label: string;
+  column: SortColumn;
+  sortColumn: SortColumn;
+  sortDirection: SortDirection;
+  onSort: (column: SortColumn) => void;
+  className?: string;
+}) {
+  const active = sortColumn === column;
+  const Icon = sortDirection === "asc" ? ArrowUp : ArrowDown;
+
+  return (
+    <th className={`px-2 py-2 ${className}`}>
+      <button
+        type="button"
+        onClick={() => onSort(column)}
+        className="inline-flex items-center gap-1 font-semibold hover:text-slate-900"
+      >
+        {label}
+        {active && <Icon className="h-3 w-3" />}
+      </button>
+    </th>
+  );
+}
+
+function compareRows(left: PurchaseRow, right: PurchaseRow, column: SortColumn) {
+  if (column === "date") return compareDates(left.order_date, right.order_date);
+  if (column === "order") {
+    return compareStrings(left.supplier_order_id, right.supplier_order_id);
+  }
+  if (column === "item") return compareStrings(displayTitle(left), displayTitle(right));
+  if (column === "system") return compareStrings(left.system, right.system);
+  if (column === "quantity") return compareNumbers(left.quantity, right.quantity);
+  if (column === "cost") return compareNumbers(left.unit_cost, right.unit_cost);
+  if (column === "carrier") return compareStrings(left.carrier, right.carrier);
+  if (column === "tracking") {
+    return compareStrings(left.tracking_number, right.tracking_number);
+  }
+  if (column === "eta") {
+    return compareDates(getDisplayDeliveryDate(left), getDisplayDeliveryDate(right));
+  }
+  if (column === "status") {
+    return compareStrings(
+      getOperationalStatus(left).label,
+      getOperationalStatus(right).label
+    );
+  }
+
+  return 0;
+}
+
+function displayTitle(row: PurchaseRow) {
+  return row.amazon_title || row.ebay_title || row.title || "";
+}
+
+function compareStrings(left?: string | null, right?: string | null) {
+  return (left || "").localeCompare(right || "", undefined, {
+    numeric: true,
+    sensitivity: "base",
+  });
+}
+
+function compareNumbers(left?: number | null, right?: number | null) {
+  return Number(left ?? Number.NEGATIVE_INFINITY) -
+    Number(right ?? Number.NEGATIVE_INFINITY);
+}
+
+function compareDates(left?: string | null, right?: string | null) {
+  const leftTime = left ? new Date(left).getTime() : Number.NEGATIVE_INFINITY;
+  const rightTime = right ? new Date(right).getTime() : Number.NEGATIVE_INFINITY;
+
+  return leftTime - rightTime;
+}
+
+function getEbayListingUrl(row: PurchaseRow) {
+  if (row.supplier_listing_url) return row.supplier_listing_url;
+
+  const itemId = extractEbayItemId(row.supplier_sku);
+
+  return itemId ? `https://www.ebay.com/itm/${itemId}` : null;
+}
+
+function getAmazonDisplayTitle(row: PurchaseRow) {
+  if (!row.amazon_title) return row.asin || "";
+
+  const systemLabel = amazonSystemLabel(row.system);
+  if (!systemLabel) return row.amazon_title;
+
+  const normalizedTitle = normalizeTitle(row.amazon_title);
+  const normalizedSystem = normalizeTitle(systemLabel);
+
+  return normalizedTitle.includes(normalizedSystem)
+    ? row.amazon_title
+    : `${row.amazon_title} - ${systemLabel}`;
+}
+
+function amazonSystemLabel(system?: string | null) {
+  const normalized = (system || "").trim().toLowerCase();
+  const labels: Record<string, string> = {
+    "ps 5": "PlayStation 5",
+    ps5: "PlayStation 5",
+    "ps 4": "PlayStation 4",
+    ps4: "PlayStation 4",
+    switch: "Nintendo Switch",
+    wii: "Nintendo Wii",
+    "xbox one": "Xbox One",
+    "xbox series x": "Xbox Series X",
+    pc: "PC",
+  };
+
+  return labels[normalized] || system || "";
+}
+
+function normalizeTitle(value: string) {
+  return value.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+}
+
+function extractEbayItemId(value?: string | null) {
+  if (!value) return null;
+
+  const match = value.match(/^(\d{9,15})(?:-|$)/);
+
+  return match ? match[1] : null;
+}
+
+function hasUsableTrackingNumber(value?: string | null) {
+  if (!value) return false;
+
+  const normalizedValue = value.trim().toLowerCase();
+
+  return ![
+    "no tracking",
+    "none",
+    "n/a",
+    "na",
+    "not available",
+    "refunded",
+    "cancelled",
+    "canceled",
+    "shipped untracked",
+    "shipped without tracking",
+  ].includes(normalizedValue);
+}

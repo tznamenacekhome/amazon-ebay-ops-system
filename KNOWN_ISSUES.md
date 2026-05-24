@@ -1,5 +1,7 @@
 # KNOWN_ISSUES.md
 
+This file tracks known issues for Midnight Blue Operations Platform (MBOP).
+
 # High Priority
 
 ## eBay Seller Orders In Purchases
@@ -151,3 +153,25 @@ Current mitigation:
 Recommended next mitigation:
 - decide whether historical duplicate purchases should be merged into one purchase with multiple purchase_items
 - avoid bulk merging until receiving/shipment side effects are reviewed
+
+---
+
+## Receiving eBay Listing Images
+
+Status: DECISION PENDING
+
+Problem:
+The sampled stored eBay buyer purchase payloads do not include listing image or gallery fields.
+
+Impact:
+The receiving detail view has a requirement for main eBay listing image, but the first receiving slice cannot display it from existing stored data.
+
+Current mitigation:
+- receiving detail links the eBay title to the eBay listing using supplier listing URL, supplier SKU, or raw eBay ItemID
+- eBay buyer sync stores supplier listing URLs from transaction ItemID going forward
+- listing links are not the same as image URLs
+
+Options:
+- add an eBay item-detail lookup during purchase sync or a backfill and store the primary image URL on purchase_items
+- add a receiving-only eBay item lookup when opening detail
+- defer images until receiving scan/save behavior is validated

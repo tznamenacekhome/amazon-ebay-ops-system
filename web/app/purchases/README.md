@@ -1,9 +1,10 @@
-# Purchases Frontend
+# MBOP Purchases Frontend
 
-This folder contains the purchases workflow UI.
+This folder contains the Midnight Blue Operations Platform purchases workflow UI.
 
 ## Boundaries
 
+- Shared navigation is provided by `web/app/AppShell.tsx`.
 - `page.tsx` composes the workspace and owns UI-local workflow state.
 - `usePurchases` owns purchase loading, save status, errors, and API mutations.
 - `usePurchaseFilters` owns filter state and filtered row derivation.

@@ -1,6 +1,10 @@
 # CURRENT_STATE.md
 
-Last Updated: 2026-05-23
+Last Updated: 2026-05-24
+
+# Midnight Blue Operations Platform (MBOP)
+
+MBOP is the internal operations platform for Midnight Blue Enterprises, LLC.
 
 # System Status Overview
 
@@ -9,7 +13,7 @@ Last Updated: 2026-05-23
 | eBay ingestion | Mature |
 | RevSeller enrichment | Functional but evolving |
 | Purchases UI | Operational and componentized |
-| Receiving workflow | Designed only |
+| Receiving workflow | First slice implemented |
 | Shipment enrichment | Functional with remaining FedEx/webhook follow-up |
 | Sync orchestration | Mature |
 | Dashboard analytics | Early/planned |
@@ -29,6 +33,7 @@ Implemented:
 - Trading API GetOrders
 - pagination
 - tracking extraction
+- eBay item/listing URL derivation from transaction ItemID
 - delivery extraction
 - landed cost calculations
 - shipment linking
@@ -123,6 +128,19 @@ Recent legacy sheet backfill:
 
 # Current Frontend State
 
+## App Shell
+
+Status: OPERATIONAL
+
+Implemented:
+- compact shared left-side navigation
+- Purchases and Receiving menu items
+- active mode highlighting
+- content remains dense and table-focused
+- implementation lives in web/app/AppShell.tsx
+
+---
+
 ## Purchases UI
 
 Status: OPERATIONAL / COMPONENTIZED
@@ -172,3 +190,41 @@ Recent backend update:
 Manual override schema:
 - sql/2026-05-23_add_purchase_item_manual_overrides.sql adds purchase item flags for manual title overrides, manual unit-cost overrides, and manual split child rows
 - eBay buyer purchase sync preserves manual title/unit-cost overrides and skips manual split child rows during fallback matching
+
+---
+
+## Receiving UI
+
+Status: FIRST SLICE IMPLEMENTED
+
+Implemented:
+- separate receiving workspace at /receiving
+- local documentation in web/app/receiving/README.md
+- receiving API route at /api/receiving
+- scan-first search field with autofocus
+- queue includes Delivered and Shipped (No Tracking) operational statuses
+- single search result auto-opens the receiving detail view
+- multiple search results remain filtered for manual row selection
+- receiving queue table columns are sortable
+- detail view shows all rows for the same tracking number, or same purchase when tracking is unavailable
+- detail view links eBay title to the eBay listing when a supplier listing URL or eBay item ID is available
+- detail view links Amazon title to Amazon using ASIN
+- Amazon title display appends an operator-facing system suffix when the stored title omits the system
+- per-item quantity received input
+- per-item return checkbox
+- per-item marketplace pick list, defaulting to Amazon
+- save marks items Received or Return Pending
+- partial received quantity splits remaining quantity into a new no-tracking purchase item
+- marketplace is saved only on received items
+- received_date is saved on received purchase items using the local receiving date
+
+API behavior:
+- /api/receiving hydrates purchase item metadata from purchase_items in chunks to avoid large PostgREST `in (...)` request failures
+- receiving rows include amazon_title, supplier_sku, supplier_listing_url, ebay_listing_url, marketplace, and received_date where available
+
+Schema:
+- sql/2026-05-23_add_receiving_fields.sql adds nullable purchase_items.marketplace with Amazon/eBay allowed values and nullable purchase_items.received_date for received-date reporting
+
+Pending:
+- apply sql/2026-05-23_add_receiving_fields.sql in Supabase before using the receiving page
+- decide image source for eBay listing images

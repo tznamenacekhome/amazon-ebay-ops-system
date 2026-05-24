@@ -147,7 +147,7 @@ export default function PurchasesPage() {
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Purchases</h1>
           <p className="text-sm text-slate-600">
-            eBay purchase verification workspace
+            MBOP purchase verification workspace
           </p>
         </div>
 

@@ -1,5 +1,11 @@
 # ROADMAP.md
 
+# Midnight Blue Operations Platform
+
+This roadmap tracks MBOP, the internal operations platform for Midnight Blue Enterprises, LLC.
+
+---
+
 # High Priority
 
 ## Frontend Componentization
@@ -73,15 +79,35 @@ Remaining:
 
 ## Receiving And Listing Workflows
 
+Status:
+First receiving slice implemented.
+
 Workflow statuses:
 - Received: item has been warehouse-verified after delivery; displayed in purchases once the future receiving workflow sets `purchase_items.current_status = received`
+- Return Pending: item was physically received but should be returned; separate from Return Opened
 
 Future statuses:
 - Listed: item has been sent to Amazon FBA or listed on eBay
 
+Completed:
+- separate receiving page at /receiving
+- receiving API route at /api/receiving
+- shared left-side navigation between Purchases and Receiving
+- scan-first receiving queue with autofocus
+- auto-open detail view when search has exactly one match
+- sortable receiving queue columns
+- linked eBay titles in receiving detail using derived listing URLs
+- linked Amazon titles in receiving detail using ASIN
+- chunked receiving metadata hydration for Amazon title/listing URL reliability
+- per-item quantity received, return checkbox, and marketplace selection
+- partial quantity split into received and missing no-tracking rows
+- sync guardrail so eBay purchase sync does not downgrade Received or Return Pending
+- received date stored on purchase_items for future reporting/querying
+
 Next steps:
-- define receiving workflow tables/fields
-- define the API/action that sets `purchase_items.current_status = received`
+- apply sql/2026-05-23_add_receiving_fields.sql in Supabase
+- test receiving flow against real delivered and shipped-without-tracking rows
+- decide source for eBay listing image URLs
 - define listing/FBA workflow tables/fields
 - decide when Listed overrides shipment-derived and receiving-derived statuses
 - keep receiving/listing workflows separate from purchases review UI
@@ -233,4 +259,5 @@ Completed foundation:
 Remaining:
 - apply sql/2026-05-22_add_manual_item_matches.sql in Supabase
 - apply sql/2026-05-23_add_purchase_item_manual_overrides.sql in Supabase
+- apply sql/2026-05-23_add_receiving_fields.sql in Supabase
 - review unresolved legacy sheet matches: 28 ambiguous order matches and 30 missing order matches

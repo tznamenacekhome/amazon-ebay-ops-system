@@ -1,5 +1,15 @@
 # DECISIONS.md
 
+# Product Naming
+
+The tool is named Midnight Blue Operations Platform.
+
+Short form: MBOP.
+
+Business entity: Midnight Blue Enterprises, LLC.
+
+---
+
 # Core Architecture Decisions
 
 ## eBay Trading API Is Authoritative
@@ -25,6 +35,22 @@ Python Integrations
 -> Supabase
 -> API Routes
 -> Frontend
+
+---
+
+## Shared Navigation Shell
+
+Decision:
+Use a compact shared left-side navigation shell for major operational modes.
+
+Reason:
+Purchases and Receiving are separate workflows, but operators need fast switching without turning either page into a landing page.
+
+Implementation:
+- `web/app/AppShell.tsx`
+- current entries are Purchases and Receiving
+- active mode is highlighted
+- the shell remains narrow so dense operational tables keep most of the viewport
 
 ---
 
@@ -194,6 +220,21 @@ The purchases ETA column uses carrier estimated delivery for undelivered items w
 
 ---
 
+## eBay Listing Links Are Derived From Item ID
+
+Decision:
+Link supplier/eBay titles to the eBay item listing when a supplier listing URL or eBay item ID is available.
+
+Reason:
+Receiving and review workflows benefit from one-click access to the exact supplier listing.
+
+Implementation:
+- eBay buyer sync stores `supplier_listing_url` from transaction `ItemID` going forward
+- receiving API derives `ebay_listing_url` from `supplier_listing_url`, `supplier_sku`, or raw eBay transaction `ItemID`
+- receiving detail links the eBay title to `ebay_listing_url`
+
+---
+
 ## EasyPost Webhooks Are The Long-Term Tracking Update Path
 
 Decision:
@@ -222,3 +263,63 @@ After delivery, the operator needs a separate state indicating the item was phys
 
 Rule:
 Purchases may display and filter Received, but the receiving workflow must own the action that sets it.
+
+---
+
+## Receiving Owns Marketplace Assignment
+
+Decision:
+Add nullable `purchase_items.marketplace` and set it only during receiving.
+
+Reason:
+Marketplace selection is an operational decision made after physical verification. Before receipt, the item may still be wrong, missing, damaged, or return-bound.
+
+Implementation:
+- allowed marketplace values are `Amazon` and `eBay`
+- receiving detail defaults marketplace to Amazon
+- received items save the selected marketplace
+- Return Pending and missing split rows leave marketplace unset
+
+---
+
+## Receiving Metadata Hydration Is Chunked
+
+Decision:
+The receiving API fetches purchase item metadata in chunks instead of one large `in (...)` request.
+
+Reason:
+The receiving queue can include many rows. A single large PostgREST `in (...)` query may exceed URL/request limits and return incomplete metadata, causing missing Amazon titles and eBay listing links.
+
+Implementation:
+- `fetchItemMeta` chunks purchase item metadata lookups
+- `fetchPurchaseMeta` chunks purchase metadata lookups
+- receiving rows are hydrated with stored `amazon_title`, marketplace, received date, supplier SKU, supplier listing URL, and derived eBay listing URL
+
+---
+
+## Receiving Date Is Stored On Purchase Items
+
+Decision:
+Store `purchase_items.received_date` when the receiving workflow marks an item `Received`.
+
+Reason:
+Received date is useful for future reporting, listing prioritization, and operational queries that are independent from carrier delivered date.
+
+Implementation:
+- receiving API defaults received date to the current America/Los_Angeles local date
+- received rows save `received_date`
+- Return Pending rows do not set `received_date`
+- missing/unreceived split rows do not set `received_date`
+
+---
+
+## Return Pending Is Separate From Return Opened
+
+Decision:
+Use `Return Pending` for items identified during receiving as needing return, and keep `Return Opened` for eBay return/case workflow state.
+
+Reason:
+An item can be physically received and flagged for return before any marketplace return is opened.
+
+Rule:
+Receiving may set `purchase_items.current_status = return_pending`. eBay return sync may set or preserve `return_opened` when a return/case exists.

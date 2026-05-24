@@ -17,6 +17,7 @@ except ImportError:
 DAYS_BACK = 90
 LOCAL_TIMEZONE = "America/Los_Angeles"
 SKIP_EXISTING_ORDERS_WITH_TRACKING = True
+RECEIVING_LOCKED_STATUSES = {"received", "return_pending"}
 
 load_dotenv()
 
@@ -403,6 +404,16 @@ def transaction_line_id(transaction):
     )
 
 
+def transaction_item_id(transaction):
+    item = find_first(transaction, "Item")
+    return child_text(item, "ItemID")
+
+
+def transaction_listing_url(transaction):
+    item_id = transaction_item_id(transaction)
+    return f"https://www.ebay.com/itm/{item_id}" if item_id else None
+
+
 def transaction_unit_cost(transaction):
     quantity = transaction_quantity(transaction)
 
@@ -586,6 +597,11 @@ def build_item_payload(
     )
     existing_system = normalize_system(existing_item.get("system")) if existing_item else None
     detected_system = detect_system_from_title(ebay_title)
+    existing_status = (
+        (existing_item.get("current_status") or "").strip().lower()
+        if existing_item
+        else ""
+    )
 
     return {
         "purchase_id": purchase_id,
@@ -597,6 +613,9 @@ def build_item_payload(
         "unit_cost": unit_cost,
         "target_price": existing_item.get("target_price") if existing_item else None,
         "current_status": (
+            existing_item.get("current_status")
+            if existing_status in RECEIVING_LOCKED_STATUSES
+            else
             "delivered"
             if dates.get("actual_delivery_time")
             else existing_item.get("current_status", "ordered")
@@ -613,7 +632,7 @@ def build_item_payload(
             existing_item.get("supplier_listing_url")
             if existing_item
             else None
-        ),
+        ) or transaction_listing_url(transaction),
         "manual_title_override": (
             bool(existing_item.get("manual_title_override"))
             if existing_item
@@ -700,6 +719,11 @@ def build_unknown_item_payload(
         else None
     )
     existing_system = normalize_system(existing_item.get("system")) if existing_item else None
+    existing_status = (
+        (existing_item.get("current_status") or "").strip().lower()
+        if existing_item
+        else ""
+    )
 
     return {
         "purchase_id": purchase_id,
@@ -714,6 +738,9 @@ def build_unknown_item_payload(
         "target_price": existing_item.get("target_price") if existing_item else None,
         "system": existing_system or detect_system_from_title(title),
         "current_status": (
+            existing_item.get("current_status")
+            if existing_status in RECEIVING_LOCKED_STATUSES
+            else
             "delivered"
             if dates.get("actual_delivery_time")
             else existing_item.get("current_status", "ordered")

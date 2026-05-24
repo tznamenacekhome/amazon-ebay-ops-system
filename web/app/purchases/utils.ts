@@ -11,6 +11,7 @@ export const OPERATIONAL_STATUS_OPTIONS = [
   { value: "delivered", label: "Delivered" },
   { value: "received", label: "Received" },
   { value: "exception", label: "Exception" },
+  { value: "return_pending", label: "Return Pending" },
   { value: "return_opened", label: "Return Opened" },
   { value: "cancelled", label: "Cancelled" },
 ] as const;
@@ -134,6 +135,7 @@ export function getOperationalStatus(row: PurchaseRow): {
     return statusOption("cancelled");
   }
   if (itemStatus === "received") return statusOption("received");
+  if (itemStatus === "return_pending") return statusOption("return_pending");
   if (carrierStatus === "delivered" || !!row.delivered_date) {
     return statusOption("delivered");
   }

@@ -13,6 +13,9 @@ export type PurchaseRow = {
   sell_price?: number | null;
   target_price?: number | null;
   tracking_number?: string | null;
+  supplier_sku?: string | null;
+  supplier_listing_url?: string | null;
+  ebay_listing_url?: string | null;
   carrier?: string | null;
   carrier_status?: string | null;
   delivery_status?: string | null;
@@ -20,10 +23,12 @@ export type PurchaseRow = {
   normalized_status?: string | null;
   estimated_delivery_date?: string | null;
   delivered_date?: string | null;
+  received_date?: string | null;
   current_status?: string | null;
   order_status?: string | null;
   seller_shipped?: boolean | null;
   ebay_cancelled?: boolean | null;
+  marketplace?: "Amazon" | "eBay" | null;
 };
 
 export type PurchaseStats = {

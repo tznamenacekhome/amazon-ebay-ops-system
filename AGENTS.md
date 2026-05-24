@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-This repository contains the Amazon/eBay Operations System.
+This repository contains the Midnight Blue Operations Platform (MBOP).
 
 Purpose:
 - automate eBay purchase ingestion
@@ -12,7 +12,7 @@ Purpose:
 - support receiving workflows
 - support future AI-assisted operations
 
-The system is evolving from a collection of automation scripts into a full operational workflow platform.
+MBOP supports Midnight Blue Enterprises, LLC. The system is evolving from a collection of automation scripts into a full operational workflow platform.
 
 ---
 
@@ -41,6 +41,7 @@ Purchases UI lives under:
 - web/app/purchases/
 
 Current pattern:
+- AppShell provides the shared left-side navigation for Purchases and Receiving
 - page.tsx composes the workspace and owns UI-local workflow state
 - usePurchases owns purchase loading, save status, errors, and API mutations
 - usePurchaseFilters owns filter state and filtered row derivation
@@ -122,10 +123,19 @@ Receiving workflow:
 - quantity verification
 - split shipment handling
 - exception handling
+- marketplace assignment after receipt
+- received-date capture for later reporting/querying
+
+Current receiving entry points:
+- web/app/AppShell.tsx
+- web/app/receiving/page.tsx
+- web/app/api/receiving/route.ts
 
 Do not merge these workflows into one UI.
 
 Purchases may display the workflow status Received when the future receiving workflow sets purchase_items.current_status = received, but receiving verification itself belongs in the receiving workflow.
+Receiving may also set Return Pending when an item is physically received but should be returned.
+Receiving detail links eBay titles to the eBay listing when a listing URL or item ID is available, and links Amazon titles to Amazon using ASIN.
 
 eBay seller orders are not purchases. Seller-order functionality must use separate future tables/workflows and must not write to purchases or purchase_items.
 
