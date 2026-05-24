@@ -23,12 +23,14 @@ Goal: highly efficient receiving processing of delivered items.
 Receiving-owned statuses:
 - `Received`: item was physically received and verified as expected.
 - `Return Pending`: item was physically received but should be returned.
+- `Cancelled`: item was cancelled before receiving or discovered during reconciliation; it belongs to the future return/refund workflow and must remain available until refund receipt is confirmed.
 
 Impact:
 - Purchases may display and filter these statuses for operational visibility.
 - Receiving workflow owns the action that sets these statuses.
-- Carrier sync and eBay purchase sync must not downgrade `Received` or `Return Pending` back to shipment-derived statuses such as `Delivered`.
+- Carrier sync and eBay purchase sync must not downgrade `Received`, `Return Pending`, `Return Opened`, or `Cancelled` back to shipment-derived statuses such as `Delivered`.
 - `Return Pending` is separate from `Return Opened`. `Return Pending` means the operator identified a return need during receiving. `Return Opened` means an eBay return/case exists.
+- `Cancelled` is separate from `Return Opened`; a cancelled item may not require a physical return, but it does require refund verification.
 
 ## Data Requirements
 

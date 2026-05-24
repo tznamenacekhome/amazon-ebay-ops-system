@@ -3,6 +3,14 @@ from dotenv import load_dotenv
 from supabase import create_client
 
 
+LOCKED_STATUSES = [
+    "cancelled",
+    "received",
+    "return_opened",
+    "return_pending",
+]
+
+
 def main():
     print("Starting status normalization...")
 
@@ -30,32 +38,32 @@ def main():
             "current_status": "return_opened"
         }).eq("item_id", item_id).execute()
 
-    # 2. Mark non-returned items with tracking as in_transit
+    # 2. Mark non-returned, non-workflow-locked items with tracking as in_transit
     tracked_items = (
         supabase.table("purchase_items")
         .select("item_id")
         .not_.is_("tracking_number", "null")
-        .neq("current_status", "return_opened")
+        .not_.in_("current_status", LOCKED_STATUSES)
         .execute()
     )
 
-    print(f"Tracked non-return items found: {len(tracked_items.data)}")
+    print(f"Tracked non-locked items found: {len(tracked_items.data)}")
 
     for row in tracked_items.data:
         supabase.table("purchase_items").update({
             "current_status": "in_transit"
         }).eq("item_id", row["item_id"]).execute()
 
-    # 3. Mark non-returned items without tracking as ordered
+    # 3. Mark non-returned, non-workflow-locked items without tracking as ordered
     untracked_items = (
         supabase.table("purchase_items")
         .select("item_id")
         .is_("tracking_number", "null")
-        .neq("current_status", "return_opened")
+        .not_.in_("current_status", LOCKED_STATUSES)
         .execute()
     )
 
-    print(f"Untracked non-return items found: {len(untracked_items.data)}")
+    print(f"Untracked non-locked items found: {len(untracked_items.data)}")
 
     for row in untracked_items.data:
         supabase.table("purchase_items").update({

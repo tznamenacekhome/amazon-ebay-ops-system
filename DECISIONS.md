@@ -393,3 +393,22 @@ An item can be physically received and flagged for return before any marketplace
 
 Rule:
 Receiving may set `purchase_items.current_status = return_pending`. eBay return sync may set or preserve `return_opened` when a return/case exists.
+
+---
+
+## Cancelled Requires Refund Follow-Up
+
+Decision:
+Use `purchase_items.current_status = cancelled` for purchase items cancelled by eBay/seller or identified as cancelled during reconciliation.
+
+Reason:
+Cancelled rows should not count as resale purchases, but they still need operational follow-up to ensure the refund was received.
+
+Implementation:
+- purchases UI includes Cancelled in the status filter
+- dashboard totals exclude Cancelled rows
+- eBay buyer sync preserves Cancelled instead of downgrading it to shipment-derived statuses
+- status normalization scripts must preserve Cancelled
+
+Future workflow:
+The return/refund workflow must include Cancelled items and track refund received / refund missing outcomes.

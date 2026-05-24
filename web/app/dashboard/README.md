@@ -9,7 +9,7 @@ The Dashboard workspace is the first MBOP reporting view for purchase data compl
 
 ## Current Report
 
-The first dashboard report shows purchase units and purchase cost by year/month, excluding purchase items with `current_status = return_opened` or `exclude_from_purchase_reporting = true`.
+The first dashboard report shows purchase units and purchase cost by year/month, excluding purchase items with `current_status = return_opened`, `current_status = cancelled`, or `exclude_from_purchase_reporting = true`.
 
 The API reads `vw_purchases_dashboard` and aggregates:
 

@@ -110,6 +110,7 @@ Current reconciliation:
 - strict after-2026-05-15 MBOP-only eBay purchases absent from both Purchases and Returns tabs were excluded from dashboard reporting
 - no after-2026-05-15 MBOP-only rows were found on the Returns tab
 - 39 2026 MBOP-active rows found on the legacy Returns tab were normalized: 26 Return Opened and 13 Cancelled
+- remaining variance after status normalization is 29 units / $525.31 over the spreadsheet
 - order 16-14113-30387 had two zero-cost NBA 2K22 rows that were marked Received / eBay
 - order 19-14476-44107 is a confirmed personal Tommy Bahama shirt purchase
 - order 11-14441-71152 is a confirmed business supply padded-mailer purchase, not resale inventory

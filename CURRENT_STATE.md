@@ -168,6 +168,7 @@ Recent reconciliation:
 - eBay purchases after 2026-05-15 that were absent from both legacy spreadsheet Purchases and Returns tabs were excluded from reporting: 13 item rows across 12 orders
 - no strict after-2026-05-15 MBOP-only rows were found on the legacy Returns tab during that reconciliation
 - legacy Returns-tab matches were normalized for 2026: 26 rows to Return Opened and 13 rows to Cancelled
+- after Returns-tab status normalization, remaining dashboard variance is 29 units / $525.31 over the spreadsheet
 
 ---
 
@@ -210,6 +211,7 @@ iterate on ASIN review and operational throughput without merging receiving work
 
 Recent backend update:
 - eBay buyer purchase sync now populates purchase_items.system from recognized eBay title platform terms
+- eBay buyer purchase sync preserves workflow-owned statuses: Cancelled, Received, Return Opened, and Return Pending
 - existing empty systems were backfilled where recognized
 - RevSeller enrichment no longer applies unique-title matches without a recognized system
 - system names were normalized to operator-facing display values
@@ -255,6 +257,7 @@ API behavior:
 - receiving rows include amazon_title, supplier_sku, supplier_listing_url, ebay_listing_url, marketplace, and received_date where available
 - /api/receiving enforces ASIN and sell price before marking Amazon marketplace items Received
 - eBay marketplace items can be received without Amazon title, ASIN, or sell price
+- Cancelled is a purchase-item workflow status and is reserved for cancellation/refund follow-up, not receiving verification
 
 Schema:
 - sql/2026-05-23_add_receiving_fields.sql adds nullable purchase_items.marketplace with Amazon/eBay allowed values and nullable purchase_items.received_date for received-date reporting

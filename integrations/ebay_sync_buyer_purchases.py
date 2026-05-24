@@ -17,7 +17,12 @@ except ImportError:
 DAYS_BACK = 90
 LOCAL_TIMEZONE = "America/Los_Angeles"
 SKIP_EXISTING_ORDERS_WITH_TRACKING = True
-RECEIVING_LOCKED_STATUSES = {"received", "return_pending"}
+WORKFLOW_LOCKED_STATUSES = {
+    "cancelled",
+    "received",
+    "return_opened",
+    "return_pending",
+}
 
 load_dotenv()
 
@@ -614,7 +619,7 @@ def build_item_payload(
         "target_price": existing_item.get("target_price") if existing_item else None,
         "current_status": (
             existing_item.get("current_status")
-            if existing_status in RECEIVING_LOCKED_STATUSES
+            if existing_status in WORKFLOW_LOCKED_STATUSES
             else
             "delivered"
             if dates.get("actual_delivery_time")
@@ -739,7 +744,7 @@ def build_unknown_item_payload(
         "system": existing_system or detect_system_from_title(title),
         "current_status": (
             existing_item.get("current_status")
-            if existing_status in RECEIVING_LOCKED_STATUSES
+            if existing_status in WORKFLOW_LOCKED_STATUSES
             else
             "delivered"
             if dates.get("actual_delivery_time")

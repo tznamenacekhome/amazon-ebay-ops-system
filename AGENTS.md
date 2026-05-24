@@ -59,7 +59,7 @@ Purchases table display rules:
 - ETA shows carrier estimated delivery when available, otherwise eBay estimated delivery for undelivered items, and delivered date when delivered
 - carrier ETA dates are displayed as date-only values to avoid timezone day shifts
 - table headers sort the currently filtered row set
-- status filter includes Received for items warehouse-verified by the future receiving workflow
+- status filter includes Received for items warehouse-verified by the receiving workflow and Cancelled for cancelled/refunded purchase outcomes
 - detail drawer saves eBay title, purchase price, ASIN, and sell price together
 - detail drawer can create manual split item rows for multi-game eBay listings
 
@@ -143,14 +143,16 @@ Current receiving entry points:
 
 Do not merge these workflows into one UI.
 
-Purchases may display the workflow status Received when the future receiving workflow sets purchase_items.current_status = received, but receiving verification itself belongs in the receiving workflow.
+Purchases may display the workflow status Received when the receiving workflow sets purchase_items.current_status = received, but receiving verification itself belongs in the receiving workflow.
 Receiving may also set Return Pending when an item is physically received but should be returned.
 Receiving detail links eBay titles to the eBay listing when a listing URL or item ID is available, and links Amazon titles to Amazon using ASIN.
 Amazon-bound received items must have ASIN and sell price before they can be marked Received; eBay-bound received items do not require Amazon title, ASIN, or sell price.
 
+Cancelled is a purchase-item workflow status. It must be preserved by purchase sync and status normalization. The future return/refund workflow must include Cancelled because cancelled items still need refund confirmation.
+
 eBay seller orders are not purchases. Seller-order functionality must use separate future tables/workflows and must not write to purchases or purchase_items.
 
-Dashboard metrics must use backend/API aggregation and authoritative purchase item unit_cost values. The first dashboard report groups purchase units and cost by order month and excludes Return Opened rows plus purchase_items explicitly flagged with exclude_from_purchase_reporting. Do not recalculate landed cost in frontend components.
+Dashboard metrics must use backend/API aggregation and authoritative purchase item unit_cost values. The first dashboard report groups purchase units and cost by order month and excludes Return Opened rows, Cancelled rows, plus purchase_items explicitly flagged with exclude_from_purchase_reporting. Do not recalculate landed cost in frontend components.
 Personal purchases and business supplies must be excluded through explicit backend flags, not title/system guesses.
 
 ---

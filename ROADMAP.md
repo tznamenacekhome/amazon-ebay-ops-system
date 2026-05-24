@@ -122,6 +122,7 @@ First receiving slice implemented.
 Workflow statuses:
 - Received: item has been warehouse-verified after delivery; displayed in purchases once the future receiving workflow sets `purchase_items.current_status = received`
 - Return Pending: item was physically received but should be returned; separate from Return Opened
+- Cancelled: item was cancelled by eBay/seller or reconciliation; separate from returns but requires refund confirmation
 
 Future statuses:
 - Listed: item has been sent to Amazon FBA or listed on eBay
@@ -142,6 +143,7 @@ Completed:
 - partial quantity split into received and missing no-tracking rows
 - sync guardrail so eBay purchase sync does not downgrade Received or Return Pending
 - received date stored on purchase_items for future reporting/querying
+- eBay purchase sync preserves Cancelled, Received, Return Opened, and Return Pending workflow statuses
 
 Next steps:
 - apply sql/2026-05-23_add_receiving_fields.sql in Supabase
@@ -241,6 +243,27 @@ Next steps:
 - surface shipped-without-tracking overdue items prominently
 - support direct navigation to the relevant eBay order/case workflow
 - record case-opened and refund/resolution outcomes in backend-owned workflow data
+
+---
+
+## Return And Refund Workflow
+
+Goal:
+Track return/cancellation outcomes through refund confirmation.
+
+Required scope:
+- Return Pending items from receiving
+- Return Opened items from eBay return/case state
+- Cancelled items from eBay/seller cancellation or reconciliation
+
+Key requirement:
+Cancelled items must remain visible to this workflow until refund receipt is confirmed.
+
+Next steps:
+- define refund fields, such as refund_expected, refund_received, refund_received_date, refund_amount, and refund_notes
+- decide whether refund state belongs directly on purchase_items or in a separate return/refund workflow table
+- add filters/views for refund missing and refund received
+- integrate future eBay return/case/refund APIs where available
 
 ---
 

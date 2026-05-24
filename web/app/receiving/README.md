@@ -42,3 +42,4 @@ This folder contains the Midnight Blue Operations Platform receiving workflow UI
 - `/api/receiving` hydrates dashboard rows with purchase item metadata from `purchase_items`.
 - Metadata lookups are chunked to avoid large PostgREST `in (...)` request failures.
 - Receiving metadata includes stored `amazon_title`, `supplier_sku`, `supplier_listing_url`, derived `ebay_listing_url`, `marketplace`, and `received_date`.
+- Cancelled items are outside the receiving queue and belong to the future return/refund workflow so refund receipt can be confirmed.
