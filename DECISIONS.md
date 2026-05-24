@@ -66,7 +66,7 @@ Implementation:
 - `/api/dashboard/purchases` reads `vw_purchases_dashboard`
 - monthly units are summed from `quantity`
 - monthly cost is summed from `unit_cost * quantity`
-- rows with `current_status = return_opened` are excluded
+- rows with `current_status = return_opened` or `cancelled` are excluded
 - rows with `purchase_items.exclude_from_purchase_reporting = true` are excluded
 - `/dashboard` renders the returned aggregates only
 

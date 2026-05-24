@@ -152,6 +152,7 @@ Implemented:
 - pivot-style table inspired by the legacy Excel purchase summary
 - horizontal monthly cost chart for quick outlier/completeness scanning
 - dashboard excludes Return Opened rows
+- dashboard excludes Cancelled rows
 - dashboard excludes purchase items marked exclude_from_purchase_reporting once the reporting-exclusion SQL migration is applied
 - dashboard aggregation uses vw_purchases_dashboard.unit_cost multiplied by quantity
 - frontend only renders API-provided aggregates and does not recalculate landed cost
@@ -166,7 +167,7 @@ Recent reconciliation:
 - personal purchase and business supply reporting exclusions were identified for migration-backed cleanup
 - eBay purchases after 2026-05-15 that were absent from both legacy spreadsheet Purchases and Returns tabs were excluded from reporting: 13 item rows across 12 orders
 - no strict after-2026-05-15 MBOP-only rows were found on the legacy Returns tab during that reconciliation
-- after the latest exclusions, remaining dashboard variance for 2026 is 92 units / $1,788.48 over the spreadsheet, concentrated in Jan-May 2026
+- legacy Returns-tab matches were normalized for 2026: 26 rows to Return Opened and 13 rows to Cancelled
 
 ---
 

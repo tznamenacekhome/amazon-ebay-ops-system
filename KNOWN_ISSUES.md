@@ -109,13 +109,12 @@ Current reconciliation:
 - 2024 and 2025 match the legacy Excel pivot exactly
 - strict after-2026-05-15 MBOP-only eBay purchases absent from both Purchases and Returns tabs were excluded from dashboard reporting
 - no after-2026-05-15 MBOP-only rows were found on the Returns tab
-- 2026 still has a 92-unit / $1,788.48 dashboard overage versus the spreadsheet after the latest exclusions
+- 39 2026 MBOP-active rows found on the legacy Returns tab were normalized: 26 Return Opened and 13 Cancelled
 - order 16-14113-30387 had two zero-cost NBA 2K22 rows that were marked Received / eBay
 - order 19-14476-44107 is a confirmed personal Tommy Bahama shirt purchase
 - order 11-14441-71152 is a confirmed business supply padded-mailer purchase, not resale inventory
 
 Recommended next mitigation:
-- review pre-2026-05-16 MBOP-active rows that appear on the legacy Returns tab and normalize their MBOP status to Return Opened or Cancelled as appropriate
 - review same-order quantity/cost differences caused by split rows, duplicate rows, and unit-cost allocation
 - review spreadsheet-only orders from 2026 that are not in MBOP and determine whether they are missing imports, manually entered spreadsheet rows, or orders outside the current eBay sync source
 - create a repeatable reconciliation report that classifies differences as MBOP-only, spreadsheet-only, returns-tab, and same-order amount/quantity mismatch

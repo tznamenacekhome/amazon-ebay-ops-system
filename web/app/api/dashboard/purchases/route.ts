@@ -110,7 +110,7 @@ function aggregateByMonth(rows: DashboardPurchaseRow[]) {
   const aggregates = new Map<string, MonthAggregate>();
 
   for (const row of rows) {
-    if (normalizeStatus(row.current_status) === "return_opened") continue;
+    if (isExcludedStatus(row.current_status)) continue;
     if (row.exclude_from_purchase_reporting) continue;
     if (!row.order_date) continue;
 
@@ -168,6 +168,10 @@ function aggregateByYear(months: MonthAggregate[]) {
 
 function normalizeStatus(value?: string | null) {
   return (value || "").trim().toLowerCase().replace(/[\s-]+/g, "_");
+}
+
+function isExcludedStatus(value?: string | null) {
+  return ["cancelled", "return_opened"].includes(normalizeStatus(value));
 }
 
 function monthName(month: number) {

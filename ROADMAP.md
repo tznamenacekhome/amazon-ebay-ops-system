@@ -63,6 +63,8 @@ Completed:
 - excluded Return Opened rows from dashboard totals
 - added migration-backed reporting exclusions for personal purchases and business supplies
 - excluded strict after-2026-05-15 eBay purchases missing from both the reference Purchases and Returns tabs
+- normalized 2026 MBOP-active rows found on the reference Returns tab to Return Opened or Cancelled
+- excluded Cancelled rows from dashboard purchase totals
 - kept landed-cost math backend-owned through vw_purchases_dashboard.unit_cost
 - confirmed 2024 and 2025 dashboard totals match the legacy Excel pivot exactly
 
@@ -74,7 +76,6 @@ Near-term goals:
 Next steps:
 - build a repeatable dashboard reconciliation report using the shared reference spreadsheet and Supabase
 - classify discrepancies into MBOP-only, spreadsheet-only, Returns-tab/status mismatch, and same-order quantity/cost mismatch
-- normalize legacy Returns-tab matches in MBOP to Return Opened or Cancelled so dashboard totals exclude them consistently
 - investigate same-order quantity/cost mismatches from split rows, duplicate rows, and multi-game listings
 - investigate spreadsheet-only 2026 orders that may represent missing eBay imports or manual spreadsheet-only history
 - add drill-down from a dashboard month into the matching filtered purchases list
