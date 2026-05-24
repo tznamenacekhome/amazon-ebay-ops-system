@@ -105,15 +105,17 @@ Status: EXPECTED / MONITOR
 Problem:
 The new MBOP dashboard intentionally calculates purchase units and cost from Supabase, while the legacy Excel pivot was built from the historical spreadsheet.
 
-Expected variance:
-- May 2026 may not match because the spreadsheet is missing some orders that exist in MBOP
-- MBOP should show equal or greater May 2026 units and cost than the spreadsheet
-- other completed historical months should match once purchase imports and return exclusions are reconciled
+Current reconciliation:
+- 2024 and 2025 match the legacy Excel pivot exactly
+- 2026 has MBOP-only orders that are absent from the spreadsheet
+- order 16-14113-30387 had two zero-cost NBA 2K22 rows that were marked Received / eBay
+- order 19-14476-44107 is a confirmed personal Tommy Bahama shirt purchase
+- order 11-14441-71152 is a confirmed business supply padded-mailer purchase, not resale inventory
 
 Recommended next mitigation:
-- compare dashboard monthly totals against the Excel pivot by month
-- investigate any non-May variance first
-- decide whether missing May spreadsheet rows should be imported, ignored, or documented as an accepted cutoff difference
+- apply sql/2026-05-24_add_purchase_reporting_exclusions.sql in Supabase
+- use explicit reporting exclusions for personal purchases and business supplies
+- review remaining 2026 MBOP-only orders and decide whether the spreadsheet should be backfilled or treated as obsolete for those months
 
 ---
 

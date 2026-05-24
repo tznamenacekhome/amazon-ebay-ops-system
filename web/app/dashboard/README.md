@@ -9,7 +9,7 @@ The Dashboard workspace is the first MBOP reporting view for purchase data compl
 
 ## Current Report
 
-The first dashboard report shows purchase units and purchase cost by year/month, excluding purchase items with `current_status = return_opened`.
+The first dashboard report shows purchase units and purchase cost by year/month, excluding purchase items with `current_status = return_opened` or `exclude_from_purchase_reporting = true`.
 
 The API reads `vw_purchases_dashboard` and aggregates:
 
@@ -21,3 +21,5 @@ The API reads `vw_purchases_dashboard` and aggregates:
 ## Intended Use
 
 This view is meant to compare MBOP totals against the legacy Excel pivot table while the system is being validated. May 2026 is expected to vary until missing spreadsheet-only history is reconciled.
+
+Use explicit reporting exclusions for personal purchases, business supplies, and other non-resale purchases. Do not infer exclusion from missing system or ASIN data.

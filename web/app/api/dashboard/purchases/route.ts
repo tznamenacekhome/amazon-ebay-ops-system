@@ -7,10 +7,12 @@ const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 const supabase = createClient(supabaseUrl, supabaseServiceRoleKey);
 
 type DashboardPurchaseRow = {
+  item_id: string | null;
   order_date: string | null;
   quantity: number | null;
   unit_cost: number | null;
   current_status: string | null;
+  exclude_from_purchase_reporting?: boolean;
 };
 
 type MonthAggregate = {
@@ -23,7 +25,8 @@ type MonthAggregate = {
 
 export async function GET() {
   const rows = await fetchPurchaseRows();
-  const monthly = aggregateByMonth(rows);
+  const rowsWithExclusions = await hydrateReportingExclusions(rows);
+  const monthly = aggregateByMonth(rowsWithExclusions);
   const years = aggregateByYear(monthly);
   const totals = monthly.reduce(
     (accumulator, month) => ({
@@ -48,7 +51,7 @@ async function fetchPurchaseRows() {
   while (true) {
     const { data, error } = await supabase
       .from("vw_purchases_dashboard")
-      .select("order_date,quantity,unit_cost,current_status")
+      .select("item_id,order_date,quantity,unit_cost,current_status")
       .range(offset, offset + pageSize - 1);
 
     if (error) {
@@ -65,11 +68,50 @@ async function fetchPurchaseRows() {
   }
 }
 
+async function hydrateReportingExclusions(rows: DashboardPurchaseRow[]) {
+  const itemIds = rows
+    .map((row) => row.item_id)
+    .filter((itemId): itemId is string => typeof itemId === "string");
+
+  if (itemIds.length === 0) {
+    return rows;
+  }
+
+  const excludedItemIds = new Set<string>();
+  const chunkSize = 100;
+
+  for (let index = 0; index < itemIds.length; index += chunkSize) {
+    const chunk = itemIds.slice(index, index + chunkSize);
+    const { data, error } = await supabase
+      .from("purchase_items")
+      .select("item_id,exclude_from_purchase_reporting")
+      .in("item_id", chunk);
+
+    if (error) {
+      console.warn("Dashboard reporting exclusion lookup failed", error.message);
+      return rows;
+    }
+
+    for (const item of data ?? []) {
+      if (item.exclude_from_purchase_reporting) {
+        excludedItemIds.add(item.item_id);
+      }
+    }
+  }
+
+  return rows.map((row) => ({
+    ...row,
+    exclude_from_purchase_reporting:
+      typeof row.item_id === "string" && excludedItemIds.has(row.item_id),
+  }));
+}
+
 function aggregateByMonth(rows: DashboardPurchaseRow[]) {
   const aggregates = new Map<string, MonthAggregate>();
 
   for (const row of rows) {
     if (normalizeStatus(row.current_status) === "return_opened") continue;
+    if (row.exclude_from_purchase_reporting) continue;
     if (!row.order_date) continue;
 
     const dateMatch = row.order_date.match(/^(\d{4})-(\d{2})-(\d{2})/);

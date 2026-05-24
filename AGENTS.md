@@ -144,7 +144,8 @@ Amazon-bound received items must have ASIN and sell price before they can be mar
 
 eBay seller orders are not purchases. Seller-order functionality must use separate future tables/workflows and must not write to purchases or purchase_items.
 
-Dashboard metrics must use backend/API aggregation and authoritative purchase item unit_cost values. The first dashboard report groups purchase units and cost by order month and excludes Return Opened rows. Do not recalculate landed cost in frontend components.
+Dashboard metrics must use backend/API aggregation and authoritative purchase item unit_cost values. The first dashboard report groups purchase units and cost by order month and excludes Return Opened rows plus purchase_items explicitly flagged with exclude_from_purchase_reporting. Do not recalculate landed cost in frontend components.
+Personal purchases and business supplies must be excluded through explicit backend flags, not title/system guesses.
 
 ---
 

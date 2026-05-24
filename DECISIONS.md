@@ -67,10 +67,29 @@ Implementation:
 - monthly units are summed from `quantity`
 - monthly cost is summed from `unit_cost * quantity`
 - rows with `current_status = return_opened` are excluded
+- rows with `purchase_items.exclude_from_purchase_reporting = true` are excluded
 - `/dashboard` renders the returned aggregates only
 
 Rule:
 Do not add frontend-only cost math or alternate landed-cost formulas to dashboard components.
+
+---
+
+## Non-Resale Purchases Use Explicit Reporting Exclusions
+
+Decision:
+Personal purchases, business supplies, and other non-resale eBay purchases should remain traceable in purchase history but be excluded from purchase reporting with an explicit item-level flag.
+
+Reason:
+The eBay buyer account may rarely include purchases that are not resale inventory. Title/system inference is not safe because some real games still have incomplete system data.
+
+Implementation:
+- `purchase_items.exclude_from_purchase_reporting`
+- `purchase_items.exclusion_reason`
+- dashboard API excludes flagged rows from units and cost totals
+
+Rule:
+Do not auto-exclude rows from reporting only because they lack ASIN, system, or a recognized game title.
 
 ---
 

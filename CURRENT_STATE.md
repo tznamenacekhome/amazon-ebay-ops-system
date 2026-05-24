@@ -152,14 +152,18 @@ Implemented:
 - pivot-style table inspired by the legacy Excel purchase summary
 - horizontal monthly cost chart for quick outlier/completeness scanning
 - dashboard excludes Return Opened rows
+- dashboard excludes purchase items marked exclude_from_purchase_reporting once the reporting-exclusion SQL migration is applied
 - dashboard aggregation uses vw_purchases_dashboard.unit_cost multiplied by quantity
 - frontend only renders API-provided aggregates and does not recalculate landed cost
 
 Current purpose:
 Help identify purchase data completeness and cost accuracy by comparing MBOP monthly totals to the legacy spreadsheet pivot.
 
-Known comparison note:
-May 2026 may not match the legacy spreadsheet until all missing historical spreadsheet orders are imported or intentionally reconciled.
+Recent reconciliation:
+- 2024 and 2025 dashboard totals match the legacy Excel pivot exactly
+- 2026 variances are primarily MBOP orders absent from the legacy spreadsheet
+- two zero-cost NBA 2K22 rows from order 16-14113-30387 were marked Received / eBay
+- personal purchase and business supply reporting exclusions were identified for migration-backed cleanup
 
 ---
 

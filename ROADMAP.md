@@ -61,7 +61,9 @@ Completed:
 - added monthly units and total cost chart
 - added year/month pivot-style table with grand total
 - excluded Return Opened rows from dashboard totals
+- added migration-backed reporting exclusions for personal purchases and business supplies
 - kept landed-cost math backend-owned through vw_purchases_dashboard.unit_cost
+- confirmed 2024 and 2025 dashboard totals match the legacy Excel pivot exactly
 
 Near-term goals:
 - compare MBOP monthly totals against the legacy Excel pivot
@@ -71,8 +73,9 @@ Near-term goals:
 Next steps:
 - add drill-down from a dashboard month into the matching filtered purchases list
 - add reconciliation indicators once expected monthly spreadsheet totals are stored or imported
+- add a UI control for marking purchase items excluded from reporting with a reason
 - add filters for status, marketplace, received date, and system after the first chart proves useful
-- decide whether May 2026 missing spreadsheet orders should be imported or documented as a known variance
+- decide whether 2026 orders missing from the legacy spreadsheet should be imported into the spreadsheet, ignored, or documented as MBOP-only history
 
 ---
 
