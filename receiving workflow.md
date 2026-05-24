@@ -35,6 +35,9 @@ Impact:
 - Add nullable `purchase_items.marketplace`.
 - Allowed marketplace values are `Amazon` and `eBay`.
 - Marketplace should not be set until the item is received.
+- ASIN and sell price may be missing while an item waits in the receiving queue.
+- ASIN and sell price are required before an item can be marked `Received` for marketplace `Amazon`.
+- ASIN and sell price are not required when marketplace is `eBay`.
 - If a partial quantity is received and the item is split, copied fields should include title, ASIN, Amazon title, system, target sell price, unit cost, condition, supplier listing URL, and raw import context.
 - The received portion should save the selected marketplace.
 - The received portion should save `received_date` using the local receiving date.
@@ -85,10 +88,14 @@ Input options for each item:
 - Quantity received, pre-filled with quantity ordered.
 - Return checkbox.
 - Marketplace pick list, default `Amazon`.
+- ASIN field, editable at item level.
+- Sell price field, editable at item level.
 - Received button saves all rows and closes the detail window.
 
 Save behavior:
 - If full quantity is received and return is not checked, mark item `Received`, save marketplace, and save received date.
+- If marketplace is `Amazon`, require ASIN and sell price before enabling save.
+- If marketplace is `eBay`, allow save without Amazon title, ASIN, or sell price.
 - If less than full quantity is received, split the purchase item:
   - current row represents the received quantity and is marked `Received`
   - new row represents the missing quantity and has no tracking / no marketplace

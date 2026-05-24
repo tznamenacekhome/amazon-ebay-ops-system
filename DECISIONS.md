@@ -282,6 +282,22 @@ Implementation:
 
 ---
 
+## Amazon Receiving Requires ASIN And Sell Price
+
+Decision:
+Require ASIN and sell price before the receiving workflow can mark an item `Received` when marketplace is `Amazon`.
+
+Reason:
+The next workflow after receiving is Amazon shipment/listing preparation. Amazon-bound received items need an ASIN and sell price before they are operationally ready for that handoff.
+
+Implementation:
+- receiving detail has editable ASIN and sell price fields at item level
+- the Received button is disabled while any Amazon-bound received item is missing ASIN or sell price
+- `/api/receiving` enforces the same rule server-side
+- marketplace `eBay` does not require Amazon title, ASIN, or sell price
+
+---
+
 ## Receiving Metadata Hydration Is Chunked
 
 Decision:

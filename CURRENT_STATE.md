@@ -213,6 +213,8 @@ Implemented:
 - per-item quantity received input
 - per-item return checkbox
 - per-item marketplace pick list, defaulting to Amazon
+- per-item ASIN and sell price inputs
+- Received button is disabled until Amazon-bound received items have ASIN and sell price
 - save marks items Received or Return Pending
 - partial received quantity splits remaining quantity into a new no-tracking purchase item
 - marketplace is saved only on received items
@@ -221,6 +223,8 @@ Implemented:
 API behavior:
 - /api/receiving hydrates purchase item metadata from purchase_items in chunks to avoid large PostgREST `in (...)` request failures
 - receiving rows include amazon_title, supplier_sku, supplier_listing_url, ebay_listing_url, marketplace, and received_date where available
+- /api/receiving enforces ASIN and sell price before marking Amazon marketplace items Received
+- eBay marketplace items can be received without Amazon title, ASIN, or sell price
 
 Schema:
 - sql/2026-05-23_add_receiving_fields.sql adds nullable purchase_items.marketplace with Amazon/eBay allowed values and nullable purchase_items.received_date for received-date reporting

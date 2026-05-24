@@ -100,6 +100,8 @@ Completed:
 - linked Amazon titles in receiving detail using ASIN
 - chunked receiving metadata hydration for Amazon title/listing URL reliability
 - per-item quantity received, return checkbox, and marketplace selection
+- per-item ASIN and sell price editing in receiving detail
+- Received action gated by ASIN and sell price for Amazon-bound items
 - partial quantity split into received and missing no-tracking rows
 - sync guardrail so eBay purchase sync does not downgrade Received or Return Pending
 - received date stored on purchase_items for future reporting/querying

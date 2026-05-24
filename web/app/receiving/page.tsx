@@ -17,6 +17,8 @@ type ReceivingDraft = {
   quantityReceived: string;
   returnPending: boolean;
   marketplace: "Amazon" | "eBay";
+  asin: string;
+  sellPrice: string;
 };
 
 type SortColumn =
@@ -113,6 +115,35 @@ export default function ReceivingPage() {
     return rows.filter((row) => row.purchase_id === selectedRow.purchase_id);
   }, [rows, selectedRow]);
 
+  const receivingValidationMessage = useMemo(() => {
+    if (!selectedRow) return "";
+
+    for (const row of detailRows) {
+      const draft = drafts[rowKey(row)];
+      const marketplace = draft?.marketplace ?? "Amazon";
+      const returnPending = draft?.returnPending ?? false;
+      const quantityReceived = Number(draft?.quantityReceived ?? row.quantity ?? 1);
+
+      if (returnPending || quantityReceived <= 0 || marketplace === "eBay") {
+        continue;
+      }
+
+      if (!draft?.asin.trim()) {
+        return "ASIN is required for Amazon received items.";
+      }
+
+      if (!draft?.sellPrice.trim()) {
+        return "Sell price is required for Amazon received items.";
+      }
+
+      if (Number.isNaN(Number(draft.sellPrice))) {
+        return "Sell price must be a valid number.";
+      }
+    }
+
+    return "";
+  }, [detailRows, drafts, selectedRow]);
+
   async function loadQueue() {
     setLoading(true);
     setError(null);
@@ -146,6 +177,8 @@ export default function ReceivingPage() {
         quantityReceived: String(groupRow.quantity ?? 1),
         returnPending: false,
         marketplace: "Amazon",
+        asin: groupRow.asin || "",
+        sellPrice: formatPriceDraft(groupRow.sell_price ?? groupRow.target_price),
       };
     }
 
@@ -163,6 +196,9 @@ export default function ReceivingPage() {
         quantity_received: Number(draft?.quantityReceived ?? row.quantity ?? 1),
         return_pending: draft?.returnPending ?? false,
         marketplace: draft?.marketplace ?? "Amazon",
+        asin: draft?.asin.trim().toUpperCase() || null,
+        sell_price:
+          draft?.sellPrice.trim() === "" ? null : Number(draft?.sellPrice),
       };
     });
 
@@ -178,6 +214,11 @@ export default function ReceivingPage() {
       )
     ) {
       setError("Quantity received must be zero or greater.");
+      return;
+    }
+
+    if (receivingValidationMessage) {
+      setError(receivingValidationMessage);
       return;
     }
 
@@ -217,6 +258,8 @@ export default function ReceivingPage() {
       quantityReceived: String(row.quantity ?? 1),
       returnPending: false,
       marketplace: "Amazon",
+      asin: row.asin || "",
+      sellPrice: formatPriceDraft(row.sell_price ?? row.target_price),
     };
 
     setDrafts((current) => ({
@@ -478,6 +521,8 @@ export default function ReceivingPage() {
                     quantityReceived: String(row.quantity ?? 1),
                     returnPending: false,
                     marketplace: "Amazon" as const,
+                    asin: row.asin || "",
+                    sellPrice: formatPriceDraft(row.sell_price ?? row.target_price),
                   };
 
                   return (
@@ -521,7 +566,7 @@ export default function ReceivingPage() {
                           </div>
                         )}
                         <div className="mt-3 text-sm text-slate-500">
-                          Expected: {row.quantity ?? 1} | ASIN: {row.asin || "--"}
+                          Expected: {row.quantity ?? 1}
                         </div>
                       </div>
 
@@ -570,6 +615,42 @@ export default function ReceivingPage() {
                           />
                           Return
                         </label>
+
+                        <label className="grid min-w-0 content-start gap-2 text-sm font-medium uppercase tracking-wide text-slate-500 sm:col-span-1">
+                          ASIN
+                          <input
+                            value={draft.asin}
+                            onChange={(event) =>
+                              updateDraft(row, {
+                                asin: event.target.value,
+                              })
+                            }
+                            className="h-12 w-full rounded-lg border border-slate-300 px-3 text-base font-medium uppercase normal-case tracking-normal text-slate-900 disabled:bg-slate-50 disabled:text-slate-400"
+                            disabled={draft.returnPending || draft.marketplace === "eBay"}
+                            placeholder="ASIN"
+                          />
+                        </label>
+
+                        <label className="grid min-w-0 content-start gap-2 text-sm font-medium uppercase tracking-wide text-slate-500">
+                          Sell Price
+                          <div className="relative">
+                            <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-base font-normal normal-case tracking-normal text-slate-500">
+                              $
+                            </span>
+                            <input
+                              value={draft.sellPrice}
+                              onChange={(event) =>
+                                updateDraft(row, {
+                                  sellPrice: event.target.value,
+                                })
+                              }
+                              className="h-12 w-full rounded-lg border border-slate-300 pl-7 pr-3 text-base font-medium normal-case tracking-normal text-slate-900 disabled:bg-slate-50 disabled:text-slate-400"
+                              disabled={draft.returnPending || draft.marketplace === "eBay"}
+                              inputMode="decimal"
+                              placeholder="0.00"
+                            />
+                          </div>
+                        </label>
                       </div>
                     </div>
                   );
@@ -578,6 +659,12 @@ export default function ReceivingPage() {
             </div>
 
             <div className="flex justify-end gap-3 border-t border-slate-200 p-5">
+              {receivingValidationMessage && (
+                <div className="mr-auto self-center text-sm font-medium text-amber-700">
+                  {receivingValidationMessage}
+                </div>
+              )}
+
               <button
                 onClick={() => setSelectedRow(null)}
                 className="rounded-lg border border-slate-300 px-4 py-3 text-sm font-medium hover:bg-slate-50"
@@ -587,7 +674,7 @@ export default function ReceivingPage() {
               </button>
               <button
                 onClick={saveReceiving}
-                disabled={saving}
+                disabled={saving || !!receivingValidationMessage}
                 className="inline-flex items-center gap-2 rounded-lg bg-slate-900 px-4 py-3 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-60"
                 type="button"
               >
@@ -724,6 +811,14 @@ function amazonSystemLabel(system?: string | null) {
 
 function normalizeTitle(value: string) {
   return value.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+}
+
+function formatPriceDraft(value?: number | null) {
+  if (value === null || value === undefined || Number.isNaN(Number(value))) {
+    return "";
+  }
+
+  return Number(value).toFixed(2);
 }
 
 function extractEbayItemId(value?: string | null) {

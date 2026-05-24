@@ -25,11 +25,15 @@ This folder contains the Midnight Blue Operations Platform receiving workflow UI
 - Amazon title links to the Amazon ASIN page when ASIN exists.
 - Amazon title display may append the system label when the stored title omits the system.
 - Quantity received, return flag, and marketplace are recorded per item.
+- ASIN and sell price are editable per item.
+- Amazon-bound received items require ASIN and sell price before save is enabled.
+- eBay marketplace items do not require Amazon title, ASIN, or sell price.
 
 ## Save Behavior
 
 - Full received quantity marks the item `Received`.
 - Received rows save `marketplace` and `received_date`.
+- Amazon received rows save ASIN and target sell price.
 - Return checked marks the item `Return Pending` and leaves marketplace and received date unset.
 - Partial received quantity splits the missing quantity into a no-tracking purchase item.
 

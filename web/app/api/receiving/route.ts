@@ -11,6 +11,8 @@ type ReceivingUpdate = {
   quantity_received: number;
   return_pending: boolean;
   marketplace: "Amazon" | "eBay" | null;
+  asin?: string | null;
+  sell_price?: number | null;
 };
 
 export async function GET() {
@@ -166,9 +168,19 @@ async function receiveItem(update: ReceivingUpdate, receivedDate: string) {
   }
 
   const quantityReceived = Number(update.quantity_received);
+  const marketplace = update.marketplace || "Amazon";
+  const asin = update.asin ? String(update.asin).trim().toUpperCase() : null;
+  const sellPrice =
+    update.sell_price === null || update.sell_price === undefined
+      ? null
+      : Number(update.sell_price);
 
   if (!Number.isFinite(quantityReceived) || quantityReceived < 0) {
     throw new Error("quantity_received must be zero or greater");
+  }
+
+  if (sellPrice !== null && !Number.isFinite(sellPrice)) {
+    throw new Error("sell_price must be a valid number");
   }
 
   const { data: sourceData, error: sourceError } = await supabase
@@ -207,6 +219,15 @@ async function receiveItem(update: ReceivingUpdate, receivedDate: string) {
 
   if (quantityReceived > expectedQuantity) {
     throw new Error("quantity_received cannot exceed quantity expected");
+  }
+
+  if (
+    !update.return_pending &&
+    quantityReceived > 0 &&
+    marketplace === "Amazon" &&
+    (!asin || sellPrice === null)
+  ) {
+    throw new Error("ASIN and sell price are required for Amazon received items");
   }
 
   await updateShipmentReceipt(source.item_id, quantityReceived, !update.return_pending);
@@ -251,7 +272,9 @@ async function receiveItem(update: ReceivingUpdate, receivedDate: string) {
     .update({
       quantity: quantityReceived,
       current_status: "received",
-      marketplace: update.marketplace || "Amazon",
+      marketplace,
+      asin: marketplace === "Amazon" ? asin : source.asin,
+      target_price: marketplace === "Amazon" ? sellPrice : source.target_price,
       received_date: receivedDate,
     })
     .eq("item_id", source.item_id)
@@ -261,7 +284,14 @@ async function receiveItem(update: ReceivingUpdate, receivedDate: string) {
   if (error) throw new Error(error.message);
 
   if (remainingQuantity > 0) {
-    await createMissingQuantitySplit(source, remainingQuantity);
+    await createMissingQuantitySplit(
+      {
+        ...source,
+        asin: marketplace === "Amazon" ? asin : source.asin,
+        target_price: marketplace === "Amazon" ? sellPrice : source.target_price,
+      },
+      remainingQuantity
+    );
   }
 
   return data;
