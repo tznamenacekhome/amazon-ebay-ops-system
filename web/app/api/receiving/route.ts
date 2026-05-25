@@ -60,11 +60,13 @@ export async function GET() {
   );
 
   return NextResponse.json(
-    rows.map((row) => {
+    rows.flatMap((row) => {
       const item = itemMetaById.get(row.item_id);
+      if (item?.exclude_from_purchase_reporting) return [];
+
       const ebayListingUrl = getEbayListingUrl(item);
 
-      return {
+      return [{
         ...row,
         amazon_title: item?.amazon_title ?? row.amazon_title ?? null,
         marketplace: item?.marketplace ?? null,
@@ -79,7 +81,7 @@ export async function GET() {
           row.estimated_delivery_date ??
           purchaseMetaById.get(row.purchase_id)?.ebayEstimatedDeliveryDate ??
           null,
-      };
+      }];
     })
   );
 }
@@ -93,7 +95,7 @@ async function fetchItemMeta(itemIds: string[]) {
     const { data, error } = await supabase
       .from("purchase_items")
       .select(
-        "item_id,amazon_title,marketplace,received_date,supplier_sku,supplier_listing_url,raw_import_json"
+        "item_id,amazon_title,marketplace,received_date,supplier_sku,supplier_listing_url,raw_import_json,exclude_from_purchase_reporting"
       )
       .in("item_id", chunk);
 

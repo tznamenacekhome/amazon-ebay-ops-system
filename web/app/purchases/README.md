@@ -55,6 +55,7 @@ This folder contains the Midnight Blue Operations Platform purchases workflow UI
 ## Data Loading
 
 - `/api/purchases` pages through `vw_purchases_dashboard` instead of applying a fixed 200-row cap.
+- Rows marked `exclude_from_purchase_reporting` are hidden from the purchases workspace.
 - Purchase item and purchase metadata hydration is chunked so the full purchase history can load without oversized Supabase `in (...)` requests.
 - The purchases hook caches the loaded row set in browser `localStorage` for 24 hours.
 - The Refresh button calls the API directly and replaces the cache when the operator wants fresher data.

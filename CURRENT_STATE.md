@@ -216,6 +216,7 @@ Implemented:
 - table headers sort the currently filtered row set by displayed values
 - status filter includes Received and Listed workflow statuses
 - purchases API loads all rows from vw_purchases_dashboard instead of limiting the screen to 200 rows
+- purchases and receiving APIs hide purchase items marked exclude_from_purchase_reporting
 - default purchases status filter is All Except Listed, with All Status available for full history
 - purchases UI caches the loaded row set in browser storage for 24 hours; Refresh bypasses the cache
 

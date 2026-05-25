@@ -39,10 +39,18 @@ export async function GET() {
     return NextResponse.json(viewRows);
   }
 
-  const itemTitles = await fetchItemTitles(itemIds);
+  const itemMeta = await fetchItemMeta(itemIds);
+  const excludedItemIds = new Set(
+    itemMeta
+      .filter((item) => item.exclude_from_purchase_reporting)
+      .map((item) => item.item_id)
+  );
+  const includedRows = viewRows.filter(
+    (row) => !excludedItemIds.has(row.item_id)
+  );
 
   const amazonTitleByItemId = new Map(
-    (itemTitles ?? []).map((item) => [item.item_id, item.amazon_title])
+    itemMeta.map((item) => [item.item_id, item.amazon_title])
   );
 
   const purchases = await fetchPurchaseMeta(purchaseIds);
@@ -62,7 +70,7 @@ export async function GET() {
   );
 
   return NextResponse.json(
-    viewRows.map((row) => ({
+    includedRows.map((row) => ({
       ...row,
       amazon_title: amazonTitleByItemId.get(row.item_id) ?? null,
       order_status: purchaseMetaById.get(row.purchase_id)?.orderStatus ?? null,
@@ -102,15 +110,19 @@ async function fetchAllPurchaseRows() {
   return rows;
 }
 
-async function fetchItemTitles(itemIds: string[]) {
-  const rows: { item_id: string; amazon_title: string | null }[] = [];
+async function fetchItemMeta(itemIds: string[]) {
+  const rows: {
+    item_id: string;
+    amazon_title: string | null;
+    exclude_from_purchase_reporting: boolean | null;
+  }[] = [];
   const chunkSize = 500;
 
   for (let index = 0; index < itemIds.length; index += chunkSize) {
     const chunk = itemIds.slice(index, index + chunkSize);
     const { data, error } = await supabase
       .from("purchase_items")
-      .select("item_id,amazon_title")
+      .select("item_id,amazon_title,exclude_from_purchase_reporting")
       .in("item_id", chunk);
 
     if (error) {
@@ -118,7 +130,13 @@ async function fetchItemTitles(itemIds: string[]) {
       continue;
     }
 
-    rows.push(...((data ?? []) as { item_id: string; amazon_title: string | null }[]));
+    rows.push(
+      ...((data ?? []) as {
+        item_id: string;
+        amazon_title: string | null;
+        exclude_from_purchase_reporting: boolean | null;
+      }[])
+    );
   }
 
   return rows;
