@@ -5,6 +5,7 @@ from supabase import create_client
 
 LOCKED_STATUSES = [
     "cancelled",
+    "listed",
     "received",
     "return_opened",
     "return_pending",

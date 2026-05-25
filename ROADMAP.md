@@ -126,8 +126,6 @@ Workflow statuses:
 - Received: item has been warehouse-verified after delivery; displayed in purchases once the future receiving workflow sets `purchase_items.current_status = received`
 - Return Pending: item was physically received but should be returned; separate from Return Opened
 - Cancelled: item was cancelled by eBay/seller or reconciliation; separate from returns but requires refund confirmation
-
-Future statuses:
 - Listed: item has been sent to Amazon FBA or listed on eBay
 
 Completed:
@@ -146,14 +144,15 @@ Completed:
 - partial quantity split into received and missing no-tracking rows
 - sync guardrail so eBay purchase sync does not downgrade Received or Return Pending
 - received date stored on purchase_items for future reporting/querying
-- eBay purchase sync preserves Cancelled, Received, Return Opened, and Return Pending workflow statuses
+- one-time reference sheet status backfill applied explicit Listed and Received values
+- blank reference sheet statuses were left as their existing MBOP carrier/workflow statuses
+- eBay purchase sync preserves Cancelled, Listed, Received, Return Opened, and Return Pending workflow statuses
 
 Next steps:
 - apply sql/2026-05-23_add_receiving_fields.sql in Supabase
 - test receiving flow against real delivered and shipped-without-tracking rows
 - decide source for eBay listing image URLs
 - define listing/FBA workflow tables/fields
-- decide when Listed overrides shipment-derived and receiving-derived statuses
 - keep receiving/listing workflows separate from purchases review UI
 
 ---

@@ -214,7 +214,7 @@ Implemented:
 - detail drawer can create a manual split item row for multi-game eBay listings
 - search input includes an inline clear button
 - table headers sort the currently filtered row set by displayed values
-- status filter includes Received for warehouse-verified delivered items
+- status filter includes Received and Listed workflow statuses
 
 Current architecture:
 web/app/page.tsx is now the composition layer.
@@ -224,13 +224,22 @@ iterate on ASIN review and operational throughput without merging receiving work
 
 Recent backend update:
 - eBay buyer purchase sync now populates purchase_items.system from recognized eBay title platform terms
-- eBay buyer purchase sync preserves workflow-owned statuses: Cancelled, Received, Return Opened, and Return Pending
+- eBay buyer purchase sync preserves workflow-owned statuses: Cancelled, Listed, Received, Return Opened, and Return Pending
 - existing empty systems were backfilled where recognized
 - RevSeller enrichment no longer applies unique-title matches without a recognized system
 - system names were normalized to operator-facing display values
 - purchase_items.amazon_title was added and backfilled from RevSeller where ASIN/title data was available
 - Amazon search links and RevSeller matching now share marketplace-title cleaning semantics
 - marketplace-title cleaning was refined from the 100-row missing-ASIN training sheet
+
+Recent one-time status backfill:
+- source: reference Google Sheet "status" tab
+- script: integrations/backfill_status_from_reference_sheet.py
+- explicit sheet statuses were applied to purchase_items.current_status
+- Listed rows were backfilled to `listed`
+- Received rows were backfilled to `received`
+- blank sheet statuses were skipped and left as their existing MBOP operational statuses
+- one mixed-status quantity row was split so one unit could be Listed and one Received
 
 Manual override schema:
 - sql/2026-05-23_add_purchase_item_manual_overrides.sql adds purchase item flags for manual title overrides, manual unit-cost overrides, and manual split child rows

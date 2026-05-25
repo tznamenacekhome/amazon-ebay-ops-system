@@ -21,7 +21,7 @@ This folder contains the Midnight Blue Operations Platform purchases workflow UI
 - Status displays derived operational status, not raw carrier text.
 - Table headers sort the filtered row set by the displayed column values.
 - Cancelled rows are excluded from the Needs Review ASIN filter and metric.
-- The status filter includes workflow statuses such as `Received`, `Return Pending`, `Return Opened`, and `Cancelled`.
+- The status filter includes workflow statuses such as `Received`, `Listed`, `Return Pending`, `Return Opened`, and `Cancelled`.
 - The search input has an inline clear button.
 
 ## Detail Drawer Display
@@ -57,6 +57,7 @@ This folder contains the Midnight Blue Operations Platform purchases workflow UI
 - Display `unit_cost` from `vw_purchases_dashboard`; backend logic is authoritative.
 - Purchases and receiving are separate workflows. Do not merge receiving verification into this UI.
 - `Received` can be displayed here, but the receiving workflow should own setting that status.
+- `Listed` can be displayed here, but listing/FBA/eBay workflow actions should own setting that status after this one-time backfill.
 - `Cancelled` can be displayed and filtered here, but refund confirmation belongs in the future return/refund workflow.
 - ASIN/manual review can live here, but matching confidence and ambiguity status must come from backend data.
 - Video-game matching is platform-specific. Do not introduce frontend matching shortcuts across systems.

@@ -19,6 +19,7 @@ LOCAL_TIMEZONE = "America/Los_Angeles"
 SKIP_EXISTING_ORDERS_WITH_TRACKING = True
 WORKFLOW_LOCKED_STATUSES = {
     "cancelled",
+    "listed",
     "received",
     "return_opened",
     "return_pending",

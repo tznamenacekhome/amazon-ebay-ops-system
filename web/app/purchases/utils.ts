@@ -10,6 +10,7 @@ export const OPERATIONAL_STATUS_OPTIONS = [
   { value: "out_for_delivery", label: "Out for Delivery" },
   { value: "delivered", label: "Delivered" },
   { value: "received", label: "Received" },
+  { value: "listed", label: "Listed" },
   { value: "exception", label: "Exception" },
   { value: "return_pending", label: "Return Pending" },
   { value: "return_opened", label: "Return Opened" },
@@ -110,7 +111,9 @@ export function getDisplayTitleParts(row: PurchaseRow) {
 }
 
 export function isDelivered(row: PurchaseRow) {
-  return ["delivered", "received"].includes(getOperationalStatus(row).value);
+  return ["delivered", "received", "listed"].includes(
+    getOperationalStatus(row).value
+  );
 }
 
 export function needsAsinReview(row: PurchaseRow) {
@@ -135,6 +138,7 @@ export function getOperationalStatus(row: PurchaseRow): {
     return statusOption("cancelled");
   }
   if (itemStatus === "received") return statusOption("received");
+  if (itemStatus === "listed") return statusOption("listed");
   if (itemStatus === "return_pending") return statusOption("return_pending");
   if (carrierStatus === "delivered" || !!row.delivered_date) {
     return statusOption("delivered");

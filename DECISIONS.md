@@ -342,6 +342,25 @@ Purchases may display and filter Received, but the receiving workflow must own t
 
 ---
 
+## Listed Is A Workflow-Owned Status
+
+Decision:
+Use `purchase_items.current_status = listed` when an item has moved beyond receiving and has been listed on eBay or sent/listed through the Amazon workflow.
+
+Reason:
+Listed items should remain part of purchase/inventory reporting, but carrier-derived syncs should not downgrade them back to delivered or in-transit.
+
+Implementation:
+- Purchases UI displays and filters Listed
+- eBay buyer purchase sync treats Listed as workflow-locked
+- legacy status normalization treats Listed as workflow-locked
+- the one-time reference spreadsheet status backfill applies explicit `Listed` values from the `status` tab
+
+Rule:
+Blank values in the reference `status` tab are not a new status. They leave the existing MBOP status in place, usually a carrier/shipment-derived status such as Ordered, Delivered, No Tracking, or similar.
+
+---
+
 ## Receiving Owns Marketplace Assignment
 
 Decision:
