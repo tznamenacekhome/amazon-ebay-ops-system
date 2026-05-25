@@ -3,7 +3,7 @@ import { useCallback, useEffect, useState } from "react";
 import type { PurchaseRow } from "./types";
 import { rowKey } from "./utils";
 
-const PURCHASE_CACHE_KEY = "mbop:purchases:v3";
+const PURCHASE_CACHE_KEY = "mbop:purchases:v4";
 const PURCHASE_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 
 type PurchaseCache = {
@@ -67,7 +67,7 @@ export function usePurchases() {
         const cachedRows = readCache();
 
         if (cachedRows) {
-          setRows(cachedRows);
+          setRows(filterReportableRows(cachedRows));
           setLoading(false);
           return;
         }
@@ -83,9 +83,10 @@ export function usePurchases() {
       const purchases: PurchaseRow[] = Array.isArray(data)
         ? data
         : data.purchases || data.rows || [];
+      const reportablePurchases = filterReportableRows(purchases);
 
-      setRows(purchases);
-      writeCache(purchases);
+      setRows(reportablePurchases);
+      writeCache(reportablePurchases);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load purchases.");
     } finally {
@@ -234,4 +235,8 @@ export function usePurchases() {
     patchPurchase,
     createSplitItem,
   };
+}
+
+function filterReportableRows(rows: PurchaseRow[]) {
+  return rows.filter((row) => !row.exclude_from_purchase_reporting);
 }

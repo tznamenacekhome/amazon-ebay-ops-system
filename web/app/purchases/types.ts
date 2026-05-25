@@ -29,6 +29,8 @@ export type PurchaseRow = {
   seller_shipped?: boolean | null;
   ebay_cancelled?: boolean | null;
   marketplace?: "Amazon" | "eBay" | null;
+  exclude_from_purchase_reporting?: boolean | null;
+  exclusion_reason?: string | null;
 };
 
 export type PurchaseStats = {

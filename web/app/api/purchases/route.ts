@@ -73,6 +73,7 @@ export async function GET() {
     includedRows.map((row) => ({
       ...row,
       amazon_title: amazonTitleByItemId.get(row.item_id) ?? null,
+      exclude_from_purchase_reporting: false,
       order_status: purchaseMetaById.get(row.purchase_id)?.orderStatus ?? null,
       seller_shipped: purchaseMetaById.get(row.purchase_id)?.sellerShipped ?? false,
       ebay_cancelled: purchaseMetaById.get(row.purchase_id)?.ebayCancelled ?? false,
@@ -115,6 +116,7 @@ async function fetchItemMeta(itemIds: string[]) {
     item_id: string;
     amazon_title: string | null;
     exclude_from_purchase_reporting: boolean | null;
+    exclusion_reason: string | null;
   }[] = [];
   const chunkSize = 500;
 
@@ -122,7 +124,7 @@ async function fetchItemMeta(itemIds: string[]) {
     const chunk = itemIds.slice(index, index + chunkSize);
     const { data, error } = await supabase
       .from("purchase_items")
-      .select("item_id,amazon_title,exclude_from_purchase_reporting")
+      .select("item_id,amazon_title,exclude_from_purchase_reporting,exclusion_reason")
       .in("item_id", chunk);
 
     if (error) {
@@ -135,6 +137,7 @@ async function fetchItemMeta(itemIds: string[]) {
         item_id: string;
         amazon_title: string | null;
         exclude_from_purchase_reporting: boolean | null;
+        exclusion_reason: string | null;
       }[])
     );
   }
