@@ -316,16 +316,7 @@ def project_purchase_state(
     if status == "listed":
         if marketplace == "eBay":
             return StateProjection("home_ebay_resale_listed", "home", "ebay_resale", "ebay", "listed")
-        if asin and asin not in amazon_current_asins:
-            return StateProjection("sold_amazon", "buyer", "amazon_fba", "amazon", "sold")
-        return StateProjection(
-            "outbound_to_amazon" if has_fba_link else "received_assigned_amazon_not_sent",
-            "in_transit_to_amazon" if has_fba_link else "home",
-            "amazon_fba",
-            "amazon",
-            "listed",
-            needs_reconciliation=True,
-        )
+        return StateProjection("sold_amazon", "buyer", "amazon_fba", "amazon", "sold")
     if status == "received":
         if marketplace == "eBay":
             return StateProjection("transferred_to_ebay", "home", "ebay_resale", "none", "transferred")

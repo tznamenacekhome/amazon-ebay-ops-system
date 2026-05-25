@@ -521,8 +521,8 @@ Ownership boundary:
 Rule:
 Do not write reconciliation corrections directly into workflow tables unless a specific workflow action owns that correction. Reconciliation findings should surface review work first.
 
-Historical Listed assumption:
-Purchase inventory with `purchase_items.current_status = listed` that is no longer present in current Amazon FBA inventory is treated as sold in the derived inventory layer. This preserves the purchase/listing history for analytics while preventing historical sold-through units from appearing as missing-from-Amazon reconciliation defects.
+Canonical inventory definition:
+Current canonical inventory equals current Amazon FBA inventory plus MBOP purchase inventory that has not yet reached the Listed workflow state. Purchase rows with `purchase_items.current_status = listed` remain useful for purchase amount/frequency and historical analysis, but they are not counted as current purchase-held inventory in the derived canonical inventory total. Amazon-bound Listed purchase rows are treated as sold-through/history in the purchase projection; current active Amazon inventory is represented by Amazon SP-API snapshot positions.
 
 ---
 

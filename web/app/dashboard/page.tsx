@@ -70,6 +70,9 @@ type DashboardData = {
 
 type InventoryVisibility = {
   metrics: {
+    canonical_inventory_units: number;
+    purchase_pre_listed_inventory_units: number;
+    amazon_fba_current_units: number;
     purchased_inventory_units: number;
     delivered_not_received_units: number;
     received_not_listed_units: number;
@@ -288,8 +291,8 @@ export default function DashboardPage() {
 
         <div className="mb-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
           <InlineMetric
-            label="Owned / In Flow"
-            value={loading ? "--" : formatNumber(data?.inventoryVisibility.metrics.purchased_inventory_units)}
+            label="Canonical Units"
+            value={loading ? "--" : formatNumber(data?.inventoryVisibility.metrics.canonical_inventory_units)}
           />
           <InlineMetric
             label="Ready For Amazon"
@@ -319,6 +322,8 @@ export default function DashboardPage() {
             <OperationalPanel
               title="Channel / Exception Counts"
               rows={[
+                ["Purchase pre-Listed", formatNumber(data?.inventoryVisibility.metrics.purchase_pre_listed_inventory_units)],
+                ["Amazon FBA current", formatNumber(data?.inventoryVisibility.metrics.amazon_fba_current_units)],
                 ["Delivered not received", formatNumber(data?.inventoryVisibility.metrics.delivered_not_received_units)],
                 ["Received not listed", formatNumber(data?.inventoryVisibility.metrics.received_not_listed_units)],
                 ["Outbound to Amazon", formatNumber(data?.inventoryVisibility.metrics.outbound_to_amazon_units)],

@@ -429,6 +429,22 @@ async function fetchInventoryVisibility() {
   const costByState = new Map<string, number>();
   const unitsByLocation = new Map<string, number>();
   const unitsByIntent = new Map<string, number>();
+  const purchasePreListedStates = [
+    "purchased_not_shipped",
+    "shipped_not_delivered",
+    "delivered_not_received",
+    "received_unassigned",
+    "received_assigned_amazon_not_sent",
+    "transferred_to_ebay",
+    "return_pending",
+  ];
+  const amazonFbaCurrentStates = [
+    "amazon_fba_sellable",
+    "amazon_fba_inbound_receiving",
+    "amazon_fba_reserved",
+    "amazon_fba_unsellable_damaged",
+    "amazon_fba_stranded",
+  ];
 
   for (const row of summaryRows) {
     const units = Number(row.unit_count ?? 0);
@@ -454,17 +470,12 @@ async function fetchInventoryVisibility() {
 
   return {
     metrics: {
-      purchased_inventory_units: sumStates(unitsByState, [
-        "purchased_not_shipped",
-        "shipped_not_delivered",
-        "delivered_not_received",
-        "received_unassigned",
-        "received_assigned_amazon_not_sent",
-        "transferred_to_ebay",
-        "home_ebay_resale_listed",
-        "home_ebay_personal_listed",
-        "outbound_to_amazon",
-      ]),
+      canonical_inventory_units:
+        sumStates(unitsByState, purchasePreListedStates) +
+        sumStates(unitsByState, amazonFbaCurrentStates),
+      purchase_pre_listed_inventory_units: sumStates(unitsByState, purchasePreListedStates),
+      amazon_fba_current_units: sumStates(unitsByState, amazonFbaCurrentStates),
+      purchased_inventory_units: sumStates(unitsByState, purchasePreListedStates),
       delivered_not_received_units: unitsByState.get("delivered_not_received") ?? 0,
       received_not_listed_units: sumStates(unitsByState, [
         "received_unassigned",
@@ -492,16 +503,8 @@ async function fetchInventoryVisibility() {
         .reduce((total, row) => total + Number(row.unit_count ?? 0), 0),
       open_reconciliation_findings: openItems.length,
       estimated_mbop_cost_basis: sumStates(costByState, [
-        "purchased_not_shipped",
-        "shipped_not_delivered",
-        "delivered_not_received",
-        "received_unassigned",
-        "received_assigned_amazon_not_sent",
-        "transferred_to_ebay",
-        "home_ebay_resale_listed",
-        "home_ebay_personal_listed",
-        "outbound_to_amazon",
-        "return_pending",
+        ...purchasePreListedStates,
+        ...amazonFbaCurrentStates,
       ]),
     },
     unitsByState: Array.from(unitsByState.entries())
