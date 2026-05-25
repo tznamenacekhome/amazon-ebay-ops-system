@@ -12,6 +12,7 @@ This folder contains the Midnight Blue Operations Platform receiving workflow UI
 ## Queue Behavior
 
 - Queue includes items with derived operational status `Delivered` or `Shipped (No Tracking)`.
+- Queue displays the count of items ready to receive, and the current matching count while searching.
 - Search input autofocuses on load for barcode scanning.
 - If a search has exactly one match, the detail view opens automatically.
 - If a search has multiple matches, the filtered queue remains visible for manual selection.

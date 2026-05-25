@@ -298,6 +298,17 @@ export default function ReceivingPage() {
       </div>
 
       <div className="mb-4 rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
+        <div className="mb-3 flex flex-wrap items-center gap-3 text-sm">
+          <div className="font-medium text-slate-700">
+            {formatNumber(queueRows.length)} items ready to receive
+          </div>
+          {searchText.trim() && (
+            <div className="text-slate-500">
+              {formatNumber(filteredRows.length)} matching current search
+            </div>
+          )}
+        </div>
+
         <div className="relative">
           <Search className="absolute left-3 top-3 h-5 w-5 text-slate-400" />
           <input
@@ -819,6 +830,10 @@ function formatPriceDraft(value?: number | null) {
   }
 
   return Number(value).toFixed(2);
+}
+
+function formatNumber(value: number) {
+  return value.toLocaleString("en-US");
 }
 
 function extractEbayItemId(value?: string | null) {

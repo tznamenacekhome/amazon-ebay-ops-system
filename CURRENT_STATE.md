@@ -217,6 +217,7 @@ Implemented:
 - status filter includes Received and Listed workflow statuses
 - purchases API loads all rows from vw_purchases_dashboard instead of limiting the screen to 200 rows
 - default purchases status filter is All Except Listed, with All Status available for full history
+- purchases UI caches the loaded row set in browser storage for 24 hours; Refresh bypasses the cache
 
 Current architecture:
 web/app/page.tsx is now the composition layer.
@@ -262,6 +263,7 @@ Implemented:
 - single search result auto-opens the receiving detail view
 - multiple search results remain filtered for manual row selection
 - receiving queue table columns are sortable
+- receiving queue displays the count of items ready to receive, and matching count while searching
 - detail view shows all rows for the same tracking number, or same purchase when tracking is unavailable
 - detail view links eBay title to the eBay listing when a supplier listing URL or eBay item ID is available
 - detail view links Amazon title to Amazon using ASIN

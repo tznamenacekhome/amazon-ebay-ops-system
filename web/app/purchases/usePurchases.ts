@@ -3,17 +3,76 @@ import { useCallback, useEffect, useState } from "react";
 import type { PurchaseRow } from "./types";
 import { rowKey } from "./utils";
 
+const PURCHASE_CACHE_KEY = "mbop:purchases:v1";
+const PURCHASE_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
+
+type PurchaseCache = {
+  savedAt: number;
+  rows: PurchaseRow[];
+};
+
+type LoadPurchasesOptions = {
+  forceRefresh?: boolean;
+};
+
 export function usePurchases() {
   const [rows, setRows] = useState<PurchaseRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [savingKey, setSavingKey] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const loadPurchases = useCallback(async () => {
+  const writeCache = useCallback((nextRows: PurchaseRow[]) => {
+    if (typeof window === "undefined") return;
+
+    try {
+      const cache: PurchaseCache = {
+        savedAt: Date.now(),
+        rows: nextRows,
+      };
+      window.localStorage.setItem(PURCHASE_CACHE_KEY, JSON.stringify(cache));
+    } catch {
+      // Cache writes are best-effort only.
+    }
+  }, []);
+
+  const readCache = useCallback(() => {
+    if (typeof window === "undefined") return null;
+
+    try {
+      const rawCache = window.localStorage.getItem(PURCHASE_CACHE_KEY);
+      if (!rawCache) return null;
+
+      const cache = JSON.parse(rawCache) as PurchaseCache;
+
+      if (!Array.isArray(cache.rows) || !Number.isFinite(cache.savedAt)) {
+        return null;
+      }
+
+      if (Date.now() - cache.savedAt > PURCHASE_CACHE_TTL_MS) {
+        return null;
+      }
+
+      return cache.rows;
+    } catch {
+      return null;
+    }
+  }, []);
+
+  const loadPurchases = useCallback(async (options: LoadPurchasesOptions = {}) => {
     setLoading(true);
     setError(null);
 
     try {
+      if (!options.forceRefresh) {
+        const cachedRows = readCache();
+
+        if (cachedRows) {
+          setRows(cachedRows);
+          setLoading(false);
+          return;
+        }
+      }
+
       const response = await fetch("/api/purchases", { cache: "no-store" });
 
       if (!response.ok) {
@@ -26,12 +85,13 @@ export function usePurchases() {
         : data.purchases || data.rows || [];
 
       setRows(purchases);
+      writeCache(purchases);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load purchases.");
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [readCache, writeCache]);
 
   useEffect(() => {
     // Initial client-side load for this operational workspace.
@@ -72,8 +132,8 @@ export function usePurchases() {
             .map((patchedRow) => [patchedRow.item_id, patchedRow])
         );
 
-        setRows((currentRows) =>
-          currentRows.map((currentRow) => {
+        setRows((currentRows) => {
+          const nextRows = currentRows.map((currentRow) => {
             const patchedRow = currentRow.item_id
               ? patchedRowsByItemId.get(currentRow.item_id)
               : null;
@@ -92,8 +152,11 @@ export function usePurchases() {
             return rowKey(currentRow) === key
               ? { ...currentRow, ...updates }
               : currentRow;
-          })
-        );
+          });
+
+          writeCache(nextRows);
+          return nextRows;
+        });
 
         return {
           ...row,
@@ -146,7 +209,11 @@ export function usePurchases() {
         target_price: null,
       };
 
-      setRows((currentRows) => [newRow, ...currentRows]);
+      setRows((currentRows) => {
+        const nextRows = [newRow, ...currentRows];
+        writeCache(nextRows);
+        return nextRows;
+      });
 
       return newRow;
     } catch (err) {
@@ -155,7 +222,7 @@ export function usePurchases() {
     } finally {
       setSavingKey(null);
     }
-  }, []);
+  }, [writeCache]);
 
   return {
     rows,
