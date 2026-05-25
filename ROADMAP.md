@@ -67,7 +67,8 @@ Completed:
 - added year/month pivot-style table with grand total
 - excluded Return Opened rows from dashboard totals
 - added migration-backed reporting exclusions for personal purchases and business supplies
-- excluded strict after-2026-05-15 eBay purchases missing from both the reference Purchases and Returns tabs
+- recognized 2026-05-16+ purchases as MBOP-canonical because the legacy spreadsheet was no longer maintained for new purchases
+- restored 13 post-2026-05-15 resale rows that had been excluded only because they were absent from the legacy spreadsheet
 - normalized 2026 MBOP-active rows found on the reference Returns tab to Return Opened or Cancelled
 - excluded Cancelled rows from dashboard purchase totals
 - reconciled active unit count to the legacy pivot at 4,806 units
@@ -88,7 +89,7 @@ Next steps:
 - add reconciliation indicators once expected monthly spreadsheet totals are stored or imported
 - add a UI control for marking purchase items excluded from reporting with a reason
 - add filters for status, marketplace, received date, and system after the first chart proves useful
-- decide whether 2026 orders missing from the legacy spreadsheet should be imported into the spreadsheet, ignored, or documented as MBOP-only history
+- keep 2026-05-16+ MBOP-only purchases reportable unless explicitly confirmed as non-resale, return/cancelled, or otherwise excluded
 
 ---
 

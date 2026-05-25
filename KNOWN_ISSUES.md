@@ -264,8 +264,9 @@ Status: MOSTLY RESOLVED / MONITOR
 
 Current reconciliation:
 - 2024 and 2025 match the legacy Excel pivot exactly.
-- strict after-2026-05-15 MBOP-only eBay purchases absent from both Purchases and Returns tabs were excluded from dashboard reporting.
-- no after-2026-05-15 MBOP-only rows were found on the Returns tab.
+- 2026-05-16+ purchases are MBOP-canonical because the legacy spreadsheet was no longer maintained for new purchases.
+- a prior exclusion of 13 post-2026-05-15 MBOP-only resale rows was reversed.
+- no after-2026-05-15 MBOP-only rows were found on the Returns tab during the original check.
 - 39 2026 MBOP-active rows found on the legacy Returns tab were normalized: 26 Return Opened and 13 Cancelled.
 - one-time cleanup corrected duplicate rows, split-row quantities, partial-return quantities, one returned/refunded spreadsheet-missing order, one single-item partial refund, and three CAD purchase costs.
 - active unit count now matches the legacy pivot exactly: 4,806 units.
@@ -277,4 +278,5 @@ Current reconciliation:
 
 Recommended guardrail:
 - create a repeatable reconciliation report that classifies differences as MBOP-only, spreadsheet-only, Returns-tab, and same-order amount/quantity mismatch.
+- treat purchases on or after 2026-05-16 as MBOP-canonical instead of spreadsheet-missing discrepancies.
 - keep partial refunds and foreign-currency examples in regression checks for future eBay sync changes.

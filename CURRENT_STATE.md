@@ -177,12 +177,16 @@ Recent reconciliation:
 - 2026 variances are primarily returns/cancellations and split-row quantity/cost differences between MBOP and the legacy spreadsheet
 - zero-cost NBA 2K22 historical rows from order 16-14113-30387 were excluded from reporting after confirming corrected received quantities elsewhere
 - personal purchase and business supply reporting exclusions were identified for migration-backed cleanup
-- eBay purchases after 2026-05-15 that were absent from both legacy spreadsheet Purchases and Returns tabs were excluded from reporting: 13 item rows across 12 orders
+- eBay purchases after 2026-05-15 are MBOP-canonical because the legacy spreadsheet was no longer maintained for new purchases
+- a prior exclusion of 13 post-2026-05-15 MBOP-only resale rows was reversed
 - no strict after-2026-05-15 MBOP-only rows were found on the legacy Returns tab during that reconciliation
 - legacy Returns-tab matches were normalized for 2026: 26 rows to Return Opened and 13 rows to Cancelled
 - one-time cleanup corrected duplicate rows, split-row quantities, partial-return quantities, one returned/refunded spreadsheet-missing order, one single-item partial refund, and three CAD purchase costs
 - active dashboard total now matches the legacy pivot unit count: 4,806 units
 - active dashboard cost is $84,840.36 versus the legacy pivot $84,836.31, leaving a $4.05 MBOP-over-spreadsheet variance attributed to known spreadsheet mistakes
+
+Current reconciliation boundary:
+The legacy spreadsheet is useful for historical data before 2026-05-16. For purchases on or after 2026-05-16, MBOP is the canonical purchase source.
 
 ---
 

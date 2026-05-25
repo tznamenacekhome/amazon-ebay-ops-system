@@ -118,7 +118,7 @@ Do not auto-exclude rows from reporting only because they lack ASIN, system, or 
 ## Legacy Spreadsheet Reconciliation Checks Purchases And Returns
 
 Decision:
-When reconciling dashboard totals against the legacy reference spreadsheet, compare MBOP purchase items to both the Purchases tab and the Returns tab before excluding or reclassifying a row.
+When reconciling dashboard totals against the legacy reference spreadsheet, compare MBOP purchase items to both the Purchases tab and the Returns tab before excluding or reclassifying a historical row.
 
 Reason:
 Some rows absent from the Purchases tab are legitimate return/case/cancellation rows in the Returns tab. Those should be treated as workflow/status discrepancies, not as personal or non-resale exclusions.
@@ -126,7 +126,8 @@ Some rows absent from the Purchases tab are legitimate return/case/cancellation 
 Current rule:
 - if an eBay purchase item is on the legacy Purchases tab, leave it reportable unless another explicit rule applies
 - if it is absent from Purchases but present on Returns, review/update the MBOP return or cancellation status
-- if it is absent from both tabs and confirmed outside the reporting baseline, set `purchase_items.exclude_from_purchase_reporting = true` with a reason
+- for purchases before 2026-05-16, if it is absent from both tabs and confirmed outside the reporting baseline, set `purchase_items.exclude_from_purchase_reporting = true` with a reason
+- for purchases on or after 2026-05-16, MBOP is canonical; absence from the legacy spreadsheet is not an exclusion reason
 
 ---
 
