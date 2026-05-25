@@ -11,6 +11,7 @@ import { rowKey } from "./utils";
 const PURCHASE_CACHE_KEY = "mbop:purchases:v9";
 const PURCHASE_CACHE_PREFIX = "mbop:purchases:";
 const PURCHASE_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
+const PURCHASE_CACHE_ENABLED = false;
 
 type PurchaseCache = {
   savedAt: number;
@@ -37,6 +38,7 @@ export function usePurchases(query: PurchaseQuery) {
   const cacheKey = `${PURCHASE_CACHE_KEY}:${buildQueryString(query)}`;
 
   const writeCache = useCallback((response: PurchasesApiResponse) => {
+    if (!PURCHASE_CACHE_ENABLED) return;
     if (typeof window === "undefined") return;
 
     try {
@@ -51,6 +53,7 @@ export function usePurchases(query: PurchaseQuery) {
   }, [cacheKey]);
 
   const readCache = useCallback(() => {
+    if (!PURCHASE_CACHE_ENABLED) return null;
     if (typeof window === "undefined") return null;
 
     try {

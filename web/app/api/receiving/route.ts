@@ -16,11 +16,18 @@ type ReceivingUpdate = {
 };
 
 export async function GET() {
-  const { data, error } = await supabase
+  const excludedItemIds = await fetchExcludedItemIds();
+  let request = supabase
     .from("vw_purchases_dashboard")
     .select("*")
-    .order("order_date", { ascending: false })
-    .limit(1000);
+    .in("current_status", ["delivered", "shipped_no_tracking"])
+    .order("order_date", { ascending: false });
+
+  if (excludedItemIds.length > 0) {
+    request = request.not("item_id", "in", `(${excludedItemIds.join(",")})`);
+  }
+
+  const { data, error } = await request.limit(1000);
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
@@ -62,8 +69,6 @@ export async function GET() {
   return NextResponse.json(
     rows.flatMap((row) => {
       const item = itemMetaById.get(row.item_id);
-      if (item?.exclude_from_purchase_reporting) return [];
-
       const ebayListingUrl = getEbayListingUrl(item);
 
       return [{
@@ -84,6 +89,33 @@ export async function GET() {
       }];
     })
   );
+}
+
+async function fetchExcludedItemIds() {
+  const excludedItemIds: string[] = [];
+  const pageSize = 1000;
+  let offset = 0;
+
+  while (true) {
+    const { data, error } = await supabase
+      .from("purchase_items")
+      .select("item_id")
+      .eq("exclude_from_purchase_reporting", true)
+      .range(offset, offset + pageSize - 1);
+
+    if (error) {
+      console.warn("Receiving exclusion lookup failed", error.message);
+      return excludedItemIds;
+    }
+
+    excludedItemIds.push(
+      ...((data ?? []) as { item_id: string }[]).map((item) => item.item_id)
+    );
+
+    if ((data ?? []).length < pageSize) return excludedItemIds;
+
+    offset += pageSize;
+  }
 }
 
 async function fetchItemMeta(itemIds: string[]) {

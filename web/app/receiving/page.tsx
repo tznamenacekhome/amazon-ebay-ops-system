@@ -56,18 +56,11 @@ export default function ReceivingPage() {
     searchInputRef.current?.focus();
   }, []);
 
-  const queueRows = useMemo(() => {
-    return rows.filter((row) => {
-      const status = getOperationalStatus(row).value;
-      return status === "delivered" || status === "shipped_no_tracking";
-    });
-  }, [rows]);
-
   const filteredRows = useMemo(() => {
     const needle = searchText.trim().toLowerCase();
-    if (!needle) return queueRows;
+    if (!needle) return rows;
 
-    return queueRows.filter((row) =>
+    return rows.filter((row) =>
       [
         row.supplier_order_id,
         row.tracking_number,
@@ -82,7 +75,7 @@ export default function ReceivingPage() {
         .filter(Boolean)
         .some((value) => String(value).toLowerCase().includes(needle))
     );
-  }, [queueRows, searchText]);
+  }, [rows, searchText]);
 
   const sortedRows = useMemo(() => {
     return [...filteredRows].sort((left, right) => {
@@ -300,7 +293,7 @@ export default function ReceivingPage() {
       <div className="mb-4 rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
         <div className="mb-3 flex flex-wrap items-center gap-3 text-sm">
           <div className="font-medium text-slate-700">
-            {formatNumber(queueRows.length)} items ready to receive
+            {formatNumber(rows.length)} items ready to receive
           </div>
           {searchText.trim() && (
             <div className="text-slate-500">

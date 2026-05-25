@@ -11,7 +11,7 @@ This folder contains the Midnight Blue Operations Platform receiving workflow UI
 
 ## Queue Behavior
 
-- Queue includes items with derived operational status `Delivered` or `Shipped (No Tracking)`.
+- `/api/receiving` returns only backend-normalized `Delivered` and `Shipped (No Tracking)` rows.
 - Queue displays the count of items ready to receive, and the current matching count while searching.
 - Search input autofocuses on load for barcode scanning.
 - If a search has exactly one match, the detail view opens automatically.
@@ -41,6 +41,7 @@ This folder contains the Midnight Blue Operations Platform receiving workflow UI
 ## API Notes
 
 - `/api/receiving` hydrates dashboard rows with purchase item metadata from `purchase_items`.
+- `/api/receiving` applies the ready-to-receive status filter before returning rows to the frontend.
 - Rows marked `exclude_from_purchase_reporting` are hidden from the receiving workspace.
 - Metadata lookups are chunked to avoid large PostgREST `in (...)` request failures.
 - Receiving metadata includes stored `amazon_title`, `supplier_sku`, `supplier_listing_url`, derived `ebay_listing_url`, `marketplace`, and `received_date`.

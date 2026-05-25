@@ -223,7 +223,7 @@ Implemented:
 - purchases API excludes reporting-excluded rows before database pagination so pages are full usable pages
 - purchases client also filters reportable-excluded rows before storing fetched or cached rows
 - default purchases status filter is All Except Listed, with All Status available for full history
-- purchases UI uses query-aware browser caching for 24 hours; Refresh bypasses the cache
+- purchases UI browser caching is temporarily disabled for server-side performance testing
 - purchases cache key was bumped after reporting-exclusion fixes so stale non-resale rows are not reused
 - purchases cache key was bumped again after backend status normalization so stale derived-status filter results are not reused
 - purchases Refresh now clears all purchases query-cache entries before reloading
@@ -271,6 +271,7 @@ Implemented:
 - separate receiving workspace at /receiving
 - local documentation in web/app/receiving/README.md
 - receiving API route at /api/receiving
+- receiving API applies the ready-to-receive status filter before returning rows
 - scan-first search field with autofocus
 - queue includes Delivered and Shipped (No Tracking) operational statuses
 - single search result auto-opens the receiving detail view
