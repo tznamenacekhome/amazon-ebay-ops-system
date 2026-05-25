@@ -57,7 +57,7 @@ Recent UI cleanup:
 ## Dashboard Analytics
 
 Status:
-First purchase completeness slice implemented.
+Operational reconciliation first pass implemented.
 
 Completed:
 - added Dashboard menu item to the MBOP left navigation
@@ -65,6 +65,11 @@ Completed:
 - added /api/dashboard/purchases aggregation route
 - added monthly units and total cost chart
 - added year/month pivot-style table with grand total
+- added purchase completeness summary
+- added receiving backlog summary
+- added shipment prep backlog summary
+- added workflow aging buckets
+- added missing/exception attention table
 - excluded Return Opened rows from dashboard totals
 - added migration-backed reporting exclusions for personal purchases and business supplies
 - recognized 2026-05-16+ purchases as MBOP-canonical because the legacy spreadsheet was no longer maintained for new purchases
@@ -76,16 +81,12 @@ Completed:
 - kept landed-cost math backend-owned through vw_purchases_dashboard.unit_cost
 - confirmed 2024 and 2025 dashboard totals match the legacy Excel pivot exactly
 
-Near-term goals:
-- compare MBOP monthly totals against the legacy Excel pivot
-- identify missing historical purchase imports by month
-- surface data completeness gaps before deeper workflow redesign
-
 Next steps:
 - build a repeatable dashboard reconciliation report using the shared reference spreadsheet and Supabase
 - classify discrepancies into MBOP-only, spreadsheet-only, Returns-tab/status mismatch, and same-order quantity/cost mismatch
 - keep known partial-refund, CAD, duplicate-row, and split-row orders as reconciliation regression examples
 - add drill-down from a dashboard month into the matching filtered purchases list
+- add drill-down links from operational dashboard counts into Purchases, Receiving, and FBA filtered views
 - add reconciliation indicators once expected monthly spreadsheet totals are stored or imported
 - add a UI control for marking purchase items excluded from reporting with a reason
 - add filters for status, marketplace, received date, and system after the first chart proves useful

@@ -32,6 +32,61 @@ type DashboardData = {
   years: YearAggregate[];
   months: MonthAggregate[];
   statusBreakdown: StatusAggregate[];
+  operations: {
+    purchaseCompleteness: {
+      active_rows: number;
+      active_units: number;
+      needs_review_rows: number;
+      needs_review_units: number;
+      missing_asin_rows: number;
+      missing_sell_price_rows: number;
+      missing_system_rows: number;
+      missing_amazon_title_rows: number;
+    };
+    receivingBacklog: BacklogSummary;
+    shipmentPrepBacklog: BacklogSummary & {
+      total_cost: number;
+      blocked_rows: number;
+      blocked_units: number;
+    };
+    inventoryState: {
+      purchased_not_received_units: number;
+      received_units: number;
+      listed_units: number;
+      return_or_cancel_units: number;
+    };
+    exceptions: {
+      overdue_rows: number;
+      overdue_units: number;
+      aged_no_tracking_rows: number;
+      aged_no_tracking_units: number;
+      exception_rows: number;
+      exception_units: number;
+      top_attention: AttentionRow[];
+    };
+  };
+};
+
+type BacklogSummary = {
+  rows: number;
+  units: number;
+  oldest_age_days: number | null;
+  aging: AgingBucket[];
+};
+
+type AgingBucket = {
+  label: string;
+  count: number;
+  units: number;
+};
+
+type AttentionRow = {
+  item_id: string | null;
+  order_id: string | null;
+  title: string;
+  status: string;
+  age_days: number | null;
+  issue: string;
 };
 
 export default function DashboardPage() {
@@ -109,6 +164,97 @@ export default function DashboardPage() {
         />
       </section>
 
+      <section className="mb-4 grid gap-3 lg:grid-cols-4">
+        <OperationalPanel
+          title="Purchase Completeness"
+          rows={[
+            ["Active units", formatNumber(data?.operations.purchaseCompleteness.active_units)],
+            ["Needs review units", formatNumber(data?.operations.purchaseCompleteness.needs_review_units)],
+            ["Missing ASIN rows", formatNumber(data?.operations.purchaseCompleteness.missing_asin_rows)],
+            ["Missing sell price rows", formatNumber(data?.operations.purchaseCompleteness.missing_sell_price_rows)],
+            ["Missing system rows", formatNumber(data?.operations.purchaseCompleteness.missing_system_rows)],
+            ["Missing Amazon title rows", formatNumber(data?.operations.purchaseCompleteness.missing_amazon_title_rows)],
+          ]}
+          loading={loading}
+        />
+        <OperationalPanel
+          title="Receiving Backlog"
+          rows={[
+            ["Rows", formatNumber(data?.operations.receivingBacklog.rows)],
+            ["Units", formatNumber(data?.operations.receivingBacklog.units)],
+            ["Oldest age", formatDays(data?.operations.receivingBacklog.oldest_age_days)],
+          ]}
+          loading={loading}
+        />
+        <OperationalPanel
+          title="Shipment Prep Backlog"
+          rows={[
+            ["Rows", formatNumber(data?.operations.shipmentPrepBacklog.rows)],
+            ["Units", formatNumber(data?.operations.shipmentPrepBacklog.units)],
+            ["Total cost", formatMoney(data?.operations.shipmentPrepBacklog.total_cost)],
+            ["Blocked rows", formatNumber(data?.operations.shipmentPrepBacklog.blocked_rows)],
+            ["Oldest age", formatDays(data?.operations.shipmentPrepBacklog.oldest_age_days)],
+          ]}
+          loading={loading}
+        />
+        <OperationalPanel
+          title="Inventory State"
+          rows={[
+            ["Purchased not received", formatNumber(data?.operations.inventoryState.purchased_not_received_units)],
+            ["Received", formatNumber(data?.operations.inventoryState.received_units)],
+            ["Listed", formatNumber(data?.operations.inventoryState.listed_units)],
+            ["Return/cancel", formatNumber(data?.operations.inventoryState.return_or_cancel_units)],
+          ]}
+          loading={loading}
+        />
+      </section>
+
+      <section className="mb-4 grid gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+        <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+          <div className="mb-3">
+            <div className="text-sm font-medium uppercase tracking-wide text-slate-500">
+              Workflow Aging
+            </div>
+            <h2 className="mt-1 text-lg font-semibold">Backlog Buckets</h2>
+          </div>
+          <div className="grid gap-3 md:grid-cols-2">
+            <AgingTable
+              title="Receiving"
+              buckets={data?.operations.receivingBacklog.aging ?? []}
+              loading={loading}
+            />
+            <AgingTable
+              title="FBA Prep"
+              buckets={data?.operations.shipmentPrepBacklog.aging ?? []}
+              loading={loading}
+            />
+          </div>
+        </div>
+
+        <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+          <div className="mb-3">
+            <div className="text-sm font-medium uppercase tracking-wide text-slate-500">
+              Missing / Exception Visibility
+            </div>
+            <h2 className="mt-1 text-lg font-semibold">Attention Counts</h2>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-3">
+            <InlineMetric
+              label="Past ETA"
+              value={loading ? "--" : formatNumber(data?.operations.exceptions.overdue_units)}
+            />
+            <InlineMetric
+              label="Tracking Stale"
+              value={loading ? "--" : formatNumber(data?.operations.exceptions.aged_no_tracking_units)}
+            />
+            <InlineMetric
+              label="Exceptions"
+              value={loading ? "--" : formatNumber(data?.operations.exceptions.exception_units)}
+            />
+          </div>
+        </div>
+      </section>
+
       <section className="mb-4 rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
         <div className="mb-3">
           <div className="text-sm font-medium uppercase tracking-wide text-slate-500">
@@ -142,6 +288,54 @@ export default function DashboardPage() {
             No status data found.
           </div>
         )}
+      </section>
+
+      <section className="mb-4 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
+        <div className="border-b border-slate-200 px-4 py-3">
+          <div className="text-sm font-medium uppercase tracking-wide text-slate-500">
+            Operational Attention
+          </div>
+          <h2 className="mt-1 text-lg font-semibold">Oldest Missing Or Exception Rows</h2>
+        </div>
+        <table className="w-full text-left text-sm">
+          <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
+            <tr>
+              <th className="px-3 py-2">Issue</th>
+              <th className="px-3 py-2">Order</th>
+              <th className="px-3 py-2">Title</th>
+              <th className="px-3 py-2">Status</th>
+              <th className="px-3 py-2 text-right">Age</th>
+            </tr>
+          </thead>
+          <tbody>
+            {loading ? (
+              <tr>
+                <td className="px-3 py-6 text-center text-slate-500" colSpan={5}>
+                  Loading attention rows...
+                </td>
+              </tr>
+            ) : data?.operations.exceptions.top_attention.length ? (
+              data.operations.exceptions.top_attention.map((row, index) => (
+                <tr
+                  key={`${row.item_id ?? row.order_id ?? "attention"}-${index}`}
+                  className="border-t border-slate-100"
+                >
+                  <td className="px-3 py-2 font-medium">{row.issue}</td>
+                  <td className="px-3 py-2 text-blue-700">{row.order_id || "--"}</td>
+                  <td className="max-w-[520px] truncate px-3 py-2">{row.title}</td>
+                  <td className="px-3 py-2">{row.status}</td>
+                  <td className="px-3 py-2 text-right">{formatDays(row.age_days)}</td>
+                </tr>
+              ))
+            ) : (
+              <tr>
+                <td className="px-3 py-6 text-center text-slate-500" colSpan={5}>
+                  No attention rows found.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
       </section>
 
       <section className="grid gap-4 xl:grid-cols-[minmax(0,1.1fr)_minmax(460px,0.9fr)]">
@@ -272,6 +466,85 @@ function MetricCard({ label, value }: { label: string; value?: string }) {
   );
 }
 
+function InlineMetric({ label, value }: { label: string; value?: string }) {
+  return (
+    <div>
+      <div className="text-xs font-medium uppercase tracking-wide text-slate-500">
+        {label}
+      </div>
+      <div className="mt-1 text-2xl font-semibold">{value || "--"}</div>
+    </div>
+  );
+}
+
+function OperationalPanel({
+  title,
+  rows,
+  loading,
+}: {
+  title: string;
+  rows: Array<[string, string]>;
+  loading: boolean;
+}) {
+  return (
+    <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+      <div className="mb-3 text-sm font-medium uppercase tracking-wide text-slate-500">
+        {title}
+      </div>
+      <div className="space-y-2">
+        {rows.map(([label, value]) => (
+          <div key={label} className="flex items-center justify-between gap-3">
+            <span className="text-sm text-slate-600">{label}</span>
+            <span className="text-sm font-semibold">{loading ? "--" : value}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function AgingTable({
+  title,
+  buckets,
+  loading,
+}: {
+  title: string;
+  buckets: AgingBucket[];
+  loading: boolean;
+}) {
+  return (
+    <div>
+      <h3 className="mb-2 text-sm font-semibold">{title}</h3>
+      <table className="w-full text-sm">
+        <thead className="text-xs uppercase tracking-wide text-slate-500">
+          <tr>
+            <th className="py-1 text-left">Age</th>
+            <th className="py-1 text-right">Rows</th>
+            <th className="py-1 text-right">Units</th>
+          </tr>
+        </thead>
+        <tbody>
+          {loading ? (
+            <tr>
+              <td className="py-3 text-center text-slate-500" colSpan={3}>
+                Loading...
+              </td>
+            </tr>
+          ) : (
+            buckets.map((bucket) => (
+              <tr key={bucket.label} className="border-t border-slate-100">
+                <td className="py-1">{bucket.label}</td>
+                <td className="py-1 text-right">{formatNumber(bucket.count)}</td>
+                <td className="py-1 text-right">{formatNumber(bucket.units)}</td>
+              </tr>
+            ))
+          )}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 function formatNumber(value?: number | null) {
   if (value === null || value === undefined || Number.isNaN(Number(value))) {
     return "--";
@@ -289,4 +562,12 @@ function formatMoney(value?: number | null) {
     style: "currency",
     currency: "USD",
   });
+}
+
+function formatDays(value?: number | null) {
+  if (value === null || value === undefined || Number.isNaN(Number(value))) {
+    return "--";
+  }
+
+  return `${formatNumber(value)}d`;
 }

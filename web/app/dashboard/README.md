@@ -7,15 +7,20 @@ The Dashboard workspace is the first MBOP reporting view for purchase data compl
 - UI: `/dashboard`
 - API: `/api/dashboard/purchases`
 
-## Current Report
+## Current Reports
 
-The first dashboard report shows purchase units and purchase cost by year/month, excluding purchase items with `current_status = return_opened`, `current_status = cancelled`, or `exclude_from_purchase_reporting = true`.
+The dashboard shows purchase units and purchase cost by year/month, excluding purchase items with `current_status = return_opened`, `current_status = cancelled`, or `exclude_from_purchase_reporting = true`.
 
 The API reads `vw_purchases_dashboard` and aggregates:
 
 - units: sum of `quantity`
 - cost: sum of `unit_cost * quantity`
 - status breakdown: sum of `quantity` by `purchase_items.current_status`
+- purchase completeness gaps: missing ASIN, sell price, system, and Amazon title
+- receiving backlog: Delivered and Shipped (No Tracking) rows waiting to be received
+- shipment prep backlog: Received Amazon-bound rows waiting for FBA shipment preparation
+- workflow aging buckets for receiving and FBA prep
+- exception visibility: past-ETA rows, stale/no-tracking rows, exception rows, and return-pending rows
 
 `unit_cost` is the authoritative backend landed-cost value. Dashboard React components should render API-provided aggregates and should not introduce their own landed-cost calculations.
 
@@ -27,7 +32,7 @@ Cost semantics:
 
 ## Intended Use
 
-This view is meant to compare MBOP totals against the legacy Excel pivot table while the system is being validated.
+This view is meant to improve operational confidence and throughput by showing which parts of the workflow need attention. It is also still useful for comparing MBOP totals against the legacy Excel pivot table while the system is being validated.
 
 Current reconciliation state:
 - 2024 and 2025 match the legacy pivot exactly.

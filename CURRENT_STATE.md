@@ -183,7 +183,7 @@ Implemented:
 
 ## Dashboard UI
 
-Status: FIRST SLICE IMPLEMENTED
+Status: OPERATIONAL FIRST PASS
 
 Implemented:
 - dashboard workspace at /dashboard
@@ -192,6 +192,11 @@ Implemented:
 - operational unit count by purchase item status
 - pivot-style table inspired by the legacy Excel purchase summary
 - horizontal monthly cost chart for quick outlier/completeness scanning
+- purchase completeness summary for active rows
+- receiving backlog summary for Delivered and Shipped (No Tracking) rows
+- shipment prep backlog summary for Received Amazon-bound FBA candidates
+- workflow aging buckets for receiving and FBA prep
+- operational attention table for past-ETA, stale/no-tracking, exception, return-pending, and missing-data rows
 - dashboard excludes Return Opened rows
 - dashboard excludes Cancelled rows
 - dashboard excludes purchase items marked exclude_from_purchase_reporting once the reporting-exclusion SQL migration is applied
@@ -199,7 +204,7 @@ Implemented:
 - frontend only renders API-provided aggregates and does not recalculate landed cost
 
 Current purpose:
-Help identify purchase data completeness and cost accuracy by comparing MBOP monthly totals to the legacy spreadsheet pivot.
+Help identify purchase data completeness, receiving backlog, shipment prep backlog, workflow aging, and exception/missing-data visibility from one operational screen.
 
 Recent reconciliation:
 - 2024 and 2025 dashboard totals match the legacy Excel pivot exactly
