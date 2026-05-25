@@ -40,6 +40,7 @@ export default function PurchasesPage() {
   const [drawerSellPrice, setDrawerSellPrice] = useState("");
   const [drawerEbayTitle, setDrawerEbayTitle] = useState("");
   const [drawerUnitCost, setDrawerUnitCost] = useState("");
+  const [drawerSystem, setDrawerSystem] = useState("");
   const [priceDrafts, setPriceDrafts] = useState<Record<string, string>>({});
 
   const stats = useMemo(() => {
@@ -102,6 +103,7 @@ export default function PurchasesPage() {
       title: drawerEbayTitle.trim() || null,
       ebay_title: drawerEbayTitle.trim() || null,
       unit_cost: parsedUnitCost,
+      system: drawerSystem || null,
     });
 
     if (updatedRow) {
@@ -109,6 +111,7 @@ export default function PurchasesPage() {
       setDrawerSellPrice(formatPriceDraft(updatedRow.sell_price ?? updatedRow.target_price));
       setDrawerUnitCost(formatPriceDraft(updatedRow.unit_cost));
       setDrawerEbayTitle(updatedRow.ebay_title || updatedRow.title || "");
+      setDrawerSystem(updatedRow.system || "");
     }
   }
 
@@ -123,6 +126,7 @@ export default function PurchasesPage() {
       setDrawerSellPrice("");
       setDrawerEbayTitle(newRow.ebay_title || newRow.title || "");
       setDrawerUnitCost("");
+      setDrawerSystem(newRow.system || "");
     }
   }
 
@@ -139,6 +143,7 @@ export default function PurchasesPage() {
     setDrawerSellPrice(formatPriceDraft(row.sell_price ?? row.target_price));
     setDrawerEbayTitle(row.ebay_title || row.title || "");
     setDrawerUnitCost(formatPriceDraft(row.unit_cost));
+    setDrawerSystem(row.system || "");
   }
 
   return (
@@ -194,11 +199,13 @@ export default function PurchasesPage() {
           drawerSellPrice={drawerSellPrice}
           drawerEbayTitle={drawerEbayTitle}
           drawerUnitCost={drawerUnitCost}
+          drawerSystem={drawerSystem}
           savingKey={savingKey}
           onAsinChange={setDrawerAsin}
           onSellPriceChange={setDrawerSellPrice}
           onEbayTitleChange={setDrawerEbayTitle}
           onUnitCostChange={setDrawerUnitCost}
+          onSystemChange={setDrawerSystem}
           onAddSplitItem={addSplitItem}
           onSave={saveDrawerMatch}
           onClose={() => setSelectedRow(null)}

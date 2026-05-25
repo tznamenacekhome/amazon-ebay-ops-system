@@ -3,7 +3,7 @@ import { useCallback, useEffect, useState } from "react";
 import type { PurchaseRow } from "./types";
 import { rowKey } from "./utils";
 
-const PURCHASE_CACHE_KEY = "mbop:purchases:v2";
+const PURCHASE_CACHE_KEY = "mbop:purchases:v3";
 const PURCHASE_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 
 type PurchaseCache = {

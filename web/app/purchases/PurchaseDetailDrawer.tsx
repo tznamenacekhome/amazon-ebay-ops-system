@@ -1,5 +1,6 @@
 import { Plus, Save, X } from "lucide-react";
 
+import { SYSTEM_OPTIONS } from "./systemOptions";
 import type { PurchaseRow } from "./types";
 import {
   formatDate,
@@ -18,11 +19,13 @@ type PurchaseDetailDrawerProps = {
   drawerSellPrice: string;
   drawerEbayTitle: string;
   drawerUnitCost: string;
+  drawerSystem: string;
   savingKey: string | null;
   onAsinChange: (value: string) => void;
   onSellPriceChange: (value: string) => void;
   onEbayTitleChange: (value: string) => void;
   onUnitCostChange: (value: string) => void;
+  onSystemChange: (value: string) => void;
   onAddSplitItem: () => void;
   onSave: () => void;
   onClose: () => void;
@@ -34,11 +37,13 @@ export function PurchaseDetailDrawer({
   drawerSellPrice,
   drawerEbayTitle,
   drawerUnitCost,
+  drawerSystem,
   savingKey,
   onAsinChange,
   onSellPriceChange,
   onEbayTitleChange,
   onUnitCostChange,
+  onSystemChange,
   onAddSplitItem,
   onSave,
   onClose,
@@ -114,6 +119,22 @@ export function PurchaseDetailDrawer({
               </label>
 
               <label className="grid gap-1 text-xs font-medium uppercase tracking-wide text-slate-500">
+                System
+                <select
+                  value={drawerSystem}
+                  onChange={(event) => onSystemChange(event.target.value)}
+                  className="rounded-lg border border-slate-300 px-3 py-2 text-sm font-normal normal-case tracking-normal text-slate-900"
+                >
+                  <option value="">Select system</option>
+                  {SYSTEM_OPTIONS.map((system) => (
+                    <option key={system} value={system}>
+                      {system}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <label className="grid gap-1 text-xs font-medium uppercase tracking-wide text-slate-500">
                 ASIN
                 <input
                   value={drawerAsin}
@@ -157,7 +178,7 @@ export function PurchaseDetailDrawer({
             <Detail label="Order Date" value={formatDate(row.order_date)} />
             <Detail label="ETA" value={formatDate(getDisplayDeliveryDate(row))} />
             <Detail label="Order ID" value={row.supplier_order_id || ""} />
-            <Detail label="System" value={row.system || ""} />
+            <Detail label="System" value={drawerSystem || row.system || ""} />
             <Detail label="Quantity" value={String(row.quantity ?? "")} />
             <Detail label="Unit Cost" value={formatMoney(row.unit_cost)} />
             <Detail label="Carrier" value={row.carrier || ""} />

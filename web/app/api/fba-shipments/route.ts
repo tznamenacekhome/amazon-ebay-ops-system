@@ -79,7 +79,11 @@ export async function GET() {
       ];
     });
 
-    return NextResponse.json(groupCandidates(candidates));
+    const titleFallbacks = await fetchAmazonTitleFallbacks(
+      Array.from(new Set(candidates.map((candidate) => candidate.asin)))
+    );
+
+    return NextResponse.json(groupCandidates(candidates, titleFallbacks));
   } catch (error) {
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Failed to load FBA workflow" },
@@ -214,6 +218,34 @@ async function fetchPurchaseMeta(purchaseIds: string[]) {
   return rows;
 }
 
+async function fetchAmazonTitleFallbacks(asins: string[]) {
+  const titleByAsin = new Map<string, string>();
+  const chunkSize = 500;
+
+  for (let index = 0; index < asins.length; index += chunkSize) {
+    const chunk = asins.slice(index, index + chunkSize);
+    const { data, error } = await supabase
+      .from("purchase_items")
+      .select("asin,amazon_title")
+      .in("asin", chunk)
+      .not("amazon_title", "is", null);
+
+    if (error) {
+      console.warn("FBA title fallback lookup failed", error.message);
+      continue;
+    }
+
+    for (const item of data ?? []) {
+      const asin = normalizeAsin(item.asin);
+      if (asin && item.amazon_title && !titleByAsin.has(asin)) {
+        titleByAsin.set(asin, item.amazon_title);
+      }
+    }
+  }
+
+  return titleByAsin;
+}
+
 function groupCandidates(
   candidates: Array<{
     item_id: string;
@@ -227,7 +259,8 @@ function groupCandidates(
     unit_cost: number | null;
     sell_price: number | null;
     supplier: string | null;
-  }>
+  }>,
+  titleFallbacks: Map<string, string>
 ) {
   const groups = new Map<string, {
     asin: string;
@@ -246,7 +279,7 @@ function groupCandidates(
   for (const candidate of candidates) {
     const group = groups.get(candidate.asin) ?? {
       asin: candidate.asin,
-      title: candidate.amazon_title,
+      title: candidate.amazon_title || titleFallbacks.get(candidate.asin) || null,
       system: candidate.system,
       quantity: 0,
       total_cost: 0,
@@ -258,7 +291,11 @@ function groupCandidates(
       details: [],
     };
 
-    group.title = group.title || candidate.amazon_title;
+    group.title =
+      group.title ||
+      candidate.amazon_title ||
+      titleFallbacks.get(candidate.asin) ||
+      null;
     group.system = group.system || candidate.system;
     group.quantity += candidate.quantity;
 

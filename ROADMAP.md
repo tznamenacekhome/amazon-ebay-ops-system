@@ -44,6 +44,7 @@ Recent UI cleanup:
 - fixed shipment date display to avoid UTC/local timezone day shifts
 - added sortable purchases table headers
 - added combined eBay title, purchase price, ASIN, and sell price save in the detail drawer
+- added system correction pick list in the purchase detail drawer
 - added manual split item creation from the detail drawer
 - added search-box clear button
 
@@ -100,6 +101,7 @@ Goals:
 
 Recent progress:
 - detail drawer now saves eBay title, purchase price, ASIN, and sell price together
+- detail drawer now supports system correction from the canonical system pick list
 - manual correction propagation updates duplicate title/system purchases
 - legacy Purchases sheet backfill filled 340 ASINs and 2,141 target sell prices
 - reference spreadsheet ASIN validator added for order-by-order MBOP/spreadsheet comparison
@@ -153,6 +155,7 @@ Completed:
 - FBA CSV export added
 - FBA shipment ID save links included purchase items and changes included quantities to Listed
 - unit-level exclusions supported through quantity-to-send detail rows and split purchase item behavior
+- FBA title hydration falls back to another purchase item with the same ASIN when the current Received row has a blank Amazon title
 
 Next steps:
 - apply sql/2026-05-23_add_receiving_fields.sql in Supabase

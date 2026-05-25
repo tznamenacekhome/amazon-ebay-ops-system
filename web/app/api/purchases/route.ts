@@ -249,6 +249,7 @@ export async function PATCH(request: Request) {
     target_price?: number | null;
     title?: string | null;
     unit_cost?: number | null;
+    system?: string | null;
     manual_title_override?: boolean;
     manual_unit_cost_override?: boolean;
   } = {};
@@ -291,6 +292,11 @@ export async function PATCH(request: Request) {
     }
 
     updates.manual_unit_cost_override = true;
+  }
+
+  if ("system" in body) {
+    const system = body.system === null ? "" : String(body.system ?? "").trim();
+    updates.system = system || null;
   }
 
   const { data: sourceItem, error: sourceError } = await supabase
@@ -484,7 +490,7 @@ async function propagateManualMatch(
   const sourceTitle = updatedItem.title || sourceItem.title;
   const normalizedTitle = normalizeMatchTitle(sourceTitle);
   const compactTitle = compactMatchTitle(normalizedTitle);
-  const system = normalizeSystem(sourceItem.system);
+  const system = normalizeSystem(updatedItem.system || sourceItem.system);
   const correctedAsin = updatedItem.asin?.trim().toUpperCase() || null;
   const correctedTargetPrice =
     updatedItem.target_price === null || updatedItem.target_price === undefined

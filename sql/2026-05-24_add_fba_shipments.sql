@@ -28,6 +28,9 @@ create index if not exists idx_fba_shipment_items_item_id
 create index if not exists idx_fba_shipment_items_shipment_id
   on fba_shipment_items(fba_shipment_id);
 
+grant all on table public.fba_shipments to service_role;
+grant all on table public.fba_shipment_items to service_role;
+
 insert into fba_shipments (
   shipment_code,
   workflow_status,

@@ -212,6 +212,7 @@ Implemented:
 - detail drawer carrier status shows carrier/shipment fields only
 - detail drawer shows "--" for Amazon Title when ASIN is missing
 - detail drawer saves eBay title, purchase price, ASIN, and sell price together
+- detail drawer can edit system from the canonical system pick list
 - detail drawer can create a manual split item row for multi-game eBay listings
 - search input includes an inline clear button
 - table headers sort the currently filtered row set by displayed values
@@ -220,6 +221,7 @@ Implemented:
 - purchases and receiving APIs hide purchase items marked exclude_from_purchase_reporting
 - default purchases status filter is All Except Listed, with All Status available for full history
 - purchases UI caches the loaded row set in browser storage for 24 hours; Refresh bypasses the cache
+- purchases cache key was bumped after reporting-exclusion fixes so stale non-resale rows are not reused
 
 Current architecture:
 web/app/page.tsx is now the composition layer.
@@ -311,6 +313,7 @@ Implemented:
 - quantity-to-send supports excluding a specific unit from an FBA shipment
 - saving with a shipment ID links included items to fba_shipments/fba_shipment_items and moves included quantities to Listed
 - partial included quantities split the remaining quantity into a Received split child row
+- same-ASIN Amazon title fallback fills FBA display titles when a Received row has ASIN but blank amazon_title
 
 Schema:
 - sql/2026-05-24_add_fba_shipments.sql adds fba_shipments and fba_shipment_items

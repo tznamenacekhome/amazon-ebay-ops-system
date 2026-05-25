@@ -215,6 +215,7 @@ Rules:
 - do not overwrite rows with a different existing ASIN
 - use the same normalized title semantics as RevSeller matching
 - store reusable corrections in manual_item_matches
+- operators may correct a purchase item system from the canonical pick list in the purchase detail drawer
 
 ---
 
@@ -253,7 +254,7 @@ Implementation:
 - ASIN and target sell price can still propagate to same title/system rows, but eBay title and purchase price edits do not propagate
 
 Rule:
-Manual source-title and purchase-price edits are item-specific overrides. They must not be used as broad title/system propagation updates.
+Manual source-title, system, and purchase-price edits are item-specific overrides. They must not be used as broad title/system propagation updates.
 
 ---
 
@@ -376,6 +377,7 @@ Implementation:
 - grouped cost per unit is quantity-weighted from `vw_purchases_dashboard.unit_cost`
 - grouped purchase date uses the oldest purchase date
 - grouped title is the stored Amazon title only
+- if the current Received row has a blank Amazon title, the API may use another purchase item with the same ASIN as the display-title fallback
 - grouped sell price uses the highest non-null target sell price
 
 Save behavior:
