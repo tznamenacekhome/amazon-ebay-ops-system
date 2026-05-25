@@ -226,6 +226,7 @@ Implemented:
 - purchases UI uses query-aware browser caching for 24 hours; Refresh bypasses the cache
 - purchases cache key was bumped after reporting-exclusion fixes so stale non-resale rows are not reused
 - purchases cache key was bumped again after backend status normalization so stale derived-status filter results are not reused
+- purchases Refresh now clears all purchases query-cache entries before reloading
 
 Current architecture:
 web/app/page.tsx is now the composition layer.

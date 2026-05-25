@@ -8,7 +8,8 @@ import type {
 } from "./types";
 import { rowKey } from "./utils";
 
-const PURCHASE_CACHE_KEY = "mbop:purchases:v8";
+const PURCHASE_CACHE_KEY = "mbop:purchases:v9";
+const PURCHASE_CACHE_PREFIX = "mbop:purchases:";
 const PURCHASE_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 
 type PurchaseCache = {
@@ -77,6 +78,10 @@ export function usePurchases(query: PurchaseQuery) {
     setError(null);
 
     try {
+      if (options.forceRefresh) {
+        clearPurchasesCache();
+      }
+
       if (!options.forceRefresh) {
         const cachedRows = readCache();
 
@@ -254,6 +259,22 @@ export function usePurchases(query: PurchaseQuery) {
     setRows(reportableRows);
     setTotalRows(response.total);
     setStats(response.stats);
+  }
+}
+
+function clearPurchasesCache() {
+  if (typeof window === "undefined") return;
+
+  try {
+    for (let index = window.localStorage.length - 1; index >= 0; index -= 1) {
+      const key = window.localStorage.key(index);
+
+      if (key?.startsWith(PURCHASE_CACHE_PREFIX)) {
+        window.localStorage.removeItem(key);
+      }
+    }
+  } catch {
+    // Cache clearing is best-effort only.
   }
 }
 

@@ -60,7 +60,7 @@ This folder contains the Midnight Blue Operations Platform purchases workflow UI
 - Rows marked `exclude_from_purchase_reporting` are excluded before database pagination.
 - Purchase item and purchase metadata hydration is scoped to the returned page rows so detail-only fields do not slow down the list.
 - The purchases hook caches query-specific responses in browser `localStorage` for 24 hours.
-- The Refresh button calls the API directly and replaces the cache when the operator wants fresher data.
+- The Refresh button clears all purchases cache entries, calls the API directly, and replaces the cache when the operator wants fresher data.
 
 ## Operational Rules
 
