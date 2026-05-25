@@ -4,24 +4,25 @@ from datetime import datetime
 
 
 SCRIPTS_TO_RUN = [
-    "integrations/ebay_sync_buyer_purchases.py",
-    "integrations/ebay_sync_supplier_returns.py",
-    "integrations/sync_revseller_sheet.py",
+    ["integrations/ebay_sync_buyer_purchases.py"],
+    ["integrations/easypost_sync_shipments.py", "--limit", "500"],
+    ["integrations/ebay_sync_supplier_returns.py"],
+    ["integrations/sync_revseller_sheet.py"],
 ]
 
 
-def run_script(script_path):
-    print(f"\n--- Running {script_path} ---")
+def run_script(command):
+    print(f"\n--- Running {' '.join(command)} ---")
 
     result = subprocess.run(
-        [sys.executable, script_path],
+        [sys.executable, *command],
         capture_output=False,
         text=True,
     )
 
     if result.returncode != 0:
         raise RuntimeError(
-            f"{script_path} failed with exit code {result.returncode}"
+            f"{' '.join(command)} failed with exit code {result.returncode}"
         )
 
 
@@ -29,8 +30,8 @@ def main():
     print("Starting all syncs...")
     print(datetime.now())
 
-    for script_path in SCRIPTS_TO_RUN:
-        run_script(script_path)
+    for command in SCRIPTS_TO_RUN:
+        run_script(command)
 
     print("\nAll syncs completed successfully.")
     print(datetime.now())
