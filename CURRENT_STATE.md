@@ -228,6 +228,8 @@ Implemented:
 - `vw_latest_amazon_fba_inventory_snapshot`
 - `vw_open_inventory_reconciliation_items`
 - `integrations/inventory_reconcile.py`
+- `sql/2026-05-25_add_inventorylab_legacy_active_inventory.sql`
+- `integrations/inventorylab_active_inventory_backfill.py`
 - dashboard Inventory Visibility section backed by inventory summary/reconciliation views
 
 Current behavior:
@@ -235,16 +237,19 @@ Current behavior:
 - the reconciliation script rebuilds derived current inventory positions from purchases, purchase_items, FBA shipment rows, and latest Amazon FBA snapshots
 - state is modeled across separate dimensions: inventory state, physical location, marketplace intent, listing channel, operational status, and condition/disposition
 - Amazon FBA snapshot inventory is projected into Amazon-specific inventory positions
+- InventoryLab historical active-inventory backfill can provide legacy cost/date context for current Amazon FBA inventory
 - reconciliation currently compares MBOP Amazon-intended inventory to latest Amazon FBA inventory at ASIN level
 - old open reconciliation findings are deferred when a new reconciliation run writes current findings
 
 Latest validation:
-- dry run projected 2,923 MBOP positions, 311 Amazon positions, and 782 first-pass findings
-- write run projected 2,926 MBOP positions, 311 Amazon positions, and 792 open findings
+- InventoryLab active inventory import read 951 rows, skipped 653 inactive rows, matched 298 active rows by MSKU, found 0 ambiguous rows, and upserted 298 legacy backfill records
+- inventory reconciliation loaded 298 InventoryLab cost/date overlay rows
+- latest write run projected 2,928 MBOP positions, 311 Amazon positions, and 799 open findings
+- 310 Amazon inventory positions currently carry InventoryLab legacy cost/date context
 - Next.js production build passed after dashboard API/UI updates
 
 Boundary:
-This layer is derived and additive. It does not replace purchases, receiving, FBA shipment preparation, or Amazon SP-API snapshot ownership.
+This layer is derived and additive. It does not replace purchases, receiving, FBA shipment preparation, Amazon SP-API snapshot ownership, or workflow-owned cost updates on purchase_items.
 
 First-pass limitation:
 Amazon reconciliation is intentionally noisy because many Amazon FBA SKUs are not yet mapped back to MBOP operational inventory. The findings are meant to drive mapping and confidence work, not imply all mismatches are defects.

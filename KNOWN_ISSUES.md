@@ -93,9 +93,10 @@ Problem:
 The first unified inventory reconciliation pass detects many open findings because Amazon FBA inventory contains SKUs/ASINs that are not yet mapped back to MBOP operational purchase items.
 
 Current observed result:
-- latest run projected 2,926 MBOP workflow positions
+- latest run projected 2,928 MBOP workflow positions
 - latest run projected 311 Amazon FBA inventory positions
-- latest run created 792 open reconciliation findings
+- latest run created 799 open reconciliation findings
+- 310 Amazon positions now carry InventoryLab legacy cost/date context after the active-inventory backfill
 
 Impact:
 The dashboard now surfaces inventory visibility gaps, but the initial open-finding count should be treated as a work queue for mapping and confidence-building rather than as a clean defect count.

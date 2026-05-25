@@ -523,6 +523,25 @@ Do not write reconciliation corrections directly into workflow tables unless a s
 
 ---
 
+## InventoryLab Active Inventory Backfill Is Historical Context Only
+
+Decision:
+Store InventoryLab active inventory cost/date data in a separate legacy backfill table and use it as an overlay for Amazon FBA inventory positions.
+
+Reason:
+InventoryLab contains historical cost basis and purchase-date context for active Amazon FBA inventory that predates MBOP as the operational source of truth. That context is useful for reconciliation and valuation, but it should not overwrite MBOP purchase_items or workflow-owned costs.
+
+Implementation:
+- `inventorylab_active_inventory_backfill` stores the original CSV row payload, match method, match status, MSKU, ASIN, FNSKU, quantity, cost, supplier, and purchase date.
+- `integrations/inventorylab_active_inventory_backfill.py` defaults to dry-run and active On Hand rows only.
+- matching order is MSKU first; ASIN/title fallback only creates review candidates; ambiguous rows are not auto-matched.
+- `integrations/inventory_reconcile.py` reads matched MSKU backfill rows and applies cost/date context to derived Amazon FBA positions.
+
+Rule:
+Going forward, MBOP purchase_items, receiving, and FBA workflows own purchase cost, receipt date, marketplace assignment, and listing transitions. InventoryLab backfill is historical context only.
+
+---
+
 ## Receiving Owns Marketplace Assignment
 
 Decision:

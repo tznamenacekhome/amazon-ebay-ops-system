@@ -51,6 +51,7 @@ def main() -> int:
         item_meta = fetch_item_meta(supabase, purchase_rows)
         fba_item_links = fetch_fba_item_links(supabase)
         amazon_skus = fetch_amazon_skus(supabase)
+        inventorylab_backfill = fetch_inventorylab_backfill(supabase)
         amazon_snapshots = fetch_all(
             supabase,
             "vw_latest_amazon_fba_inventory_snapshot",
@@ -62,7 +63,11 @@ def main() -> int:
             item_meta,
             fba_item_links,
         )
-        amazon_positions = build_amazon_positions(amazon_snapshots, amazon_skus)
+        amazon_positions = build_amazon_positions(
+            amazon_snapshots,
+            amazon_skus,
+            inventorylab_backfill,
+        )
         reconciliation = reconcile_amazon_inventory(mbop_positions, amazon_positions)
 
         LOGGER.info("MBOP positions projected: %s", len(mbop_positions))
@@ -182,12 +187,44 @@ def fetch_amazon_skus(supabase) -> dict[tuple[str, str], dict[str, Any]]:
     }
 
 
+def fetch_inventorylab_backfill(supabase) -> dict[str, dict[str, Any]]:
+    try:
+        rows = fetch_all(
+            supabase,
+            "inventorylab_active_inventory_backfill",
+            "seller_sku,asin,title,on_hand_quantity,active_cost_per_unit,"
+            "active_date_purchased,match_status,match_method,requires_review",
+        )
+    except Exception as error:  # noqa: BLE001 - optional historical overlay
+        LOGGER.warning("InventoryLab backfill lookup skipped: %s", error)
+        return {}
+
+    backfill_by_sku: dict[str, dict[str, Any]] = {}
+    for row in rows:
+        seller_sku = clean_text(row.get("seller_sku"))
+        if not seller_sku:
+            continue
+        if row.get("match_status") != "matched":
+            continue
+        if row.get("match_method") != "seller_sku":
+            continue
+        if row.get("requires_review"):
+            continue
+        if to_float(row.get("active_cost_per_unit")) is None:
+            continue
+        backfill_by_sku[seller_sku] = row
+
+    LOGGER.info("InventoryLab cost/date overlay rows loaded: %s", len(backfill_by_sku))
+    return backfill_by_sku
+
+
 def build_mbop_positions(
     purchase_rows: list[dict[str, Any]],
     item_meta: dict[str, dict[str, Any]],
     fba_item_links: dict[str, list[dict[str, Any]]],
 ) -> list[dict[str, Any]]:
     positions: list[dict[str, Any]] = []
+    effective_at = utc_now_iso()
 
     for row in purchase_rows:
         item_id = row.get("item_id")
@@ -237,6 +274,7 @@ def build_mbop_positions(
                     "needs_reconciliation": projection.needs_reconciliation,
                     "derived_from": "workflow_projection",
                     "derivation_version": DERIVATION_VERSION,
+                    "effective_at": effective_at,
                 }
             )
 
@@ -325,6 +363,7 @@ def project_purchase_state(
 def build_amazon_positions(
     snapshots: list[dict[str, Any]],
     amazon_skus: dict[tuple[str, str], dict[str, Any]],
+    inventorylab_backfill: dict[str, dict[str, Any]],
 ) -> list[dict[str, Any]]:
     positions: list[dict[str, Any]] = []
 
@@ -335,6 +374,9 @@ def build_amazon_positions(
             continue
 
         sku = amazon_skus.get((seller_sku, marketplace_id), {})
+        legacy_cost = inventorylab_backfill.get(seller_sku, {})
+        legacy_unit_cost = to_float(legacy_cost.get("active_cost_per_unit"))
+        legacy_purchase_date = clean_text(legacy_cost.get("active_date_purchased"))
         base = {
             "amazon_sku_id": sku.get("amazon_sku_id"),
             "source_system": "amazon_spapi",
@@ -346,14 +388,18 @@ def build_amazon_positions(
             "fnsku": clean_text(snapshot.get("fnsku") or sku.get("fnsku")),
             "title": clean_text(snapshot.get("product_name") or sku.get("product_name")),
             "system": None,
-            "unit_cost": None,
-            "total_cost": None,
+            "unit_cost": legacy_unit_cost,
             "currency": "USD",
             "physical_location": "amazon_fba",
             "marketplace_intent": "amazon_fba",
             "listing_channel": "amazon",
-            "derived_from": "amazon_spapi_snapshot",
+            "derived_from": (
+                "amazon_spapi_snapshot_inventorylab_backfill"
+                if legacy_unit_cost is not None
+                else "amazon_spapi_snapshot"
+            ),
             "derivation_version": DERIVATION_VERSION,
+            "effective_at": legacy_purchase_date or utc_now_iso(),
         }
 
         add_amazon_position(
@@ -419,6 +465,11 @@ def add_amazon_position(
         {
             **base,
             "quantity": quantity,
+            "total_cost": (
+                float(base["unit_cost"]) * quantity
+                if base.get("unit_cost") is not None
+                else None
+            ),
             "inventory_state": inventory_state,
             "operational_status": operational_status,
             "condition_disposition": condition_disposition,
