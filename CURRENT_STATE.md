@@ -18,6 +18,7 @@ MBOP is the internal operations platform for Midnight Blue Enterprises, LLC.
 | Sync orchestration | Mature |
 | Dashboard analytics | First slice implemented |
 | Matching engine | Emerging subsystem |
+| Amazon SP-API foundation | First read-only foundation added |
 | Amazon FBA workflow | First slice implemented |
 | Legacy spreadsheet backfill | Recently used / repeatable script available |
 
@@ -163,6 +164,36 @@ Recent ASIN validation:
 - latest validation scanned 2,879 spreadsheet rows and compared 2,825 orders
 - 2,825 orders matched exactly by ASIN and quantity
 - latest clean report: data/asin_validation_20260524_201926.csv
+
+---
+
+## Amazon SP-API Foundation
+
+Status: READ-ONLY FOUNDATION ADDED / AUTH NEEDS CREDENTIAL CHECK
+
+Implemented:
+- `integrations/amazon_spapi_client.py`
+- `integrations/amazon_test_connection.py`
+- Login with Amazon refresh-token exchange
+- AWS SigV4 signing support for SP-API requests
+- read-only allow-list for FBA inventory, Listings Items, and Product Pricing paths
+- safe logging that avoids printing secrets or restricted data
+- fail-safe behavior for missing signing credentials or rejected auth
+- no restricted-data-token flow
+- no Amazon Orders, buyer, address, or PII endpoints
+
+Schema:
+- `sql/2026-05-25_add_amazon_spapi_foundation.sql`
+- `amazon_skus`
+- `amazon_fba_inventory_snapshots`
+
+Current validation:
+- local syntax checks pass
+- auth-only smoke test reached Login with Amazon and failed safely with `invalid_client`
+- credential values or Seller Central app configuration need review before inventory/listing/pricing calls can be validated
+
+Boundary:
+Amazon seller/FBA data must stay in Amazon-specific tables and must not write to `purchases` or `purchase_items`.
 
 ---
 

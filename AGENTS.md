@@ -164,6 +164,12 @@ Current Amazon FBA entry points:
 - web/app/fba/page.tsx
 - web/app/api/fba-shipments/route.ts
 
+Amazon SP-API integrations:
+- must remain read-only until a specific write workflow is designed
+- may use inventory, listings, and pricing read endpoints
+- must not request restricted PII data or Amazon seller order/customer data
+- must write normalized Amazon seller/FBA data to Amazon-specific tables, not purchases or purchase_items
+
 Do not merge these workflows into one UI.
 
 Purchases may display the workflow status Received when the receiving workflow sets purchase_items.current_status = received, but receiving verification itself belongs in the receiving workflow.

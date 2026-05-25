@@ -463,6 +463,27 @@ Do not mark excluded or damaged units Listed during FBA save. They must remain R
 
 ---
 
+## Amazon SP-API Foundation Is Read-Only And Separate
+
+Decision:
+Add Amazon SP-API support as a Python integration foundation for inventory, listing, and pricing reads only.
+
+Reason:
+MBOP needs Amazon seller/FBA visibility for inventory confidence and future Keepa/Amazon matching work, but Amazon seller sales/orders and customer data are separate operational domains and must not contaminate purchase history.
+
+Implementation:
+- `integrations/amazon_spapi_client.py` handles Login with Amazon refresh-token exchange and AWS SigV4 request signing.
+- `integrations/amazon_test_connection.py` smoke-tests LWA auth and, when signing credentials exist, a safe FBA inventory summary read.
+- the client allow-list is limited to FBA inventory, Listings Items, and Product Pricing read paths.
+- no restricted-data-token flow is implemented.
+- no Amazon Orders API, buyer, address, or other PII-oriented endpoint is called.
+- Amazon seller/FBA data belongs in `amazon_skus` and `amazon_fba_inventory_snapshots`.
+
+Rule:
+Do not write Amazon seller sales/orders into `purchases` or `purchase_items`. Purchase history remains supplier-purchase data; Amazon seller inventory/listing/pricing data gets its own tables and later API/UI surfaces.
+
+---
+
 ## Receiving Owns Marketplace Assignment
 
 Decision:
