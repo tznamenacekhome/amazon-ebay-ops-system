@@ -472,8 +472,9 @@ Reason:
 MBOP needs Amazon seller/FBA visibility for inventory confidence and future Keepa/Amazon matching work, but Amazon seller sales/orders and customer data are separate operational domains and must not contaminate purchase history.
 
 Implementation:
-- `integrations/amazon_spapi_client.py` handles Login with Amazon refresh-token exchange and AWS SigV4 request signing.
-- `integrations/amazon_test_connection.py` smoke-tests LWA auth and, when signing credentials exist, a safe FBA inventory summary read.
+- `integrations/amazon_spapi_client.py` handles Login with Amazon refresh-token exchange and sends SP-API requests with the LWA access token header.
+- AWS SigV4 signing is optional legacy compatibility and is used only when `AMAZON_SP_API_USE_SIGV4=true`.
+- `integrations/amazon_test_connection.py` smoke-tests LWA auth and a safe FBA inventory summary read.
 - the client allow-list is limited to FBA inventory, Listings Items, and Product Pricing read paths.
 - no restricted-data-token flow is implemented.
 - no Amazon Orders API, buyer, address, or other PII-oriented endpoint is called.

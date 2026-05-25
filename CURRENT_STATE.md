@@ -175,10 +175,11 @@ Implemented:
 - `integrations/amazon_spapi_client.py`
 - `integrations/amazon_test_connection.py`
 - Login with Amazon refresh-token exchange
-- AWS SigV4 signing support for SP-API requests
+- LWA-only SP-API request support for the post-Oct-2023 auth model
+- optional legacy AWS SigV4 signing only when `AMAZON_SP_API_USE_SIGV4=true`
 - read-only allow-list for FBA inventory, Listings Items, and Product Pricing paths
 - safe logging that avoids printing secrets or restricted data
-- fail-safe behavior for missing signing credentials or rejected auth
+- fail-safe behavior for rejected auth or rejected resource calls
 - no restricted-data-token flow
 - no Amazon Orders, buyer, address, or PII endpoints
 
@@ -189,8 +190,8 @@ Schema:
 
 Current validation:
 - local syntax checks pass
-- auth-only smoke test reached Login with Amazon and failed safely with `invalid_client`
-- credential values or Seller Central app configuration need review before inventory/listing/pricing calls can be validated
+- auth-only smoke test succeeded after credential correction
+- inventory summary smoke test can run without AWS IAM credentials
 
 Boundary:
 Amazon seller/FBA data must stay in Amazon-specific tables and must not write to `purchases` or `purchase_items`.

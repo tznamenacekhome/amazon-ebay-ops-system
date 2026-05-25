@@ -1,9 +1,10 @@
 """Read-only Amazon SP-API client foundation for MBOP.
 
 This module intentionally avoids restricted-data-token flows and PII-oriented
-operations. It supports seller-authorized read calls with LWA access tokens and
-AWS SigV4 signing, preserving the MBOP pattern where Python integrations read
-external systems and later write normalized data to Supabase.
+operations. It supports seller-authorized read calls with LWA access tokens.
+Legacy AWS SigV4 signing remains available only when explicitly enabled,
+preserving the MBOP pattern where Python integrations read external systems and
+later write normalized data to Supabase.
 """
 
 from __future__ import annotations
@@ -60,6 +61,7 @@ class AmazonSPAPIConfig:
     aws_access_key_id: str | None = None
     aws_secret_access_key: str | None = None
     aws_session_token: str | None = None
+    use_sigv4: bool = False
 
     @classmethod
     def from_env(cls) -> "AmazonSPAPIConfig":
@@ -93,6 +95,8 @@ class AmazonSPAPIConfig:
                 env("AWS_SESSION_TOKEN"),
             )
             or None,
+            use_sigv4=env("AMAZON_SP_API_USE_SIGV4").lower()
+            in {"1", "true", "yes"},
         )
 
     def missing_sigv4_fields(self) -> list[str]:
@@ -255,36 +259,43 @@ class AmazonSPAPIClient:
         method = method.upper()
         self.validate_read_only_request(method, path)
 
-        missing_sigv4 = self.config.missing_sigv4_fields()
-        if missing_sigv4:
-            raise AmazonSPAPIError(
-                "Amazon SP-API signed requests require AWS SigV4 credentials. "
-                f"Missing: {', '.join(missing_sigv4)}"
-            )
-
         body = json.dumps(json_body, separators=(",", ":")) if json_body else ""
         url = f"{self.config.endpoint}{path}"
         access_token = self.get_lwa_access_token()
-        request_time = utc_now()
         headers = {
-            "host": urlparse(self.config.endpoint).netloc,
             "user-agent": self.user_agent(),
             "x-amz-access-token": access_token,
-            "x-amz-date": request_time.strftime("%Y%m%dT%H%M%SZ"),
         }
-        if self.config.aws_session_token:
-            headers["x-amz-security-token"] = self.config.aws_session_token
         if body:
             headers["content-type"] = "application/json"
 
-        signed_headers = self.sign_v4(
-            method=method,
-            url=url,
-            params=params or {},
-            headers=headers,
-            body=body,
-            request_time=request_time,
-        )
+        request_headers = headers
+        if self.config.use_sigv4:
+            missing_sigv4 = self.config.missing_sigv4_fields()
+            if missing_sigv4:
+                raise AmazonSPAPIError(
+                    "AMAZON_SP_API_USE_SIGV4 is enabled, but signing credentials "
+                    f"are missing: {', '.join(missing_sigv4)}"
+                )
+
+            request_time = utc_now()
+            signing_headers = {
+                **headers,
+                "host": urlparse(self.config.endpoint).netloc,
+                "x-amz-date": request_time.strftime("%Y%m%dT%H%M%SZ"),
+            }
+            if self.config.aws_session_token:
+                signing_headers["x-amz-security-token"] = (
+                    self.config.aws_session_token
+                )
+            request_headers = self.sign_v4(
+                method=method,
+                url=url,
+                params=params or {},
+                headers=signing_headers,
+                body=body,
+                request_time=request_time,
+            )
 
         LOGGER.info("Amazon SP-API %s %s", method, path)
         response = self.session.request(
@@ -292,7 +303,7 @@ class AmazonSPAPIClient:
             url,
             params=params,
             data=body or None,
-            headers=signed_headers,
+            headers=request_headers,
             timeout=DEFAULT_TIMEOUT_SECONDS,
         )
 

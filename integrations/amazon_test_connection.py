@@ -1,7 +1,7 @@
 """Smoke-test Amazon SP-API credentials without reading restricted PII.
 
 The script first validates Login with Amazon token exchange, then attempts a
-read-only FBA inventory summary call when AWS SigV4 credentials are present.
+read-only FBA inventory summary call with the LWA access token.
 It does not write to Supabase and does not call Amazon orders, buyer, address,
 or other restricted-data operations.
 """
@@ -46,17 +46,6 @@ def main() -> int:
         if args.auth_only:
             logging.info("Auth-only mode complete; no SP-API resource call made.")
             return 0
-
-        missing_sigv4 = client.config.missing_sigv4_fields()
-        if missing_sigv4:
-            logging.warning(
-                "Skipping SP-API resource call because SigV4 credentials are missing: %s",
-                ", ".join(missing_sigv4),
-            )
-            logging.warning(
-                "Add AWS signing credentials before testing inventory/listing/pricing reads."
-            )
-            return 2
 
         payload = client.get_inventory_summaries(details=False)
         summaries = (

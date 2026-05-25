@@ -274,11 +274,12 @@ Goal:
 Use Amazon and Keepa data to improve ASIN validation, missing-title resolution, and future automated candidate lookup.
 
 Foundation completed:
-- added read-only Amazon SP-API client with LWA auth and AWS SigV4 signing
+- added read-only Amazon SP-API client with LWA-only auth for the post-Oct-2023 SP-API model
+- retained optional legacy SigV4 signing only behind `AMAZON_SP_API_USE_SIGV4=true`
 - added auth/inventory smoke-test script
 - added Amazon-specific tables for seller SKUs and FBA inventory snapshots
 - kept Amazon seller data separate from purchases and purchase_items
-- auth-only validation currently reaches Amazon but returns `invalid_client`, so credentials/app configuration need review
+- auth-only validation succeeds after credential correction
 
 Planned scope:
 - evaluate Amazon SP-API catalog/search access and Keepa API coverage
@@ -289,7 +290,7 @@ Planned scope:
 - preserve the rule that video game matching must never cross systems
 
 First next step:
-fix Amazon LWA credential validation, then run the read-only inventory summary smoke test before adding snapshot sync
+run the read-only inventory summary smoke test, then add snapshot sync into `amazon_fba_inventory_snapshots`
 
 ---
 
