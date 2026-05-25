@@ -117,7 +117,20 @@ export function isDelivered(row: PurchaseRow) {
 }
 
 export function needsAsinReview(row: PurchaseRow) {
-  return !row.asin && getOperationalStatus(row).value !== "cancelled";
+  const status = getOperationalStatus(row).value;
+  if (["cancelled", "return_opened", "listed"].includes(status)) return false;
+
+  const asin = (row.asin || "").trim().toUpperCase();
+  const missingAsin = !asin || asin === "N/A";
+  const missingSellPrice =
+    row.sell_price === null &&
+    row.sell_price !== 0 &&
+    row.target_price === null &&
+    row.target_price !== 0;
+  const missingSystem = !row.system;
+  const missingAmazonTitle = !!asin && asin !== "N/A" && !row.amazon_title;
+
+  return missingAsin || missingSellPrice || missingSystem || missingAmazonTitle;
 }
 
 export function getOperationalStatus(row: PurchaseRow): {

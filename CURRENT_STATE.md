@@ -217,6 +217,7 @@ Implemented:
 - search input includes an inline clear button
 - table headers sort the currently filtered row set by displayed values
 - status filter includes Received and Listed workflow statuses
+- Needs Review now includes missing ASIN, invalid ASIN placeholder, missing sell price, missing system, or missing Amazon title for rows with an ASIN
 - purchases API loads all rows from vw_purchases_dashboard instead of limiting the screen to 200 rows
 - purchases and receiving APIs hide purchase items marked exclude_from_purchase_reporting
 - purchases client also filters reportable-excluded rows before storing fetched or cached rows

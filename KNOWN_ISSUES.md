@@ -25,6 +25,7 @@ Known rows needing review:
 
 Current mitigation:
 - purchase detail drawer can edit Amazon title, system, ASIN, purchase price, and target sell price.
+- Purchases Needs Review catches missing ASIN, invalid ASIN placeholder, missing target sell price, missing system, and missing Amazon title for ASIN-bearing rows.
 - FBA displays Missing Amazon title instead of silently using the eBay title.
 - manual corrections can propagate to matching title/system rows where safe.
 
