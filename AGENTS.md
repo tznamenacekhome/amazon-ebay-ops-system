@@ -46,10 +46,9 @@ Dashboard UI lives under:
 
 Current pattern:
 - AppShell provides the shared left-side navigation for Dashboard, Purchases, Receiving, and Amazon FBA
-- page.tsx composes the workspace and owns UI-local workflow state
-- usePurchases owns purchase loading, save status, errors, and API mutations
-- usePurchaseFilters owns filter state and filtered row derivation
-- purchaseStats owns dashboard metric calculation
+- page.tsx composes the workspace and owns UI-local query/workflow state
+- usePurchases owns purchase loading, query-aware caching, save status, errors, and API mutations
+- /api/purchases owns purchase list filtering, sorting, pagination, and summary counts
 - table, filters, metrics, price cell, and drawer are separate components
 
 Purchases table display rules:
@@ -58,13 +57,14 @@ Purchases table display rules:
 - unmatched rows show the eBay supplier title and a one-line Search Amazon link
 - ETA shows carrier estimated delivery when available, otherwise eBay estimated delivery for undelivered items, and delivered date when delivered
 - carrier ETA dates are displayed as date-only values to avoid timezone day shifts
-- table headers sort the currently filtered row set
+- table headers sort through /api/purchases query parameters
 - status filter includes Received for items warehouse-verified by the receiving workflow and Cancelled for cancelled/refunded purchase outcomes
 - detail drawer saves eBay title, Amazon title, purchase price, system, ASIN, and sell price together
 - detail drawer can edit system using the canonical system pick list
 - detail drawer can create manual split item rows for multi-game eBay listings
 
 Do not reintroduce large JSX blocks into page.tsx.
+Do not reintroduce full-table client-side purchases filtering/sorting; add backend query behavior instead.
 
 ---
 

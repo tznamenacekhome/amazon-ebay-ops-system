@@ -7,15 +7,42 @@ import { PurchaseDetailDrawer } from "./purchases/PurchaseDetailDrawer";
 import { PurchaseFilters } from "./purchases/PurchaseFilters";
 import { PurchaseMetrics } from "./purchases/PurchaseMetrics";
 import { PurchasesTable } from "./purchases/PurchasesTable";
-import { getPurchaseStats } from "./purchases/purchaseStats";
-import type { PurchaseRow } from "./purchases/types";
-import { usePurchaseFilters } from "./purchases/usePurchaseFilters";
+import type {
+  PurchaseQuery,
+  PurchaseRow,
+  PurchaseSortColumn,
+  PurchaseSortDirection,
+} from "./purchases/types";
 import { usePurchases } from "./purchases/usePurchases";
 import { rowKey } from "./purchases/utils";
 
+const PAGE_SIZE = 100;
+
 export default function PurchasesPage() {
+  const [searchText, setSearchText] = useState("");
+  const [asinFilter, setAsinFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState("active");
+  const [sortColumn, setSortColumn] = useState<PurchaseSortColumn>("order_date");
+  const [sortDirection, setSortDirection] =
+    useState<PurchaseSortDirection>("desc");
+  const [page, setPage] = useState(1);
+  const query = useMemo<PurchaseQuery>(
+    () => ({
+      searchText,
+      asinFilter,
+      statusFilter,
+      sortColumn,
+      sortDirection,
+      page,
+      pageSize: PAGE_SIZE,
+    }),
+    [asinFilter, page, searchText, sortColumn, sortDirection, statusFilter]
+  );
+
   const {
     rows,
+    stats,
+    totalRows,
     loading,
     savingKey,
     error,
@@ -23,17 +50,7 @@ export default function PurchasesPage() {
     loadPurchases,
     patchPurchase,
     createSplitItem,
-  } = usePurchases();
-
-  const {
-    searchText,
-    asinFilter,
-    statusFilter,
-    filteredRows,
-    setSearchText,
-    setAsinFilter,
-    setStatusFilter,
-  } = usePurchaseFilters(rows);
+  } = usePurchases(query);
 
   const [selectedRow, setSelectedRow] = useState<PurchaseRow | null>(null);
   const [drawerAsin, setDrawerAsin] = useState("");
@@ -43,10 +60,6 @@ export default function PurchasesPage() {
   const [drawerUnitCost, setDrawerUnitCost] = useState("");
   const [drawerSystem, setDrawerSystem] = useState("");
   const [priceDrafts, setPriceDrafts] = useState<Record<string, string>>({});
-
-  const stats = useMemo(() => {
-    return getPurchaseStats(rows, filteredRows);
-  }, [rows, filteredRows]);
 
   async function saveSellPrice(row: PurchaseRow) {
     const key = rowKey(row);
@@ -141,6 +154,33 @@ export default function PurchasesPage() {
     }));
   }
 
+  function updateSearchText(value: string) {
+    setSearchText(value);
+    setPage(1);
+  }
+
+  function updateAsinFilter(value: string) {
+    setAsinFilter(value);
+    setPage(1);
+  }
+
+  function updateStatusFilter(value: string) {
+    setStatusFilter(value);
+    setPage(1);
+  }
+
+  function updateSort(column: PurchaseSortColumn) {
+    if (sortColumn === column) {
+      setSortDirection((current) => (current === "asc" ? "desc" : "asc"));
+    } else {
+      setSortColumn(column);
+      setSortDirection(column === "order_date" ? "desc" : "asc");
+    }
+    setPage(1);
+  }
+
+  const totalPages = Math.max(Math.ceil(totalRows / PAGE_SIZE), 1);
+
   function openDetails(row: PurchaseRow) {
     setSelectedRow(row);
     setDrawerAsin(row.asin || "");
@@ -176,9 +216,9 @@ export default function PurchasesPage() {
         searchText={searchText}
         asinFilter={asinFilter}
         statusFilter={statusFilter}
-        onSearchTextChange={setSearchText}
-        onAsinFilterChange={setAsinFilter}
-        onStatusFilterChange={setStatusFilter}
+        onSearchTextChange={updateSearchText}
+        onAsinFilterChange={updateAsinFilter}
+        onStatusFilterChange={updateStatusFilter}
       />
 
       {error && (
@@ -188,14 +228,41 @@ export default function PurchasesPage() {
       )}
 
       <PurchasesTable
-        rows={filteredRows}
+        rows={rows}
         loading={loading}
         priceDrafts={priceDrafts}
         savingKey={savingKey}
+        sortColumn={sortColumn}
+        sortDirection={sortDirection}
+        onSort={updateSort}
         onPriceDraftChange={updatePriceDraft}
         onSaveSellPrice={saveSellPrice}
         onSelectRow={openDetails}
       />
+
+      <div className="mt-4 flex flex-wrap items-center justify-between gap-3 text-sm text-slate-600">
+        <div>
+          Showing page {page} of {totalPages} ({totalRows.toLocaleString("en-US")} rows)
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setPage((current) => Math.max(current - 1, 1))}
+            disabled={page <= 1 || loading}
+            className="rounded-lg border border-slate-300 bg-white px-3 py-2 font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+          >
+            Previous
+          </button>
+          <button
+            type="button"
+            onClick={() => setPage((current) => Math.min(current + 1, totalPages))}
+            disabled={page >= totalPages || loading}
+            className="rounded-lg border border-slate-300 bg-white px-3 py-2 font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+          >
+            Next
+          </button>
+        </div>
+      </div>
 
       {selectedRow && (
         <PurchaseDetailDrawer

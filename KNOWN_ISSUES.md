@@ -2,26 +2,26 @@
 
 This file tracks active issues, monitor items, and deferred decisions for Midnight Blue Operations Platform (MBOP).
 
-Last reviewed: 2026-05-24
+Last reviewed: 2026-05-25
 
 # Active Issues
 
 ## Remaining Item Data Completeness Gaps
 
-Status: ACTIVE
+Status: RESOLVED / MONITOR
 
 Problem:
 Most ASIN, sell-price, title, and system gaps have been resolved, but a small set of active non-listed rows still need cleanup before workflows are fully smooth.
 
-Current live counts after the 2026-05-25 clarification cleanup and manual game ASIN fixes:
-- missing ASIN or ASIN placeholder `N/A`: 2 non-resale rows pending exclusion SQL
+Current live counts after the 2026-05-25 clarification cleanup, manual game ASIN fixes, and non-resale exclusion SQL:
+- missing ASIN or ASIN placeholder `N/A`: 0 active reportable rows
 - missing target sell price: 0
 - missing Amazon title while ASIN exists: 0
 - missing system: 0
 
-Known rows needing review:
-- `Delighting in the Lord Terry Briley 2015 Christian Faith Hardcover`, order `25-13638-84763`: confirmed non-resale.
-- `5 Pack Starbucks Reusable Venti 24 OZ Frosted Ice Cold Cup With Lid & Straw`, order `01-13685-25998`: confirmed non-resale.
+Resolved rows:
+- `Delighting in the Lord Terry Briley 2015 Christian Faith Hardcover`, order `25-13638-84763`: confirmed non-resale and excluded.
+- `5 Pack Starbucks Reusable Venti 24 OZ Frosted Ice Cold Cup With Lid & Straw`, order `01-13685-25998`: confirmed non-resale and excluded.
 
 Current mitigation:
 - purchase detail drawer can edit Amazon title, system, ASIN, purchase price, and target sell price.
@@ -29,9 +29,30 @@ Current mitigation:
 - FBA displays Missing Amazon title instead of silently using the eBay title.
 - manual corrections can propagate to matching title/system rows where safe.
 
-Recommended next mitigation:
-- apply `sql/2026-05-25_exclude_non_resale_known_issue_rows.sql`.
+Recommended guardrail:
 - avoid treating `N/A` as a valid ASIN in future imports/backfills.
+- keep Needs Review server-side so cancelled, return, listed, and reporting-excluded rows do not reappear in the review queue.
+
+---
+
+## Purchases Page Performance
+
+Status: MITIGATED / MONITOR
+
+Problem:
+The purchases page became slow as the table grew and the frontend loaded, filtered, and sorted every purchase row.
+
+Current mitigation:
+- `/api/purchases` owns server-side filtering, sorting, pagination, and summary counts.
+- default purchases filter is all statuses except Listed.
+- reporting-excluded rows are excluded before database pagination.
+- the frontend uses a query-aware 24-hour browser cache and Refresh bypasses that cache.
+- detail-only metadata is hydrated only for returned page rows.
+
+Recommended guardrail:
+- monitor the page as new monthly volume grows.
+- add database indexes or a dedicated lean reporting view if server queries become slow.
+- defer TanStack Table until richer table interactions are needed; it is not required for the current performance bottleneck.
 
 ---
 

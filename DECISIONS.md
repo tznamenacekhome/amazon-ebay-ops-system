@@ -137,9 +137,8 @@ Keep the purchases page as a composition layer and move reusable UI and derived 
 
 Current structure:
 - page.tsx composes the workspace
-- usePurchases owns loading, API mutations, save state, and error state
-- usePurchaseFilters owns filter state and filtered rows
-- purchaseStats computes dashboard metrics
+- page.tsx owns UI-local query state such as search, filters, sort, and page
+- usePurchases owns API loading, query-aware caching, API mutations, save state, and error state
 - PurchasesTable, PurchaseDetailDrawer, EditablePriceCell, PurchaseFilters, and PurchaseMetrics own focused UI sections
 
 Reason:
@@ -147,6 +146,28 @@ The previous page.tsx monolith increased maintenance risk, truncation risk, and 
 
 Rule:
 Do not place landed cost calculations, matching logic, or receiving workflow behavior in the purchases frontend.
+
+---
+
+## Purchases List Is Server-Driven
+
+Decision:
+Purchases table filtering, sorting, pagination, and summary counts are owned by `/api/purchases`, not by the React table.
+
+Reason:
+The purchases list is expected to grow by hundreds of rows per month. Loading every row into React and repeatedly filtering/sorting on the client made the screen slow and fragile.
+
+Implementation:
+- `/api/purchases` reads a lean page of rows from `vw_purchases_dashboard`
+- reporting-excluded purchase items are excluded before database pagination
+- detail-only metadata such as `amazon_title` and eBay raw payload-derived fields are hydrated only for the returned page
+- the default status filter is `active`, meaning all statuses except `listed`
+- Needs Review excludes listed, cancelled, return opened, and return pending rows
+- the frontend stores query-specific API responses in browser storage for 24 hours
+- Refresh bypasses the cache
+
+Rule:
+Do not reintroduce full-table client-side filtering or sorting for the purchases page. Add backend query parameters or database indexes/views when the list needs new filter/sort behavior.
 
 ---
 

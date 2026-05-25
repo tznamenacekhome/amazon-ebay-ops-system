@@ -1,6 +1,6 @@
 # CURRENT_STATE.md
 
-Last Updated: 2026-05-24
+Last Updated: 2026-05-25
 
 # Midnight Blue Operations Platform (MBOP)
 
@@ -199,8 +199,6 @@ Implemented:
 - filter bar extraction
 - metric extraction
 - usePurchases hook for loading, save status, errors, and API mutations
-- usePurchaseFilters hook for filter state and filtered rows
-- purchaseStats helper for dashboard metrics
 - local documentation in web/app/purchases/README.md
 - dense table layout pass
 - matched Amazon title display with eBay title subtitle
@@ -215,18 +213,21 @@ Implemented:
 - detail drawer can edit system from the canonical system pick list
 - detail drawer can create a manual split item row for multi-game eBay listings
 - search input includes an inline clear button
-- table headers sort the currently filtered row set by displayed values
+- table headers use server-side sorting through /api/purchases
 - status filter includes Received and Listed workflow statuses
 - Needs Review now includes missing ASIN, invalid ASIN placeholder, missing sell price, missing system, or missing Amazon title for rows with an ASIN
-- purchases API loads all rows from vw_purchases_dashboard instead of limiting the screen to 200 rows
+- purchases API uses server-side filtering, sorting, and paging from vw_purchases_dashboard
+- purchases list payload is lean; detail-only metadata is hydrated only for returned page rows
 - purchases and receiving APIs hide purchase items marked exclude_from_purchase_reporting
+- purchases API excludes reporting-excluded rows before database pagination so pages are full usable pages
 - purchases client also filters reportable-excluded rows before storing fetched or cached rows
 - default purchases status filter is All Except Listed, with All Status available for full history
-- purchases UI caches the loaded row set in browser storage for 24 hours; Refresh bypasses the cache
+- purchases UI uses query-aware browser caching for 24 hours; Refresh bypasses the cache
 - purchases cache key was bumped after reporting-exclusion fixes so stale non-resale rows are not reused
 
 Current architecture:
 web/app/page.tsx is now the composition layer.
+/api/purchases owns list filtering, sorting, pagination, and summary counts.
 
 Primary remaining UI opportunity:
 iterate on ASIN review and operational throughput without merging receiving workflow concerns.

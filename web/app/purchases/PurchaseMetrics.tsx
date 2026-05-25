@@ -9,7 +9,7 @@ export function PurchaseMetrics({ stats }: PurchaseMetricsProps) {
     <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-4">
       <Metric label="Total Rows" value={stats.total} />
       <Metric label="Visible" value={stats.visible} />
-      <Metric label="Needs ASIN Review" value={stats.needsReview} />
+      <Metric label="Needs Review" value={stats.needsReview} />
       <Metric label="Delivered" value={stats.delivered} />
     </div>
   );

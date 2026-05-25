@@ -18,6 +18,9 @@ Completed:
 - reduce truncation risk
 - improve maintainability
 - improve AI-generated diff quality
+- moved purchases list filtering, sorting, pagination, and counts to /api/purchases
+- added query-aware 24-hour purchases browser cache
+- split lean list rows from page-scoped detail metadata hydration
 
 Created:
 - PurchasesTable.tsx
@@ -26,8 +29,6 @@ Created:
 - PurchaseFilters.tsx
 - PurchaseMetrics.tsx
 - usePurchases.ts
-- usePurchaseFilters.ts
-- purchaseStats.ts
 - web/app/purchases/README.md
 
 Next frontend focus:
@@ -35,6 +36,7 @@ Next frontend focus:
 - improve dense operational scanning
 - preserve purchases/receiving separation
 - keep page.tsx as composition layer
+- consider TanStack Table later only if the table needs richer keyboard/column behaviors after server-driven data is stable
 
 Recent UI cleanup:
 - removed redundant ASIN review text from unmatched rows
@@ -47,6 +49,8 @@ Recent UI cleanup:
 - added system correction pick list in the purchase detail drawer
 - added manual split item creation from the detail drawer
 - added search-box clear button
+- replaced full-table client filtering/sorting with server-side query handling
+- defaulted purchases to all statuses except Listed while still allowing All Status history
 
 ---
 

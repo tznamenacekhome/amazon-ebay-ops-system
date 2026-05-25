@@ -5,9 +5,9 @@ This folder contains the Midnight Blue Operations Platform purchases workflow UI
 ## Boundaries
 
 - Shared navigation is provided by `web/app/AppShell.tsx`.
-- `page.tsx` composes the workspace and owns UI-local workflow state.
-- `usePurchases` owns purchase loading, save status, errors, and API mutations.
-- `usePurchaseFilters` owns filter state and filtered row derivation.
+- `page.tsx` composes the workspace and owns UI-local query/workflow state.
+- `usePurchases` owns purchase loading, query-aware caching, save status, errors, and API mutations.
+- `/api/purchases` owns list filtering, sorting, pagination, and summary counts.
 - Table, filter, metric, price-cell, and drawer components stay presentation-focused.
 
 ## Table Display
@@ -19,8 +19,8 @@ This folder contains the Midnight Blue Operations Platform purchases workflow UI
 - ETA displays carrier estimated delivery when available, falls back to eBay estimated delivery for undelivered items without a carrier ETA, and displays delivered date for delivered items.
 - Shipment dates are formatted as date-only values to avoid UTC/local timezone day shifts.
 - Status displays derived operational status, not raw carrier text.
-- Table headers sort the filtered row set by the displayed column values.
-- Cancelled rows are excluded from the Needs Review ASIN filter and metric.
+- Table headers send sort changes to `/api/purchases`.
+- Cancelled, return, listed, and reporting-excluded rows are excluded from the Needs Review ASIN filter and metric.
 - The status filter includes workflow statuses such as `Received`, `Listed`, `Return Pending`, `Return Opened`, and `Cancelled`.
 - The default status filter is `All Except Listed`; `All Status` includes Listed rows when full history is needed.
 - The search input has an inline clear button.
@@ -55,9 +55,10 @@ This folder contains the Midnight Blue Operations Platform purchases workflow UI
 ## Data Loading
 
 - `/api/purchases` pages through `vw_purchases_dashboard` instead of applying a fixed 200-row cap.
-- Rows marked `exclude_from_purchase_reporting` are hidden from the purchases workspace.
-- Purchase item and purchase metadata hydration is chunked so the full purchase history can load without oversized Supabase `in (...)` requests.
-- The purchases hook caches the loaded row set in browser `localStorage` for 24 hours.
+- `/api/purchases` applies search, filters, sort, and pagination before returning rows.
+- Rows marked `exclude_from_purchase_reporting` are excluded before database pagination.
+- Purchase item and purchase metadata hydration is scoped to the returned page rows so detail-only fields do not slow down the list.
+- The purchases hook caches query-specific responses in browser `localStorage` for 24 hours.
 - The Refresh button calls the API directly and replaces the cache when the operator wants fresher data.
 
 ## Operational Rules

@@ -1,50 +1,64 @@
 import { useCallback, useEffect, useState } from "react";
 
-import type { PurchaseRow } from "./types";
+import type {
+  PurchaseQuery,
+  PurchaseRow,
+  PurchaseStats,
+  PurchasesApiResponse,
+} from "./types";
 import { rowKey } from "./utils";
 
-const PURCHASE_CACHE_KEY = "mbop:purchases:v5";
+const PURCHASE_CACHE_KEY = "mbop:purchases:v6";
 const PURCHASE_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 
 type PurchaseCache = {
   savedAt: number;
-  rows: PurchaseRow[];
+  response: PurchasesApiResponse;
 };
 
 type LoadPurchasesOptions = {
   forceRefresh?: boolean;
 };
 
-export function usePurchases() {
+export function usePurchases(query: PurchaseQuery) {
   const [rows, setRows] = useState<PurchaseRow[]>([]);
+  const [stats, setStats] = useState<PurchaseStats>({
+    total: 0,
+    visible: 0,
+    needsReview: 0,
+    delivered: 0,
+  });
+  const [totalRows, setTotalRows] = useState(0);
   const [loading, setLoading] = useState(true);
   const [savingKey, setSavingKey] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const writeCache = useCallback((nextRows: PurchaseRow[]) => {
+  const cacheKey = `${PURCHASE_CACHE_KEY}:${buildQueryString(query)}`;
+
+  const writeCache = useCallback((response: PurchasesApiResponse) => {
     if (typeof window === "undefined") return;
 
     try {
       const cache: PurchaseCache = {
         savedAt: Date.now(),
-        rows: nextRows,
+        response,
       };
-      window.localStorage.setItem(PURCHASE_CACHE_KEY, JSON.stringify(cache));
+      window.localStorage.setItem(cacheKey, JSON.stringify(cache));
     } catch {
       // Cache writes are best-effort only.
     }
-  }, []);
+  }, [cacheKey]);
 
   const readCache = useCallback(() => {
     if (typeof window === "undefined") return null;
 
     try {
-      const rawCache = window.localStorage.getItem(PURCHASE_CACHE_KEY);
+      const rawCache = window.localStorage.getItem(cacheKey);
       if (!rawCache) return null;
 
       const cache = JSON.parse(rawCache) as PurchaseCache;
 
-      if (!Array.isArray(cache.rows) || !Number.isFinite(cache.savedAt)) {
+      if (!Array.isArray(cache.response?.rows) || !Number.isFinite(cache.savedAt)) {
         return null;
       }
 
@@ -52,11 +66,11 @@ export function usePurchases() {
         return null;
       }
 
-      return cache.rows;
+      return cache.response;
     } catch {
       return null;
     }
-  }, []);
+  }, [cacheKey]);
 
   const loadPurchases = useCallback(async (options: LoadPurchasesOptions = {}) => {
     setLoading(true);
@@ -67,32 +81,31 @@ export function usePurchases() {
         const cachedRows = readCache();
 
         if (cachedRows) {
-          setRows(filterReportableRows(cachedRows));
+          applyResponse(cachedRows);
           setLoading(false);
           return;
         }
       }
 
-      const response = await fetch("/api/purchases", { cache: "no-store" });
+      const response = await fetch(`/api/purchases?${buildQueryString(query)}`, {
+        cache: "no-store",
+      });
 
       if (!response.ok) {
         throw new Error(`Failed to load purchases: ${response.status}`);
       }
 
-      const data = await response.json();
-      const purchases: PurchaseRow[] = Array.isArray(data)
-        ? data
-        : data.purchases || data.rows || [];
-      const reportablePurchases = filterReportableRows(purchases);
+      const data = (await response.json()) as PurchasesApiResponse | PurchaseRow[];
+      const apiResponse = normalizeResponse(data, query);
 
-      setRows(reportablePurchases);
-      writeCache(reportablePurchases);
+      applyResponse(apiResponse);
+      writeCache(apiResponse);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load purchases.");
     } finally {
       setLoading(false);
     }
-  }, [readCache, writeCache]);
+  }, [query, readCache, writeCache]);
 
   useEffect(() => {
     // Initial client-side load for this operational workspace.
@@ -155,7 +168,6 @@ export function usePurchases() {
               : currentRow;
           });
 
-          writeCache(nextRows);
           return nextRows;
         });
 
@@ -212,7 +224,6 @@ export function usePurchases() {
 
       setRows((currentRows) => {
         const nextRows = [newRow, ...currentRows];
-        writeCache(nextRows);
         return nextRows;
       });
 
@@ -223,10 +234,12 @@ export function usePurchases() {
     } finally {
       setSavingKey(null);
     }
-  }, [writeCache]);
+  }, []);
 
   return {
     rows,
+    stats,
+    totalRows,
     loading,
     savingKey,
     error,
@@ -235,8 +248,51 @@ export function usePurchases() {
     patchPurchase,
     createSplitItem,
   };
+
+  function applyResponse(response: PurchasesApiResponse) {
+    const reportableRows = filterReportableRows(response.rows);
+    setRows(reportableRows);
+    setTotalRows(response.total);
+    setStats(response.stats);
+  }
 }
 
 function filterReportableRows(rows: PurchaseRow[]) {
   return rows.filter((row) => !row.exclude_from_purchase_reporting);
+}
+
+function normalizeResponse(
+  data: PurchasesApiResponse | PurchaseRow[],
+  query: PurchaseQuery
+): PurchasesApiResponse {
+  if (Array.isArray(data)) {
+    return {
+      rows: data,
+      total: data.length,
+      page: query.page,
+      pageSize: query.pageSize,
+      stats: {
+        total: data.length,
+        visible: data.length,
+        needsReview: 0,
+        delivered: 0,
+      },
+    };
+  }
+
+  return data;
+}
+
+function buildQueryString(query: PurchaseQuery) {
+  const params = new URLSearchParams({
+    search: query.searchText,
+    asinFilter: query.asinFilter,
+    statusFilter: query.statusFilter,
+    sortColumn: query.sortColumn,
+    sortDirection: query.sortDirection,
+    page: String(query.page),
+    pageSize: String(query.pageSize),
+  });
+
+  return params.toString();
 }

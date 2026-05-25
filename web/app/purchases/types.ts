@@ -39,3 +39,36 @@ export type PurchaseStats = {
   needsReview: number;
   delivered: number;
 };
+
+export type PurchaseSortColumn =
+  | "order_date"
+  | "supplier_order_id"
+  | "item"
+  | "asin"
+  | "system"
+  | "quantity"
+  | "unit_cost"
+  | "sell_price"
+  | "carrier"
+  | "eta"
+  | "status";
+
+export type PurchaseSortDirection = "asc" | "desc";
+
+export type PurchaseQuery = {
+  searchText: string;
+  asinFilter: string;
+  statusFilter: string;
+  sortColumn: PurchaseSortColumn;
+  sortDirection: PurchaseSortDirection;
+  page: number;
+  pageSize: number;
+};
+
+export type PurchasesApiResponse = {
+  rows: PurchaseRow[];
+  total: number;
+  page: number;
+  pageSize: number;
+  stats: PurchaseStats;
+};

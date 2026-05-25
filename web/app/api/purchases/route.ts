@@ -12,11 +12,46 @@ const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
 const supabase = createClient(supabaseUrl, supabaseServiceRoleKey);
 
-export async function GET() {
-  let rows;
+type PurchaseListRow = {
+  item_id: string;
+  purchase_id: string;
+  order_date: string | null;
+  supplier: string | null;
+  supplier_order_id: string | null;
+  title: string | null;
+  system: string | null;
+  asin: string | null;
+  sell_price: number | null;
+  target_price?: number | null;
+  unit_cost: number | null;
+  quantity: number | null;
+  current_status: string | null;
+  tracking_number: string | null;
+  supplier_listing_url: string | null;
+  carrier: string | null;
+  delivery_status: string | null;
+  estimated_delivery_date: string | null;
+  delivered_date: string | null;
+};
+
+export async function GET(request: Request) {
+  const requestUrl = new URL(request.url);
+  const query = parsePurchaseQuery(requestUrl);
+  const excludedItemIds = await fetchExcludedItemIds();
+  const amazonTitleReviewItemIds = await fetchAmazonTitleReviewItemIds(
+    excludedItemIds
+  );
+  let rows: PurchaseListRow[];
+  let total = 0;
 
   try {
-    rows = await fetchAllPurchaseRows();
+    const result = await fetchPurchaseRows(
+      query,
+      excludedItemIds,
+      amazonTitleReviewItemIds
+    );
+    rows = result.rows as unknown as PurchaseListRow[];
+    total = result.total;
   } catch (error) {
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Failed to load purchases" },
@@ -36,19 +71,21 @@ export async function GET() {
     .filter((purchaseId): purchaseId is string => typeof purchaseId === "string");
 
   if (itemIds.length === 0 && purchaseIds.length === 0) {
-    return NextResponse.json(viewRows);
+    return NextResponse.json({
+      rows: viewRows,
+      total,
+      page: query.page,
+      pageSize: query.pageSize,
+      stats: await fetchPurchaseStats(
+        query,
+        total,
+        excludedItemIds,
+        amazonTitleReviewItemIds
+      ),
+    });
   }
 
   const itemMeta = await fetchItemMeta(itemIds);
-  const excludedItemIds = new Set(
-    itemMeta
-      .filter((item) => item.exclude_from_purchase_reporting)
-      .map((item) => item.item_id)
-  );
-  const includedRows = viewRows.filter(
-    (row) => !excludedItemIds.has(row.item_id)
-  );
-
   const amazonTitleByItemId = new Map(
     itemMeta.map((item) => [item.item_id, item.amazon_title])
   );
@@ -69,46 +106,321 @@ export async function GET() {
     ])
   );
 
-  return NextResponse.json(
-    includedRows.map((row) => ({
-      ...row,
-      amazon_title: amazonTitleByItemId.get(row.item_id) ?? null,
-      exclude_from_purchase_reporting: false,
-      order_status: purchaseMetaById.get(row.purchase_id)?.orderStatus ?? null,
-      seller_shipped: purchaseMetaById.get(row.purchase_id)?.sellerShipped ?? false,
-      ebay_cancelled: purchaseMetaById.get(row.purchase_id)?.ebayCancelled ?? false,
-      estimated_delivery_date:
-        row.estimated_delivery_date ??
-        purchaseMetaById.get(row.purchase_id)?.ebayEstimatedDeliveryDate ??
-        null,
-    }))
-  );
+  const responseRows = viewRows.map((row) => ({
+    ...row,
+    amazon_title: amazonTitleByItemId.get(row.item_id) ?? null,
+    exclude_from_purchase_reporting: false,
+    order_status: purchaseMetaById.get(row.purchase_id)?.orderStatus ?? null,
+    seller_shipped: purchaseMetaById.get(row.purchase_id)?.sellerShipped ?? false,
+    ebay_cancelled: purchaseMetaById.get(row.purchase_id)?.ebayCancelled ?? false,
+    estimated_delivery_date:
+      row.estimated_delivery_date ??
+      purchaseMetaById.get(row.purchase_id)?.ebayEstimatedDeliveryDate ??
+      null,
+  }));
+
+  return NextResponse.json({
+    rows: responseRows,
+    total,
+    page: query.page,
+    pageSize: query.pageSize,
+    stats: await fetchPurchaseStats(
+      query,
+      total,
+      excludedItemIds,
+      amazonTitleReviewItemIds
+    ),
+  });
 }
 
-async function fetchAllPurchaseRows() {
-  const rows = [];
+type PurchaseQuery = {
+  searchText: string;
+  asinFilter: string;
+  statusFilter: string;
+  sortColumn: string;
+  sortDirection: "asc" | "desc";
+  page: number;
+  pageSize: number;
+};
+
+function parsePurchaseQuery(url: URL): PurchaseQuery {
+  const page = Math.max(Number(url.searchParams.get("page") || "1"), 1);
+  const pageSize = Math.min(
+    Math.max(Number(url.searchParams.get("pageSize") || "100"), 25),
+    500
+  );
+  const sortColumn = url.searchParams.get("sortColumn") || "order_date";
+  const sortDirection =
+    url.searchParams.get("sortDirection") === "asc" ? "asc" : "desc";
+
+  return {
+    searchText: (url.searchParams.get("search") || "").trim(),
+    asinFilter: url.searchParams.get("asinFilter") || "all",
+    statusFilter: url.searchParams.get("statusFilter") || "active",
+    sortColumn,
+    sortDirection,
+    page,
+    pageSize,
+  };
+}
+
+async function fetchPurchaseRows(
+  query: PurchaseQuery,
+  excludedItemIds: string[],
+  amazonTitleReviewItemIds: string[]
+) {
+  const rangeStart = (query.page - 1) * query.pageSize;
+  const rangeEnd = rangeStart + query.pageSize - 1;
+  const sortColumn = purchaseSortColumn(query.sortColumn);
+  const ascending = query.sortDirection === "asc";
+
+  let request = supabase
+    .from("vw_purchases_dashboard")
+    .select(
+      [
+        "item_id",
+        "purchase_id",
+        "order_date",
+        "supplier",
+        "supplier_order_id",
+        "title",
+        "system",
+        "asin",
+        "sell_price",
+        "target_price:sell_price",
+        "unit_cost",
+        "quantity",
+        "current_status",
+        "tracking_number",
+        "supplier_listing_url",
+        "carrier",
+        "delivery_status",
+        "estimated_delivery_date",
+        "delivered_date",
+      ].join(","),
+      { count: "exact" }
+    );
+
+  request = applyServerFilters(
+    request,
+    query,
+    excludedItemIds,
+    amazonTitleReviewItemIds
+  );
+
+  const { data, error, count } = await request
+    .order(sortColumn, { ascending, nullsFirst: false })
+    .range(rangeStart, rangeEnd);
+
+  if (error) throw new Error(error.message);
+
+  return {
+    rows: data ?? [],
+    total: count ?? 0,
+  };
+}
+
+function applyServerFilters(
+  request: any,
+  query: PurchaseQuery,
+  excludedItemIds: string[],
+  amazonTitleReviewItemIds: string[]
+) {
+  if (excludedItemIds.length > 0) {
+    request = request.not("item_id", "in", `(${excludedItemIds.join(",")})`);
+  }
+
+  if (query.statusFilter === "active") {
+    request = request.neq("current_status", "listed");
+  } else if (query.statusFilter !== "all") {
+    request = request.eq("current_status", query.statusFilter);
+  }
+
+  if (query.asinFilter === "matched") {
+    request = request.not("asin", "is", null).neq("asin", "N/A");
+  } else if (query.asinFilter === "needs_review") {
+    request = request.not(
+      "current_status",
+      "in",
+      "(listed,cancelled,return_opened,return_pending)"
+    );
+    const needsReviewClauses = [
+      "asin.is.null",
+      "asin.eq.N/A",
+      "sell_price.is.null",
+      "system.is.null",
+    ];
+
+    if (amazonTitleReviewItemIds.length > 0) {
+      needsReviewClauses.push(
+        `item_id.in.(${amazonTitleReviewItemIds.join(",")})`
+      );
+    }
+
+    request = request.or(needsReviewClauses.join(","));
+  }
+
+  if (query.searchText) {
+    const term = escapeIlike(query.searchText);
+    request = request.or(
+      [
+        `title.ilike.%${term}%`,
+        `asin.ilike.%${term}%`,
+        `system.ilike.%${term}%`,
+        `supplier.ilike.%${term}%`,
+        `supplier_order_id.ilike.%${term}%`,
+        `tracking_number.ilike.%${term}%`,
+        `carrier.ilike.%${term}%`,
+      ].join(",")
+    );
+  }
+
+  return request;
+}
+
+function purchaseSortColumn(column: string) {
+  const columns: Record<string, string> = {
+    order_date: "order_date",
+    supplier_order_id: "supplier_order_id",
+    item: "title",
+    asin: "asin",
+    system: "system",
+    quantity: "quantity",
+    unit_cost: "unit_cost",
+    sell_price: "sell_price",
+    carrier: "carrier",
+    eta: "estimated_delivery_date",
+    status: "current_status",
+  };
+
+  return columns[column] || "order_date";
+}
+
+function escapeIlike(value: string) {
+  return value.replace(/[%_,]/g, "\\$&");
+}
+
+async function fetchPurchaseStats(
+  query: PurchaseQuery,
+  visibleTotal: number,
+  excludedItemIds: string[],
+  amazonTitleReviewItemIds: string[]
+) {
+  const [total, needsReview, delivered] = await Promise.all([
+    countPurchaseRows(
+      { ...query, searchText: "", asinFilter: "all", statusFilter: "all" },
+      excludedItemIds,
+      amazonTitleReviewItemIds
+    ),
+    countPurchaseRows(
+      { ...query, searchText: "", asinFilter: "needs_review", statusFilter: "active" },
+      excludedItemIds,
+      amazonTitleReviewItemIds
+    ),
+    countPurchaseRows(
+      { ...query, searchText: "", asinFilter: "all", statusFilter: "delivered" },
+      excludedItemIds,
+      amazonTitleReviewItemIds
+    ),
+  ]);
+
+  return {
+    total,
+    visible: visibleTotal,
+    needsReview,
+    delivered,
+  };
+}
+
+async function countPurchaseRows(
+  query: PurchaseQuery,
+  excludedItemIds: string[],
+  amazonTitleReviewItemIds: string[]
+) {
+  let request = supabase
+    .from("vw_purchases_dashboard")
+    .select("item_id", { count: "exact", head: true });
+
+  request = applyServerFilters(
+    request,
+    query,
+    excludedItemIds,
+    amazonTitleReviewItemIds
+  );
+
+  const { count, error } = await request;
+  if (error) {
+    console.warn("Purchase count failed", error.message);
+    return 0;
+  }
+
+  return count ?? 0;
+}
+
+async function fetchExcludedItemIds() {
+  const excludedItemIds: string[] = [];
   const pageSize = 1000;
   let offset = 0;
 
   while (true) {
     const { data, error } = await supabase
-      .from("vw_purchases_dashboard")
-      .select("*")
-      .order("order_date", { ascending: false })
+      .from("purchase_items")
+      .select("item_id")
+      .eq("exclude_from_purchase_reporting", true)
       .range(offset, offset + pageSize - 1);
 
     if (error) {
-      throw new Error(error.message);
+      console.warn("Purchase exclusion lookup failed", error.message);
+      return excludedItemIds;
     }
 
-    rows.push(...(data ?? []));
+    excludedItemIds.push(
+      ...((data ?? []) as { item_id: string }[]).map((item) => item.item_id)
+    );
 
-    if (!data || data.length < pageSize) break;
+    if ((data ?? []).length < pageSize) return excludedItemIds;
 
     offset += pageSize;
   }
+}
 
-  return rows;
+async function fetchAmazonTitleReviewItemIds(excludedItemIds: string[]) {
+  const itemIds: string[] = [];
+  const pageSize = 1000;
+  let offset = 0;
+
+  while (true) {
+    let request: any = supabase
+      .from("purchase_items")
+      .select("item_id")
+      .not("asin", "is", null)
+      .neq("asin", "N/A")
+      .is("amazon_title", null)
+      .not(
+        "current_status",
+        "in",
+        "(listed,cancelled,return_opened,return_pending)"
+      );
+
+    if (excludedItemIds.length > 0) {
+      request = request.not("item_id", "in", `(${excludedItemIds.join(",")})`);
+    }
+
+    const { data, error } = await request.range(offset, offset + pageSize - 1);
+
+    if (error) {
+      console.warn("Amazon title review lookup failed", error.message);
+      return itemIds;
+    }
+
+    itemIds.push(
+      ...((data ?? []) as { item_id: string }[]).map((item) => item.item_id)
+    );
+
+    if ((data ?? []).length < pageSize) return itemIds;
+
+    offset += pageSize;
+  }
 }
 
 async function fetchItemMeta(itemIds: string[]) {
@@ -489,6 +801,7 @@ async function propagateManualMatch(
   updatedItem: PurchaseItem,
   updates: {
     asin?: string | null;
+    amazon_title?: string | null;
     target_price?: number | null;
   }
 ) {
@@ -555,9 +868,9 @@ async function propagateManualMatch(
     if (correctedAsin && !item.asin) {
       itemUpdates.asin = correctedAsin;
 
-    if (updatedItem.amazon_title && (!item.amazon_title || amazonTitleWasUpdated)) {
-      itemUpdates.amazon_title = updatedItem.amazon_title;
-    }
+      if (updatedItem.amazon_title && (!item.amazon_title || amazonTitleWasUpdated)) {
+        itemUpdates.amazon_title = updatedItem.amazon_title;
+      }
     }
 
     if (targetPriceWasUpdated) {
