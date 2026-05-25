@@ -139,7 +139,7 @@ export default function FbaPage() {
       ],
       ...rows.map((row) => [
         row.asin,
-        row.title || "",
+        row.title || "Missing Amazon title",
         row.system || "",
         moneyForCsv(row.cost_per_unit),
         moneyForCsv(row.sell_price),
@@ -345,7 +345,15 @@ export default function FbaPage() {
                     <td className="whitespace-nowrap px-3 py-2 font-medium text-blue-700">
                       {row.asin}
                     </td>
-                    <td className="px-3 py-2 font-medium">{row.title || "--"}</td>
+                    <td className="px-3 py-2 font-medium">
+                      {row.title ? (
+                        row.title
+                      ) : (
+                        <span className="text-amber-700">
+                          Missing Amazon title
+                        </span>
+                      )}
+                    </td>
                     <td className="px-3 py-2">{row.system || "--"}</td>
                     <td className="whitespace-nowrap px-3 py-2 text-right">
                       {formatMoney(row.cost_per_unit)}

@@ -1,5 +1,6 @@
 grant all on table public.fba_shipments to service_role;
 grant all on table public.fba_shipment_items to service_role;
+grant all on table public.manual_item_matches to service_role;
 
 update purchase_items target
 set amazon_title = source.amazon_title

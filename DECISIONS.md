@@ -176,6 +176,9 @@ Operators need to review the matched Amazon identity without losing the original
 Display:
 The purchases table uses amazon_title as the primary item title for matched ASIN rows when available, and shows the eBay title underneath prefixed with "ebay: ".
 
+Rule:
+If an ASIN exists but no Amazon title is stored, the operator may manually fill `purchase_items.amazon_title` from the purchase detail drawer. FBA should not silently substitute the eBay supplier title as an Amazon title.
+
 ---
 
 ## Marketplace Title Cleaning Is Shared

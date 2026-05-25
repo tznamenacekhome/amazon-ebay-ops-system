@@ -60,7 +60,7 @@ Purchases table display rules:
 - carrier ETA dates are displayed as date-only values to avoid timezone day shifts
 - table headers sort the currently filtered row set
 - status filter includes Received for items warehouse-verified by the receiving workflow and Cancelled for cancelled/refunded purchase outcomes
-- detail drawer saves eBay title, purchase price, ASIN, and sell price together
+- detail drawer saves eBay title, Amazon title, purchase price, system, ASIN, and sell price together
 - detail drawer can edit system using the canonical system pick list
 - detail drawer can create manual split item rows for multi-game eBay listings
 
@@ -203,6 +203,7 @@ Manual corrections:
 - ASIN/sell-price corrections should propagate only to matching title/system rows
 - never overwrite a different existing ASIN during propagation
 - manual match memory belongs in manual_item_matches after the SQL migration is applied
+- Amazon title corrections belong in purchase_items.amazon_title and must remain separate from eBay supplier titles
 - edited eBay titles and purchase prices are item-specific manual overrides and must not propagate by title/system
 - edited system values are item-specific corrections and should use canonical system names
 - eBay sync must preserve manual_title_override and manual_unit_cost_override fields

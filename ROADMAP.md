@@ -43,7 +43,7 @@ Recent UI cleanup:
 - consolidated ETA/delivered date display into one color-coded column
 - fixed shipment date display to avoid UTC/local timezone day shifts
 - added sortable purchases table headers
-- added combined eBay title, purchase price, ASIN, and sell price save in the detail drawer
+- added combined eBay title, Amazon title, purchase price, system, ASIN, and sell price save in the detail drawer
 - added system correction pick list in the purchase detail drawer
 - added manual split item creation from the detail drawer
 - added search-box clear button
@@ -100,7 +100,7 @@ Goals:
 - propagate manual ASIN and sell price corrections to matching title/system rows
 
 Recent progress:
-- detail drawer now saves eBay title, purchase price, ASIN, and sell price together
+- detail drawer now saves eBay title, Amazon title, purchase price, system, ASIN, and sell price together
 - detail drawer now supports system correction from the canonical system pick list
 - manual correction propagation updates duplicate title/system purchases
 - legacy Purchases sheet backfill filled 340 ASINs and 2,141 target sell prices

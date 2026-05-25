@@ -211,7 +211,7 @@ Implemented:
 - detail drawer status matches the table's derived operational status
 - detail drawer carrier status shows carrier/shipment fields only
 - detail drawer shows "--" for Amazon Title when ASIN is missing
-- detail drawer saves eBay title, purchase price, ASIN, and sell price together
+- detail drawer saves eBay title, Amazon title, purchase price, system, ASIN, and sell price together
 - detail drawer can edit system from the canonical system pick list
 - detail drawer can create a manual split item row for multi-game eBay listings
 - search input includes an inline clear button
@@ -315,6 +315,7 @@ Implemented:
 - saving with a shipment ID links included items to fba_shipments/fba_shipment_items and moves included quantities to Listed
 - partial included quantities split the remaining quantity into a Received split child row
 - same-ASIN Amazon title fallback fills FBA display titles when a Received row has ASIN but blank amazon_title
+- rows with no stored Amazon title display an explicit Missing Amazon title indicator instead of silently using the eBay title
 
 Schema:
 - sql/2026-05-24_add_fba_shipments.sql adds fba_shipments and fba_shipment_items

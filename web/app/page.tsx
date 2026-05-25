@@ -37,6 +37,7 @@ export default function PurchasesPage() {
 
   const [selectedRow, setSelectedRow] = useState<PurchaseRow | null>(null);
   const [drawerAsin, setDrawerAsin] = useState("");
+  const [drawerAmazonTitle, setDrawerAmazonTitle] = useState("");
   const [drawerSellPrice, setDrawerSellPrice] = useState("");
   const [drawerEbayTitle, setDrawerEbayTitle] = useState("");
   const [drawerUnitCost, setDrawerUnitCost] = useState("");
@@ -98,6 +99,7 @@ export default function PurchasesPage() {
 
     const updatedRow = await patchPurchase(selectedRow, {
       asin: drawerAsin.trim().toUpperCase() || null,
+      amazon_title: drawerAmazonTitle.trim() || null,
       sell_price: parsedSellPrice,
       target_price: parsedSellPrice,
       title: drawerEbayTitle.trim() || null,
@@ -108,6 +110,7 @@ export default function PurchasesPage() {
 
     if (updatedRow) {
       setSelectedRow(updatedRow);
+      setDrawerAmazonTitle(updatedRow.amazon_title || "");
       setDrawerSellPrice(formatPriceDraft(updatedRow.sell_price ?? updatedRow.target_price));
       setDrawerUnitCost(formatPriceDraft(updatedRow.unit_cost));
       setDrawerEbayTitle(updatedRow.ebay_title || updatedRow.title || "");
@@ -123,6 +126,7 @@ export default function PurchasesPage() {
     if (newRow) {
       setSelectedRow(newRow);
       setDrawerAsin("");
+      setDrawerAmazonTitle("");
       setDrawerSellPrice("");
       setDrawerEbayTitle(newRow.ebay_title || newRow.title || "");
       setDrawerUnitCost("");
@@ -140,6 +144,7 @@ export default function PurchasesPage() {
   function openDetails(row: PurchaseRow) {
     setSelectedRow(row);
     setDrawerAsin(row.asin || "");
+    setDrawerAmazonTitle(row.amazon_title || "");
     setDrawerSellPrice(formatPriceDraft(row.sell_price ?? row.target_price));
     setDrawerEbayTitle(row.ebay_title || row.title || "");
     setDrawerUnitCost(formatPriceDraft(row.unit_cost));
@@ -196,12 +201,14 @@ export default function PurchasesPage() {
         <PurchaseDetailDrawer
           row={selectedRow}
           drawerAsin={drawerAsin}
+          drawerAmazonTitle={drawerAmazonTitle}
           drawerSellPrice={drawerSellPrice}
           drawerEbayTitle={drawerEbayTitle}
           drawerUnitCost={drawerUnitCost}
           drawerSystem={drawerSystem}
           savingKey={savingKey}
           onAsinChange={setDrawerAsin}
+          onAmazonTitleChange={setDrawerAmazonTitle}
           onSellPriceChange={setDrawerSellPrice}
           onEbayTitleChange={setDrawerEbayTitle}
           onUnitCostChange={setDrawerUnitCost}

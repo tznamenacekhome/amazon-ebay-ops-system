@@ -8,7 +8,6 @@ import {
   getDisplayDeliveryDate,
   getEbayTitle,
   getOperationalStatus,
-  getPrimaryTitle,
   getShipmentStatus,
   rowKey,
 } from "./utils";
@@ -16,12 +15,14 @@ import {
 type PurchaseDetailDrawerProps = {
   row: PurchaseRow;
   drawerAsin: string;
+  drawerAmazonTitle: string;
   drawerSellPrice: string;
   drawerEbayTitle: string;
   drawerUnitCost: string;
   drawerSystem: string;
   savingKey: string | null;
   onAsinChange: (value: string) => void;
+  onAmazonTitleChange: (value: string) => void;
   onSellPriceChange: (value: string) => void;
   onEbayTitleChange: (value: string) => void;
   onUnitCostChange: (value: string) => void;
@@ -34,12 +35,14 @@ type PurchaseDetailDrawerProps = {
 export function PurchaseDetailDrawer({
   row,
   drawerAsin,
+  drawerAmazonTitle,
   drawerSellPrice,
   drawerEbayTitle,
   drawerUnitCost,
   drawerSystem,
   savingKey,
   onAsinChange,
+  onAmazonTitleChange,
   onSellPriceChange,
   onEbayTitleChange,
   onUnitCostChange,
@@ -49,7 +52,7 @@ export function PurchaseDetailDrawer({
   onClose,
 }: PurchaseDetailDrawerProps) {
   const operationalStatus = getOperationalStatus(row);
-  const drawerAmazonTitle = row.asin ? getPrimaryTitle(row) : "--";
+  const displayAmazonTitle = row.asin ? drawerAmazonTitle || row.amazon_title || "--" : "--";
   const isSaving = savingKey === rowKey(row);
 
   return (
@@ -83,7 +86,7 @@ export function PurchaseDetailDrawer({
               Amazon Title
             </div>
 
-            <div className="mt-1 font-medium">{drawerAmazonTitle}</div>
+            <div className="mt-1 font-medium">{displayAmazonTitle}</div>
 
             {getEbayTitle(row) && (
               <>
@@ -141,6 +144,16 @@ export function PurchaseDetailDrawer({
                   onChange={(event) => onAsinChange(event.target.value)}
                   className="rounded-lg border border-slate-300 px-3 py-2 text-sm font-normal normal-case tracking-normal text-slate-900"
                   placeholder="Enter ASIN"
+                />
+              </label>
+
+              <label className="grid gap-1 text-xs font-medium uppercase tracking-wide text-slate-500">
+                Amazon Title
+                <input
+                  value={drawerAmazonTitle}
+                  onChange={(event) => onAmazonTitleChange(event.target.value)}
+                  className="rounded-lg border border-slate-300 px-3 py-2 text-sm font-normal normal-case tracking-normal text-slate-900"
+                  placeholder="Enter Amazon title"
                 />
               </label>
 

@@ -249,6 +249,7 @@ export async function PATCH(request: Request) {
 
   const updates: {
     asin?: string | null;
+    amazon_title?: string | null;
     target_price?: number | null;
     title?: string | null;
     unit_cost?: number | null;
@@ -259,6 +260,12 @@ export async function PATCH(request: Request) {
 
   if ("asin" in body) {
     updates.asin = body.asin ? String(body.asin).trim().toUpperCase() : null;
+  }
+
+  if ("amazon_title" in body) {
+    const amazonTitle =
+      body.amazon_title === null ? "" : String(body.amazon_title ?? "").trim();
+    updates.amazon_title = amazonTitle || null;
   }
 
   if ("sell_price" in body) {
@@ -486,9 +493,12 @@ async function propagateManualMatch(
   }
 ) {
   const asinWasUpdated = "asin" in updates;
+  const amazonTitleWasUpdated = "amazon_title" in updates;
   const targetPriceWasUpdated = "target_price" in updates;
 
-  if (!asinWasUpdated && !targetPriceWasUpdated) return [];
+  if (!asinWasUpdated && !amazonTitleWasUpdated && !targetPriceWasUpdated) {
+    return [];
+  }
 
   const sourceTitle = updatedItem.title || sourceItem.title;
   const normalizedTitle = normalizeMatchTitle(sourceTitle);
@@ -545,9 +555,9 @@ async function propagateManualMatch(
     if (correctedAsin && !item.asin) {
       itemUpdates.asin = correctedAsin;
 
-      if (updatedItem.amazon_title) {
-        itemUpdates.amazon_title = updatedItem.amazon_title;
-      }
+    if (updatedItem.amazon_title && (!item.amazon_title || amazonTitleWasUpdated)) {
+      itemUpdates.amazon_title = updatedItem.amazon_title;
+    }
     }
 
     if (targetPriceWasUpdated) {
