@@ -126,6 +126,14 @@ Recent legacy sheet backfill:
 - remaining after backfill: 37 missing ASINs, 62 missing target sell prices
 - unresolved rows were left untouched when order matches were ambiguous or absent
 
+Recent ASIN validation:
+- script: integrations/validate_asins_against_purchase_sheet.py
+- compares MBOP active purchase item ASIN quantities to the reference spreadsheet Purchases tab by eBay order number
+- latest run scanned 2,879 spreadsheet rows and compared 2,825 orders
+- 2,795 orders matched exactly by ASIN and quantity
+- 30 unique orders need ASIN review or split-row correction
+- latest report: data/asin_validation_20260524_195357.csv
+
 ---
 
 # Current Frontend State
