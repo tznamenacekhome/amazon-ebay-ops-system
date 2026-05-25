@@ -56,6 +56,48 @@ type AttentionRow = {
   issue: string;
 };
 
+type InventoryPositionSummaryRow = {
+  inventory_state: string;
+  physical_location: string;
+  marketplace_intent: string;
+  listing_channel: string;
+  operational_status: string;
+  condition_disposition: string;
+  reconciliation_status: string;
+  needs_reconciliation: boolean;
+  position_count: number | null;
+  unit_count: number | null;
+  total_cost: number | null;
+};
+
+type OpenReconciliationItemRow = {
+  inventory_reconciliation_event_item_id: string;
+  severity: "info" | "warning" | "critical";
+  issue_type: string;
+  asin: string | null;
+  seller_sku: string | null;
+  title: string | null;
+  mbop_quantity: number | null;
+  amazon_total_quantity: number | null;
+  amazon_fulfillable_quantity: number | null;
+  amazon_inbound_quantity: number | null;
+  amazon_reserved_quantity: number | null;
+  amazon_unsellable_quantity: number | null;
+};
+
+type ReconciliationEventRow = {
+  inventory_reconciliation_event_id: string;
+  reconciliation_type: string;
+  status: string;
+  started_at: string;
+  completed_at: string | null;
+  matched_count: number | null;
+  mismatch_count: number | null;
+  missing_internal_count: number | null;
+  missing_external_count: number | null;
+  needs_review_count: number | null;
+};
+
 export async function GET() {
   const rows = await fetchPurchaseRows();
   const rowsWithExclusions = await hydrateReportingExclusions(rows);
@@ -63,6 +105,7 @@ export async function GET() {
   const years = aggregateByYear(monthly);
   const statusBreakdown = aggregateByStatus(rowsWithExclusions);
   const operations = aggregateOperations(rowsWithExclusions);
+  const inventoryVisibility = await fetchInventoryVisibility();
   const totals = monthly.reduce(
     (accumulator, month) => ({
       units: accumulator.units + month.units,
@@ -77,6 +120,7 @@ export async function GET() {
     months: monthly,
     statusBreakdown,
     operations,
+    inventoryVisibility,
   });
 }
 
@@ -374,6 +418,175 @@ function aggregateOperations(rows: DashboardPurchaseRow[]) {
   };
 }
 
+async function fetchInventoryVisibility() {
+  const [summaryRows, openItems, latestEvent] = await Promise.all([
+    fetchInventoryPositionSummary(),
+    fetchOpenReconciliationItems(),
+    fetchLatestReconciliationEvent(),
+  ]);
+
+  const unitsByState = new Map<string, number>();
+  const costByState = new Map<string, number>();
+  const unitsByLocation = new Map<string, number>();
+  const unitsByIntent = new Map<string, number>();
+
+  for (const row of summaryRows) {
+    const units = Number(row.unit_count ?? 0);
+    const cost = Number(row.total_cost ?? 0);
+
+    unitsByState.set(row.inventory_state, (unitsByState.get(row.inventory_state) ?? 0) + units);
+    costByState.set(row.inventory_state, (costByState.get(row.inventory_state) ?? 0) + cost);
+    unitsByLocation.set(
+      row.physical_location,
+      (unitsByLocation.get(row.physical_location) ?? 0) + units
+    );
+    unitsByIntent.set(
+      row.marketplace_intent,
+      (unitsByIntent.get(row.marketplace_intent) ?? 0) + units
+    );
+  }
+
+  const reconciliationBySeverity = {
+    critical: openItems.filter((item) => item.severity === "critical").length,
+    warning: openItems.filter((item) => item.severity === "warning").length,
+    info: openItems.filter((item) => item.severity === "info").length,
+  };
+
+  return {
+    metrics: {
+      purchased_inventory_units: sumStates(unitsByState, [
+        "purchased_not_shipped",
+        "shipped_not_delivered",
+        "delivered_not_received",
+        "received_unassigned",
+        "received_assigned_amazon_not_sent",
+        "transferred_to_ebay",
+        "home_ebay_resale_listed",
+        "home_ebay_personal_listed",
+        "outbound_to_amazon",
+      ]),
+      delivered_not_received_units: unitsByState.get("delivered_not_received") ?? 0,
+      received_not_listed_units: sumStates(unitsByState, [
+        "received_unassigned",
+        "received_assigned_amazon_not_sent",
+      ]),
+      assigned_to_amazon_not_sent_units:
+        unitsByState.get("received_assigned_amazon_not_sent") ?? 0,
+      outbound_to_amazon_units: unitsByState.get("outbound_to_amazon") ?? 0,
+      amazon_active_sellable_units: unitsByState.get("amazon_fba_sellable") ?? 0,
+      amazon_inbound_units: unitsByState.get("amazon_fba_inbound_receiving") ?? 0,
+      amazon_reserved_units: unitsByState.get("amazon_fba_reserved") ?? 0,
+      amazon_unsellable_units: unitsByState.get("amazon_fba_unsellable_damaged") ?? 0,
+      ebay_active_units: sumStates(unitsByState, [
+        "home_ebay_resale_listed",
+        "home_ebay_personal_listed",
+      ]),
+      assigned_to_ebay_units: unitsByState.get("transferred_to_ebay") ?? 0,
+      return_or_cancel_units: sumStates(unitsByState, [
+        "return_pending",
+        "return_opened",
+        "cancelled_refund_follow_up",
+      ]),
+      inventory_needing_reconciliation_units: summaryRows
+        .filter((row) => row.needs_reconciliation)
+        .reduce((total, row) => total + Number(row.unit_count ?? 0), 0),
+      open_reconciliation_findings: openItems.length,
+      estimated_mbop_cost_basis: sumStates(costByState, [
+        "purchased_not_shipped",
+        "shipped_not_delivered",
+        "delivered_not_received",
+        "received_unassigned",
+        "received_assigned_amazon_not_sent",
+        "transferred_to_ebay",
+        "home_ebay_resale_listed",
+        "home_ebay_personal_listed",
+        "outbound_to_amazon",
+        "return_pending",
+      ]),
+    },
+    unitsByState: Array.from(unitsByState.entries())
+      .map(([state, units]) => ({ state, label: inventoryStateLabel(state), units }))
+      .sort((left, right) => right.units - left.units),
+    unitsByLocation: Array.from(unitsByLocation.entries())
+      .map(([location, units]) => ({ location, label: inventoryDimensionLabel(location), units }))
+      .sort((left, right) => right.units - left.units),
+    unitsByIntent: Array.from(unitsByIntent.entries())
+      .map(([intent, units]) => ({ intent, label: inventoryDimensionLabel(intent), units }))
+      .sort((left, right) => right.units - left.units),
+    reconciliationBySeverity,
+    latestReconciliation: latestEvent,
+    openFindings: openItems.slice(0, 15).map((item) => ({
+      id: item.inventory_reconciliation_event_item_id,
+      severity: item.severity,
+      issue_type: item.issue_type,
+      issue_label: reconciliationIssueLabel(item.issue_type),
+      asin: item.asin,
+      seller_sku: item.seller_sku,
+      title: item.title,
+      mbop_quantity: item.mbop_quantity,
+      amazon_total_quantity: item.amazon_total_quantity,
+      amazon_fulfillable_quantity: item.amazon_fulfillable_quantity,
+      amazon_inbound_quantity: item.amazon_inbound_quantity,
+      amazon_reserved_quantity: item.amazon_reserved_quantity,
+      amazon_unsellable_quantity: item.amazon_unsellable_quantity,
+    })),
+  };
+}
+
+async function fetchInventoryPositionSummary() {
+  const { data, error } = await supabase
+    .from("vw_inventory_position_summary")
+    .select("*");
+
+  if (error) {
+    console.warn("Inventory position summary lookup failed", error.message);
+    return [] as InventoryPositionSummaryRow[];
+  }
+
+  return (data ?? []) as InventoryPositionSummaryRow[];
+}
+
+async function fetchOpenReconciliationItems() {
+  const { data, error } = await supabase
+    .from("vw_open_inventory_reconciliation_items")
+    .select(
+      "inventory_reconciliation_event_item_id,severity,issue_type,asin,seller_sku,title," +
+        "mbop_quantity,amazon_total_quantity,amazon_fulfillable_quantity," +
+        "amazon_inbound_quantity,amazon_reserved_quantity,amazon_unsellable_quantity"
+    )
+    .order("severity", { ascending: true })
+    .limit(50);
+
+  if (error) {
+    console.warn("Open inventory reconciliation lookup failed", error.message);
+    return [] as OpenReconciliationItemRow[];
+  }
+
+  return (data ?? []) as unknown as OpenReconciliationItemRow[];
+}
+
+async function fetchLatestReconciliationEvent() {
+  const { data, error } = await supabase
+    .from("inventory_reconciliation_events")
+    .select(
+      "inventory_reconciliation_event_id,reconciliation_type,status,started_at,completed_at," +
+        "matched_count,mismatch_count,missing_internal_count,missing_external_count,needs_review_count"
+    )
+    .order("started_at", { ascending: false })
+    .limit(1);
+
+  if (error) {
+    console.warn("Latest inventory reconciliation lookup failed", error.message);
+    return null;
+  }
+
+  return ((data ?? [])[0] ?? null) as unknown as ReconciliationEventRow | null;
+}
+
+function sumStates(values: Map<string, number>, states: string[]) {
+  return states.reduce((total, state) => total + (values.get(state) ?? 0), 0);
+}
+
 function needsReview(row: DashboardPurchaseRow) {
   const status = normalizeStatus(row.current_status);
   if (["cancelled", "return_opened", "return_pending", "listed"].includes(status)) {
@@ -574,4 +787,65 @@ function statusLabel(status: string) {
   };
 
   return labels[status] ?? status.replace(/_/g, " ");
+}
+
+function inventoryStateLabel(state: string) {
+  const labels: Record<string, string> = {
+    purchased_not_shipped: "Purchased, Not Shipped",
+    shipped_not_delivered: "Shipped, Not Delivered",
+    delivered_not_received: "Delivered, Not Received",
+    received_unassigned: "Received, Unassigned",
+    received_assigned_amazon_not_sent: "Ready For Amazon",
+    home_amazon_mfn_listed: "Home, Amazon MFN Listed",
+    outbound_to_amazon: "Outbound To Amazon",
+    amazon_fba_inbound_receiving: "Amazon FBA Inbound",
+    amazon_fba_sellable: "Amazon FBA Sellable",
+    amazon_fba_reserved: "Amazon FBA Reserved",
+    amazon_fba_unsellable_damaged: "Amazon FBA Unsellable",
+    amazon_fba_stranded: "Amazon FBA Stranded",
+    removed_from_amazon_home: "Removed From Amazon",
+    transferred_to_ebay: "Assigned To eBay",
+    home_ebay_resale_listed: "eBay Resale Listed",
+    home_ebay_personal_listed: "eBay Personal Listed",
+    sold_amazon: "Sold On Amazon",
+    sold_ebay: "Sold On eBay",
+    return_pending: "Return Pending",
+    return_opened: "Return Opened",
+    cancelled_refund_follow_up: "Cancelled / Refund Follow-Up",
+    disposed_donated_lost: "Disposed / Donated / Lost",
+  };
+
+  return labels[state] ?? inventoryDimensionLabel(state);
+}
+
+function reconciliationIssueLabel(issueType: string) {
+  const labels: Record<string, string> = {
+    quantity_mismatch: "Quantity Mismatch",
+    mbop_missing_from_amazon: "MBOP Missing From Amazon",
+    amazon_unknown_to_mbop: "Amazon Unknown To MBOP",
+    amazon_inbound_discrepancy: "Amazon Inbound Discrepancy",
+    amazon_unsellable: "Amazon Unsellable",
+    amazon_reserved: "Amazon Reserved",
+    amazon_stranded_or_suppressed: "Amazon Stranded Or Suppressed",
+    amazon_removed_needs_home_state: "Amazon Removed, Needs Home State",
+    ebay_unknown_to_mbop: "eBay Unknown To MBOP",
+    ebay_transfer_missing: "eBay Transfer Missing",
+    marketplace_intent_mismatch: "Marketplace Intent Mismatch",
+    listing_channel_mismatch: "Listing Channel Mismatch",
+    condition_disposition_mismatch: "Condition / Disposition Mismatch",
+    sku_mapping_missing: "SKU Mapping Missing",
+    asin_mapping_missing: "ASIN Mapping Missing",
+    cost_basis_missing: "Cost Basis Missing",
+    needs_operator_review: "Needs Operator Review",
+  };
+
+  return labels[issueType] ?? inventoryDimensionLabel(issueType);
+}
+
+function inventoryDimensionLabel(value: string) {
+  return value
+    .split("_")
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
 }

@@ -19,6 +19,7 @@ MBOP is the internal operations platform for Midnight Blue Enterprises, LLC.
 | Dashboard analytics | First slice implemented |
 | Matching engine | Emerging subsystem |
 | Amazon SP-API foundation | Read-only inventory sync working |
+| Unified inventory state / reconciliation | First slice implemented |
 | Amazon FBA workflow | First slice implemented |
 | Legacy spreadsheet backfill | Recently used / repeatable script available |
 
@@ -205,6 +206,51 @@ Amazon seller/FBA data must stay in Amazon-specific tables and must not write to
 
 ---
 
+## Unified Inventory State And Reconciliation
+
+Status: FIRST SLICE IMPLEMENTED
+
+Purpose:
+Provide a normalized, derived inventory-position layer that can answer:
+- what MBOP believes is owned
+- where the inventory physically is
+- what marketplace it is intended for
+- what Amazon FBA currently reports
+- what needs operator review before inventory confidence is high
+
+Implemented:
+- `sql/2026-05-25_add_inventory_state_reconciliation.sql`
+- `inventory_positions`
+- `inventory_movements`
+- `inventory_reconciliation_events`
+- `inventory_reconciliation_event_items`
+- `vw_inventory_position_summary`
+- `vw_latest_amazon_fba_inventory_snapshot`
+- `vw_open_inventory_reconciliation_items`
+- `integrations/inventory_reconcile.py`
+- dashboard Inventory Visibility section backed by inventory summary/reconciliation views
+
+Current behavior:
+- workflow tables remain authoritative
+- the reconciliation script rebuilds derived current inventory positions from purchases, purchase_items, FBA shipment rows, and latest Amazon FBA snapshots
+- state is modeled across separate dimensions: inventory state, physical location, marketplace intent, listing channel, operational status, and condition/disposition
+- Amazon FBA snapshot inventory is projected into Amazon-specific inventory positions
+- reconciliation currently compares MBOP Amazon-intended inventory to latest Amazon FBA inventory at ASIN level
+- old open reconciliation findings are deferred when a new reconciliation run writes current findings
+
+Latest validation:
+- dry run projected 2,923 MBOP positions, 311 Amazon positions, and 782 first-pass findings
+- write run projected 2,926 MBOP positions, 311 Amazon positions, and 792 open findings
+- Next.js production build passed after dashboard API/UI updates
+
+Boundary:
+This layer is derived and additive. It does not replace purchases, receiving, FBA shipment preparation, or Amazon SP-API snapshot ownership.
+
+First-pass limitation:
+Amazon reconciliation is intentionally noisy because many Amazon FBA SKUs are not yet mapped back to MBOP operational inventory. The findings are meant to drive mapping and confidence work, not imply all mismatches are defects.
+
+---
+
 # Current Frontend State
 
 ## App Shell
@@ -222,7 +268,7 @@ Implemented:
 
 ## Dashboard UI
 
-Status: OPERATIONAL FIRST PASS
+Status: OPERATIONAL FIRST PASS / INVENTORY VISIBILITY ADDED
 
 Implemented:
 - dashboard workspace at /dashboard
@@ -236,6 +282,9 @@ Implemented:
 - shipment prep backlog summary for Received Amazon-bound FBA candidates
 - workflow aging buckets for receiving and FBA prep
 - operational attention table for past-ETA, stale/no-tracking, exception, return-pending, and missing-data rows
+- Inventory Visibility section backed by the normalized inventory-position and reconciliation layer
+- inventory metrics for owned/in-flow units, Amazon-ready units, Amazon sellable/inbound/reserved/unsellable units, eBay-assigned units, reconciliation findings, and MBOP cost basis
+- open reconciliation finding table showing issue type, ASIN/SKU, title, MBOP quantity, and Amazon quantity
 - dashboard excludes Return Opened rows
 - dashboard excludes Cancelled rows
 - dashboard excludes purchase items marked exclude_from_purchase_reporting once the reporting-exclusion SQL migration is applied

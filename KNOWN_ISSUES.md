@@ -85,6 +85,35 @@ Recommended next mitigation:
 
 ---
 
+## Amazon Inventory Reconciliation Mapping Noise
+
+Status: ACTIVE / EXPECTED FIRST-PASS NOISE
+
+Problem:
+The first unified inventory reconciliation pass detects many open findings because Amazon FBA inventory contains SKUs/ASINs that are not yet mapped back to MBOP operational purchase items.
+
+Current observed result:
+- latest run projected 2,926 MBOP workflow positions
+- latest run projected 311 Amazon FBA inventory positions
+- latest run created 792 open reconciliation findings
+
+Impact:
+The dashboard now surfaces inventory visibility gaps, but the initial open-finding count should be treated as a work queue for mapping and confidence-building rather than as a clean defect count.
+
+Current mitigation:
+- findings are stored in `inventory_reconciliation_event_items`
+- old open findings are deferred when a new reconciliation run is created
+- dashboard Inventory Visibility shows open finding counts and top rows
+- reconciliation is ASIN-level only for the first slice
+
+Recommended next mitigation:
+- add SKU-to-purchase/ASIN mapping review tools.
+- incorporate Amazon listing/suppression/stranded signals once SP-API listing reads are expanded.
+- add future eBay inventory positions before attempting Amazon-to-eBay transfer reconciliation.
+- keep the reconciliation layer read/project first, then route corrections through the owning workflow.
+
+---
+
 ## Legacy Spreadsheet Import Missing Order Dates
 
 Status: ACTIVE

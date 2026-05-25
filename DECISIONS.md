@@ -486,6 +486,43 @@ Do not write Amazon seller sales/orders into `purchases` or `purchase_items`. Pu
 
 ---
 
+## Inventory State Is A Derived Reconciliation Layer
+
+Decision:
+Add a unified inventory-position and reconciliation layer, but keep existing workflow tables authoritative for their own domains.
+
+Reason:
+MBOP needs to reconcile operational inventory against Amazon FBA inventory, support future eBay inventory, and track transfers between Amazon and eBay without collapsing every workflow into one giant status field.
+
+Implementation:
+- `inventory_positions` stores derived current positions.
+- `inventory_movements` is reserved for append-only inventory transition audit records.
+- `inventory_reconciliation_events` records reconciliation runs.
+- `inventory_reconciliation_event_items` records item-level findings.
+- `integrations/inventory_reconcile.py` projects current positions and compares MBOP Amazon-intended inventory to latest Amazon FBA snapshots.
+- dashboard Inventory Visibility reads API-provided inventory metrics and findings.
+
+State model:
+Inventory is represented with separate dimensions:
+- physical location
+- marketplace intent
+- listing channel
+- operational status
+- inventory condition/disposition
+- explicit inventory state label
+
+Ownership boundary:
+- purchases/purchase_items remain authoritative for acquired inventory.
+- receiving owns receiving verification and marketplace assignment.
+- Amazon FBA workflow owns shipment prep/listed transitions.
+- Amazon SP-API tables own external Amazon inventory snapshots.
+- inventory_positions is derived from those sources and can be rebuilt.
+
+Rule:
+Do not write reconciliation corrections directly into workflow tables unless a specific workflow action owns that correction. Reconciliation findings should surface review work first.
+
+---
+
 ## Receiving Owns Marketplace Assignment
 
 Decision:

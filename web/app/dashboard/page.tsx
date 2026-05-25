@@ -32,6 +32,7 @@ type DashboardData = {
   years: YearAggregate[];
   months: MonthAggregate[];
   statusBreakdown: StatusAggregate[];
+  inventoryVisibility: InventoryVisibility;
   operations: {
     purchaseCompleteness: {
       active_rows: number;
@@ -65,6 +66,62 @@ type DashboardData = {
       top_attention: AttentionRow[];
     };
   };
+};
+
+type InventoryVisibility = {
+  metrics: {
+    purchased_inventory_units: number;
+    delivered_not_received_units: number;
+    received_not_listed_units: number;
+    assigned_to_amazon_not_sent_units: number;
+    outbound_to_amazon_units: number;
+    amazon_active_sellable_units: number;
+    amazon_inbound_units: number;
+    amazon_reserved_units: number;
+    amazon_unsellable_units: number;
+    ebay_active_units: number;
+    assigned_to_ebay_units: number;
+    return_or_cancel_units: number;
+    inventory_needing_reconciliation_units: number;
+    open_reconciliation_findings: number;
+    estimated_mbop_cost_basis: number;
+  };
+  unitsByState: Array<{ state: string; label: string; units: number }>;
+  unitsByLocation: Array<{ location: string; label: string; units: number }>;
+  unitsByIntent: Array<{ intent: string; label: string; units: number }>;
+  reconciliationBySeverity: {
+    critical: number;
+    warning: number;
+    info: number;
+  };
+  latestReconciliation: {
+    reconciliation_type: string;
+    status: string;
+    started_at: string;
+    completed_at: string | null;
+    matched_count: number | null;
+    mismatch_count: number | null;
+    missing_internal_count: number | null;
+    missing_external_count: number | null;
+    needs_review_count: number | null;
+  } | null;
+  openFindings: InventoryFinding[];
+};
+
+type InventoryFinding = {
+  id: string;
+  severity: "info" | "warning" | "critical";
+  issue_type: string;
+  issue_label: string;
+  asin: string | null;
+  seller_sku: string | null;
+  title: string | null;
+  mbop_quantity: number | null;
+  amazon_total_quantity: number | null;
+  amazon_fulfillable_quantity: number | null;
+  amazon_inbound_quantity: number | null;
+  amazon_reserved_quantity: number | null;
+  amazon_unsellable_quantity: number | null;
 };
 
 type BacklogSummary = {
@@ -207,6 +264,128 @@ export default function DashboardPage() {
           ]}
           loading={loading}
         />
+      </section>
+
+      <section className="mb-4 rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+        <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <div className="text-sm font-medium uppercase tracking-wide text-slate-500">
+              Inventory Visibility
+            </div>
+            <h2 className="mt-1 text-lg font-semibold">
+              Operational Inventory And Reconciliation
+            </h2>
+          </div>
+          <div className="text-right text-xs text-slate-500">
+            <div>Latest reconciliation</div>
+            <div className="font-medium text-slate-700">
+              {loading
+                ? "--"
+                : formatDateTime(data?.inventoryVisibility.latestReconciliation?.completed_at)}
+            </div>
+          </div>
+        </div>
+
+        <div className="mb-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+          <InlineMetric
+            label="Owned / In Flow"
+            value={loading ? "--" : formatNumber(data?.inventoryVisibility.metrics.purchased_inventory_units)}
+          />
+          <InlineMetric
+            label="Ready For Amazon"
+            value={loading ? "--" : formatNumber(data?.inventoryVisibility.metrics.assigned_to_amazon_not_sent_units)}
+          />
+          <InlineMetric
+            label="Amazon Sellable"
+            value={loading ? "--" : formatNumber(data?.inventoryVisibility.metrics.amazon_active_sellable_units)}
+          />
+          <InlineMetric
+            label="Needs Reconcile"
+            value={loading ? "--" : formatNumber(data?.inventoryVisibility.metrics.open_reconciliation_findings)}
+          />
+          <InlineMetric
+            label="MBOP Cost Basis"
+            value={loading ? "--" : formatMoney(data?.inventoryVisibility.metrics.estimated_mbop_cost_basis)}
+          />
+        </div>
+
+        <div className="grid gap-4 xl:grid-cols-[minmax(0,0.75fr)_minmax(0,1.25fr)]">
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-1">
+            <InventoryMiniTable
+              title="State Counts"
+              rows={(data?.inventoryVisibility.unitsByState ?? []).slice(0, 10)}
+              loading={loading}
+            />
+            <OperationalPanel
+              title="Channel / Exception Counts"
+              rows={[
+                ["Delivered not received", formatNumber(data?.inventoryVisibility.metrics.delivered_not_received_units)],
+                ["Received not listed", formatNumber(data?.inventoryVisibility.metrics.received_not_listed_units)],
+                ["Outbound to Amazon", formatNumber(data?.inventoryVisibility.metrics.outbound_to_amazon_units)],
+                ["Amazon inbound", formatNumber(data?.inventoryVisibility.metrics.amazon_inbound_units)],
+                ["Amazon reserved", formatNumber(data?.inventoryVisibility.metrics.amazon_reserved_units)],
+                ["Amazon unsellable", formatNumber(data?.inventoryVisibility.metrics.amazon_unsellable_units)],
+                ["Assigned to eBay", formatNumber(data?.inventoryVisibility.metrics.assigned_to_ebay_units)],
+                ["eBay active", formatNumber(data?.inventoryVisibility.metrics.ebay_active_units)],
+                ["Return/cancel", formatNumber(data?.inventoryVisibility.metrics.return_or_cancel_units)],
+              ]}
+              loading={loading}
+            />
+          </div>
+
+          <div className="overflow-hidden rounded-md border border-slate-200">
+            <div className="border-b border-slate-200 bg-slate-50 px-3 py-2">
+              <div className="text-sm font-semibold">Open Reconciliation Findings</div>
+              <div className="text-xs text-slate-500">
+                Critical {formatNumber(data?.inventoryVisibility.reconciliationBySeverity.critical)} · Warning{" "}
+                {formatNumber(data?.inventoryVisibility.reconciliationBySeverity.warning)} · Info{" "}
+                {formatNumber(data?.inventoryVisibility.reconciliationBySeverity.info)}
+              </div>
+            </div>
+            <table className="w-full text-left text-sm">
+              <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
+                <tr>
+                  <th className="px-3 py-2">Issue</th>
+                  <th className="px-3 py-2">ASIN / SKU</th>
+                  <th className="px-3 py-2">Title</th>
+                  <th className="px-3 py-2 text-right">MBOP</th>
+                  <th className="px-3 py-2 text-right">Amazon</th>
+                </tr>
+              </thead>
+              <tbody>
+                {loading ? (
+                  <tr>
+                    <td className="px-3 py-6 text-center text-slate-500" colSpan={5}>
+                      Loading inventory findings...
+                    </td>
+                  </tr>
+                ) : data?.inventoryVisibility.openFindings.length ? (
+                  data.inventoryVisibility.openFindings.map((finding) => (
+                    <tr key={finding.id} className="border-t border-slate-100">
+                      <td className="px-3 py-2">
+                        <div className="font-medium">{finding.issue_label}</div>
+                        <div className="text-xs uppercase text-slate-500">{finding.severity}</div>
+                      </td>
+                      <td className="px-3 py-2">
+                        <div>{finding.asin || "--"}</div>
+                        <div className="text-xs text-slate-500">{finding.seller_sku || "--"}</div>
+                      </td>
+                      <td className="max-w-[420px] truncate px-3 py-2">{finding.title || "--"}</td>
+                      <td className="px-3 py-2 text-right">{formatNumber(finding.mbop_quantity)}</td>
+                      <td className="px-3 py-2 text-right">{formatNumber(finding.amazon_total_quantity)}</td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td className="px-3 py-6 text-center text-slate-500" colSpan={5}>
+                      No open reconciliation findings.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
       </section>
 
       <section className="mb-4 grid gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
@@ -545,6 +724,52 @@ function AgingTable({
   );
 }
 
+function InventoryMiniTable({
+  title,
+  rows,
+  loading,
+}: {
+  title: string;
+  rows: Array<{ label: string; units: number }>;
+  loading: boolean;
+}) {
+  return (
+    <div className="rounded-md border border-slate-200 p-3">
+      <h3 className="mb-2 text-sm font-semibold">{title}</h3>
+      <table className="w-full text-sm">
+        <thead className="text-xs uppercase tracking-wide text-slate-500">
+          <tr>
+            <th className="py-1 text-left">State</th>
+            <th className="py-1 text-right">Units</th>
+          </tr>
+        </thead>
+        <tbody>
+          {loading ? (
+            <tr>
+              <td className="py-3 text-center text-slate-500" colSpan={2}>
+                Loading...
+              </td>
+            </tr>
+          ) : rows.length ? (
+            rows.map((row) => (
+              <tr key={row.label} className="border-t border-slate-100">
+                <td className="py-1">{row.label}</td>
+                <td className="py-1 text-right">{formatNumber(row.units)}</td>
+              </tr>
+            ))
+          ) : (
+            <tr>
+              <td className="py-3 text-center text-slate-500" colSpan={2}>
+                No inventory positions found.
+              </td>
+            </tr>
+          )}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 function formatNumber(value?: number | null) {
   if (value === null || value === undefined || Number.isNaN(Number(value))) {
     return "--";
@@ -570,4 +795,18 @@ function formatDays(value?: number | null) {
   }
 
   return `${formatNumber(value)}d`;
+}
+
+function formatDateTime(value?: string | null) {
+  if (!value) return "--";
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "--";
+
+  return date.toLocaleString("en-US", {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
 }
