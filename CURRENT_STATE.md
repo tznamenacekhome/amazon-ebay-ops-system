@@ -18,7 +18,7 @@ MBOP is the internal operations platform for Midnight Blue Enterprises, LLC.
 | Sync orchestration | Mature |
 | Dashboard analytics | First slice implemented |
 | Matching engine | Emerging subsystem |
-| Amazon SP-API foundation | First read-only foundation added |
+| Amazon SP-API foundation | Read-only inventory sync working |
 | Amazon FBA workflow | First slice implemented |
 | Legacy spreadsheet backfill | Recently used / repeatable script available |
 
@@ -169,15 +169,19 @@ Recent ASIN validation:
 
 ## Amazon SP-API Foundation
 
-Status: READ-ONLY FOUNDATION ADDED / AUTH NEEDS CREDENTIAL CHECK
+Status: READ-ONLY INVENTORY SYNC WORKING
 
 Implemented:
 - `integrations/amazon_spapi_client.py`
 - `integrations/amazon_test_connection.py`
+- `integrations/amazon_sync_fba_inventory.py`
 - Login with Amazon refresh-token exchange
 - LWA-only SP-API request support for the post-Oct-2023 auth model
 - optional legacy AWS SigV4 signing only when `AMAZON_SP_API_USE_SIGV4=true`
 - read-only allow-list for FBA inventory, Listings Items, and Product Pricing paths
+- paginated FBA inventory summary sync
+- Amazon SKU upsert into `amazon_skus`
+- point-in-time inventory snapshot inserts into `amazon_fba_inventory_snapshots`
 - safe logging that avoids printing secrets or restricted data
 - fail-safe behavior for rejected auth or rejected resource calls
 - no restricted-data-token flow
@@ -192,6 +196,9 @@ Current validation:
 - local syntax checks pass
 - auth-only smoke test succeeded after credential correction
 - inventory summary smoke test can run without AWS IAM credentials
+- dry run fetched 50 summaries from the first page and normalized 50 SKU/snapshot rows
+- limited write upserted 50 SKU rows and inserted 50 snapshot rows
+- full sync fetched 6,292 FBA inventory summaries, upserted 6,292 SKU rows, and inserted 6,292 inventory snapshot rows
 
 Boundary:
 Amazon seller/FBA data must stay in Amazon-specific tables and must not write to `purchases` or `purchase_items`.

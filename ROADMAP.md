@@ -278,6 +278,8 @@ Foundation completed:
 - retained optional legacy SigV4 signing only behind `AMAZON_SP_API_USE_SIGV4=true`
 - added auth/inventory smoke-test script
 - added Amazon-specific tables for seller SKUs and FBA inventory snapshots
+- added paginated FBA inventory sync into `amazon_skus` and `amazon_fba_inventory_snapshots`
+- full sync validated 6,292 Amazon FBA inventory summaries
 - kept Amazon seller data separate from purchases and purchase_items
 - auth-only validation succeeds after credential correction
 
@@ -290,7 +292,7 @@ Planned scope:
 - preserve the rule that video game matching must never cross systems
 
 First next step:
-run the read-only inventory summary smoke test, then add snapshot sync into `amazon_fba_inventory_snapshots`
+add dashboard/API visibility for latest Amazon FBA inventory totals and compare Amazon inventory against MBOP Listed/FBA shipment state
 
 ---
 

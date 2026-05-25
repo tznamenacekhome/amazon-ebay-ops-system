@@ -169,6 +169,7 @@ Amazon SP-API integrations:
 - may use inventory, listings, and pricing read endpoints
 - must not request restricted PII data or Amazon seller order/customer data
 - must write normalized Amazon seller/FBA data to Amazon-specific tables, not purchases or purchase_items
+- current FBA inventory sync entry point is `integrations/amazon_sync_fba_inventory.py`
 
 Do not merge these workflows into one UI.
 

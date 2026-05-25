@@ -475,6 +475,7 @@ Implementation:
 - `integrations/amazon_spapi_client.py` handles Login with Amazon refresh-token exchange and sends SP-API requests with the LWA access token header.
 - AWS SigV4 signing is optional legacy compatibility and is used only when `AMAZON_SP_API_USE_SIGV4=true`.
 - `integrations/amazon_test_connection.py` smoke-tests LWA auth and a safe FBA inventory summary read.
+- `integrations/amazon_sync_fba_inventory.py` paginates FBA inventory summaries, upserts `amazon_skus`, and inserts point-in-time `amazon_fba_inventory_snapshots`.
 - the client allow-list is limited to FBA inventory, Listings Items, and Product Pricing read paths.
 - no restricted-data-token flow is implemented.
 - no Amazon Orders API, buyer, address, or other PII-oriented endpoint is called.

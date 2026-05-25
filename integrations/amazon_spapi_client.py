@@ -197,6 +197,40 @@ class AmazonSPAPIClient:
 
         return self.request("GET", "/fba/inventory/v1/summaries", params=params)
 
+    def iter_inventory_summaries(
+        self,
+        *,
+        details: bool = True,
+        seller_skus: list[str] | None = None,
+        max_pages: int | None = None,
+    ):
+        next_token: str | None = None
+        pages_seen = 0
+
+        while True:
+            payload = self.get_inventory_summaries(
+                details=details,
+                seller_skus=seller_skus,
+                next_token=next_token,
+            )
+            pages_seen += 1
+            inventory_payload = payload.get("payload") or {}
+            for summary in inventory_payload.get("inventorySummaries") or []:
+                yield summary
+
+            next_token = (
+                (payload.get("pagination") or {}).get("nextToken")
+                or inventory_payload.get("nextToken")
+            )
+            if not next_token:
+                return
+            if max_pages and pages_seen >= max_pages:
+                LOGGER.warning(
+                    "Stopping Amazon inventory pagination at max_pages=%s",
+                    max_pages,
+                )
+                return
+
     def get_listing_item(
         self,
         seller_sku: str,
