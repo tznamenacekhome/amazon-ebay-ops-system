@@ -103,6 +103,7 @@ Recent progress:
 - manual correction propagation updates duplicate title/system purchases
 - legacy Purchases sheet backfill filled 340 ASINs and 2,141 target sell prices
 - reference spreadsheet ASIN validator added for order-by-order MBOP/spreadsheet comparison
+- spreadsheet-authoritative ASIN cleanup applied 31 corrections and now validates cleanly
 - manual eBay title and purchase price overrides are protected from eBay sync overwrite
 - manual split item rows are supported for multi-game eBay listings
 
@@ -112,7 +113,6 @@ Constraints:
 - receiving workflow must remain separate
 
 Remaining:
-- review and resolve the 30 unique orders flagged by `integrations/validate_asins_against_purchase_sheet.py`
 - decide whether to merge or otherwise clean up legacy duplicate purchases for multi-row historical orders such as 04-14542-23405
 
 ---

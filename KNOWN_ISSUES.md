@@ -100,22 +100,22 @@ Recommended next mitigation:
 
 ## Reference Spreadsheet ASIN Mismatches
 
-Status: ACTIVE
+Status: RESOLVED / MONITOR
 
 Problem:
-A validation pass found MBOP active purchase item ASIN quantities do not exactly match the reference spreadsheet Purchases tab for 30 unique orders.
+A validation pass found MBOP active purchase item ASIN quantities did not exactly match the reference spreadsheet Purchases tab for 30 unique orders.
 
 Current validation:
 - script: `integrations/validate_asins_against_purchase_sheet.py`
-- latest report: `data/asin_validation_20260524_195357.csv`
-- 2,795 of 2,825 compared orders matched exactly
-- mismatches include swapped ASINs, missing split-row ASINs, blank MBOP ASIN rows, and one quantity mismatch
+- cleanup script: `integrations/apply_sheet_asin_validation_fixes.py`
+- spreadsheet ASINs were treated as authoritative when MBOP conflicted or was blank
+- 31 purchase item ASINs were corrected from the spreadsheet
+- latest report: `data/asin_validation_20260524_201926.csv`
+- 2,825 of 2,825 compared orders matched exactly
 
-Recommended next mitigation:
-- review the report order by order
-- confirm whether the spreadsheet or MBOP is authoritative for each mismatch
-- apply corrections through the UI or a controlled SQL cleanup
-- rerun the validator until the issue count reaches zero or only intentionally documented exceptions remain
+Recommended guardrail:
+- rerun the validator after future ASIN enrichment or large manual correction passes
+- keep the cleanup script as a controlled spreadsheet-authoritative repair path
 
 ---
 

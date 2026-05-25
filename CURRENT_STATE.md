@@ -129,10 +129,11 @@ Recent legacy sheet backfill:
 Recent ASIN validation:
 - script: integrations/validate_asins_against_purchase_sheet.py
 - compares MBOP active purchase item ASIN quantities to the reference spreadsheet Purchases tab by eBay order number
-- latest run scanned 2,879 spreadsheet rows and compared 2,825 orders
-- 2,795 orders matched exactly by ASIN and quantity
-- 30 unique orders need ASIN review or split-row correction
-- latest report: data/asin_validation_20260524_195357.csv
+- cleanup script: integrations/apply_sheet_asin_validation_fixes.py
+- latest cleanup applied 31 spreadsheet-authoritative ASIN corrections
+- latest validation scanned 2,879 spreadsheet rows and compared 2,825 orders
+- 2,825 orders matched exactly by ASIN and quantity
+- latest clean report: data/asin_validation_20260524_201926.csv
 
 ---
 
