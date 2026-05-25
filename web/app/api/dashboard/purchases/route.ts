@@ -279,10 +279,13 @@ function aggregateOperations(rows: DashboardPurchaseRow[]) {
   const overdueRows = activeRows.filter(isOverdue);
   const noTrackingAgedRows = activeRows.filter((row) => {
     const status = normalizeStatus(row.current_status);
+    const orderAgeDays = ageDays(row.order_date);
+
     return (
       ["no_tracking", "shipped_no_tracking", "awaiting_carrier_scan"].includes(status) &&
-      ageDays(row.order_date) !== null &&
-      (ageDays(row.order_date) ?? 0) >= 7
+      orderAgeDays !== null &&
+      orderAgeDays >= 7 &&
+      orderAgeDays <= 90
     );
   });
   const exceptionRows = reportableRows.filter((row) =>

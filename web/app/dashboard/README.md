@@ -21,6 +21,7 @@ The API reads `vw_purchases_dashboard` and aggregates:
 - shipment prep backlog: Received Amazon-bound rows waiting for FBA shipment preparation
 - workflow aging buckets for receiving and FBA prep
 - exception visibility: past-ETA rows, stale/no-tracking rows, exception rows, and return-pending rows
+- stale/no-tracking visibility ignores rows more than 90 days old because those historical tracking gaps are not actionable
 
 `unit_cost` is the authoritative backend landed-cost value. Dashboard React components should render API-provided aggregates and should not introduce their own landed-cost calculations.
 
