@@ -23,11 +23,18 @@ type MonthAggregate = {
   cost: number;
 };
 
+type StatusAggregate = {
+  status: string;
+  label: string;
+  units: number;
+};
+
 export async function GET() {
   const rows = await fetchPurchaseRows();
   const rowsWithExclusions = await hydrateReportingExclusions(rows);
   const monthly = aggregateByMonth(rowsWithExclusions);
   const years = aggregateByYear(monthly);
+  const statusBreakdown = aggregateByStatus(rowsWithExclusions);
   const totals = monthly.reduce(
     (accumulator, month) => ({
       units: accumulator.units + month.units,
@@ -40,6 +47,7 @@ export async function GET() {
     totals,
     years,
     months: monthly,
+    statusBreakdown,
   });
 }
 
@@ -166,6 +174,38 @@ function aggregateByYear(months: MonthAggregate[]) {
   return [...years.values()].sort((left, right) => right.year - left.year);
 }
 
+function aggregateByStatus(rows: DashboardPurchaseRow[]) {
+  const aggregates = new Map<string, StatusAggregate>();
+
+  for (const row of rows) {
+    if (row.exclude_from_purchase_reporting) continue;
+
+    const status = normalizeStatus(row.current_status) || "unknown";
+    const quantity = Number(row.quantity ?? 0);
+    const existing = aggregates.get(status) ?? {
+      status,
+      label: statusLabel(status),
+      units: 0,
+    };
+
+    existing.units += Number.isFinite(quantity) ? quantity : 0;
+    aggregates.set(status, existing);
+  }
+
+  return [...aggregates.values()].sort((left, right) => {
+    const leftIndex = STATUS_ORDER.indexOf(left.status);
+    const rightIndex = STATUS_ORDER.indexOf(right.status);
+
+    if (leftIndex !== -1 || rightIndex !== -1) {
+      if (leftIndex === -1) return 1;
+      if (rightIndex === -1) return -1;
+      return leftIndex - rightIndex;
+    }
+
+    return left.label.localeCompare(right.label);
+  });
+}
+
 function normalizeStatus(value?: string | null) {
   return (value || "").trim().toLowerCase().replace(/[\s-]+/g, "_");
 }
@@ -179,4 +219,44 @@ function monthName(month: number) {
     month: "short",
     timeZone: "UTC",
   });
+}
+
+const STATUS_ORDER = [
+  "no_tracking",
+  "ordered",
+  "shipped_no_tracking",
+  "awaiting_carrier_scan",
+  "in_transit",
+  "available_for_pickup",
+  "out_for_delivery",
+  "delivered",
+  "received",
+  "listed",
+  "exception",
+  "return_pending",
+  "return_opened",
+  "cancelled",
+  "unknown",
+];
+
+function statusLabel(status: string) {
+  const labels: Record<string, string> = {
+    no_tracking: "No Tracking",
+    ordered: "Ordered",
+    shipped_no_tracking: "Shipped (No Tracking)",
+    awaiting_carrier_scan: "Awaiting Carrier Scan",
+    in_transit: "In Transit",
+    available_for_pickup: "Out for Pickup / Pickup Available",
+    out_for_delivery: "Out for Delivery",
+    delivered: "Delivered",
+    received: "Received",
+    listed: "Listed",
+    exception: "Exception",
+    return_pending: "Return Pending",
+    return_opened: "Return Opened",
+    cancelled: "Cancelled",
+    unknown: "Unknown",
+  };
+
+  return labels[status] ?? status.replace(/_/g, " ");
 }

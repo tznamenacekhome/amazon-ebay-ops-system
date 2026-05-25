@@ -18,6 +18,12 @@ type YearAggregate = {
   months: MonthAggregate[];
 };
 
+type StatusAggregate = {
+  status: string;
+  label: string;
+  units: number;
+};
+
 type DashboardData = {
   totals: {
     units: number;
@@ -25,6 +31,7 @@ type DashboardData = {
   };
   years: YearAggregate[];
   months: MonthAggregate[];
+  statusBreakdown: StatusAggregate[];
 };
 
 export default function DashboardPage() {
@@ -100,6 +107,41 @@ export default function DashboardPage() {
           label="Months"
           value={loading ? "--" : formatNumber(data?.months.length)}
         />
+      </section>
+
+      <section className="mb-4 rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+        <div className="mb-3">
+          <div className="text-sm font-medium uppercase tracking-wide text-slate-500">
+            Item Status
+          </div>
+          <h2 className="mt-1 text-lg font-semibold">Operational Units</h2>
+        </div>
+
+        {loading ? (
+          <div className="py-6 text-center text-sm text-slate-500">
+            Loading status counts...
+          </div>
+        ) : data?.statusBreakdown.length ? (
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7">
+            {data.statusBreakdown.map((status) => (
+              <div
+                key={status.status}
+                className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2"
+              >
+                <div className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                  {status.label}
+                </div>
+                <div className="mt-1 text-xl font-semibold">
+                  {formatNumber(status.units)}
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="py-6 text-center text-sm text-slate-500">
+            No status data found.
+          </div>
+        )}
       </section>
 
       <section className="grid gap-4 xl:grid-cols-[minmax(0,1.1fr)_minmax(460px,0.9fr)]">

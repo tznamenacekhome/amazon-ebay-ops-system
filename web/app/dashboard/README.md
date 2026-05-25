@@ -15,6 +15,7 @@ The API reads `vw_purchases_dashboard` and aggregates:
 
 - units: sum of `quantity`
 - cost: sum of `unit_cost * quantity`
+- status breakdown: sum of `quantity` by `purchase_items.current_status`
 
 `unit_cost` is the authoritative backend landed-cost value. Dashboard React components should render API-provided aggregates and should not introduce their own landed-cost calculations.
 

@@ -160,6 +160,7 @@ Implemented:
 - dashboard workspace at /dashboard
 - dashboard API route at /api/dashboard/purchases
 - monthly purchase units and total cost view grouped by year/month
+- operational unit count by purchase item status
 - pivot-style table inspired by the legacy Excel purchase summary
 - horizontal monthly cost chart for quick outlier/completeness scanning
 - dashboard excludes Return Opened rows
