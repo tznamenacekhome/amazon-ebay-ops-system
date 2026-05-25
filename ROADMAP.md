@@ -120,7 +120,7 @@ Remaining:
 ## Receiving And Listing Workflows
 
 Status:
-First receiving slice implemented.
+Receiving first slice implemented. Amazon FBA first slice implemented.
 
 Workflow statuses:
 - Received: item has been warehouse-verified after delivery; displayed in purchases once the future receiving workflow sets `purchase_items.current_status = received`
@@ -147,12 +147,20 @@ Completed:
 - one-time reference sheet status backfill applied explicit Listed and Received values
 - blank reference sheet statuses were left as their existing MBOP carrier/workflow statuses
 - eBay purchase sync preserves Cancelled, Listed, Received, Return Opened, and Return Pending workflow statuses
+- separate Amazon FBA page at /fba
+- FBA shipment API at /api/fba-shipments
+- Received Amazon-bound items grouped one row per ASIN for InventoryLab export
+- FBA CSV export added
+- FBA shipment ID save links included purchase items and changes included quantities to Listed
+- unit-level exclusions supported through quantity-to-send detail rows and split purchase item behavior
 
 Next steps:
 - apply sql/2026-05-23_add_receiving_fields.sql in Supabase
 - test receiving flow against real delivered and shipped-without-tracking rows
 - decide source for eBay listing image URLs
-- define listing/FBA workflow tables/fields
+- apply/backfill sql/2026-05-24_add_fba_shipments.sql in Supabase
+- test FBA export against InventoryLab import requirements
+- review whether FBA needs a historical shipments screen or shipment lookup by shipment ID
 - keep receiving/listing workflows separate from purchases review UI
 
 ---

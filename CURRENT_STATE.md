@@ -18,7 +18,7 @@ MBOP is the internal operations platform for Midnight Blue Enterprises, LLC.
 | Sync orchestration | Mature |
 | Dashboard analytics | First slice implemented |
 | Matching engine | Emerging subsystem |
-| Export pipeline | Planned |
+| Amazon FBA workflow | First slice implemented |
 | Legacy spreadsheet backfill | Recently used / repeatable script available |
 
 ---
@@ -145,7 +145,7 @@ Status: OPERATIONAL
 
 Implemented:
 - compact shared left-side navigation
-- Dashboard, Purchases, and Receiving menu items
+- Dashboard, Purchases, Receiving, and Amazon FBA menu items
 - active mode highlighting
 - content remains dense and table-focused
 - implementation lives in web/app/AppShell.tsx
@@ -292,3 +292,26 @@ Schema:
 
 Pending:
 - decide image source for eBay listing images
+
+---
+
+## Amazon FBA UI
+
+Status: FIRST SLICE IMPLEMENTED
+
+Implemented:
+- separate Amazon FBA workspace at /fba
+- FBA API route at /api/fba-shipments
+- received Amazon-bound purchase items are grouped into one row per ASIN
+- grouped rows show ASIN, Amazon title, system, weighted cost per unit, sell price, quantity, oldest purchase date, and supplier
+- rows are sorted by system and Amazon title
+- shipment stats show ASIN count, total units, total cost, and selected cost
+- CSV export uses the currently selected quantities for InventoryLab import
+- detail expansion shows supplier order ID, Amazon title, ASIN, received quantity, quantity to send, and unit cost for underlying purchase items
+- quantity-to-send supports excluding a specific unit from an FBA shipment
+- saving with a shipment ID links included items to fba_shipments/fba_shipment_items and moves included quantities to Listed
+- partial included quantities split the remaining quantity into a Received split child row
+
+Schema:
+- sql/2026-05-24_add_fba_shipments.sql adds fba_shipments and fba_shipment_items
+- historical Listed items should be linked to legacy_listed_no_shipment_id when no real shipment ID will be backfilled

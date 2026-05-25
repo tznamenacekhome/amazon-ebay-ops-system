@@ -45,7 +45,7 @@ Dashboard UI lives under:
 - web/app/api/dashboard/
 
 Current pattern:
-- AppShell provides the shared left-side navigation for Dashboard, Purchases, and Receiving
+- AppShell provides the shared left-side navigation for Dashboard, Purchases, Receiving, and Amazon FBA
 - page.tsx composes the workspace and owns UI-local workflow state
 - usePurchases owns purchase loading, save status, errors, and API mutations
 - usePurchaseFilters owns filter state and filtered row derivation
@@ -121,6 +121,8 @@ Backend logic is authoritative.
 
 Purchases workflow != Receiving workflow
 Purchases workflow != eBay seller order workflow
+Purchases workflow != Amazon FBA shipment workflow
+Receiving workflow != Amazon FBA shipment workflow
 
 Purchases workflow:
 - sourcing verification
@@ -136,10 +138,23 @@ Receiving workflow:
 - marketplace assignment after receipt
 - received-date capture for later reporting/querying
 
+Amazon FBA workflow:
+- shipment preparation after receiving
+- grouping Received Amazon-bound purchase items by ASIN
+- InventoryLab CSV export
+- shipment ID association
+- moving included quantities from Received to Listed
+- leaving excluded quantities in Received
+
 Current receiving entry points:
 - web/app/AppShell.tsx
 - web/app/receiving/page.tsx
 - web/app/api/receiving/route.ts
+
+Current Amazon FBA entry points:
+- web/app/AppShell.tsx
+- web/app/fba/page.tsx
+- web/app/api/fba-shipments/route.ts
 
 Do not merge these workflows into one UI.
 

@@ -48,7 +48,7 @@ Purchases and Receiving are separate workflows, but operators need fast switchin
 
 Implementation:
 - `web/app/AppShell.tsx`
-- current entries are Dashboard, Purchases, and Receiving
+- current entries are Dashboard, Purchases, Receiving, and Amazon FBA
 - active mode is highlighted
 - the shell remains narrow so dense operational tables keep most of the viewport
 
@@ -358,6 +358,38 @@ Implementation:
 
 Rule:
 Blank values in the reference `status` tab are not a new status. They leave the existing MBOP status in place, usually a carrier/shipment-derived status such as Ordered, Delivered, No Tracking, or similar.
+
+---
+
+## Amazon FBA Shipment Workflow Is Separate
+
+Decision:
+Use a separate Amazon FBA workflow for preparing Received Amazon-bound inventory for InventoryLab shipment creation.
+
+Reason:
+FBA shipment preparation happens after receiving and before/while listing. It should not be mixed into purchase review or receiving verification.
+
+Implementation:
+- `/fba` displays the shipment preparation workspace
+- `/api/fba-shipments` owns Supabase reads/writes
+- Received Amazon-bound purchase items are grouped by ASIN
+- grouped cost per unit is quantity-weighted from `vw_purchases_dashboard.unit_cost`
+- grouped purchase date uses the oldest purchase date
+- grouped title is the stored Amazon title only
+- grouped sell price uses the highest non-null target sell price
+
+Save behavior:
+- operator enters the InventoryLab/Amazon shipment ID
+- included quantities are linked to `fba_shipments` and `fba_shipment_items`
+- included quantities move from `received` to `listed`
+- excluded quantities remain `received`
+- partial included quantities split the purchase item so only the included quantity becomes `listed`
+
+Historical marker:
+Use `legacy_listed_no_shipment_id` for already Listed items that predate MBOP shipment ID tracking. This value is not a real Amazon shipment ID.
+
+Rule:
+Do not mark excluded or damaged units Listed during FBA save. They must remain Received or move through a later exception workflow.
 
 ---
 
