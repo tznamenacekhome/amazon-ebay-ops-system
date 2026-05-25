@@ -36,6 +36,8 @@ Implemented:
 - eBay item/listing URL derivation from transaction ItemID
 - delivery extraction
 - landed cost calculations
+- net-cost handling for foreign-currency purchases when eBay provides USD payment totals
+- single-item partial refund cost adjustment from eBay payment/refund totals
 - shipment linking
 - inbound shipment linking
 - import batching
@@ -163,12 +165,14 @@ Help identify purchase data completeness and cost accuracy by comparing MBOP mon
 Recent reconciliation:
 - 2024 and 2025 dashboard totals match the legacy Excel pivot exactly
 - 2026 variances are primarily returns/cancellations and split-row quantity/cost differences between MBOP and the legacy spreadsheet
-- two zero-cost NBA 2K22 rows from order 16-14113-30387 were marked Received / eBay
+- zero-cost NBA 2K22 historical rows from order 16-14113-30387 were excluded from reporting after confirming corrected received quantities elsewhere
 - personal purchase and business supply reporting exclusions were identified for migration-backed cleanup
 - eBay purchases after 2026-05-15 that were absent from both legacy spreadsheet Purchases and Returns tabs were excluded from reporting: 13 item rows across 12 orders
 - no strict after-2026-05-15 MBOP-only rows were found on the legacy Returns tab during that reconciliation
 - legacy Returns-tab matches were normalized for 2026: 26 rows to Return Opened and 13 rows to Cancelled
-- after Returns-tab status normalization, remaining dashboard variance is 29 units / $525.31 over the spreadsheet
+- one-time cleanup corrected duplicate rows, split-row quantities, partial-return quantities, one returned/refunded spreadsheet-missing order, one single-item partial refund, and three CAD purchase costs
+- active dashboard total now matches the legacy pivot unit count: 4,806 units
+- active dashboard cost is $84,840.36 versus the legacy pivot $84,836.31, leaving a $4.05 MBOP-over-spreadsheet variance attributed to known spreadsheet mistakes
 
 ---
 

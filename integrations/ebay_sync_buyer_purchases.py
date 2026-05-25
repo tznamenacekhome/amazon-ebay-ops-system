@@ -75,6 +75,17 @@ def find_first(parent, name):
     return None
 
 
+def find_all(parent, name):
+    if parent is None:
+        return []
+
+    return [
+        elem
+        for elem in parent.iter()
+        if strip_namespace(elem.tag) == name
+    ]
+
+
 def element_to_dict(elem):
     tag = strip_namespace(elem.tag)
     children = list(elem)
@@ -419,7 +430,37 @@ def transaction_listing_url(transaction):
     return f"https://www.ebay.com/itm/{item_id}" if item_id else None
 
 
-def transaction_unit_cost(transaction):
+def money_currency(elem):
+    if elem is None:
+        return None
+
+    return elem.attrib.get("currencyID")
+
+
+def transaction_has_non_usd_currency(transaction):
+    for field in ("TransactionPrice", "ActualShippingCost", "ActualHandlingCost"):
+        currency = money_currency(find_first(transaction, field))
+        if currency and currency.upper() != "USD":
+            return True
+
+    return False
+
+
+def order_payment_total(order):
+    return sum(
+        parse_money(elem.text)
+        for elem in find_all(order, "PaymentAmount")
+    )
+
+
+def order_refund_total(order):
+    return sum(
+        parse_money(elem.text)
+        for elem in find_all(order, "RefundAmount")
+    )
+
+
+def transaction_landed_total(transaction):
     quantity = transaction_quantity(transaction)
 
     price_elem = find_first(transaction, "TransactionPrice")
@@ -434,14 +475,88 @@ def transaction_unit_cost(transaction):
         + actual_handling
     )
 
+    return landed_total.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+
+
+def unit_cost_from_total(total, quantity):
     unit_cost = (
-        landed_total / Decimal(str(quantity))
+        total / Decimal(str(quantity))
     ).quantize(
         Decimal("0.01"),
         rounding=ROUND_HALF_UP,
     )
 
     return float(unit_cost)
+
+
+def transaction_unit_cost(transaction):
+    return unit_cost_from_total(
+        transaction_landed_total(transaction),
+        transaction_quantity(transaction),
+    )
+
+
+def transaction_unit_costs(order, transactions):
+    gross_totals = [
+        transaction_landed_total(transaction)
+        for transaction in transactions
+    ]
+    gross_order_total = sum(gross_totals)
+    payment_total = order_payment_total(order)
+    refund_total = order_refund_total(order)
+    net_payment_total = (payment_total + refund_total).quantize(
+        Decimal("0.01"),
+        rounding=ROUND_HALF_UP,
+    )
+    has_refund = refund_total != Decimal("0.00")
+    has_non_usd_currency = any(
+        transaction_has_non_usd_currency(transaction)
+        for transaction in transactions
+    )
+
+    use_net_payment = (
+        net_payment_total > Decimal("0.00")
+        and (
+            has_non_usd_currency
+            or (has_refund and len(transactions) == 1)
+        )
+    )
+
+    if not use_net_payment or gross_order_total <= Decimal("0.00"):
+        return [
+            transaction_unit_cost(transaction)
+            for transaction in transactions
+        ]
+
+    if len(transactions) == 1:
+        return [
+            unit_cost_from_total(
+                net_payment_total,
+                transaction_quantity(transactions[0]),
+            )
+        ]
+
+    allocated = []
+    allocated_so_far = Decimal("0.00")
+
+    for index, transaction in enumerate(transactions):
+        if index == len(transactions) - 1:
+            line_total = net_payment_total - allocated_so_far
+        else:
+            line_total = (
+                net_payment_total
+                * (gross_totals[index] / gross_order_total)
+            ).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+            allocated_so_far += line_total
+
+        allocated.append(
+            unit_cost_from_total(
+                line_total,
+                transaction_quantity(transaction),
+            )
+        )
+
+    return allocated
 
 
 def match_existing_item(existing_items, transaction, used_item_ids):
@@ -584,6 +699,7 @@ def build_item_payload(
     dates,
     import_batch_id,
     existing_item=None,
+    calculated_unit_cost=None,
 ):
     quantity = transaction_quantity(transaction)
     ebay_title = transaction_title(transaction)
@@ -598,6 +714,8 @@ def build_item_payload(
         existing_item.get("unit_cost")
         if existing_item
         and existing_item.get("manual_unit_cost_override")
+        else calculated_unit_cost
+        if calculated_unit_cost is not None
         else transaction_unit_cost(transaction)
     )
     existing_system = normalize_system(existing_item.get("system")) if existing_item else None
@@ -666,6 +784,7 @@ def upsert_purchase_item(
     import_batch_id,
     existing_items,
     used_item_ids,
+    calculated_unit_cost=None,
 ):
     matched_item = match_existing_item(
         existing_items=existing_items,
@@ -680,6 +799,7 @@ def upsert_purchase_item(
         dates=dates,
         import_batch_id=import_batch_id,
         existing_item=matched_item,
+        calculated_unit_cost=calculated_unit_cost,
     )
 
     if matched_item:
@@ -841,6 +961,7 @@ def upsert_purchase(order, import_batch_id):
     used_item_ids = set()
 
     transactions = extract_transactions(order)
+    calculated_unit_costs = transaction_unit_costs(order, transactions)
 
     if not transactions:
         existing_item = existing_items[0] if existing_items else None
@@ -874,7 +995,7 @@ def upsert_purchase(order, import_batch_id):
 
         return "updated" if existing_purchase else "inserted"
 
-    for transaction in transactions:
+    for index, transaction in enumerate(transactions):
         quantity = transaction_quantity(transaction)
 
         item_id = upsert_purchase_item(
@@ -885,6 +1006,7 @@ def upsert_purchase(order, import_batch_id):
             import_batch_id=import_batch_id,
             existing_items=existing_items,
             used_item_ids=used_item_ids,
+            calculated_unit_cost=calculated_unit_costs[index],
         )
 
         link_shipment_item(

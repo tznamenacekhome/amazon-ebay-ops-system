@@ -75,6 +75,28 @@ Do not add frontend-only cost math or alternate landed-cost formulas to dashboar
 
 ---
 
+## Purchase Item Cost Is Net Inventory Cost
+
+Decision:
+`purchase_items.unit_cost` represents the item-level inventory cost MBOP should report, not necessarily the visible card/cash payment amount in eBay order history.
+
+Rules:
+- eBay reward points or payment method effects must not reduce inventory cost to zero
+- for foreign-currency purchases, use eBay-provided USD payment totals when available
+- for single-item partial refunds where the item is kept, reduce the purchase item cost by the refund amount
+- item-level manual cost corrections set `manual_unit_cost_override = true` and must be preserved by later syncs
+
+Reason:
+Dashboard totals need the actual resale inventory cost. eBay payment displays can reflect rewards, currency conversion, refunds, or payment methods that do not map one-to-one to item cost.
+
+Current implementation:
+- eBay buyer purchase sync uses transaction price plus shipping/handling by default
+- if transaction currency is non-USD and eBay exposes a positive USD payment total, the sync allocates that USD total to item costs
+- if a single-item order has a refund total, the sync uses payment plus refund as the net item cost
+- multi-item partial refunds are left to explicit return/refund workflow or manual item-level correction to avoid misallocating a refund across unrelated items
+
+---
+
 ## Non-Resale Purchases Use Explicit Reporting Exclusions
 
 Decision:

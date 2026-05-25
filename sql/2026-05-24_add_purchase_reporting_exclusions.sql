@@ -112,3 +112,122 @@ where p.purchase_id = pi.purchase_id
     '18-14572-43609',
     '07-14604-33646'
   );
+
+-- One-time reconciliation cleanup from the legacy spreadsheet comparison.
+-- These rows are preserved for auditability and excluded when they represent
+-- duplicate imports or non-reporting historical artifacts.
+
+update purchase_items pi
+set
+  exclude_from_purchase_reporting = true,
+  exclusion_reason = 'Duplicate historical sync row from dashboard reconciliation'
+from purchases p
+where p.purchase_id = pi.purchase_id
+  and p.supplier_order_id in (
+    '26-14217-71468',
+    '26-14217-71475',
+    '18-14253-77451',
+    '19-14252-80043',
+    '17-14291-09253',
+    '10-14306-14402',
+    '18-14307-56975',
+    '11-14318-46110',
+    '20-14327-55222',
+    '17-14327-71407',
+    '18-14388-92746',
+    '07-14392-72858',
+    '19-14435-12884',
+    '11-14444-00679',
+    '03-14473-40552',
+    '25-14431-70883',
+    '08-14556-83162',
+    '26-14539-64496'
+  )
+  and pi.unit_cost = 0;
+
+update purchase_items pi
+set
+  quantity = 1,
+  unit_cost = 14.485,
+  manual_unit_cost_override = true
+from purchases p
+where p.purchase_id = pi.purchase_id
+  and p.supplier_order_id = '04-14542-23403'
+  and pi.asin in ('B000GABOTU', 'B002I0K956');
+
+update purchase_items pi
+set
+  quantity = 4,
+  unit_cost = 22.12,
+  manual_unit_cost_override = true
+from purchases p
+where p.purchase_id = pi.purchase_id
+  and p.supplier_order_id = '11-14374-25679';
+
+update purchase_items pi
+set current_status = 'cancelled'
+from purchases p
+where p.purchase_id = pi.purchase_id
+  and p.supplier_order_id = '23-14574-93028';
+
+update purchase_items pi
+set
+  exclude_from_purchase_reporting = true,
+  exclusion_reason = 'Historical zero-cost NBA rows replaced by corrected received quantities'
+from purchases p
+where p.purchase_id = pi.purchase_id
+  and p.supplier_order_id = '16-14113-30387'
+  and pi.title = 'NBA 2K22'
+  and pi.unit_cost is null;
+
+update purchase_items pi
+set
+  quantity = 6,
+  manual_unit_cost_override = true
+from purchases p
+where p.purchase_id = pi.purchase_id
+  and p.supplier_order_id = '25-14402-81239';
+
+update purchase_items pi
+set
+  quantity = 2,
+  unit_cost = 10.93,
+  manual_unit_cost_override = true
+from purchases p
+where p.purchase_id = pi.purchase_id
+  and p.supplier_order_id = '25-14431-70883'
+  and coalesce(pi.exclude_from_purchase_reporting, false) = false;
+
+update purchase_items pi
+set current_status = 'return_opened'
+from purchases p
+where p.purchase_id = pi.purchase_id
+  and p.supplier_order_id = '08-14423-37121';
+
+-- Net cost corrections from refund/currency reconciliation.
+-- manual_unit_cost_override protects these item-level accounting fixes from
+-- later eBay sync updates.
+
+update purchase_items
+set
+  unit_cost = 40.00,
+  manual_unit_cost_override = true
+where item_id = 'f79f4099-99ea-4622-8814-402fb407f0d8';
+
+update purchase_items
+set
+  unit_cost = 20.42,
+  manual_unit_cost_override = true
+where item_id = '89bd1822-0060-4658-8c1a-4622208732dd';
+
+update purchase_items
+set
+  unit_cost = 22.95,
+  manual_unit_cost_override = true
+where item_id = '22cd8a1b-3aec-4b9b-b8f4-36ad07f1e032';
+
+update purchase_items
+set
+  unit_cost = 23.29,
+  manual_unit_cost_override = true
+where item_id = 'b94211b2-2031-41ff-92c5-9c47c7a92d08';

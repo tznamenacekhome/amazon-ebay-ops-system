@@ -100,7 +100,7 @@ Recommended next mitigation:
 
 ## Dashboard / Legacy Spreadsheet Variance
 
-Status: EXPECTED / MONITOR
+Status: MOSTLY RESOLVED / MONITOR
 
 Problem:
 The new MBOP dashboard intentionally calculates purchase units and cost from Supabase, while the legacy Excel pivot was built from the historical spreadsheet.
@@ -110,15 +110,35 @@ Current reconciliation:
 - strict after-2026-05-15 MBOP-only eBay purchases absent from both Purchases and Returns tabs were excluded from dashboard reporting
 - no after-2026-05-15 MBOP-only rows were found on the Returns tab
 - 39 2026 MBOP-active rows found on the legacy Returns tab were normalized: 26 Return Opened and 13 Cancelled
-- remaining variance after status normalization is 29 units / $525.31 over the spreadsheet
-- order 16-14113-30387 had two zero-cost NBA 2K22 rows that were marked Received / eBay
+- one-time cleanup corrected duplicate rows, split-row quantities, partial-return quantities, one returned/refunded spreadsheet-missing order, one single-item partial refund, and three CAD purchase costs
+- active unit count now matches the legacy pivot exactly: 4,806 units
+- active cost is $84,840.36 in MBOP versus $84,836.31 in the legacy pivot, leaving a $4.05 MBOP-over-spreadsheet variance
+- the remaining small cost variance is currently treated as legacy spreadsheet error unless new evidence appears
+- order 16-14113-30387 had historical zero-cost NBA 2K22 rows that were excluded from reporting after corrected received quantities were confirmed
 - order 19-14476-44107 is a confirmed personal Tommy Bahama shirt purchase
 - order 11-14441-71152 is a confirmed business supply padded-mailer purchase, not resale inventory
 
 Recommended next mitigation:
-- review same-order quantity/cost differences caused by split rows, duplicate rows, and unit-cost allocation
-- review spreadsheet-only orders from 2026 that are not in MBOP and determine whether they are missing imports, manually entered spreadsheet rows, or orders outside the current eBay sync source
 - create a repeatable reconciliation report that classifies differences as MBOP-only, spreadsheet-only, returns-tab, and same-order amount/quantity mismatch
+- keep partial refunds and foreign-currency examples in regression checks for future eBay sync changes
+
+---
+
+## Multi-Item Partial Refund Allocation
+
+Status: ACTIVE / FUTURE WORKFLOW
+
+Problem:
+Single-item partial refunds can be safely applied to the purchase item cost, but multi-item partial refunds may apply to only one line or quantity and should not be automatically spread across unrelated items.
+
+Current mitigation:
+- eBay buyer purchase sync applies net payment/refund totals only for single-item partial refunds
+- item-level manual cost corrections set `manual_unit_cost_override = true`
+
+Recommended next mitigation:
+- model refunds explicitly in the future Return and Refund workflow
+- record refund amount, refund date, source, and affected purchase item or quantity
+- use refund records to adjust item cost or reporting intentionally
 
 ---
 

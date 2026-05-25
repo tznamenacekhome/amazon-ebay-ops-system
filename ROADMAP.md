@@ -65,6 +65,8 @@ Completed:
 - excluded strict after-2026-05-15 eBay purchases missing from both the reference Purchases and Returns tabs
 - normalized 2026 MBOP-active rows found on the reference Returns tab to Return Opened or Cancelled
 - excluded Cancelled rows from dashboard purchase totals
+- reconciled active unit count to the legacy pivot at 4,806 units
+- reduced active cost variance to $4.05 MBOP-over-spreadsheet after one-time cleanup and net-cost corrections
 - kept landed-cost math backend-owned through vw_purchases_dashboard.unit_cost
 - confirmed 2024 and 2025 dashboard totals match the legacy Excel pivot exactly
 
@@ -76,8 +78,7 @@ Near-term goals:
 Next steps:
 - build a repeatable dashboard reconciliation report using the shared reference spreadsheet and Supabase
 - classify discrepancies into MBOP-only, spreadsheet-only, Returns-tab/status mismatch, and same-order quantity/cost mismatch
-- investigate same-order quantity/cost mismatches from split rows, duplicate rows, and multi-game listings
-- investigate spreadsheet-only 2026 orders that may represent missing eBay imports or manual spreadsheet-only history
+- keep known partial-refund, CAD, duplicate-row, and split-row orders as reconciliation regression examples
 - add drill-down from a dashboard month into the matching filtered purchases list
 - add reconciliation indicators once expected monthly spreadsheet totals are stored or imported
 - add a UI control for marking purchase items excluded from reporting with a reason
@@ -258,6 +259,12 @@ Required scope:
 
 Key requirement:
 Cancelled items must remain visible to this workflow until refund receipt is confirmed.
+
+Future cost requirements:
+- store refund amount, refund date, source, and affected purchase item or quantity
+- support partial refunds where the item is kept and inventory cost should be reduced
+- avoid automatically spreading a multi-item partial refund across unrelated items unless the operator assigns it
+- preserve manual unit-cost overrides made during reconciliation or refund review
 
 Next steps:
 - define refund fields, such as refund_expected, refund_received, refund_received_date, refund_amount, and refund_notes

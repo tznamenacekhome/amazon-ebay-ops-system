@@ -18,6 +18,12 @@ The API reads `vw_purchases_dashboard` and aggregates:
 
 `unit_cost` is the authoritative backend landed-cost value. Dashboard React components should render API-provided aggregates and should not introduce their own landed-cost calculations.
 
+Cost semantics:
+- reward points and payment method effects should not zero out resale inventory cost
+- foreign-currency purchases should use eBay-provided USD payment totals when available
+- single-item partial refunds where the item is kept should reduce purchase item cost
+- multi-item partial refunds should be handled by explicit item-level correction or the future return/refund workflow
+
 ## Intended Use
 
 This view is meant to compare MBOP totals against the legacy Excel pivot table while the system is being validated. May 2026 is expected to vary until missing spreadsheet-only history is reconciled.
