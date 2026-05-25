@@ -1,36 +1,33 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# MBOP Web App
 
-## Getting Started
+This is the Next.js frontend and API layer for Midnight Blue Operations Platform.
 
-First, run the development server:
+## Architecture
+
+- React pages render operational workspaces.
+- Next.js API routes are the only frontend path to backend data.
+- API routes read/write Supabase; React components do not talk directly to Supabase.
+- Backend/API responses own landed-cost values and workflow status values.
+
+## Workspaces
+
+- `/dashboard`: purchase completeness and cost reporting
+- `/`: purchases review and ASIN/sell-price cleanup
+- `/receiving`: delivered and shipped-without-tracking item receiving
+- `/fba`: Amazon FBA shipment preparation and InventoryLab CSV export
+
+## Local Development
+
+From this folder:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+The app normally runs at `http://localhost:3000`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Operational Notes
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- Purchases list filtering, sorting, pagination, and counts are server-driven through `/api/purchases`.
+- Receiving and FBA are separate workflows and should stay separate from the purchases review UI.
+- Dashboard cost totals must use `vw_purchases_dashboard.unit_cost` through API-provided aggregates.

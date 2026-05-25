@@ -139,7 +139,7 @@ Keep the purchases page as a composition layer and move reusable UI and derived 
 Current structure:
 - page.tsx composes the workspace
 - page.tsx owns UI-local query state such as search, filters, sort, and page
-- usePurchases owns API loading, query-aware caching, API mutations, save state, and error state
+- usePurchases owns API loading, API mutations, save state, and error state
 - PurchasesTable, PurchaseDetailDrawer, EditablePriceCell, PurchaseFilters, and PurchaseMetrics own focused UI sections
 
 Reason:
@@ -165,8 +165,8 @@ Implementation:
 - detail-only metadata such as `amazon_title` and eBay raw payload-derived fields are hydrated only for the returned page
 - the default status filter is `active`, meaning all statuses except `listed`
 - Needs Review excludes listed, cancelled, return opened, and return pending rows
-- the frontend stores query-specific API responses in browser storage for 24 hours
-- Refresh bypasses the cache
+- browser caching code exists, but it is currently disabled while server-side performance is validated
+- Refresh clears any purchases cache entries and reloads from `/api/purchases`
 
 Rule:
 Do not reintroduce full-table client-side filtering or sorting for the purchases page. Add backend query parameters or database indexes/views when the list needs new filter/sort behavior.

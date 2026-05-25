@@ -364,7 +364,7 @@ def get_order_status(order):
 
 
 def order_has_shipped_time(order):
-    return bool(find_first(order, "ShippedTime"))
+    return find_first(order, "ShippedTime") is not None
 
 
 def extract_tracking(order):

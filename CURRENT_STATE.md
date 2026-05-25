@@ -57,6 +57,29 @@ Recent cleanup:
 
 ---
 
+## Sync Orchestration
+
+Status: LOCAL SCHEDULER CONFIGURED
+
+Implemented:
+- `run_all_syncs.py` runs eBay buyer purchase sync, EasyPost shipment sync, eBay supplier returns sync, and RevSeller enrichment
+- `run_all_syncs.bat` targets the repo at `C:\Dev\amazon-ebay-ops-system`
+- scheduler output is appended to `logs/scheduler.log`
+- local AM/PM Windows scheduled tasks were recreated after the repo moved out of OneDrive
+
+Recent validation:
+- direct batch execution completed successfully with exit code 0
+- eBay buyer purchase sync retrieved 646 orders and updated 27
+- EasyPost sync processed/reused 97 shipment trackers with 2 FedEx credential errors remaining
+- eBay supplier returns sync updated 7 returns
+- RevSeller sync completed and wrote diagnostics
+
+Remaining validation:
+- confirm both Windows scheduled tasks append successful runs to `logs/scheduler.log`
+- manually trigger scheduled tasks with the root task path, for example `schtasks /Run /TN "\Amazon eBay Ops Sync PM"`
+
+---
+
 ## EasyPost Shipment Enrichment
 
 Status: FUNCTIONAL / WEBHOOK-READY
@@ -85,11 +108,17 @@ Recent backfill:
 - 2 FedEx rows remain unresolved due to EasyPost credential errors
 - 88 missing shipment ETA values were restored from stored eBay estimates
 
+Latest scheduler validation:
+- `run_all_syncs.py` now includes EasyPost shipment sync after eBay buyer purchase sync
+- latest direct scheduler run inspected 101 candidate shipment rows, reused 97 trackers, skipped 2 invalid placeholder rows, and still hit the 2 FedEx credential errors
+- direct batch execution completed with exit code 0 and wrote to `logs/scheduler.log`
+
 Remaining setup:
 - deploy the app to a public HTTPS server
 - configure EASYPOST_WEBHOOK_SECRET
 - register the EasyPost webhook URL in EasyPost
 - resolve or intentionally bypass FedEx tracking credential errors
+- confirm both local Windows AM/PM scheduled tasks append successful runs after the repo move to `C:\Dev`
 
 ---
 

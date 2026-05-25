@@ -47,7 +47,7 @@ Dashboard UI lives under:
 Current pattern:
 - AppShell provides the shared left-side navigation for Dashboard, Purchases, Receiving, and Amazon FBA
 - page.tsx composes the workspace and owns UI-local query/workflow state
-- usePurchases owns purchase loading, query-aware caching, save status, errors, and API mutations
+- usePurchases owns purchase loading, save status, errors, API mutations, and currently disabled query-aware cache support
 - /api/purchases owns purchase list filtering, sorting, pagination, and summary counts
 - table, filters, metrics, price cell, and drawer are separate components
 
@@ -98,6 +98,11 @@ EasyPost sync must:
 - pass known carrier when available
 
 Long-term tracking updates should come from EasyPost webhooks once the app has a public HTTPS endpoint.
+
+Local sync orchestration:
+- `run_all_syncs.py` runs eBay buyer purchase sync, EasyPost shipment sync, supplier returns sync, and RevSeller enrichment
+- `run_all_syncs.bat` is the Windows scheduler entry point and should target `C:\Dev\amazon-ebay-ops-system`
+- scheduler output belongs in `logs/scheduler.log`
 
 ---
 

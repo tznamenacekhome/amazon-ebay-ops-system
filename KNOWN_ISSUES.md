@@ -46,7 +46,8 @@ Current mitigation:
 - `/api/purchases` owns server-side filtering, sorting, pagination, and summary counts.
 - default purchases filter is all statuses except Listed.
 - reporting-excluded rows are excluded before database pagination.
-- the frontend uses a query-aware 24-hour browser cache and Refresh bypasses that cache.
+- query-aware browser cache support exists but is temporarily disabled while server-side performance is validated.
+- Refresh clears any purchases cache entries and reloads from `/api/purchases`.
 - detail-only metadata is hydrated only for returned page rows.
 
 Recommended guardrail:
@@ -160,6 +161,26 @@ Recommended next mitigation:
 - configure `EASYPOST_WEBHOOK_SECRET`.
 - register `/api/easypost/webhook` in EasyPost.
 - test webhook HMAC validation with a real EasyPost event.
+
+---
+
+## Local Windows Scheduler Validation
+
+Status: MONITOR
+
+Problem:
+The repo moved from a OneDrive path to `C:\Dev\amazon-ebay-ops-system`, so the local Windows scheduled tasks had to be recreated with the new batch path.
+
+Current mitigation:
+- `run_all_syncs.bat` runs successfully when launched directly from the repo.
+- `run_all_syncs.py` now includes eBay buyer purchase sync, EasyPost shipment sync, supplier returns sync, and RevSeller enrichment.
+- direct run validation wrote a successful exit code 0 to `logs/scheduler.log`.
+- the stale OneDrive working-directory problem has been replaced by AM/PM scheduled tasks that target the `C:\Dev` path.
+
+Recommended guardrail:
+- confirm both scheduled tasks append successful runs to `logs/scheduler.log`.
+- use the root scheduled-task path when manually triggering, for example `schtasks /Run /TN "\Amazon eBay Ops Sync PM"`.
+- keep public EasyPost webhooks on the roadmap so the scheduler is not the only long-term carrier-update mechanism.
 
 ---
 

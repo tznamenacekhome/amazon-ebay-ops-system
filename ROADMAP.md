@@ -19,7 +19,7 @@ Completed:
 - improve maintainability
 - improve AI-generated diff quality
 - moved purchases list filtering, sorting, pagination, and counts to /api/purchases
-- added query-aware 24-hour purchases browser cache
+- added query-aware purchases browser cache support, currently disabled for performance testing
 - split lean list rows from page-scoped detail metadata hydration
 
 Created:
@@ -244,7 +244,44 @@ Completed:
 Remaining:
 - resolve FedEx credential errors for tracking 381367337613 and 381418656302
 - decide whether FedEx should be configured in EasyPost or handled through a direct carrier fallback
-- add a recurring scheduler only if webhooks are not enough for operational freshness
+- validate the local Windows AM/PM scheduler now that it points to `C:\Dev\amazon-ebay-ops-system\run_all_syncs.bat`
+- keep scheduled polling as the local freshness fallback until public EasyPost webhooks are live
+
+---
+
+## Local Sync Scheduler
+
+Status:
+Local scheduler configured; ongoing task-run validation remains.
+
+Completed:
+- `run_all_syncs.py` now runs eBay buyer purchase sync, EasyPost shipment sync, eBay supplier returns sync, and RevSeller enrichment
+- `run_all_syncs.bat` creates the logs directory when missing and appends to `logs/scheduler.log`
+- local Windows scheduled tasks were recreated after the repo moved from OneDrive to `C:\Dev`
+- direct batch execution completed successfully with exit code 0
+
+Next steps:
+- confirm both scheduled tasks append successful runs to `logs/scheduler.log`
+- when manually triggering tasks, use the root task path, for example `schtasks /Run /TN "\Amazon eBay Ops Sync PM"`
+- monitor scheduler logs for EasyPost FedEx credential errors and eBay token/auth issues
+
+---
+
+## Amazon / Keepa Catalog Integration
+
+Goal:
+Use Amazon and Keepa data to improve ASIN validation, missing-title resolution, and future automated candidate lookup.
+
+Planned scope:
+- evaluate Amazon SP-API catalog/search access and Keepa API coverage
+- use marketplace-title cleaning before catalog searches
+- return ASIN candidates for operator review before any automatic assignment
+- validate candidate title and system/platform before writing ASINs
+- use Keepa/Amazon metadata to resolve stubborn missing Amazon titles and ambiguous catalog matches
+- preserve the rule that video game matching must never cross systems
+
+First next step:
+inventory available credentials, quotas, costs, and API fields, then design the smallest safe lookup workflow for one unresolved ASIN/title case
 
 ---
 

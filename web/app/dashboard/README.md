@@ -27,6 +27,12 @@ Cost semantics:
 
 ## Intended Use
 
-This view is meant to compare MBOP totals against the legacy Excel pivot table while the system is being validated. May 2026 is expected to vary until missing spreadsheet-only history is reconciled.
+This view is meant to compare MBOP totals against the legacy Excel pivot table while the system is being validated.
+
+Current reconciliation state:
+- 2024 and 2025 match the legacy pivot exactly.
+- active unit count has been reconciled to 4,806 units.
+- active cost is within a $4.05 MBOP-over-spreadsheet variance currently attributed to known spreadsheet mistakes.
+- purchases on or after 2026-05-16 are MBOP-canonical because the legacy spreadsheet was no longer maintained for new purchases.
 
 Use explicit reporting exclusions for personal purchases, business supplies, and other non-resale purchases. Do not infer exclusion from missing system or ASIN data.
