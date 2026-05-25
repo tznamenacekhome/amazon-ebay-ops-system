@@ -59,6 +59,8 @@ def main() -> int:
         analysis = analyze_rows(rows, amazon_skus, include_inactive=args.include_inactive)
 
         print_summary(analysis)
+        if args.show_missing_cost_date:
+            print_missing_cost_date_rows(analysis)
 
         if not args.apply:
             LOGGER.info("Dry run complete. No Supabase writes performed.")
@@ -97,6 +99,11 @@ def parse_args() -> argparse.Namespace:
         "--apply",
         action="store_true",
         help="Write matched/review/unmatched rows to the legacy backfill table.",
+    )
+    parser.add_argument(
+        "--show-missing-cost-date",
+        action="store_true",
+        help="Print rows missing Active Cost/Unit or Active Date Purchased.",
     )
     return parser.parse_args()
 
@@ -365,6 +372,43 @@ def print_summary(analysis: dict[str, Any]) -> None:
             print(
                 f"- row {row.row_number}: ASIN={row.asin or '--'} "
                 f"MSKU={row.seller_sku or '--'} -> Amazon SKU={sku.get('seller_sku') or '--'}"
+            )
+
+
+def print_missing_cost_date_rows(analysis: dict[str, Any]) -> None:
+    missing = [
+        item
+        for item in analysis["rows"]
+        if not item["has_cost"] or not item["has_date"]
+    ]
+    if not missing:
+        return
+
+    print("\nRows missing cost/date:")
+    for item in missing:
+        row: InventoryLabRow = item["row"]
+        sku = item["matched_amazon_sku"] or {}
+        exists = (
+            "MSKU"
+            if item["match_method"] == "seller_sku"
+            else "ASIN/title review"
+            if item["match_method"] == "asin_title_review"
+            else "no"
+        )
+        print(
+            f"- row {row.row_number}: exists={exists}; "
+            f"on_hand={row.on_hand_quantity}; "
+            f"msku={row.seller_sku or '--'}; "
+            f"asin={row.asin or '--'}; "
+            f"cost={row.raw.get('Active Cost/Unit')!r}; "
+            f"date={row.raw.get('Active Date Purchased')!r}; "
+            f"title={row.title or '--'}"
+        )
+        if sku:
+            print(
+                f"  amazon_skus: seller_sku={sku.get('seller_sku') or '--'}; "
+                f"asin={sku.get('asin') or '--'}; "
+                f"title={sku.get('product_name') or '--'}"
             )
 
 
