@@ -13,15 +13,17 @@ Status: ACTIVE
 Problem:
 Most ASIN, sell-price, title, and system gaps have been resolved, but a small set of active non-listed rows still need cleanup before workflows are fully smooth.
 
-Current live counts before the 2026-05-25 clarification cleanup:
-- missing ASIN: 0
-- missing target sell price: 2
-- missing Amazon title while ASIN exists: 1
-- missing system: 2
+Current live counts after the 2026-05-25 clarification cleanup:
+- missing ASIN or ASIN placeholder `N/A`: 4
+- missing target sell price: 0
+- missing Amazon title while ASIN exists: 0
+- missing system: 0
 
 Known rows needing review:
-- `Guitar Hero Aerosmith`, ASIN `B0013ZGPV4`, Xbox 360: missing target sell price and Amazon title.
-- `Nintendo Land Nintendo Selects`, order `15-14586-73097`: system missing; likely `Wii U`.
+- `NBA 2K24 Kobe Bryant Edition`, order `15-13184-98992`, system `Xbox`: ASIN is `N/A`.
+- `Delighting in the Lord Terry Briley 2015 Christian Faith Hardcover`, order `25-13638-84763`: ASIN is `N/A`; likely non-resale, pending operator confirmation.
+- `5 Pack Starbucks Reusable Venti 24 OZ Frosted Ice Cold Cup With Lid & Straw`, order `01-13685-25998`: ASIN is `N/A`; likely non-resale, pending operator confirmation.
+- `Just Dance kids 2014`, order `02-13773-35502`, system `Wii U`: ASIN is `N/A`.
 
 Current mitigation:
 - purchase detail drawer can edit Amazon title, system, ASIN, purchase price, and target sell price.
@@ -30,9 +32,9 @@ Current mitigation:
 - manual corrections can propagate to matching title/system rows where safe.
 
 Recommended next mitigation:
-- apply `sql/2026-05-25_known_issue_clarifications.sql` to mark `01-13574-33587` Listed and exclude `03-13734-80549` as non-resale.
-- set `Nintendo Land` system to `Wii U`.
-- fill Amazon title / sell price for `Guitar Hero Aerosmith` if it remains Amazon-bound.
+- confirm whether the book and Starbucks cup rows should be excluded as non-resale.
+- correct real ASINs for the two game rows if they are resale inventory.
+- avoid treating `N/A` as a valid ASIN in future imports/backfills.
 
 ---
 
@@ -71,17 +73,19 @@ Status: ACTIVE
 Problem:
 Many historical spreadsheet-imported purchases have `purchases.order_date = null`, even though their stored raw import JSON contains `Purchased Date`.
 
-Current observed count:
-- 2,237 purchases with null `order_date`
+Current observed count after `sql/2026-05-25_known_issue_data_cleanup.sql`:
+- 0 purchases with null `order_date`
 
 Impact:
 - date-based queries can miss or mis-order historical purchases.
 - future received/listed/analytics drill-downs may not sort legacy rows correctly.
 
+Current mitigation:
+- one-time backfill parsed `raw_import_json -> Purchased Date` and wrote `purchases.order_date`.
+- parser was limited to rows with valid legacy spreadsheet-style `Purchased Date` values.
+
 Recommended next mitigation:
-- create a one-time backfill that parses `raw_import_json -> Purchased Date` and writes `purchases.order_date`.
-- validate monthly dashboard totals after the backfill.
-- keep the parser limited to legacy spreadsheet-imported rows so eBay API order dates remain untouched.
+- treat as monitor item if dashboard/monthly totals continue to look correct.
 
 ---
 
