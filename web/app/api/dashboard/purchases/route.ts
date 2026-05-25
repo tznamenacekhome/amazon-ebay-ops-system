@@ -137,8 +137,8 @@ function aggregateByMonth(rows: DashboardPurchaseRow[]) {
   }
 
   return [...aggregates.values()].sort((left, right) => {
-    if (left.year !== right.year) return left.year - right.year;
-    return left.month - right.month;
+    if (left.year !== right.year) return right.year - left.year;
+    return right.month - left.month;
   });
 }
 
@@ -163,7 +163,7 @@ function aggregateByYear(months: MonthAggregate[]) {
     years.set(month.year, existing);
   }
 
-  return [...years.values()].sort((left, right) => left.year - right.year);
+  return [...years.values()].sort((left, right) => right.year - left.year);
 }
 
 function normalizeStatus(value?: string | null) {
