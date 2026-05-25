@@ -521,6 +521,9 @@ Ownership boundary:
 Rule:
 Do not write reconciliation corrections directly into workflow tables unless a specific workflow action owns that correction. Reconciliation findings should surface review work first.
 
+Historical Listed assumption:
+Purchase inventory with `purchase_items.current_status = listed` that is no longer present in current Amazon FBA inventory is treated as sold in the derived inventory layer. This preserves the purchase/listing history for analytics while preventing historical sold-through units from appearing as missing-from-Amazon reconciliation defects.
+
 ---
 
 ## InventoryLab Active Inventory Backfill Is Historical Context Only

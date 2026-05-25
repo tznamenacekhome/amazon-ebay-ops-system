@@ -57,11 +57,13 @@ def main() -> int:
             "vw_latest_amazon_fba_inventory_snapshot",
             "*",
         )
+        amazon_current_asins = current_amazon_asins(amazon_snapshots)
 
         mbop_positions = build_mbop_positions(
             purchase_rows,
             item_meta,
             fba_item_links,
+            amazon_current_asins,
         )
         amazon_positions = build_amazon_positions(
             amazon_snapshots,
@@ -222,6 +224,7 @@ def build_mbop_positions(
     purchase_rows: list[dict[str, Any]],
     item_meta: dict[str, dict[str, Any]],
     fba_item_links: dict[str, list[dict[str, Any]]],
+    amazon_current_asins: set[str],
 ) -> list[dict[str, Any]]:
     positions: list[dict[str, Any]] = []
     effective_at = utc_now_iso()
@@ -239,7 +242,12 @@ def build_mbop_positions(
         if quantity <= 0:
             continue
 
-        projection = project_purchase_state(row, meta, bool(fba_item_links.get(item_id)))
+        projection = project_purchase_state(
+            row,
+            meta,
+            bool(fba_item_links.get(item_id)),
+            amazon_current_asins,
+        )
         unit_cost = to_float(row.get("unit_cost"))
         title = meta.get("amazon_title") or row.get("amazon_title") or row.get("title")
         links = fba_item_links.get(item_id) or [{}]
@@ -285,9 +293,11 @@ def project_purchase_state(
     row: dict[str, Any],
     meta: dict[str, Any],
     has_fba_link: bool,
+    amazon_current_asins: set[str],
 ) -> StateProjection:
     status = normalize_status(row.get("current_status"))
     marketplace = clean_text(meta.get("marketplace"))
+    asin = clean_asin(row.get("asin"))
 
     if status == "cancelled":
         return StateProjection(
@@ -306,6 +316,8 @@ def project_purchase_state(
     if status == "listed":
         if marketplace == "eBay":
             return StateProjection("home_ebay_resale_listed", "home", "ebay_resale", "ebay", "listed")
+        if asin and asin not in amazon_current_asins:
+            return StateProjection("sold_amazon", "buyer", "amazon_fba", "amazon", "sold")
         return StateProjection(
             "outbound_to_amazon" if has_fba_link else "received_assigned_amazon_not_sent",
             "in_transit_to_amazon" if has_fba_link else "home",
@@ -446,6 +458,28 @@ def build_amazon_positions(
         )
 
     return positions
+
+
+def current_amazon_asins(snapshots: list[dict[str, Any]]) -> set[str]:
+    current: set[str] = set()
+    quantity_fields = (
+        "total_quantity",
+        "fulfillable_quantity",
+        "inbound_working_quantity",
+        "inbound_shipped_quantity",
+        "inbound_receiving_quantity",
+        "reserved_quantity",
+        "unfulfillable_quantity",
+    )
+
+    for snapshot in snapshots:
+        asin = clean_asin(snapshot.get("asin"))
+        if not asin:
+            continue
+        if any(to_int(snapshot.get(field), default=0) > 0 for field in quantity_fields):
+            current.add(asin)
+
+    return current
 
 
 def add_amazon_position(

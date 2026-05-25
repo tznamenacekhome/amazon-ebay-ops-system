@@ -238,13 +238,14 @@ Current behavior:
 - state is modeled across separate dimensions: inventory state, physical location, marketplace intent, listing channel, operational status, and condition/disposition
 - Amazon FBA snapshot inventory is projected into Amazon-specific inventory positions
 - InventoryLab historical active-inventory backfill can provide legacy cost/date context for current Amazon FBA inventory
+- purchase inventory with `current_status = listed` that is absent from current Amazon FBA inventory is treated as sold in the derived inventory layer and does not create missing-from-Amazon reconciliation findings
 - reconciliation currently compares MBOP Amazon-intended inventory to latest Amazon FBA inventory at ASIN level
 - old open reconciliation findings are deferred when a new reconciliation run writes current findings
 
 Latest validation:
 - InventoryLab active inventory import read 951 rows, skipped 653 inactive rows, matched 298 active rows by MSKU, found 0 ambiguous rows, and upserted 298 legacy backfill records
 - inventory reconciliation loaded 298 InventoryLab cost/date overlay rows
-- latest write run projected 2,928 MBOP positions, 311 Amazon positions, and 799 open findings
+- latest write run projected 2,928 MBOP positions, 311 Amazon positions, and 177 open findings after treating historical Listed-but-absent Amazon inventory as sold
 - 310 Amazon inventory positions currently carry InventoryLab legacy cost/date context
 - Next.js production build passed after dashboard API/UI updates
 

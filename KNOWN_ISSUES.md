@@ -95,7 +95,7 @@ The first unified inventory reconciliation pass detects many open findings becau
 Current observed result:
 - latest run projected 2,928 MBOP workflow positions
 - latest run projected 311 Amazon FBA inventory positions
-- latest run created 799 open reconciliation findings
+- latest run created 177 open reconciliation findings after excluding historical Listed-but-sold-through Amazon inventory from missing-from-Amazon defects
 - 310 Amazon positions now carry InventoryLab legacy cost/date context after the active-inventory backfill
 
 Impact:
