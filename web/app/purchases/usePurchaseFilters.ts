@@ -11,7 +11,7 @@ import {
 export function usePurchaseFilters(rows: PurchaseRow[]) {
   const [searchText, setSearchText] = useState("");
   const [asinFilter, setAsinFilter] = useState("all");
-  const [statusFilter, setStatusFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState("active");
 
   const filteredRows = useMemo(() => {
     const search = searchText.trim().toLowerCase();
@@ -44,7 +44,9 @@ export function usePurchaseFilters(rows: PurchaseRow[]) {
         (asinFilter === "needs_review" && needsAsinReview(row));
 
       const matchesStatus =
-        statusFilter === "all" || statusFilter === status.value;
+        statusFilter === "all" ||
+        (statusFilter === "active" && status.value !== "listed") ||
+        statusFilter === status.value;
 
       return matchesSearch && matchesAsin && matchesStatus;
     });

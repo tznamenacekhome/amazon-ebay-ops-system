@@ -22,6 +22,7 @@ This folder contains the Midnight Blue Operations Platform purchases workflow UI
 - Table headers sort the filtered row set by the displayed column values.
 - Cancelled rows are excluded from the Needs Review ASIN filter and metric.
 - The status filter includes workflow statuses such as `Received`, `Listed`, `Return Pending`, `Return Opened`, and `Cancelled`.
+- The default status filter is `All Except Listed`; `All Status` includes Listed rows when full history is needed.
 - The search input has an inline clear button.
 
 ## Detail Drawer Display
@@ -50,6 +51,11 @@ This folder contains the Midnight Blue Operations Platform purchases workflow UI
 - Manual eBay title and purchase-price edits are item-specific overrides and do not propagate.
 - Manual override fields come from `sql/2026-05-23_add_purchase_item_manual_overrides.sql`.
 - eBay sync preserves manual title/unit-cost overrides and skips manual split child rows during fallback matching.
+
+## Data Loading
+
+- `/api/purchases` pages through `vw_purchases_dashboard` instead of applying a fixed 200-row cap.
+- Purchase item and purchase metadata hydration is chunked so the full purchase history can load without oversized Supabase `in (...)` requests.
 
 ## Operational Rules
 

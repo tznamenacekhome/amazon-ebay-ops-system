@@ -215,6 +215,8 @@ Implemented:
 - search input includes an inline clear button
 - table headers sort the currently filtered row set by displayed values
 - status filter includes Received and Listed workflow statuses
+- purchases API loads all rows from vw_purchases_dashboard instead of limiting the screen to 200 rows
+- default purchases status filter is All Except Listed, with All Status available for full history
 
 Current architecture:
 web/app/page.tsx is now the composition layer.

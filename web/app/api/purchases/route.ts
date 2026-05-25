@@ -13,47 +13,39 @@ const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 const supabase = createClient(supabaseUrl, supabaseServiceRoleKey);
 
 export async function GET() {
-  const { data, error } = await supabase
-    .from("vw_purchases_dashboard")
-    .select("*")
-    .order("order_date", { ascending: false })
-    .limit(200);
+  let rows;
 
-  if (error) {
+  try {
+    rows = await fetchAllPurchaseRows();
+  } catch (error) {
     return NextResponse.json(
-      { error: error.message },
+      { error: error instanceof Error ? error.message : "Failed to load purchases" },
       { status: 500 }
     );
   }
 
-  const rows = (data ?? []).map((row) => ({
+  const viewRows = rows.map((row) => ({
     ...row,
     ebay_title: row.title,
   }));
-  const itemIds = rows
+  const itemIds = viewRows
     .map((row) => row.item_id)
     .filter((itemId): itemId is string => typeof itemId === "string");
-  const purchaseIds = rows
+  const purchaseIds = viewRows
     .map((row) => row.purchase_id)
     .filter((purchaseId): purchaseId is string => typeof purchaseId === "string");
 
   if (itemIds.length === 0 && purchaseIds.length === 0) {
-    return NextResponse.json(rows);
+    return NextResponse.json(viewRows);
   }
 
-  const { data: itemTitles } = await supabase
-    .from("purchase_items")
-    .select("item_id,amazon_title")
-    .in("item_id", itemIds);
+  const itemTitles = await fetchItemTitles(itemIds);
 
   const amazonTitleByItemId = new Map(
     (itemTitles ?? []).map((item) => [item.item_id, item.amazon_title])
   );
 
-  const { data: purchases } = await supabase
-    .from("purchases")
-    .select("purchase_id,order_status,raw_import_json")
-    .in("purchase_id", purchaseIds);
+  const purchases = await fetchPurchaseMeta(purchaseIds);
 
   const purchaseMetaById = new Map(
     (purchases ?? []).map((purchase) => [
@@ -70,7 +62,7 @@ export async function GET() {
   );
 
   return NextResponse.json(
-    rows.map((row) => ({
+    viewRows.map((row) => ({
       ...row,
       amazon_title: amazonTitleByItemId.get(row.item_id) ?? null,
       order_status: purchaseMetaById.get(row.purchase_id)?.orderStatus ?? null,
@@ -82,6 +74,86 @@ export async function GET() {
         null,
     }))
   );
+}
+
+async function fetchAllPurchaseRows() {
+  const rows = [];
+  const pageSize = 1000;
+  let offset = 0;
+
+  while (true) {
+    const { data, error } = await supabase
+      .from("vw_purchases_dashboard")
+      .select("*")
+      .order("order_date", { ascending: false })
+      .range(offset, offset + pageSize - 1);
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    rows.push(...(data ?? []));
+
+    if (!data || data.length < pageSize) break;
+
+    offset += pageSize;
+  }
+
+  return rows;
+}
+
+async function fetchItemTitles(itemIds: string[]) {
+  const rows: { item_id: string; amazon_title: string | null }[] = [];
+  const chunkSize = 500;
+
+  for (let index = 0; index < itemIds.length; index += chunkSize) {
+    const chunk = itemIds.slice(index, index + chunkSize);
+    const { data, error } = await supabase
+      .from("purchase_items")
+      .select("item_id,amazon_title")
+      .in("item_id", chunk);
+
+    if (error) {
+      console.warn("Purchase item title lookup failed", error.message);
+      continue;
+    }
+
+    rows.push(...((data ?? []) as { item_id: string; amazon_title: string | null }[]));
+  }
+
+  return rows;
+}
+
+async function fetchPurchaseMeta(purchaseIds: string[]) {
+  const rows: {
+    purchase_id: string;
+    order_status: string | null;
+    raw_import_json: unknown;
+  }[] = [];
+  const chunkSize = 500;
+
+  for (let index = 0; index < purchaseIds.length; index += chunkSize) {
+    const chunk = purchaseIds.slice(index, index + chunkSize);
+    const { data, error } = await supabase
+      .from("purchases")
+      .select("purchase_id,order_status,raw_import_json")
+      .in("purchase_id", chunk);
+
+    if (error) {
+      console.warn("Purchase metadata lookup failed", error.message);
+      continue;
+    }
+
+    rows.push(
+      ...((data ?? []) as {
+        purchase_id: string;
+        order_status: string | null;
+        raw_import_json: unknown;
+      }[])
+    );
+  }
+
+  return rows;
 }
 
 function hasSellerShipped(rawImportJson: unknown) {

@@ -58,6 +58,7 @@ export function PurchaseFilters({
           onChange={(event) => onStatusFilterChange(event.target.value)}
           className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
         >
+          <option value="active">All Except Listed</option>
           <option value="all">All Status</option>
           {OPERATIONAL_STATUS_OPTIONS.map((status) => (
             <option key={status.value} value={status.value}>
