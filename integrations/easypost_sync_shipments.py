@@ -6,6 +6,11 @@ from dotenv import load_dotenv
 import easypost
 from supabase import create_client
 
+try:
+    from status_logic import derive_purchase_item_status
+except ImportError:
+    from integrations.status_logic import derive_purchase_item_status
+
 
 MAX_NEW_TRACKERS_PER_RUN = 10
 LOOKBACK_DAYS = 30
@@ -374,6 +379,50 @@ def update_shipment(shipment, tracker):
         "inbound_shipment_id",
         shipment["inbound_shipment_id"]
     ).execute()
+
+    update_linked_purchase_item_statuses(
+        shipment["inbound_shipment_id"],
+        payload,
+    )
+
+
+def update_linked_purchase_item_statuses(shipment_id, shipment_payload):
+    links = (
+        supabase.table("inbound_shipment_items")
+        .select("item_id")
+        .eq("inbound_shipment_id", shipment_id)
+        .execute()
+    )
+    item_ids = [row["item_id"] for row in links.data or [] if row.get("item_id")]
+
+    if not item_ids:
+        return
+
+    items = (
+        supabase.table("purchase_items")
+        .select("item_id,current_status,tracking_number")
+        .in_("item_id", item_ids)
+        .execute()
+    )
+
+    for item in items.data or []:
+        next_status = derive_purchase_item_status(
+            current_status=item.get("current_status"),
+            tracking_number=item.get("tracking_number"),
+            carrier_status=shipment_payload.get("normalized_status"),
+            delivered_date=shipment_payload.get("delivered_date"),
+            seller_shipped=True,
+        )
+
+        if next_status == item.get("current_status"):
+            continue
+
+        (
+            supabase.table("purchase_items")
+            .update({"current_status": next_status})
+            .eq("item_id", item["item_id"])
+            .execute()
+        )
 
 
 def main():

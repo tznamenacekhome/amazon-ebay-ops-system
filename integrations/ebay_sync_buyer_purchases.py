@@ -13,6 +13,11 @@ try:
 except ImportError:
     from integrations.system_detection import detect_system_from_title, normalize_system
 
+try:
+    from status_logic import derive_purchase_item_status
+except ImportError:
+    from integrations.status_logic import derive_purchase_item_status
+
 
 DAYS_BACK = 90
 LOCAL_TIMEZONE = "America/Los_Angeles"
@@ -358,6 +363,10 @@ def get_order_status(order):
     return child_text(order, "OrderStatus")
 
 
+def order_has_shipped_time(order):
+    return bool(find_first(order, "ShippedTime"))
+
+
 def extract_tracking(order):
     for elem in order.iter():
         if strip_namespace(elem.tag) == "ShipmentTrackingDetails":
@@ -701,6 +710,7 @@ def build_item_payload(
     import_batch_id,
     existing_item=None,
     calculated_unit_cost=None,
+    seller_shipped=False,
 ):
     quantity = transaction_quantity(transaction)
     ebay_title = transaction_title(transaction)
@@ -736,15 +746,16 @@ def build_item_payload(
         "quantity": quantity,
         "unit_cost": unit_cost,
         "target_price": existing_item.get("target_price") if existing_item else None,
-        "current_status": (
-            existing_item.get("current_status")
-            if existing_status in WORKFLOW_LOCKED_STATUSES
-            else
-            "delivered"
-            if dates.get("actual_delivery_time")
-            else existing_item.get("current_status", "ordered")
-            if existing_item
-            else "ordered"
+        "current_status": derive_purchase_item_status(
+            current_status=(
+                existing_item.get("current_status") if existing_item else None
+            ),
+            tracking_number=tracking.get("tracking_number"),
+            carrier_status=(
+                "delivered" if dates.get("actual_delivery_time") else None
+            ),
+            delivered_date=dates.get("actual_delivery_time"),
+            seller_shipped=seller_shipped,
         ),
         "condition": (
             existing_item.get("condition")
@@ -786,6 +797,7 @@ def upsert_purchase_item(
     existing_items,
     used_item_ids,
     calculated_unit_cost=None,
+    seller_shipped=False,
 ):
     matched_item = match_existing_item(
         existing_items=existing_items,
@@ -801,6 +813,7 @@ def upsert_purchase_item(
         import_batch_id=import_batch_id,
         existing_item=matched_item,
         calculated_unit_cost=calculated_unit_cost,
+        seller_shipped=seller_shipped,
     )
 
     if matched_item:
@@ -829,6 +842,7 @@ def build_unknown_item_payload(
     import_batch_id,
     raw_order,
     existing_item=None,
+    seller_shipped=False,
 ):
     title = (
         existing_item.get("title")
@@ -863,15 +877,16 @@ def build_unknown_item_payload(
         "asin": existing_item.get("asin") if existing_item else None,
         "target_price": existing_item.get("target_price") if existing_item else None,
         "system": existing_system or detect_system_from_title(title),
-        "current_status": (
-            existing_item.get("current_status")
-            if existing_status in WORKFLOW_LOCKED_STATUSES
-            else
-            "delivered"
-            if dates.get("actual_delivery_time")
-            else existing_item.get("current_status", "ordered")
-            if existing_item
-            else "ordered"
+        "current_status": derive_purchase_item_status(
+            current_status=(
+                existing_item.get("current_status") if existing_item else None
+            ),
+            tracking_number=tracking.get("tracking_number"),
+            carrier_status=(
+                "delivered" if dates.get("actual_delivery_time") else None
+            ),
+            delivered_date=dates.get("actual_delivery_time"),
+            seller_shipped=seller_shipped,
         ),
         "condition": (
             existing_item.get("condition")
@@ -922,6 +937,7 @@ def upsert_purchase(order, import_batch_id):
     tracking = extract_tracking(order)
     dates = extract_delivery_dates(order)
     raw_order = element_to_dict(order)
+    seller_shipped = order_has_shipped_time(order)
 
     purchase_payload = {
         "supplier": "eBay",
@@ -974,6 +990,7 @@ def upsert_purchase(order, import_batch_id):
             import_batch_id=import_batch_id,
             raw_order=raw_order,
             existing_item=existing_item,
+            seller_shipped=seller_shipped,
         )
 
         if existing_item:
@@ -1008,6 +1025,7 @@ def upsert_purchase(order, import_batch_id):
             existing_items=existing_items,
             used_item_ids=used_item_ids,
             calculated_unit_cost=calculated_unit_costs[index],
+            seller_shipped=seller_shipped,
         )
 
         link_shipment_item(

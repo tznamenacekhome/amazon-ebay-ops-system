@@ -18,7 +18,7 @@ This folder contains the Midnight Blue Operations Platform purchases workflow UI
 - Unmatched rows show a one-line `Search Amazon` link in the ASIN column.
 - ETA displays carrier estimated delivery when available, falls back to eBay estimated delivery for undelivered items without a carrier ETA, and displays delivered date for delivered items.
 - Shipment dates are formatted as date-only values to avoid UTC/local timezone day shifts.
-- Status displays derived operational status, not raw carrier text.
+- Status displays backend-normalized `purchase_items.current_status`, not raw carrier text.
 - Table headers send sort changes to `/api/purchases`.
 - Cancelled, return, listed, and reporting-excluded rows are excluded from the Needs Review ASIN filter and metric.
 - The status filter includes workflow statuses such as `Received`, `Listed`, `Return Pending`, `Return Opened`, and `Cancelled`.
@@ -27,8 +27,8 @@ This folder contains the Midnight Blue Operations Platform purchases workflow UI
 
 ## Detail Drawer Display
 
-- `Status` uses the same derived operational status as the table.
-- `Carrier Status` shows only carrier/shipment status fields, never item `current_status`.
+- `Status` uses the same stored operational status as the table.
+- `Carrier Status` shows only carrier/shipment status fields.
 - `ETA` appears next to `Order Date` and uses the same display-date logic as the table.
 - When ASIN is missing, `Amazon Title` displays `--`; the eBay supplier title remains visible separately.
 - eBay title, purchase price, ASIN, and sell price are edited together with one drawer save action.
@@ -56,7 +56,7 @@ This folder contains the Midnight Blue Operations Platform purchases workflow UI
 
 - `/api/purchases` pages through `vw_purchases_dashboard` instead of applying a fixed 200-row cap.
 - `/api/purchases` applies search, filters, sort, and pagination before returning rows.
-- Status filters use derived operational status semantics so filters match the labels displayed in the table.
+- Status filters use backend-normalized `purchase_items.current_status`.
 - Rows marked `exclude_from_purchase_reporting` are excluded before database pagination.
 - Purchase item and purchase metadata hydration is scoped to the returned page rows so detail-only fields do not slow down the list.
 - The purchases hook caches query-specific responses in browser `localStorage` for 24 hours.
@@ -70,6 +70,7 @@ This folder contains the Midnight Blue Operations Platform purchases workflow UI
 - `Received` can be displayed here, but the receiving workflow should own setting that status.
 - `Listed` can be displayed here, but listing/FBA/eBay workflow actions should own setting that status after this one-time backfill.
 - `Cancelled` can be displayed and filtered here, but refund confirmation belongs in the future return/refund workflow.
+- Do not add UI-only status derivation; backend sync/workflow code owns `current_status`.
 - ASIN/manual review can live here, but matching confidence and ambiguity status must come from backend data.
 - Video-game matching is platform-specific. Do not introduce frontend matching shortcuts across systems.
 - Frontend displays `system`, but backend import/enrichment owns system detection and canonical display names.

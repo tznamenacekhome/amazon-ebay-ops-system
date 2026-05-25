@@ -8,7 +8,7 @@ import type {
 } from "./types";
 import { rowKey } from "./utils";
 
-const PURCHASE_CACHE_KEY = "mbop:purchases:v7";
+const PURCHASE_CACHE_KEY = "mbop:purchases:v8";
 const PURCHASE_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 
 type PurchaseCache = {

@@ -160,7 +160,7 @@ The purchases list is expected to grow by hundreds of rows per month. Loading ev
 Implementation:
 - `/api/purchases` reads a lean page of rows from `vw_purchases_dashboard`
 - reporting-excluded purchase items are excluded before database pagination
-- status filters use the same operational status derivation as the table instead of raw `current_status` alone
+- status filters use backend-normalized `purchase_items.current_status`
 - detail-only metadata such as `amazon_title` and eBay raw payload-derived fields are hydrated only for the returned page
 - the default status filter is `active`, meaning all statuses except `listed`
 - Needs Review excludes listed, cancelled, return opened, and return pending rows
@@ -169,6 +169,48 @@ Implementation:
 
 Rule:
 Do not reintroduce full-table client-side filtering or sorting for the purchases page. Add backend query parameters or database indexes/views when the list needs new filter/sort behavior.
+
+---
+
+## Purchase Item Status Is Backend-Owned
+
+Decision:
+`purchase_items.current_status` is the canonical operational status for purchase items.
+
+Reason:
+Filtering and display drifted when the UI derived status from a mix of item, shipment, carrier, and eBay metadata. Status calculation belongs in backend sync/workflow code so every screen filters and displays the same value.
+
+Status writers:
+- eBay buyer purchase sync writes initial non-locked statuses.
+- EasyPost sync and webhook update linked purchase items from carrier state.
+- Receiving owns `received` and `return_pending`.
+- FBA/listing workflow owns `listed`.
+- Return/refund workflow will own `return_opened` and cancellation/refund follow-up.
+
+Workflow-locked statuses:
+- `cancelled`
+- `listed`
+- `received`
+- `return_opened`
+- `return_pending`
+
+Carrier/status precedence for non-locked rows:
+- delivered carrier state or delivered date -> `delivered`
+- carrier exception / return to sender -> `exception`
+- out for delivery -> `out_for_delivery`
+- pickup available -> `available_for_pickup`
+- in transit -> `in_transit`
+- usable tracking with no carrier scan -> `awaiting_carrier_scan`
+- seller shipped without usable tracking -> `shipped_no_tracking`
+- no tracking and no shipped signal -> `no_tracking`
+
+Implementation:
+- shared Python logic lives in `integrations/status_logic.py`
+- one-time backfill lives in `integrations/backfill_purchase_item_statuses.py`
+- purchases UI displays and filters stored status values instead of deriving status locally
+
+Rule:
+Do not add new UI-only status derivation. Add or update backend status writers when status semantics change.
 
 ---
 

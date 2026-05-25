@@ -203,10 +203,10 @@ Implemented:
 - dense table layout pass
 - matched Amazon title display with eBay title subtitle
 - simplified ASIN column links
-- status filter uses derived operational status
+- status filter uses stored backend-owned purchase_items.current_status
 - ETA column uses carrier estimated delivery when available, otherwise eBay estimated delivery, and delivered date when delivered
 - date formatting treats shipment dates as date-only to avoid UTC/local timezone shifts
-- detail drawer status matches the table's derived operational status
+- detail drawer status matches the table's stored operational status
 - detail drawer carrier status shows carrier/shipment fields only
 - detail drawer shows "--" for Amazon Title when ASIN is missing
 - detail drawer saves eBay title, Amazon title, purchase price, system, ASIN, and sell price together
@@ -217,7 +217,7 @@ Implemented:
 - status filter includes Received and Listed workflow statuses
 - Needs Review now includes missing ASIN, invalid ASIN placeholder, missing sell price, missing system, or missing Amazon title for rows with an ASIN
 - purchases API uses server-side filtering, sorting, and paging from vw_purchases_dashboard
-- purchases API maps status filters to the same derived operational status semantics used by the table
+- purchases API filters directly on backend-normalized purchase_items.current_status
 - purchases list payload is lean; detail-only metadata is hydrated only for returned page rows
 - purchases and receiving APIs hide purchase items marked exclude_from_purchase_reporting
 - purchases API excludes reporting-excluded rows before database pagination so pages are full usable pages
@@ -225,6 +225,7 @@ Implemented:
 - default purchases status filter is All Except Listed, with All Status available for full history
 - purchases UI uses query-aware browser caching for 24 hours; Refresh bypasses the cache
 - purchases cache key was bumped after reporting-exclusion fixes so stale non-resale rows are not reused
+- purchases cache key was bumped again after backend status normalization so stale derived-status filter results are not reused
 
 Current architecture:
 web/app/page.tsx is now the composition layer.
@@ -236,6 +237,9 @@ iterate on ASIN review and operational throughput without merging receiving work
 Recent backend update:
 - eBay buyer purchase sync now populates purchase_items.system from recognized eBay title platform terms
 - eBay buyer purchase sync preserves workflow-owned statuses: Cancelled, Listed, Received, Return Opened, and Return Pending
+- eBay buyer purchase sync writes canonical non-locked statuses such as No Tracking, Shipped (No Tracking), Awaiting Carrier Scan, and Delivered
+- EasyPost sync/webhook updates linked purchase_items.current_status from carrier state while preserving workflow-locked statuses
+- one-time backend status backfill normalized 83 purchase item statuses from older ordered/in-transit/delivered placeholders
 - existing empty systems were backfilled where recognized
 - RevSeller enrichment no longer applies unique-title matches without a recognized system
 - system names were normalized to operator-facing display values

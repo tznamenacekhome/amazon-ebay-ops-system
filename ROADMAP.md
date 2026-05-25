@@ -153,6 +153,8 @@ Completed:
 - one-time reference sheet status backfill applied explicit Listed and Received values
 - blank reference sheet statuses were left as their existing MBOP carrier/workflow statuses
 - eBay purchase sync preserves Cancelled, Listed, Received, Return Opened, and Return Pending workflow statuses
+- shared backend status normalization now writes canonical purchase_items.current_status for carrier/workflow states
+- one-time status backfill normalized older ordered/in-transit/delivered placeholders into No Tracking, Shipped (No Tracking), Awaiting Carrier Scan, In Transit, and Pickup Available where appropriate
 - separate Amazon FBA page at /fba
 - FBA shipment API at /api/fba-shipments
 - Received Amazon-bound items grouped one row per ASIN for InventoryLab export

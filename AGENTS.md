@@ -58,6 +58,7 @@ Purchases table display rules:
 - ETA shows carrier estimated delivery when available, otherwise eBay estimated delivery for undelivered items, and delivered date when delivered
 - carrier ETA dates are displayed as date-only values to avoid timezone day shifts
 - table headers sort through /api/purchases query parameters
+- status filter uses backend-normalized purchase_items.current_status
 - status filter includes Received for items warehouse-verified by the receiving workflow and Cancelled for cancelled/refunded purchase outcomes
 - detail drawer saves eBay title, Amazon title, purchase price, system, ASIN, and sell price together
 - detail drawer can edit system using the canonical system pick list
@@ -65,6 +66,7 @@ Purchases table display rules:
 
 Do not reintroduce large JSX blocks into page.tsx.
 Do not reintroduce full-table client-side purchases filtering/sorting; add backend query behavior instead.
+Do not add UI-only status derivation; backend sync/workflow code owns purchase_items.current_status.
 
 ---
 

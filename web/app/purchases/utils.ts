@@ -118,7 +118,9 @@ export function isDelivered(row: PurchaseRow) {
 
 export function needsAsinReview(row: PurchaseRow) {
   const status = getOperationalStatus(row).value;
-  if (["cancelled", "return_opened", "listed"].includes(status)) return false;
+  if (["cancelled", "return_opened", "return_pending", "listed"].includes(status)) {
+    return false;
+  }
 
   const asin = (row.asin || "").trim().toUpperCase();
   const missingAsin = !asin || asin === "N/A";
@@ -137,43 +139,9 @@ export function getOperationalStatus(row: PurchaseRow): {
   value: OperationalStatusValue;
   label: string;
 } {
-  const hasTracking = hasUsableTrackingNumber(row.tracking_number);
   const itemStatus = normalizeStatus(row.current_status);
-  const carrierStatus = normalizeStatus(
-    row.normalized_status ||
-      row.shipment_status ||
-      row.carrier_status ||
-      row.delivery_status
-  );
 
-  if (itemStatus === "return_opened") return statusOption("return_opened");
-  if (row.ebay_cancelled || itemStatus === "cancelled") {
-    return statusOption("cancelled");
-  }
-  if (itemStatus === "received") return statusOption("received");
-  if (itemStatus === "listed") return statusOption("listed");
-  if (itemStatus === "return_pending") return statusOption("return_pending");
-  if (carrierStatus === "delivered" || !!row.delivered_date) {
-    return statusOption("delivered");
-  }
-  if (carrierStatus === "exception" || carrierStatus === "return_to_sender") {
-    return statusOption("exception");
-  }
-  if (carrierStatus === "out_for_delivery") return statusOption("out_for_delivery");
-  if (carrierStatus === "available_for_pickup") {
-    return statusOption("available_for_pickup");
-  }
-  if (carrierStatus === "in_transit") return statusOption("in_transit");
-  if (
-    hasTracking &&
-    (carrierStatus === "pre_transit" || carrierStatus === "unknown")
-  ) {
-    return statusOption("awaiting_carrier_scan");
-  }
-  if (hasTracking) return statusOption("awaiting_carrier_scan");
-  if (row.seller_shipped) return statusOption("shipped_no_tracking");
-
-  return statusOption("no_tracking");
+  return statusOption(itemStatus as OperationalStatusValue);
 }
 
 function statusOption(value: OperationalStatusValue) {
@@ -188,23 +156,4 @@ function normalizeStatus(value?: string | null) {
   if (!value) return "";
 
   return value.trim().toLowerCase().replace(/[\s-]+/g, "_");
-}
-
-function hasUsableTrackingNumber(value?: string | null) {
-  if (!value) return false;
-
-  const normalizedValue = value.trim().toLowerCase();
-
-  return ![
-    "no tracking",
-    "none",
-    "n/a",
-    "na",
-    "not available",
-    "refunded",
-    "cancelled",
-    "canceled",
-    "shipped untracked",
-    "shipped without tracking",
-  ].includes(normalizedValue);
 }
