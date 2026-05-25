@@ -217,6 +217,7 @@ Implemented:
 - status filter includes Received and Listed workflow statuses
 - Needs Review now includes missing ASIN, invalid ASIN placeholder, missing sell price, missing system, or missing Amazon title for rows with an ASIN
 - purchases API uses server-side filtering, sorting, and paging from vw_purchases_dashboard
+- purchases API maps status filters to the same derived operational status semantics used by the table
 - purchases list payload is lean; detail-only metadata is hydrated only for returned page rows
 - purchases and receiving APIs hide purchase items marked exclude_from_purchase_reporting
 - purchases API excludes reporting-excluded rows before database pagination so pages are full usable pages

@@ -56,6 +56,7 @@ This folder contains the Midnight Blue Operations Platform purchases workflow UI
 
 - `/api/purchases` pages through `vw_purchases_dashboard` instead of applying a fixed 200-row cap.
 - `/api/purchases` applies search, filters, sort, and pagination before returning rows.
+- Status filters use derived operational status semantics so filters match the labels displayed in the table.
 - Rows marked `exclude_from_purchase_reporting` are excluded before database pagination.
 - Purchase item and purchase metadata hydration is scoped to the returned page rows so detail-only fields do not slow down the list.
 - The purchases hook caches query-specific responses in browser `localStorage` for 24 hours.

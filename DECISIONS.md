@@ -160,6 +160,7 @@ The purchases list is expected to grow by hundreds of rows per month. Loading ev
 Implementation:
 - `/api/purchases` reads a lean page of rows from `vw_purchases_dashboard`
 - reporting-excluded purchase items are excluded before database pagination
+- status filters use the same operational status derivation as the table instead of raw `current_status` alone
 - detail-only metadata such as `amazon_title` and eBay raw payload-derived fields are hydrated only for the returned page
 - the default status filter is `active`, meaning all statuses except `listed`
 - Needs Review excludes listed, cancelled, return opened, and return pending rows

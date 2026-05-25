@@ -169,6 +169,14 @@ async function fetchPurchaseRows(
   excludedItemIds: string[],
   amazonTitleReviewItemIds: string[]
 ) {
+  if (requiresMetadataStatusFilter(query.statusFilter)) {
+    return fetchMetadataStatusRows(
+      query,
+      excludedItemIds,
+      amazonTitleReviewItemIds
+    );
+  }
+
   const rangeStart = (query.page - 1) * query.pageSize;
   const rangeEnd = rangeStart + query.pageSize - 1;
   const sortColumn = purchaseSortColumn(query.sortColumn);
@@ -220,6 +228,117 @@ async function fetchPurchaseRows(
   };
 }
 
+async function fetchMetadataStatusRows(
+  query: PurchaseQuery,
+  excludedItemIds: string[],
+  amazonTitleReviewItemIds: string[]
+) {
+  const rows = await fetchUnpagedPurchaseRows(
+    { ...query, statusFilter: "active" },
+    excludedItemIds,
+    amazonTitleReviewItemIds
+  );
+  const statusRows = await hydrateRowsForOperationalStatus(rows);
+  const filteredRows = statusRows
+    .filter((row) => getApiOperationalStatus(row) === query.statusFilter)
+    .map(({ seller_shipped, ebay_cancelled, ...row }) => row);
+  const rangeStart = (query.page - 1) * query.pageSize;
+  const rangeEnd = rangeStart + query.pageSize;
+
+  return {
+    rows: filteredRows.slice(rangeStart, rangeEnd),
+    total: filteredRows.length,
+  };
+}
+
+async function fetchUnpagedPurchaseRows(
+  query: PurchaseQuery,
+  excludedItemIds: string[],
+  amazonTitleReviewItemIds: string[]
+) {
+  const pageSize = 1000;
+  const sortColumn = purchaseSortColumn(query.sortColumn);
+  const ascending = query.sortDirection === "asc";
+  const rows: PurchaseListRow[] = [];
+  let offset = 0;
+
+  while (true) {
+    let request = supabase
+      .from("vw_purchases_dashboard")
+      .select(
+        [
+          "item_id",
+          "purchase_id",
+          "order_date",
+          "supplier",
+          "supplier_order_id",
+          "title",
+          "system",
+          "asin",
+          "sell_price",
+          "target_price:sell_price",
+          "unit_cost",
+          "quantity",
+          "current_status",
+          "tracking_number",
+          "supplier_listing_url",
+          "carrier",
+          "delivery_status",
+          "estimated_delivery_date",
+          "delivered_date",
+        ].join(",")
+      );
+
+    request = applyServerFilters(
+      request,
+      query,
+      excludedItemIds,
+      amazonTitleReviewItemIds
+    );
+
+    const { data, error } = await request
+      .order(sortColumn, { ascending, nullsFirst: false })
+      .range(offset, offset + pageSize - 1);
+
+    if (error) throw new Error(error.message);
+
+    rows.push(...((data ?? []) as unknown as PurchaseListRow[]));
+
+    if ((data ?? []).length < pageSize) return rows;
+
+    offset += pageSize;
+  }
+}
+
+async function hydrateRowsForOperationalStatus(rows: PurchaseListRow[]) {
+  const purchaseIds = rows
+    .map((row) => row.purchase_id)
+    .filter((purchaseId): purchaseId is string => typeof purchaseId === "string");
+  const purchases = await fetchPurchaseMeta(purchaseIds);
+  const purchaseMetaById = new Map(
+    (purchases ?? []).map((purchase) => [
+      purchase.purchase_id,
+      {
+        sellerShipped: hasSellerShipped(purchase.raw_import_json),
+        ebayCancelled: isEbayCancelled(purchase.raw_import_json, purchase.order_status),
+        ebayEstimatedDeliveryDate: getEbayEstimatedDeliveryDate(
+          purchase.raw_import_json
+        ),
+      },
+    ])
+  );
+
+  return rows.map((row) => ({
+    ...row,
+    seller_shipped: purchaseMetaById.get(row.purchase_id)?.sellerShipped ?? false,
+    ebay_cancelled: purchaseMetaById.get(row.purchase_id)?.ebayCancelled ?? false,
+    estimated_delivery_date:
+      row.estimated_delivery_date ??
+      purchaseMetaById.get(row.purchase_id)?.ebayEstimatedDeliveryDate ??
+      null,
+  }));
+}
+
 function applyServerFilters(
   request: any,
   query: PurchaseQuery,
@@ -233,7 +352,7 @@ function applyServerFilters(
   if (query.statusFilter === "active") {
     request = request.neq("current_status", "listed");
   } else if (query.statusFilter !== "all") {
-    request = request.eq("current_status", query.statusFilter);
+    request = applyOperationalStatusFilter(request, query.statusFilter);
   }
 
   if (query.asinFilter === "matched") {
@@ -296,6 +415,50 @@ function purchaseSortColumn(column: string) {
   return columns[column] || "order_date";
 }
 
+function applyOperationalStatusFilter(request: any, statusFilter: string) {
+  const workflowLockedStatuses = [
+    "received",
+    "listed",
+    "return_pending",
+    "return_opened",
+    "cancelled",
+  ];
+
+  if (workflowLockedStatuses.includes(statusFilter)) {
+    return request.eq("current_status", statusFilter);
+  }
+
+  request = request.not(
+    "current_status",
+    "in",
+    "(received,listed,return_pending,return_opened,cancelled)"
+  );
+
+  switch (statusFilter) {
+    case "delivered":
+      return request.or("delivery_status.eq.delivered,delivered_date.not.is.null");
+    case "exception":
+      return request.in("delivery_status", ["exception", "return_to_sender"]);
+    case "out_for_delivery":
+      return request.eq("delivery_status", "out_for_delivery");
+    case "available_for_pickup":
+      return request.eq("delivery_status", "available_for_pickup");
+    case "in_transit":
+      return request.eq("delivery_status", "in_transit");
+    case "awaiting_carrier_scan":
+      return request
+        .not("tracking_number", "is", null)
+        .not(
+          "tracking_number",
+          "in",
+          "(\"no tracking\",none,\"n/a\",na,\"not available\",refunded,cancelled,canceled,\"shipped untracked\",\"shipped without tracking\")"
+        )
+        .or("delivery_status.is.null,delivery_status.eq.pre_transit,delivery_status.eq.unknown");
+    default:
+      return request;
+  }
+}
+
 function escapeIlike(value: string) {
   return value.replace(/[%_,]/g, "\\$&");
 }
@@ -337,6 +500,15 @@ async function countPurchaseRows(
   excludedItemIds: string[],
   amazonTitleReviewItemIds: string[]
 ) {
+  if (requiresMetadataStatusFilter(query.statusFilter)) {
+    const result = await fetchMetadataStatusRows(
+      { ...query, page: 1, pageSize: 25 },
+      excludedItemIds,
+      amazonTitleReviewItemIds
+    );
+    return result.total;
+  }
+
   let request = supabase
     .from("vw_purchases_dashboard")
     .select("item_id", { count: "exact", head: true });
@@ -355,6 +527,67 @@ async function countPurchaseRows(
   }
 
   return count ?? 0;
+}
+
+function requiresMetadataStatusFilter(statusFilter: string) {
+  return ["no_tracking", "shipped_no_tracking"].includes(statusFilter);
+}
+
+function getApiOperationalStatus(row: PurchaseListRow & {
+  seller_shipped?: boolean | null;
+  ebay_cancelled?: boolean | null;
+}) {
+  const hasTracking = hasUsableTrackingNumber(row.tracking_number);
+  const itemStatus = normalizeStatusValue(row.current_status);
+  const carrierStatus = normalizeStatusValue(row.delivery_status);
+
+  if (itemStatus === "return_opened") return "return_opened";
+  if (row.ebay_cancelled || itemStatus === "cancelled") return "cancelled";
+  if (itemStatus === "received") return "received";
+  if (itemStatus === "listed") return "listed";
+  if (itemStatus === "return_pending") return "return_pending";
+  if (carrierStatus === "delivered" || !!row.delivered_date) return "delivered";
+  if (carrierStatus === "exception" || carrierStatus === "return_to_sender") {
+    return "exception";
+  }
+  if (carrierStatus === "out_for_delivery") return "out_for_delivery";
+  if (carrierStatus === "available_for_pickup") return "available_for_pickup";
+  if (carrierStatus === "in_transit") return "in_transit";
+  if (
+    hasTracking &&
+    (carrierStatus === "pre_transit" || carrierStatus === "unknown")
+  ) {
+    return "awaiting_carrier_scan";
+  }
+  if (hasTracking) return "awaiting_carrier_scan";
+  if (row.seller_shipped) return "shipped_no_tracking";
+
+  return "no_tracking";
+}
+
+function normalizeStatusValue(value?: string | null) {
+  if (!value) return "";
+
+  return value.trim().toLowerCase().replace(/[\s-]+/g, "_");
+}
+
+function hasUsableTrackingNumber(value?: string | null) {
+  if (!value) return false;
+
+  const normalizedValue = value.trim().toLowerCase();
+
+  return ![
+    "no tracking",
+    "none",
+    "n/a",
+    "na",
+    "not available",
+    "refunded",
+    "cancelled",
+    "canceled",
+    "shipped untracked",
+    "shipped without tracking",
+  ].includes(normalizedValue);
 }
 
 async function fetchExcludedItemIds() {
