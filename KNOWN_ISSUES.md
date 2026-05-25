@@ -13,17 +13,15 @@ Status: ACTIVE
 Problem:
 Most ASIN, sell-price, title, and system gaps have been resolved, but a small set of active non-listed rows still need cleanup before workflows are fully smooth.
 
-Current live counts after the 2026-05-25 clarification cleanup:
-- missing ASIN or ASIN placeholder `N/A`: 4
+Current live counts after the 2026-05-25 clarification cleanup and manual game ASIN fixes:
+- missing ASIN or ASIN placeholder `N/A`: 2 non-resale rows pending exclusion SQL
 - missing target sell price: 0
 - missing Amazon title while ASIN exists: 0
 - missing system: 0
 
 Known rows needing review:
-- `NBA 2K24 Kobe Bryant Edition`, order `15-13184-98992`, system `Xbox`: ASIN is `N/A`.
-- `Delighting in the Lord Terry Briley 2015 Christian Faith Hardcover`, order `25-13638-84763`: ASIN is `N/A`; likely non-resale, pending operator confirmation.
-- `5 Pack Starbucks Reusable Venti 24 OZ Frosted Ice Cold Cup With Lid & Straw`, order `01-13685-25998`: ASIN is `N/A`; likely non-resale, pending operator confirmation.
-- `Just Dance kids 2014`, order `02-13773-35502`, system `Wii U`: ASIN is `N/A`.
+- `Delighting in the Lord Terry Briley 2015 Christian Faith Hardcover`, order `25-13638-84763`: confirmed non-resale.
+- `5 Pack Starbucks Reusable Venti 24 OZ Frosted Ice Cold Cup With Lid & Straw`, order `01-13685-25998`: confirmed non-resale.
 
 Current mitigation:
 - purchase detail drawer can edit Amazon title, system, ASIN, purchase price, and target sell price.
@@ -32,8 +30,7 @@ Current mitigation:
 - manual corrections can propagate to matching title/system rows where safe.
 
 Recommended next mitigation:
-- confirm whether the book and Starbucks cup rows should be excluded as non-resale.
-- correct real ASINs for the two game rows if they are resale inventory.
+- apply `sql/2026-05-25_exclude_non_resale_known_issue_rows.sql`.
 - avoid treating `N/A` as a valid ASIN in future imports/backfills.
 
 ---
