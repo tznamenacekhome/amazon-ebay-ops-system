@@ -170,6 +170,14 @@ Amazon SP-API integrations:
 - must not request restricted PII data or Amazon seller order/customer data
 - must write normalized Amazon seller/FBA data to Amazon-specific tables, not purchases or purchase_items
 - current FBA inventory sync entry point is `integrations/amazon_sync_fba_inventory.py`
+- current Amazon listing status sync entry point is `integrations/amazon_sync_listing_status.py`
+
+Keepa integrations:
+- must remain read-only catalog intelligence
+- must not write to purchases, purchase_items, receiving rows, FBA shipment rows, or Amazon seller workflow tables
+- may store product price, sales-rank, offer, review, rating, and raw payload data in Keepa-specific tables
+- must be token-aware; use plan/dry-run modes before broad syncs
+- current product sync entry point is `integrations/keepa_sync_products.py`
 
 Do not merge these workflows into one UI.
 

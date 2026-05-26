@@ -298,6 +298,9 @@ Planned scope:
 First next step:
 surface Keepa price/rank/sales-rank-drop signals in operator review views without allowing Keepa to overwrite workflow-owned purchase data
 
+Operational caution:
+Run `integrations/keepa_sync_products.py --plan-only` before broad Keepa syncs, then sync in staged batches based on available token balance.
+
 ---
 
 ## Late Delivery And Seller Case Workflow

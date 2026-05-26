@@ -18,7 +18,7 @@ MBOP is the internal operations platform for Midnight Blue Enterprises, LLC.
 | Sync orchestration | Mature |
 | Dashboard analytics | First slice implemented |
 | Matching engine | Emerging subsystem |
-| Amazon SP-API foundation | Read-only inventory sync working |
+| Amazon SP-API foundation | Read-only inventory/listing sync working |
 | Keepa catalog intelligence | Foundation implemented / small write verified |
 | Unified inventory state / reconciliation | First slice implemented |
 | Amazon FBA workflow | First slice implemented |
