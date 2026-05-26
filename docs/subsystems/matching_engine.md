@@ -70,6 +70,25 @@ Example:
 - system: `PS 5`
 - result: ASIN `B08MG5FYS6`
 
+## Token-Set Same-System Fallback
+
+If exact and compact same-system matching still fail, RevSeller enrichment can
+compare the sorted unique title tokens for the same system.
+
+This fallback is only accepted when:
+- the system matches
+- the token-set key maps to exactly one ASIN in the RevSeller sheet
+
+Reason:
+Some eBay titles use different word order than the catalog title.
+
+Example:
+- eBay: `Rock Band the Beatles - Nintendo Wii`
+- RevSeller: `The Beatles: Rock Band (Game Only) - Nintendo Wii`
+- token set: `band beatles rock the`
+- system: `Wii`
+- result: ASIN `B001TOQ8LG`
+
 ## Manual Match Memory
 
 When an operator manually adds an ASIN or target sell price in the purchases UI,

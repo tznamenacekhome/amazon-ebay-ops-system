@@ -56,6 +56,7 @@ GENERIC_TITLE_WORDS = {
     "case",
     "manual",
     "game",
+    "only",
     "video",
     "edition",
     "standard",
@@ -64,6 +65,11 @@ GENERIC_TITLE_WORDS = {
 
 def compact_title_key(title: str | None) -> str:
     return re.sub(r"[^a-z0-9]+", "", title or "")
+
+
+def token_set_key(title: str | None) -> str:
+    words = normalize_spaces(title or "").split()
+    return " ".join(sorted(set(words)))
 
 
 def normalize_title(title: str | None) -> str:
@@ -244,6 +250,7 @@ def build_revseller_indexes(rows):
     by_title_system = {}
     by_title = defaultdict(list)
     compact_rows_by_title_system = defaultdict(list)
+    token_rows_by_title_system = defaultdict(list)
 
     for row in rows:
         title_key = row["normalized_title"]
@@ -261,6 +268,11 @@ def build_revseller_indexes(rows):
             if compact_key:
                 compact_rows_by_title_system[(compact_key, system_key)].append(row)
 
+            token_key = token_set_key(title_key)
+
+            if token_key:
+                token_rows_by_title_system[(token_key, system_key)].append(row)
+
         by_title[title_key].append(row)
 
     ambiguous_titles = {
@@ -271,6 +283,8 @@ def build_revseller_indexes(rows):
 
     by_compact_title_system = {}
     ambiguous_compact_title_system = set()
+    by_token_title_system = {}
+    ambiguous_token_title_system = set()
 
     for compound_key, compact_rows in compact_rows_by_title_system.items():
         unique_asins = {row["asin"] for row in compact_rows}
@@ -284,12 +298,26 @@ def build_revseller_indexes(rows):
             key=lambda row: row["row_date"],
         )
 
+    for compound_key, token_rows in token_rows_by_title_system.items():
+        unique_asins = {row["asin"] for row in token_rows}
+
+        if len(unique_asins) > 1:
+            ambiguous_token_title_system.add(compound_key)
+            continue
+
+        by_token_title_system[compound_key] = max(
+            token_rows,
+            key=lambda row: row["row_date"],
+        )
+
     return (
         by_title_system,
         ambiguous_titles,
         by_title,
         by_compact_title_system,
         ambiguous_compact_title_system,
+        by_token_title_system,
+        ambiguous_token_title_system,
     )
 
 
@@ -356,6 +384,8 @@ def match_purchase_item(
     by_title,
     by_compact_title_system,
     ambiguous_compact_title_system,
+    by_token_title_system,
+    ambiguous_token_title_system,
 ):
     raw_title = item.get("title") or ""
     normalized_title = normalize_title(raw_title)
@@ -392,6 +422,17 @@ def match_purchase_item(
                     if title_variant == normalized_title
                     else "matched_condition_variant_with_system"
                 )
+
+            token_key = token_set_key(title_variant)
+            token_compound_key = (token_key, detected_system)
+
+            if token_compound_key in ambiguous_token_title_system:
+                return None, "skipped_ambiguous_token_system"
+
+            matched_row = by_token_title_system.get(token_compound_key)
+
+            if matched_row:
+                return matched_row, "matched_token_set_with_system"
 
         return None, "skipped_no_match"
 
@@ -456,6 +497,8 @@ def main():
         by_title,
         by_compact_title_system,
         ambiguous_compact_title_system,
+        by_token_title_system,
+        ambiguous_token_title_system,
     ) = build_revseller_indexes(match_rows)
 
     print(f"RevSeller title+system keys: {len(by_title_system)}")
@@ -465,6 +508,11 @@ def main():
         "RevSeller ambiguous compact title+system keys: "
         f"{len(ambiguous_compact_title_system)}"
     )
+    print(f"RevSeller token-set title+system keys: {len(by_token_title_system)}")
+    print(
+        "RevSeller ambiguous token-set title+system keys: "
+        f"{len(ambiguous_token_title_system)}"
+    )
 
     purchase_items = fetch_purchase_items(supabase)
     print(f"Purchase items scanned: {len(purchase_items)}")
@@ -473,8 +521,10 @@ def main():
         "matched_with_system": 0,
         "matched_compact_with_system": 0,
         "matched_condition_variant_with_system": 0,
+        "matched_token_set_with_system": 0,
         "skipped_ambiguous_system": 0,
         "skipped_ambiguous_compact_system": 0,
+        "skipped_ambiguous_token_system": 0,
         "skipped_no_match": 0,
         "skipped_no_detected_system": 0,
         "updated": 0,
@@ -491,6 +541,8 @@ def main():
             by_title,
             by_compact_title_system,
             ambiguous_compact_title_system,
+            by_token_title_system,
+            ambiguous_token_title_system,
         )
 
         counts[status] += 1
