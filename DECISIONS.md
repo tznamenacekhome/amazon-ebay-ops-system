@@ -563,6 +563,8 @@ Implementation:
 - `Missing Data` rows are missing required ASIN, cost, age, Keepa, Informed, or pricing context.
 - Reprice target price uses a 3% markdown below Buy Box/reference while respecting a cost + 10% floor.
 - Liquidate target price uses an 8% markdown below Buy Box/reference while respecting a cost + 10% floor.
+- Amazon Inventory Planning 30/90-day shipped-unit fields classify sales velocity as Strong, Moving, Slow, No recent sales, or Unknown.
+- target markdowns are adjusted by sales velocity so strong sellers receive gentler recommendations and no-recent-sales rows receive firmer recommendations.
 - `/repricing` renders the API-provided bucket and target price only.
 
 Rule:

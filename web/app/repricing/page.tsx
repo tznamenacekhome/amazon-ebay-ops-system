@@ -16,6 +16,13 @@ type AdvisorBucket =
   | "Inventory / Listing Issue"
   | "Missing Data";
 
+type SalesVelocitySignal =
+  | "Strong"
+  | "Moving"
+  | "Slow"
+  | "No recent sales"
+  | "Unknown";
+
 type AmazonAgeBucket =
   | "0-90"
   | "91-180"
@@ -64,6 +71,7 @@ type AdvisorRow = {
   planning_alert: string | null;
   sales_shipped_last_30_days: number | null;
   sales_shipped_last_90_days: number | null;
+  sales_velocity_signal: SalesVelocitySignal;
   informed_rule_name: string | null;
   informed_current_price: number | null;
   informed_min_price: number | null;
@@ -317,7 +325,7 @@ export default function RepricingPage() {
                 <th className="px-3 py-2">Informed</th>
                 <th className="px-3 py-2">Buy Box Status</th>
                 <th className="px-3 py-2">Informed Note</th>
-                <th className="px-3 py-2">Sales Rank</th>
+                <th className="px-3 py-2">Sales</th>
                 <th className="px-3 py-2">Recommendation</th>
                 <th className="px-3 py-2">Reason</th>
               </tr>
@@ -408,7 +416,8 @@ export default function RepricingPage() {
                       {row.informed_repricing_note}
                     </td>
                     <td className="w-[150px] px-3 py-2">
-                      <div>{salesRankSignal(row)}</div>
+                      <div className="font-medium">{row.sales_velocity_signal}</div>
+                      <div className="text-xs text-slate-500">{salesRankSignal(row)}</div>
                       <div className="text-xs text-slate-500">
                         30/90d sales {formatNumber(row.sales_shipped_last_30_days)} /{" "}
                         {formatNumber(row.sales_shipped_last_90_days)}

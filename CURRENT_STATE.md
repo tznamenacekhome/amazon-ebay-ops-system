@@ -348,6 +348,8 @@ Current recommendation rules:
 - advisor bucket `Missing Data`: rows missing required repricing context
 - Reprice target price uses 3% below Buy Box/reference, with a cost + 10% floor
 - Liquidate target price uses 8% below Buy Box/reference, with a cost + 10% floor
+- target markdowns are adjusted by Amazon planning sales velocity: stronger recent sales get gentler markdowns, no recent sales get firmer markdowns
+- sales velocity is classified from Amazon planning 30/90-day shipped-unit fields as Strong, Moving, Slow, No recent sales, or Unknown
 - Informed notes flag stale inventory where current price is above Buy Box, min price appears above Buy Box, repricing is disabled, or a rule assignment is missing
 - rows under 90 days old are excluded from the action list unless they have an actionable issue
 - normal inbound/FC-transfer movement is displayed as inventory detail, but is not treated as an operator-action issue by itself
@@ -358,6 +360,7 @@ Latest validation:
 - Amazon inventory planning report write inserted 297 planning snapshot rows
 - API route returned 297 active Amazon SKU rows and 761 units with planning age buckets where available
 - Informed `All_Fields_NextGen` report imported 969 listing snapshot rows and joined to advisor rows by seller SKU
+- sales shipped 30/90-day fields from Amazon Inventory Planning are surfaced as sell-through signal on the advisor page
 - estimated capital tied up: $13,597.34
 - aged capital over 90 days: $5,265.19
 - aged capital over 180 days: $1,881.41

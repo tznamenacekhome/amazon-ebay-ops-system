@@ -34,6 +34,13 @@ type AdvisorBucket =
   | "Inventory / Listing Issue"
   | "Missing Data";
 
+type SalesVelocitySignal =
+  | "Strong"
+  | "Moving"
+  | "Slow"
+  | "No recent sales"
+  | "Unknown";
+
 type InventoryRow = {
   seller_sku: string | null;
   marketplace_id: string | null;
@@ -224,6 +231,7 @@ type AdvisorRow = {
   planning_alert: string | null;
   sales_shipped_last_30_days: number | null;
   sales_shipped_last_90_days: number | null;
+  sales_velocity_signal: SalesVelocitySignal;
   informed_rule_name: string | null;
   informed_current_price: number | null;
   informed_min_price: number | null;
@@ -465,6 +473,9 @@ function buildAdvisorRows(
       const listingIssueStatus = listingIssueSummary(listingStatus, listingIssueCount, listing);
       const capitalTiedUp =
         costBasis !== null ? roundMoney(costBasis * totalQuantity) : null;
+      const sales30 = toOptionalNumber(planning?.sales_shipped_last_30_days);
+      const sales90 = toOptionalNumber(planning?.sales_shipped_last_90_days);
+      const velocitySignal = salesVelocitySignal(sales30, sales90, totalQuantity);
       const informedNote = informedRepricingNote({
         informed,
         tierAgeBucket: ageSignal?.bucket ?? null,
@@ -484,6 +495,7 @@ function buildAdvisorRows(
         informed,
         informedBuyBoxPrice,
         marketReferencePrice,
+        salesVelocitySignal: velocitySignal,
         informedNote,
         amazonAgeBucket: ageSignal?.bucket ?? null,
         listingStatus,
@@ -568,8 +580,9 @@ function buildAdvisorRows(
         planning_snapshot_date: dateOnly(planning?.snapshot_date) ?? dateOnly(planning?.captured_at),
         planning_recommended_action: cleanText(planning?.recommended_action),
         planning_alert: cleanText(planning?.alert),
-        sales_shipped_last_30_days: toOptionalNumber(planning?.sales_shipped_last_30_days),
-        sales_shipped_last_90_days: toOptionalNumber(planning?.sales_shipped_last_90_days),
+        sales_shipped_last_30_days: sales30,
+        sales_shipped_last_90_days: sales90,
+        sales_velocity_signal: velocitySignal,
         informed_rule_name: cleanText(informed?.assigned_rule_name),
         informed_current_price: toOptionalNumber(informed?.current_price),
         informed_min_price: toOptionalNumber(informed?.min_price),
@@ -632,6 +645,7 @@ function recommend(input: {
   informed?: InformedListingRow;
   informedBuyBoxPrice: number | null;
   marketReferencePrice: number | null;
+  salesVelocitySignal: SalesVelocitySignal;
   informedNote: string;
   amazonAgeBucket?: AmazonAgeBucket | null;
   listingStatus: string | null;
@@ -687,6 +701,7 @@ function recommend(input: {
         tier: "Liquidate",
         costBasis: input.costBasis,
         marketReferencePrice: input.marketReferencePrice,
+        salesVelocitySignal: input.salesVelocitySignal,
       });
       return {
         tier: "Liquidate",
@@ -696,6 +711,7 @@ function recommend(input: {
         action: "Review and lower the Informed target/floor manually if margin is acceptable.",
         reason: withInformedNote(
           `${input.amazonAgeBucket} Amazon planning age bucket with active FBA inventory; use a controlled markdown before considering removal.`,
+          velocityReason(input.salesVelocitySignal),
           input.informedNote
         ),
       };
@@ -710,6 +726,7 @@ function recommend(input: {
         tier: "Reprice",
         costBasis: input.costBasis,
         marketReferencePrice: input.marketReferencePrice,
+        salesVelocitySignal: input.salesVelocitySignal,
       });
       return {
         tier: "Reprice",
@@ -721,6 +738,7 @@ function recommend(input: {
           buyBoxBelowList
             ? "Amazon planning shows 91-180 day inventory and Buy Box is below current/list price; review repricer floor."
             : "Amazon planning shows 91-180 day sellable FBA inventory; consider a controlled price reduction.",
+          velocityReason(input.salesVelocitySignal),
           input.informedNote
         ),
       };
@@ -734,6 +752,7 @@ function recommend(input: {
       action: "Monitor sales velocity and Buy Box position.",
       reason: withInformedNote(
         "Amazon planning places this inventory in the 0-90 day bucket; exact 60-day split is unavailable from this report.",
+        velocityReason(input.salesVelocitySignal),
         input.informedNote
       ),
     };
@@ -771,6 +790,7 @@ function recommend(input: {
       tier: "Reprice",
       costBasis: input.costBasis,
       marketReferencePrice: input.marketReferencePrice,
+      salesVelocitySignal: input.salesVelocitySignal,
     });
     return {
       tier: "Reprice",
@@ -782,6 +802,7 @@ function recommend(input: {
         buyBoxBelowList
           ? "90+ days old and Buy Box is below current/list price; review repricer floor."
           : "90+ days old with sellable FBA quantity; consider a controlled price reduction.",
+        velocityReason(input.salesVelocitySignal),
         input.informedNote
       ),
     };
@@ -791,6 +812,7 @@ function recommend(input: {
     tier: "Liquidate",
     costBasis: input.costBasis,
     marketReferencePrice: input.marketReferencePrice,
+    salesVelocitySignal: input.salesVelocitySignal,
   });
   return {
     tier: "Liquidate",
@@ -800,6 +822,7 @@ function recommend(input: {
     action: "Review and lower the Informed target/floor manually if margin is acceptable.",
     reason: withInformedNote(
       "180+ days old with active Amazon inventory; recover capital even if margin compresses.",
+      velocityReason(input.salesVelocitySignal),
       input.informedNote
     ),
   };
@@ -820,12 +843,13 @@ function targetPriceRecommendation(input: {
   tier: "Reprice" | "Liquidate";
   costBasis: number | null;
   marketReferencePrice: number | null;
+  salesVelocitySignal: SalesVelocitySignal;
 }) {
   if (input.costBasis === null || input.marketReferencePrice === null) {
     return { price: null, basis: null };
   }
 
-  const discount = input.tier === "Reprice" ? REPRICE_DISCOUNT_PCT : LIQUIDATE_DISCOUNT_PCT;
+  const discount = targetDiscountPct(input.tier, input.salesVelocitySignal);
   const marketTarget = input.marketReferencePrice * (1 - discount);
   const floor = input.costBasis * (1 + MIN_MARGIN_ABOVE_COST_PCT);
   const target = Math.max(marketTarget, floor);
@@ -835,14 +859,66 @@ function targetPriceRecommendation(input: {
     basis:
       target === floor
         ? `Cost + ${Math.round(MIN_MARGIN_ABOVE_COST_PCT * 100)}% floor`
-        : `${Math.round(discount * 100)}% below Buy Box/reference`,
+        : `${Math.round(discount * 100)}% below Buy Box/reference (${input.salesVelocitySignal})`,
   };
 }
 
-function withInformedNote(reason: string, note: string) {
-  return note && note !== "Informed data present; no obvious repricing blocker."
-    ? `${reason} ${note}`
-    : reason;
+function targetDiscountPct(tier: "Reprice" | "Liquidate", signal: SalesVelocitySignal) {
+  if (tier === "Reprice") {
+    if (signal === "Strong") return 0.01;
+    if (signal === "Moving") return 0.02;
+    if (signal === "No recent sales") return 0.05;
+    return REPRICE_DISCOUNT_PCT;
+  }
+
+  if (signal === "Strong") return 0.04;
+  if (signal === "Moving") return 0.06;
+  if (signal === "No recent sales") return 0.12;
+  return LIQUIDATE_DISCOUNT_PCT;
+}
+
+function velocityReason(signal: SalesVelocitySignal) {
+  if (signal === "Strong") {
+    return "Recent Amazon sales are strong, so use a smaller markdown and check Buy Box/floor behavior first.";
+  }
+  if (signal === "Moving") {
+    return "Recent Amazon sales are moving, so use a moderate markdown rather than a liquidation cut.";
+  }
+  if (signal === "Slow") {
+    return "Recent Amazon sales are slow, so a firmer markdown may be justified.";
+  }
+  if (signal === "No recent sales") {
+    return "No recent Amazon sales are visible in the planning data, so prioritize this for price review.";
+  }
+  return "Amazon sales velocity is unknown, so treat the target as a first-pass recommendation.";
+}
+
+function withInformedNote(reason: string, ...notes: string[]) {
+  const usableNotes = notes.filter(
+    (note) => note && note !== "Informed data present; no obvious repricing blocker."
+  );
+  if (!usableNotes.length) return reason;
+  return `${reason} ${usableNotes.join(" ")}`;
+}
+
+function salesVelocitySignal(
+  sales30: number | null,
+  sales90: number | null,
+  totalQuantity: number
+): SalesVelocitySignal {
+  if (sales30 === null && sales90 === null) return "Unknown";
+  const last30 = sales30 ?? 0;
+  const last90 = sales90 ?? 0;
+  if (last30 <= 0 && last90 <= 0) return "No recent sales";
+
+  const meaningfulUnitCount = Math.max(1, totalQuantity);
+  if (last30 >= Math.max(2, Math.ceil(meaningfulUnitCount * 0.5)) || last90 >= meaningfulUnitCount * 2) {
+    return "Strong";
+  }
+  if (last30 > 0 || last90 >= Math.max(2, Math.ceil(meaningfulUnitCount * 0.5))) {
+    return "Moving";
+  }
+  return "Slow";
 }
 
 function summarizeRows(rows: AdvisorRow[]) {

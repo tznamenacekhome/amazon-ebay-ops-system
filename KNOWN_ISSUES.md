@@ -138,10 +138,11 @@ Current observed result:
 - the advisor now separates rows into Pricing, Inventory / Listing Issue, and Missing Data buckets.
 - current bucket counts are 78 Pricing, 53 Inventory / Listing Issue, and 68 Missing Data.
 - Pricing rows now receive a backend-generated manual target price using controlled markdowns against Buy Box/reference price while preserving a cost + 10% floor.
+- Amazon planning 30/90-day shipped-unit fields are now surfaced as a sales velocity signal and tune target markdowns.
 - InventoryLab/MBOP purchase dates are fallback age context only when Amazon planning data is missing.
 
 Impact:
-Rows with missing cost, pricing, Keepa, or Informed context cannot safely produce repricing-floor recommendations. Pricing-bucket target prices are first-pass advisory values and should be reviewed manually before changing Informed floors or Seller Central prices.
+Rows with missing cost, pricing, Keepa, Informed, or sales context cannot safely produce fully confident repricing-floor recommendations. Pricing-bucket target prices are first-pass advisory values and should be reviewed manually before changing Informed floors or Seller Central prices.
 
 Current mitigation:
 - `/api/amazon/repricing-advisor` marks incomplete rows as Needs Data.
@@ -150,6 +151,7 @@ Current mitigation:
 - Informed report snapshots are used to flag stale inventory where repricing is disabled, price is above Buy Box, min price appears above Buy Box, or rule assignment is missing.
 - FC transfer and normal inbound movement are displayed as detail, not treated as action issues by themselves.
 - aged sellable inventory without listing issues is kept in the Pricing bucket instead of being treated as removal/eBay work.
+- sell-through signal keeps moving inventory from getting overly aggressive markdowns while still prioritizing high-capital stale inventory.
 - Keepa sync has `--plan-only`, `--missing-only`, dry-run default, and staged write support.
 
 Recommended next mitigation:
