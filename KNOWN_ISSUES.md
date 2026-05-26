@@ -120,29 +120,32 @@ Recommended next mitigation:
 
 ## Repricing Advisor Data Coverage Gaps
 
-Status: ACTIVE / EXPECTED FIRST-PASS GAPS
+Status: ACTIVE / IMPROVED WITH AMAZON PLANNING DATA
 
 Problem:
-The aged Amazon inventory repricing advisor is useful as a manual work queue, but many active Amazon rows still lack enough Keepa or age context for confident pricing recommendations.
+The aged Amazon inventory repricing advisor is useful as a manual work queue, but many active Amazon rows still lack enough Keepa context for confident pricing recommendations.
 
 Current observed result:
 - API route returned 297 active Amazon SKU rows and 761 units.
 - 236 rows are currently Needs Data.
+- Amazon FBA Inventory Planning report import inserted 297 rows and now provides Amazon-native age buckets for active FBA inventory.
+- latest planning report showed 735 available units and 273 units in 91+ day age buckets.
 - only 5 Keepa product snapshots have been written so far, because the broad Keepa sync was intentionally not run against the 409-ASIN canonical set with limited token balance.
-- some InventoryLab historical rows use placeholder or missing purchase dates; placeholder dates earlier than 2000 are now treated as missing age context.
+- InventoryLab/MBOP purchase dates are fallback age context only when Amazon planning data is missing.
 
 Impact:
-Rows with missing cost, age, pricing, or Keepa context cannot safely produce liquidation or repricing-floor recommendations.
+Rows with missing cost, pricing, or Keepa context cannot safely produce liquidation or repricing-floor recommendations.
 
 Current mitigation:
 - `/api/amazon/repricing-advisor` marks incomplete rows as Needs Data.
 - `/repricing` includes filters for Missing Data and No Keepa Data.
+- Amazon Inventory Planning age buckets are now preferred over purchase-date age for active Amazon FBA inventory.
 - Keepa sync has `--plan-only`, dry-run default, and staged write support.
 
 Recommended next mitigation:
 - run staged Keepa sync batches for active Amazon inventory as tokens refill.
 - add Amazon Product Pricing sync if current/list prices remain sparse.
-- review InventoryLab rows with missing or placeholder purchase dates if accurate age is needed.
+- use Amazon planning data for a while before deciding whether ledger-level available-for-sale inference is worth the complexity.
 
 ---
 

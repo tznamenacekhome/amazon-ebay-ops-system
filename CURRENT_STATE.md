@@ -172,23 +172,27 @@ Recent ASIN validation:
 
 ## Amazon SP-API Foundation
 
-Status: READ-ONLY INVENTORY AND LISTING SYNC WORKING
+Status: READ-ONLY INVENTORY, LISTING, AND PLANNING SYNC WORKING
 
 Implemented:
 - `integrations/amazon_spapi_client.py`
 - `integrations/amazon_test_connection.py`
 - `integrations/amazon_sync_fba_inventory.py`
 - `integrations/amazon_sync_listing_status.py`
+- `integrations/amazon_sync_inventory_planning.py`
 - Login with Amazon refresh-token exchange
 - LWA-only SP-API request support for the post-Oct-2023 auth model
 - optional legacy AWS SigV4 signing only when `AMAZON_SP_API_USE_SIGV4=true`
 - read-only allow-list for FBA inventory, Listings Items, and Product Pricing paths
 - paginated FBA inventory summary sync
 - read-only Listings Items status/issue sync for active Amazon inventory
+- read-only Reports API sync for `GET_FBA_INVENTORY_PLANNING_DATA`
 - Amazon SKU upsert into `amazon_skus`
 - point-in-time inventory snapshot inserts into `amazon_fba_inventory_snapshots`
 - point-in-time listing snapshot inserts into `amazon_listing_snapshots`
+- point-in-time inventory planning snapshot inserts into `amazon_inventory_planning_snapshots`
 - latest listing snapshot view in `vw_latest_amazon_listing_snapshot`
+- latest inventory planning snapshot view in `vw_latest_amazon_inventory_planning_snapshot`
 - safe logging that avoids printing secrets or restricted data
 - fail-safe behavior for rejected auth or rejected resource calls
 - no restricted-data-token flow
@@ -197,9 +201,12 @@ Implemented:
 Schema:
 - `sql/2026-05-25_add_amazon_spapi_foundation.sql`
 - `sql/2026-05-25_add_amazon_listing_snapshots.sql`
+- `sql/2026-05-25_add_amazon_inventory_planning_snapshots.sql`
 - `amazon_skus`
 - `amazon_fba_inventory_snapshots`
 - `amazon_listing_snapshots`
+- `amazon_report_runs`
+- `amazon_inventory_planning_snapshots`
 
 Current validation:
 - local syntax checks pass
@@ -210,6 +217,8 @@ Current validation:
 - full sync fetched 6,292 FBA inventory summaries, upserted 6,292 SKU rows, and inserted 6,292 inventory snapshot rows
 - active listing-status sync selected 297 current Amazon SKUs, inserted 297 listing snapshots, updated 297 Amazon SKU rows, and had 0 fetch failures
 - latest active listing snapshot set contains 49 rows with Amazon listing issues
+- inventory planning dry run and write run each parsed 297 Amazon planning rows
+- latest inventory planning write inserted 297 planning snapshot rows, showing 735 available units and 273 units in Amazon's 91+ day age buckets
 
 Boundary:
 Amazon seller/FBA data must stay in Amazon-specific tables and must not write to `purchases` or `purchase_items`.
@@ -271,25 +280,30 @@ Backend inputs:
 - latest Amazon FBA inventory snapshots
 - `amazon_skus`
 - latest Amazon listing snapshots/issues
+- latest Amazon FBA Inventory Planning snapshots
 - InventoryLab active inventory backfill
 - `inventory_positions`
 - latest Keepa product snapshots
 
 Current recommendation rules:
-- Healthy: under 60 days old with required data and no major issue
-- Watch: 60-89 days old
-- Reprice: 90-179 days old
-- Liquidate: 180+ days old
+- Amazon FBA Inventory Planning age buckets are the preferred active-Amazon age source
+- InventoryLab/MBOP date context is fallback only when Amazon planning data is missing
+- Healthy: fallback age under 60 days with required data and no major issue
+- Watch: Amazon 0-90 day bucket, or fallback 60-89 days old
+- Reprice: Amazon 91-180 day bucket, or fallback 90-179 days old
+- Liquidate: Amazon 181+ day bucket, or fallback 180+ days old
 - Remove / eBay: unsellable quantity, Amazon listing issue, or non-buyable listing status
 - Needs Data: missing ASIN, cost basis, age/date context, pricing context, or Keepa snapshot
 
 Latest validation:
 - Next.js production build passed
-- API route returned 297 active Amazon SKU rows and 761 units
+- Amazon inventory planning report dry run parsed 297 rows and 735 available units
+- Amazon inventory planning report write inserted 297 planning snapshot rows
+- API route returned 297 active Amazon SKU rows and 761 units with planning age buckets where available
 - estimated capital tied up: $13,597.34
-- aged capital over 90 days: $7,903.52
-- aged capital over 180 days: $3,038.68
-- tier counts: 57 Remove / eBay, 2 Liquidate, 2 Reprice, 236 Needs Data
+- aged capital over 90 days: $5,265.19
+- aged capital over 180 days: $1,881.41
+- tier counts: 57 Remove / eBay, 1 Liquidate, 3 Reprice, 236 Needs Data
 - `/repricing` rendered successfully with HTTP 200
 
 Boundary:

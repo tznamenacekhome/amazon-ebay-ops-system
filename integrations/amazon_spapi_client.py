@@ -41,7 +41,12 @@ READ_ONLY_OPERATION_PREFIXES = (
     "/fba/inventory/",
     "/listings/2021-08-01/items/",
     "/products/pricing/",
+    "/reports/2021-06-30/",
 )
+
+ALLOWED_REPORT_TYPES = {
+    "GET_FBA_INVENTORY_PLANNING_DATA",
+}
 
 
 class AmazonSPAPIError(RuntimeError):
@@ -287,6 +292,41 @@ class AmazonSPAPIClient:
         path = f"/products/pricing/v0/listings/{quote(seller_sku, safe='')}/offers"
         return self.request("GET", path, params=params)
 
+    def create_report(
+        self,
+        report_type: str,
+        *,
+        marketplace_ids: list[str] | None = None,
+        report_options: dict[str, Any] | None = None,
+        data_start_time: str | None = None,
+        data_end_time: str | None = None,
+    ) -> dict[str, Any]:
+        if report_type not in ALLOWED_REPORT_TYPES:
+            raise AmazonSPAPIError(
+                f"Amazon report type is outside the MBOP allow-list: {report_type}"
+            )
+
+        body: dict[str, Any] = {
+            "reportType": report_type,
+            "marketplaceIds": marketplace_ids or [self.config.marketplace_id],
+        }
+        if report_options:
+            body["reportOptions"] = report_options
+        if data_start_time:
+            body["dataStartTime"] = data_start_time
+        if data_end_time:
+            body["dataEndTime"] = data_end_time
+
+        return self.request("POST", "/reports/2021-06-30/reports", json_body=body)
+
+    def get_report(self, report_id: str) -> dict[str, Any]:
+        path = f"/reports/2021-06-30/reports/{quote(report_id, safe='')}"
+        return self.request("GET", path)
+
+    def get_report_document(self, report_document_id: str) -> dict[str, Any]:
+        path = f"/reports/2021-06-30/documents/{quote(report_document_id, safe='')}"
+        return self.request("GET", path)
+
     def request(
         self,
         method: str,
@@ -362,7 +402,8 @@ class AmazonSPAPIClient:
 
     def validate_read_only_request(self, method: str, path: str) -> None:
         if method != "GET":
-            raise AmazonSPAPIError("MBOP Amazon SP-API foundation is read-only")
+            if not (method == "POST" and path == "/reports/2021-06-30/reports"):
+                raise AmazonSPAPIError("MBOP Amazon SP-API foundation is read-only")
 
         if not path.startswith(READ_ONLY_OPERATION_PREFIXES):
             raise AmazonSPAPIError(

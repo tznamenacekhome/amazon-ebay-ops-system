@@ -176,6 +176,7 @@ Amazon SP-API integrations:
 - must write normalized Amazon seller/FBA data to Amazon-specific tables, not purchases or purchase_items
 - current FBA inventory sync entry point is `integrations/amazon_sync_fba_inventory.py`
 - current Amazon listing status sync entry point is `integrations/amazon_sync_listing_status.py`
+- current Amazon inventory planning report sync entry point is `integrations/amazon_sync_inventory_planning.py`
 
 Keepa integrations:
 - must remain read-only catalog intelligence

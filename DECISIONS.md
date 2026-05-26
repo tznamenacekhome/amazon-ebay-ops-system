@@ -528,6 +528,26 @@ Do not write prices to Amazon, call Amazon write endpoints, modify Informed.co s
 
 ---
 
+## Amazon Inventory Planning Is The Repricing Age Source
+
+Decision:
+Use Amazon's `GET_FBA_INVENTORY_PLANNING_DATA` report as the preferred active-FBA inventory age signal for the aged Amazon inventory repricing advisor.
+
+Reason:
+The operator wants age to reflect when Amazon considers current units aged in FBA, not simply the oldest purchase date. Amazon planning data is not exact per-unit available-for-sale history, but it is Amazon's native inventory-health view and is a better first-pass signal than InventoryLab purchase dates for repricing decisions.
+
+Implementation:
+- `integrations/amazon_sync_inventory_planning.py` requests and imports the read-only planning report.
+- `amazon_report_runs` stores report request/import audit metadata.
+- `amazon_inventory_planning_snapshots` stores point-in-time SKU-level planning rows.
+- `vw_latest_amazon_inventory_planning_snapshot` exposes the latest planning row per seller SKU and marketplace.
+- `/api/amazon/repricing-advisor` prefers Amazon planning age buckets over InventoryLab/MBOP fallback dates.
+
+Rule:
+InventoryLab and MBOP dates remain fallback context only for repricing age. Do not infer exact per-unit FBA available-for-sale dates from ledger or shipment history until the planning-data approach proves insufficient.
+
+---
+
 ## Inventory State Is A Derived Reconciliation Layer
 
 Decision:

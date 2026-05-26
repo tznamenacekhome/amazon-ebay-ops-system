@@ -11,6 +11,13 @@ const WATCH_MAX_AGE_DAYS = 89;
 const REPRICE_MAX_AGE_DAYS = 179;
 const STALE_KEEPA_DAYS = 30;
 
+type AmazonAgeBucket =
+  | "0-90"
+  | "91-180"
+  | "181-270"
+  | "271-365"
+  | "365+";
+
 type RecommendationTier =
   | "Healthy"
   | "Watch"
@@ -64,6 +71,30 @@ type ListingSnapshotRow = {
   issue_count: number | null;
   issue_severity: string | null;
   issues_json: unknown;
+  captured_at: string | null;
+};
+
+type InventoryPlanningRow = {
+  seller_sku: string;
+  marketplace_id: string;
+  asin: string | null;
+  snapshot_date: string | null;
+  available_quantity: number | null;
+  pending_removal_quantity: number | null;
+  inv_age_0_to_90_days: number | null;
+  inv_age_91_to_180_days: number | null;
+  inv_age_181_to_270_days: number | null;
+  inv_age_271_to_365_days: number | null;
+  inv_age_365_plus_days: number | null;
+  estimated_storage_cost_next_month: number | null;
+  estimated_ltsf_next_charge: number | null;
+  recommended_action: string | null;
+  healthy_inventory_level: number | null;
+  sales_shipped_last_7_days: number | null;
+  sales_shipped_last_30_days: number | null;
+  sales_shipped_last_60_days: number | null;
+  sales_shipped_last_90_days: number | null;
+  alert: string | null;
   captured_at: string | null;
 };
 
@@ -130,6 +161,18 @@ type AdvisorRow = {
   cost_source: string | null;
   oldest_known_purchase_date: string | null;
   inventory_age_days: number | null;
+  amazon_age_bucket: AmazonAgeBucket | null;
+  amazon_age_source: "Amazon Inventory Planning" | "InventoryLab/MBOP fallback" | "Missing";
+  inv_age_0_to_90_days: number;
+  inv_age_91_to_180_days: number;
+  inv_age_181_to_270_days: number;
+  inv_age_271_to_365_days: number;
+  inv_age_365_plus_days: number;
+  planning_snapshot_date: string | null;
+  planning_recommended_action: string | null;
+  planning_alert: string | null;
+  sales_shipped_last_30_days: number | null;
+  sales_shipped_last_90_days: number | null;
   current_list_price: number | null;
   keepa_buy_box_price: number | null;
   keepa_buy_box_avg30: number | null;
@@ -151,8 +194,15 @@ type AdvisorRow = {
 
 export async function GET() {
   try {
-    const [inventoryRows, skuRows, listingRows, inventoryLabRows, keepaRows, positionRows] =
-      await Promise.all([
+    const [
+      inventoryRows,
+      skuRows,
+      listingRows,
+      planningRows,
+      inventoryLabRows,
+      keepaRows,
+      positionRows,
+    ] = await Promise.all([
         fetchAll<InventoryRow>(
           "vw_latest_amazon_fba_inventory_snapshot",
           "seller_sku,marketplace_id,asin,fnsku,product_name,condition,total_quantity," +
@@ -169,6 +219,15 @@ export async function GET() {
           "vw_latest_amazon_listing_snapshot",
           "seller_sku,marketplace_id,asin,product_name,condition,listing_status,item_status," +
             "fulfillment_channel,issue_count,issue_severity,issues_json,captured_at"
+        ),
+        fetchAll<InventoryPlanningRow>(
+          "vw_latest_amazon_inventory_planning_snapshot",
+          "seller_sku,marketplace_id,asin,snapshot_date,available_quantity,pending_removal_quantity," +
+            "inv_age_0_to_90_days,inv_age_91_to_180_days,inv_age_181_to_270_days," +
+            "inv_age_271_to_365_days,inv_age_365_plus_days,estimated_storage_cost_next_month," +
+            "estimated_ltsf_next_charge,recommended_action,healthy_inventory_level," +
+            "sales_shipped_last_7_days,sales_shipped_last_30_days,sales_shipped_last_60_days," +
+            "sales_shipped_last_90_days,alert,captured_at"
         ),
         fetchAll<InventoryLabRow>(
           "inventorylab_active_inventory_backfill",
@@ -194,6 +253,7 @@ export async function GET() {
       inventoryRows,
       keyBySku(skuRows),
       keyBySku(listingRows),
+      keyBySku(planningRows),
       keyBySellerSku(inventoryLabRows),
       keyByAsin(keepaRows),
       aggregatePositions(positionRows)
@@ -246,6 +306,7 @@ function buildAdvisorRows(
   inventoryRows: InventoryRow[],
   skuByKey: Map<string, AmazonSkuRow>,
   listingByKey: Map<string, ListingSnapshotRow>,
+  planningByKey: Map<string, InventoryPlanningRow>,
   inventoryLabBySku: Map<string, InventoryLabRow>,
   keepaByAsin: Map<string, KeepaRow>,
   positionBySku: Map<string, { unit_cost: number | null; oldest_date: string | null }>
@@ -259,8 +320,11 @@ function buildAdvisorRows(
       const key = skuKey(sellerSku, marketplaceId);
       const sku = skuByKey.get(key);
       const listing = listingByKey.get(key);
+      const planning = planningByKey.get(key);
       const inventoryLab = inventoryLabBySku.get(sellerSku);
-      const asin = normalizeAsin(inventory.asin ?? sku?.asin ?? listing?.asin ?? inventoryLab?.asin);
+      const asin = normalizeAsin(
+        inventory.asin ?? sku?.asin ?? listing?.asin ?? planning?.asin ?? inventoryLab?.asin
+      );
       const keepa = asin ? keepaByAsin.get(asin) : undefined;
       const position = positionBySku.get(sellerSku);
 
@@ -293,6 +357,12 @@ function buildAdvisorRows(
       const inventoryAgeDays = oldestKnownPurchaseDate
         ? daysBetween(oldestKnownPurchaseDate, todayDateOnly())
         : null;
+      const ageSignal = planningAgeSignal(planning);
+      const amazonAgeSource = ageSignal
+        ? "Amazon Inventory Planning"
+        : inventoryAgeDays !== null
+          ? "InventoryLab/MBOP fallback"
+          : "Missing";
       const currentListPrice =
         toOptionalNumber(sku?.listing_price) ??
         toOptionalNumber(sku?.landed_price) ??
@@ -312,6 +382,7 @@ function buildAdvisorRows(
         currentListPrice,
         keepa,
         keepaBuyBoxPrice,
+        amazonAgeBucket: ageSignal?.bucket ?? null,
         listingStatus,
         listingIssueCount,
         unsellableQuantity,
@@ -344,6 +415,18 @@ function buildAdvisorRows(
         cost_source: costSource,
         oldest_known_purchase_date: oldestKnownPurchaseDate,
         inventory_age_days: inventoryAgeDays,
+        amazon_age_bucket: ageSignal?.bucket ?? null,
+        amazon_age_source: amazonAgeSource,
+        inv_age_0_to_90_days: toNumber(planning?.inv_age_0_to_90_days, 0),
+        inv_age_91_to_180_days: toNumber(planning?.inv_age_91_to_180_days, 0),
+        inv_age_181_to_270_days: toNumber(planning?.inv_age_181_to_270_days, 0),
+        inv_age_271_to_365_days: toNumber(planning?.inv_age_271_to_365_days, 0),
+        inv_age_365_plus_days: toNumber(planning?.inv_age_365_plus_days, 0),
+        planning_snapshot_date: dateOnly(planning?.snapshot_date) ?? dateOnly(planning?.captured_at),
+        planning_recommended_action: cleanText(planning?.recommended_action),
+        planning_alert: cleanText(planning?.alert),
+        sales_shipped_last_30_days: toOptionalNumber(planning?.sales_shipped_last_30_days),
+        sales_shipped_last_90_days: toOptionalNumber(planning?.sales_shipped_last_90_days),
         current_list_price: currentListPrice,
         keepa_buy_box_price: keepaBuyBoxPrice,
         keepa_buy_box_avg30: centsToDollars(keepa?.buy_box_price_avg30_cents),
@@ -367,6 +450,8 @@ function buildAdvisorRows(
     .sort((left, right) => {
       const tierDifference = tierSort(left.recommendation_tier) - tierSort(right.recommendation_tier);
       if (tierDifference !== 0) return tierDifference;
+      const ageDifference = bucketSort(right.amazon_age_bucket) - bucketSort(left.amazon_age_bucket);
+      if (ageDifference !== 0) return ageDifference;
       return (right.inventory_age_days ?? -1) - (left.inventory_age_days ?? -1);
     });
 }
@@ -378,6 +463,7 @@ function recommend(input: {
   currentListPrice: number | null;
   keepa?: KeepaRow;
   keepaBuyBoxPrice: number | null;
+  amazonAgeBucket?: AmazonAgeBucket | null;
   listingStatus: string | null;
   listingIssueCount: number;
   unsellableQuantity: number;
@@ -402,8 +488,8 @@ function recommend(input: {
   if (input.costBasis === null) {
     return needsData("Missing cost basis; cannot calculate a safe liquidation floor.");
   }
-  if (input.ageDays === null) {
-    return needsData("Missing purchase/listing age context; cannot assess aged inventory.");
+  if (!input.amazonAgeBucket && input.ageDays === null) {
+    return needsData("Missing Amazon planning age bucket and fallback date context; cannot assess aged inventory.");
   }
   if (input.currentListPrice === null && input.keepaBuyBoxPrice === null) {
     return needsData("Missing pricing context; run pricing sync or targeted Keepa sync before repricing.");
@@ -412,21 +498,51 @@ function recommend(input: {
     return needsData("Keepa snapshot missing; run targeted Keepa sync before repricing decision.");
   }
 
-  if (input.ageDays <= HEALTHY_MAX_AGE_DAYS) {
+  if (input.amazonAgeBucket) {
+    if (input.amazonAgeBucket === "365+" || input.amazonAgeBucket === "271-365" || input.amazonAgeBucket === "181-270") {
+      return {
+        tier: "Liquidate",
+        action: "Consider liquidation pricing or alternate channel move.",
+        reason: `${input.amazonAgeBucket} Amazon planning age bucket with active FBA inventory; recover capital even if margin compresses.`,
+      };
+    }
+
+    if (input.amazonAgeBucket === "91-180") {
+      const buyBoxBelowList =
+        input.currentListPrice !== null &&
+        input.keepaBuyBoxPrice !== null &&
+        input.keepaBuyBoxPrice < input.currentListPrice;
+      return {
+        tier: "Reprice",
+        action: "Review Informed.co floor and current listing price manually.",
+        reason: buyBoxBelowList
+          ? "Amazon planning shows 91-180 day inventory and Keepa Buy Box is below current/list price; review repricer floor."
+          : "Amazon planning shows 91-180 day sellable FBA inventory; consider a controlled price reduction.",
+      };
+    }
+
+    return {
+      tier: "Watch",
+      action: "Monitor sales velocity and Buy Box position.",
+      reason: "Amazon planning places this inventory in the 0-90 day bucket; exact 60-day split is unavailable from this report.",
+    };
+  }
+
+  if ((input.ageDays ?? 0) <= HEALTHY_MAX_AGE_DAYS) {
     return {
       tier: "Healthy",
       action: "No repricing action needed.",
       reason: "Inventory is under 60 days old and no major Amazon listing issue is visible.",
     };
   }
-  if (input.ageDays <= WATCH_MAX_AGE_DAYS) {
+  if ((input.ageDays ?? 0) <= WATCH_MAX_AGE_DAYS) {
     return {
       tier: "Watch",
       action: "Monitor sales velocity and Buy Box position.",
       reason: "60-89 days old; watch before forcing price down.",
     };
   }
-  if (input.ageDays <= REPRICE_MAX_AGE_DAYS) {
+  if ((input.ageDays ?? 0) <= REPRICE_MAX_AGE_DAYS) {
     const buyBoxBelowList =
       input.currentListPrice !== null &&
       input.keepaBuyBoxPrice !== null &&
@@ -471,9 +587,24 @@ function summarizeRows(rows: AdvisorRow[]) {
   for (const row of rows) {
     byTier[row.recommendation_tier] += 1;
     const capital = row.estimated_capital_tied_up ?? 0;
+    const costBasis = row.cost_basis ?? 0;
+    const aged90Units =
+      row.inv_age_91_to_180_days +
+      row.inv_age_181_to_270_days +
+      row.inv_age_271_to_365_days +
+      row.inv_age_365_plus_days;
+    const aged180Units =
+      row.inv_age_181_to_270_days +
+      row.inv_age_271_to_365_days +
+      row.inv_age_365_plus_days;
     totalCapital += capital;
-    if ((row.inventory_age_days ?? 0) >= 90) agedCapital90 += capital;
-    if ((row.inventory_age_days ?? 0) >= 180) agedCapital180 += capital;
+    if (row.amazon_age_bucket) {
+      agedCapital90 += costBasis * aged90Units;
+      agedCapital180 += costBasis * aged180Units;
+    } else {
+      if ((row.inventory_age_days ?? 0) >= 90) agedCapital90 += capital;
+      if ((row.inventory_age_days ?? 0) >= 180) agedCapital180 += capital;
+    }
     if (row.recommendation_tier === "Needs Data") rowsNeedingData += 1;
     if (row.unsellable_quantity > 0 || row.listing_issue_count > 0) {
       unsellableOrSuppressed += 1;
@@ -490,6 +621,20 @@ function summarizeRows(rows: AdvisorRow[]) {
     unsellable_or_suppressed_rows: unsellableOrSuppressed,
     by_tier: byTier,
   };
+}
+
+function planningAgeSignal(row?: InventoryPlanningRow) {
+  if (!row) return null;
+
+  const buckets: Array<{ bucket: AmazonAgeBucket; units: number; sort: number }> = [
+    { bucket: "365+", units: toNumber(row.inv_age_365_plus_days, 0), sort: 5 },
+    { bucket: "271-365", units: toNumber(row.inv_age_271_to_365_days, 0), sort: 4 },
+    { bucket: "181-270", units: toNumber(row.inv_age_181_to_270_days, 0), sort: 3 },
+    { bucket: "91-180", units: toNumber(row.inv_age_91_to_180_days, 0), sort: 2 },
+    { bucket: "0-90", units: toNumber(row.inv_age_0_to_90_days, 0), sort: 1 },
+  ];
+
+  return buckets.find((bucket) => bucket.units > 0) ?? null;
 }
 
 function aggregatePositions(rows: InventoryPositionRow[]) {
@@ -583,6 +728,17 @@ function tierSort(tier: RecommendationTier) {
     Healthy: 5,
   };
   return order[tier];
+}
+
+function bucketSort(bucket: AmazonAgeBucket | null) {
+  const order: Record<AmazonAgeBucket, number> = {
+    "0-90": 1,
+    "91-180": 2,
+    "181-270": 3,
+    "271-365": 4,
+    "365+": 5,
+  };
+  return bucket ? order[bucket] : 0;
 }
 
 function centsToDollars(value?: number | null) {

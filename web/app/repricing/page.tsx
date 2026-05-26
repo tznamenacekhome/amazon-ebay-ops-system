@@ -11,6 +11,13 @@ type RecommendationTier =
   | "Remove / eBay"
   | "Needs Data";
 
+type AmazonAgeBucket =
+  | "0-90"
+  | "91-180"
+  | "181-270"
+  | "271-365"
+  | "365+";
+
 type AdvisorRow = {
   asin: string | null;
   seller_sku: string;
@@ -28,6 +35,18 @@ type AdvisorRow = {
   cost_source: string | null;
   oldest_known_purchase_date: string | null;
   inventory_age_days: number | null;
+  amazon_age_bucket: AmazonAgeBucket | null;
+  amazon_age_source: "Amazon Inventory Planning" | "InventoryLab/MBOP fallback" | "Missing";
+  inv_age_0_to_90_days: number;
+  inv_age_91_to_180_days: number;
+  inv_age_181_to_270_days: number;
+  inv_age_271_to_365_days: number;
+  inv_age_365_plus_days: number;
+  planning_snapshot_date: string | null;
+  planning_recommended_action: string | null;
+  planning_alert: string | null;
+  sales_shipped_last_30_days: number | null;
+  sales_shipped_last_90_days: number | null;
   current_list_price: number | null;
   keepa_buy_box_price: number | null;
   keepa_buy_box_avg30: number | null;
@@ -72,7 +91,15 @@ const TIERS: Array<"All" | RecommendationTier> = [
   "Healthy",
 ];
 
-const AGE_BUCKETS = ["All", "0-59", "60-89", "90-179", "180+", "Missing"] as const;
+const AGE_BUCKETS = [
+  "All",
+  "0-90",
+  "91-180",
+  "181-270",
+  "271-365",
+  "365+",
+  "Missing",
+] as const;
 
 export default function RepricingPage() {
   const [data, setData] = useState<AdvisorData | null>(null);
@@ -110,7 +137,7 @@ export default function RepricingPage() {
   const rows = useMemo(() => {
     return (data?.rows ?? []).filter((row) => {
       if (tier !== "All" && row.recommendation_tier !== tier) return false;
-      if (!inAgeBucket(row.inventory_age_days, ageBucket)) return false;
+      if (!inAgeBucket(row, ageBucket)) return false;
       if (missingOnly && row.recommendation_tier !== "Needs Data") return false;
       if (issueOnly && row.unsellable_quantity <= 0 && row.listing_issue_count <= 0) {
         return false;
@@ -272,7 +299,8 @@ export default function RepricingPage() {
                       </div>
                     </td>
                     <td className="px-3 py-2 text-right">
-                      {row.inventory_age_days === null ? "--" : `${row.inventory_age_days}d`}
+                      <div>{ageDisplay(row)}</div>
+                      <div className="text-xs text-slate-500">{row.amazon_age_source}</div>
                     </td>
                     <td className="px-3 py-2 text-right">
                       <div>{formatMoney(row.cost_basis)}</div>
@@ -285,7 +313,8 @@ export default function RepricingPage() {
                     <td className="px-3 py-2">
                       <div>{salesRankSignal(row)}</div>
                       <div className="text-xs text-slate-500">
-                        Offers {formatNumber(row.offer_count)}
+                        30/90d sales {formatNumber(row.sales_shipped_last_30_days)} /{" "}
+                        {formatNumber(row.sales_shipped_last_90_days)}
                       </div>
                     </td>
                     <td className="px-3 py-2">
@@ -342,14 +371,17 @@ function Toggle({
   );
 }
 
-function inAgeBucket(age: number | null, bucket: (typeof AGE_BUCKETS)[number]) {
+function inAgeBucket(row: AdvisorRow, bucket: (typeof AGE_BUCKETS)[number]) {
   if (bucket === "All") return true;
-  if (bucket === "Missing") return age === null;
+  if (bucket === "Missing") return !row.amazon_age_bucket && row.inventory_age_days === null;
+  if (row.amazon_age_bucket) return row.amazon_age_bucket === bucket;
+  const age = row.inventory_age_days;
   if (age === null) return false;
-  if (bucket === "0-59") return age <= 59;
-  if (bucket === "60-89") return age >= 60 && age <= 89;
-  if (bucket === "90-179") return age >= 90 && age <= 179;
-  return age >= 180;
+  if (bucket === "0-90") return age <= 90;
+  if (bucket === "91-180") return age >= 91 && age <= 180;
+  if (bucket === "181-270") return age >= 181 && age <= 270;
+  if (bucket === "271-365") return age >= 271 && age <= 365;
+  return age >= 366;
 }
 
 function salesRankSignal(row: AdvisorRow) {
@@ -358,6 +390,12 @@ function salesRankSignal(row: AdvisorRow) {
   const rank = row.keepa_sales_rank_current ?? row.keepa_sales_rank_avg90;
   if (drops !== null && drops !== undefined) return `${formatNumber(drops)} drops/${window}`;
   if (rank !== null && rank !== undefined) return `Rank ${formatNumber(rank)}`;
+  return "--";
+}
+
+function ageDisplay(row: AdvisorRow) {
+  if (row.amazon_age_bucket) return row.amazon_age_bucket;
+  if (row.inventory_age_days !== null) return `${row.inventory_age_days}d`;
   return "--";
 }
 
