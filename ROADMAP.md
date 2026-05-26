@@ -80,6 +80,9 @@ Completed:
 - reduced active cost variance to $4.05 MBOP-over-spreadsheet after one-time cleanup and net-cost corrections
 - kept landed-cost math backend-owned through vw_purchases_dashboard.unit_cost
 - confirmed 2024 and 2025 dashboard totals match the legacy Excel pivot exactly
+- added inventory-by-location value table for At Amazon FBA, On the way to Amazon FBA, Received, Ordered and not received yet, and Total
+- added business inventory/cash value box with Amazon/current inbound inventory value and pre-Amazon purchased inventory value
+- added placeholders for future Amazon cash balance and YNAB cash-on-hand integrations
 
 Next steps:
 - build a repeatable dashboard reconciliation report using the shared reference spreadsheet and Supabase
@@ -91,6 +94,8 @@ Next steps:
 - add a UI control for marking purchase items excluded from reporting with a reason
 - add filters for status, marketplace, received date, and system after the first chart proves useful
 - keep 2026-05-16+ MBOP-only purchases reportable unless explicitly confirmed as non-resale, return/cancelled, or otherwise excluded
+- define Amazon cash balance source, likely a future settlements/disbursements integration
+- evaluate YNAB API integration for cash-on-hand reporting without mixing personal budget data into purchase/inventory tables
 
 ---
 

@@ -468,6 +468,8 @@ Implemented:
 - operational attention table for past-ETA, stale/no-tracking, exception, return-pending, and missing-data rows
 - Inventory Visibility section backed by the normalized inventory-position and reconciliation layer
 - inventory metrics for owned/in-flow units, Amazon-ready units, Amazon sellable/inbound/reserved/unsellable units, eBay-assigned units, reconciliation findings, and MBOP cost basis
+- inventory-by-location value table with units and total cost for At Amazon FBA, On the way to Amazon FBA, Received, Ordered and not received yet, and Total
+- business inventory/cash value summary showing Amazon/current inbound inventory value, pre-Amazon purchased inventory value, and placeholder rows for future Amazon cash balance and YNAB cash-on-hand integrations
 - open reconciliation finding table showing issue type, ASIN/SKU, title, MBOP quantity, and Amazon quantity
 - dashboard excludes Return Opened rows
 - dashboard excludes Cancelled rows

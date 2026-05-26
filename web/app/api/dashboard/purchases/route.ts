@@ -98,6 +98,21 @@ type ReconciliationEventRow = {
   needs_review_count: number | null;
 };
 
+type InventoryLocationValueRow = {
+  location: string;
+  units: number;
+  total_cost: number;
+};
+
+type BusinessInventoryValueSummary = {
+  amazon_inventory_value: number;
+  pre_amazon_inventory_value: number;
+  amazon_cash_balance: number | null;
+  cash_on_hand: number | null;
+  amazon_cash_source: string;
+  cash_on_hand_source: string;
+};
+
 export async function GET() {
   const rows = await fetchPurchaseRows();
   const rowsWithExclusions = await hydrateReportingExclusions(rows);
@@ -507,6 +522,8 @@ async function fetchInventoryVisibility() {
         ...amazonFbaCurrentStates,
       ]),
     },
+    locationValueSummary: buildLocationValueSummary(unitsByState, costByState),
+    businessInventoryValue: buildBusinessInventoryValueSummary(costByState),
     unitsByState: Array.from(unitsByState.entries())
       .map(([state, units]) => ({ state, label: inventoryStateLabel(state), units }))
       .sort((left, right) => right.units - left.units),
@@ -533,6 +550,76 @@ async function fetchInventoryVisibility() {
       amazon_reserved_quantity: item.amazon_reserved_quantity,
       amazon_unsellable_quantity: item.amazon_unsellable_quantity,
     })),
+  };
+}
+
+function buildLocationValueSummary(
+  unitsByState: Map<string, number>,
+  costByState: Map<string, number>
+): InventoryLocationValueRow[] {
+  const rows = [
+    {
+      location: "At Amazon FBA",
+      states: [
+        "amazon_fba_sellable",
+        "amazon_fba_reserved",
+        "amazon_fba_unsellable_damaged",
+        "amazon_fba_stranded",
+      ],
+    },
+    {
+      location: "On the way to Amazon FBA",
+      states: ["outbound_to_amazon", "amazon_fba_inbound_receiving"],
+    },
+    {
+      location: "Received",
+      states: ["received_unassigned", "received_assigned_amazon_not_sent"],
+    },
+    {
+      location: "Ordered and not received yet",
+      states: ["purchased_not_shipped", "shipped_not_delivered", "delivered_not_received"],
+    },
+  ].map((row) => ({
+    location: row.location,
+    units: sumStates(unitsByState, row.states),
+    total_cost: sumStates(costByState, row.states),
+  }));
+
+  rows.push({
+    location: "Total",
+    units: rows.reduce((total, row) => total + row.units, 0),
+    total_cost: rows.reduce((total, row) => total + row.total_cost, 0),
+  });
+
+  return rows;
+}
+
+function buildBusinessInventoryValueSummary(
+  costByState: Map<string, number>
+): BusinessInventoryValueSummary {
+  const amazonInventoryValue = sumStates(costByState, [
+    "amazon_fba_sellable",
+    "amazon_fba_reserved",
+    "amazon_fba_unsellable_damaged",
+    "amazon_fba_stranded",
+    "outbound_to_amazon",
+    "amazon_fba_inbound_receiving",
+  ]);
+  const preAmazonInventoryValue = sumStates(costByState, [
+    "purchased_not_shipped",
+    "shipped_not_delivered",
+    "delivered_not_received",
+    "received_unassigned",
+    "received_assigned_amazon_not_sent",
+  ]);
+
+  return {
+    amazon_inventory_value: amazonInventoryValue,
+    pre_amazon_inventory_value: preAmazonInventoryValue,
+    amazon_cash_balance: null,
+    cash_on_hand: null,
+    amazon_cash_source: "Not integrated",
+    cash_on_hand_source: "YNAB integration pending",
   };
 }
 

@@ -89,6 +89,19 @@ type InventoryVisibility = {
     open_reconciliation_findings: number;
     estimated_mbop_cost_basis: number;
   };
+  locationValueSummary: Array<{
+    location: string;
+    units: number;
+    total_cost: number;
+  }>;
+  businessInventoryValue: {
+    amazon_inventory_value: number;
+    pre_amazon_inventory_value: number;
+    amazon_cash_balance: number | null;
+    cash_on_hand: number | null;
+    amazon_cash_source: string;
+    cash_on_hand_source: string;
+  };
   unitsByState: Array<{ state: string; label: string; units: number }>;
   unitsByLocation: Array<{ location: string; label: string; units: number }>;
   unitsByIntent: Array<{ intent: string; label: string; units: number }>;
@@ -309,6 +322,17 @@ export default function DashboardPage() {
           <InlineMetric
             label="MBOP Cost Basis"
             value={loading ? "--" : formatMoney(data?.inventoryVisibility.metrics.estimated_mbop_cost_basis)}
+          />
+        </div>
+
+        <div className="mb-4 grid gap-4 xl:grid-cols-[minmax(0,1.1fr)_minmax(420px,0.9fr)]">
+          <LocationValueTable
+            rows={data?.inventoryVisibility.locationValueSummary ?? []}
+            loading={loading}
+          />
+          <BusinessInventoryValuePanel
+            value={data?.inventoryVisibility.businessInventoryValue}
+            loading={loading}
           />
         </div>
 
@@ -617,6 +641,120 @@ export default function DashboardPage() {
         </div>
       </section>
     </main>
+  );
+}
+
+function LocationValueTable({
+  rows,
+  loading,
+}: {
+  rows: Array<{ location: string; units: number; total_cost: number }>;
+  loading: boolean;
+}) {
+  return (
+    <div className="overflow-hidden rounded-md border border-slate-200">
+      <div className="border-b border-slate-200 bg-slate-50 px-3 py-2">
+        <div className="text-sm font-semibold">Inventory By Location</div>
+        <div className="text-xs text-slate-500">Units and cost basis by operational location</div>
+      </div>
+      <table className="w-full text-sm">
+        <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
+          <tr>
+            <th className="px-3 py-2 text-left">Location</th>
+            <th className="px-3 py-2 text-right">Units</th>
+            <th className="px-3 py-2 text-right">Total Cost</th>
+          </tr>
+        </thead>
+        <tbody>
+          {loading ? (
+            <tr>
+              <td className="px-3 py-6 text-center text-slate-500" colSpan={3}>
+                Loading location values...
+              </td>
+            </tr>
+          ) : rows.length ? (
+            rows.map((row) => (
+              <tr
+                key={row.location}
+                className={`border-t border-slate-100 ${
+                  row.location === "Total" ? "bg-slate-100 font-semibold" : ""
+                }`}
+              >
+                <td className="px-3 py-2">{row.location}</td>
+                <td className="px-3 py-2 text-right">{formatNumber(row.units)}</td>
+                <td className="px-3 py-2 text-right">{formatMoney(row.total_cost)}</td>
+              </tr>
+            ))
+          ) : (
+            <tr>
+              <td className="px-3 py-6 text-center text-slate-500" colSpan={3}>
+                No location value data found.
+              </td>
+            </tr>
+          )}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function BusinessInventoryValuePanel({
+  value,
+  loading,
+}: {
+  value?: InventoryVisibility["businessInventoryValue"];
+  loading: boolean;
+}) {
+  return (
+    <div className="rounded-md border border-slate-200 p-3">
+      <h3 className="mb-2 text-sm font-semibold">Business Inventory And Cash Value</h3>
+      <div className="space-y-2">
+        <ValueRow
+          label="Inventory at or on way to Amazon"
+          value={formatMoney(value?.amazon_inventory_value)}
+          loading={loading}
+        />
+        <ValueRow
+          label="Purchased, not shipped to Amazon"
+          value={formatMoney(value?.pre_amazon_inventory_value)}
+          loading={loading}
+        />
+        <ValueRow
+          label="Cash balance at Amazon"
+          value={formatMoney(value?.amazon_cash_balance)}
+          detail={value?.amazon_cash_source}
+          loading={loading}
+        />
+        <ValueRow
+          label="Cash on hand"
+          value={formatMoney(value?.cash_on_hand)}
+          detail={value?.cash_on_hand_source}
+          loading={loading}
+        />
+      </div>
+    </div>
+  );
+}
+
+function ValueRow({
+  label,
+  value,
+  detail,
+  loading,
+}: {
+  label: string;
+  value: string;
+  detail?: string;
+  loading: boolean;
+}) {
+  return (
+    <div className="flex items-start justify-between gap-3 border-t border-slate-100 pt-2 first:border-t-0 first:pt-0">
+      <div>
+        <div className="text-sm text-slate-600">{label}</div>
+        {detail ? <div className="text-xs text-slate-500">{detail}</div> : null}
+      </div>
+      <div className="text-right text-sm font-semibold">{loading ? "--" : value}</div>
+    </div>
   );
 }
 
