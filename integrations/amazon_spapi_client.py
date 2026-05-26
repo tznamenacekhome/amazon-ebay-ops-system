@@ -20,7 +20,7 @@ from typing import Any
 from urllib.parse import quote, urlencode, urlparse
 
 import requests
-from dotenv import load_dotenv
+from dotenv import find_dotenv, load_dotenv
 
 LOGGER = logging.getLogger("amazon_spapi")
 
@@ -39,6 +39,8 @@ REGION_ENDPOINTS = {
 
 READ_ONLY_OPERATION_PREFIXES = (
     "/fba/inventory/",
+    "/finances/v0/financialEventGroups",
+    "/finances/2024-06-19/transactions",
     "/listings/2021-08-01/items/",
     "/products/pricing/",
     "/reports/2021-06-30/",
@@ -70,7 +72,9 @@ class AmazonSPAPIConfig:
 
     @classmethod
     def from_env(cls) -> "AmazonSPAPIConfig":
-        load_dotenv()
+        dotenv_path = find_dotenv(usecwd=True)
+        load_dotenv(dotenv_path or None)
+        log_refresh_token_diagnostics(dotenv_path)
         region_value = env("AMAZON_SP_API_REGION", "na").lower()
         endpoint, aws_region = REGION_ENDPOINTS.get(
             region_value, REGION_ENDPOINTS["na"]
@@ -526,6 +530,24 @@ def required_env(name: str) -> str:
     if not value:
         raise AmazonSPAPIError(f"Missing required environment variable: {name}")
     return value
+
+
+def log_refresh_token_diagnostics(dotenv_path: str | None) -> None:
+    token = env("AMAZON_SP_API_REFRESH_TOKEN")
+    if not token:
+        LOGGER.info(
+            "Amazon refresh token diagnostics: .env=%s token=missing",
+            dotenv_path or "<not found>",
+        )
+        return
+
+    LOGGER.info(
+        "Amazon refresh token diagnostics: .env=%s length=%s prefix=%s suffix=%s",
+        dotenv_path or "<not found>",
+        len(token),
+        token[:6],
+        token[-6:],
+    )
 
 
 def utc_now() -> dt.datetime:
