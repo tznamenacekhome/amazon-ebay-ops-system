@@ -690,6 +690,25 @@ Do not write InventoryLab valuation values into `purchase_items`. Treat the valu
 
 ---
 
+## YNAB Business Category Is Cash On Hand
+
+Decision:
+Use the current available balance of the YNAB category named `Business` as MBOP's cash-on-hand dashboard value.
+
+Reason:
+The Business category is the operator-defined envelope for business cash flow in YNAB. It includes resale purchases and non-inventory business expenses such as software licensing and insurance, so its category balance is a better fit for MBOP's current cash-on-hand concept than summing bank account balances.
+
+Implementation:
+- `YNAB_PERSONAL_TOKEN` authorizes read-only YNAB access.
+- `ynab_category_balance_snapshots` stores point-in-time category balance snapshots.
+- `integrations/ynab_sync_cash_balance.py` reads YNAB plans/categories and writes the selected category balance when `--apply` is used.
+- dashboard Inventory Visibility reads `vw_latest_ynab_category_balance_snapshot` for the `Business` category and renders the backend-provided cash value.
+
+Rule:
+YNAB data must stay in YNAB-specific snapshot tables. Do not write YNAB balances into purchases, purchase_items, inventory_positions, Amazon snapshots, or workflow tables.
+
+---
+
 ## ASIN Is The Primary Amazon Inventory Identity
 
 Decision:

@@ -119,6 +119,11 @@ type InventoryLabValuationSummary = {
   source: string;
 } | null;
 
+type YnabCashBalanceSummary = {
+  balance: number;
+  source: string;
+} | null;
+
 export async function GET() {
   const rows = await fetchPurchaseRows();
   const rowsWithExclusions = await hydrateReportingExclusions(rows);
@@ -440,11 +445,13 @@ function aggregateOperations(rows: DashboardPurchaseRow[]) {
 }
 
 async function fetchInventoryVisibility() {
-  const [summaryRows, openItems, latestEvent, inventoryLabValuation] = await Promise.all([
+  const [summaryRows, openItems, latestEvent, inventoryLabValuation, ynabCashBalance] =
+    await Promise.all([
     fetchInventoryPositionSummary(),
     fetchOpenReconciliationItems(),
     fetchLatestReconciliationEvent(),
     fetchInventoryLabValuationSummary(),
+    fetchYnabCashBalanceSummary(),
   ]);
 
   const unitsByState = new Map<string, number>();
@@ -533,7 +540,11 @@ async function fetchInventoryVisibility() {
       costByState,
       inventoryLabValuation
     ),
-    businessInventoryValue: buildBusinessInventoryValueSummary(costByState, inventoryLabValuation),
+    businessInventoryValue: buildBusinessInventoryValueSummary(
+      costByState,
+      inventoryLabValuation,
+      ynabCashBalance
+    ),
     unitsByState: Array.from(unitsByState.entries())
       .map(([state, units]) => ({ state, label: inventoryStateLabel(state), units }))
       .sort((left, right) => right.units - left.units),
@@ -615,7 +626,8 @@ function buildLocationValueSummary(
 
 function buildBusinessInventoryValueSummary(
   costByState: Map<string, number>,
-  inventoryLabValuation: InventoryLabValuationSummary
+  inventoryLabValuation: InventoryLabValuationSummary,
+  ynabCashBalance: YnabCashBalanceSummary
 ): BusinessInventoryValueSummary {
   const amazonAtFbaValue =
     inventoryLabValuation?.total_value ??
@@ -642,11 +654,11 @@ function buildBusinessInventoryValueSummary(
     amazon_inventory_value: amazonInventoryValue,
     pre_amazon_inventory_value: preAmazonInventoryValue,
     amazon_cash_balance: null,
-    cash_on_hand: null,
+    cash_on_hand: ynabCashBalance?.balance ?? null,
     amazon_cash_source: inventoryLabValuation
       ? `InventoryLab valuation opening balance (${inventoryLabValuation.source}) plus MBOP outbound`
       : "MBOP inventory positions",
-    cash_on_hand_source: "YNAB integration pending",
+    cash_on_hand_source: ynabCashBalance?.source ?? "YNAB Business category snapshot missing",
   };
 }
 
@@ -673,6 +685,36 @@ async function fetchInventoryLabValuationSummary(): Promise<InventoryLabValuatio
     units,
     total_value: totalValue,
     source,
+  };
+}
+
+async function fetchYnabCashBalanceSummary(): Promise<YnabCashBalanceSummary> {
+  const { data, error } = await supabase
+    .from("vw_latest_ynab_category_balance_snapshot")
+    .select("plan_name,category_group_name,category_name,balance_currency,balance_formatted")
+    .ilike("category_name", "Business")
+    .limit(1);
+
+  if (error) {
+    console.warn("YNAB cash balance lookup failed", error.message);
+    return null;
+  }
+
+  const row = (data ?? [])[0];
+  if (!row) {
+    return null;
+  }
+
+  const balance = Number(row.balance_currency ?? 0);
+  if (!Number.isFinite(balance)) {
+    return null;
+  }
+
+  return {
+    balance,
+    source: `YNAB ${row.plan_name ?? "plan"} / ${row.category_group_name ?? "category group"} / ${
+      row.category_name ?? "category"
+    }${row.balance_formatted ? ` (${row.balance_formatted})` : ""}`,
   };
 }
 

@@ -29,6 +29,8 @@ Inventory value semantics:
 - current Amazon FBA value uses the latest `vw_latest_inventorylab_inventory_valuation` snapshot when available because it represents InventoryLab's remaining on-hand cost basis for legacy Amazon inventory
 - outbound-to-Amazon, received, ordered, and other non-Amazon-held inventory values use MBOP inventory-position costs
 - InventoryLab valuation data is an opening-balance snapshot only and must not be written into `purchase_items`
+- cash on hand uses the latest `vw_latest_ynab_category_balance_snapshot` row for the YNAB `Business` category
+- YNAB cash data is read-only budget context and must not be written into inventory or purchase workflow tables
 
 Cost semantics:
 - reward points and payment method effects should not zero out resale inventory cost
