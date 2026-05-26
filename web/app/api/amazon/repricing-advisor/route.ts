@@ -10,6 +10,9 @@ const HEALTHY_MAX_AGE_DAYS = 59;
 const WATCH_MAX_AGE_DAYS = 89;
 const REPRICE_MAX_AGE_DAYS = 179;
 const STALE_KEEPA_DAYS = 30;
+const REPRICE_DISCOUNT_PCT = 0.03;
+const LIQUIDATE_DISCOUNT_PCT = 0.08;
+const MIN_MARGIN_ABOVE_COST_PCT = 0.1;
 
 type AmazonAgeBucket =
   | "0-90"
@@ -25,6 +28,11 @@ type RecommendationTier =
   | "Liquidate"
   | "Remove / eBay"
   | "Needs Data";
+
+type AdvisorBucket =
+  | "Pricing"
+  | "Inventory / Listing Issue"
+  | "Missing Data";
 
 type InventoryRow = {
   seller_sku: string | null;
@@ -241,6 +249,9 @@ type AdvisorRow = {
   keepa_captured_at: string | null;
   has_keepa_data: boolean;
   estimated_capital_tied_up: number | null;
+  advisor_bucket: AdvisorBucket;
+  recommended_target_price: number | null;
+  target_price_basis: string | null;
   recommendation_tier: RecommendationTier;
   recommended_manual_action: string;
   reason: string;
@@ -444,6 +455,11 @@ function buildAdvisorRows(
         null;
       const keepaBuyBoxPrice = centsToDollars(keepa?.buy_box_price_current_cents);
       const informedBuyBoxPrice = toOptionalNumber(informed?.buy_box_price);
+      const marketReferencePrice =
+        informedBuyBoxPrice ??
+        keepaBuyBoxPrice ??
+        centsToDollars(keepa?.buy_box_price_avg90_cents) ??
+        centsToDollars(keepa?.new_price_current_cents);
       const listingStatus = cleanText(listing?.listing_status ?? sku?.listing_status);
       const listingIssueCount = toNumber(listing?.issue_count, 0);
       const listingIssueStatus = listingIssueSummary(listingStatus, listingIssueCount, listing);
@@ -467,6 +483,7 @@ function buildAdvisorRows(
         keepaBuyBoxPrice,
         informed,
         informedBuyBoxPrice,
+        marketReferencePrice,
         informedNote,
         amazonAgeBucket: ageSignal?.bucket ?? null,
         listingStatus,
@@ -584,6 +601,9 @@ function buildAdvisorRows(
         keepa_captured_at: keepa?.captured_at ?? null,
         has_keepa_data: !!keepa,
         estimated_capital_tied_up: capitalTiedUp,
+        advisor_bucket: recommendation.bucket,
+        recommended_target_price: recommendation.targetPrice,
+        target_price_basis: recommendation.targetPriceBasis,
         recommendation_tier: recommendation.tier,
         recommended_manual_action: recommendation.action,
         reason: recommendation.reason,
@@ -608,12 +628,20 @@ function recommend(input: {
   keepaBuyBoxPrice: number | null;
   informed?: InformedListingRow;
   informedBuyBoxPrice: number | null;
+  marketReferencePrice: number | null;
   informedNote: string;
   amazonAgeBucket?: AmazonAgeBucket | null;
   listingStatus: string | null;
   listingIssueCount: number;
   unsellableQuantity: number;
-}): { tier: RecommendationTier; action: string; reason: string } {
+}): {
+  tier: RecommendationTier;
+  bucket: AdvisorBucket;
+  targetPrice: number | null;
+  targetPriceBasis: string | null;
+  action: string;
+  reason: string;
+} {
   if (!input.asin) {
     return needsData("Missing ASIN; cannot connect Amazon, Keepa, and cost context.");
   }
@@ -626,6 +654,9 @@ function recommend(input: {
   ) {
     return {
       tier: "Remove / eBay",
+      bucket: "Inventory / Listing Issue",
+      targetPrice: null,
+      targetPriceBasis: null,
       action: "Review listing issue, removal, or eBay transfer.",
       reason: "Unsellable quantity or Amazon listing issue detected; repricing alone may not fix this inventory.",
     };
@@ -649,11 +680,19 @@ function recommend(input: {
 
   if (input.amazonAgeBucket) {
     if (input.amazonAgeBucket === "365+" || input.amazonAgeBucket === "271-365" || input.amazonAgeBucket === "181-270") {
+      const target = targetPriceRecommendation({
+        tier: "Liquidate",
+        costBasis: input.costBasis,
+        marketReferencePrice: input.marketReferencePrice,
+      });
       return {
         tier: "Liquidate",
-        action: "Consider liquidation pricing or alternate channel move.",
+        bucket: "Pricing",
+        targetPrice: target.price,
+        targetPriceBasis: target.basis,
+        action: "Review and lower the Informed target/floor manually if margin is acceptable.",
         reason: withInformedNote(
-          `${input.amazonAgeBucket} Amazon planning age bucket with active FBA inventory; recover capital even if margin compresses.`,
+          `${input.amazonAgeBucket} Amazon planning age bucket with active FBA inventory; use a controlled markdown before considering removal.`,
           input.informedNote
         ),
       };
@@ -664,9 +703,17 @@ function recommend(input: {
         input.currentListPrice !== null &&
         input.keepaBuyBoxPrice !== null &&
         input.keepaBuyBoxPrice < input.currentListPrice;
+      const target = targetPriceRecommendation({
+        tier: "Reprice",
+        costBasis: input.costBasis,
+        marketReferencePrice: input.marketReferencePrice,
+      });
       return {
         tier: "Reprice",
-        action: "Review Informed.co floor and current listing price manually.",
+        bucket: "Pricing",
+        targetPrice: target.price,
+        targetPriceBasis: target.basis,
+        action: "Review Informed.co target/floor manually.",
         reason: withInformedNote(
           buyBoxBelowList
             ? "Amazon planning shows 91-180 day inventory and Buy Box is below current/list price; review repricer floor."
@@ -678,6 +725,9 @@ function recommend(input: {
 
     return {
       tier: "Watch",
+      bucket: "Pricing",
+      targetPrice: null,
+      targetPriceBasis: null,
       action: "Monitor sales velocity and Buy Box position.",
       reason: withInformedNote(
         "Amazon planning places this inventory in the 0-90 day bucket; exact 60-day split is unavailable from this report.",
@@ -689,6 +739,9 @@ function recommend(input: {
   if ((input.ageDays ?? 0) <= HEALTHY_MAX_AGE_DAYS) {
     return {
       tier: "Healthy",
+      bucket: "Pricing",
+      targetPrice: null,
+      targetPriceBasis: null,
       action: "No repricing action needed.",
       reason: withInformedNote(
         "Inventory is under 60 days old and no major Amazon listing issue is visible.",
@@ -699,6 +752,9 @@ function recommend(input: {
   if ((input.ageDays ?? 0) <= WATCH_MAX_AGE_DAYS) {
     return {
       tier: "Watch",
+      bucket: "Pricing",
+      targetPrice: null,
+      targetPriceBasis: null,
       action: "Monitor sales velocity and Buy Box position.",
       reason: withInformedNote("60-89 days old; watch before forcing price down.", input.informedNote),
     };
@@ -708,9 +764,17 @@ function recommend(input: {
       input.currentListPrice !== null &&
       input.keepaBuyBoxPrice !== null &&
       input.keepaBuyBoxPrice < input.currentListPrice;
+    const target = targetPriceRecommendation({
+      tier: "Reprice",
+      costBasis: input.costBasis,
+      marketReferencePrice: input.marketReferencePrice,
+    });
     return {
       tier: "Reprice",
-      action: "Review Informed.co floor and current listing price manually.",
+      bucket: "Pricing",
+      targetPrice: target.price,
+      targetPriceBasis: target.basis,
+      action: "Review Informed.co target/floor manually.",
       reason: withInformedNote(
         buyBoxBelowList
           ? "90+ days old and Buy Box is below current/list price; review repricer floor."
@@ -720,9 +784,17 @@ function recommend(input: {
     };
   }
 
+  const target = targetPriceRecommendation({
+    tier: "Liquidate",
+    costBasis: input.costBasis,
+    marketReferencePrice: input.marketReferencePrice,
+  });
   return {
     tier: "Liquidate",
-    action: "Consider liquidation pricing or alternate channel move.",
+    bucket: "Pricing",
+    targetPrice: target.price,
+    targetPriceBasis: target.basis,
+    action: "Review and lower the Informed target/floor manually if margin is acceptable.",
     reason: withInformedNote(
       "180+ days old with active Amazon inventory; recover capital even if margin compresses.",
       input.informedNote
@@ -733,8 +805,34 @@ function recommend(input: {
 function needsData(reason: string) {
   return {
     tier: "Needs Data" as const,
+    bucket: "Missing Data" as const,
+    targetPrice: null,
+    targetPriceBasis: null,
     action: "Fill missing data or run targeted sync before repricing.",
     reason,
+  };
+}
+
+function targetPriceRecommendation(input: {
+  tier: "Reprice" | "Liquidate";
+  costBasis: number | null;
+  marketReferencePrice: number | null;
+}) {
+  if (input.costBasis === null || input.marketReferencePrice === null) {
+    return { price: null, basis: null };
+  }
+
+  const discount = input.tier === "Reprice" ? REPRICE_DISCOUNT_PCT : LIQUIDATE_DISCOUNT_PCT;
+  const marketTarget = input.marketReferencePrice * (1 - discount);
+  const floor = input.costBasis * (1 + MIN_MARGIN_ABOVE_COST_PCT);
+  const target = Math.max(marketTarget, floor);
+
+  return {
+    price: roundMoney(target),
+    basis:
+      target === floor
+        ? `Cost + ${Math.round(MIN_MARGIN_ABOVE_COST_PCT * 100)}% floor`
+        : `${Math.round(discount * 100)}% below Buy Box/reference`,
   };
 }
 
@@ -793,6 +891,17 @@ function summarizeRows(rows: AdvisorRow[]) {
     rows_needing_data: rowsNeedingData,
     unsellable_or_suppressed_rows: unsellableOrSuppressed,
     by_tier: byTier,
+    by_bucket: rows.reduce(
+      (counts, row) => {
+        counts[row.advisor_bucket] += 1;
+        return counts;
+      },
+      {
+        Pricing: 0,
+        "Inventory / Listing Issue": 0,
+        "Missing Data": 0,
+      } as Record<AdvisorBucket, number>
+    ),
   };
 }
 

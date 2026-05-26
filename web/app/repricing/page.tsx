@@ -11,6 +11,11 @@ type RecommendationTier =
   | "Remove / eBay"
   | "Needs Data";
 
+type AdvisorBucket =
+  | "Pricing"
+  | "Inventory / Listing Issue"
+  | "Missing Data";
+
 type AmazonAgeBucket =
   | "0-90"
   | "91-180"
@@ -84,6 +89,9 @@ type AdvisorRow = {
   keepa_captured_at: string | null;
   has_keepa_data: boolean;
   estimated_capital_tied_up: number | null;
+  advisor_bucket: AdvisorBucket;
+  recommended_target_price: number | null;
+  target_price_basis: string | null;
   recommendation_tier: RecommendationTier;
   recommended_manual_action: string;
   reason: string;
@@ -100,6 +108,7 @@ type AdvisorData = {
     rows_needing_data: number;
     unsellable_or_suppressed_rows: number;
     by_tier: Record<RecommendationTier, number>;
+    by_bucket: Record<AdvisorBucket, number>;
   };
   rows: AdvisorRow[];
 };
@@ -124,12 +133,20 @@ const AGE_BUCKETS = [
   "Missing",
 ] as const;
 
+const BUCKETS: Array<"All" | AdvisorBucket> = [
+  "All",
+  "Pricing",
+  "Inventory / Listing Issue",
+  "Missing Data",
+];
+
 export default function RepricingPage() {
   const [data, setData] = useState<AdvisorData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [tier, setTier] = useState<(typeof TIERS)[number]>("All");
   const [ageBucket, setAgeBucket] = useState<(typeof AGE_BUCKETS)[number]>("All");
+  const [advisorBucket, setAdvisorBucket] = useState<(typeof BUCKETS)[number]>("All");
   const [missingOnly, setMissingOnly] = useState(false);
   const [issueOnly, setIssueOnly] = useState(false);
   const [keepaFilter, setKeepaFilter] = useState<"all" | "has" | "missing">("all");
@@ -160,6 +177,7 @@ export default function RepricingPage() {
   const rows = useMemo(() => {
     return (data?.rows ?? []).filter((row) => {
       if (tier !== "All" && row.recommendation_tier !== tier) return false;
+      if (advisorBucket !== "All" && row.advisor_bucket !== advisorBucket) return false;
       if (!inAgeBucket(row, ageBucket)) return false;
       if (missingOnly && row.recommendation_tier !== "Needs Data") return false;
       if (issueOnly && row.unsellable_quantity <= 0 && row.listing_issue_count <= 0) {
@@ -169,7 +187,7 @@ export default function RepricingPage() {
       if (keepaFilter === "missing" && row.has_keepa_data) return false;
       return true;
     });
-  }, [ageBucket, data, issueOnly, keepaFilter, missingOnly, tier]);
+  }, [advisorBucket, ageBucket, data, issueOnly, keepaFilter, missingOnly, tier]);
 
   return (
     <main className="min-h-screen bg-slate-100 p-4 text-slate-900">
@@ -222,7 +240,7 @@ export default function RepricingPage() {
       </section>
 
       <section className="mb-4 rounded-md border border-slate-200 bg-white p-3 shadow-sm">
-        <div className="grid gap-3 lg:grid-cols-[180px_160px_repeat(4,max-content)]">
+        <div className="grid gap-3 lg:grid-cols-[180px_220px_160px_repeat(4,max-content)]">
           <label className="text-sm">
             <span className="mb-1 block text-xs font-medium uppercase text-slate-500">Tier</span>
             <select
@@ -231,6 +249,20 @@ export default function RepricingPage() {
               className="w-full rounded-md border border-slate-300 bg-white px-2 py-2"
             >
               {TIERS.map((option) => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="text-sm">
+            <span className="mb-1 block text-xs font-medium uppercase text-slate-500">Bucket</span>
+            <select
+              value={advisorBucket}
+              onChange={(event) => setAdvisorBucket(event.target.value as typeof advisorBucket)}
+              className="w-full rounded-md border border-slate-300 bg-white px-2 py-2"
+            >
+              {BUCKETS.map((option) => (
                 <option key={option} value={option}>
                   {option}
                 </option>
@@ -277,12 +309,14 @@ export default function RepricingPage() {
             <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
               <tr>
                 <th className="px-3 py-2">Tier</th>
+                <th className="px-3 py-2">Bucket</th>
                 <th className="px-3 py-2">ASIN / SKU</th>
                 <th className="px-3 py-2">Title</th>
                 <th className="px-3 py-2 text-right">Qty</th>
                 <th className="px-3 py-2 text-right">Age</th>
                 <th className="px-3 py-2 text-right">Cost</th>
                 <th className="px-3 py-2 text-right">Capital</th>
+                <th className="px-3 py-2 text-right">Target</th>
                 <th className="px-3 py-2 text-right">Current/List</th>
                 <th className="px-3 py-2 text-right">Keepa Buy Box</th>
                 <th className="px-3 py-2 text-right">Keepa 90 Avg</th>
@@ -301,7 +335,7 @@ export default function RepricingPage() {
             <tbody>
               {loading ? (
                 <tr>
-                  <td className="px-3 py-8 text-center text-slate-500" colSpan={20}>
+                  <td className="px-3 py-8 text-center text-slate-500" colSpan={22}>
                     Loading repricing advisor...
                   </td>
                 </tr>
@@ -311,6 +345,11 @@ export default function RepricingPage() {
                     <td className="px-3 py-2">
                       <span className={`rounded px-2 py-1 text-xs font-semibold ${tierClass(row.recommendation_tier)}`}>
                         {row.recommendation_tier}
+                      </span>
+                    </td>
+                    <td className="px-3 py-2">
+                      <span className={`rounded px-2 py-1 text-xs font-semibold ${bucketClass(row.advisor_bucket)}`}>
+                        {row.advisor_bucket}
                       </span>
                     </td>
                     <td className="px-3 py-2">
@@ -339,6 +378,10 @@ export default function RepricingPage() {
                       <div className="text-xs text-slate-500">{row.cost_source ?? "--"}</div>
                     </td>
                     <td className="px-3 py-2 text-right">{formatMoney(row.estimated_capital_tied_up)}</td>
+                    <td className="px-3 py-2 text-right">
+                      <div>{formatMoney(row.recommended_target_price)}</div>
+                      <div className="text-xs text-slate-500">{row.target_price_basis ?? "--"}</div>
+                    </td>
                     <td className="px-3 py-2 text-right">{formatMoney(row.current_list_price)}</td>
                     <td className="px-3 py-2 text-right">{formatMoney(row.keepa_buy_box_price)}</td>
                     <td className="px-3 py-2 text-right">{formatMoney(row.keepa_buy_box_avg90)}</td>
@@ -391,7 +434,7 @@ export default function RepricingPage() {
                 ))
               ) : (
                 <tr>
-                  <td className="px-3 py-8 text-center text-slate-500" colSpan={20}>
+                  <td className="px-3 py-8 text-center text-slate-500" colSpan={22}>
                     No rows match the current filters.
                   </td>
                 </tr>
@@ -470,6 +513,12 @@ function tierClass(tier: RecommendationTier) {
   if (tier === "Needs Data") return "bg-slate-200 text-slate-800";
   if (tier === "Watch") return "bg-blue-100 text-blue-800";
   return "bg-emerald-100 text-emerald-800";
+}
+
+function bucketClass(bucket: AdvisorBucket) {
+  if (bucket === "Inventory / Listing Issue") return "bg-red-100 text-red-800";
+  if (bucket === "Missing Data") return "bg-slate-200 text-slate-800";
+  return "bg-blue-100 text-blue-800";
 }
 
 function formatMoney(value?: number | null) {

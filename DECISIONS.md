@@ -548,6 +548,28 @@ Do not write prices to Amazon, call Amazon write endpoints, modify Informed.co s
 
 ---
 
+## Repricing Advisor Separates Pricing Work From Inventory Exceptions
+
+Decision:
+Separate aged Amazon inventory into advisor buckets: Pricing, Inventory / Listing Issue, and Missing Data.
+
+Reason:
+The operator wants aged but otherwise sellable inventory to become a repricing work queue, not an automatic removal/liquidation queue. Suppressed, unsellable, restricted, or otherwise broken inventory needs a different operational workflow than normal aged inventory.
+
+Implementation:
+- `/api/amazon/repricing-advisor` assigns the advisor bucket.
+- `Pricing` rows are aged sellable inventory without listing/condition exceptions.
+- `Inventory / Listing Issue` rows have unsellable quantity, Amazon listing issues, or non-buyable listing status where repricing alone may not help.
+- `Missing Data` rows are missing required ASIN, cost, age, Keepa, Informed, or pricing context.
+- Reprice target price uses a 3% markdown below Buy Box/reference while respecting a cost + 10% floor.
+- Liquidate target price uses an 8% markdown below Buy Box/reference while respecting a cost + 10% floor.
+- `/repricing` renders the API-provided bucket and target price only.
+
+Rule:
+Target prices are manual advisory outputs for Informed.co/Seller Central review. They must not be written to Amazon, Informed, purchase_items, receiving, or FBA workflow tables.
+
+---
+
 ## Amazon Inventory Planning Is The Repricing Age Source
 
 Decision:
