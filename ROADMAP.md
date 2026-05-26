@@ -282,9 +282,13 @@ Foundation completed:
 - full sync validated 6,292 Amazon FBA inventory summaries
 - kept Amazon seller data separate from purchases and purchase_items
 - auth-only validation succeeds after credential correction
+- added read-only Keepa schema for product snapshots, optional history points, and latest-snapshot view
+- added token-aware Keepa client and product sync script
+- Keepa dry run/write path verified with 5 ASINs
+- Keepa plan-only mode selected 409 canonical ASINs with 285 available tokens, so broad sync should be staged by token availability
 
 Planned scope:
-- evaluate Amazon SP-API catalog/search access and Keepa API coverage
+- plan a staged Keepa sync cadence that respects token availability
 - use marketplace-title cleaning before catalog searches
 - return ASIN candidates for operator review before any automatic assignment
 - validate candidate title and system/platform before writing ASINs
@@ -292,7 +296,7 @@ Planned scope:
 - preserve the rule that video game matching must never cross systems
 
 First next step:
-add dashboard/API visibility for latest Amazon FBA inventory totals and compare Amazon inventory against MBOP Listed/FBA shipment state
+surface Keepa price/rank/sales-rank-drop signals in operator review views without allowing Keepa to overwrite workflow-owned purchase data
 
 ---
 

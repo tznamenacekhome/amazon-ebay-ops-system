@@ -19,6 +19,7 @@ MBOP is the internal operations platform for Midnight Blue Enterprises, LLC.
 | Dashboard analytics | First slice implemented |
 | Matching engine | Emerging subsystem |
 | Amazon SP-API foundation | Read-only inventory sync working |
+| Keepa catalog intelligence | Foundation implemented / small write verified |
 | Unified inventory state / reconciliation | First slice implemented |
 | Amazon FBA workflow | First slice implemented |
 | Legacy spreadsheet backfill | Recently used / repeatable script available |
@@ -211,6 +212,42 @@ Current validation:
 
 Boundary:
 Amazon seller/FBA data must stay in Amazon-specific tables and must not write to `purchases` or `purchase_items`.
+
+---
+
+## Keepa Catalog Intelligence
+
+Status: FOUNDATION IMPLEMENTED / TOKEN-AWARE
+
+Purpose:
+Use Keepa read-only product data to support price-history review, sales-rank history, sales-frequency signals, and future ASIN validation.
+
+Implemented:
+- `sql/2026-05-25_add_keepa_product_snapshots.sql`
+- `keepa_product_snapshots`
+- `keepa_product_history_points`
+- `vw_latest_keepa_product_snapshot`
+- `integrations/keepa_client.py`
+- `integrations/keepa_sync_products.py`
+
+Current behavior:
+- Keepa API key is read from `KEEPA_API_KEY`
+- `KEEPA_DOMAIN_ID` defaults to `1` for Amazon US
+- product sync defaults to dry-run mode
+- `--plan-only` counts selected ASINs and Keepa token status without calling the product endpoint
+- ASIN source defaults to canonical inventory: current Amazon FBA inventory plus MBOP purchase inventory before Listed
+- raw Keepa product payload is preserved on `keepa_product_snapshots`
+- normalized summary fields include current/average price signals, sales rank, sales-rank drops, offer count, review count, and rating
+- normalized history points are optional via `--write-history`; raw history remains stored even when normalized points are not inserted
+
+Latest validation:
+- syntax checks passed for Keepa client and sync scripts
+- dry run selected 5 ASINs, returned 5 products, parsed 1,868 potential history points, had 0 failures, and spent 10 Keepa tokens
+- small write inserted 5 Keepa product snapshots and 0 history rows
+- plan-only mode selected 409 canonical ASINs with 285 Keepa tokens available, so a broad sync was intentionally not run yet
+
+Boundary:
+Keepa is catalog intelligence only. It must not write to purchases, purchase_items, receiving, FBA shipment workflow tables, or Amazon seller workflow tables.
 
 ---
 

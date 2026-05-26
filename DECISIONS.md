@@ -487,6 +487,27 @@ Do not write Amazon seller sales/orders into `purchases` or `purchase_items`. Pu
 
 ---
 
+## Keepa Is Read-Only Catalog Intelligence
+
+Decision:
+Use Keepa as a separate read-only catalog intelligence source for price history, sales-rank history, sales-rank drop frequency, offer context, reviews, and ratings.
+
+Reason:
+Keepa can improve pricing confidence, sales-frequency review, ASIN validation, and future catalog candidate workflows, but it is not an operational purchase, receiving, shipment, or seller-order source of truth.
+
+Implementation:
+- `keepa_product_snapshots` stores point-in-time product snapshots and the raw Keepa payload.
+- `keepa_product_history_points` can store selected normalized time-series points when explicitly requested.
+- `vw_latest_keepa_product_snapshot` exposes the latest product snapshot per ASIN/domain.
+- `integrations/keepa_client.py` owns API auth, token status, and safe request handling.
+- `integrations/keepa_sync_products.py` defaults to dry-run and requires `--write` before inserting rows.
+- `--plan-only` must be used before broad syncs to inspect ASIN count and token availability.
+
+Rule:
+Keepa data must not write to `purchases`, `purchase_items`, receiving rows, FBA shipment rows, or Amazon SP-API seller workflow tables. Future use of Keepa for ASIN matching must produce operator-review candidates before any workflow-owned correction is applied.
+
+---
+
 ## Inventory State Is A Derived Reconciliation Layer
 
 Decision:
