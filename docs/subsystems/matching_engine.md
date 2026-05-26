@@ -52,7 +52,8 @@ This catches spacing/compound-word variants without matching across systems.
 ## Leading Condition Variant Fallback
 
 If normalized title + system and compact title + system do not match, RevSeller
-enrichment can try a condition-noise variant that removes a leading `new`.
+enrichment can try a condition-noise variant that removes a leading or trailing
+`new`.
 
 This fallback is only accepted when:
 - the system matches
@@ -69,6 +70,28 @@ Example:
 - RevSeller: `Hitman 3 - PlayStation 5 Standard Edition`
 - system: `PS 5`
 - result: ASIN `B08MG5FYS6`
+
+Trailing condition example:
+- eBay: `My Little Pony: A Zephyr Heights Mystery Xbox Series X & Xbox One new`
+- RevSeller: `My Little Pony: A Zephyr Heights Mystery - Xbox Series X`
+- system: `Xbox Series X`
+- result: ASIN `B0CXF5QZC8`
+
+## Catalog Connector Variant Fallback
+
+RevSeller enrichment indexes safe title variants from the RevSeller sheet as
+well as purchase items. This includes removing a trailing connector word `for`
+from a catalog title when the system is already detected separately.
+
+Reason:
+Catalog titles often use phrasing such as `ARK Ultimate Survivor Edition for
+PlayStation 4`, while eBay titles may omit `for` and include publisher noise.
+
+Example:
+- eBay: `ARK: Ultimate Survior Edition Studio Wildcard PlayStation 4`
+- RevSeller: `ARK Ultimate Survivor Edition for PlayStation 4`
+- system: `PS 4`
+- result: ASIN `B09KVJKH7V`
 
 ## Token-Set Same-System Fallback
 

@@ -60,6 +60,8 @@ GENERIC_TITLE_WORDS = {
     "video",
     "edition",
     "standard",
+    "studio",
+    "wildcard",
 }
 
 
@@ -77,6 +79,7 @@ def normalize_title(title: str | None) -> str:
         return ""
 
     text = clean_marketplace_title_for_search(title).lower()
+    text = re.sub(r"\bsurvior\b", "survivor", text)
     text = re.sub(r"\([^)]*\)", " ", text)
     text = re.sub(r"\[[^]]*\]", " ", text)
     text = remove_system_terms(text)
@@ -99,6 +102,12 @@ def normalized_title_variants(normalized_title: str) -> list[str]:
     # real titles such as "New Super Mario Bros." are still matched normally.
     if normalized_title.startswith("new "):
         variants.append(normalize_spaces(normalized_title[4:]))
+
+    if normalized_title.endswith(" new"):
+        variants.append(normalize_spaces(normalized_title[:-4]))
+
+    if normalized_title.endswith(" for"):
+        variants.append(normalize_spaces(normalized_title[:-4]))
 
     return list(dict.fromkeys(variant for variant in variants if variant))
 
@@ -257,21 +266,22 @@ def build_revseller_indexes(rows):
         system_key = row["system"]
 
         if system_key:
-            compound_key = (title_key, system_key)
+            for title_variant in normalized_title_variants(title_key):
+                compound_key = (title_variant, system_key)
 
-            existing = by_title_system.get(compound_key)
-            if existing is None or row["row_date"] >= existing["row_date"]:
-                by_title_system[compound_key] = row
+                existing = by_title_system.get(compound_key)
+                if existing is None or row["row_date"] >= existing["row_date"]:
+                    by_title_system[compound_key] = row
 
-            compact_key = compact_title_key(title_key)
+                compact_key = compact_title_key(title_variant)
 
-            if compact_key:
-                compact_rows_by_title_system[(compact_key, system_key)].append(row)
+                if compact_key:
+                    compact_rows_by_title_system[(compact_key, system_key)].append(row)
 
-            token_key = token_set_key(title_key)
+                token_key = token_set_key(title_variant)
 
-            if token_key:
-                token_rows_by_title_system[(token_key, system_key)].append(row)
+                if token_key:
+                    token_rows_by_title_system[(token_key, system_key)].append(row)
 
         by_title[title_key].append(row)
 

@@ -142,6 +142,8 @@ Implemented:
 - shared backend system detection
 - strict title+system RevSeller matching with a unique compact same-system fallback
 - leading condition-noise title variant fallback for same-system RevSeller matching, such as `New Hitman 3` -> `Hitman 3`
+- trailing condition-noise title variant fallback, such as `... Xbox One new` -> the catalog title without `new`
+- catalog connector fallback for RevSeller titles ending in `for`, such as `ARK Ultimate Survivor Edition for PlayStation 4`
 - token-set same-system fallback for reordered catalog titles, such as `Rock Band the Beatles` -> `The Beatles: Rock Band`
 - manual UI ASIN/price corrections propagate to matching purchase items
 - manual match memory is supported through manual_item_matches once the SQL migration is applied
@@ -557,6 +559,7 @@ Recent backend update:
 - marketplace-title cleaning was refined from the 100-row missing-ASIN training sheet
 - RevSeller enrichment now safely handles leading `New` as condition text only as a same-system fallback, which corrected order `20-14670-25041` to ASIN `B08MG5FYS6`
 - RevSeller enrichment now handles unique same-system token-set matches, which corrected order `20-14670-25040` to ASIN `B001TOQ8LG`
+- RevSeller enrichment now handles trailing condition `new`, publisher noise, common `survior` typo correction, and safe trailing `for` catalog variants, which corrected orders `20-14670-25046` and `20-14670-25045`
 
 Recent one-time status backfill:
 - source: reference Google Sheet "status" tab
