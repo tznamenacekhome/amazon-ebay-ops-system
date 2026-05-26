@@ -305,29 +305,18 @@ export default function RepricingPage() {
 
       <section className="overflow-hidden rounded-md border border-slate-200 bg-white shadow-sm">
         <div className="overflow-x-auto">
-          <table className="min-w-[2000px] w-full text-left text-sm">
+          <table className="min-w-[1420px] w-full text-left text-sm">
             <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
               <tr>
-                <th className="px-3 py-2">Tier</th>
-                <th className="px-3 py-2">Bucket</th>
                 <th className="px-3 py-2">ASIN / SKU</th>
                 <th className="px-3 py-2">Title</th>
                 <th className="px-3 py-2 text-right">Qty</th>
                 <th className="px-3 py-2 text-right">Age</th>
-                <th className="px-3 py-2 text-right">Cost</th>
-                <th className="px-3 py-2 text-right">Capital</th>
-                <th className="px-3 py-2 text-right">Target</th>
-                <th className="px-3 py-2 text-right">Current/List</th>
-                <th className="px-3 py-2 text-right">Keepa Buy Box</th>
-                <th className="px-3 py-2 text-right">Keepa 90 Avg</th>
-                <th className="px-3 py-2">Informed Rule</th>
-                <th className="px-3 py-2 text-right">Informed Min</th>
-                <th className="px-3 py-2 text-right">Informed Max</th>
-                <th className="px-3 py-2 text-right">Informed Current</th>
+                <th className="px-3 py-2">Pricing</th>
+                <th className="px-3 py-2">Informed</th>
                 <th className="px-3 py-2">Buy Box Status</th>
                 <th className="px-3 py-2">Informed Note</th>
                 <th className="px-3 py-2">Sales Rank</th>
-                <th className="px-3 py-2">Listing Issue</th>
                 <th className="px-3 py-2">Recommendation</th>
                 <th className="px-3 py-2">Reason</th>
               </tr>
@@ -335,33 +324,26 @@ export default function RepricingPage() {
             <tbody>
               {loading ? (
                 <tr>
-                  <td className="px-3 py-8 text-center text-slate-500" colSpan={22}>
+                  <td className="px-3 py-8 text-center text-slate-500" colSpan={11}>
                     Loading repricing advisor...
                   </td>
                 </tr>
               ) : rows.length ? (
                 rows.map((row) => (
-                  <tr key={`${row.seller_sku}-${row.asin}`} className="border-t border-slate-100">
-                    <td className="px-3 py-2">
-                      <span className={`rounded px-2 py-1 text-xs font-semibold ${tierClass(row.recommendation_tier)}`}>
-                        {row.recommendation_tier}
-                      </span>
-                    </td>
-                    <td className="px-3 py-2">
-                      <span className={`rounded px-2 py-1 text-xs font-semibold ${bucketClass(row.advisor_bucket)}`}>
-                        {row.advisor_bucket}
-                      </span>
-                    </td>
+                  <tr
+                    key={`${row.seller_sku}-${row.asin}`}
+                    className={`border-t border-slate-100 align-top ${rowTone(row)}`}
+                  >
                     <td className="px-3 py-2">
                       <div className="font-medium text-blue-700">{row.asin ?? "--"}</div>
                       <div className="text-xs text-slate-500">{row.seller_sku}</div>
                     </td>
-                    <td className="max-w-[360px] px-3 py-2">
-                      <div className="truncate font-medium">{row.title}</div>
+                    <td className="w-[340px] px-3 py-2">
+                      <div className="line-clamp-2 font-medium leading-snug">{row.title}</div>
                       <div className="text-xs text-slate-500">{row.condition ?? "--"}</div>
                     </td>
                     <td className="px-3 py-2 text-right">
-                      <div>{formatNumber(row.total_quantity)}</div>
+                      <div className="font-semibold">{formatNumber(row.total_quantity)}</div>
                       <div className="text-xs text-slate-500">
                         FBA {formatNumber(row.fba_sellable_quantity)} / In {formatNumber(row.inbound_quantity)}
                       </div>
@@ -370,22 +352,33 @@ export default function RepricingPage() {
                       </div>
                     </td>
                     <td className="px-3 py-2 text-right">
-                      <div>{ageDisplay(row)}</div>
+                      <div className="font-semibold">{ageDisplay(row)}</div>
                       <div className="text-xs text-slate-500">{row.amazon_age_source}</div>
                     </td>
-                    <td className="px-3 py-2 text-right">
-                      <div>{formatMoney(row.cost_basis)}</div>
-                      <div className="text-xs text-slate-500">{row.cost_source ?? "--"}</div>
+                    <td className="w-[220px] px-3 py-2">
+                      <PriceLine label="Cost" value={formatMoney(row.cost_basis)} detail={row.cost_source ?? "--"} />
+                      <PriceLine label="Current" value={formatMoney(row.current_list_price)} />
+                      <PriceLine label="Buy Box" value={formatMoney(row.keepa_buy_box_price)} />
+                      <PriceLine label="90 avg" value={formatMoney(row.keepa_buy_box_avg90)} />
+                      <div className="mt-2 rounded border border-blue-200 bg-blue-50 px-2 py-1">
+                        <div className="flex items-baseline justify-between gap-3">
+                          <span className="text-xs font-semibold uppercase text-blue-700">Target</span>
+                          <span className="font-semibold text-blue-950">
+                            {formatMoney(row.recommended_target_price)}
+                          </span>
+                        </div>
+                        <div className="mt-0.5 text-right text-xs text-blue-700">
+                          {row.target_price_basis ?? "--"}
+                        </div>
+                      </div>
+                      <div className="mt-2 flex items-center justify-between gap-3 border-t border-slate-200 pt-1 text-xs">
+                        <span className="font-medium text-slate-500">Capital</span>
+                        <span className="font-semibold text-slate-800">
+                          {formatMoney(row.estimated_capital_tied_up)}
+                        </span>
+                      </div>
                     </td>
-                    <td className="px-3 py-2 text-right">{formatMoney(row.estimated_capital_tied_up)}</td>
-                    <td className="px-3 py-2 text-right">
-                      <div>{formatMoney(row.recommended_target_price)}</div>
-                      <div className="text-xs text-slate-500">{row.target_price_basis ?? "--"}</div>
-                    </td>
-                    <td className="px-3 py-2 text-right">{formatMoney(row.current_list_price)}</td>
-                    <td className="px-3 py-2 text-right">{formatMoney(row.keepa_buy_box_price)}</td>
-                    <td className="px-3 py-2 text-right">{formatMoney(row.keepa_buy_box_avg90)}</td>
-                    <td className="px-3 py-2">
+                    <td className="w-[180px] px-3 py-2">
                       <div>{row.informed_rule_name ?? "--"}</div>
                       <div className="text-xs text-slate-500">
                         {row.informed_repricing_enabled === null
@@ -394,18 +387,15 @@ export default function RepricingPage() {
                             ? "enabled"
                             : "disabled"}
                       </div>
-                    </td>
-                    <td className="px-3 py-2 text-right">
-                      <div>{formatMoney(row.informed_min_price)}</div>
-                      <div className="text-xs text-slate-500">
-                        {formatPct(row.informed_min_price_gap_to_buy_box_pct)}
-                      </div>
-                    </td>
-                    <td className="px-3 py-2 text-right">{formatMoney(row.informed_max_price)}</td>
-                    <td className="px-3 py-2 text-right">
-                      <div>{formatMoney(row.informed_current_price)}</div>
-                      <div className="text-xs text-slate-500">
-                        {formatPct(row.informed_price_gap_to_buy_box_pct)}
+                      <div className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1 text-xs">
+                        <span className="text-slate-500">Min</span>
+                        <span className="text-right font-medium">{formatMoney(row.informed_min_price)}</span>
+                        <span className="text-slate-500">Max</span>
+                        <span className="text-right font-medium">{formatMoney(row.informed_max_price)}</span>
+                        <span className="text-slate-500">Min gap</span>
+                        <span className="text-right font-medium">
+                          {formatPct(row.informed_min_price_gap_to_buy_box_pct)}
+                        </span>
                       </div>
                     </td>
                     <td className="px-3 py-2">
@@ -414,27 +404,28 @@ export default function RepricingPage() {
                         {formatMoney(row.informed_buy_box_price)}
                       </div>
                     </td>
-                    <td className="max-w-[300px] px-3 py-2 text-slate-600">
+                    <td className="w-[240px] px-3 py-2 text-slate-600">
                       {row.informed_repricing_note}
                     </td>
-                    <td className="px-3 py-2">
+                    <td className="w-[150px] px-3 py-2">
                       <div>{salesRankSignal(row)}</div>
                       <div className="text-xs text-slate-500">
                         30/90d sales {formatNumber(row.sales_shipped_last_30_days)} /{" "}
                         {formatNumber(row.sales_shipped_last_90_days)}
                       </div>
                     </td>
-                    <td className="px-3 py-2">
-                      <div>{row.listing_issue_status}</div>
-                      <div className="text-xs text-slate-500">{row.listing_status ?? "--"}</div>
+                    <td className="w-[220px] px-3 py-2">
+                      <div className="font-medium">{row.recommended_manual_action}</div>
+                      <div className="mt-1 text-xs text-slate-500">
+                        {row.advisor_bucket} / {row.recommendation_tier}
+                      </div>
                     </td>
-                    <td className="max-w-[260px] px-3 py-2">{row.recommended_manual_action}</td>
-                    <td className="max-w-[360px] px-3 py-2 text-slate-600">{row.reason}</td>
+                    <td className="w-[360px] px-3 py-2 text-slate-600">{row.reason}</td>
                   </tr>
                 ))
               ) : (
                 <tr>
-                  <td className="px-3 py-8 text-center text-slate-500" colSpan={22}>
+                  <td className="px-3 py-8 text-center text-slate-500" colSpan={11}>
                     No rows match the current filters.
                   </td>
                 </tr>
@@ -444,6 +435,18 @@ export default function RepricingPage() {
         </div>
       </section>
     </main>
+  );
+}
+
+function PriceLine({ label, value, detail }: { label: string; value: string; detail?: string }) {
+  return (
+    <div className="mb-1 flex items-baseline justify-between gap-3">
+      <span className="text-xs font-medium text-slate-500">{label}</span>
+      <span className="text-right font-medium text-slate-900">
+        {value}
+        {detail ? <span className="ml-1 text-xs font-normal text-slate-500">({detail})</span> : null}
+      </span>
+    </div>
   );
 }
 
@@ -506,19 +509,12 @@ function ageDisplay(row: AdvisorRow) {
   return "--";
 }
 
-function tierClass(tier: RecommendationTier) {
-  if (tier === "Remove / eBay") return "bg-red-100 text-red-800";
-  if (tier === "Liquidate") return "bg-orange-100 text-orange-800";
-  if (tier === "Reprice") return "bg-amber-100 text-amber-800";
-  if (tier === "Needs Data") return "bg-slate-200 text-slate-800";
-  if (tier === "Watch") return "bg-blue-100 text-blue-800";
-  return "bg-emerald-100 text-emerald-800";
-}
-
-function bucketClass(bucket: AdvisorBucket) {
-  if (bucket === "Inventory / Listing Issue") return "bg-red-100 text-red-800";
-  if (bucket === "Missing Data") return "bg-slate-200 text-slate-800";
-  return "bg-blue-100 text-blue-800";
+function rowTone(row: AdvisorRow) {
+  if (row.advisor_bucket === "Inventory / Listing Issue") return "bg-red-50/35";
+  if (row.advisor_bucket === "Missing Data") return "bg-slate-50";
+  if (row.recommendation_tier === "Liquidate") return "bg-orange-50/40";
+  if (row.recommendation_tier === "Reprice") return "bg-amber-50/35";
+  return "";
 }
 
 function formatMoney(value?: number | null) {
