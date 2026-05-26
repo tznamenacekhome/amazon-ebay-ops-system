@@ -253,8 +253,11 @@ Latest validation:
 Boundary:
 This layer is derived and additive. It does not replace purchases, receiving, FBA shipment preparation, Amazon SP-API snapshot ownership, or workflow-owned cost updates on purchase_items.
 
+Product identity:
+ASIN is MBOP's primary Amazon inventory identity. MSKU/Seller SKU remains stored for Amazon traceability and InventoryLab row matching, but MBOP is not currently building a separate SKU-to-purchase mapping workflow.
+
 First-pass limitation:
-Amazon reconciliation is intentionally noisy because many Amazon FBA SKUs are not yet mapped back to MBOP operational inventory. The findings are meant to drive mapping and confidence work, not imply all mismatches are defects.
+Amazon reconciliation is intentionally noisy while MBOP separates current Amazon inventory from historical purchase/listing records. Findings are meant to drive inventory confidence work, not imply all mismatches are defects.
 
 ---
 

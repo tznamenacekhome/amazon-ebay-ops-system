@@ -90,7 +90,7 @@ Recommended next mitigation:
 Status: ACTIVE / EXPECTED FIRST-PASS NOISE
 
 Problem:
-The first unified inventory reconciliation pass detects many open findings because Amazon FBA inventory contains SKUs/ASINs that are not yet mapped back to MBOP operational purchase items.
+The first unified inventory reconciliation pass detects many open findings while MBOP separates current Amazon FBA inventory from historical purchase/listing records and future eBay inventory states.
 
 Current observed result:
 - latest run projected 2,923 MBOP workflow positions
@@ -108,7 +108,8 @@ Current mitigation:
 - reconciliation is ASIN-level only for the first slice
 
 Recommended next mitigation:
-- add SKU-to-purchase/ASIN mapping review tools.
+- use ASIN as the primary MBOP product identity for Amazon inventory reconciliation.
+- keep MSKU/Seller SKU as Amazon traceability, not as a required MBOP inventory identity layer.
 - incorporate Amazon listing/suppression/stranded signals once SP-API listing reads are expanded.
 - add future eBay inventory positions before attempting Amazon-to-eBay transfer reconciliation.
 - keep the reconciliation layer read/project first, then route corrections through the owning workflow.

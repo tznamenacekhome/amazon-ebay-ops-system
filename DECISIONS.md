@@ -545,6 +545,22 @@ Going forward, MBOP purchase_items, receiving, and FBA workflows own purchase co
 
 ---
 
+## ASIN Is The Primary Amazon Inventory Identity
+
+Decision:
+Use ASIN as MBOP's primary product identity for Amazon inventory reconciliation. Keep MSKU/Seller SKU for Amazon traceability and InventoryLab import matching, but do not build a required SKU-to-MBOP mapping framework as a core product identity layer.
+
+Reason:
+The operation usually has one active Amazon listing per ASIN. Multiple listings for the same ASIN are rare and mostly limited to a future edge case where FBA and Merchant Fulfilled inventory exist for the same product.
+
+Implementation rule:
+- Amazon SP-API inventory still stores `seller_sku`, `fnsku`, and `amazon_sku_id`.
+- InventoryLab backfill may match by MSKU because that is the safest row-level import key.
+- dashboard and reconciliation should answer product/inventory questions primarily by ASIN.
+- only add deeper MSKU-level workflow mapping if FBA/MFN split inventory becomes operationally important.
+
+---
+
 ## Receiving Owns Marketplace Assignment
 
 Decision:
