@@ -308,6 +308,38 @@ Run `integrations/keepa_sync_products.py --plan-only` before broad Keepa syncs, 
 
 ---
 
+## Amazon Orders And Sales Integration
+
+Future scope:
+Import Amazon sales/order activity for inventory movement, valuation, sell-through, and cash-flow reporting.
+
+Goals:
+- mark Amazon FBA inventory as sold when Amazon reports sales
+- reduce current inventory value using MBOP go-forward cost basis and legacy opening-balance valuation where applicable
+- support sell-through analytics by ASIN, system, purchase cohort, and listing age
+- support future Amazon cash balance and settlement/disbursement reporting
+- improve repricing decisions with actual MBOP sales velocity and realized sale prices
+
+Constraints:
+- keep Amazon seller orders/sales separate from eBay purchases and `purchase_items`
+- do not request or store restricted customer PII unless a future workflow explicitly requires and approves it
+- use read-only Amazon reports/API access first
+- preserve Amazon-specific raw report rows for auditability
+- frontend must render backend-provided sales and valuation aggregates only
+
+Candidate sources:
+- Amazon settlement/disbursement reports for cash and fee reconciliation
+- Amazon sales/order reports with PII excluded where possible
+- Amazon inventory ledger/event data for sold, removed, returned, and transferred units
+
+Next steps:
+- identify the lowest-PII Amazon report set that can support sold-unit decrementing and settlement cash reporting
+- add Amazon-specific snapshot tables before any workflow logic
+- define how sold units consume legacy InventoryLab opening-balance inventory versus MBOP-created FBA inventory
+- update inventory reconciliation so current canonical inventory equals Amazon FBA on hand plus pre-listed MBOP inventory, minus confirmed Amazon sales/removals where needed
+
+---
+
 ## Late Delivery And Seller Case Workflow
 
 Use case:
