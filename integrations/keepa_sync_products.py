@@ -61,6 +61,9 @@ def main() -> int:
         supabase = get_supabase_client()
         captured_at = utc_now_iso()
         asins = collect_source_asins(supabase, source=args.source)
+        if args.missing_only:
+            existing_asins = fetch_existing_keepa_asins(supabase)
+            asins = [asin for asin in asins if asin not in existing_asins]
         if args.asin:
             asins = sorted(set(asins) | {asin.strip().upper() for asin in args.asin if asin.strip()})
         if args.limit is not None:
@@ -186,6 +189,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--asin", action="append", default=[], help="Additional ASIN to include.")
     parser.add_argument("--limit", type=int, default=None, help="Limit selected ASINs.")
     parser.add_argument("--batch-size", type=int, default=50, help="Keepa ASINs per product request.")
+    parser.add_argument(
+        "--missing-only",
+        action="store_true",
+        help="Exclude ASINs that already have at least one Keepa product snapshot.",
+    )
     parser.add_argument("--stats-days", type=int, default=90, help="Keepa stats window in days.")
     parser.add_argument("--offers", type=int, default=None, help="Optional Keepa offers parameter.")
     parser.add_argument("--no-history", action="store_true", help="Do not request Keepa history arrays.")
@@ -281,6 +289,19 @@ def fetch_excluded_item_ids(
                 excluded.add(str(row["item_id"]))
 
     return excluded
+
+
+def fetch_existing_keepa_asins(supabase) -> set[str]:
+    existing: set[str] = set()
+    for row in fetch_all(
+        supabase,
+        "vw_latest_keepa_product_snapshot",
+        "asin",
+    ):
+        asin = clean_asin(row.get("asin"))
+        if asin:
+            existing.add(asin)
+    return existing
 
 
 def fetch_all(supabase, table: str, select: str) -> list[dict[str, Any]]:

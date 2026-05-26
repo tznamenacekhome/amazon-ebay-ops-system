@@ -245,6 +245,7 @@ Current behavior:
 - `KEEPA_DOMAIN_ID` defaults to `1` for Amazon US
 - product sync defaults to dry-run mode
 - `--plan-only` counts selected ASINs and Keepa token status without calling the product endpoint
+- `--missing-only` excludes ASINs that already have a Keepa product snapshot
 - ASIN source defaults to canonical inventory: current Amazon FBA inventory plus MBOP purchase inventory before Listed
 - raw Keepa product payload is preserved on `keepa_product_snapshots`
 - normalized summary fields include current/average price signals, sales rank, sales-rank drops, offer count, review count, and rating
@@ -255,6 +256,8 @@ Latest validation:
 - dry run selected 5 ASINs, returned 5 products, parsed 1,868 potential history points, had 0 failures, and spent 10 Keepa tokens
 - small write inserted 5 Keepa product snapshots and 0 history rows
 - plan-only mode selected 409 canonical ASINs with 285 Keepa tokens available, so a broad sync was intentionally not run yet
+- follow-up missing-only writes inserted 153 additional Keepa snapshots with 0 failures and no normalized history rows
+- 251 canonical ASINs still need Keepa snapshots after the first refill-limited batch
 
 Boundary:
 Keepa is catalog intelligence only. It must not write to purchases, purchase_items, receiving, FBA shipment workflow tables, or Amazon seller workflow tables.
@@ -303,7 +306,7 @@ Latest validation:
 - estimated capital tied up: $13,597.34
 - aged capital over 90 days: $5,265.19
 - aged capital over 180 days: $1,881.41
-- tier counts: 57 Remove / eBay, 1 Liquidate, 3 Reprice, 236 Needs Data
+- tier counts after the first missing-Keepa backfill batch: 57 Remove / eBay, 6 Liquidate, 25 Reprice, 50 Watch, 159 Needs Data
 - `/repricing` rendered successfully with HTTP 200
 
 Boundary:
