@@ -127,11 +127,11 @@ The aged Amazon inventory repricing advisor is useful as a manual work queue, bu
 
 Current observed result:
 - API route returned 297 active Amazon SKU rows and 761 units.
-- 159 rows are currently Needs Data after the first missing-Keepa backfill batch.
+- 68 rows are currently Needs Data after additional missing-Keepa backfill batches.
 - Amazon FBA Inventory Planning report import inserted 297 rows and now provides Amazon-native age buckets for active FBA inventory.
 - latest planning report showed 735 available units and 273 units in 91+ day age buckets.
-- 153 additional missing Keepa snapshots were written after adding a missing-only sync mode.
-- 251 canonical ASINs still need Keepa snapshots, but the remaining backfill is token-refill limited.
+- 303 additional missing Keepa snapshots were written after adding a missing-only sync mode.
+- 101 canonical ASINs still need Keepa snapshots, but the remaining backfill is token-refill limited.
 - Informed `All_Fields_NextGen` report imported 969 listing snapshots and now provides repricer rule/price context where seller SKU matches.
 - the current Informed report did not include ASIN-shaped values, so matching is by seller SKU for this first slice.
 - InventoryLab/MBOP purchase dates are fallback age context only when Amazon planning data is missing.
