@@ -22,6 +22,7 @@ MBOP is the internal operations platform for Midnight Blue Enterprises, LLC.
 | Keepa catalog intelligence | Foundation implemented / small write verified |
 | Unified inventory state / reconciliation | First slice implemented |
 | Amazon FBA workflow | First slice implemented |
+| Aged Amazon Inventory Repricing Advisor | First slice implemented |
 | Legacy spreadsheet backfill | Recently used / repeatable script available |
 
 ---
@@ -248,6 +249,51 @@ Latest validation:
 
 Boundary:
 Keepa is catalog intelligence only. It must not write to purchases, purchase_items, receiving, FBA shipment workflow tables, or Amazon seller workflow tables.
+
+---
+
+## Aged Amazon Inventory Repricing Advisor
+
+Status: FIRST SLICE IMPLEMENTED
+
+Purpose:
+Identify active Amazon FBA inventory that has aged long enough to need manual repricing, liquidation, removal, or more data before the operator makes an Informed.co/Seller Central decision.
+
+Implemented:
+- `/api/amazon/repricing-advisor`
+- `/repricing`
+- shared navigation entry named Repricing
+- backend-owned recommendation tiers and thresholds
+- dense operational table with tier, ASIN/SKU, title, quantity, age, cost, capital, current/list price, Keepa Buy Box, Keepa 90-day average, sales-rank signal, listing issue, recommendation, and reason
+- filters for tier, age bucket, missing data, issue-only, and Keepa coverage
+
+Backend inputs:
+- latest Amazon FBA inventory snapshots
+- `amazon_skus`
+- latest Amazon listing snapshots/issues
+- InventoryLab active inventory backfill
+- `inventory_positions`
+- latest Keepa product snapshots
+
+Current recommendation rules:
+- Healthy: under 60 days old with required data and no major issue
+- Watch: 60-89 days old
+- Reprice: 90-179 days old
+- Liquidate: 180+ days old
+- Remove / eBay: unsellable quantity, Amazon listing issue, or non-buyable listing status
+- Needs Data: missing ASIN, cost basis, age/date context, pricing context, or Keepa snapshot
+
+Latest validation:
+- Next.js production build passed
+- API route returned 297 active Amazon SKU rows and 761 units
+- estimated capital tied up: $13,597.34
+- aged capital over 90 days: $7,903.52
+- aged capital over 180 days: $3,038.68
+- tier counts: 57 Remove / eBay, 2 Liquidate, 2 Reprice, 236 Needs Data
+- `/repricing` rendered successfully with HTTP 200
+
+Boundary:
+This is not an automated repricer. It does not write prices to Amazon, does not call Amazon write endpoints, does not modify Informed.co, and does not write to purchases, purchase_items, receiving, or FBA shipment workflow tables.
 
 ---
 

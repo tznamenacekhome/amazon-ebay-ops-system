@@ -1,0 +1,386 @@
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
+import { RefreshCw } from "lucide-react";
+
+type RecommendationTier =
+  | "Healthy"
+  | "Watch"
+  | "Reprice"
+  | "Liquidate"
+  | "Remove / eBay"
+  | "Needs Data";
+
+type AdvisorRow = {
+  asin: string | null;
+  seller_sku: string;
+  title: string;
+  condition: string | null;
+  fba_sellable_quantity: number;
+  inbound_quantity: number;
+  reserved_quantity: number;
+  unsellable_quantity: number;
+  total_quantity: number;
+  listing_status: string | null;
+  listing_issue_status: string;
+  listing_issue_count: number;
+  cost_basis: number | null;
+  cost_source: string | null;
+  oldest_known_purchase_date: string | null;
+  inventory_age_days: number | null;
+  current_list_price: number | null;
+  keepa_buy_box_price: number | null;
+  keepa_buy_box_avg30: number | null;
+  keepa_buy_box_avg90: number | null;
+  keepa_sales_rank_current: number | null;
+  keepa_sales_rank_avg90: number | null;
+  keepa_sales_rank_drops30: number | null;
+  keepa_sales_rank_drops90: number | null;
+  offer_count: number | null;
+  review_count: number | null;
+  rating: number | null;
+  keepa_captured_at: string | null;
+  has_keepa_data: boolean;
+  estimated_capital_tied_up: number | null;
+  recommendation_tier: RecommendationTier;
+  recommended_manual_action: string;
+  reason: string;
+};
+
+type AdvisorData = {
+  generated_at: string;
+  summary: {
+    total_rows: number;
+    total_units: number;
+    total_estimated_capital_tied_up: number;
+    aged_capital_over_90_days: number;
+    aged_capital_over_180_days: number;
+    rows_needing_data: number;
+    unsellable_or_suppressed_rows: number;
+    by_tier: Record<RecommendationTier, number>;
+  };
+  rows: AdvisorRow[];
+};
+
+const TIERS: Array<"All" | RecommendationTier> = [
+  "All",
+  "Remove / eBay",
+  "Liquidate",
+  "Reprice",
+  "Needs Data",
+  "Watch",
+  "Healthy",
+];
+
+const AGE_BUCKETS = ["All", "0-59", "60-89", "90-179", "180+", "Missing"] as const;
+
+export default function RepricingPage() {
+  const [data, setData] = useState<AdvisorData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [tier, setTier] = useState<(typeof TIERS)[number]>("All");
+  const [ageBucket, setAgeBucket] = useState<(typeof AGE_BUCKETS)[number]>("All");
+  const [missingOnly, setMissingOnly] = useState(false);
+  const [issueOnly, setIssueOnly] = useState(false);
+  const [keepaFilter, setKeepaFilter] = useState<"all" | "has" | "missing">("all");
+
+  useEffect(() => {
+    loadAdvisor();
+  }, []);
+
+  async function loadAdvisor() {
+    setLoading(true);
+    setError(null);
+
+    try {
+      const response = await fetch("/api/amazon/repricing-advisor", {
+        cache: "no-store",
+      });
+      if (!response.ok) {
+        throw new Error(`Failed to load repricing advisor: ${response.status}`);
+      }
+      setData(await response.json());
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to load repricing advisor.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  const rows = useMemo(() => {
+    return (data?.rows ?? []).filter((row) => {
+      if (tier !== "All" && row.recommendation_tier !== tier) return false;
+      if (!inAgeBucket(row.inventory_age_days, ageBucket)) return false;
+      if (missingOnly && row.recommendation_tier !== "Needs Data") return false;
+      if (issueOnly && row.unsellable_quantity <= 0 && row.listing_issue_count <= 0) {
+        return false;
+      }
+      if (keepaFilter === "has" && !row.has_keepa_data) return false;
+      if (keepaFilter === "missing" && row.has_keepa_data) return false;
+      return true;
+    });
+  }, [ageBucket, data, issueOnly, keepaFilter, missingOnly, tier]);
+
+  return (
+    <main className="min-h-screen bg-slate-100 p-4 text-slate-900">
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight">Aged Amazon Inventory</h1>
+          <p className="text-sm text-slate-600">
+            Manual repricing advisor for active Amazon FBA inventory
+          </p>
+        </div>
+        <button
+          onClick={loadAdvisor}
+          className="inline-flex items-center gap-2 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-medium shadow-sm hover:bg-slate-50"
+          type="button"
+        >
+          <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+          Refresh
+        </button>
+      </div>
+
+      {error ? (
+        <div className="mb-4 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+          {error}
+        </div>
+      ) : null}
+
+      <section className="mb-4 grid gap-3 xl:grid-cols-6">
+        <Metric label="Rows" value={formatNumber(data?.summary.total_rows)} loading={loading} />
+        <Metric label="Units" value={formatNumber(data?.summary.total_units)} loading={loading} />
+        <Metric
+          label="Capital"
+          value={formatMoney(data?.summary.total_estimated_capital_tied_up)}
+          loading={loading}
+        />
+        <Metric
+          label="90+ day capital"
+          value={formatMoney(data?.summary.aged_capital_over_90_days)}
+          loading={loading}
+        />
+        <Metric
+          label="180+ day capital"
+          value={formatMoney(data?.summary.aged_capital_over_180_days)}
+          loading={loading}
+        />
+        <Metric
+          label="Needs data"
+          value={formatNumber(data?.summary.rows_needing_data)}
+          loading={loading}
+        />
+      </section>
+
+      <section className="mb-4 rounded-md border border-slate-200 bg-white p-3 shadow-sm">
+        <div className="grid gap-3 lg:grid-cols-[180px_160px_repeat(4,max-content)]">
+          <label className="text-sm">
+            <span className="mb-1 block text-xs font-medium uppercase text-slate-500">Tier</span>
+            <select
+              value={tier}
+              onChange={(event) => setTier(event.target.value as typeof tier)}
+              className="w-full rounded-md border border-slate-300 bg-white px-2 py-2"
+            >
+              {TIERS.map((option) => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="text-sm">
+            <span className="mb-1 block text-xs font-medium uppercase text-slate-500">Age</span>
+            <select
+              value={ageBucket}
+              onChange={(event) => setAgeBucket(event.target.value as typeof ageBucket)}
+              className="w-full rounded-md border border-slate-300 bg-white px-2 py-2"
+            >
+              {AGE_BUCKETS.map((option) => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
+            </select>
+          </label>
+          <Toggle checked={missingOnly} onChange={setMissingOnly} label="Missing data" />
+          <Toggle checked={issueOnly} onChange={setIssueOnly} label="Issue only" />
+          <label className="text-sm">
+            <span className="mb-1 block text-xs font-medium uppercase text-slate-500">Keepa</span>
+            <select
+              value={keepaFilter}
+              onChange={(event) => setKeepaFilter(event.target.value as typeof keepaFilter)}
+              className="w-36 rounded-md border border-slate-300 bg-white px-2 py-2"
+            >
+              <option value="all">All</option>
+              <option value="has">Has data</option>
+              <option value="missing">No data</option>
+            </select>
+          </label>
+          <div className="self-end text-sm text-slate-600">
+            Showing {formatNumber(rows.length)} of {formatNumber(data?.rows.length ?? 0)}
+          </div>
+        </div>
+      </section>
+
+      <section className="overflow-hidden rounded-md border border-slate-200 bg-white shadow-sm">
+        <div className="overflow-x-auto">
+          <table className="min-w-[1600px] w-full text-left text-sm">
+            <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
+              <tr>
+                <th className="px-3 py-2">Tier</th>
+                <th className="px-3 py-2">ASIN / SKU</th>
+                <th className="px-3 py-2">Title</th>
+                <th className="px-3 py-2 text-right">Qty</th>
+                <th className="px-3 py-2 text-right">Age</th>
+                <th className="px-3 py-2 text-right">Cost</th>
+                <th className="px-3 py-2 text-right">Capital</th>
+                <th className="px-3 py-2 text-right">Current/List</th>
+                <th className="px-3 py-2 text-right">Keepa Buy Box</th>
+                <th className="px-3 py-2 text-right">Keepa 90 Avg</th>
+                <th className="px-3 py-2">Sales Rank</th>
+                <th className="px-3 py-2">Listing Issue</th>
+                <th className="px-3 py-2">Recommendation</th>
+                <th className="px-3 py-2">Reason</th>
+              </tr>
+            </thead>
+            <tbody>
+              {loading ? (
+                <tr>
+                  <td className="px-3 py-8 text-center text-slate-500" colSpan={14}>
+                    Loading repricing advisor...
+                  </td>
+                </tr>
+              ) : rows.length ? (
+                rows.map((row) => (
+                  <tr key={`${row.seller_sku}-${row.asin}`} className="border-t border-slate-100">
+                    <td className="px-3 py-2">
+                      <span className={`rounded px-2 py-1 text-xs font-semibold ${tierClass(row.recommendation_tier)}`}>
+                        {row.recommendation_tier}
+                      </span>
+                    </td>
+                    <td className="px-3 py-2">
+                      <div className="font-medium text-blue-700">{row.asin ?? "--"}</div>
+                      <div className="text-xs text-slate-500">{row.seller_sku}</div>
+                    </td>
+                    <td className="max-w-[360px] px-3 py-2">
+                      <div className="truncate font-medium">{row.title}</div>
+                      <div className="text-xs text-slate-500">{row.condition ?? "--"}</div>
+                    </td>
+                    <td className="px-3 py-2 text-right">
+                      <div>{formatNumber(row.total_quantity)}</div>
+                      <div className="text-xs text-slate-500">
+                        FBA {formatNumber(row.fba_sellable_quantity)} / In {formatNumber(row.inbound_quantity)}
+                      </div>
+                    </td>
+                    <td className="px-3 py-2 text-right">
+                      {row.inventory_age_days === null ? "--" : `${row.inventory_age_days}d`}
+                    </td>
+                    <td className="px-3 py-2 text-right">
+                      <div>{formatMoney(row.cost_basis)}</div>
+                      <div className="text-xs text-slate-500">{row.cost_source ?? "--"}</div>
+                    </td>
+                    <td className="px-3 py-2 text-right">{formatMoney(row.estimated_capital_tied_up)}</td>
+                    <td className="px-3 py-2 text-right">{formatMoney(row.current_list_price)}</td>
+                    <td className="px-3 py-2 text-right">{formatMoney(row.keepa_buy_box_price)}</td>
+                    <td className="px-3 py-2 text-right">{formatMoney(row.keepa_buy_box_avg90)}</td>
+                    <td className="px-3 py-2">
+                      <div>{salesRankSignal(row)}</div>
+                      <div className="text-xs text-slate-500">
+                        Offers {formatNumber(row.offer_count)}
+                      </div>
+                    </td>
+                    <td className="px-3 py-2">
+                      <div>{row.listing_issue_status}</div>
+                      <div className="text-xs text-slate-500">{row.listing_status ?? "--"}</div>
+                    </td>
+                    <td className="max-w-[260px] px-3 py-2">{row.recommended_manual_action}</td>
+                    <td className="max-w-[360px] px-3 py-2 text-slate-600">{row.reason}</td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td className="px-3 py-8 text-center text-slate-500" colSpan={14}>
+                    No rows match the current filters.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+  );
+}
+
+function Metric({ label, value, loading }: { label: string; value: string; loading: boolean }) {
+  return (
+    <div className="rounded-md border border-slate-200 bg-white p-3 shadow-sm">
+      <div className="text-xs font-medium uppercase text-slate-500">{label}</div>
+      <div className="mt-1 text-xl font-semibold">{loading ? "--" : value}</div>
+    </div>
+  );
+}
+
+function Toggle({
+  checked,
+  onChange,
+  label,
+}: {
+  checked: boolean;
+  onChange: (checked: boolean) => void;
+  label: string;
+}) {
+  return (
+    <label className="flex items-end gap-2 pb-2 text-sm">
+      <input
+        type="checkbox"
+        checked={checked}
+        onChange={(event) => onChange(event.target.checked)}
+        className="h-4 w-4 rounded border-slate-300"
+      />
+      {label}
+    </label>
+  );
+}
+
+function inAgeBucket(age: number | null, bucket: (typeof AGE_BUCKETS)[number]) {
+  if (bucket === "All") return true;
+  if (bucket === "Missing") return age === null;
+  if (age === null) return false;
+  if (bucket === "0-59") return age <= 59;
+  if (bucket === "60-89") return age >= 60 && age <= 89;
+  if (bucket === "90-179") return age >= 90 && age <= 179;
+  return age >= 180;
+}
+
+function salesRankSignal(row: AdvisorRow) {
+  const drops = row.keepa_sales_rank_drops30 ?? row.keepa_sales_rank_drops90;
+  const window = row.keepa_sales_rank_drops30 !== null ? "30d" : "90d";
+  const rank = row.keepa_sales_rank_current ?? row.keepa_sales_rank_avg90;
+  if (drops !== null && drops !== undefined) return `${formatNumber(drops)} drops/${window}`;
+  if (rank !== null && rank !== undefined) return `Rank ${formatNumber(rank)}`;
+  return "--";
+}
+
+function tierClass(tier: RecommendationTier) {
+  if (tier === "Remove / eBay") return "bg-red-100 text-red-800";
+  if (tier === "Liquidate") return "bg-orange-100 text-orange-800";
+  if (tier === "Reprice") return "bg-amber-100 text-amber-800";
+  if (tier === "Needs Data") return "bg-slate-200 text-slate-800";
+  if (tier === "Watch") return "bg-blue-100 text-blue-800";
+  return "bg-emerald-100 text-emerald-800";
+}
+
+function formatMoney(value?: number | null) {
+  if (value === null || value === undefined || !Number.isFinite(Number(value))) return "--";
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(Number(value));
+}
+
+function formatNumber(value?: number | null) {
+  if (value === null || value === undefined || !Number.isFinite(Number(value))) return "--";
+  return new Intl.NumberFormat("en-US").format(Number(value));
+}

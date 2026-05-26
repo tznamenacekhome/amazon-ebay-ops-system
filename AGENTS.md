@@ -45,7 +45,7 @@ Dashboard UI lives under:
 - web/app/api/dashboard/
 
 Current pattern:
-- AppShell provides the shared left-side navigation for Dashboard, Purchases, Receiving, and Amazon FBA
+- AppShell provides the shared left-side navigation for Dashboard, Purchases, Receiving, Amazon FBA, and Repricing
 - page.tsx composes the workspace and owns UI-local query/workflow state
 - usePurchases owns purchase loading, save status, errors, API mutations, and currently disabled query-aware cache support
 - /api/purchases owns purchase list filtering, sorting, pagination, and summary counts
@@ -163,6 +163,11 @@ Current Amazon FBA entry points:
 - web/app/AppShell.tsx
 - web/app/fba/page.tsx
 - web/app/api/fba-shipments/route.ts
+
+Current Aged Amazon Inventory repricing advisor entry points:
+- web/app/AppShell.tsx
+- web/app/repricing/page.tsx
+- web/app/api/amazon/repricing-advisor/route.ts
 
 Amazon SP-API integrations:
 - must remain read-only until a specific write workflow is designed

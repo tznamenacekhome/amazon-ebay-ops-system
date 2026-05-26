@@ -118,6 +118,34 @@ Recommended next mitigation:
 
 ---
 
+## Repricing Advisor Data Coverage Gaps
+
+Status: ACTIVE / EXPECTED FIRST-PASS GAPS
+
+Problem:
+The aged Amazon inventory repricing advisor is useful as a manual work queue, but many active Amazon rows still lack enough Keepa or age context for confident pricing recommendations.
+
+Current observed result:
+- API route returned 297 active Amazon SKU rows and 761 units.
+- 236 rows are currently Needs Data.
+- only 5 Keepa product snapshots have been written so far, because the broad Keepa sync was intentionally not run against the 409-ASIN canonical set with limited token balance.
+- some InventoryLab historical rows use placeholder or missing purchase dates; placeholder dates earlier than 2000 are now treated as missing age context.
+
+Impact:
+Rows with missing cost, age, pricing, or Keepa context cannot safely produce liquidation or repricing-floor recommendations.
+
+Current mitigation:
+- `/api/amazon/repricing-advisor` marks incomplete rows as Needs Data.
+- `/repricing` includes filters for Missing Data and No Keepa Data.
+- Keepa sync has `--plan-only`, dry-run default, and staged write support.
+
+Recommended next mitigation:
+- run staged Keepa sync batches for active Amazon inventory as tokens refill.
+- add Amazon Product Pricing sync if current/list prices remain sparse.
+- review InventoryLab rows with missing or placeholder purchase dates if accurate age is needed.
+
+---
+
 ## Legacy Spreadsheet Import Missing Order Dates
 
 Status: ACTIVE

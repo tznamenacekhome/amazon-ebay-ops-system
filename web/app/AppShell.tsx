@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BarChart3, PackageCheck, Send, ShoppingCart } from "lucide-react";
+import { BarChart3, PackageCheck, Send, ShoppingCart, TrendingDown } from "lucide-react";
 
 const navItems = [
   {
@@ -24,6 +24,11 @@ const navItems = [
     href: "/fba",
     label: "Amazon FBA",
     icon: Send,
+  },
+  {
+    href: "/repricing",
+    label: "Repricing",
+    icon: TrendingDown,
   },
 ];
 
