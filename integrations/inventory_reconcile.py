@@ -57,6 +57,11 @@ def main() -> int:
             "vw_latest_amazon_fba_inventory_snapshot",
             "*",
         )
+        amazon_listing_snapshots = fetch_all(
+            supabase,
+            "vw_latest_amazon_listing_snapshot",
+            "*",
+        )
         amazon_current_asins = current_amazon_asins(amazon_snapshots)
 
         mbop_positions = build_mbop_positions(
@@ -70,7 +75,11 @@ def main() -> int:
             amazon_skus,
             inventorylab_backfill,
         )
-        reconciliation = reconcile_amazon_inventory(mbop_positions, amazon_positions)
+        reconciliation = reconcile_amazon_inventory(
+            mbop_positions,
+            amazon_positions,
+            amazon_listing_snapshots,
+        )
 
         LOGGER.info("MBOP positions projected: %s", len(mbop_positions))
         LOGGER.info("Amazon positions projected: %s", len(amazon_positions))
@@ -507,6 +516,7 @@ def add_amazon_position(
 def reconcile_amazon_inventory(
     mbop_positions: list[dict[str, Any]],
     amazon_positions: list[dict[str, Any]],
+    amazon_listing_snapshots: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     mbop_by_asin: dict[str, int] = defaultdict(int)
     amazon_by_asin: dict[str, dict[str, int]] = defaultdict(lambda: defaultdict(int))
@@ -623,6 +633,13 @@ def reconcile_amazon_inventory(
                 )
             )
 
+    listing_issue_items = amazon_listing_issue_items(
+        amazon_listing_snapshots or [],
+        amazon_by_asin,
+        sample_external,
+    )
+    items.extend(listing_issue_items)
+
     summary = {
         "reconciliation_type": "amazon_fba_inventory",
         "external_source": "amazon_spapi",
@@ -630,7 +647,8 @@ def reconcile_amazon_inventory(
         "started_at": utc_now_iso(),
         "completed_at": utc_now_iso(),
         "internal_positions_scanned": len(mbop_positions),
-        "external_rows_scanned": len(amazon_positions),
+        "external_rows_scanned": len(amazon_positions)
+        + len(amazon_listing_snapshots or []),
         "matched_count": sum(
             1
             for asin in all_asins
@@ -654,9 +672,68 @@ def reconcile_amazon_inventory(
         "raw_summary_json": {
             "mbop_asins": len(mbop_by_asin),
             "amazon_asins": len(amazon_by_asin),
+            "amazon_listing_rows": len(amazon_listing_snapshots or []),
+            "amazon_listing_issue_findings": len(listing_issue_items),
         },
     }
     return {"summary": summary, "items": items}
+
+
+def amazon_listing_issue_items(
+    listing_snapshots: list[dict[str, Any]],
+    amazon_by_asin: dict[str, dict[str, int]],
+    sample_external: dict[str, dict[str, Any]],
+) -> list[dict[str, Any]]:
+    items: list[dict[str, Any]] = []
+
+    for listing in listing_snapshots:
+        issue_count = to_int(listing.get("issue_count"), default=0)
+        listing_status = clean_text(listing.get("listing_status"))
+        if issue_count <= 0 and listing_status_is_buyable(listing_status):
+            continue
+
+        asin = clean_asin(listing.get("asin"))
+        amazon = amazon_by_asin.get(asin or "", {})
+        external = {
+            "amazon_sku_id": listing.get("amazon_sku_id"),
+            "source_system": "amazon_spapi",
+            "source_table": "amazon_listing_snapshots",
+            "external_reference_type": "seller_sku",
+            "external_reference_id": clean_text(listing.get("seller_sku")),
+            "asin": asin,
+            "seller_sku": clean_text(listing.get("seller_sku")),
+            "title": clean_text(listing.get("product_name")),
+            "inventory_state": "amazon_fba_stranded",
+            "physical_location": "amazon_fba",
+            "marketplace_intent": "amazon_fba",
+            "listing_channel": "amazon",
+            "operational_status": "needs_review",
+            "condition_disposition": "restricted" if issue_count > 0 else "unknown",
+            "listing_status": listing_status,
+            "issue_count": issue_count,
+            "issue_severity": clean_text(listing.get("issue_severity")),
+            "issues_json": listing.get("issues_json"),
+        }
+        sample = sample_external.get(asin or "")
+        severity = "critical" if clean_text(listing.get("issue_severity")) == "ERROR" else "warning"
+
+        items.append(
+            reconciliation_item(
+                "amazon_stranded_or_suppressed",
+                severity,
+                None,
+                {**(sample or {}), **external},
+                amazon=amazon,
+            )
+        )
+
+    return items
+
+
+def listing_status_is_buyable(listing_status: str | None) -> bool:
+    if not listing_status:
+        return False
+    return "BUYABLE" in {part.strip().upper() for part in listing_status.split(",")}
 
 
 def reconciliation_item(

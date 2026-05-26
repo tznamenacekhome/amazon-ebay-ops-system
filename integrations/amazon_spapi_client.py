@@ -79,7 +79,12 @@ class AmazonSPAPIConfig:
             endpoint=env("AMAZON_SP_API_ENDPOINT", endpoint).rstrip("/"),
             aws_region=env("AMAZON_SP_API_AWS_REGION", aws_region),
             app_id=env("AMAZON_SP_API_APP_ID", "MBOP"),
-            seller_id=env("AMAZON_SP_API_SELLER_ID") or None,
+            seller_id=(
+                env("AMAZON_SP_API_SELLER_ID")
+                or env("AMAZON_SELLER_ID")
+                or env("AMAZON_MERCHANT_ID")
+                or None
+            ),
             aws_access_key_id=env(
                 "AMAZON_SP_API_AWS_ACCESS_KEY_ID",
                 env("AWS_ACCESS_KEY_ID"),

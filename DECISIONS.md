@@ -476,10 +476,11 @@ Implementation:
 - AWS SigV4 signing is optional legacy compatibility and is used only when `AMAZON_SP_API_USE_SIGV4=true`.
 - `integrations/amazon_test_connection.py` smoke-tests LWA auth and a safe FBA inventory summary read.
 - `integrations/amazon_sync_fba_inventory.py` paginates FBA inventory summaries, upserts `amazon_skus`, and inserts point-in-time `amazon_fba_inventory_snapshots`.
+- `integrations/amazon_sync_listing_status.py` reads Listings Items status/issues for Amazon SKUs and inserts point-in-time `amazon_listing_snapshots`.
 - the client allow-list is limited to FBA inventory, Listings Items, and Product Pricing read paths.
 - no restricted-data-token flow is implemented.
 - no Amazon Orders API, buyer, address, or other PII-oriented endpoint is called.
-- Amazon seller/FBA data belongs in `amazon_skus` and `amazon_fba_inventory_snapshots`.
+- Amazon seller/FBA/listing data belongs in `amazon_skus`, `amazon_fba_inventory_snapshots`, and `amazon_listing_snapshots`.
 
 Rule:
 Do not write Amazon seller sales/orders into `purchases` or `purchase_items`. Purchase history remains supplier-purchase data; Amazon seller inventory/listing/pricing data gets its own tables and later API/UI surfaces.
@@ -500,6 +501,7 @@ Implementation:
 - `inventory_reconciliation_events` records reconciliation runs.
 - `inventory_reconciliation_event_items` records item-level findings.
 - `integrations/inventory_reconcile.py` projects current positions and compares MBOP Amazon-intended inventory to latest Amazon FBA snapshots.
+- latest Amazon listing snapshots feed stranded/suppressed-style reconciliation findings without adding duplicate inventory quantities.
 - dashboard Inventory Visibility reads API-provided inventory metrics and findings.
 
 State model:
@@ -515,7 +517,7 @@ Ownership boundary:
 - purchases/purchase_items remain authoritative for acquired inventory.
 - receiving owns receiving verification and marketplace assignment.
 - Amazon FBA workflow owns shipment prep/listed transitions.
-- Amazon SP-API tables own external Amazon inventory snapshots.
+- Amazon SP-API tables own external Amazon inventory and listing snapshots.
 - inventory_positions is derived from those sources and can be rebuilt.
 
 Rule:

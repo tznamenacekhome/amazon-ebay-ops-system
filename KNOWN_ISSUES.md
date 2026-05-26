@@ -95,7 +95,8 @@ The first unified inventory reconciliation pass detects many open findings while
 Current observed result:
 - latest run projected 2,923 MBOP workflow positions
 - latest run projected 311 Amazon FBA inventory positions
-- latest run created 322 open reconciliation findings after defining canonical inventory as current Amazon FBA plus pre-Listed MBOP purchase inventory
+- latest run created 377 open reconciliation findings after adding Amazon listing-status issue visibility
+- 55 open findings are Amazon stranded/suppressed-style listing findings from read-only Listings Items snapshots
 - 310 Amazon positions now carry InventoryLab legacy cost/date context after the active-inventory backfill
 
 Impact:
@@ -106,11 +107,12 @@ Current mitigation:
 - old open findings are deferred when a new reconciliation run is created
 - dashboard Inventory Visibility shows open finding counts and top rows
 - reconciliation is ASIN-level only for the first slice
+- Amazon listing status and issue data is stored separately in `amazon_listing_snapshots` and does not write to purchases or purchase_items
 
 Recommended next mitigation:
 - use ASIN as the primary MBOP product identity for Amazon inventory reconciliation.
 - keep MSKU/Seller SKU as Amazon traceability, not as a required MBOP inventory identity layer.
-- incorporate Amazon listing/suppression/stranded signals once SP-API listing reads are expanded.
+- review Amazon listing/suppression/stranded findings and decide which should become operator workflows.
 - add future eBay inventory positions before attempting Amazon-to-eBay transfer reconciliation.
 - keep the reconciliation layer read/project first, then route corrections through the owning workflow.
 

@@ -170,19 +170,23 @@ Recent ASIN validation:
 
 ## Amazon SP-API Foundation
 
-Status: READ-ONLY INVENTORY SYNC WORKING
+Status: READ-ONLY INVENTORY AND LISTING SYNC WORKING
 
 Implemented:
 - `integrations/amazon_spapi_client.py`
 - `integrations/amazon_test_connection.py`
 - `integrations/amazon_sync_fba_inventory.py`
+- `integrations/amazon_sync_listing_status.py`
 - Login with Amazon refresh-token exchange
 - LWA-only SP-API request support for the post-Oct-2023 auth model
 - optional legacy AWS SigV4 signing only when `AMAZON_SP_API_USE_SIGV4=true`
 - read-only allow-list for FBA inventory, Listings Items, and Product Pricing paths
 - paginated FBA inventory summary sync
+- read-only Listings Items status/issue sync for active Amazon inventory
 - Amazon SKU upsert into `amazon_skus`
 - point-in-time inventory snapshot inserts into `amazon_fba_inventory_snapshots`
+- point-in-time listing snapshot inserts into `amazon_listing_snapshots`
+- latest listing snapshot view in `vw_latest_amazon_listing_snapshot`
 - safe logging that avoids printing secrets or restricted data
 - fail-safe behavior for rejected auth or rejected resource calls
 - no restricted-data-token flow
@@ -190,8 +194,10 @@ Implemented:
 
 Schema:
 - `sql/2026-05-25_add_amazon_spapi_foundation.sql`
+- `sql/2026-05-25_add_amazon_listing_snapshots.sql`
 - `amazon_skus`
 - `amazon_fba_inventory_snapshots`
+- `amazon_listing_snapshots`
 
 Current validation:
 - local syntax checks pass
@@ -200,6 +206,8 @@ Current validation:
 - dry run fetched 50 summaries from the first page and normalized 50 SKU/snapshot rows
 - limited write upserted 50 SKU rows and inserted 50 snapshot rows
 - full sync fetched 6,292 FBA inventory summaries, upserted 6,292 SKU rows, and inserted 6,292 inventory snapshot rows
+- active listing-status sync selected 297 current Amazon SKUs, inserted 297 listing snapshots, updated 297 Amazon SKU rows, and had 0 fetch failures
+- latest active listing snapshot set contains 49 rows with Amazon listing issues
 
 Boundary:
 Amazon seller/FBA data must stay in Amazon-specific tables and must not write to `purchases` or `purchase_items`.
@@ -226,6 +234,7 @@ Implemented:
 - `inventory_reconciliation_event_items`
 - `vw_inventory_position_summary`
 - `vw_latest_amazon_fba_inventory_snapshot`
+- `vw_latest_amazon_listing_snapshot`
 - `vw_open_inventory_reconciliation_items`
 - `integrations/inventory_reconcile.py`
 - `sql/2026-05-25_add_inventorylab_legacy_active_inventory.sql`
@@ -237,16 +246,18 @@ Current behavior:
 - the reconciliation script rebuilds derived current inventory positions from purchases, purchase_items, FBA shipment rows, and latest Amazon FBA snapshots
 - state is modeled across separate dimensions: inventory state, physical location, marketplace intent, listing channel, operational status, and condition/disposition
 - Amazon FBA snapshot inventory is projected into Amazon-specific inventory positions
+- Amazon listing-status snapshots are consumed as reconciliation findings only, not as additional inventory units
 - InventoryLab historical active-inventory backfill can provide legacy cost/date context for current Amazon FBA inventory
 - canonical current inventory is defined as current Amazon FBA inventory plus MBOP purchase inventory that has not yet reached the Listed workflow state
 - Amazon-bound purchase inventory with `current_status = listed` is treated as historical/sold-through in the derived purchase projection; current Amazon FBA inventory is represented by Amazon SP-API snapshot positions instead
-- reconciliation currently compares MBOP Amazon-intended inventory to latest Amazon FBA inventory at ASIN level
+- reconciliation currently compares MBOP Amazon-intended inventory to latest Amazon FBA inventory at ASIN level and surfaces Amazon listing issue/suppression signals
 - old open reconciliation findings are deferred when a new reconciliation run writes current findings
 
 Latest validation:
 - InventoryLab active inventory import read 951 rows, skipped 653 inactive rows, matched 298 active rows by MSKU, found 0 ambiguous rows, and upserted 298 legacy backfill records
 - inventory reconciliation loaded 298 InventoryLab cost/date overlay rows
-- latest write run projected 2,923 MBOP positions, 311 Amazon positions, and 322 open findings after defining canonical inventory as Amazon FBA plus pre-Listed MBOP purchase inventory
+- latest write run projected 2,923 MBOP positions, 311 Amazon positions, and 377 open findings after adding Amazon listing-status issue findings
+- latest reconciliation includes 55 Amazon stranded/suppressed listing findings from the read-only Listings Items snapshots
 - 310 Amazon inventory positions currently carry InventoryLab legacy cost/date context
 - Next.js production build passed after dashboard API/UI updates
 
