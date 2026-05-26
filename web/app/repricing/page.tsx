@@ -47,6 +47,17 @@ type AdvisorRow = {
   planning_alert: string | null;
   sales_shipped_last_30_days: number | null;
   sales_shipped_last_90_days: number | null;
+  informed_rule_name: string | null;
+  informed_current_price: number | null;
+  informed_min_price: number | null;
+  informed_max_price: number | null;
+  informed_buy_box_price: number | null;
+  informed_buy_box_status: string | null;
+  informed_repricing_enabled: boolean | null;
+  informed_missing_data: boolean;
+  informed_price_gap_to_buy_box_pct: number | null;
+  informed_min_price_gap_to_buy_box_pct: number | null;
+  informed_repricing_note: string;
   current_list_price: number | null;
   keepa_buy_box_price: number | null;
   keepa_buy_box_avg30: number | null;
@@ -250,7 +261,7 @@ export default function RepricingPage() {
 
       <section className="overflow-hidden rounded-md border border-slate-200 bg-white shadow-sm">
         <div className="overflow-x-auto">
-          <table className="min-w-[1600px] w-full text-left text-sm">
+          <table className="min-w-[2000px] w-full text-left text-sm">
             <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
               <tr>
                 <th className="px-3 py-2">Tier</th>
@@ -263,6 +274,12 @@ export default function RepricingPage() {
                 <th className="px-3 py-2 text-right">Current/List</th>
                 <th className="px-3 py-2 text-right">Keepa Buy Box</th>
                 <th className="px-3 py-2 text-right">Keepa 90 Avg</th>
+                <th className="px-3 py-2">Informed Rule</th>
+                <th className="px-3 py-2 text-right">Informed Min</th>
+                <th className="px-3 py-2 text-right">Informed Max</th>
+                <th className="px-3 py-2 text-right">Informed Current</th>
+                <th className="px-3 py-2">Buy Box Status</th>
+                <th className="px-3 py-2">Informed Note</th>
                 <th className="px-3 py-2">Sales Rank</th>
                 <th className="px-3 py-2">Listing Issue</th>
                 <th className="px-3 py-2">Recommendation</th>
@@ -272,7 +289,7 @@ export default function RepricingPage() {
             <tbody>
               {loading ? (
                 <tr>
-                  <td className="px-3 py-8 text-center text-slate-500" colSpan={14}>
+                  <td className="px-3 py-8 text-center text-slate-500" colSpan={20}>
                     Loading repricing advisor...
                   </td>
                 </tr>
@@ -311,6 +328,38 @@ export default function RepricingPage() {
                     <td className="px-3 py-2 text-right">{formatMoney(row.keepa_buy_box_price)}</td>
                     <td className="px-3 py-2 text-right">{formatMoney(row.keepa_buy_box_avg90)}</td>
                     <td className="px-3 py-2">
+                      <div>{row.informed_rule_name ?? "--"}</div>
+                      <div className="text-xs text-slate-500">
+                        {row.informed_repricing_enabled === null
+                          ? "--"
+                          : row.informed_repricing_enabled
+                            ? "enabled"
+                            : "disabled"}
+                      </div>
+                    </td>
+                    <td className="px-3 py-2 text-right">
+                      <div>{formatMoney(row.informed_min_price)}</div>
+                      <div className="text-xs text-slate-500">
+                        {formatPct(row.informed_min_price_gap_to_buy_box_pct)}
+                      </div>
+                    </td>
+                    <td className="px-3 py-2 text-right">{formatMoney(row.informed_max_price)}</td>
+                    <td className="px-3 py-2 text-right">
+                      <div>{formatMoney(row.informed_current_price)}</div>
+                      <div className="text-xs text-slate-500">
+                        {formatPct(row.informed_price_gap_to_buy_box_pct)}
+                      </div>
+                    </td>
+                    <td className="px-3 py-2">
+                      <div>{row.informed_buy_box_status ?? "--"}</div>
+                      <div className="text-xs text-slate-500">
+                        {formatMoney(row.informed_buy_box_price)}
+                      </div>
+                    </td>
+                    <td className="max-w-[300px] px-3 py-2 text-slate-600">
+                      {row.informed_repricing_note}
+                    </td>
+                    <td className="px-3 py-2">
                       <div>{salesRankSignal(row)}</div>
                       <div className="text-xs text-slate-500">
                         30/90d sales {formatNumber(row.sales_shipped_last_30_days)} /{" "}
@@ -327,7 +376,7 @@ export default function RepricingPage() {
                 ))
               ) : (
                 <tr>
-                  <td className="px-3 py-8 text-center text-slate-500" colSpan={14}>
+                  <td className="px-3 py-8 text-center text-slate-500" colSpan={20}>
                     No rows match the current filters.
                   </td>
                 </tr>
@@ -421,4 +470,10 @@ function formatMoney(value?: number | null) {
 function formatNumber(value?: number | null) {
   if (value === null || value === undefined || !Number.isFinite(Number(value))) return "--";
   return new Intl.NumberFormat("en-US").format(Number(value));
+}
+
+function formatPct(value?: number | null) {
+  if (value === null || value === undefined || !Number.isFinite(Number(value))) return "--";
+  const sign = value > 0 ? "+" : "";
+  return `${sign}${value.toFixed(1)}%`;
 }

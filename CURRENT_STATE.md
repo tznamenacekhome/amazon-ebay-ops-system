@@ -20,6 +20,7 @@ MBOP is the internal operations platform for Midnight Blue Enterprises, LLC.
 | Matching engine | Emerging subsystem |
 | Amazon SP-API foundation | Read-only inventory/listing sync working |
 | Keepa catalog intelligence | Foundation implemented / small write verified |
+| Informed Repricer intelligence | Read-only report snapshot import working |
 | Unified inventory state / reconciliation | First slice implemented |
 | Amazon FBA workflow | First slice implemented |
 | Aged Amazon Inventory Repricing Advisor | First slice implemented |
@@ -264,6 +265,46 @@ Keepa is catalog intelligence only. It must not write to purchases, purchase_ite
 
 ---
 
+## Informed Repricer Intelligence
+
+Status: READ-ONLY REPORT SNAPSHOT IMPORT WORKING
+
+Purpose:
+Use Informed Repricer report data to make the Aged Amazon Inventory Repricing Advisor more specific about manual repricer floor/rule review.
+
+Implemented:
+- `sql/2026-05-26_add_informed_repricing_snapshots.sql`
+- `integrations/informed_repricing_client.py`
+- `integrations/informed_sync_reports.py`
+- `informed_report_runs`
+- `informed_listing_snapshots`
+- `informed_rule_snapshots`
+- `vw_latest_informed_listing_snapshot`
+- `vw_latest_informed_rule_snapshot`
+
+Current behavior:
+- `INFORMED_REPRICER_API_KEY` is read from `.env`
+- the integration uses the read-only Informed Reports API only
+- plan-only mode lists recent report requests and prints known MBOP report-type guidance
+- report request/status/download flow is supported
+- signed report download URLs are redacted before storing run metadata
+- CSV/TSV/TXT and ZIP-contained report files are parsed defensively
+- raw report rows are preserved on snapshot rows
+- no Listings Management API feed/upload endpoint is called
+
+Latest validation:
+- official docs confirmed Reports API request/status/download behavior, that Reports API supersedes Export API, and that Listings Management API is the write/upload path
+- plan-only discovery returned 0 recent report requests and made no report request
+- `All_Fields_NextGen` dry run parsed 969 rows with 0 parse errors
+- write mode inserted 969 Informed listing snapshots
+- the Informed report provided SKU/MSKU values but no ASIN-shaped values, so advisor joins use seller SKU where ASIN is unavailable
+- repricing advisor API now returns Informed rule, current price, min/max price, Buy Box price/status, repricing-enabled flag, price-gap calculations, and an Informed note where snapshots are available
+
+Boundary:
+Informed is advisory repricer intelligence only. It must not modify Informed rules, min/max prices, managed status, Amazon prices, purchases, purchase_items, Amazon snapshots, Keepa snapshots, receiving rows, or FBA workflow rows.
+
+---
+
 ## Aged Amazon Inventory Repricing Advisor
 
 Status: FIRST SLICE IMPLEMENTED
@@ -287,6 +328,7 @@ Backend inputs:
 - InventoryLab active inventory backfill
 - `inventory_positions`
 - latest Keepa product snapshots
+- latest Informed Repricer listing snapshots
 
 Current recommendation rules:
 - Amazon FBA Inventory Planning age buckets are the preferred active-Amazon age source
@@ -296,13 +338,15 @@ Current recommendation rules:
 - Reprice: Amazon 91-180 day bucket, or fallback 90-179 days old
 - Liquidate: Amazon 181+ day bucket, or fallback 180+ days old
 - Remove / eBay: unsellable quantity, Amazon listing issue, or non-buyable listing status
-- Needs Data: missing ASIN, cost basis, age/date context, pricing context, or Keepa snapshot
+- Needs Data: missing ASIN, cost basis, age/date context, pricing context, Keepa snapshot, or Informed snapshot
+- Informed notes flag stale inventory where current price is above Buy Box, min price appears above Buy Box, repricing is disabled, or a rule assignment is missing
 
 Latest validation:
 - Next.js production build passed
 - Amazon inventory planning report dry run parsed 297 rows and 735 available units
 - Amazon inventory planning report write inserted 297 planning snapshot rows
 - API route returned 297 active Amazon SKU rows and 761 units with planning age buckets where available
+- Informed `All_Fields_NextGen` report imported 969 listing snapshot rows and joined to advisor rows by seller SKU
 - estimated capital tied up: $13,597.34
 - aged capital over 90 days: $5,265.19
 - aged capital over 180 days: $1,881.41

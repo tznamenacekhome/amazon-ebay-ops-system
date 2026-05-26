@@ -98,6 +98,26 @@ type InventoryPlanningRow = {
   captured_at: string | null;
 };
 
+type InformedListingRow = {
+  asin: string | null;
+  seller_sku: string | null;
+  marketplace: string | null;
+  fulfillment_channel: string | null;
+  repricing_enabled: boolean | null;
+  assigned_rule_name: string | null;
+  current_price: number | null;
+  min_price: number | null;
+  max_price: number | null;
+  buy_box_price: number | null;
+  buy_box_status: string | null;
+  buy_box_winner: boolean | null;
+  competition_offer_count: number | null;
+  quantity: number | null;
+  listing_status: string | null;
+  report_generated_at: string | null;
+  imported_at: string | null;
+};
+
 type InventoryLabRow = {
   seller_sku: string | null;
   asin: string | null;
@@ -173,6 +193,17 @@ type AdvisorRow = {
   planning_alert: string | null;
   sales_shipped_last_30_days: number | null;
   sales_shipped_last_90_days: number | null;
+  informed_rule_name: string | null;
+  informed_current_price: number | null;
+  informed_min_price: number | null;
+  informed_max_price: number | null;
+  informed_buy_box_price: number | null;
+  informed_buy_box_status: string | null;
+  informed_repricing_enabled: boolean | null;
+  informed_missing_data: boolean;
+  informed_price_gap_to_buy_box_pct: number | null;
+  informed_min_price_gap_to_buy_box_pct: number | null;
+  informed_repricing_note: string;
   current_list_price: number | null;
   keepa_buy_box_price: number | null;
   keepa_buy_box_avg30: number | null;
@@ -199,6 +230,7 @@ export async function GET() {
       skuRows,
       listingRows,
       planningRows,
+      informedRows,
       inventoryLabRows,
       keepaRows,
       positionRows,
@@ -229,6 +261,12 @@ export async function GET() {
             "sales_shipped_last_7_days,sales_shipped_last_30_days,sales_shipped_last_60_days," +
             "sales_shipped_last_90_days,alert,captured_at"
         ),
+        fetchAll<InformedListingRow>(
+          "vw_latest_informed_listing_snapshot",
+          "asin,seller_sku,marketplace,fulfillment_channel,repricing_enabled,assigned_rule_name," +
+            "current_price,min_price,max_price,buy_box_price,buy_box_status,buy_box_winner," +
+            "competition_offer_count,quantity,listing_status,report_generated_at,imported_at"
+        ),
         fetchAll<InventoryLabRow>(
           "inventorylab_active_inventory_backfill",
           "seller_sku,asin,title,active_cost_per_unit,active_supplier,active_date_purchased," +
@@ -254,6 +292,7 @@ export async function GET() {
       keyBySku(skuRows),
       keyBySku(listingRows),
       keyBySku(planningRows),
+      keyBySellerSku(informedRows),
       keyBySellerSku(inventoryLabRows),
       keyByAsin(keepaRows),
       aggregatePositions(positionRows)
@@ -307,6 +346,7 @@ function buildAdvisorRows(
   skuByKey: Map<string, AmazonSkuRow>,
   listingByKey: Map<string, ListingSnapshotRow>,
   planningByKey: Map<string, InventoryPlanningRow>,
+  informedBySku: Map<string, InformedListingRow>,
   inventoryLabBySku: Map<string, InventoryLabRow>,
   keepaByAsin: Map<string, KeepaRow>,
   positionBySku: Map<string, { unit_cost: number | null; oldest_date: string | null }>
@@ -321,6 +361,7 @@ function buildAdvisorRows(
       const sku = skuByKey.get(key);
       const listing = listingByKey.get(key);
       const planning = planningByKey.get(key);
+      const informed = informedBySku.get(sellerSku);
       const inventoryLab = inventoryLabBySku.get(sellerSku);
       const asin = normalizeAsin(
         inventory.asin ?? sku?.asin ?? listing?.asin ?? planning?.asin ?? inventoryLab?.asin
@@ -364,16 +405,26 @@ function buildAdvisorRows(
           ? "InventoryLab/MBOP fallback"
           : "Missing";
       const currentListPrice =
+        toOptionalNumber(informed?.current_price) ??
         toOptionalNumber(sku?.listing_price) ??
         toOptionalNumber(sku?.landed_price) ??
         toOptionalNumber(inventoryLab?.list_price) ??
         null;
       const keepaBuyBoxPrice = centsToDollars(keepa?.buy_box_price_current_cents);
+      const informedBuyBoxPrice = toOptionalNumber(informed?.buy_box_price);
       const listingStatus = cleanText(listing?.listing_status ?? sku?.listing_status);
       const listingIssueCount = toNumber(listing?.issue_count, 0);
       const listingIssueStatus = listingIssueSummary(listingStatus, listingIssueCount, listing);
       const capitalTiedUp =
         costBasis !== null ? roundMoney(costBasis * totalQuantity) : null;
+      const informedNote = informedRepricingNote({
+        informed,
+        tierAgeBucket: ageSignal?.bucket ?? null,
+        ageDays: inventoryAgeDays,
+        currentPrice: toOptionalNumber(informed?.current_price),
+        minPrice: toOptionalNumber(informed?.min_price),
+        buyBoxPrice: informedBuyBoxPrice ?? keepaBuyBoxPrice,
+      });
 
       const recommendation = recommend({
         asin,
@@ -382,6 +433,9 @@ function buildAdvisorRows(
         currentListPrice,
         keepa,
         keepaBuyBoxPrice,
+        informed,
+        informedBuyBoxPrice,
+        informedNote,
         amazonAgeBucket: ageSignal?.bucket ?? null,
         listingStatus,
         listingIssueCount,
@@ -427,6 +481,23 @@ function buildAdvisorRows(
         planning_alert: cleanText(planning?.alert),
         sales_shipped_last_30_days: toOptionalNumber(planning?.sales_shipped_last_30_days),
         sales_shipped_last_90_days: toOptionalNumber(planning?.sales_shipped_last_90_days),
+        informed_rule_name: cleanText(informed?.assigned_rule_name),
+        informed_current_price: toOptionalNumber(informed?.current_price),
+        informed_min_price: toOptionalNumber(informed?.min_price),
+        informed_max_price: toOptionalNumber(informed?.max_price),
+        informed_buy_box_price: informedBuyBoxPrice,
+        informed_buy_box_status: cleanText(informed?.buy_box_status),
+        informed_repricing_enabled: informed?.repricing_enabled ?? null,
+        informed_missing_data: !informed,
+        informed_price_gap_to_buy_box_pct: priceGapPct(
+          toOptionalNumber(informed?.current_price),
+          informedBuyBoxPrice ?? keepaBuyBoxPrice
+        ),
+        informed_min_price_gap_to_buy_box_pct: priceGapPct(
+          toOptionalNumber(informed?.min_price),
+          informedBuyBoxPrice ?? keepaBuyBoxPrice
+        ),
+        informed_repricing_note: informedNote,
         current_list_price: currentListPrice,
         keepa_buy_box_price: keepaBuyBoxPrice,
         keepa_buy_box_avg30: centsToDollars(keepa?.buy_box_price_avg30_cents),
@@ -463,6 +534,9 @@ function recommend(input: {
   currentListPrice: number | null;
   keepa?: KeepaRow;
   keepaBuyBoxPrice: number | null;
+  informed?: InformedListingRow;
+  informedBuyBoxPrice: number | null;
+  informedNote: string;
   amazonAgeBucket?: AmazonAgeBucket | null;
   listingStatus: string | null;
   listingIssueCount: number;
@@ -497,13 +571,19 @@ function recommend(input: {
   if (!input.keepa) {
     return needsData("Keepa snapshot missing; run targeted Keepa sync before repricing decision.");
   }
+  if (!input.informed) {
+    return needsData("Informed snapshot missing; import the latest Informed listing report before manual repricing.");
+  }
 
   if (input.amazonAgeBucket) {
     if (input.amazonAgeBucket === "365+" || input.amazonAgeBucket === "271-365" || input.amazonAgeBucket === "181-270") {
       return {
         tier: "Liquidate",
         action: "Consider liquidation pricing or alternate channel move.",
-        reason: `${input.amazonAgeBucket} Amazon planning age bucket with active FBA inventory; recover capital even if margin compresses.`,
+        reason: withInformedNote(
+          `${input.amazonAgeBucket} Amazon planning age bucket with active FBA inventory; recover capital even if margin compresses.`,
+          input.informedNote
+        ),
       };
     }
 
@@ -515,16 +595,22 @@ function recommend(input: {
       return {
         tier: "Reprice",
         action: "Review Informed.co floor and current listing price manually.",
-        reason: buyBoxBelowList
-          ? "Amazon planning shows 91-180 day inventory and Keepa Buy Box is below current/list price; review repricer floor."
-          : "Amazon planning shows 91-180 day sellable FBA inventory; consider a controlled price reduction.",
+        reason: withInformedNote(
+          buyBoxBelowList
+            ? "Amazon planning shows 91-180 day inventory and Buy Box is below current/list price; review repricer floor."
+            : "Amazon planning shows 91-180 day sellable FBA inventory; consider a controlled price reduction.",
+          input.informedNote
+        ),
       };
     }
 
     return {
       tier: "Watch",
       action: "Monitor sales velocity and Buy Box position.",
-      reason: "Amazon planning places this inventory in the 0-90 day bucket; exact 60-day split is unavailable from this report.",
+      reason: withInformedNote(
+        "Amazon planning places this inventory in the 0-90 day bucket; exact 60-day split is unavailable from this report.",
+        input.informedNote
+      ),
     };
   }
 
@@ -532,14 +618,17 @@ function recommend(input: {
     return {
       tier: "Healthy",
       action: "No repricing action needed.",
-      reason: "Inventory is under 60 days old and no major Amazon listing issue is visible.",
+      reason: withInformedNote(
+        "Inventory is under 60 days old and no major Amazon listing issue is visible.",
+        input.informedNote
+      ),
     };
   }
   if ((input.ageDays ?? 0) <= WATCH_MAX_AGE_DAYS) {
     return {
       tier: "Watch",
       action: "Monitor sales velocity and Buy Box position.",
-      reason: "60-89 days old; watch before forcing price down.",
+      reason: withInformedNote("60-89 days old; watch before forcing price down.", input.informedNote),
     };
   }
   if ((input.ageDays ?? 0) <= REPRICE_MAX_AGE_DAYS) {
@@ -550,16 +639,22 @@ function recommend(input: {
     return {
       tier: "Reprice",
       action: "Review Informed.co floor and current listing price manually.",
-      reason: buyBoxBelowList
-        ? "90+ days old and Keepa Buy Box is below current/list price; review repricer floor."
-        : "90+ days old with sellable FBA quantity; consider a controlled price reduction.",
+      reason: withInformedNote(
+        buyBoxBelowList
+          ? "90+ days old and Buy Box is below current/list price; review repricer floor."
+          : "90+ days old with sellable FBA quantity; consider a controlled price reduction.",
+        input.informedNote
+      ),
     };
   }
 
   return {
     tier: "Liquidate",
     action: "Consider liquidation pricing or alternate channel move.",
-    reason: "180+ days old with active Amazon inventory; recover capital even if margin compresses.",
+    reason: withInformedNote(
+      "180+ days old with active Amazon inventory; recover capital even if margin compresses.",
+      input.informedNote
+    ),
   };
 }
 
@@ -569,6 +664,12 @@ function needsData(reason: string) {
     action: "Fill missing data or run targeted sync before repricing.",
     reason,
   };
+}
+
+function withInformedNote(reason: string, note: string) {
+  return note && note !== "Informed data present; no obvious repricing blocker."
+    ? `${reason} ${note}`
+    : reason;
 }
 
 function summarizeRows(rows: AdvisorRow[]) {
@@ -635,6 +736,55 @@ function planningAgeSignal(row?: InventoryPlanningRow) {
   ];
 
   return buckets.find((bucket) => bucket.units > 0) ?? null;
+}
+
+function informedRepricingNote(input: {
+  informed?: InformedListingRow;
+  tierAgeBucket: AmazonAgeBucket | null;
+  ageDays: number | null;
+  currentPrice: number | null;
+  minPrice: number | null;
+  buyBoxPrice: number | null;
+}) {
+  if (!input.informed) {
+    return "Missing Informed listing snapshot; import Informed report before making floor/rule decisions.";
+  }
+
+  const stale =
+    input.tierAgeBucket !== null && input.tierAgeBucket !== "0-90"
+      ? true
+      : (input.ageDays ?? 0) >= 90;
+  const notes: string[] = [];
+
+  if (!input.informed.assigned_rule_name) {
+    notes.push("Informed rule is missing; review rule assignment manually.");
+  }
+  if (stale && input.informed.repricing_enabled === false) {
+    notes.push("Repricing is disabled for stale inventory; review Informed managed status.");
+  }
+  if (
+    stale &&
+    input.currentPrice !== null &&
+    input.buyBoxPrice !== null &&
+    input.currentPrice > input.buyBoxPrice
+  ) {
+    notes.push("Current Informed price is above Buy Box; review manual price or repricer behavior.");
+  }
+  if (
+    stale &&
+    input.minPrice !== null &&
+    input.buyBoxPrice !== null &&
+    input.minPrice > input.buyBoxPrice
+  ) {
+    notes.push("Informed min price is above Buy Box; floor may be blocking sell-through.");
+  }
+
+  return notes.length ? notes.join(" ") : "Informed data present; no obvious repricing blocker.";
+}
+
+function priceGapPct(price: number | null, referencePrice: number | null) {
+  if (price === null || referencePrice === null || referencePrice <= 0) return null;
+  return Math.round(((price - referencePrice) / referencePrice) * 10000) / 100;
 }
 
 function aggregatePositions(rows: InventoryPositionRow[]) {

@@ -132,6 +132,8 @@ Current observed result:
 - latest planning report showed 735 available units and 273 units in 91+ day age buckets.
 - 153 additional missing Keepa snapshots were written after adding a missing-only sync mode.
 - 251 canonical ASINs still need Keepa snapshots, but the remaining backfill is token-refill limited.
+- Informed `All_Fields_NextGen` report imported 969 listing snapshots and now provides repricer rule/price context where seller SKU matches.
+- the current Informed report did not include ASIN-shaped values, so matching is by seller SKU for this first slice.
 - InventoryLab/MBOP purchase dates are fallback age context only when Amazon planning data is missing.
 
 Impact:
@@ -141,11 +143,13 @@ Current mitigation:
 - `/api/amazon/repricing-advisor` marks incomplete rows as Needs Data.
 - `/repricing` includes filters for Missing Data and No Keepa Data.
 - Amazon Inventory Planning age buckets are now preferred over purchase-date age for active Amazon FBA inventory.
+- Informed report snapshots are used to flag stale inventory where repricing is disabled, price is above Buy Box, min price appears above Buy Box, or rule assignment is missing.
 - Keepa sync has `--plan-only`, `--missing-only`, dry-run default, and staged write support.
 
 Recommended next mitigation:
 - run staged Keepa sync batches for active Amazon inventory as tokens refill.
 - add Amazon Product Pricing sync if current/list prices remain sparse.
+- review whether another Informed report exposes rule names instead of only strategy IDs.
 - use Amazon planning data for a while before deciding whether ledger-level available-for-sale inference is worth the complexity.
 
 ---

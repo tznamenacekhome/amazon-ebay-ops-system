@@ -185,6 +185,13 @@ Keepa integrations:
 - must be token-aware; use plan/dry-run modes before broad syncs
 - current product sync entry point is `integrations/keepa_sync_products.py`
 
+Informed Repricer integrations:
+- must remain read-only advisory intelligence
+- must use Reports API only for this feature
+- must not use Listings Management API upload/feed endpoints
+- must not write to purchases, purchase_items, Amazon snapshots, Keepa snapshots, or workflow-owned tables
+- current report sync entry point is `integrations/informed_sync_reports.py`
+
 Do not merge these workflows into one UI.
 
 Purchases may display the workflow status Received when the receiving workflow sets purchase_items.current_status = received, but receiving verification itself belongs in the receiving workflow.

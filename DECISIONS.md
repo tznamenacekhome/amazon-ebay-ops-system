@@ -508,6 +508,26 @@ Keepa data must not write to `purchases`, `purchase_items`, receiving rows, FBA 
 
 ---
 
+## Informed Repricer Is Read-Only Advisory Intelligence
+
+Decision:
+Use Informed Repricer Reports API snapshots as advisory input for manual repricing decisions, not as a workflow or pricing source of truth.
+
+Reason:
+The aged inventory workflow needs visibility into current Informed price, Buy Box context, assigned rule, and min/max floor behavior. However, changing repricer settings or prices is operationally risky and should remain manual until recommendations prove reliable.
+
+Implementation:
+- `informed_report_runs` stores read-only report request/import metadata.
+- `informed_listing_snapshots` stores point-in-time listing/pricing report rows and raw row payloads.
+- `informed_rule_snapshots` is available for rule/settings reports if a suitable report is used later.
+- `integrations/informed_sync_reports.py` uses only the Reports API request/status/download endpoints.
+- `/api/amazon/repricing-advisor` joins latest Informed listing snapshots by seller SKU where ASIN is unavailable.
+
+Rule:
+Do not call Informed Listings Management API feed/upload endpoints, modify Informed rules, modify min/max prices, modify Amazon prices, or write Informed data into purchases, purchase_items, Amazon SP-API tables, Keepa tables, receiving rows, or FBA workflow tables.
+
+---
+
 ## Aged Amazon Inventory Repricing Advisor Is Manual-Only
 
 Decision:
