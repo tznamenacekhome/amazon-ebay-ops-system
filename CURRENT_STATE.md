@@ -141,6 +141,7 @@ Implemented:
 - system-aware matching
 - shared backend system detection
 - strict title+system RevSeller matching with a unique compact same-system fallback
+- leading condition-noise title variant fallback for same-system RevSeller matching, such as `New Hitman 3` -> `Hitman 3`
 - manual UI ASIN/price corrections propagate to matching purchase items
 - manual match memory is supported through manual_item_matches once the SQL migration is applied
 - reusable marketplace title cleaner before RevSeller normalized matching
@@ -553,6 +554,7 @@ Recent backend update:
 - purchase_items.amazon_title was added and backfilled from RevSeller where ASIN/title data was available
 - Amazon search links and RevSeller matching now share marketplace-title cleaning semantics
 - marketplace-title cleaning was refined from the 100-row missing-ASIN training sheet
+- RevSeller enrichment now safely handles leading `New` as condition text only as a same-system fallback, which corrected order `20-14670-25041` to ASIN `B08MG5FYS6`
 
 Recent one-time status backfill:
 - source: reference Google Sheet "status" tab

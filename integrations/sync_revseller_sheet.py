@@ -85,6 +85,18 @@ def normalize_title(title: str | None) -> str:
     return normalize_spaces(" ".join(words))
 
 
+def normalized_title_variants(normalized_title: str) -> list[str]:
+    variants = [normalized_title]
+
+    # eBay sellers often lead titles with condition text like "New Hitman 3".
+    # Keep this as a fallback variant instead of removing "new" globally so
+    # real titles such as "New Super Mario Bros." are still matched normally.
+    if normalized_title.startswith("new "):
+        variants.append(normalize_spaces(normalized_title[4:]))
+
+    return list(dict.fromkeys(variant for variant in variants if variant))
+
+
 def parse_money(value) -> Decimal | None:
     if value is None:
         return None
@@ -356,21 +368,30 @@ def match_purchase_item(
     )
 
     if detected_system:
-        matched_row = by_title_system.get((normalized_title, detected_system))
+        for title_variant in normalized_title_variants(normalized_title):
+            matched_row = by_title_system.get((title_variant, detected_system))
 
-        if matched_row:
-            return matched_row, "matched_with_system"
+            if matched_row:
+                return matched_row, (
+                    "matched_with_system"
+                    if title_variant == normalized_title
+                    else "matched_condition_variant_with_system"
+                )
 
-        compact_key = compact_title_key(normalized_title)
-        compact_compound_key = (compact_key, detected_system)
+            compact_key = compact_title_key(title_variant)
+            compact_compound_key = (compact_key, detected_system)
 
-        if compact_compound_key in ambiguous_compact_title_system:
-            return None, "skipped_ambiguous_compact_system"
+            if compact_compound_key in ambiguous_compact_title_system:
+                return None, "skipped_ambiguous_compact_system"
 
-        matched_row = by_compact_title_system.get(compact_compound_key)
+            matched_row = by_compact_title_system.get(compact_compound_key)
 
-        if matched_row:
-            return matched_row, "matched_compact_with_system"
+            if matched_row:
+                return matched_row, (
+                    "matched_compact_with_system"
+                    if title_variant == normalized_title
+                    else "matched_condition_variant_with_system"
+                )
 
         return None, "skipped_no_match"
 
@@ -451,6 +472,7 @@ def main():
     counts = {
         "matched_with_system": 0,
         "matched_compact_with_system": 0,
+        "matched_condition_variant_with_system": 0,
         "skipped_ambiguous_system": 0,
         "skipped_ambiguous_compact_system": 0,
         "skipped_no_match": 0,

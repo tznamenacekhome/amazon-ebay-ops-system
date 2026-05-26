@@ -49,6 +49,27 @@ Example:
 
 This catches spacing/compound-word variants without matching across systems.
 
+## Leading Condition Variant Fallback
+
+If normalized title + system and compact title + system do not match, RevSeller
+enrichment can try a condition-noise variant that removes a leading `new`.
+
+This fallback is only accepted when:
+- the system matches
+- the normal exact or compact same-system match succeeds after removing leading `new`
+
+Reason:
+eBay sellers often use title prefixes such as `New Hitman 3`, while RevSeller
+stores the catalog title as `Hitman 3 - PlayStation 5 Standard Edition`.
+The fallback is deliberately narrow so real game titles that begin with `New`
+are not globally rewritten before normal matching.
+
+Example:
+- eBay: `New Hitman 3 (Sony PlayStation 5 PS5, 2021)`
+- RevSeller: `Hitman 3 - PlayStation 5 Standard Edition`
+- system: `PS 5`
+- result: ASIN `B08MG5FYS6`
+
 ## Manual Match Memory
 
 When an operator manually adds an ASIN or target sell price in the purchases UI,
