@@ -25,6 +25,11 @@ The API reads `vw_purchases_dashboard` and aggregates:
 
 `unit_cost` is the authoritative backend landed-cost value. Dashboard React components should render API-provided aggregates and should not introduce their own landed-cost calculations.
 
+Inventory value semantics:
+- current Amazon FBA value uses the latest `vw_latest_inventorylab_inventory_valuation` snapshot when available because it represents InventoryLab's remaining on-hand cost basis for legacy Amazon inventory
+- outbound-to-Amazon, received, ordered, and other non-Amazon-held inventory values use MBOP inventory-position costs
+- InventoryLab valuation data is an opening-balance snapshot only and must not be written into `purchase_items`
+
 Cost semantics:
 - reward points and payment method effects should not zero out resale inventory cost
 - foreign-currency purchases should use eBay-provided USD payment totals when available

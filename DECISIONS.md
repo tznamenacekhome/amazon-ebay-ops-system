@@ -671,6 +671,25 @@ Going forward, MBOP purchase_items, receiving, and FBA workflows own purchase co
 
 ---
 
+## InventoryLab Valuation Is The Legacy Amazon FBA Opening Balance
+
+Decision:
+Store InventoryLab inventory valuation exports in a separate snapshot table and use the latest valuation snapshot as the preferred current value for legacy inventory already at Amazon FBA.
+
+Reason:
+InventoryLab's active inventory export contains an `Active Cost/Unit` field, but its inventory valuation report uses InventoryLab's current remaining on-hand cost basis by MSKU. For replenished SKUs, `Active Cost/Unit * Amazon quantity` can overstate or understate the current value compared with InventoryLab's valuation report. The 2026-05-26 valuation reconciliation showed MBOP and InventoryLab both had 761 Amazon units, but MBOP was $143.47 higher because it was multiplying active cost/unit by current quantity.
+
+Implementation:
+- `inventorylab_inventory_valuation_snapshots` stores the raw InventoryLab valuation rows with MSKU, fulfillment, inbound quantity, on-hand quantity, unlisted quantity, cost/unit, and total value.
+- `vw_latest_inventorylab_inventory_valuation` exposes the latest imported valuation row per MSKU.
+- `integrations/inventorylab_inventory_valuation_import.py` defaults to dry-run and imports only into the InventoryLab valuation snapshot table when `--apply` is passed.
+- dashboard Inventory Visibility uses the latest InventoryLab valuation snapshot for the "At Amazon FBA" value when available, and uses MBOP-derived costs for outbound-to-Amazon, received, ordered, and other non-Amazon-held inventory.
+
+Rule:
+Do not write InventoryLab valuation values into `purchase_items`. Treat the valuation snapshot as the opening balance for legacy Amazon FBA inventory. MBOP-owned purchase/receiving/FBA workflows are authoritative for go-forward inventory cost.
+
+---
+
 ## ASIN Is The Primary Amazon Inventory Identity
 
 Decision:

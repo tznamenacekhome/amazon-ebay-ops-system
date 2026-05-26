@@ -402,6 +402,8 @@ Implemented:
 - `integrations/inventory_reconcile.py`
 - `sql/2026-05-25_add_inventorylab_legacy_active_inventory.sql`
 - `integrations/inventorylab_active_inventory_backfill.py`
+- `sql/2026-05-26_add_inventorylab_inventory_valuation_snapshots.sql`
+- `integrations/inventorylab_inventory_valuation_import.py`
 - dashboard Inventory Visibility section backed by inventory summary/reconciliation views
 
 Current behavior:
@@ -411,13 +413,16 @@ Current behavior:
 - Amazon FBA snapshot inventory is projected into Amazon-specific inventory positions
 - Amazon listing-status snapshots are consumed as reconciliation findings only, not as additional inventory units
 - InventoryLab historical active-inventory backfill can provide legacy cost/date context for current Amazon FBA inventory
+- InventoryLab inventory valuation snapshots provide the legacy opening-balance valuation for current Amazon FBA inventory
 - canonical current inventory is defined as current Amazon FBA inventory plus MBOP purchase inventory that has not yet reached the Listed workflow state
 - Amazon-bound purchase inventory with `current_status = listed` is treated as historical/sold-through in the derived purchase projection; current Amazon FBA inventory is represented by Amazon SP-API snapshot positions instead
+- dashboard Amazon FBA value prefers the latest InventoryLab valuation snapshot when available, while MBOP remains authoritative for received, ordered, and outbound inventory
 - reconciliation currently compares MBOP Amazon-intended inventory to latest Amazon FBA inventory at ASIN level and surfaces Amazon listing issue/suppression signals
 - old open reconciliation findings are deferred when a new reconciliation run writes current findings
 
 Latest validation:
 - InventoryLab active inventory import read 951 rows, skipped 653 inactive rows, matched 298 active rows by MSKU, found 0 ambiguous rows, and upserted 298 legacy backfill records
+- InventoryLab valuation import read 297 rows, found 0 missing MSKUs, 0 missing total values, 0 duplicate MSKUs, and upserted a $13,453.87 / 761-unit legacy Amazon FBA opening-balance valuation
 - inventory reconciliation loaded 298 InventoryLab cost/date overlay rows
 - latest write run projected 2,923 MBOP positions, 311 Amazon positions, and 377 open findings after adding Amazon listing-status issue findings
 - latest reconciliation includes 55 Amazon stranded/suppressed listing findings from the read-only Listings Items snapshots

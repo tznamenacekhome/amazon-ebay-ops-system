@@ -113,6 +113,12 @@ type BusinessInventoryValueSummary = {
   cash_on_hand_source: string;
 };
 
+type InventoryLabValuationSummary = {
+  units: number;
+  total_value: number;
+  source: string;
+} | null;
+
 export async function GET() {
   const rows = await fetchPurchaseRows();
   const rowsWithExclusions = await hydrateReportingExclusions(rows);
@@ -434,10 +440,11 @@ function aggregateOperations(rows: DashboardPurchaseRow[]) {
 }
 
 async function fetchInventoryVisibility() {
-  const [summaryRows, openItems, latestEvent] = await Promise.all([
+  const [summaryRows, openItems, latestEvent, inventoryLabValuation] = await Promise.all([
     fetchInventoryPositionSummary(),
     fetchOpenReconciliationItems(),
     fetchLatestReconciliationEvent(),
+    fetchInventoryLabValuationSummary(),
   ]);
 
   const unitsByState = new Map<string, number>();
@@ -517,13 +524,16 @@ async function fetchInventoryVisibility() {
         .filter((row) => row.needs_reconciliation)
         .reduce((total, row) => total + Number(row.unit_count ?? 0), 0),
       open_reconciliation_findings: openItems.length,
-      estimated_mbop_cost_basis: sumStates(costByState, [
-        ...purchasePreListedStates,
-        ...amazonFbaCurrentStates,
-      ]),
+      estimated_mbop_cost_basis:
+        sumStates(costByState, purchasePreListedStates) +
+        (inventoryLabValuation?.total_value ?? sumStates(costByState, amazonFbaCurrentStates)),
     },
-    locationValueSummary: buildLocationValueSummary(unitsByState, costByState),
-    businessInventoryValue: buildBusinessInventoryValueSummary(costByState),
+    locationValueSummary: buildLocationValueSummary(
+      unitsByState,
+      costByState,
+      inventoryLabValuation
+    ),
+    businessInventoryValue: buildBusinessInventoryValueSummary(costByState, inventoryLabValuation),
     unitsByState: Array.from(unitsByState.entries())
       .map(([state, units]) => ({ state, label: inventoryStateLabel(state), units }))
       .sort((left, right) => right.units - left.units),
@@ -555,7 +565,8 @@ async function fetchInventoryVisibility() {
 
 function buildLocationValueSummary(
   unitsByState: Map<string, number>,
-  costByState: Map<string, number>
+  costByState: Map<string, number>,
+  inventoryLabValuation: InventoryLabValuationSummary
 ): InventoryLocationValueRow[] {
   const rows = [
     {
@@ -579,11 +590,19 @@ function buildLocationValueSummary(
       location: "Ordered and not received yet",
       states: ["purchased_not_shipped", "shipped_not_delivered", "delivered_not_received"],
     },
-  ].map((row) => ({
-    location: row.location,
-    units: sumStates(unitsByState, row.states),
-    total_cost: sumStates(costByState, row.states),
-  }));
+  ].map((row) => {
+    const units = sumStates(unitsByState, row.states);
+    const totalCost =
+      row.location === "At Amazon FBA" && inventoryLabValuation
+        ? inventoryLabValuation.total_value
+        : sumStates(costByState, row.states);
+
+    return {
+      location: row.location,
+      units,
+      total_cost: totalCost,
+    };
+  });
 
   rows.push({
     location: "Total",
@@ -595,16 +614,22 @@ function buildLocationValueSummary(
 }
 
 function buildBusinessInventoryValueSummary(
-  costByState: Map<string, number>
+  costByState: Map<string, number>,
+  inventoryLabValuation: InventoryLabValuationSummary
 ): BusinessInventoryValueSummary {
-  const amazonInventoryValue = sumStates(costByState, [
-    "amazon_fba_sellable",
-    "amazon_fba_reserved",
-    "amazon_fba_unsellable_damaged",
-    "amazon_fba_stranded",
+  const amazonAtFbaValue =
+    inventoryLabValuation?.total_value ??
+    sumStates(costByState, [
+      "amazon_fba_sellable",
+      "amazon_fba_reserved",
+      "amazon_fba_unsellable_damaged",
+      "amazon_fba_stranded",
+    ]);
+  const amazonOutboundValue = sumStates(costByState, [
     "outbound_to_amazon",
     "amazon_fba_inbound_receiving",
   ]);
+  const amazonInventoryValue = amazonAtFbaValue + amazonOutboundValue;
   const preAmazonInventoryValue = sumStates(costByState, [
     "purchased_not_shipped",
     "shipped_not_delivered",
@@ -618,8 +643,36 @@ function buildBusinessInventoryValueSummary(
     pre_amazon_inventory_value: preAmazonInventoryValue,
     amazon_cash_balance: null,
     cash_on_hand: null,
-    amazon_cash_source: "Not integrated",
+    amazon_cash_source: inventoryLabValuation
+      ? `InventoryLab valuation opening balance (${inventoryLabValuation.source}) plus MBOP outbound`
+      : "MBOP inventory positions",
     cash_on_hand_source: "YNAB integration pending",
+  };
+}
+
+async function fetchInventoryLabValuationSummary(): Promise<InventoryLabValuationSummary> {
+  const { data, error } = await supabase
+    .from("vw_latest_inventorylab_inventory_valuation")
+    .select("source_file,on_hand_quantity,total_value");
+
+  if (error) {
+    console.warn("InventoryLab valuation lookup failed", error.message);
+    return null;
+  }
+
+  const rows = data ?? [];
+  const totalValue = rows.reduce((total, row) => total + Number(row.total_value ?? 0), 0);
+  const units = rows.reduce((total, row) => total + Number(row.on_hand_quantity ?? 0), 0);
+  const source = rows[0]?.source_file ?? "latest InventoryLab valuation";
+
+  if (!rows.length || totalValue <= 0) {
+    return null;
+  }
+
+  return {
+    units,
+    total_value: totalValue,
+    source,
   };
 }
 
