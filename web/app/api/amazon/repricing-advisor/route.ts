@@ -611,6 +611,9 @@ function buildAdvisorRows(
     })
     .filter((row): row is AdvisorRow => !!row)
     .sort((left, right) => {
+      const capitalDifference =
+        (right.estimated_capital_tied_up ?? -1) - (left.estimated_capital_tied_up ?? -1);
+      if (capitalDifference !== 0) return capitalDifference;
       const tierDifference = tierSort(left.recommendation_tier) - tierSort(right.recommendation_tier);
       if (tierDifference !== 0) return tierDifference;
       const ageDifference = bucketSort(right.amazon_age_bucket) - bucketSort(left.amazon_age_bucket);

@@ -305,13 +305,14 @@ export default function RepricingPage() {
 
       <section className="overflow-hidden rounded-md border border-slate-200 bg-white shadow-sm">
         <div className="overflow-x-auto">
-          <table className="min-w-[1420px] w-full text-left text-sm">
+          <table className="min-w-[1500px] w-full text-left text-sm">
             <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
               <tr>
                 <th className="px-3 py-2">ASIN / SKU</th>
                 <th className="px-3 py-2">Title</th>
                 <th className="px-3 py-2 text-right">Qty</th>
                 <th className="px-3 py-2 text-right">Age</th>
+                <th className="px-3 py-2 text-right">Capital</th>
                 <th className="px-3 py-2">Pricing</th>
                 <th className="px-3 py-2">Informed</th>
                 <th className="px-3 py-2">Buy Box Status</th>
@@ -324,7 +325,7 @@ export default function RepricingPage() {
             <tbody>
               {loading ? (
                 <tr>
-                  <td className="px-3 py-8 text-center text-slate-500" colSpan={11}>
+                  <td className="px-3 py-8 text-center text-slate-500" colSpan={12}>
                     Loading repricing advisor...
                   </td>
                 </tr>
@@ -355,6 +356,11 @@ export default function RepricingPage() {
                       <div className="font-semibold">{ageDisplay(row)}</div>
                       <div className="text-xs text-slate-500">{row.amazon_age_source}</div>
                     </td>
+                    <td className="px-3 py-2 text-right">
+                      <div className="font-semibold text-slate-950">
+                        {formatMoney(row.estimated_capital_tied_up)}
+                      </div>
+                    </td>
                     <td className="w-[220px] px-3 py-2">
                       <PriceLine label="Cost" value={formatMoney(row.cost_basis)} detail={row.cost_source ?? "--"} />
                       <PriceLine label="Current" value={formatMoney(row.current_list_price)} />
@@ -370,12 +376,6 @@ export default function RepricingPage() {
                         <div className="mt-0.5 text-right text-xs text-blue-700">
                           {row.target_price_basis ?? "--"}
                         </div>
-                      </div>
-                      <div className="mt-2 flex items-center justify-between gap-3 border-t border-slate-200 pt-1 text-xs">
-                        <span className="font-medium text-slate-500">Capital</span>
-                        <span className="font-semibold text-slate-800">
-                          {formatMoney(row.estimated_capital_tied_up)}
-                        </span>
                       </div>
                     </td>
                     <td className="w-[180px] px-3 py-2">
@@ -425,7 +425,7 @@ export default function RepricingPage() {
                 ))
               ) : (
                 <tr>
-                  <td className="px-3 py-8 text-center text-slate-500" colSpan={11}>
+                  <td className="px-3 py-8 text-center text-slate-500" colSpan={12}>
                     No rows match the current filters.
                   </td>
                 </tr>
