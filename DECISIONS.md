@@ -568,6 +568,25 @@ InventoryLab and MBOP dates remain fallback context only for repricing age. Do n
 
 ---
 
+## Repricing Advisor Is An Action List
+
+Decision:
+The Aged Amazon Inventory page should show inventory requiring operator action, not every active FBA unit.
+
+Reason:
+Inventory under 90 days old and normal Amazon movement states such as inbound or FC transfer do not usually require manual repricing or operational action. Showing those rows adds noise.
+
+Implementation:
+- rows under 90 days old are filtered out unless they have an actionable issue.
+- FC transfer is normalized from Amazon reserved inventory detail and displayed as inventory detail.
+- FC transfer, inbound movement, future supply, and FC processing are not treated as issues by themselves.
+- actionable issues remain unsellable quantity, Amazon listing issues/suppression, aged price review, liquidation age, and missing data needed for safe repricing.
+
+Rule:
+Do not classify FC transfer as sold, missing, or a removal/eBay issue unless another source indicates a real problem.
+
+---
+
 ## Inventory State Is A Derived Reconciliation Layer
 
 Decision:

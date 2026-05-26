@@ -126,7 +126,7 @@ Problem:
 The aged Amazon inventory repricing advisor is useful as a manual work queue, but many active Amazon rows still lack enough Keepa context for confident pricing recommendations.
 
 Current observed result:
-- API route returned 297 active Amazon SKU rows and 761 units.
+- API action list currently returns 199 active Amazon SKU rows and 583 units after excluding non-actionable under-90-day rows.
 - 68 rows are currently Needs Data after additional missing-Keepa backfill batches.
 - Amazon FBA Inventory Planning report import inserted 297 rows and now provides Amazon-native age buckets for active FBA inventory.
 - latest planning report showed 735 available units and 273 units in 91+ day age buckets.
@@ -134,6 +134,7 @@ Current observed result:
 - 101 canonical ASINs still need Keepa snapshots, but the remaining backfill is token-refill limited.
 - Informed `All_Fields_NextGen` report imported 969 listing snapshots and now provides repricer rule/price context where seller SKU matches.
 - the current Informed report did not include ASIN-shaped values, so matching is by seller SKU for this first slice.
+- Amazon FBA inventory detail quantities are now normalized for reserved customer order, FC transfer, FC processing, future supply, researching, and unfulfillable breakdowns.
 - InventoryLab/MBOP purchase dates are fallback age context only when Amazon planning data is missing.
 
 Impact:
@@ -144,6 +145,7 @@ Current mitigation:
 - `/repricing` includes filters for Missing Data and No Keepa Data.
 - Amazon Inventory Planning age buckets are now preferred over purchase-date age for active Amazon FBA inventory.
 - Informed report snapshots are used to flag stale inventory where repricing is disabled, price is above Buy Box, min price appears above Buy Box, or rule assignment is missing.
+- FC transfer and normal inbound movement are displayed as detail, not treated as action issues by themselves.
 - Keepa sync has `--plan-only`, `--missing-only`, dry-run default, and staged write support.
 
 Recommended next mitigation:

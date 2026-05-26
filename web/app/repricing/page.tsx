@@ -26,7 +26,19 @@ type AdvisorRow = {
   fba_sellable_quantity: number;
   inbound_quantity: number;
   reserved_quantity: number;
+  reserved_customer_order_quantity: number;
+  reserved_fc_transfer_quantity: number;
+  reserved_fc_processing_quantity: number;
+  future_supply_buyable_quantity: number;
+  reserved_future_supply_quantity: number;
+  inventory_detail_status: string;
   unsellable_quantity: number;
+  unfulfillable_customer_damaged_quantity: number;
+  unfulfillable_warehouse_damaged_quantity: number;
+  unfulfillable_distributor_damaged_quantity: number;
+  unfulfillable_carrier_damaged_quantity: number;
+  unfulfillable_defective_quantity: number;
+  unfulfillable_expired_quantity: number;
   total_quantity: number;
   listing_status: string | null;
   listing_issue_status: string;
@@ -313,6 +325,9 @@ export default function RepricingPage() {
                       <div>{formatNumber(row.total_quantity)}</div>
                       <div className="text-xs text-slate-500">
                         FBA {formatNumber(row.fba_sellable_quantity)} / In {formatNumber(row.inbound_quantity)}
+                      </div>
+                      <div className="text-xs text-slate-500">
+                        {row.inventory_detail_status}
                       </div>
                     </td>
                     <td className="px-3 py-2 text-right">

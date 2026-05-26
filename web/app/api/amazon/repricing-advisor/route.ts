@@ -39,8 +39,19 @@ type InventoryRow = {
   inbound_shipped_quantity: number | null;
   inbound_receiving_quantity: number | null;
   reserved_quantity: number | null;
+  reserved_customer_order_quantity: number | null;
+  reserved_fc_transfer_quantity: number | null;
+  reserved_fc_processing_quantity: number | null;
+  future_supply_buyable_quantity: number | null;
+  reserved_future_supply_quantity: number | null;
   researching_quantity: number | null;
   unfulfillable_quantity: number | null;
+  unfulfillable_customer_damaged_quantity: number | null;
+  unfulfillable_warehouse_damaged_quantity: number | null;
+  unfulfillable_distributor_damaged_quantity: number | null;
+  unfulfillable_carrier_damaged_quantity: number | null;
+  unfulfillable_defective_quantity: number | null;
+  unfulfillable_expired_quantity: number | null;
   captured_at: string | null;
 };
 
@@ -172,7 +183,19 @@ type AdvisorRow = {
   fba_sellable_quantity: number;
   inbound_quantity: number;
   reserved_quantity: number;
+  reserved_customer_order_quantity: number;
+  reserved_fc_transfer_quantity: number;
+  reserved_fc_processing_quantity: number;
+  future_supply_buyable_quantity: number;
+  reserved_future_supply_quantity: number;
+  inventory_detail_status: string;
   unsellable_quantity: number;
+  unfulfillable_customer_damaged_quantity: number;
+  unfulfillable_warehouse_damaged_quantity: number;
+  unfulfillable_distributor_damaged_quantity: number;
+  unfulfillable_carrier_damaged_quantity: number;
+  unfulfillable_defective_quantity: number;
+  unfulfillable_expired_quantity: number;
   total_quantity: number;
   listing_status: string | null;
   listing_issue_status: string;
@@ -240,7 +263,11 @@ export async function GET() {
           "seller_sku,marketplace_id,asin,fnsku,product_name,condition,total_quantity," +
             "fulfillable_quantity,inbound_working_quantity,inbound_shipped_quantity," +
             "inbound_receiving_quantity,reserved_quantity,researching_quantity," +
-            "unfulfillable_quantity,captured_at"
+            "unfulfillable_quantity,reserved_customer_order_quantity,reserved_fc_transfer_quantity," +
+            "reserved_fc_processing_quantity,future_supply_buyable_quantity,reserved_future_supply_quantity," +
+            "unfulfillable_customer_damaged_quantity,unfulfillable_warehouse_damaged_quantity," +
+            "unfulfillable_distributor_damaged_quantity,unfulfillable_carrier_damaged_quantity," +
+            "unfulfillable_defective_quantity,unfulfillable_expired_quantity,captured_at"
         ),
         fetchAll<AmazonSkuRow>(
           "amazon_skus",
@@ -375,6 +402,11 @@ function buildAdvisorRows(
         toNumber(inventory.inbound_shipped_quantity, 0) +
         toNumber(inventory.inbound_receiving_quantity, 0);
       const reservedQuantity = toNumber(inventory.reserved_quantity, 0);
+      const reservedCustomerOrderQuantity = toNumber(inventory.reserved_customer_order_quantity, 0);
+      const reservedFcTransferQuantity = toNumber(inventory.reserved_fc_transfer_quantity, 0);
+      const reservedFcProcessingQuantity = toNumber(inventory.reserved_fc_processing_quantity, 0);
+      const futureSupplyBuyableQuantity = toNumber(inventory.future_supply_buyable_quantity, 0);
+      const reservedFutureSupplyQuantity = toNumber(inventory.reserved_future_supply_quantity, 0);
       const unsellableQuantity = toNumber(inventory.unfulfillable_quantity, 0);
       const componentQuantity =
         fbaSellableQuantity + inboundQuantity + reservedQuantity + unsellableQuantity;
@@ -442,6 +474,13 @@ function buildAdvisorRows(
         unsellableQuantity,
       });
 
+      const actionableIssue =
+        recommendation.tier === "Remove / eBay" ||
+        recommendation.tier === "Reprice" ||
+        recommendation.tier === "Liquidate" ||
+        recommendation.tier === "Needs Data";
+      if (!actionableIssue) return null;
+
       return {
         asin,
         seller_sku: sellerSku,
@@ -460,7 +499,40 @@ function buildAdvisorRows(
         fba_sellable_quantity: fbaSellableQuantity,
         inbound_quantity: inboundQuantity,
         reserved_quantity: reservedQuantity,
+        reserved_customer_order_quantity: reservedCustomerOrderQuantity,
+        reserved_fc_transfer_quantity: reservedFcTransferQuantity,
+        reserved_fc_processing_quantity: reservedFcProcessingQuantity,
+        future_supply_buyable_quantity: futureSupplyBuyableQuantity,
+        reserved_future_supply_quantity: reservedFutureSupplyQuantity,
+        inventory_detail_status: inventoryDetailStatus({
+          fbaSellableQuantity,
+          inboundQuantity,
+          reservedCustomerOrderQuantity,
+          reservedFcTransferQuantity,
+          reservedFcProcessingQuantity,
+          futureSupplyBuyableQuantity,
+          reservedFutureSupplyQuantity,
+          unsellableQuantity,
+        }),
         unsellable_quantity: unsellableQuantity,
+        unfulfillable_customer_damaged_quantity: toNumber(
+          inventory.unfulfillable_customer_damaged_quantity,
+          0
+        ),
+        unfulfillable_warehouse_damaged_quantity: toNumber(
+          inventory.unfulfillable_warehouse_damaged_quantity,
+          0
+        ),
+        unfulfillable_distributor_damaged_quantity: toNumber(
+          inventory.unfulfillable_distributor_damaged_quantity,
+          0
+        ),
+        unfulfillable_carrier_damaged_quantity: toNumber(
+          inventory.unfulfillable_carrier_damaged_quantity,
+          0
+        ),
+        unfulfillable_defective_quantity: toNumber(inventory.unfulfillable_defective_quantity, 0),
+        unfulfillable_expired_quantity: toNumber(inventory.unfulfillable_expired_quantity, 0),
         total_quantity: totalQuantity,
         listing_status: listingStatus,
         listing_issue_status: listingIssueStatus,
@@ -546,11 +618,11 @@ function recommend(input: {
     return needsData("Missing ASIN; cannot connect Amazon, Keepa, and cost context.");
   }
 
-  const buyable = listingStatusIsBuyable(input.listingStatus);
+  const actionableListingStatus = listingStatusNeedsAction(input.listingStatus);
   if (
     input.unsellableQuantity > 0 ||
     input.listingIssueCount > 0 ||
-    (input.listingStatus !== null && !buyable)
+    actionableListingStatus
   ) {
     return {
       tier: "Remove / eBay",
@@ -782,6 +854,38 @@ function informedRepricingNote(input: {
   return notes.length ? notes.join(" ") : "Informed data present; no obvious repricing blocker.";
 }
 
+function inventoryDetailStatus(input: {
+  fbaSellableQuantity: number;
+  inboundQuantity: number;
+  reservedCustomerOrderQuantity: number;
+  reservedFcTransferQuantity: number;
+  reservedFcProcessingQuantity: number;
+  futureSupplyBuyableQuantity: number;
+  reservedFutureSupplyQuantity: number;
+  unsellableQuantity: number;
+}) {
+  const parts: string[] = [];
+  if (input.fbaSellableQuantity > 0) parts.push(`Sellable ${input.fbaSellableQuantity}`);
+  if (input.inboundQuantity > 0) parts.push(`Inbound ${input.inboundQuantity}`);
+  if (input.reservedCustomerOrderQuantity > 0) {
+    parts.push(`Customer order ${input.reservedCustomerOrderQuantity}`);
+  }
+  if (input.reservedFcTransferQuantity > 0) {
+    parts.push(`FC transfer ${input.reservedFcTransferQuantity}`);
+  }
+  if (input.reservedFcProcessingQuantity > 0) {
+    parts.push(`FC processing ${input.reservedFcProcessingQuantity}`);
+  }
+  if (input.futureSupplyBuyableQuantity > 0) {
+    parts.push(`Future buyable ${input.futureSupplyBuyableQuantity}`);
+  }
+  if (input.reservedFutureSupplyQuantity > 0) {
+    parts.push(`Reserved future ${input.reservedFutureSupplyQuantity}`);
+  }
+  if (input.unsellableQuantity > 0) parts.push(`Unsellable ${input.unsellableQuantity}`);
+  return parts.length ? parts.join(" / ") : "No active FBA quantity";
+}
+
 function priceGapPct(price: number | null, referencePrice: number | null) {
   if (price === null || referencePrice === null || referencePrice <= 0) return null;
   return Math.round(((price - referencePrice) / referencePrice) * 10000) / 100;
@@ -856,16 +960,23 @@ function listingIssueSummary(
     }`;
   }
   if (!listingStatus) return "Unknown";
-  if (!listingStatusIsBuyable(listingStatus)) return listingStatus;
+  if (listingStatusNeedsAction(listingStatus)) return listingStatus;
   return "None";
 }
 
-function listingStatusIsBuyable(listingStatus: string | null) {
+function listingStatusNeedsAction(listingStatus: string | null) {
   if (!listingStatus) return false;
-  return listingStatus
+  const statuses = listingStatus
     .split(",")
     .map((part) => part.trim().toUpperCase())
-    .includes("BUYABLE");
+    .filter(Boolean);
+  if (!statuses.length) return false;
+  if (statuses.some((status) => ["BUYABLE", "DISCOVERABLE"].includes(status))) {
+    return false;
+  }
+  return statuses.some((status) =>
+    ["SUPPRESSED", "INACTIVE", "INCOMPLETE", "NOT_BUYABLE"].includes(status)
+  );
 }
 
 function tierSort(tier: RecommendationTier) {

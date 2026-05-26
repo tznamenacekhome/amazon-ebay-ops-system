@@ -220,6 +220,8 @@ Current validation:
 - latest active listing snapshot set contains 49 rows with Amazon listing issues
 - inventory planning dry run and write run each parsed 297 Amazon planning rows
 - latest inventory planning write inserted 297 planning snapshot rows, showing 735 available units and 273 units in Amazon's 91+ day age buckets
+- Amazon FBA inventory snapshots now normalize reserved customer order, FC transfer, FC processing, future supply, researching, and unfulfillable damage/defect breakdowns from raw SP-API inventory details
+- a follow-up full FBA inventory sync attempt hit Amazon SP-API 429 QuotaExceeded, but existing snapshots were backfilled from raw inventory JSON by migration
 
 Boundary:
 Amazon seller/FBA data must stay in Amazon-specific tables and must not write to `purchases` or `purchase_items`.
@@ -334,12 +336,14 @@ Current recommendation rules:
 - Amazon FBA Inventory Planning age buckets are the preferred active-Amazon age source
 - InventoryLab/MBOP date context is fallback only when Amazon planning data is missing
 - Healthy: fallback age under 60 days with required data and no major issue
-- Watch: Amazon 0-90 day bucket, or fallback 60-89 days old
+- Watch: currently filtered out of the action list unless a row has an actionable issue
 - Reprice: Amazon 91-180 day bucket, or fallback 90-179 days old
 - Liquidate: Amazon 181+ day bucket, or fallback 180+ days old
 - Remove / eBay: unsellable quantity, Amazon listing issue, or non-buyable listing status
 - Needs Data: missing ASIN, cost basis, age/date context, pricing context, Keepa snapshot, or Informed snapshot
 - Informed notes flag stale inventory where current price is above Buy Box, min price appears above Buy Box, repricing is disabled, or a rule assignment is missing
+- rows under 90 days old are excluded from the action list unless they have an actionable issue
+- normal inbound/FC-transfer movement is displayed as inventory detail, but is not treated as an operator-action issue by itself
 
 Latest validation:
 - Next.js production build passed
@@ -350,7 +354,7 @@ Latest validation:
 - estimated capital tied up: $13,597.34
 - aged capital over 90 days: $5,265.19
 - aged capital over 180 days: $1,881.41
-- tier counts after additional missing-Keepa backfill: 57 Remove / eBay, 17 Liquidate, 58 Reprice, 97 Watch, 68 Needs Data
+- tier counts after action-list filtering and FC-transfer normalization: 53 Remove / eBay, 19 Liquidate, 59 Reprice, 68 Needs Data
 - `/repricing` rendered successfully with HTTP 200
 
 Boundary:

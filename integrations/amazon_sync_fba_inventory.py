@@ -157,6 +157,8 @@ def build_snapshot_row(
     details = summary.get("inventoryDetails") or {}
     reserved = details.get("reservedQuantity") or {}
     researching = details.get("researchingQuantity") or {}
+    researching_breakdown = researching.get("researchingQuantityBreakdown") if isinstance(researching, dict) else []
+    future_supply = details.get("futureSupplyQuantity") or {}
     unfulfillable = details.get("unfulfillableQuantity") or {}
 
     return {
@@ -177,15 +179,82 @@ def build_snapshot_row(
             if isinstance(reserved, dict)
             else reserved
         ),
+        "reserved_customer_order_quantity": to_int(
+            reserved.get("pendingCustomerOrderQuantity")
+            if isinstance(reserved, dict)
+            else None
+        ),
+        "reserved_fc_transfer_quantity": to_int(
+            reserved.get("pendingTransshipmentQuantity")
+            if isinstance(reserved, dict)
+            else None
+        ),
+        "reserved_fc_processing_quantity": to_int(
+            reserved.get("fcProcessingQuantity")
+            if isinstance(reserved, dict)
+            else None
+        ),
+        "future_supply_buyable_quantity": to_int(
+            future_supply.get("futureSupplyBuyableQuantity")
+            if isinstance(future_supply, dict)
+            else None
+        ),
+        "reserved_future_supply_quantity": to_int(
+            future_supply.get("reservedFutureSupplyQuantity")
+            if isinstance(future_supply, dict)
+            else None
+        ),
         "researching_quantity": to_int(
             researching.get("totalResearchingQuantity")
             if isinstance(researching, dict)
             else researching
         ),
+        "researching_short_term_quantity": researching_quantity_breakdown(
+            researching_breakdown,
+            "researchingQuantityInShortTerm",
+        ),
+        "researching_mid_term_quantity": researching_quantity_breakdown(
+            researching_breakdown,
+            "researchingQuantityInMidTerm",
+        ),
+        "researching_long_term_quantity": researching_quantity_breakdown(
+            researching_breakdown,
+            "researchingQuantityInLongTerm",
+        ),
         "unfulfillable_quantity": to_int(
             unfulfillable.get("totalUnfulfillableQuantity")
             if isinstance(unfulfillable, dict)
             else unfulfillable
+        ),
+        "unfulfillable_customer_damaged_quantity": to_int(
+            unfulfillable.get("customerDamagedQuantity")
+            if isinstance(unfulfillable, dict)
+            else None
+        ),
+        "unfulfillable_warehouse_damaged_quantity": to_int(
+            unfulfillable.get("warehouseDamagedQuantity")
+            if isinstance(unfulfillable, dict)
+            else None
+        ),
+        "unfulfillable_distributor_damaged_quantity": to_int(
+            unfulfillable.get("distributorDamagedQuantity")
+            if isinstance(unfulfillable, dict)
+            else None
+        ),
+        "unfulfillable_carrier_damaged_quantity": to_int(
+            unfulfillable.get("carrierDamagedQuantity")
+            if isinstance(unfulfillable, dict)
+            else None
+        ),
+        "unfulfillable_defective_quantity": to_int(
+            unfulfillable.get("defectiveQuantity")
+            if isinstance(unfulfillable, dict)
+            else None
+        ),
+        "unfulfillable_expired_quantity": to_int(
+            unfulfillable.get("expiredQuantity")
+            if isinstance(unfulfillable, dict)
+            else None
         ),
         "raw_inventory_json": summary,
         "source": "amazon_spapi",
@@ -226,6 +295,15 @@ def clean_text(value: Any) -> str | None:
 def to_int(value: Any) -> int | None:
     if value is None:
         return None
+
+
+def researching_quantity_breakdown(rows: Any, name: str) -> int | None:
+    if not isinstance(rows, list):
+        return None
+    for row in rows:
+        if isinstance(row, dict) and row.get("name") == name:
+            return to_int(row.get("quantity"))
+    return None
     try:
         return int(value)
     except (TypeError, ValueError):
