@@ -140,6 +140,7 @@ Current observed result:
 - Pricing rows now receive a backend-generated manual target price using controlled markdowns against Buy Box/reference price while preserving a cost + 10% floor.
 - Amazon planning 30/90-day shipped-unit fields are now surfaced as a sales velocity signal and tune target markdowns.
 - InventoryLab/MBOP purchase dates are fallback age context only when Amazon planning data is missing.
+- competition drawer rows depend on Keepa snapshots captured with offer-level data; snapshots captured without offers can only show summary competition context.
 
 Impact:
 Rows with missing cost, pricing, Keepa, Informed, or sales context cannot safely produce fully confident repricing-floor recommendations. Pricing-bucket target prices are first-pass advisory values and should be reviewed manually before changing Informed floors or Seller Central prices.
@@ -156,6 +157,7 @@ Current mitigation:
 
 Recommended next mitigation:
 - run staged Keepa sync batches for active Amazon inventory as tokens refill.
+- run targeted Keepa sync with offer detail for high-capital aged ASINs before deep competitor review.
 - add Amazon Product Pricing sync if current/list prices remain sparse.
 - review whether another Informed report exposes rule names instead of only strategy IDs.
 - use Amazon planning data for a while before deciding whether ledger-level available-for-sale inference is worth the complexity.

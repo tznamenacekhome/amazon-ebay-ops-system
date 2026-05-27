@@ -572,6 +572,25 @@ Target prices are manual advisory outputs for Informed.co/Seller Central review.
 
 ---
 
+## Repricing Competition Detail Comes From Stored Keepa Offers First
+
+Decision:
+Use stored Keepa offer-level payloads as the first competition-detail source for the Aged Amazon Inventory page.
+
+Reason:
+The operator needs competitor seller, price, fulfillment, Buy Box, and estimated stock context while reviewing aged inventory. Keepa can provide richer seller/offer detail than the current Amazon FBA inventory and listing snapshots, but Keepa tokens are limited and should not be spent automatically by dashboard page loads.
+
+Implementation:
+- `/api/amazon/repricing-advisor` reads `raw_keepa_json` from the latest Keepa product snapshot.
+- `/repricing` opens a row-level Competition drawer that renders API-provided seller/offer details.
+- if the stored Keepa snapshot does not contain offer-level rows, the drawer shows summary data and recommends targeted Keepa offer sync.
+- Amazon Product Pricing can be added later as a supplemental current-pricing validation source, but it should not replace Keepa as the richer competitor-depth source.
+
+Rule:
+The frontend must not call Keepa directly or trigger token-spending syncs. Keepa competitor data remains read-only catalog intelligence and must not write to purchase, receiving, FBA workflow, Amazon snapshot, or Informed snapshot tables.
+
+---
+
 ## Amazon Inventory Planning Is The Repricing Age Source
 
 Decision:

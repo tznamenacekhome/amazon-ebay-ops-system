@@ -326,6 +326,7 @@ Implemented:
 - backend-owned advisor buckets that separate pricing work, inventory/listing exceptions, and missing data
 - backend-owned target price recommendations for aged pricing rows
 - dense operational table with tier, ASIN/SKU, title, quantity, age, cost, capital, current/list price, Keepa Buy Box, Keepa 90-day average, sales-rank signal, listing issue, recommendation, and reason
+- competition drawer on each row showing stored Keepa offer-level competitor detail when available
 - filters for tier, advisor bucket, age bucket, missing data, issue-only, and Keepa coverage
 
 Backend inputs:
@@ -336,6 +337,7 @@ Backend inputs:
 - InventoryLab active inventory backfill
 - `inventory_positions`
 - latest Keepa product snapshots
+- latest stored Keepa raw offer payload, when snapshots were captured with offer-level data
 - latest Informed Repricer listing snapshots
 
 Current recommendation rules:
@@ -357,6 +359,8 @@ Current recommendation rules:
 - Informed notes flag stale inventory where current price is above Buy Box, min price appears above Buy Box, repricing is disabled, or a rule assignment is missing
 - rows under 90 days old are excluded from the action list unless they have an actionable issue
 - normal inbound/FC-transfer movement is displayed as inventory detail, but is not treated as an operator-action issue by itself
+- competition drawer summarizes FBA/MFN offer counts, observed stock, lowest FBA/MFN price, Buy Box seller, and per-offer seller/fulfillment/price/stock signals from the stored Keepa payload
+- if stored Keepa data only has summary fields, the drawer shows that offer-level data is missing and recommends targeted Keepa offer sync for that ASIN
 
 Latest validation:
 - Next.js production build passed

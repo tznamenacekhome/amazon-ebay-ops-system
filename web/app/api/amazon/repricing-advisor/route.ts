@@ -175,6 +175,35 @@ type KeepaRow = {
   offer_count_current: number | null;
   review_count_current: number | null;
   rating_current: number | null;
+  raw_keepa_json: unknown;
+};
+
+type CompetitionOffer = {
+  seller_id: string | null;
+  seller_name: string | null;
+  fulfillment: "FBA" | "MFN" | "Unknown";
+  landed_price: number | null;
+  item_price: number | null;
+  shipping_price: number | null;
+  stock_quantity: number | null;
+  condition: string | null;
+  is_buy_box_winner: boolean;
+  is_amazon: boolean;
+  is_prime: boolean | null;
+  last_seen: string | null;
+};
+
+type CompetitionSummary = {
+  source: "Keepa offers" | "Keepa summary" | "Missing";
+  note: string;
+  offer_count: number | null;
+  fba_offer_count: number;
+  mfn_offer_count: number;
+  lowest_fba_price: number | null;
+  lowest_mfn_price: number | null;
+  buy_box_seller_id: string | null;
+  buy_box_price: number | null;
+  total_observed_stock: number | null;
 };
 
 type InventoryPositionRow = {
@@ -256,6 +285,8 @@ type AdvisorRow = {
   rating: number | null;
   keepa_captured_at: string | null;
   has_keepa_data: boolean;
+  competition_summary: CompetitionSummary;
+  competition_offers: CompetitionOffer[];
   estimated_capital_tied_up: number | null;
   advisor_bucket: AdvisorBucket;
   recommended_target_price: number | null;
@@ -324,7 +355,7 @@ export async function GET() {
             "buy_box_price_avg90_cents,new_price_current_cents,new_fba_price_current_cents," +
             "sales_rank_current,sales_rank_avg30,sales_rank_avg90,sales_rank_avg180," +
             "sales_rank_drops30,sales_rank_drops90,sales_rank_drops180,offer_count_current," +
-            "review_count_current,rating_current"
+            "review_count_current,rating_current,raw_keepa_json"
         ),
         fetchAll<InventoryPositionRow>(
           "inventory_positions",
@@ -462,6 +493,7 @@ function buildAdvisorRows(
         toOptionalNumber(inventoryLab?.list_price) ??
         null;
       const keepaBuyBoxPrice = centsToDollars(keepa?.buy_box_price_current_cents);
+      const competition = buildCompetitionContext(keepa, keepaBuyBoxPrice);
       const informedBuyBoxPrice = toOptionalNumber(informed?.buy_box_price);
       const marketReferencePrice =
         informedBuyBoxPrice ??
@@ -613,6 +645,8 @@ function buildAdvisorRows(
         rating: toOptionalNumber(keepa?.rating_current),
         keepa_captured_at: keepa?.captured_at ?? null,
         has_keepa_data: !!keepa,
+        competition_summary: competition.summary,
+        competition_offers: competition.offers,
         estimated_capital_tied_up: capitalTiedUp,
         advisor_bucket: recommendation.bucket,
         recommended_target_price: recommendation.targetPrice,
@@ -826,6 +860,234 @@ function recommend(input: {
       input.informedNote
     ),
   };
+}
+
+function buildCompetitionContext(
+  keepa?: KeepaRow,
+  fallbackBuyBoxPrice?: number | null
+): { summary: CompetitionSummary; offers: CompetitionOffer[] } {
+  if (!keepa) {
+    return {
+      summary: {
+        source: "Missing",
+        note: "Keepa snapshot missing; run targeted Keepa sync before reviewing competitors.",
+        offer_count: null,
+        fba_offer_count: 0,
+        mfn_offer_count: 0,
+        lowest_fba_price: null,
+        lowest_mfn_price: null,
+        buy_box_seller_id: null,
+        buy_box_price: fallbackBuyBoxPrice ?? null,
+        total_observed_stock: null,
+      },
+      offers: [],
+    };
+  }
+
+  const rawProduct = firstKeepaProduct(keepa.raw_keepa_json);
+  const stats = isRecord(rawProduct?.stats) ? rawProduct.stats : null;
+  const offersRaw = Array.isArray(rawProduct?.offers) ? rawProduct.offers : [];
+  const buyBoxSellerId =
+    cleanText(lastValue(stats?.buyBoxSellerId)) ??
+    cleanText(lastValue(rawProduct?.buyBoxSellerIdHistory)) ??
+    cleanText(rawProduct?.buyBoxSellerId);
+  const buyBoxPrice =
+    centsToDollars(lastNumeric(stats?.buyBoxPrice)) ??
+    centsToDollars(lastNumeric(rawProduct?.buyBoxPriceHistory)) ??
+    fallbackBuyBoxPrice ??
+    null;
+
+  const offers = offersRaw
+    .map((offer) => parseKeepaOffer(offer, buyBoxSellerId, buyBoxPrice))
+    .filter((offer): offer is CompetitionOffer => offer !== null)
+    .sort((left, right) => {
+      if (left.is_buy_box_winner !== right.is_buy_box_winner) {
+        return left.is_buy_box_winner ? -1 : 1;
+      }
+      return (left.landed_price ?? Number.MAX_SAFE_INTEGER) - (right.landed_price ?? Number.MAX_SAFE_INTEGER);
+    })
+    .slice(0, 25);
+
+  const fbaPrices = offers
+    .filter((offer) => offer.fulfillment === "FBA" && offer.landed_price !== null)
+    .map((offer) => offer.landed_price as number);
+  const mfnPrices = offers
+    .filter((offer) => offer.fulfillment === "MFN" && offer.landed_price !== null)
+    .map((offer) => offer.landed_price as number);
+  const stockValues = offers
+    .map((offer) => offer.stock_quantity)
+    .filter((stock): stock is number => stock !== null);
+
+  if (!offers.length) {
+    return {
+      summary: {
+        source: "Keepa summary",
+        note:
+          "Latest Keepa snapshot has summary data but no offer-level rows; run a targeted Keepa sync with offers for this ASIN.",
+        offer_count: toOptionalNumber(keepa.offer_count_current),
+        fba_offer_count: 0,
+        mfn_offer_count: 0,
+        lowest_fba_price: null,
+        lowest_mfn_price: null,
+        buy_box_seller_id: buyBoxSellerId,
+        buy_box_price: buyBoxPrice,
+        total_observed_stock: null,
+      },
+      offers: [],
+    };
+  }
+
+  return {
+    summary: {
+      source: "Keepa offers",
+      note:
+        "Offer rows come from the latest stored Keepa payload. Seller stock is Keepa-estimated when available and may be capped or incomplete.",
+      offer_count: toOptionalNumber(keepa.offer_count_current) ?? offers.length,
+      fba_offer_count: offers.filter((offer) => offer.fulfillment === "FBA").length,
+      mfn_offer_count: offers.filter((offer) => offer.fulfillment === "MFN").length,
+      lowest_fba_price: fbaPrices.length ? roundMoney(Math.min(...fbaPrices)) : null,
+      lowest_mfn_price: mfnPrices.length ? roundMoney(Math.min(...mfnPrices)) : null,
+      buy_box_seller_id: buyBoxSellerId,
+      buy_box_price: buyBoxPrice,
+      total_observed_stock: stockValues.length
+        ? stockValues.reduce((total, stock) => total + stock, 0)
+        : null,
+    },
+    offers,
+  };
+}
+
+function firstKeepaProduct(raw: unknown): Record<string, unknown> | null {
+  const root = isRecord(raw) ? raw : null;
+  const products = root && Array.isArray(root.products) ? root.products : null;
+  if (products?.[0] && isRecord(products[0])) return products[0];
+  if (root && Array.isArray(root.offers)) return root;
+  return null;
+}
+
+function parseKeepaOffer(
+  offer: unknown,
+  buyBoxSellerId: string | null,
+  buyBoxPrice: number | null
+): CompetitionOffer | null {
+  if (!isRecord(offer)) return null;
+
+  const sellerId =
+    cleanText(offer.sellerId) ??
+    cleanText(offer.seller_id) ??
+    cleanText(lastValue(offer.sellerIdHistory));
+  const itemPrice =
+    centsToDollars(firstNumber(offer.price, offer.current, offer.lastPrice, offer.offerPrice)) ??
+    centsToDollars(firstOfferCsvPrice(offer.offerCSV));
+  const shippingPrice = centsToDollars(firstNumber(offer.shipping, offer.shippingPrice));
+  const landedPrice =
+    centsToDollars(firstNumber(offer.landedPrice, offer.totalPrice)) ??
+    (itemPrice !== null ? roundMoney(itemPrice + (shippingPrice ?? 0)) : null);
+  const fulfillment = offerFulfillment(offer);
+  const stockQuantity = firstNumber(
+    offer.stock,
+    offer.stockQuantity,
+    offer.quantity,
+    lastNumeric(offer.stockCSV)
+  );
+  const lastSeen = keepaMinutesToIso(firstNumber(offer.lastSeen, lastNumeric(offer.lastSeenHistory)));
+  const condition = keepaConditionName(firstNumber(offer.condition, offer.conditionCode));
+
+  if (!sellerId && landedPrice === null && stockQuantity === null) return null;
+
+  return {
+    seller_id: sellerId,
+    seller_name: cleanText(offer.sellerName) ?? cleanText(offer.seller),
+    fulfillment,
+    landed_price: landedPrice,
+    item_price: itemPrice,
+    shipping_price: shippingPrice,
+    stock_quantity: stockQuantity,
+    condition,
+    is_buy_box_winner:
+      (sellerId !== null && buyBoxSellerId !== null && sellerId === buyBoxSellerId) ||
+      (buyBoxPrice !== null && landedPrice !== null && Math.abs(landedPrice - buyBoxPrice) < 0.01),
+    is_amazon:
+      sellerId === "ATVPDKIKX0DER" ||
+      String(cleanText(offer.sellerName) ?? "").toLowerCase() === "amazon",
+    is_prime: toOptionalBoolean(offer.isPrime ?? offer.prime),
+    last_seen: lastSeen,
+  };
+}
+
+function offerFulfillment(offer: Record<string, unknown>): "FBA" | "MFN" | "Unknown" {
+  const isFba = toOptionalBoolean(offer.isFBA ?? offer.fba ?? offer.isFulfilledByAmazon);
+  if (isFba === true) return "FBA";
+  if (isFba === false) return "MFN";
+
+  const text = cleanText(offer.fulfillmentChannel ?? offer.fulfillment);
+  if (!text) return "Unknown";
+  if (text.toUpperCase().includes("AMAZON") || text.toUpperCase() === "FBA") return "FBA";
+  if (text.toUpperCase().includes("MERCHANT") || text.toUpperCase() === "MFN") return "MFN";
+  return "Unknown";
+}
+
+function firstOfferCsvPrice(value: unknown) {
+  if (!Array.isArray(value)) return null;
+  for (let index = value.length - 1; index >= 0; index -= 1) {
+    const price = Number(value[index]);
+    if (Number.isFinite(price) && price > 0) return price;
+  }
+  return null;
+}
+
+function firstNumber(...values: unknown[]) {
+  for (const value of values) {
+    const number = toOptionalNumber(value);
+    if (number !== null) return number;
+  }
+  return null;
+}
+
+function lastNumeric(value: unknown) {
+  if (Array.isArray(value)) {
+    for (let index = value.length - 1; index >= 0; index -= 1) {
+      const number = toOptionalNumber(value[index]);
+      if (number !== null) return number;
+    }
+    return null;
+  }
+  return toOptionalNumber(value);
+}
+
+function lastValue(value: unknown) {
+  if (Array.isArray(value)) {
+    for (let index = value.length - 1; index >= 0; index -= 1) {
+      if (value[index] !== null && value[index] !== undefined && value[index] !== "") {
+        return value[index];
+      }
+    }
+    return null;
+  }
+  return value ?? null;
+}
+
+function keepaMinutesToIso(value: number | null) {
+  if (value === null || value <= 0) return null;
+  const keepaEpoch = Date.UTC(2011, 0, 1, 0, 0, 0);
+  return new Date(keepaEpoch + value * 60_000).toISOString();
+}
+
+function keepaConditionName(value: number | null) {
+  if (value === null) return null;
+  const labels: Record<number, string> = {
+    0: "New",
+    1: "Used - Like New",
+    2: "Used - Very Good",
+    3: "Used - Good",
+    4: "Used - Acceptable",
+    5: "Collectible - Like New",
+    6: "Collectible - Very Good",
+    7: "Collectible - Good",
+    8: "Collectible - Acceptable",
+    9: "Refurbished",
+  };
+  return labels[value] ?? `Condition ${value}`;
 }
 
 function needsData(reason: string) {
@@ -1206,6 +1468,16 @@ function toOptionalNumber(value: unknown) {
   return Number.isFinite(number) ? number : null;
 }
 
+function toOptionalBoolean(value: unknown) {
+  if (value === null || value === undefined || value === "") return null;
+  if (typeof value === "boolean") return value;
+  if (typeof value === "number") return value === 1 ? true : value === 0 ? false : null;
+  const text = String(value).trim().toLowerCase();
+  if (["true", "yes", "y", "1"].includes(text)) return true;
+  if (["false", "no", "n", "0"].includes(text)) return false;
+  return null;
+}
+
 function roundMoney(value: number) {
   return Math.round(value * 100) / 100;
 }
@@ -1219,6 +1491,10 @@ function cleanText(value: unknown) {
 function normalizeAsin(value: unknown) {
   const text = cleanText(value)?.toUpperCase();
   return text && text.length === 10 ? text : null;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
 function dateOnly(value?: string | null) {

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { RefreshCw } from "lucide-react";
+import { RefreshCw, X } from "lucide-react";
 
 type RecommendationTier =
   | "Healthy"
@@ -29,6 +29,34 @@ type AmazonAgeBucket =
   | "181-270"
   | "271-365"
   | "365+";
+
+type CompetitionOffer = {
+  seller_id: string | null;
+  seller_name: string | null;
+  fulfillment: "FBA" | "MFN" | "Unknown";
+  landed_price: number | null;
+  item_price: number | null;
+  shipping_price: number | null;
+  stock_quantity: number | null;
+  condition: string | null;
+  is_buy_box_winner: boolean;
+  is_amazon: boolean;
+  is_prime: boolean | null;
+  last_seen: string | null;
+};
+
+type CompetitionSummary = {
+  source: "Keepa offers" | "Keepa summary" | "Missing";
+  note: string;
+  offer_count: number | null;
+  fba_offer_count: number;
+  mfn_offer_count: number;
+  lowest_fba_price: number | null;
+  lowest_mfn_price: number | null;
+  buy_box_seller_id: string | null;
+  buy_box_price: number | null;
+  total_observed_stock: number | null;
+};
 
 type AdvisorRow = {
   asin: string | null;
@@ -96,6 +124,8 @@ type AdvisorRow = {
   rating: number | null;
   keepa_captured_at: string | null;
   has_keepa_data: boolean;
+  competition_summary: CompetitionSummary;
+  competition_offers: CompetitionOffer[];
   estimated_capital_tied_up: number | null;
   advisor_bucket: AdvisorBucket;
   recommended_target_price: number | null;
@@ -158,6 +188,7 @@ export default function RepricingPage() {
   const [missingOnly, setMissingOnly] = useState(false);
   const [issueOnly, setIssueOnly] = useState(false);
   const [keepaFilter, setKeepaFilter] = useState<"all" | "has" | "missing">("all");
+  const [competitionRow, setCompetitionRow] = useState<AdvisorRow | null>(null);
 
   useEffect(() => {
     loadAdvisor();
@@ -346,6 +377,13 @@ export default function RepricingPage() {
                     <td className="px-3 py-2">
                       <div className="font-medium text-blue-700">{row.asin ?? "--"}</div>
                       <div className="text-xs text-slate-500">{row.seller_sku}</div>
+                      <button
+                        type="button"
+                        onClick={() => setCompetitionRow(row)}
+                        className="mt-2 rounded border border-slate-300 bg-white px-2 py-1 text-xs font-medium text-slate-700 hover:bg-slate-50"
+                      >
+                        Competition
+                      </button>
                     </td>
                     <td className="w-[340px] px-3 py-2">
                       <div className="line-clamp-2 font-medium leading-snug">{row.title}</div>
@@ -443,8 +481,153 @@ export default function RepricingPage() {
           </table>
         </div>
       </section>
+      {competitionRow ? (
+        <CompetitionDrawer row={competitionRow} onClose={() => setCompetitionRow(null)} />
+      ) : null}
     </main>
   );
+}
+
+function CompetitionDrawer({
+  row,
+  onClose,
+}: {
+  row: AdvisorRow;
+  onClose: () => void;
+}) {
+  const summary = row.competition_summary;
+
+  return (
+    <div className="fixed inset-0 z-40 bg-slate-950/25" role="dialog" aria-modal="true">
+      <aside className="ml-auto flex h-full w-full max-w-5xl flex-col bg-white shadow-xl">
+        <div className="border-b border-slate-200 p-4">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                Competition
+              </div>
+              <h2 className="mt-1 text-xl font-semibold text-slate-950">{row.asin ?? "--"}</h2>
+              <p className="mt-1 max-w-3xl text-sm text-slate-600">{row.title}</p>
+            </div>
+            <button
+              type="button"
+              onClick={onClose}
+              className="rounded-md border border-slate-300 p-2 text-slate-600 hover:bg-slate-50"
+              aria-label="Close competition drawer"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </div>
+          <div className="mt-4 grid gap-3 md:grid-cols-4">
+            <DrawerMetric label="Source" value={summary.source} />
+            <DrawerMetric label="Offers" value={formatNumber(summary.offer_count)} />
+            <DrawerMetric
+              label="Lowest FBA / MFN"
+              value={`${formatMoney(summary.lowest_fba_price)} / ${formatMoney(summary.lowest_mfn_price)}`}
+            />
+            <DrawerMetric label="Observed Stock" value={formatNumber(summary.total_observed_stock)} />
+          </div>
+          <div className="mt-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+            {summary.note}
+          </div>
+        </div>
+
+        <div className="min-h-0 flex-1 overflow-auto p-4">
+          <div className="mb-3 grid gap-3 text-sm md:grid-cols-4">
+            <InfoPair label="Buy Box" value={formatMoney(summary.buy_box_price)} />
+            <InfoPair label="Buy Box Seller" value={summary.buy_box_seller_id ?? "--"} />
+            <InfoPair label="FBA Offers" value={formatNumber(summary.fba_offer_count)} />
+            <InfoPair label="MFN Offers" value={formatNumber(summary.mfn_offer_count)} />
+          </div>
+
+          <div className="overflow-hidden rounded-md border border-slate-200">
+            <table className="w-full min-w-[900px] text-left text-sm">
+              <thead className="bg-slate-50 text-xs uppercase text-slate-500">
+                <tr>
+                  <th className="px-3 py-2">Seller</th>
+                  <th className="px-3 py-2">Fulfillment</th>
+                  <th className="px-3 py-2 text-right">Landed</th>
+                  <th className="px-3 py-2 text-right">Item / Ship</th>
+                  <th className="px-3 py-2 text-right">Stock</th>
+                  <th className="px-3 py-2">Condition</th>
+                  <th className="px-3 py-2">Signals</th>
+                  <th className="px-3 py-2">Last Seen</th>
+                </tr>
+              </thead>
+              <tbody>
+                {row.competition_offers.length ? (
+                  row.competition_offers.map((offer, index) => (
+                    <tr
+                      key={`${offer.seller_id ?? "seller"}-${index}`}
+                      className="border-t border-slate-100 align-top"
+                    >
+                      <td className="px-3 py-2">
+                        <div className="font-medium">{offer.seller_name ?? offer.seller_id ?? "--"}</div>
+                        {offer.seller_name && offer.seller_id ? (
+                          <div className="text-xs text-slate-500">{offer.seller_id}</div>
+                        ) : null}
+                      </td>
+                      <td className="px-3 py-2">{offer.fulfillment}</td>
+                      <td className="px-3 py-2 text-right font-medium">
+                        {formatMoney(offer.landed_price)}
+                      </td>
+                      <td className="px-3 py-2 text-right text-xs text-slate-600">
+                        {formatMoney(offer.item_price)} / {formatMoney(offer.shipping_price)}
+                      </td>
+                      <td className="px-3 py-2 text-right">{formatNumber(offer.stock_quantity)}</td>
+                      <td className="px-3 py-2">{offer.condition ?? "--"}</td>
+                      <td className="px-3 py-2">
+                        <div className="flex flex-wrap gap-1">
+                          {offer.is_buy_box_winner ? <Pill label="Buy Box" tone="green" /> : null}
+                          {offer.is_amazon ? <Pill label="Amazon" tone="blue" /> : null}
+                          {offer.is_prime ? <Pill label="Prime" tone="slate" /> : null}
+                        </div>
+                      </td>
+                      <td className="px-3 py-2 text-slate-600">{formatDateTime(offer.last_seen)}</td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td className="px-3 py-8 text-center text-slate-500" colSpan={8}>
+                      No offer-level competition rows are stored for this ASIN yet.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </aside>
+    </div>
+  );
+}
+
+function DrawerMetric({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2">
+      <div className="text-xs font-medium uppercase text-slate-500">{label}</div>
+      <div className="mt-1 font-semibold text-slate-950">{value}</div>
+    </div>
+  );
+}
+
+function InfoPair({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <span className="text-xs font-medium uppercase text-slate-500">{label}</span>
+      <div className="font-semibold text-slate-950">{value}</div>
+    </div>
+  );
+}
+
+function Pill({ label, tone }: { label: string; tone: "green" | "blue" | "slate" }) {
+  const toneClass =
+    tone === "green"
+      ? "border-green-200 bg-green-50 text-green-700"
+      : tone === "blue"
+        ? "border-blue-200 bg-blue-50 text-blue-700"
+        : "border-slate-200 bg-slate-50 text-slate-700";
+  return <span className={`rounded border px-1.5 py-0.5 text-xs ${toneClass}`}>{label}</span>;
 }
 
 function PriceLine({ label, value, detail }: { label: string; value: string; detail?: string }) {
@@ -545,4 +728,16 @@ function formatPct(value?: number | null) {
   if (value === null || value === undefined || !Number.isFinite(Number(value))) return "--";
   const sign = value > 0 ? "+" : "";
   return `${sign}${value.toFixed(1)}%`;
+}
+
+function formatDateTime(value?: string | null) {
+  if (!value) return "--";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "--";
+  return new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  }).format(date);
 }
