@@ -235,106 +235,36 @@ export default function DashboardPage() {
         </div>
       )}
 
-      <section className="mb-4 grid gap-3 md:grid-cols-3">
-        <MetricCard
-          label="Total Units"
-          value={loading ? "--" : formatNumber(data?.totals.units)}
-        />
-        <MetricCard
-          label="Total Cost"
-          value={loading ? "--" : formatMoney(data?.totals.cost)}
-        />
-        <MetricCard
-          label="Months"
-          value={loading ? "--" : formatNumber(data?.months.length)}
-        />
-      </section>
-
-      <section className="mb-4 grid gap-3 lg:grid-cols-4">
-        <OperationalPanel
-          title="Purchase Completeness"
-          rows={[
-            ["Active units", formatNumber(data?.operations.purchaseCompleteness.active_units)],
-            ["Needs review units", formatNumber(data?.operations.purchaseCompleteness.needs_review_units)],
-            ["Missing ASIN rows", formatNumber(data?.operations.purchaseCompleteness.missing_asin_rows)],
-            ["Missing sell price rows", formatNumber(data?.operations.purchaseCompleteness.missing_sell_price_rows)],
-            ["Missing system rows", formatNumber(data?.operations.purchaseCompleteness.missing_system_rows)],
-            ["Missing Amazon title rows", formatNumber(data?.operations.purchaseCompleteness.missing_amazon_title_rows)],
-          ]}
-          loading={loading}
-        />
-        <OperationalPanel
-          title="Receiving Backlog"
-          rows={[
-            ["Rows", formatNumber(data?.operations.receivingBacklog.rows)],
-            ["Units", formatNumber(data?.operations.receivingBacklog.units)],
-            ["Oldest age", formatDays(data?.operations.receivingBacklog.oldest_age_days)],
-          ]}
-          loading={loading}
-        />
-        <OperationalPanel
-          title="Shipment Prep Backlog"
-          rows={[
-            ["Rows", formatNumber(data?.operations.shipmentPrepBacklog.rows)],
-            ["Units", formatNumber(data?.operations.shipmentPrepBacklog.units)],
-            ["Total cost", formatMoney(data?.operations.shipmentPrepBacklog.total_cost)],
-            ["Blocked rows", formatNumber(data?.operations.shipmentPrepBacklog.blocked_rows)],
-            ["Oldest age", formatDays(data?.operations.shipmentPrepBacklog.oldest_age_days)],
-          ]}
-          loading={loading}
-        />
-        <OperationalPanel
-          title="Inventory State"
-          rows={[
-            ["Purchased not received", formatNumber(data?.operations.inventoryState.purchased_not_received_units)],
-            ["Received", formatNumber(data?.operations.inventoryState.received_units)],
-            ["Listed", formatNumber(data?.operations.inventoryState.listed_units)],
-            ["Return/cancel", formatNumber(data?.operations.inventoryState.return_or_cancel_units)],
-          ]}
-          loading={loading}
-        />
-      </section>
-
       <section className="mb-4 rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-        <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
+        <div className="mb-3">
           <div>
             <div className="text-sm font-medium uppercase tracking-wide text-slate-500">
               Inventory Visibility
             </div>
             <h2 className="mt-1 text-lg font-semibold">
-              Operational Inventory And Reconciliation
+              Inventory Value And Location
             </h2>
-          </div>
-          <div className="text-right text-xs text-slate-500">
-            <div>Latest reconciliation</div>
-            <div className="font-medium text-slate-700">
-              {loading
-                ? "--"
-                : formatDateTime(data?.inventoryVisibility.latestReconciliation?.completed_at)}
-            </div>
+            <p className="mt-1 text-sm text-slate-600">
+              Current business inventory value by where the units physically are or where cash is held.
+            </p>
           </div>
         </div>
 
-        <div className="mb-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+        <div className="mb-4 grid gap-3 sm:grid-cols-3">
           <InlineMetric
             label="Canonical Units"
             value={loading ? "--" : formatNumber(data?.inventoryVisibility.metrics.canonical_inventory_units)}
+            detail="Amazon FBA inventory plus MBOP purchase inventory before Listed."
           />
           <InlineMetric
-            label="Ready For Amazon"
-            value={loading ? "--" : formatNumber(data?.inventoryVisibility.metrics.assigned_to_amazon_not_sent_units)}
-          />
-          <InlineMetric
-            label="Amazon Sellable"
+            label="Amazon FBA Sellable"
             value={loading ? "--" : formatNumber(data?.inventoryVisibility.metrics.amazon_active_sellable_units)}
-          />
-          <InlineMetric
-            label="Needs Reconcile"
-            value={loading ? "--" : formatNumber(data?.inventoryVisibility.metrics.open_reconciliation_findings)}
+            detail="Units Amazon reports as fulfillable/sellable in the latest FBA inventory snapshot."
           />
           <InlineMetric
             label="MBOP Cost Basis"
             value={loading ? "--" : formatMoney(data?.inventoryVisibility.metrics.estimated_mbop_cost_basis)}
+            detail="Backend rollup using InventoryLab opening value plus MBOP costs."
           />
         </div>
 
@@ -351,7 +281,7 @@ export default function DashboardPage() {
           />
         </div>
 
-        <div className="grid gap-4 xl:grid-cols-[minmax(0,0.75fr)_minmax(0,1.25fr)]">
+        <div className="hidden">
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-1">
             <InventoryMiniTable
               title="State Counts"
@@ -432,6 +362,41 @@ export default function DashboardPage() {
         </div>
       </section>
 
+      <section className="mb-4 grid gap-3 lg:grid-cols-3">
+        <OperationalPanel
+          title="Purchase Completeness"
+          rows={[
+            ["Active units", formatNumber(data?.operations.purchaseCompleteness.active_units)],
+            ["Missing data units", formatNumber(data?.operations.purchaseCompleteness.needs_review_units)],
+            ["Missing ASIN rows", formatNumber(data?.operations.purchaseCompleteness.missing_asin_rows)],
+            ["Missing sell price rows", formatNumber(data?.operations.purchaseCompleteness.missing_sell_price_rows)],
+            ["Missing system rows", formatNumber(data?.operations.purchaseCompleteness.missing_system_rows)],
+            ["Missing Amazon title rows", formatNumber(data?.operations.purchaseCompleteness.missing_amazon_title_rows)],
+          ]}
+          loading={loading}
+        />
+        <OperationalPanel
+          title="Receiving Backlog"
+          rows={[
+            ["Rows", formatNumber(data?.operations.receivingBacklog.rows)],
+            ["Units", formatNumber(data?.operations.receivingBacklog.units)],
+            ["Oldest age", formatDays(data?.operations.receivingBacklog.oldest_age_days)],
+          ]}
+          loading={loading}
+        />
+        <OperationalPanel
+          title="Shipment Prep Backlog"
+          rows={[
+            ["Rows", formatNumber(data?.operations.shipmentPrepBacklog.rows)],
+            ["Units", formatNumber(data?.operations.shipmentPrepBacklog.units)],
+            ["Total cost", formatMoney(data?.operations.shipmentPrepBacklog.total_cost)],
+            ["Blocked rows", formatNumber(data?.operations.shipmentPrepBacklog.blocked_rows)],
+            ["Oldest age", formatDays(data?.operations.shipmentPrepBacklog.oldest_age_days)],
+          ]}
+          loading={loading}
+        />
+      </section>
+
       <section className="mb-4 grid gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
         <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
           <div className="mb-3">
@@ -459,7 +424,11 @@ export default function DashboardPage() {
             <div className="text-sm font-medium uppercase tracking-wide text-slate-500">
               Missing / Exception Visibility
             </div>
-            <h2 className="mt-1 text-lg font-semibold">Attention Counts</h2>
+            <h2 className="mt-1 text-lg font-semibold">Order Problem Counts</h2>
+            <p className="mt-1 text-sm text-slate-600">
+              Past ETA means supplier delivery is late, tracking stale means no usable carrier progress after a week,
+              and exceptions are carrier or return statuses that need operator follow-up.
+            </p>
           </div>
           <div className="grid gap-3 sm:grid-cols-3">
             <InlineMetric
@@ -467,7 +436,7 @@ export default function DashboardPage() {
               value={loading ? "--" : formatNumber(data?.operations.exceptions.overdue_units)}
             />
             <InlineMetric
-              label="Tracking Stale"
+              label="Tracking stale/no tracking"
               value={loading ? "--" : formatNumber(data?.operations.exceptions.aged_no_tracking_units)}
             />
             <InlineMetric
@@ -478,7 +447,7 @@ export default function DashboardPage() {
         </div>
       </section>
 
-      <section className="mb-4 rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+      <section className="hidden">
         <div className="mb-3">
           <div className="text-sm font-medium uppercase tracking-wide text-slate-500">
             Item Status
@@ -513,7 +482,7 @@ export default function DashboardPage() {
         )}
       </section>
 
-      <section className="mb-4 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
+      <section className="hidden">
         <div className="border-b border-slate-200 px-4 py-3">
           <div className="text-sm font-medium uppercase tracking-wide text-slate-500">
             Operational Attention
@@ -676,7 +645,7 @@ function LocationValueTable({
   return (
     <div className="overflow-hidden rounded-md border border-slate-200">
       <div className="border-b border-slate-200 bg-slate-50 px-3 py-2">
-        <div className="text-sm font-semibold">Inventory By Location</div>
+        <div className="text-sm font-semibold">Inventory Value By Location</div>
         <div className="text-xs text-slate-500">Units and cost basis by operational location</div>
       </div>
       <table className="w-full text-sm">
@@ -982,13 +951,22 @@ function MetricCard({ label, value }: { label: string; value?: string }) {
   );
 }
 
-function InlineMetric({ label, value }: { label: string; value?: string }) {
+function InlineMetric({
+  label,
+  value,
+  detail,
+}: {
+  label: string;
+  value?: string;
+  detail?: string;
+}) {
   return (
     <div>
       <div className="text-xs font-medium uppercase tracking-wide text-slate-500">
         {label}
       </div>
       <div className="mt-1 text-2xl font-semibold">{value || "--"}</div>
+      {detail ? <div className="mt-1 text-xs text-slate-500">{detail}</div> : null}
     </div>
   );
 }

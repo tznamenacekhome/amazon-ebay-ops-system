@@ -859,3 +859,24 @@ Implementation:
 
 Future workflow:
 The return/refund workflow must include Cancelled items and track refund received / refund missing outcomes.
+
+---
+
+## Dashboard Separates Value, Problems, And Reconciliation
+
+Decision:
+Keep the main dashboard focused on inventory/cash value and operational backlog counts, and move detailed inventory reconciliation findings to a dedicated Reconciliation page.
+
+Reason:
+The dashboard was mixing value summary, purchase cleanup, order problems, and reconciliation rows in one screen. Reconciliation findings have different source semantics and resolution paths than purchase missing-data/order-problem rows, so they should not compete with the main inventory value view.
+
+Implementation:
+- Dashboard starts with Inventory Visibility.
+- The old top Total Units / Total Cost / Months cards were removed.
+- Inventory By Location was renamed Inventory Value By Location.
+- Amazon Sellable is labeled Amazon FBA Sellable and clarified as Amazon-reported fulfillable/sellable units.
+- Open reconciliation findings live on `/inventory-reconciliation`.
+- Purchases review-state filter separates `Missing Data` from `Order Problems`.
+
+Future:
+Order Problems should become a dedicated Purchases view tab with issue/age-focused columns if the filter is not enough for daily work.

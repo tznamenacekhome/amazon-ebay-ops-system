@@ -2,7 +2,14 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BarChart3, PackageCheck, Send, ShoppingCart, TrendingDown } from "lucide-react";
+import {
+  AlertTriangle,
+  BarChart3,
+  PackageCheck,
+  Send,
+  ShoppingCart,
+  TrendingDown,
+} from "lucide-react";
 
 const navItems = [
   {
@@ -29,6 +36,11 @@ const navItems = [
     href: "/repricing",
     label: "Repricing",
     icon: TrendingDown,
+  },
+  {
+    href: "/inventory-reconciliation",
+    label: "Reconciliation",
+    icon: AlertTriangle,
   },
 ];
 

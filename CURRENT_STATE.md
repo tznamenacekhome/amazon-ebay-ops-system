@@ -448,7 +448,7 @@ Status: OPERATIONAL
 
 Implemented:
 - compact shared left-side navigation
-- Dashboard, Purchases, Receiving, and Amazon FBA menu items
+- Dashboard, Purchases, Receiving, Amazon FBA, Repricing, and Reconciliation menu items
 - active mode highlighting
 - content remains dense and table-focused
 - implementation lives in web/app/AppShell.tsx
@@ -463,19 +463,20 @@ Implemented:
 - dashboard workspace at /dashboard
 - dashboard API route at /api/dashboard/purchases
 - monthly purchase units and total cost view grouped by year/month
-- operational unit count by purchase item status
 - pivot-style table inspired by the legacy Excel purchase summary
 - horizontal monthly cost chart for quick outlier/completeness scanning
 - purchase completeness summary for active rows
 - receiving backlog summary for Delivered and Shipped (No Tracking) rows
 - shipment prep backlog summary for Received Amazon-bound FBA candidates
 - workflow aging buckets for receiving and FBA prep
-- operational attention table for past-ETA, stale/no-tracking, exception, return-pending, and missing-data rows
+- order problem counts for past-ETA, stale/no-tracking, and exception/return-pending rows
 - Inventory Visibility section backed by the normalized inventory-position and reconciliation layer
-- inventory metrics for owned/in-flow units, Amazon-ready units, Amazon sellable/inbound/reserved/unsellable units, eBay-assigned units, reconciliation findings, and MBOP cost basis
-- inventory-by-location value table with units and total cost for At Amazon FBA, On the way to Amazon FBA, Received, Ordered and not received yet, and Total
+- dashboard now places Inventory Visibility first and removes the old top Total Units / Total Cost / Months row
+- inventory metrics focus on Canonical Units, Amazon FBA Sellable, and MBOP Cost Basis
+- Inventory Value By Location table with units and total cost for At Amazon FBA, On the way to Amazon FBA, Received, Ordered and not received yet, and Total
 - business inventory/cash value summary showing Amazon/current inbound inventory value, pre-Amazon purchased inventory value, Amazon cash, Amazon-to-bank in-transit cash, YNAB cash-on-hand from the Business category snapshot, and total business value
-- open reconciliation finding table showing issue type, ASIN/SKU, title, MBOP quantity, and Amazon quantity
+- open reconciliation findings moved off the main dashboard to `/inventory-reconciliation`
+- `/inventory-reconciliation` explains finding source and operator follow-up patterns for MBOP/Amazon quantity, stranded, suppressed, unsellable, and mapping issues
 - dashboard excludes Return Opened rows
 - dashboard excludes Cancelled rows
 - dashboard excludes purchase items marked exclude_from_purchase_reporting once the reporting-exclusion SQL migration is applied

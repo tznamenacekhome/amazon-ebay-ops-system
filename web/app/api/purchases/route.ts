@@ -258,6 +258,14 @@ function applyServerFilters(
     }
 
     request = request.or(needsReviewClauses.join(","));
+  } else if (query.asinFilter === "order_problems") {
+    request = request.or(
+      [
+        `and(estimated_delivery_date.lt.${todayDateString()},current_status.not.in.(delivered,received,listed,cancelled,return_opened))`,
+        `and(current_status.in.(no_tracking,shipped_no_tracking,awaiting_carrier_scan),order_date.lte.${daysAgoDateString(7)},order_date.gte.${daysAgoDateString(90)})`,
+        "current_status.in.(exception,return_pending)",
+      ].join(",")
+    );
   }
 
   if (query.searchText) {
@@ -298,6 +306,20 @@ function purchaseSortColumn(column: string) {
 
 function escapeIlike(value: string) {
   return value.replace(/[%_,]/g, "\\$&");
+}
+
+function todayDateString() {
+  return dateStringDaysAgo(0);
+}
+
+function daysAgoDateString(days: number) {
+  return dateStringDaysAgo(days);
+}
+
+function dateStringDaysAgo(days: number) {
+  const date = new Date();
+  date.setUTCDate(date.getUTCDate() - days);
+  return date.toISOString().slice(0, 10);
 }
 
 async function fetchPurchaseStats(

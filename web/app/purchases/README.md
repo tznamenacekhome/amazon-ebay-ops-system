@@ -20,9 +20,12 @@ This folder contains the Midnight Blue Operations Platform purchases workflow UI
 - Shipment dates are formatted as date-only values to avoid UTC/local timezone day shifts.
 - Status displays backend-normalized `purchase_items.current_status`, not raw carrier text.
 - Table headers send sort changes to `/api/purchases`.
-- Cancelled, return, listed, and reporting-excluded rows are excluded from the Needs Review ASIN filter and metric.
+- Cancelled, return, listed, and reporting-excluded rows are excluded from the Missing Data filter and metric.
 - The status filter includes workflow statuses such as `Received`, `Listed`, `Return Pending`, `Return Opened`, and `Cancelled`.
 - The default status filter is `All Except Listed`; `All Status` includes Listed rows when full history is needed.
+- The review-state filter separates `Missing Data` from `Order Problems`.
+- `Missing Data` catches missing ASIN, missing sell price, missing system, and missing Amazon title for ASIN-bearing active rows.
+- `Order Problems` catches past-ETA rows, stale/no-tracking rows between 7 and 90 days old, carrier exceptions, and return-pending rows.
 - The search input has an inline clear button.
 
 ## Detail Drawer Display

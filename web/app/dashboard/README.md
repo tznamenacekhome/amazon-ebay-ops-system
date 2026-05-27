@@ -1,13 +1,16 @@
 # Dashboard Workspace
 
-The Dashboard workspace is the first MBOP reporting view for purchase data completeness and cost accuracy.
+The Dashboard workspace is the MBOP operational value and backlog view.
 
 ## Routes
 
 - UI: `/dashboard`
 - API: `/api/dashboard/purchases`
+- Reconciliation work queue UI: `/inventory-reconciliation`
 
 ## Current Reports
+
+The dashboard puts Inventory Visibility first and shows inventory/cash value before purchase-history reporting. The top-level total-units, total-cost, and months cards were removed because those totals are already represented in the lower monthly/pivot sections.
 
 The dashboard shows purchase units and purchase cost by year/month, excluding purchase items with `current_status = return_opened`, `current_status = cancelled`, or `exclude_from_purchase_reporting = true`.
 
@@ -22,6 +25,10 @@ The API reads `vw_purchases_dashboard` and aggregates:
 - workflow aging buckets for receiving and FBA prep
 - exception visibility: past-ETA rows, stale/no-tracking rows, exception rows, and return-pending rows
 - stale/no-tracking visibility ignores rows more than 90 days old because those historical tracking gaps are not actionable
+- order problem counts:
+  - Past ETA: supplier delivery estimate has passed and the item is not delivered/received/listed/cancelled/return-opened
+  - Tracking stale/no tracking: no usable carrier movement after a week, excluding rows older than 90 days
+  - Exceptions: carrier exception or return-pending statuses requiring operator follow-up
 
 `unit_cost` is the authoritative backend landed-cost value. Dashboard React components should render API-provided aggregates and should not introduce their own landed-cost calculations.
 
@@ -36,6 +43,11 @@ Inventory value semantics:
 - the business inventory/cash value total is API-provided and sums Amazon inventory value, pre-Amazon purchased inventory value, Amazon cash, Amazon-to-bank in-transit cash, and YNAB cash on hand
 - total business value is snapshotted once per day in `business_value_snapshots`
 - clicking the total value opens a modal graph backed by API-provided snapshot history
+
+Inventory reconciliation:
+- open reconciliation findings are not shown on the main dashboard
+- `/inventory-reconciliation` is the dedicated work queue for normalized inventory-position findings against external snapshots such as Amazon FBA
+- reconciliation findings are investigation prompts; fixes should be made in the owning workflow/source data, not by editing the finding row
 
 Cost semantics:
 - reward points and payment method effects should not zero out resale inventory cost

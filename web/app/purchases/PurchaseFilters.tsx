@@ -48,9 +48,10 @@ export function PurchaseFilters({
           onChange={(event) => onAsinFilterChange(event.target.value)}
           className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
         >
-          <option value="all">All ASINs</option>
+          <option value="all">All Review States</option>
           <option value="matched">Matched ASINs</option>
-          <option value="needs_review">Needs Review</option>
+          <option value="needs_review">Missing Data</option>
+          <option value="order_problems">Order Problems</option>
         </select>
 
         <select
