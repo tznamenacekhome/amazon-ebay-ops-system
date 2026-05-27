@@ -333,7 +333,7 @@ export async function GET() {
       informedRows,
       informedRuleOverrides,
       inventoryLabRows,
-      keepaRows,
+      keepaSummaryRows,
       positionRows,
       snoozeRows,
     ] = await Promise.all([
@@ -388,7 +388,7 @@ export async function GET() {
             "buy_box_price_avg90_cents,new_price_current_cents,new_fba_price_current_cents," +
             "sales_rank_current,sales_rank_avg30,sales_rank_avg90,sales_rank_avg180," +
             "sales_rank_drops30,sales_rank_drops90,sales_rank_drops180,offer_count_current," +
-            "review_count_current,rating_current,raw_keepa_json"
+            "review_count_current,rating_current"
         ),
         fetchAll<InventoryPositionRow>(
           "inventory_positions",
@@ -401,6 +401,22 @@ export async function GET() {
         ),
       ]);
 
+    const preliminaryRows = buildAdvisorRows(
+      inventoryRows,
+      keyBySku(skuRows),
+      keyBySku(listingRows),
+      keyBySku(planningRows),
+      keyBySellerSku(informedRows),
+      keyByInformedRuleId(informedRuleOverrides),
+      keyBySellerSku(inventoryLabRows),
+      keyByAsin(keepaSummaryRows),
+      aggregatePositions(positionRows),
+      activeSnoozesBySku(snoozeRows)
+    );
+    const advisorAsins = Array.from(
+      new Set(preliminaryRows.map((row) => row.asin).filter((asin): asin is string => Boolean(asin)))
+    );
+    const keepaRawRows = await fetchLatestKeepaRawRows(advisorAsins);
     const rows = buildAdvisorRows(
       inventoryRows,
       keyBySku(skuRows),
@@ -409,7 +425,7 @@ export async function GET() {
       keyBySellerSku(informedRows),
       keyByInformedRuleId(informedRuleOverrides),
       keyBySellerSku(inventoryLabRows),
-      keyByAsin(keepaRows),
+      keyByAsin(mergeKeepaRawRows(keepaSummaryRows, keepaRawRows)),
       aggregatePositions(positionRows),
       activeSnoozesBySku(snoozeRows)
     );
@@ -500,6 +516,45 @@ async function fetchAll<T>(table: string, select: string): Promise<T[]> {
     if (!data || data.length < pageSize) return rows;
     offset += pageSize;
   }
+}
+
+async function fetchLatestKeepaRawRows(asins: string[]): Promise<Array<Pick<KeepaRow, "asin" | "captured_at" | "raw_keepa_json">>> {
+  const latestByAsin = new Map<string, Pick<KeepaRow, "asin" | "captured_at" | "raw_keepa_json">>();
+  for (const chunk of chunkArray(asins, 25)) {
+    const { data, error } = await supabase
+      .from("keepa_product_snapshots")
+      .select("asin,captured_at,raw_keepa_json")
+      .in("asin", chunk)
+      .order("captured_at", { ascending: false });
+
+    if (error) throw new Error(`keepa_product_snapshots: ${error.message}`);
+
+    for (const row of (data ?? []) as Array<Pick<KeepaRow, "asin" | "captured_at" | "raw_keepa_json">>) {
+      if (!latestByAsin.has(row.asin)) {
+        latestByAsin.set(row.asin, row);
+      }
+    }
+  }
+  return Array.from(latestByAsin.values());
+}
+
+function mergeKeepaRawRows(
+  summaryRows: KeepaRow[],
+  rawRows: Array<Pick<KeepaRow, "asin" | "captured_at" | "raw_keepa_json">>
+) {
+  const rawByAsin = keyByAsin(rawRows);
+  return summaryRows.map((row) => {
+    const raw = rawByAsin.get(row.asin);
+    return raw ? { ...row, raw_keepa_json: raw.raw_keepa_json } : row;
+  });
+}
+
+function chunkArray<T>(values: T[], size: number) {
+  const chunks: T[][] = [];
+  for (let index = 0; index < values.length; index += size) {
+    chunks.push(values.slice(index, index + size));
+  }
+  return chunks;
 }
 
 function buildAdvisorRows(
