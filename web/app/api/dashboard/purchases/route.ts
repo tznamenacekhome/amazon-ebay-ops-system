@@ -108,8 +108,11 @@ type BusinessInventoryValueSummary = {
   amazon_inventory_value: number;
   pre_amazon_inventory_value: number;
   amazon_cash_balance: number | null;
+  amazon_cash_in_transit: number | null;
   cash_on_hand: number | null;
+  total_business_value: number;
   amazon_cash_source: string;
+  amazon_cash_in_transit_source: string;
   cash_on_hand_source: string;
 };
 
@@ -121,6 +124,14 @@ type InventoryLabValuationSummary = {
 
 type YnabCashBalanceSummary = {
   balance: number;
+  source: string;
+} | null;
+
+type AmazonFinanceBalanceSummary = {
+  total_amazon_cash: number | null;
+  available_to_withdraw: number | null;
+  in_transit_to_bank: number | null;
+  deferred_or_reserved_cash: number | null;
   source: string;
 } | null;
 
@@ -445,13 +456,21 @@ function aggregateOperations(rows: DashboardPurchaseRow[]) {
 }
 
 async function fetchInventoryVisibility() {
-  const [summaryRows, openItems, latestEvent, inventoryLabValuation, ynabCashBalance] =
+  const [
+    summaryRows,
+    openItems,
+    latestEvent,
+    inventoryLabValuation,
+    ynabCashBalance,
+    amazonFinanceBalance,
+  ] =
     await Promise.all([
     fetchInventoryPositionSummary(),
     fetchOpenReconciliationItems(),
     fetchLatestReconciliationEvent(),
     fetchInventoryLabValuationSummary(),
     fetchYnabCashBalanceSummary(),
+    fetchAmazonFinanceBalanceSummary(),
   ]);
 
   const unitsByState = new Map<string, number>();
@@ -543,7 +562,8 @@ async function fetchInventoryVisibility() {
     businessInventoryValue: buildBusinessInventoryValueSummary(
       costByState,
       inventoryLabValuation,
-      ynabCashBalance
+      ynabCashBalance,
+      amazonFinanceBalance
     ),
     unitsByState: Array.from(unitsByState.entries())
       .map(([state, units]) => ({ state, label: inventoryStateLabel(state), units }))
@@ -627,7 +647,8 @@ function buildLocationValueSummary(
 function buildBusinessInventoryValueSummary(
   costByState: Map<string, number>,
   inventoryLabValuation: InventoryLabValuationSummary,
-  ynabCashBalance: YnabCashBalanceSummary
+  ynabCashBalance: YnabCashBalanceSummary,
+  amazonFinanceBalance: AmazonFinanceBalanceSummary
 ): BusinessInventoryValueSummary {
   const amazonAtFbaValue =
     inventoryLabValuation?.total_value ??
@@ -649,15 +670,31 @@ function buildBusinessInventoryValueSummary(
     "received_unassigned",
     "received_assigned_amazon_not_sent",
   ]);
+  const amazonCashBalance = amazonFinanceBalance?.total_amazon_cash ?? null;
+  const amazonCashInTransit = amazonFinanceBalance?.in_transit_to_bank ?? null;
+  const cashOnHand = ynabCashBalance?.balance ?? null;
+  const totalBusinessValue =
+    amazonInventoryValue +
+    preAmazonInventoryValue +
+    (amazonCashBalance ?? 0) +
+    (amazonCashInTransit ?? 0) +
+    (cashOnHand ?? 0);
 
   return {
     amazon_inventory_value: amazonInventoryValue,
     pre_amazon_inventory_value: preAmazonInventoryValue,
-    amazon_cash_balance: null,
-    cash_on_hand: ynabCashBalance?.balance ?? null,
-    amazon_cash_source: inventoryLabValuation
-      ? `InventoryLab valuation opening balance (${inventoryLabValuation.source}) plus MBOP outbound`
-      : "MBOP inventory positions",
+    amazon_cash_balance: amazonCashBalance,
+    amazon_cash_in_transit: amazonCashInTransit,
+    cash_on_hand: cashOnHand,
+    total_business_value: totalBusinessValue,
+    amazon_cash_source: amazonFinanceBalance
+      ? `${amazonFinanceBalance.source}; available/API open ${formatCurrencyNumber(
+          amazonFinanceBalance.available_to_withdraw
+        )}; deferred ${formatCurrencyNumber(amazonFinanceBalance.deferred_or_reserved_cash)}`
+      : "Amazon Finance snapshot missing",
+    amazon_cash_in_transit_source: amazonFinanceBalance
+      ? "Amazon Finance financial event groups with FundTransferStatus = Processing"
+      : "Amazon Finance snapshot missing",
     cash_on_hand_source: ynabCashBalance?.source ?? "YNAB Business category snapshot missing",
   };
 }
@@ -700,7 +737,15 @@ async function fetchYnabCashBalanceSummary(): Promise<YnabCashBalanceSummary> {
     return null;
   }
 
-  const row = (data ?? [])[0];
+  const row = ((data ?? [])[0] ?? null) as unknown as
+    | {
+        plan_name: string | null;
+        category_group_name: string | null;
+        category_name: string | null;
+        balance_currency: unknown;
+        balance_formatted: string | null;
+      }
+    | null;
   if (!row) {
     return null;
   }
@@ -716,6 +761,53 @@ async function fetchYnabCashBalanceSummary(): Promise<YnabCashBalanceSummary> {
       row.category_name ?? "category"
     }${row.balance_formatted ? ` (${row.balance_formatted})` : ""}`,
   };
+}
+
+async function fetchAmazonFinanceBalanceSummary(): Promise<AmazonFinanceBalanceSummary> {
+  const { data, error } = await supabase
+    .from("vw_latest_amazon_finance_balance_snapshot")
+    .select(
+      "currency,total_amazon_cash,available_to_withdraw,in_transit_to_bank," +
+        "deferred_or_reserved_cash,captured_at"
+    )
+    .limit(1);
+
+  if (error) {
+    console.warn("Amazon finance balance lookup failed", error.message);
+    return null;
+  }
+
+  const row = ((data ?? [])[0] ?? null) as unknown as
+    | {
+        total_amazon_cash: unknown;
+        available_to_withdraw: unknown;
+        in_transit_to_bank: unknown;
+        deferred_or_reserved_cash: unknown;
+        captured_at: string | null;
+      }
+    | null;
+  if (!row) {
+    return null;
+  }
+
+  return {
+    total_amazon_cash: nullableNumber(row.total_amazon_cash),
+    available_to_withdraw: nullableNumber(row.available_to_withdraw),
+    in_transit_to_bank: nullableNumber(row.in_transit_to_bank),
+    deferred_or_reserved_cash: nullableNumber(row.deferred_or_reserved_cash),
+    source: `Amazon Finance snapshot ${row.captured_at ?? ""}`.trim(),
+  };
+}
+
+function nullableNumber(value: unknown) {
+  if (value === null || value === undefined) return null;
+  const number = Number(value);
+  return Number.isFinite(number) ? number : null;
+}
+
+function formatCurrencyNumber(value: number | null | undefined) {
+  if (value === null || value === undefined || !Number.isFinite(value)) return "--";
+  return `$${value.toFixed(2)}`;
 }
 
 async function fetchInventoryPositionSummary() {

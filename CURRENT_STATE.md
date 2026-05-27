@@ -474,7 +474,7 @@ Implemented:
 - Inventory Visibility section backed by the normalized inventory-position and reconciliation layer
 - inventory metrics for owned/in-flow units, Amazon-ready units, Amazon sellable/inbound/reserved/unsellable units, eBay-assigned units, reconciliation findings, and MBOP cost basis
 - inventory-by-location value table with units and total cost for At Amazon FBA, On the way to Amazon FBA, Received, Ordered and not received yet, and Total
-- business inventory/cash value summary showing Amazon/current inbound inventory value, pre-Amazon purchased inventory value, future Amazon cash placeholder, and YNAB cash-on-hand from the Business category snapshot
+- business inventory/cash value summary showing Amazon/current inbound inventory value, pre-Amazon purchased inventory value, Amazon cash, Amazon-to-bank in-transit cash, YNAB cash-on-hand from the Business category snapshot, and total business value
 - open reconciliation finding table showing issue type, ASIN/SKU, title, MBOP quantity, and Amazon quantity
 - dashboard excludes Return Opened rows
 - dashboard excludes Cancelled rows
@@ -483,6 +483,8 @@ Implemented:
 - frontend only renders API-provided aggregates and does not recalculate landed cost
 - `integrations/ynab_sync_cash_balance.py` stores the read-only YNAB Business category balance in `ynab_category_balance_snapshots`
 - latest YNAB Business category snapshot currently reports $3,231.24 as cash on hand
+- `integrations/amazon_sync_finance_balances.py` stores read-only Amazon Finance cash snapshots in `amazon_finance_balance_snapshots`
+- latest Amazon Finance snapshot reports $2,923.58 Amazon cash, $2,232.84 Amazon-to-bank in-transit cash, $2,782.76 deferred/reserved cash, and $140.82 API open/available balance
 
 Current purpose:
 Help identify purchase data completeness, receiving backlog, shipment prep backlog, workflow aging, and exception/missing-data visibility from one operational screen.

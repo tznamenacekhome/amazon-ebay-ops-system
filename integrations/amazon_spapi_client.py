@@ -40,6 +40,7 @@ REGION_ENDPOINTS = {
 READ_ONLY_OPERATION_PREFIXES = (
     "/fba/inventory/",
     "/finances/v0/financialEventGroups",
+    "/finances/v0/financialEventGroups/",
     "/finances/2024-06-19/transactions",
     "/listings/2021-08-01/items/",
     "/products/pricing/",

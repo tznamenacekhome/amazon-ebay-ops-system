@@ -709,6 +709,29 @@ YNAB data must stay in YNAB-specific snapshot tables. Do not write YNAB balances
 
 ---
 
+## Amazon Finance Cash Is Separate From Inventory
+
+Decision:
+Use read-only Amazon Finance data to represent value that has moved out of inventory and into Amazon-held cash or Amazon-to-bank in-transit cash.
+
+Reason:
+After Amazon sells and ships an item, the business no longer considers that unit's cost basis part of inventory value. The value should move to Amazon cash once Amazon reports the net proceeds in its payments/finance bucket, and then to cash-in-transit when Amazon sends funds to the bank.
+
+Implementation:
+- `amazon_finance_balance_snapshots` stores point-in-time Amazon Finance balance snapshots.
+- `integrations/amazon_sync_finance_balances.py` reads read-only Finances endpoints only.
+- total Amazon cash is calculated as `DEFERRED` transaction total plus Open financial event group totals.
+- Amazon-to-bank in-transit cash is calculated from financial event groups with `ProcessingStatus = Closed` and `FundTransferStatus = Processing`.
+- dashboard Inventory Visibility reads `vw_latest_amazon_finance_balance_snapshot`.
+
+Known caveat:
+Amazon's API Open financial event group total currently differs from Seller Central's displayed "available to withdraw" amount. MBOP stores the API open amount as `available_to_withdraw` with notes until the UI-only adjustment/reserve source is identified.
+
+Rule:
+Amazon Finance data must stay in Amazon-specific finance snapshot tables. Do not write it into purchases, purchase_items, inventory_positions, Amazon inventory snapshots, or workflow tables.
+
+---
+
 ## ASIN Is The Primary Amazon Inventory Identity
 
 Decision:

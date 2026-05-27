@@ -98,8 +98,11 @@ type InventoryVisibility = {
     amazon_inventory_value: number;
     pre_amazon_inventory_value: number;
     amazon_cash_balance: number | null;
+    amazon_cash_in_transit: number | null;
     cash_on_hand: number | null;
+    total_business_value: number;
     amazon_cash_source: string;
+    amazon_cash_in_transit_source: string;
     cash_on_hand_source: string;
   };
   unitsByState: Array<{ state: string; label: string; units: number }>;
@@ -726,10 +729,22 @@ function BusinessInventoryValuePanel({
           loading={loading}
         />
         <ValueRow
+          label="Cash in transit from Amazon"
+          value={formatMoney(value?.amazon_cash_in_transit)}
+          detail={value?.amazon_cash_in_transit_source}
+          loading={loading}
+        />
+        <ValueRow
           label="Cash on hand"
           value={formatMoney(value?.cash_on_hand)}
           detail={value?.cash_on_hand_source}
           loading={loading}
+        />
+        <ValueRow
+          label="Total"
+          value={formatMoney(value?.total_business_value)}
+          loading={loading}
+          emphasis
         />
       </div>
     </div>
@@ -741,19 +756,29 @@ function ValueRow({
   value,
   detail,
   loading,
+  emphasis = false,
 }: {
   label: string;
   value: string;
   detail?: string;
   loading: boolean;
+  emphasis?: boolean;
 }) {
   return (
-    <div className="flex items-start justify-between gap-3 border-t border-slate-100 pt-2 first:border-t-0 first:pt-0">
+    <div
+      className={`flex items-start justify-between gap-3 border-t pt-2 first:border-t-0 first:pt-0 ${
+        emphasis ? "border-slate-300" : "border-slate-100"
+      }`}
+    >
       <div>
-        <div className="text-sm text-slate-600">{label}</div>
+        <div className={`text-sm ${emphasis ? "font-semibold text-slate-900" : "text-slate-600"}`}>
+          {label}
+        </div>
         {detail ? <div className="text-xs text-slate-500">{detail}</div> : null}
       </div>
-      <div className="text-right text-sm font-semibold">{loading ? "--" : value}</div>
+      <div className={`text-right text-sm font-semibold ${emphasis ? "text-slate-950" : ""}`}>
+        {loading ? "--" : value}
+      </div>
     </div>
   );
 }

@@ -31,6 +31,9 @@ Inventory value semantics:
 - InventoryLab valuation data is an opening-balance snapshot only and must not be written into `purchase_items`
 - cash on hand uses the latest `vw_latest_ynab_category_balance_snapshot` row for the YNAB `Business` category
 - YNAB cash data is read-only budget context and must not be written into inventory or purchase workflow tables
+- Amazon cash uses the latest `vw_latest_amazon_finance_balance_snapshot` row
+- Amazon cash-in-transit uses Finance financial event groups with `FundTransferStatus = Processing`
+- the business inventory/cash value total is API-provided and sums Amazon inventory value, pre-Amazon purchased inventory value, Amazon cash, Amazon-to-bank in-transit cash, and YNAB cash on hand
 
 Cost semantics:
 - reward points and payment method effects should not zero out resale inventory cost
