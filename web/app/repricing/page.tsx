@@ -40,6 +40,8 @@ type CompetitionOffer = {
   stock_quantity: number | null;
   condition: string | null;
   is_buy_box_winner: boolean;
+  is_my_offer: boolean;
+  is_synthetic: boolean;
   is_amazon: boolean;
   is_prime: boolean | null;
   last_seen: string | null;
@@ -571,7 +573,11 @@ function CompetitionDrawer({
                   row.competition_offers.map((offer, index) => (
                     <tr
                       key={`${offer.seller_id ?? "seller"}-${index}`}
-                      className="border-t border-slate-100 align-top"
+                      className={`border-t align-top ${
+                        offer.is_my_offer
+                          ? "border-blue-200 bg-blue-50/70"
+                          : "border-slate-100"
+                      }`}
                     >
                       <td className="px-3 py-2">
                         <div className="font-medium">{offer.seller_name ?? offer.seller_id ?? "--"}</div>
@@ -591,6 +597,8 @@ function CompetitionDrawer({
                       <td className="px-3 py-2">
                         <div className="flex flex-wrap gap-1">
                           {offer.is_buy_box_winner ? <Pill label="Buy Box" tone="green" /> : null}
+                          {offer.is_my_offer ? <Pill label="You" tone="blue" /> : null}
+                          {offer.is_synthetic ? <Pill label="MBOP" tone="slate" /> : null}
                           {offer.is_amazon ? <Pill label="Amazon" tone="blue" /> : null}
                           {offer.is_prime ? <Pill label="Prime" tone="slate" /> : null}
                         </div>

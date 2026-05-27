@@ -13,6 +13,11 @@ const STALE_KEEPA_DAYS = 30;
 const REPRICE_DISCOUNT_PCT = 0.03;
 const LIQUIDATE_DISCOUNT_PCT = 0.08;
 const MIN_MARGIN_ABOVE_COST_PCT = 0.1;
+const AMAZON_SELLER_ID =
+  process.env.AMAZON_SP_API_SELLER_ID ??
+  process.env.AMAZON_SELLER_ID ??
+  process.env.AMAZON_MERCHANT_ID ??
+  "A3ILKLL5K4GVWX";
 
 type AmazonAgeBucket =
   | "0-90"
@@ -194,6 +199,8 @@ type CompetitionOffer = {
   stock_quantity: number | null;
   condition: string | null;
   is_buy_box_winner: boolean;
+  is_my_offer: boolean;
+  is_synthetic: boolean;
   is_amazon: boolean;
   is_prime: boolean | null;
   last_seen: string | null;
@@ -517,7 +524,12 @@ function buildAdvisorRows(
         toOptionalNumber(inventoryLab?.list_price) ??
         null;
       const keepaBuyBoxPrice = centsToDollars(keepa?.buy_box_price_current_cents);
-      const competition = buildCompetitionContext(keepa, keepaBuyBoxPrice, itemCondition);
+      const competition = buildCompetitionContext(keepa, keepaBuyBoxPrice, itemCondition, {
+        sellerId: AMAZON_SELLER_ID,
+        currentPrice: currentListPrice,
+        condition: itemCondition,
+        fulfillableQuantity: fbaSellableQuantity,
+      });
       const informedBuyBoxPrice = toOptionalNumber(informed?.buy_box_price);
       const marketReferencePrice =
         informedBuyBoxPrice ??
@@ -886,25 +898,33 @@ function recommend(input: {
 function buildCompetitionContext(
   keepa?: KeepaRow,
   fallbackBuyBoxPrice?: number | null,
-  listingCondition?: string | null
+  listingCondition?: string | null,
+  ownListing?: {
+    sellerId: string | null;
+    currentPrice: number | null;
+    condition: string | null;
+    fulfillableQuantity: number;
+  }
 ): { summary: CompetitionSummary; offers: CompetitionOffer[] } {
   const conditionFilter = conditionGroup(listingCondition);
+  const ownOffer = buildOwnCompetitionOffer(ownListing, conditionFilter);
   if (!keepa) {
+    const offers = ownOffer ? [ownOffer] : [];
     return {
       summary: {
         source: "Missing",
         note: "Keepa snapshot missing; run targeted Keepa sync before reviewing competitors.",
         condition_filter: conditionFilter,
-        offer_count: null,
-        fba_offer_count: 0,
+        offer_count: offers.length || null,
+        fba_offer_count: offers.filter((offer) => offer.fulfillment === "FBA").length,
         mfn_offer_count: 0,
-        lowest_fba_price: null,
+        lowest_fba_price: ownOffer?.landed_price ?? null,
         lowest_mfn_price: null,
         buy_box_seller_id: null,
         buy_box_price: fallbackBuyBoxPrice ?? null,
         total_observed_stock: null,
       },
-      offers: [],
+      offers,
     };
   }
 
@@ -922,9 +942,23 @@ function buildCompetitionContext(
     null;
 
   const offers = offersRaw
-    .map((offer) => parseKeepaOffer(offer, buyBoxSellerId, buyBoxPrice))
+    .map((offer) => parseKeepaOffer(offer, buyBoxSellerId, buyBoxPrice, ownListing?.sellerId ?? null))
     .filter((offer): offer is CompetitionOffer => offer !== null)
     .filter((offer) => sameConditionGroup(offer.condition, conditionFilter))
+    .map((offer) =>
+      offer.is_my_offer
+        ? {
+            ...offer,
+            seller_name: "You",
+            stock_quantity: offer.stock_quantity ?? ownListing?.fulfillableQuantity ?? null,
+          }
+        : offer
+    );
+
+  const offersWithOwn =
+    ownOffer && !offers.some((offer) => offer.is_my_offer) ? [...offers, ownOffer] : offers;
+
+  const sortedOffers = offersWithOwn
     .sort((left, right) => {
       if (left.is_buy_box_winner !== right.is_buy_box_winner) {
         return left.is_buy_box_winner ? -1 : 1;
@@ -933,17 +967,17 @@ function buildCompetitionContext(
     })
     .slice(0, 25);
 
-  const fbaPrices = offers
+  const fbaPrices = sortedOffers
     .filter((offer) => offer.fulfillment === "FBA" && offer.landed_price !== null)
     .map((offer) => offer.landed_price as number);
-  const mfnPrices = offers
+  const mfnPrices = sortedOffers
     .filter((offer) => offer.fulfillment === "MFN" && offer.landed_price !== null)
     .map((offer) => offer.landed_price as number);
-  const stockValues = offers
+  const stockValues = sortedOffers
     .map((offer) => offer.stock_quantity)
     .filter((stock): stock is number => stock !== null);
 
-  if (!offers.length) {
+  if (!sortedOffers.length) {
     return {
       summary: {
         source: "Keepa summary",
@@ -969,9 +1003,9 @@ function buildCompetitionContext(
       note:
         "Offer rows come from the latest stored Keepa payload and are filtered to the same condition as your listing when condition is known. Seller stock is Keepa-estimated when available and may be capped or incomplete.",
       condition_filter: conditionFilter,
-      offer_count: offers.length,
-      fba_offer_count: offers.filter((offer) => offer.fulfillment === "FBA").length,
-      mfn_offer_count: offers.filter((offer) => offer.fulfillment === "MFN").length,
+      offer_count: sortedOffers.length,
+      fba_offer_count: sortedOffers.filter((offer) => offer.fulfillment === "FBA").length,
+      mfn_offer_count: sortedOffers.filter((offer) => offer.fulfillment === "MFN").length,
       lowest_fba_price: fbaPrices.length ? roundMoney(Math.min(...fbaPrices)) : null,
       lowest_mfn_price: mfnPrices.length ? roundMoney(Math.min(...mfnPrices)) : null,
       buy_box_seller_id: buyBoxSellerId,
@@ -980,7 +1014,7 @@ function buildCompetitionContext(
         ? stockValues.reduce((total, stock) => total + stock, 0)
         : null,
     },
-    offers,
+    offers: sortedOffers,
   };
 }
 
@@ -995,7 +1029,8 @@ function firstKeepaProduct(raw: unknown): Record<string, unknown> | null {
 function parseKeepaOffer(
   offer: unknown,
   buyBoxSellerId: string | null,
-  buyBoxPrice: number | null
+  buyBoxPrice: number | null,
+  ownSellerId: string | null
 ): CompetitionOffer | null {
   if (!isRecord(offer)) return null;
 
@@ -1038,11 +1073,45 @@ function parseKeepaOffer(
       sellerId !== null && buyBoxSellerId !== null
         ? sellerId === buyBoxSellerId
         : buyBoxPrice !== null && landedPrice !== null && Math.abs(landedPrice - buyBoxPrice) < 0.01,
+    is_my_offer: sellerId !== null && ownSellerId !== null && sellerId === ownSellerId,
+    is_synthetic: false,
     is_amazon:
       sellerId === "ATVPDKIKX0DER" ||
       String(cleanText(offer.sellerName) ?? "").toLowerCase() === "amazon",
     is_prime: toOptionalBoolean(offer.isPrime ?? offer.prime),
     last_seen: lastSeen,
+  };
+}
+
+function buildOwnCompetitionOffer(
+  ownListing:
+    | {
+        sellerId: string | null;
+        currentPrice: number | null;
+        condition: string | null;
+        fulfillableQuantity: number;
+      }
+    | undefined,
+  conditionFilter: string | null
+): CompetitionOffer | null {
+  if (!ownListing?.sellerId || ownListing.currentPrice === null) return null;
+  if (!sameConditionGroup(ownListing.condition, conditionFilter)) return null;
+
+  return {
+    seller_id: ownListing.sellerId,
+    seller_name: "You",
+    fulfillment: "FBA",
+    landed_price: ownListing.currentPrice,
+    item_price: ownListing.currentPrice,
+    shipping_price: 0,
+    stock_quantity: ownListing.fulfillableQuantity,
+    condition: ownListing.condition,
+    is_buy_box_winner: false,
+    is_my_offer: true,
+    is_synthetic: true,
+    is_amazon: false,
+    is_prime: true,
+    last_seen: null,
   };
 }
 
