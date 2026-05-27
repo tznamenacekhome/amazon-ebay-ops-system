@@ -1,3 +1,6 @@
+"use client";
+
+import { useMemo, useState } from "react";
 import { PanelRightOpen } from "lucide-react";
 
 import type { PurchaseRow } from "./types";
@@ -20,13 +23,51 @@ export function PurchaseProblemTable({
   loading,
   onSelectRow,
 }: PurchaseProblemTableProps) {
-  const sortedRows = rows
-    .map((row) => ({ row, problem: getOrderProblem(row) }))
-    .sort((left, right) => (right.problem.ageDays ?? -1) - (left.problem.ageDays ?? -1));
+  const [issueFilter, setIssueFilter] = useState("all");
+  const rowsWithProblems = useMemo(
+    () =>
+      rows
+        .map((row) => ({ row, problem: getOrderProblem(row) }))
+        .sort((left, right) => (right.problem.ageDays ?? -1) - (left.problem.ageDays ?? -1)),
+    [rows]
+  );
+  const issueOptions = useMemo(() => {
+    const issues = new Set(rowsWithProblems.map(({ problem }) => problem.issue));
+    return Array.from(issues).sort((left, right) => left.localeCompare(right));
+  }, [rowsWithProblems]);
+  const sortedRows =
+    issueFilter === "all"
+      ? rowsWithProblems
+      : rowsWithProblems.filter(({ problem }) => problem.issue === issueFilter);
 
   return (
-    <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
-      <table className="min-w-[1120px] border-collapse text-left text-sm">
+    <div className="rounded-xl border border-slate-200 bg-white shadow-sm">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 bg-slate-50 px-3 py-2">
+        <div>
+          <div className="text-sm font-semibold">Order Problems</div>
+          <div className="text-xs text-slate-500">
+            Filter by issue type before working the oldest rows.
+          </div>
+        </div>
+        <label className="flex items-center gap-2 text-sm">
+          <span className="text-slate-500">Issue</span>
+          <select
+            value={issueFilter}
+            onChange={(event) => setIssueFilter(event.target.value)}
+            className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm"
+          >
+            <option value="all">All Issues</option>
+            {issueOptions.map((issue) => (
+              <option key={issue} value={issue}>
+                {issue}
+              </option>
+            ))}
+          </select>
+        </label>
+      </div>
+
+      <div className="overflow-x-auto">
+        <table className="min-w-[1120px] border-collapse text-left text-sm">
         <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
           <tr>
             <th className="w-[170px] px-2 py-2">Issue</th>
@@ -119,7 +160,8 @@ export function PurchaseProblemTable({
             })
           )}
         </tbody>
-      </table>
+        </table>
+      </div>
     </div>
   );
 }
