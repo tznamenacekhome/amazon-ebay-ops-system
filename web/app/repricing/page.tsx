@@ -670,7 +670,9 @@ function CompetitionDrawer({
                           <div className="text-xs text-slate-500">{offer.seller_id}</div>
                         ) : null}
                       </td>
-                      <td className="px-3 py-2">{offer.fulfillment}</td>
+                      <td className="px-3 py-2">
+                        <FulfillmentPill fulfillment={offer.fulfillment} />
+                      </td>
                       <td className="px-3 py-2 text-right font-medium">
                         {formatMoney(offer.landed_price)}
                       </td>
@@ -733,6 +735,20 @@ function Pill({ label, tone }: { label: string; tone: "green" | "blue" | "slate"
         ? "border-blue-200 bg-blue-50 text-blue-700"
         : "border-slate-200 bg-slate-50 text-slate-700";
   return <span className={`rounded border px-1.5 py-0.5 text-xs ${toneClass}`}>{label}</span>;
+}
+
+function FulfillmentPill({ fulfillment }: { fulfillment: CompetitionOffer["fulfillment"] }) {
+  const toneClass =
+    fulfillment === "FBA"
+      ? "border-indigo-200 bg-indigo-50 text-indigo-700"
+      : fulfillment === "MFN"
+        ? "border-amber-200 bg-amber-50 text-amber-800"
+        : "border-slate-200 bg-slate-50 text-slate-700";
+  return (
+    <span className={`inline-flex rounded border px-2 py-0.5 text-xs font-semibold ${toneClass}`}>
+      {fulfillment}
+    </span>
+  );
 }
 
 function PriceLine({ label, value, detail }: { label: string; value: string; detail?: string }) {
