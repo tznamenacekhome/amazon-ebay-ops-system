@@ -144,6 +144,12 @@ type InformedListingRow = {
   imported_at: string | null;
 };
 
+type InformedRuleOverrideRow = {
+  informed_rule_id: string | null;
+  friendly_name: string | null;
+  active: boolean | null;
+};
+
 type InventoryLabRow = {
   seller_sku: string | null;
   asin: string | null;
@@ -262,6 +268,7 @@ type AdvisorRow = {
   sales_shipped_last_90_days: number | null;
   sales_velocity_signal: SalesVelocitySignal;
   informed_rule_name: string | null;
+  informed_rule_id: string | null;
   informed_current_price: number | null;
   informed_min_price: number | null;
   informed_max_price: number | null;
@@ -304,6 +311,7 @@ export async function GET() {
       listingRows,
       planningRows,
       informedRows,
+      informedRuleOverrides,
       inventoryLabRows,
       keepaRows,
       positionRows,
@@ -344,6 +352,10 @@ export async function GET() {
             "current_price,min_price,max_price,buy_box_price,buy_box_status,buy_box_winner," +
             "competition_offer_count,quantity,listing_status,report_generated_at,imported_at"
         ),
+        fetchAll<InformedRuleOverrideRow>(
+          "informed_rule_name_overrides",
+          "informed_rule_id,friendly_name,active"
+        ),
         fetchAll<InventoryLabRow>(
           "inventorylab_active_inventory_backfill",
           "seller_sku,asin,title,active_cost_per_unit,active_supplier,active_date_purchased," +
@@ -370,6 +382,7 @@ export async function GET() {
       keyBySku(listingRows),
       keyBySku(planningRows),
       keyBySellerSku(informedRows),
+      keyByInformedRuleId(informedRuleOverrides),
       keyBySellerSku(inventoryLabRows),
       keyByAsin(keepaRows),
       aggregatePositions(positionRows)
@@ -424,6 +437,7 @@ function buildAdvisorRows(
   listingByKey: Map<string, ListingSnapshotRow>,
   planningByKey: Map<string, InventoryPlanningRow>,
   informedBySku: Map<string, InformedListingRow>,
+  informedRuleNameById: Map<string, string>,
   inventoryLabBySku: Map<string, InventoryLabRow>,
   keepaByAsin: Map<string, KeepaRow>,
   positionBySku: Map<string, { unit_cost: number | null; oldest_date: string | null }>
@@ -439,6 +453,10 @@ function buildAdvisorRows(
       const listing = listingByKey.get(key);
       const planning = planningByKey.get(key);
       const informed = informedBySku.get(sellerSku);
+      const informedRuleId = cleanText(informed?.assigned_rule_name);
+      const informedRuleName = informedRuleId
+        ? (informedRuleNameById.get(informedRuleId) ?? informedRuleId)
+        : null;
       const inventoryLab = inventoryLabBySku.get(sellerSku);
       const asin = normalizeAsin(
         inventory.asin ?? sku?.asin ?? listing?.asin ?? planning?.asin ?? inventoryLab?.asin
@@ -616,7 +634,8 @@ function buildAdvisorRows(
         sales_shipped_last_30_days: sales30,
         sales_shipped_last_90_days: sales90,
         sales_velocity_signal: velocitySignal,
-        informed_rule_name: cleanText(informed?.assigned_rule_name),
+        informed_rule_name: informedRuleName,
+        informed_rule_id: informedRuleId,
         informed_current_price: toOptionalNumber(informed?.current_price),
         informed_min_price: toOptionalNumber(informed?.min_price),
         informed_max_price: toOptionalNumber(informed?.max_price),
@@ -1390,6 +1409,17 @@ function keyByAsin<T extends { asin: string | null }>(rows: T[]) {
   for (const row of rows) {
     const asin = normalizeAsin(row.asin);
     if (asin) map.set(asin, row);
+  }
+  return map;
+}
+
+function keyByInformedRuleId(rows: InformedRuleOverrideRow[]) {
+  const map = new Map<string, string>();
+  for (const row of rows) {
+    if (row.active === false) continue;
+    const id = cleanText(row.informed_rule_id);
+    const name = cleanText(row.friendly_name);
+    if (id && name) map.set(id, name);
   }
   return map;
 }

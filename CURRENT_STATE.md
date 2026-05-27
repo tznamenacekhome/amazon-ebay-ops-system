@@ -305,6 +305,7 @@ Latest validation:
 - write mode inserted 969 Informed listing snapshots
 - the Informed report provided SKU/MSKU values but no ASIN-shaped values, so advisor joins use seller SKU where ASIN is unavailable
 - repricing advisor API now returns Informed rule, current price, min/max price, Buy Box price/status, repricing-enabled flag, price-gap calculations, and an Informed note where snapshots are available
+- Informed rule IDs are mapped to operator-friendly names through `informed_rule_name_overrides` because the listing report exports strategy IDs but not display names
 
 Boundary:
 Informed is advisory repricer intelligence only. It must not modify Informed rules, min/max prices, managed status, Amazon prices, purchases, purchase_items, Amazon snapshots, Keepa snapshots, receiving rows, or FBA workflow rows.
@@ -339,6 +340,7 @@ Backend inputs:
 - latest Keepa product snapshots
 - latest stored Keepa raw offer payload, when snapshots were captured with offer-level data
 - latest Informed Repricer listing snapshots
+- manual Informed rule-name overrides
 
 Current recommendation rules:
 - Amazon FBA Inventory Planning age buckets are the preferred active-Amazon age source
@@ -358,6 +360,7 @@ Current recommendation rules:
 - target markdowns are adjusted by Amazon planning sales velocity: stronger recent sales get gentler markdowns, no recent sales get firmer markdowns
 - sales velocity is classified from Amazon planning 30/90-day shipped-unit fields as Strong, Moving, Slow, No recent sales, or Unknown
 - Informed notes flag stale inventory where current price is above Buy Box, min price appears above Buy Box, repricing is disabled, or a rule assignment is missing
+- Informed column displays the friendly rule name when an override exists and keeps the numeric rule ID as secondary traceability
 - rows under 90 days old are excluded from the action list unless they have an actionable issue
 - normal inbound/FC-transfer movement is displayed as inventory detail, but is not treated as an operator-action issue by itself
 - competition drawer summarizes FBA/MFN offer counts, observed stock, lowest FBA/MFN price, Buy Box seller, and per-offer seller/fulfillment/price/stock signals from the stored Keepa payload

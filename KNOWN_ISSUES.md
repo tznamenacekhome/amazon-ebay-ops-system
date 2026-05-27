@@ -134,6 +134,7 @@ Current observed result:
 - 101 canonical ASINs still need Keepa snapshots, but the remaining backfill is token-refill limited.
 - Informed `All_Fields_NextGen` report imported 969 listing snapshots and now provides repricer rule/price context where seller SKU matches.
 - the current Informed report did not include ASIN-shaped values, so matching is by seller SKU for this first slice.
+- the current Informed report exposes numeric strategy IDs rather than friendly rule names; `informed_rule_name_overrides` provides the operator-facing display names.
 - Amazon FBA inventory detail quantities are now normalized for reserved customer order, FC transfer, FC processing, future supply, researching, and unfulfillable breakdowns.
 - the advisor now separates rows into Pricing, Inventory / Listing Issue, and Missing Data buckets.
 - buyable/discoverable listings with Amazon catalog metadata issues are ignored because the operator only cares when inventory becomes suppressed/non-buyable or unsellable.

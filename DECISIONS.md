@@ -520,8 +520,10 @@ Implementation:
 - `informed_report_runs` stores read-only report request/import metadata.
 - `informed_listing_snapshots` stores point-in-time listing/pricing report rows and raw row payloads.
 - `informed_rule_snapshots` is available for rule/settings reports if a suitable report is used later.
+- `informed_rule_name_overrides` stores manual rule ID -> friendly name display mappings when reports only expose numeric strategy IDs.
 - `integrations/informed_sync_reports.py` uses only the Reports API request/status/download endpoints.
 - `/api/amazon/repricing-advisor` joins latest Informed listing snapshots by seller SKU where ASIN is unavailable.
+- `/api/amazon/repricing-advisor` maps known Informed strategy IDs to friendly rule names for display while preserving the raw ID.
 
 Rule:
 Do not call Informed Listings Management API feed/upload endpoints, modify Informed rules, modify min/max prices, modify Amazon prices, or write Informed data into purchases, purchase_items, Amazon SP-API tables, Keepa tables, receiving rows, or FBA workflow tables.

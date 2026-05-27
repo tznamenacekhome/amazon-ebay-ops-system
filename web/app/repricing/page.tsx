@@ -101,6 +101,7 @@ type AdvisorRow = {
   sales_shipped_last_90_days: number | null;
   sales_velocity_signal: SalesVelocitySignal;
   informed_rule_name: string | null;
+  informed_rule_id: string | null;
   informed_current_price: number | null;
   informed_min_price: number | null;
   informed_max_price: number | null;
@@ -426,6 +427,9 @@ export default function RepricingPage() {
                     </td>
                     <td className="w-[180px] px-3 py-2">
                       <div>{row.informed_rule_name ?? "--"}</div>
+                      {row.informed_rule_id && row.informed_rule_id !== row.informed_rule_name ? (
+                        <div className="text-xs text-slate-500">ID {row.informed_rule_id}</div>
+                      ) : null}
                       <div className="text-xs text-slate-500">
                         {row.informed_repricing_enabled === null
                           ? "--"
