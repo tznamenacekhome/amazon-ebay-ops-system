@@ -182,9 +182,12 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--source",
-        choices=["canonical", "amazon_active", "purchase_pre_listed"],
+        choices=["canonical", "amazon_active", "purchase_pre_listed", "explicit"],
         default="canonical",
-        help="ASIN source. canonical = current Amazon FBA plus pre-Listed MBOP purchase inventory.",
+        help=(
+            "ASIN source. canonical = current Amazon FBA plus pre-Listed MBOP purchase inventory. "
+            "explicit = only ASINs passed with --asin."
+        ),
     )
     parser.add_argument("--asin", action="append", default=[], help="Additional ASIN to include.")
     parser.add_argument("--limit", type=int, default=None, help="Limit selected ASINs.")

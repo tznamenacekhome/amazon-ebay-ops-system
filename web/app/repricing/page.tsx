@@ -502,8 +502,14 @@ function CompetitionDrawer({
   const summary = row.competition_summary;
 
   return (
-    <div className="fixed inset-0 z-40 bg-slate-950/25" role="dialog" aria-modal="true">
-      <aside className="ml-auto flex h-full w-full max-w-5xl flex-col bg-white shadow-xl">
+    <div className="fixed inset-0 z-40" role="dialog" aria-modal="true">
+      <button
+        type="button"
+        className="absolute inset-0 bg-slate-950/25"
+        onClick={onClose}
+        aria-label="Close competition drawer overlay"
+      />
+      <aside className="absolute right-0 top-0 flex h-full w-full max-w-5xl flex-col bg-white shadow-xl">
         <div className="border-b border-slate-200 p-4">
           <div className="flex items-start justify-between gap-4">
             <div>
