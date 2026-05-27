@@ -100,6 +100,7 @@ def main() -> int:
                     stats_days=args.stats_days,
                     history=not args.no_history,
                     offers=args.offers,
+                    stock=args.stock,
                     rating=True,
                     wait=True,
                 )
@@ -199,6 +200,11 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--stats-days", type=int, default=90, help="Keepa stats window in days.")
     parser.add_argument("--offers", type=int, default=None, help="Optional Keepa offers parameter.")
+    parser.add_argument(
+        "--stock",
+        action="store_true",
+        help="Request Keepa offer stock detail when available. Use selectively because it may cost extra tokens.",
+    )
     parser.add_argument("--no-history", action="store_true", help="Do not request Keepa history arrays.")
     parser.add_argument(
         "--plan-only",

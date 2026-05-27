@@ -937,6 +937,7 @@ function buildCompetitionContext(
     cleanText(rawProduct?.buyBoxSellerId);
   const buyBoxPrice =
     centsToDollars(lastNumeric(stats?.buyBoxPrice)) ??
+    centsToDollars(keepa.buy_box_price_current_cents) ??
     centsToDollars(lastNumeric(rawProduct?.buyBoxPriceHistory)) ??
     fallbackBuyBoxPrice ??
     null;
@@ -1053,7 +1054,7 @@ function parseKeepaOffer(
     offer.stock,
     offer.stockQuantity,
     offer.quantity,
-    lastNumeric(offer.stockCSV)
+    latestKeepaCsvValue(offer.stockCSV)
   );
   const lastSeen = keepaMinutesToIso(firstNumber(offer.lastSeen, lastNumeric(offer.lastSeenHistory)));
   const condition = keepaConditionName(firstNumber(offer.condition, offer.conditionCode));
@@ -1157,6 +1158,15 @@ function latestOfferCsvPrices(value: unknown) {
   }
 
   return { item_price_cents: null, shipping_price_cents: null };
+}
+
+function latestKeepaCsvValue(value: unknown) {
+  if (!Array.isArray(value)) return null;
+  for (let index = value.length - 1; index >= 1; index -= 2) {
+    const number = toOptionalNumber(value[index]);
+    if (number !== null) return number;
+  }
+  return null;
 }
 
 function firstNumber(...values: unknown[]) {
@@ -1604,7 +1614,7 @@ function bucketSort(bucket: AmazonAgeBucket | null) {
 
 function centsToDollars(value?: number | null) {
   const cents = toOptionalNumber(value);
-  return cents === null ? null : roundMoney(cents / 100);
+  return cents === null || cents <= 0 ? null : roundMoney(cents / 100);
 }
 
 function toNumber(value: unknown, defaultValue: number) {

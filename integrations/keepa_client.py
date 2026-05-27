@@ -71,6 +71,7 @@ class KeepaClient:
         stats_days: int = 90,
         history: bool = True,
         offers: int | None = None,
+        stock: bool = False,
         rating: bool = True,
         wait: bool = True,
     ) -> dict[str, Any]:
@@ -90,6 +91,8 @@ class KeepaClient:
         }
         if offers is not None:
             params["offers"] = offers
+        if stock:
+            params["stock"] = 1
 
         return self.request("product", params=params)
 

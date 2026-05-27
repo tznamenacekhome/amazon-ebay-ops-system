@@ -367,6 +367,8 @@ Current recommendation rules:
 - competition drawer uses Keepa `liveOffersOrder` when present so it shows currently live offers, filters offers to the same condition as the operator's listing when condition is known, keeps the Buy Box row first, and sorts the remaining offers by landed price from low to high
 - Keepa offerCSV rows are parsed as latest time/price/shipping triples so MFN landed price includes both item price and shipping
 - competition drawer identifies the operator's Amazon seller ID, labels that row as You, highlights it, and can add an MBOP-derived own-offer row if Keepa does not return the operator's live offer
+- Keepa sync supports a selective `--stock` flag that requests offer stock detail; when Keepa returns live `stockCSV`, the drawer uses the latest value for competitor stock
+- Informed reports provide the operator's own stock quantity but do not expose competitor stock counts in the imported report
 - if stored Keepa data only has summary fields, the drawer shows that offer-level data is missing and recommends targeted Keepa offer sync for that ASIN
 
 Latest validation:
