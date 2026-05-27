@@ -258,18 +258,21 @@ Remaining:
 ## Local Sync Scheduler
 
 Status:
-Local scheduler configured; ongoing task-run validation remains.
+Local scheduler configured; broad integration automation enabled with ongoing task-run validation.
 
 Completed:
-- `run_all_syncs.py` now runs eBay buyer purchase sync, EasyPost shipment sync, eBay supplier returns sync, and RevSeller enrichment
+- `run_all_syncs.py` now runs eBay buyer purchase sync, EasyPost shipment sync, eBay supplier returns sync, RevSeller enrichment, Amazon FBA inventory, Amazon listing status, Amazon inventory planning, Amazon Finance balances, Informed Repricer reports, YNAB Business cash balance, guarded Keepa enrichment, and business value snapshots
 - `run_all_syncs.bat` creates the logs directory when missing and appends to `logs/scheduler.log`
 - local Windows scheduled tasks were recreated after the repo moved from OneDrive to `C:\Dev`
 - direct batch execution completed successfully with exit code 0
+- integration failures are collected and reported while later independent syncs continue running
+- Amazon FBA inventory sync now uses page pacing plus SP-API 429/5xx retry/backoff
+- scheduled Keepa enrichment only refreshes stale active-Amazon ASINs and skips calls when the token pool is below the configured floor
 
 Next steps:
 - confirm both scheduled tasks append successful runs to `logs/scheduler.log`
 - when manually triggering tasks, use the root task path, for example `schtasks /Run /TN "\Amazon eBay Ops Sync PM"`
-- monitor scheduler logs for EasyPost FedEx credential errors and eBay token/auth issues
+- monitor scheduler logs for EasyPost FedEx credential errors, eBay token/auth issues, SP-API throttling, and Keepa token skips
 
 ---
 

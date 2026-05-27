@@ -15,6 +15,7 @@ import hmac
 import json
 import logging
 import os
+import time
 from dataclasses import dataclass
 from typing import Any
 from urllib.parse import quote, urlencode, urlparse
@@ -27,6 +28,8 @@ LOGGER = logging.getLogger("amazon_spapi")
 LWA_TOKEN_URL = "https://api.amazon.com/auth/o2/token"
 SERVICE_NAME = "execute-api"
 DEFAULT_TIMEOUT_SECONDS = 30
+DEFAULT_MAX_ATTEMPTS = 5
+DEFAULT_RETRY_DELAY_SECONDS = 2.0
 
 REGION_ENDPOINTS = {
     "na": ("https://sellingpartnerapi-na.amazon.com", "us-east-1"),
@@ -218,6 +221,7 @@ class AmazonSPAPIClient:
         details: bool = True,
         seller_skus: list[str] | None = None,
         max_pages: int | None = None,
+        page_delay_seconds: float = 0.0,
     ):
         next_token: str | None = None
         pages_seen = 0
@@ -245,6 +249,8 @@ class AmazonSPAPIClient:
                     max_pages,
                 )
                 return
+            if page_delay_seconds > 0:
+                time.sleep(page_delay_seconds)
 
     def get_listing_item(
         self,
@@ -381,18 +387,42 @@ class AmazonSPAPIClient:
                 request_time=request_time,
             )
 
-        LOGGER.info("Amazon SP-API %s %s", method, path)
-        response = self.session.request(
-            method,
-            url,
-            params=params,
-            data=body or None,
-            headers=request_headers,
-            timeout=DEFAULT_TIMEOUT_SECONDS,
-        )
+        response = None
+        for attempt in range(1, DEFAULT_MAX_ATTEMPTS + 1):
+            LOGGER.info("Amazon SP-API %s %s", method, path)
+            response = self.session.request(
+                method,
+                url,
+                params=params,
+                data=body or None,
+                headers=request_headers,
+                timeout=DEFAULT_TIMEOUT_SECONDS,
+            )
 
-        if response.status_code == 429:
-            LOGGER.warning("Amazon SP-API rate limited request: %s %s", method, path)
+            if response.ok:
+                break
+
+            if response.status_code not in {429, 500, 502, 503, 504}:
+                break
+
+            if attempt >= DEFAULT_MAX_ATTEMPTS:
+                break
+
+            retry_delay = retry_delay_seconds(response, attempt)
+            LOGGER.warning(
+                "Amazon SP-API %s %s returned HTTP %s; retrying in %.1fs "
+                "(attempt %s/%s)",
+                method,
+                path,
+                response.status_code,
+                retry_delay,
+                attempt,
+                DEFAULT_MAX_ATTEMPTS,
+            )
+            time.sleep(retry_delay)
+
+        if response is None:
+            raise AmazonSPAPIError(f"Amazon SP-API {method} {path} was not attempted")
 
         if not response.ok:
             raise AmazonSPAPIError(
@@ -560,3 +590,14 @@ def safe_response_text(response: requests.Response) -> str:
     if not text:
         return "<empty response>"
     return text[:1000]
+
+
+def retry_delay_seconds(response: requests.Response, attempt: int) -> float:
+    retry_after = response.headers.get("Retry-After")
+    if retry_after:
+        try:
+            return max(1.0, float(retry_after))
+        except ValueError:
+            LOGGER.debug("Ignoring non-numeric Retry-After header: %s", retry_after)
+
+    return DEFAULT_RETRY_DELAY_SECONDS * attempt

@@ -12,7 +12,7 @@ from __future__ import annotations
 import argparse
 import logging
 import os
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Any
 
 from dotenv import load_dotenv
@@ -64,6 +64,12 @@ def main() -> int:
         if args.missing_only:
             existing_asins = fetch_existing_keepa_asins(supabase)
             asins = [asin for asin in asins if asin not in existing_asins]
+        if args.stale_days is not None:
+            asins = filter_stale_keepa_asins(
+                supabase,
+                asins,
+                stale_days=args.stale_days,
+            )
         if args.asin:
             asins = sorted(set(asins) | {asin.strip().upper() for asin in args.asin if asin.strip()})
         if args.limit is not None:
@@ -75,12 +81,22 @@ def main() -> int:
             return 0
 
         token_status_before = client.get_token_status()
+        tokens_left = to_int(token_status_before.get("tokens_left"), default=0)
         LOGGER.info(
             "Keepa tokens before sync: tokens_left=%s refill_in_ms=%s refill_rate=%s",
             token_status_before.get("tokens_left"),
             token_status_before.get("refill_in"),
             token_status_before.get("refill_rate"),
         )
+        if args.min_tokens is not None and tokens_left < args.min_tokens:
+            LOGGER.info(
+                "Skipping Keepa sync because tokens_left=%s is below min_tokens=%s.",
+                tokens_left,
+                args.min_tokens,
+            )
+            print_plan_summary(asins, token_status_before)
+            print(f"Skipped: Keepa tokens below minimum threshold ({tokens_left} < {args.min_tokens}).")
+            return 0
 
         if args.plan_only:
             print_plan_summary(asins, token_status_before)
@@ -198,6 +214,21 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Exclude ASINs that already have at least one Keepa product snapshot.",
     )
+    parser.add_argument(
+        "--stale-days",
+        type=int,
+        default=None,
+        help=(
+            "Only select ASINs without a snapshot or with latest snapshot older than this many days. "
+            "Selected ASINs are ordered oldest first."
+        ),
+    )
+    parser.add_argument(
+        "--min-tokens",
+        type=int,
+        default=None,
+        help="Skip product calls unless Keepa has at least this many tokens available.",
+    )
     parser.add_argument("--stats-days", type=int, default=90, help="Keepa stats window in days.")
     parser.add_argument("--offers", type=int, default=None, help="Optional Keepa offers parameter.")
     parser.add_argument(
@@ -311,6 +342,44 @@ def fetch_existing_keepa_asins(supabase) -> set[str]:
         if asin:
             existing.add(asin)
     return existing
+
+
+def filter_stale_keepa_asins(
+    supabase,
+    asins: list[str],
+    *,
+    stale_days: int,
+) -> list[str]:
+    if stale_days < 0:
+        raise ValueError("--stale-days must be zero or greater.")
+
+    asin_set = {clean_asin(asin) for asin in asins}
+    asin_set.discard(None)
+    latest_by_asin: dict[str, datetime | None] = {}
+
+    for row in fetch_all(
+        supabase,
+        "vw_latest_keepa_product_snapshot",
+        "asin,captured_at",
+    ):
+        asin = clean_asin(row.get("asin"))
+        if asin and asin in asin_set:
+            latest_by_asin[asin] = parse_timestamp(row.get("captured_at"))
+
+    cutoff = datetime.now(timezone.utc) - timedelta(days=stale_days)
+    selected = []
+    for asin in asins:
+        captured_at = latest_by_asin.get(asin)
+        if captured_at is None or captured_at < cutoff:
+            selected.append(asin)
+
+    def sort_key(asin: str) -> tuple[int, datetime]:
+        captured_at = latest_by_asin.get(asin)
+        if captured_at is None:
+            return (0, datetime.min.replace(tzinfo=timezone.utc))
+        return (1, captured_at)
+
+    return sorted(selected, key=sort_key)
 
 
 def fetch_all(supabase, table: str, select: str) -> list[dict[str, Any]]:
@@ -543,6 +612,19 @@ def clean_text(value: Any) -> str | None:
         return None
     text = str(value).strip()
     return text or None
+
+
+def parse_timestamp(value: Any) -> datetime | None:
+    text = clean_text(value)
+    if not text:
+        return None
+    try:
+        parsed = datetime.fromisoformat(text.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    if parsed.tzinfo is None:
+        return parsed.replace(tzinfo=timezone.utc)
+    return parsed.astimezone(timezone.utc)
 
 
 def to_int(value: Any, default: int | None = 0) -> int | None:

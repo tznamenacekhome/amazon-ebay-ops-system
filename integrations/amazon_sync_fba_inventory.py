@@ -42,6 +42,7 @@ def main() -> int:
             client.iter_inventory_summaries(
                 details=True,
                 max_pages=args.max_pages,
+                page_delay_seconds=args.page_delay_seconds,
             )
         )
 
@@ -111,6 +112,12 @@ def parse_args() -> argparse.Namespace:
         type=int,
         default=None,
         help="Optional maximum Amazon pagination pages to fetch.",
+    )
+    parser.add_argument(
+        "--page-delay-seconds",
+        type=float,
+        default=1.0,
+        help="Delay between Amazon inventory pages to avoid SP-API throttling.",
     )
     return parser.parse_args()
 
@@ -295,6 +302,10 @@ def clean_text(value: Any) -> str | None:
 def to_int(value: Any) -> int | None:
     if value is None:
         return None
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return None
 
 
 def researching_quantity_breakdown(rows: Any, name: str) -> int | None:
@@ -304,10 +315,6 @@ def researching_quantity_breakdown(rows: Any, name: str) -> int | None:
         if isinstance(row, dict) and row.get("name") == name:
             return to_int(row.get("quantity"))
     return None
-    try:
-        return int(value)
-    except (TypeError, ValueError):
-        return None
 
 
 def utc_now_iso() -> str:

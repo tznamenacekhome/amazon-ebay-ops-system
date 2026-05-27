@@ -1,6 +1,6 @@
 # CURRENT_STATE.md
 
-Last Updated: 2026-05-26
+Last Updated: 2026-05-27
 
 # Midnight Blue Operations Platform (MBOP)
 
@@ -64,20 +64,30 @@ Recent cleanup:
 
 ## Sync Orchestration
 
-Status: LOCAL SCHEDULER CONFIGURED
+Status: LOCAL SCHEDULER CONFIGURED / BROAD INTEGRATION AUTOMATION ENABLED
 
 Implemented:
-- `run_all_syncs.py` runs eBay buyer purchase sync, EasyPost shipment sync, eBay supplier returns sync, and RevSeller enrichment
+- `run_all_syncs.py` runs eBay buyer purchase sync, EasyPost shipment sync, eBay supplier returns sync, RevSeller enrichment, Amazon FBA inventory, Amazon listing status, Amazon inventory planning, Amazon Finance, Informed Repricer reports, YNAB Business cash balance, guarded Keepa enrichment, and the daily business value snapshot
 - `run_all_syncs.bat` targets the repo at `C:\Dev\amazon-ebay-ops-system`
 - scheduler output is appended to `logs/scheduler.log`
 - local AM/PM Windows scheduled tasks were recreated after the repo moved out of OneDrive
+- individual script failures are collected and reported without preventing later independent syncs from running
+- scheduled Keepa enrichment is capped to 10 stale active-Amazon ASINs, uses stock/offers without history, and skips calls unless at least 100 Keepa tokens are available
 
 Recent validation:
-- direct batch execution completed successfully with exit code 0
-- eBay buyer purchase sync retrieved 646 orders and updated 27
-- EasyPost sync processed/reused 97 shipment trackers with 2 FedEx credential errors remaining
+- direct all-sync execution completed successfully with exit code 0 after adding Amazon FBA inventory throttling safeguards
+- eBay buyer purchase sync retrieved 652 orders and updated 31
+- EasyPost sync processed/reused 103 shipment trackers with 2 FedEx credential errors remaining
 - eBay supplier returns sync updated 7 returns
 - RevSeller sync completed and wrote diagnostics
+- Amazon FBA inventory sync fetched 6,292 summaries, upserted 6,292 SKUs, and inserted 6,292 snapshots
+- Amazon listing-status sync inserted 296 active listing snapshots
+- Amazon inventory planning sync inserted 295 planning rows
+- Amazon Finance sync inserted a balance snapshot
+- Informed report sync inserted 968 listing snapshots
+- YNAB Business balance sync inserted a $3,231.24 snapshot
+- scheduled Keepa run selected 1 stale active-Amazon ASIN, inserted 1 snapshot, and spent 5 tokens
+- business value snapshot upserted the 2026-05-27 daily value
 
 Remaining validation:
 - confirm both Windows scheduled tasks append successful runs to `logs/scheduler.log`
@@ -190,6 +200,7 @@ Implemented:
 - optional legacy AWS SigV4 signing only when `AMAZON_SP_API_USE_SIGV4=true`
 - read-only allow-list for FBA inventory, Listings Items, and Product Pricing paths
 - paginated FBA inventory summary sync
+- FBA inventory pagination delay plus retry/backoff for Amazon 429/5xx responses
 - read-only Listings Items status/issue sync for active Amazon inventory
 - read-only Reports API sync for `GET_FBA_INVENTORY_PLANNING_DATA`
 - Amazon SKU upsert into `amazon_skus`
@@ -220,12 +231,12 @@ Current validation:
 - dry run fetched 50 summaries from the first page and normalized 50 SKU/snapshot rows
 - limited write upserted 50 SKU rows and inserted 50 snapshot rows
 - full sync fetched 6,292 FBA inventory summaries, upserted 6,292 SKU rows, and inserted 6,292 inventory snapshot rows
-- active listing-status sync selected 297 current Amazon SKUs, inserted 297 listing snapshots, updated 297 Amazon SKU rows, and had 0 fetch failures
+- active listing-status sync selected 296 current Amazon SKUs, inserted 296 listing snapshots, updated 296 Amazon SKU rows, and had 0 fetch failures
 - latest active listing snapshot set contains 49 rows with Amazon listing issues
 - inventory planning dry run and write run each parsed 297 Amazon planning rows
 - latest inventory planning write inserted 297 planning snapshot rows, showing 735 available units and 273 units in Amazon's 91+ day age buckets
 - Amazon FBA inventory snapshots now normalize reserved customer order, FC transfer, FC processing, future supply, researching, and unfulfillable damage/defect breakdowns from raw SP-API inventory details
-- a follow-up full FBA inventory sync attempt hit Amazon SP-API 429 QuotaExceeded, but existing snapshots were backfilled from raw inventory JSON by migration
+- a follow-up full FBA inventory sync initially hit Amazon SP-API 429 QuotaExceeded; after adding retry/backoff and page pacing, the sync fetched 6,292 summaries, upserted 6,292 SKUs, and inserted 6,292 fresh inventory snapshots
 
 Boundary:
 Amazon seller/FBA data must stay in Amazon-specific tables and must not write to `purchases` or `purchase_items`.
@@ -253,6 +264,8 @@ Current behavior:
 - product sync defaults to dry-run mode
 - `--plan-only` counts selected ASINs and Keepa token status without calling the product endpoint
 - `--missing-only` excludes ASINs that already have a Keepa product snapshot
+- `--stale-days` limits scheduled refreshes to ASINs without snapshots or with snapshots older than the configured age, ordered missing/oldest first
+- `--min-tokens` skips product calls safely when available Keepa tokens are below the configured floor
 - ASIN source defaults to canonical inventory: current Amazon FBA inventory plus MBOP purchase inventory before Listed
 - raw Keepa product payload is preserved on `keepa_product_snapshots`
 - normalized summary fields include current/average price signals, sales rank, sales-rank drops, offer count, review count, and rating
@@ -265,6 +278,8 @@ Latest validation:
 - plan-only mode selected 409 canonical ASINs with 285 Keepa tokens available, so a broad sync was intentionally not run yet
 - follow-up missing-only writes inserted 303 additional Keepa snapshots with 0 failures and no normalized history rows
 - 101 canonical ASINs still need Keepa snapshots after the refill-limited batches
+- scheduled active-Amazon Keepa run currently uses `--limit 10 --batch-size 10 --stale-days 7 --min-tokens 100 --offers 20 --stock --no-history --write`
+- latest scheduled Keepa write selected 1 stale active-Amazon ASIN, inserted 1 snapshot, and spent 5 tokens
 
 Boundary:
 Keepa is catalog intelligence only. It must not write to purchases, purchase_items, receiving, FBA shipment workflow tables, or Amazon seller workflow tables.
@@ -500,9 +515,9 @@ Implemented:
 - `integrations/ynab_sync_cash_balance.py` stores the read-only YNAB Business category balance in `ynab_category_balance_snapshots`
 - latest YNAB Business category snapshot currently reports $3,231.24 as cash on hand
 - `integrations/amazon_sync_finance_balances.py` stores read-only Amazon Finance cash snapshots in `amazon_finance_balance_snapshots`
-- latest Amazon Finance snapshot reports $2,923.58 Amazon cash, $2,232.84 Amazon-to-bank in-transit cash, $2,782.76 deferred/reserved cash, and $140.82 API open/available balance
+- latest Amazon Finance snapshot reports $2,979.69 Amazon cash, $2,232.84 Amazon-to-bank in-transit cash, $2,631.96 deferred/reserved cash, and $347.73 API open/available balance
 - `integrations/business_value_snapshot.py` stores one backend-computed business value snapshot per day in `business_value_snapshots`
-- latest business value snapshot for 2026-05-26 reports $26,027.36 total business value
+- latest business value snapshot for 2026-05-27 reports $26,083.47 total business value
 - clicking the Total row in the Business Inventory And Cash Value dashboard panel opens a modal with a business value history graph
 - Purchases workspace now has separate tabs for the normal editable purchases table and an Order Problems table
 - Purchases `Missing Data` filter keeps ASIN/sell-price/system/Amazon-title cleanup in the normal editable view
