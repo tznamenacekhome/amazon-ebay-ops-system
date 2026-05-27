@@ -459,7 +459,18 @@ export default function RepricingPage() {
                     className={`border-t border-slate-100 align-top ${rowTone(row)}`}
                   >
                     <td className="px-3 py-2">
-                      <div className="font-medium text-blue-700">{row.asin ?? "--"}</div>
+                      {row.asin ? (
+                        <a
+                          href={informedListingUrl(row.asin)}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="font-medium text-blue-700 hover:text-blue-900 hover:underline"
+                        >
+                          {row.asin}
+                        </a>
+                      ) : (
+                        <div className="font-medium text-slate-500">--</div>
+                      )}
                       <div className="text-xs text-slate-500">{row.seller_sku}</div>
                       <button
                         type="button"
@@ -937,6 +948,17 @@ function formatDateTime(value?: string | null) {
     hour: "numeric",
     minute: "2-digit",
   }).format(date);
+}
+
+function informedListingUrl(asin: string) {
+  const filter = encodeURIComponent(
+    JSON.stringify({
+      SearchTerm: asin,
+      Deleted: null,
+    })
+  );
+  const search = encodeURIComponent(asin);
+  return `https://app.informedrepricer.com/r/listings?filter=${filter}&search=${search}&view=all_listings`;
 }
 
 function formatDate(value?: string | null) {
