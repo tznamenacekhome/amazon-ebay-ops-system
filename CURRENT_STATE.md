@@ -489,6 +489,9 @@ Implemented:
 - `integrations/business_value_snapshot.py` stores one backend-computed business value snapshot per day in `business_value_snapshots`
 - latest business value snapshot for 2026-05-26 reports $26,027.36 total business value
 - clicking the Total row in the Business Inventory And Cash Value dashboard panel opens a modal with a business value history graph
+- Purchases workspace now has separate tabs for the normal editable purchases table and an Order Problems table
+- Purchases `Missing Data` filter keeps ASIN/sell-price/system/Amazon-title cleanup in the normal editable view
+- Purchases Order Problems tab shows past-ETA, stale/no-tracking, carrier exception, and return-pending rows with issue/age-focused columns
 
 Current purpose:
 Help identify purchase data completeness, receiving backlog, shipment prep backlog, workflow aging, and exception/missing-data visibility from one operational screen.

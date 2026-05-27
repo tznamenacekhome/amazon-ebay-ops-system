@@ -876,7 +876,8 @@ Implementation:
 - Inventory By Location was renamed Inventory Value By Location.
 - Amazon Sellable is labeled Amazon FBA Sellable and clarified as Amazon-reported fulfillable/sellable units.
 - Open reconciliation findings live on `/inventory-reconciliation`.
-- Purchases review-state filter separates `Missing Data` from `Order Problems`.
+- Purchases review-state filter keeps `Missing Data` in the normal editable table.
+- Order Problems uses a dedicated Purchases tab with issue/age-focused columns.
 
-Future:
-Order Problems should become a dedicated Purchases view tab with issue/age-focused columns if the filter is not enough for daily work.
+Reason:
+Missing data cleanup benefits from the normal editable purchase columns, while order problems need issue, age, ETA, tracking, and follow-up guidance.

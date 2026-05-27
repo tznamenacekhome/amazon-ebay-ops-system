@@ -23,9 +23,9 @@ This folder contains the Midnight Blue Operations Platform purchases workflow UI
 - Cancelled, return, listed, and reporting-excluded rows are excluded from the Missing Data filter and metric.
 - The status filter includes workflow statuses such as `Received`, `Listed`, `Return Pending`, `Return Opened`, and `Cancelled`.
 - The default status filter is `All Except Listed`; `All Status` includes Listed rows when full history is needed.
-- The review-state filter separates `Missing Data` from `Order Problems`.
+- The review-state filter keeps the normal editable table focused on `Missing Data`.
 - `Missing Data` catches missing ASIN, missing sell price, missing system, and missing Amazon title for ASIN-bearing active rows.
-- `Order Problems` catches past-ETA rows, stale/no-tracking rows between 7 and 90 days old, carrier exceptions, and return-pending rows.
+- The `Order Problems` tab catches past-ETA rows, stale/no-tracking rows between 7 and 90 days old, carrier exceptions, and return-pending rows in an issue/age-focused table.
 - The search input has an inline clear button.
 
 ## Detail Drawer Display

@@ -51,7 +51,6 @@ export function PurchaseFilters({
           <option value="all">All Review States</option>
           <option value="matched">Matched ASINs</option>
           <option value="needs_review">Missing Data</option>
-          <option value="order_problems">Order Problems</option>
         </select>
 
         <select

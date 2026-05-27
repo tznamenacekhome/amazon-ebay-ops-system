@@ -6,6 +6,7 @@ import { RefreshCw } from "lucide-react";
 import { PurchaseDetailDrawer } from "./purchases/PurchaseDetailDrawer";
 import { PurchaseFilters } from "./purchases/PurchaseFilters";
 import { PurchaseMetrics } from "./purchases/PurchaseMetrics";
+import { PurchaseProblemTable } from "./purchases/PurchaseProblemTable";
 import { PurchasesTable } from "./purchases/PurchasesTable";
 import type {
   PurchaseQuery,
@@ -19,6 +20,9 @@ import { rowKey } from "./purchases/utils";
 const PAGE_SIZE = 100;
 
 export default function PurchasesPage() {
+  const [viewMode, setViewMode] = useState<"purchases" | "order_problems">(
+    "purchases"
+  );
   const [searchText, setSearchText] = useState("");
   const [asinFilter, setAsinFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("active");
@@ -26,17 +30,28 @@ export default function PurchasesPage() {
   const [sortDirection, setSortDirection] =
     useState<PurchaseSortDirection>("desc");
   const [page, setPage] = useState(1);
+  const effectiveAsinFilter =
+    viewMode === "order_problems" ? "order_problems" : asinFilter;
+  const effectiveStatusFilter =
+    viewMode === "order_problems" ? "active" : statusFilter;
   const query = useMemo<PurchaseQuery>(
     () => ({
       searchText,
-      asinFilter,
-      statusFilter,
+      asinFilter: effectiveAsinFilter,
+      statusFilter: effectiveStatusFilter,
       sortColumn,
       sortDirection,
       page,
       pageSize: PAGE_SIZE,
     }),
-    [asinFilter, page, searchText, sortColumn, sortDirection, statusFilter]
+    [
+      effectiveAsinFilter,
+      effectiveStatusFilter,
+      page,
+      searchText,
+      sortColumn,
+      sortDirection,
+    ]
   );
 
   const {
@@ -179,6 +194,11 @@ export default function PurchasesPage() {
     setPage(1);
   }
 
+  function updateViewMode(mode: "purchases" | "order_problems") {
+    setViewMode(mode);
+    setPage(1);
+  }
+
   const totalPages = Math.max(Math.ceil(totalRows / PAGE_SIZE), 1);
 
   function openDetails(row: PurchaseRow) {
@@ -210,16 +230,40 @@ export default function PurchasesPage() {
         </button>
       </div>
 
-      <PurchaseMetrics stats={stats} />
+      <div className="mb-4 flex flex-wrap gap-2">
+        <TabButton
+          active={viewMode === "purchases"}
+          onClick={() => updateViewMode("purchases")}
+        >
+          Purchases
+        </TabButton>
+        <TabButton
+          active={viewMode === "order_problems"}
+          onClick={() => updateViewMode("order_problems")}
+        >
+          Order Problems
+        </TabButton>
+      </div>
 
-      <PurchaseFilters
-        searchText={searchText}
-        asinFilter={asinFilter}
-        statusFilter={statusFilter}
-        onSearchTextChange={updateSearchText}
-        onAsinFilterChange={updateAsinFilter}
-        onStatusFilterChange={updateStatusFilter}
-      />
+      {viewMode === "purchases" ? (
+        <>
+          <PurchaseMetrics stats={stats} />
+
+          <PurchaseFilters
+            searchText={searchText}
+            asinFilter={asinFilter}
+            statusFilter={statusFilter}
+            onSearchTextChange={updateSearchText}
+            onAsinFilterChange={updateAsinFilter}
+            onStatusFilterChange={updateStatusFilter}
+          />
+        </>
+      ) : (
+        <div className="mb-4 rounded-xl border border-slate-200 bg-white p-3 text-sm text-slate-600 shadow-sm">
+          Order Problems includes past-ETA rows, stale/no-tracking rows between 7 and 90 days old,
+          carrier exceptions, and return-pending rows. Use this list for supplier, carrier, or refund follow-up.
+        </div>
+      )}
 
       {error && (
         <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
@@ -227,18 +271,26 @@ export default function PurchasesPage() {
         </div>
       )}
 
-      <PurchasesTable
-        rows={rows}
-        loading={loading}
-        priceDrafts={priceDrafts}
-        savingKey={savingKey}
-        sortColumn={sortColumn}
-        sortDirection={sortDirection}
-        onSort={updateSort}
-        onPriceDraftChange={updatePriceDraft}
-        onSaveSellPrice={saveSellPrice}
-        onSelectRow={openDetails}
-      />
+      {viewMode === "purchases" ? (
+        <PurchasesTable
+          rows={rows}
+          loading={loading}
+          priceDrafts={priceDrafts}
+          savingKey={savingKey}
+          sortColumn={sortColumn}
+          sortDirection={sortDirection}
+          onSort={updateSort}
+          onPriceDraftChange={updatePriceDraft}
+          onSaveSellPrice={saveSellPrice}
+          onSelectRow={openDetails}
+        />
+      ) : (
+        <PurchaseProblemTable
+          rows={rows}
+          loading={loading}
+          onSelectRow={openDetails}
+        />
+      )}
 
       <div className="mt-4 flex flex-wrap items-center justify-between gap-3 text-sm text-slate-600">
         <div>
@@ -286,6 +338,30 @@ export default function PurchasesPage() {
         />
       )}
     </main>
+  );
+}
+
+function TabButton({
+  active,
+  children,
+  onClick,
+}: {
+  active: boolean;
+  children: React.ReactNode;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`rounded-lg border px-3 py-2 text-sm font-medium shadow-sm ${
+        active
+          ? "border-slate-900 bg-slate-900 text-white"
+          : "border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
+      }`}
+    >
+      {children}
+    </button>
   );
 }
 
