@@ -34,6 +34,8 @@ Inventory value semantics:
 - Amazon cash uses the latest `vw_latest_amazon_finance_balance_snapshot` row
 - Amazon cash-in-transit uses Finance financial event groups with `FundTransferStatus = Processing`
 - the business inventory/cash value total is API-provided and sums Amazon inventory value, pre-Amazon purchased inventory value, Amazon cash, Amazon-to-bank in-transit cash, and YNAB cash on hand
+- total business value is snapshotted once per day in `business_value_snapshots`
+- clicking the total value opens a modal graph backed by API-provided snapshot history
 
 Cost semantics:
 - reward points and payment method effects should not zero out resale inventory cost

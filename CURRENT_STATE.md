@@ -485,6 +485,9 @@ Implemented:
 - latest YNAB Business category snapshot currently reports $3,231.24 as cash on hand
 - `integrations/amazon_sync_finance_balances.py` stores read-only Amazon Finance cash snapshots in `amazon_finance_balance_snapshots`
 - latest Amazon Finance snapshot reports $2,923.58 Amazon cash, $2,232.84 Amazon-to-bank in-transit cash, $2,782.76 deferred/reserved cash, and $140.82 API open/available balance
+- `integrations/business_value_snapshot.py` stores one backend-computed business value snapshot per day in `business_value_snapshots`
+- latest business value snapshot for 2026-05-26 reports $26,027.36 total business value
+- clicking the Total row in the Business Inventory And Cash Value dashboard panel opens a modal with a business value history graph
 
 Current purpose:
 Help identify purchase data completeness, receiving backlog, shipment prep backlog, workflow aging, and exception/missing-data visibility from one operational screen.

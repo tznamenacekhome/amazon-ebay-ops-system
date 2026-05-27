@@ -105,6 +105,15 @@ type InventoryVisibility = {
     amazon_cash_in_transit_source: string;
     cash_on_hand_source: string;
   };
+  businessValueHistory: Array<{
+    snapshot_date: string;
+    total_business_value: number;
+    amazon_inventory_value: number;
+    pre_amazon_inventory_value: number;
+    amazon_cash_balance: number;
+    amazon_cash_in_transit: number;
+    cash_on_hand: number;
+  }>;
   unitsByState: Array<{ state: string; label: string; units: number }>;
   unitsByLocation: Array<{ location: string; label: string; units: number }>;
   unitsByIntent: Array<{ intent: string; label: string; units: number }>;
@@ -169,6 +178,7 @@ export default function DashboardPage() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showBusinessValueHistory, setShowBusinessValueHistory] = useState(false);
 
   useEffect(() => {
     loadDashboard();
@@ -335,7 +345,9 @@ export default function DashboardPage() {
           />
           <BusinessInventoryValuePanel
             value={data?.inventoryVisibility.businessInventoryValue}
+            history={data?.inventoryVisibility.businessValueHistory ?? []}
             loading={loading}
+            onOpenHistory={() => setShowBusinessValueHistory(true)}
           />
         </div>
 
@@ -643,6 +655,13 @@ export default function DashboardPage() {
           </table>
         </div>
       </section>
+
+      {showBusinessValueHistory && (
+        <BusinessValueHistoryModal
+          rows={data?.inventoryVisibility.businessValueHistory ?? []}
+          onClose={() => setShowBusinessValueHistory(false)}
+        />
+      )}
     </main>
   );
 }
@@ -703,10 +722,14 @@ function LocationValueTable({
 
 function BusinessInventoryValuePanel({
   value,
+  history,
   loading,
+  onOpenHistory,
 }: {
   value?: InventoryVisibility["businessInventoryValue"];
+  history: InventoryVisibility["businessValueHistory"];
   loading: boolean;
+  onOpenHistory: () => void;
 }) {
   return (
     <div className="rounded-md border border-slate-200 p-3">
@@ -745,6 +768,7 @@ function BusinessInventoryValuePanel({
           value={formatMoney(value?.total_business_value)}
           loading={loading}
           emphasis
+          onClick={history.length ? onOpenHistory : undefined}
         />
       </div>
     </div>
@@ -757,19 +781,17 @@ function ValueRow({
   detail,
   loading,
   emphasis = false,
+  onClick,
 }: {
   label: string;
   value: string;
   detail?: string;
   loading: boolean;
   emphasis?: boolean;
+  onClick?: () => void;
 }) {
-  return (
-    <div
-      className={`flex items-start justify-between gap-3 border-t pt-2 first:border-t-0 first:pt-0 ${
-        emphasis ? "border-slate-300" : "border-slate-100"
-      }`}
-    >
+  const content = (
+    <>
       <div>
         <div className={`text-sm ${emphasis ? "font-semibold text-slate-900" : "text-slate-600"}`}>
           {label}
@@ -779,7 +801,154 @@ function ValueRow({
       <div className={`text-right text-sm font-semibold ${emphasis ? "text-slate-950" : ""}`}>
         {loading ? "--" : value}
       </div>
+    </>
+  );
+
+  if (onClick) {
+    return (
+      <button
+        type="button"
+        onClick={onClick}
+        className={`flex w-full items-start justify-between gap-3 border-t pt-2 text-left hover:bg-slate-50 first:border-t-0 first:pt-0 ${
+          emphasis ? "border-slate-300 cursor-pointer" : "border-slate-100"
+        }`}
+      >
+        {content}
+      </button>
+    );
+  }
+
+  return (
+    <div
+      className={`flex items-start justify-between gap-3 border-t pt-2 first:border-t-0 first:pt-0 ${
+        emphasis ? "border-slate-300" : "border-slate-100"
+      }`}
+    >
+      {content}
     </div>
+  );
+}
+
+function BusinessValueHistoryModal({
+  rows,
+  onClose,
+}: {
+  rows: InventoryVisibility["businessValueHistory"];
+  onClose: () => void;
+}) {
+  const latest = rows[rows.length - 1];
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/30 p-4">
+      <div className="w-full max-w-2xl rounded-lg border border-slate-200 bg-white shadow-xl">
+        <div className="flex items-start justify-between gap-4 border-b border-slate-200 px-4 py-3">
+          <div>
+            <h3 className="text-base font-semibold">Business Value History</h3>
+            <p className="text-xs text-slate-500">
+              Daily total business value snapshots
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-md border border-slate-300 px-2 py-1 text-sm hover:bg-slate-50"
+          >
+            Close
+          </button>
+        </div>
+        <div className="p-4">
+          <BusinessValueLineChart rows={rows} />
+          <div className="mt-3 grid gap-2 text-sm sm:grid-cols-2">
+            <div className="rounded-md bg-slate-50 p-2">
+              <div className="text-xs uppercase tracking-wide text-slate-500">Latest</div>
+              <div className="font-semibold">{formatMoney(latest?.total_business_value)}</div>
+            </div>
+            <div className="rounded-md bg-slate-50 p-2">
+              <div className="text-xs uppercase tracking-wide text-slate-500">Snapshots</div>
+              <div className="font-semibold">{formatNumber(rows.length)}</div>
+            </div>
+          </div>
+          <div className="mt-3 max-h-48 overflow-auto rounded-md border border-slate-200">
+            <table className="w-full text-sm">
+              <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
+                <tr>
+                  <th className="px-3 py-2 text-left">Date</th>
+                  <th className="px-3 py-2 text-right">Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows
+                  .slice()
+                  .reverse()
+                  .map((row) => (
+                    <tr key={row.snapshot_date} className="border-t border-slate-100">
+                      <td className="px-3 py-2">{row.snapshot_date}</td>
+                      <td className="px-3 py-2 text-right font-medium">
+                        {formatMoney(row.total_business_value)}
+                      </td>
+                    </tr>
+                  ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function BusinessValueLineChart({
+  rows,
+}: {
+  rows: InventoryVisibility["businessValueHistory"];
+}) {
+  const width = 620;
+  const height = 220;
+  const padding = 28;
+  const values = rows.map((row) => row.total_business_value);
+  const min = Math.min(...values, 0);
+  const max = Math.max(...values, 1);
+  const range = Math.max(max - min, 1);
+  const points = rows.map((row, index) => {
+    const x =
+      rows.length === 1
+        ? width / 2
+        : padding + (index * (width - padding * 2)) / (rows.length - 1);
+    const y = height - padding - ((row.total_business_value - min) / range) * (height - padding * 2);
+    return { x, y };
+  });
+  const path = points
+    .map((point, index) => `${index === 0 ? "M" : "L"} ${point.x} ${point.y}`)
+    .join(" ");
+
+  if (!rows.length) {
+    return (
+      <div className="flex h-56 items-center justify-center rounded-md border border-slate-200 text-sm text-slate-500">
+        No business value snapshots found.
+      </div>
+    );
+  }
+
+  return (
+    <svg
+      viewBox={`0 0 ${width} ${height}`}
+      role="img"
+      aria-label="Business value over time"
+      className="h-56 w-full rounded-md border border-slate-200 bg-white"
+    >
+      <line x1={padding} y1={height - padding} x2={width - padding} y2={height - padding} stroke="#cbd5e1" />
+      <line x1={padding} y1={padding} x2={padding} y2={height - padding} stroke="#cbd5e1" />
+      <text x={padding} y={18} className="fill-slate-500 text-[11px]">
+        {formatMoney(max)}
+      </text>
+      <text x={padding} y={height - 8} className="fill-slate-500 text-[11px]">
+        {formatMoney(min)}
+      </text>
+      <path d={path} fill="none" stroke="#0f172a" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+      {points.map((point, index) => (
+        <circle key={`${rows[index].snapshot_date}-${index}`} cx={point.x} cy={point.y} r="4" fill="#0f172a" />
+      ))}
+    </svg>
   );
 }
 

@@ -732,6 +732,25 @@ Amazon Finance data must stay in Amazon-specific finance snapshot tables. Do not
 
 ---
 
+## Total Business Value Is Snapshotted Daily
+
+Decision:
+Store one backend-computed total business value snapshot per day for trend reporting.
+
+Reason:
+The dashboard's total business value is a rollup across multiple sources: Amazon inventory valuation, MBOP pre-Amazon inventory, Amazon Finance cash, Amazon-to-bank in-transit cash, and YNAB cash on hand. Persisting one daily point makes the trend auditable and avoids trying to reconstruct historical totals from changing source snapshots.
+
+Implementation:
+- `business_value_snapshots` stores daily rollups and the raw component context used to calculate the total.
+- `integrations/business_value_snapshot.py` computes and upserts the daily row.
+- `/api/dashboard/purchases` returns business value history from `business_value_snapshots`.
+- the dashboard Total row opens a graph modal using API-provided history values.
+
+Rule:
+Business value snapshots are reporting snapshots only. They do not write back to purchases, purchase_items, inventory_positions, Amazon Finance snapshots, YNAB snapshots, or workflow tables.
+
+---
+
 ## ASIN Is The Primary Amazon Inventory Identity
 
 Decision:

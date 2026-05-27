@@ -116,6 +116,16 @@ type BusinessInventoryValueSummary = {
   cash_on_hand_source: string;
 };
 
+type BusinessValueHistoryRow = {
+  snapshot_date: string;
+  total_business_value: number;
+  amazon_inventory_value: number;
+  pre_amazon_inventory_value: number;
+  amazon_cash_balance: number;
+  amazon_cash_in_transit: number;
+  cash_on_hand: number;
+};
+
 type InventoryLabValuationSummary = {
   units: number;
   total_value: number;
@@ -463,6 +473,7 @@ async function fetchInventoryVisibility() {
     inventoryLabValuation,
     ynabCashBalance,
     amazonFinanceBalance,
+    businessValueHistory,
   ] =
     await Promise.all([
     fetchInventoryPositionSummary(),
@@ -471,6 +482,7 @@ async function fetchInventoryVisibility() {
     fetchInventoryLabValuationSummary(),
     fetchYnabCashBalanceSummary(),
     fetchAmazonFinanceBalanceSummary(),
+    fetchBusinessValueHistory(),
   ]);
 
   const unitsByState = new Map<string, number>();
@@ -565,6 +577,7 @@ async function fetchInventoryVisibility() {
       ynabCashBalance,
       amazonFinanceBalance
     ),
+    businessValueHistory,
     unitsByState: Array.from(unitsByState.entries())
       .map(([state, units]) => ({ state, label: inventoryStateLabel(state), units }))
       .sort((left, right) => right.units - left.units),
@@ -797,6 +810,42 @@ async function fetchAmazonFinanceBalanceSummary(): Promise<AmazonFinanceBalanceS
     deferred_or_reserved_cash: nullableNumber(row.deferred_or_reserved_cash),
     source: `Amazon Finance snapshot ${row.captured_at ?? ""}`.trim(),
   };
+}
+
+async function fetchBusinessValueHistory(): Promise<BusinessValueHistoryRow[]> {
+  const { data, error } = await supabase
+    .from("business_value_snapshots")
+    .select(
+      "snapshot_date,total_business_value,amazon_inventory_value,pre_amazon_inventory_value," +
+        "amazon_cash_balance,amazon_cash_in_transit,cash_on_hand"
+    )
+    .order("snapshot_date", { ascending: true })
+    .limit(365);
+
+  if (error) {
+    console.warn("Business value history lookup failed", error.message);
+    return [];
+  }
+
+  const rows = (data ?? []) as unknown as Array<{
+    snapshot_date: string;
+    total_business_value: unknown;
+    amazon_inventory_value: unknown;
+    pre_amazon_inventory_value: unknown;
+    amazon_cash_balance: unknown;
+    amazon_cash_in_transit: unknown;
+    cash_on_hand: unknown;
+  }>;
+
+  return rows.map((row) => ({
+    snapshot_date: row.snapshot_date,
+    total_business_value: Number(row.total_business_value ?? 0),
+    amazon_inventory_value: Number(row.amazon_inventory_value ?? 0),
+    pre_amazon_inventory_value: Number(row.pre_amazon_inventory_value ?? 0),
+    amazon_cash_balance: Number(row.amazon_cash_balance ?? 0),
+    amazon_cash_in_transit: Number(row.amazon_cash_in_transit ?? 0),
+    cash_on_hand: Number(row.cash_on_hand ?? 0),
+  }));
 }
 
 function nullableNumber(value: unknown) {
