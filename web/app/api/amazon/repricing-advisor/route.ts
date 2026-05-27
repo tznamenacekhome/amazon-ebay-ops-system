@@ -810,6 +810,17 @@ function recommend(input: {
     };
   }
 
+  if (isYoungAmazonInventory(input.amazonAgeBucket, input.ageDays)) {
+    return {
+      tier: "Watch",
+      bucket: "Pricing",
+      targetPrice: null,
+      targetPriceBasis: null,
+      action: "No repricing action needed yet.",
+      reason: "Inventory is under 90 days old and no actionable Amazon inventory or listing issue is visible.",
+    };
+  }
+
   if (input.costBasis === null) {
     return needsData("Missing cost basis; cannot calculate a safe liquidation floor.");
   }
@@ -957,6 +968,14 @@ function recommend(input: {
       input.informedNote
     ),
   };
+}
+
+function isYoungAmazonInventory(
+  amazonAgeBucket: AmazonAgeBucket | null | undefined,
+  ageDays: number | null
+) {
+  if (amazonAgeBucket) return amazonAgeBucket === "0-90";
+  return ageDays !== null && ageDays <= WATCH_MAX_AGE_DAYS;
 }
 
 function buildCompetitionContext(
