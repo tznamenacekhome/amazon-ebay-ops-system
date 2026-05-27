@@ -559,7 +559,8 @@ The operator wants aged but otherwise sellable inventory to become a repricing w
 Implementation:
 - `/api/amazon/repricing-advisor` assigns the advisor bucket.
 - `Pricing` rows are aged sellable inventory without listing/condition exceptions.
-- `Inventory / Listing Issue` rows have unsellable quantity, Amazon listing issues, or non-buyable listing status where repricing alone may not help.
+- `Inventory / Listing Issue` rows have unsellable quantity or non-buyable/suppressed listing status where repricing alone may not help.
+- buyable/discoverable listings with Amazon catalog metadata issues are not treated as action issues and are not surfaced in MBOP.
 - `Missing Data` rows are missing required ASIN, cost, age, Keepa, Informed, or pricing context.
 - Reprice target price uses a 3% markdown below Buy Box/reference while respecting a cost + 10% floor.
 - Liquidate target price uses an 8% markdown below Buy Box/reference while respecting a cost + 10% floor.

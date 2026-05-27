@@ -347,10 +347,11 @@ Current recommendation rules:
 - Watch: currently filtered out of the action list unless a row has an actionable issue
 - Reprice: Amazon 91-180 day bucket, or fallback 90-179 days old
 - Liquidate: Amazon 181+ day bucket, or fallback 180+ days old
-- Remove / eBay: unsellable quantity, Amazon listing issue, or non-buyable listing status
+- Remove / eBay: unsellable quantity or non-buyable/suppressed listing status
 - Needs Data: missing ASIN, cost basis, age/date context, pricing context, Keepa snapshot, or Informed snapshot
 - advisor bucket `Pricing`: aged sellable inventory without listing/condition exceptions
-- advisor bucket `Inventory / Listing Issue`: unsellable, suppressed, or listing-issue inventory where price changes alone may not help
+- advisor bucket `Inventory / Listing Issue`: unsellable or suppressed/non-buyable inventory where price changes alone may not help
+- buyable/discoverable listings with Amazon catalog metadata issues are ignored because there is no operator action unless the listing becomes suppressed or inventory becomes unsellable.
 - advisor bucket `Missing Data`: rows missing required repricing context
 - Reprice target price uses 3% below Buy Box/reference, with a cost + 10% floor
 - Liquidate target price uses 8% below Buy Box/reference, with a cost + 10% floor
@@ -372,8 +373,8 @@ Latest validation:
 - estimated capital tied up: $13,597.34
 - aged capital over 90 days: $5,265.19
 - aged capital over 180 days: $1,881.41
-- tier counts after action-list filtering and FC-transfer normalization: 53 Remove / eBay, 19 Liquidate, 59 Reprice, 68 Needs Data
-- bucket counts after pricing/issue split: 78 Pricing, 53 Inventory / Listing Issue, 68 Missing Data
+- tier counts after ignoring non-actionable buyable-listing metadata issues: 6 Remove / eBay, 33 Liquidate, 95 Reprice, 1 Needs Data
+- bucket counts after pricing/issue split and metadata-noise suppression: 128 Pricing, 6 Inventory / Listing Issue, 1 Missing Data
 - `/repricing` rendered successfully with HTTP 200
 
 Boundary:

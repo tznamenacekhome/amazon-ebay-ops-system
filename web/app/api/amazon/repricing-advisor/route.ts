@@ -501,7 +501,9 @@ function buildAdvisorRows(
         centsToDollars(keepa?.buy_box_price_avg90_cents) ??
         centsToDollars(keepa?.new_price_current_cents);
       const listingStatus = cleanText(listing?.listing_status ?? sku?.listing_status);
-      const listingIssueCount = toNumber(listing?.issue_count, 0);
+      const rawListingIssueCount = toNumber(listing?.issue_count, 0);
+      const actionableListingStatus = listingStatusNeedsAction(listingStatus);
+      const listingIssueCount = actionableListingStatus ? rawListingIssueCount : 0;
       const listingIssueStatus = listingIssueSummary(listingStatus, listingIssueCount, listing);
       const capitalTiedUp =
         costBasis !== null ? roundMoney(costBasis * totalQuantity) : null;
@@ -531,7 +533,6 @@ function buildAdvisorRows(
         informedNote,
         amazonAgeBucket: ageSignal?.bucket ?? null,
         listingStatus,
-        listingIssueCount,
         unsellableQuantity,
       });
 
@@ -683,7 +684,6 @@ function recommend(input: {
   informedNote: string;
   amazonAgeBucket?: AmazonAgeBucket | null;
   listingStatus: string | null;
-  listingIssueCount: number;
   unsellableQuantity: number;
 }): {
   tier: RecommendationTier;
@@ -698,18 +698,17 @@ function recommend(input: {
   }
 
   const actionableListingStatus = listingStatusNeedsAction(input.listingStatus);
-  if (
-    input.unsellableQuantity > 0 ||
-    input.listingIssueCount > 0 ||
-    actionableListingStatus
-  ) {
+  if (input.unsellableQuantity > 0 || actionableListingStatus) {
     return {
       tier: "Remove / eBay",
       bucket: "Inventory / Listing Issue",
       targetPrice: null,
       targetPriceBasis: null,
-      action: "Review listing issue, removal, or eBay transfer.",
-      reason: "Unsellable quantity or Amazon listing issue detected; repricing alone may not fix this inventory.",
+      action: "Review suppression, removal, or eBay transfer.",
+      reason:
+        input.unsellableQuantity > 0
+          ? "Unsellable quantity detected; repricing alone may not fix this inventory."
+          : "Amazon listing status is not buyable/discoverable; repricing alone may not fix this inventory.",
     };
   }
 
@@ -1421,9 +1420,6 @@ function listingStatusNeedsAction(listingStatus: string | null) {
     .map((part) => part.trim().toUpperCase())
     .filter(Boolean);
   if (!statuses.length) return false;
-  if (statuses.some((status) => ["BUYABLE", "DISCOVERABLE"].includes(status))) {
-    return false;
-  }
   return statuses.some((status) =>
     ["SUPPRESSED", "INACTIVE", "INCOMPLETE", "NOT_BUYABLE"].includes(status)
   );

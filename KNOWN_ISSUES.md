@@ -136,7 +136,8 @@ Current observed result:
 - the current Informed report did not include ASIN-shaped values, so matching is by seller SKU for this first slice.
 - Amazon FBA inventory detail quantities are now normalized for reserved customer order, FC transfer, FC processing, future supply, researching, and unfulfillable breakdowns.
 - the advisor now separates rows into Pricing, Inventory / Listing Issue, and Missing Data buckets.
-- current bucket counts are 78 Pricing, 53 Inventory / Listing Issue, and 68 Missing Data.
+- buyable/discoverable listings with Amazon catalog metadata issues are ignored because the operator only cares when inventory becomes suppressed/non-buyable or unsellable.
+- current bucket counts are 128 Pricing, 6 Inventory / Listing Issue, and 1 Missing Data.
 - Pricing rows now receive a backend-generated manual target price using controlled markdowns against Buy Box/reference price while preserving a cost + 10% floor.
 - Amazon planning 30/90-day shipped-unit fields are now surfaced as a sales velocity signal and tune target markdowns.
 - InventoryLab/MBOP purchase dates are fallback age context only when Amazon planning data is missing.
