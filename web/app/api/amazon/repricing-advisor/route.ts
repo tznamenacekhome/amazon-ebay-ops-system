@@ -1003,10 +1003,13 @@ function parseKeepaOffer(
     cleanText(offer.sellerId) ??
     cleanText(offer.seller_id) ??
     cleanText(lastValue(offer.sellerIdHistory));
+  const offerCsvPrices = latestOfferCsvPrices(offer.offerCSV);
   const itemPrice =
     centsToDollars(firstNumber(offer.price, offer.current, offer.lastPrice, offer.offerPrice)) ??
-    centsToDollars(firstOfferCsvPrice(offer.offerCSV));
-  const shippingPrice = centsToDollars(firstNumber(offer.shipping, offer.shippingPrice));
+    centsToDollars(offerCsvPrices.item_price_cents);
+  const shippingPrice =
+    centsToDollars(firstNumber(offer.shipping, offer.shippingPrice)) ??
+    centsToDollars(offerCsvPrices.shipping_price_cents);
   const landedPrice =
     centsToDollars(firstNumber(offer.landedPrice, offer.totalPrice)) ??
     (itemPrice !== null ? roundMoney(itemPrice + (shippingPrice ?? 0)) : null);
@@ -1067,13 +1070,24 @@ function offerFulfillment(offer: Record<string, unknown>): "FBA" | "MFN" | "Unkn
   return "Unknown";
 }
 
-function firstOfferCsvPrice(value: unknown) {
-  if (!Array.isArray(value)) return null;
-  for (let index = value.length - 1; index >= 0; index -= 1) {
-    const price = Number(value[index]);
-    if (Number.isFinite(price) && price > 0) return price;
+function latestOfferCsvPrices(value: unknown) {
+  if (!Array.isArray(value)) {
+    return { item_price_cents: null, shipping_price_cents: null };
   }
-  return null;
+
+  for (let index = value.length - 3; index >= 0; index -= 3) {
+    const itemPrice = toOptionalNumber(value[index + 1]);
+    const shippingPrice = toOptionalNumber(value[index + 2]);
+    if (itemPrice !== null && itemPrice > 0) {
+      return {
+        item_price_cents: itemPrice,
+        shipping_price_cents:
+          shippingPrice !== null && shippingPrice >= 0 ? shippingPrice : null,
+      };
+    }
+  }
+
+  return { item_price_cents: null, shipping_price_cents: null };
 }
 
 function firstNumber(...values: unknown[]) {

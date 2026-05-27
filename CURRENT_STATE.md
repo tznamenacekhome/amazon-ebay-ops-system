@@ -365,6 +365,7 @@ Current recommendation rules:
 - normal inbound/FC-transfer movement is displayed as inventory detail, but is not treated as an operator-action issue by itself
 - competition drawer summarizes FBA/MFN offer counts, observed stock, lowest FBA/MFN price, Buy Box seller, and per-offer seller/fulfillment/price/stock signals from the stored Keepa payload
 - competition drawer uses Keepa `liveOffersOrder` when present so it shows currently live offers, filters offers to the same condition as the operator's listing when condition is known, keeps the Buy Box row first, and sorts the remaining offers by landed price from low to high
+- Keepa offerCSV rows are parsed as latest time/price/shipping triples so MFN landed price includes both item price and shipping
 - if stored Keepa data only has summary fields, the drawer shows that offer-level data is missing and recommends targeted Keepa offer sync for that ASIN
 
 Latest validation:
