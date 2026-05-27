@@ -20,6 +20,10 @@ export function PurchaseProblemTable({
   loading,
   onSelectRow,
 }: PurchaseProblemTableProps) {
+  const sortedRows = rows
+    .map((row) => ({ row, problem: getOrderProblem(row) }))
+    .sort((left, right) => (right.problem.ageDays ?? -1) - (left.problem.ageDays ?? -1));
+
   return (
     <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
       <table className="min-w-[1120px] border-collapse text-left text-sm">
@@ -43,15 +47,14 @@ export function PurchaseProblemTable({
                 Loading order problems...
               </td>
             </tr>
-          ) : rows.length === 0 ? (
+          ) : sortedRows.length === 0 ? (
             <tr>
               <td className="px-2 py-6 text-center text-slate-500" colSpan={9}>
                 No order problems found.
               </td>
             </tr>
           ) : (
-            rows.map((row) => {
-              const problem = getOrderProblem(row);
+            sortedRows.map(({ row, problem }) => {
               const { primaryTitle, ebayTitle, showEbaySubtitle } =
                 getDisplayTitleParts(row);
 

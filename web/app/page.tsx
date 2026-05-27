@@ -34,23 +34,27 @@ export default function PurchasesPage() {
     viewMode === "order_problems" ? "order_problems" : asinFilter;
   const effectiveStatusFilter =
     viewMode === "order_problems" ? "active" : statusFilter;
+  const effectiveSortColumn =
+    viewMode === "order_problems" ? "order_date" : sortColumn;
+  const effectiveSortDirection =
+    viewMode === "order_problems" ? "asc" : sortDirection;
   const query = useMemo<PurchaseQuery>(
     () => ({
       searchText,
       asinFilter: effectiveAsinFilter,
       statusFilter: effectiveStatusFilter,
-      sortColumn,
-      sortDirection,
+      sortColumn: effectiveSortColumn,
+      sortDirection: effectiveSortDirection,
       page,
       pageSize: PAGE_SIZE,
     }),
     [
       effectiveAsinFilter,
+      effectiveSortColumn,
+      effectiveSortDirection,
       effectiveStatusFilter,
       page,
       searchText,
-      sortColumn,
-      sortDirection,
     ]
   );
 
