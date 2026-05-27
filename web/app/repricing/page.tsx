@@ -102,6 +102,8 @@ type AdvisorRow = {
   planning_alert: string | null;
   sales_shipped_last_30_days: number | null;
   sales_shipped_last_90_days: number | null;
+  informed_sales_last_30_days: number | null;
+  sales_velocity_source: "Informed" | "Amazon Inventory Planning" | "Missing";
   sales_velocity_signal: SalesVelocitySignal;
   informed_rule_name: string | null;
   informed_rule_id: string | null;
@@ -535,8 +537,10 @@ export default function RepricingPage() {
                       <div className="font-medium">{row.sales_velocity_signal}</div>
                       <div className="text-xs text-slate-500">{salesRankSignal(row)}</div>
                       <div className="text-xs text-slate-500">
-                        30/90d sales {formatNumber(row.sales_shipped_last_30_days)} /{" "}
-                        {formatNumber(row.sales_shipped_last_90_days)}
+                        Informed 30d sales {formatNumber(row.informed_sales_last_30_days)}
+                      </div>
+                      <div className="text-xs text-slate-500">
+                        Source: {row.sales_velocity_source}
                       </div>
                     </td>
                     <td className="w-[220px] px-3 py-2">

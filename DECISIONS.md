@@ -644,12 +644,14 @@ Inventory under 90 days old and normal Amazon movement states such as inbound or
 
 Implementation:
 - rows under 90 days old are filtered out unless they have an actionable issue.
+- rows with Informed `current-velocity` greater than zero are filtered out because recent sales mean the item is moving and does not need aged-inventory action.
 - FC transfer is normalized from Amazon reserved inventory detail and displayed as inventory detail.
 - FC transfer, inbound movement, future supply, and FC processing are not treated as issues by themselves.
 - actionable issues remain unsellable quantity, Amazon listing issues/suppression, aged price review, liquidation age, and missing data needed for safe repricing.
 
 Rule:
 Do not classify FC transfer as sold, missing, or a removal/eBay issue unless another source indicates a real problem.
+Use Informed `current-velocity` as a temporary sales-velocity signal only. Replace it with Amazon order/sales data when the Amazon Orders And Sales integration is built.
 
 ---
 

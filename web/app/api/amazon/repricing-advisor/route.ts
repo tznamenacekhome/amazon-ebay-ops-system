@@ -147,6 +147,7 @@ type InformedListingRow = {
   listing_status: string | null;
   report_generated_at: string | null;
   imported_at: string | null;
+  raw_row_json: unknown;
 };
 
 type InformedRuleOverrideRow = {
@@ -281,6 +282,8 @@ type AdvisorRow = {
   planning_alert: string | null;
   sales_shipped_last_30_days: number | null;
   sales_shipped_last_90_days: number | null;
+  informed_sales_last_30_days: number | null;
+  sales_velocity_source: "Informed" | "Amazon Inventory Planning" | "Missing";
   sales_velocity_signal: SalesVelocitySignal;
   informed_rule_name: string | null;
   informed_rule_id: string | null;
@@ -368,7 +371,7 @@ export async function GET() {
           "vw_latest_informed_listing_snapshot",
           "asin,seller_sku,marketplace,fulfillment_channel,repricing_enabled,assigned_rule_name," +
             "current_price,min_price,max_price,buy_box_price,buy_box_status,buy_box_winner," +
-            "competition_offer_count,quantity,listing_status,report_generated_at,imported_at"
+            "competition_offer_count,quantity,listing_status,report_generated_at,imported_at,raw_row_json"
         ),
         fetchAll<InformedRuleOverrideRow>(
           "informed_rule_name_overrides",
@@ -607,7 +610,16 @@ function buildAdvisorRows(
         costBasis !== null ? roundMoney(costBasis * totalQuantity) : null;
       const sales30 = toOptionalNumber(planning?.sales_shipped_last_30_days);
       const sales90 = toOptionalNumber(planning?.sales_shipped_last_90_days);
-      const velocitySignal = salesVelocitySignal(sales30, sales90, totalQuantity);
+      const informedSales30 = informedSalesLast30(informed);
+      const velocitySales30 = informedSales30 ?? null;
+      const velocitySales90 = informedSales30;
+      const salesVelocitySource =
+        informedSales30 !== null
+          ? "Informed"
+          : sales30 !== null || sales90 !== null
+            ? "Amazon Inventory Planning"
+            : "Missing";
+      const velocitySignal = salesVelocitySignal(velocitySales30, velocitySales90, totalQuantity);
       const informedNote = informedRepricingNote({
         informed,
         tierAgeBucket: ageSignal?.bucket ?? null,
@@ -628,6 +640,7 @@ function buildAdvisorRows(
         informedBuyBoxPrice,
         marketReferencePrice,
         salesVelocitySignal: velocitySignal,
+        informedSalesLast30: informedSales30,
         informedNote,
         amazonAgeBucket: ageSignal?.bucket ?? null,
         listingStatus,
@@ -710,6 +723,8 @@ function buildAdvisorRows(
         planning_alert: cleanText(planning?.alert),
         sales_shipped_last_30_days: sales30,
         sales_shipped_last_90_days: sales90,
+        informed_sales_last_30_days: informedSales30,
+        sales_velocity_source: salesVelocitySource,
         sales_velocity_signal: velocitySignal,
         informed_rule_name: informedRuleName,
         informed_rule_id: informedRuleId,
@@ -779,6 +794,7 @@ function recommend(input: {
   informedBuyBoxPrice: number | null;
   marketReferencePrice: number | null;
   salesVelocitySignal: SalesVelocitySignal;
+  informedSalesLast30: number | null;
   informedNote: string;
   amazonAgeBucket?: AmazonAgeBucket | null;
   listingStatus: string | null;
@@ -793,6 +809,17 @@ function recommend(input: {
 } {
   if (!input.asin) {
     return needsData("Missing ASIN; cannot connect Amazon, Keepa, and cost context.");
+  }
+
+  if ((input.informedSalesLast30 ?? 0) > 0) {
+    return {
+      tier: "Healthy",
+      bucket: "Pricing",
+      targetPrice: null,
+      targetPriceBasis: null,
+      action: "No repricing action needed.",
+      reason: "Informed shows one or more sales in the last 30 days, so this item is excluded from the aged inventory work queue.",
+    };
   }
 
   const actionableListingStatus = listingStatusNeedsAction(input.listingStatus);
@@ -1398,6 +1425,18 @@ function withInformedNote(reason: string, ...notes: string[]) {
   return `${reason} ${usableNotes.join(" ")}`;
 }
 
+function informedSalesLast30(informed?: InformedListingRow) {
+  const raw = asRecord(informed?.raw_row_json);
+  return toOptionalNumber(
+    raw?.["current-velocity"] ??
+      raw?.["current_velocity"] ??
+      raw?.["30-day-sales"] ??
+      raw?.["30-day sales"] ??
+      raw?.["units-sold-last-30-days"] ??
+      raw?.["units sold last 30 days"]
+  );
+}
+
 function salesVelocitySignal(
   sales30: number | null,
   sales90: number | null,
@@ -1730,6 +1769,11 @@ function toOptionalNumber(value: unknown) {
   if (value === null || value === undefined || value === "") return null;
   const number = Number(value);
   return Number.isFinite(number) ? number : null;
+}
+
+function asRecord(value: unknown): Record<string, unknown> | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  return value as Record<string, unknown>;
 }
 
 function toOptionalBoolean(value: unknown) {

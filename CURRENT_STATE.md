@@ -357,8 +357,9 @@ Current recommendation rules:
 - advisor bucket `Missing Data`: rows missing required repricing context
 - Reprice target price uses 3% below Buy Box/reference, with a cost + 10% floor
 - Liquidate target price uses 8% below Buy Box/reference, with a cost + 10% floor
-- target markdowns are adjusted by Amazon planning sales velocity: stronger recent sales get gentler markdowns, no recent sales get firmer markdowns
-- sales velocity is classified from Amazon planning 30/90-day shipped-unit fields as Strong, Moving, Slow, No recent sales, or Unknown
+- target markdowns are adjusted by Informed current-velocity where available: stronger recent sales get gentler markdowns, no recent sales get firmer markdowns
+- sales velocity is classified from Informed `current-velocity` as the temporary 30-day sales source; Amazon planning shipped-unit fields remain stored but are not trusted for the operator's actual sales velocity
+- rows with any Informed sales in the last 30 days are excluded from the aged inventory action list even when Amazon planning age is over 90 days
 - Informed notes flag stale inventory where current price is above Buy Box, min price appears above Buy Box, repricing is disabled, or a rule assignment is missing
 - Informed column displays the friendly rule name when an override exists and keeps the numeric rule ID as secondary traceability
 - rows under 90 days old are excluded from the action list unless they have an actionable issue

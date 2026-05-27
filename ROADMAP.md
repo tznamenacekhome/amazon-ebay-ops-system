@@ -319,6 +319,7 @@ Goals:
 - support sell-through analytics by ASIN, system, purchase cohort, and listing age
 - support future Amazon cash balance and settlement/disbursement reporting
 - improve repricing decisions with actual MBOP sales velocity and realized sale prices
+- replace the Aged Amazon Inventory page's temporary Informed `current-velocity` signal with Amazon order/sales data once the Amazon sales integration is implemented
 
 Constraints:
 - keep Amazon seller orders/sales separate from eBay purchases and `purchase_items`
