@@ -369,6 +369,7 @@ Current recommendation rules:
 - competition drawer identifies the operator's Amazon seller ID, labels that row as You, highlights it, and can add an MBOP-derived own-offer row if Keepa does not return the operator's live offer
 - Keepa sync supports a selective `--stock` flag that requests offer stock detail; when Keepa returns live `stockCSV`, the drawer uses the latest value for competitor stock
 - Informed reports provide the operator's own stock quantity but do not expose competitor stock counts in the imported report
+- repricing advisor rows can be snoozed for 30 days via `amazon_repricing_advisor_snoozes`; the page defaults to Not Snoozed, can show All, and splits visible stats between active and snoozed buckets
 - if stored Keepa data only has summary fields, the drawer shows that offer-level data is missing and recommends targeted Keepa offer sync for that ASIN
 
 Latest validation:

@@ -137,6 +137,8 @@ type AdvisorRow = {
   recommendation_tier: RecommendationTier;
   recommended_manual_action: string;
   reason: string;
+  snoozed_until: string | null;
+  is_snoozed: boolean;
 };
 
 type AdvisorData = {
@@ -149,6 +151,10 @@ type AdvisorData = {
     aged_capital_over_180_days: number;
     rows_needing_data: number;
     unsellable_or_suppressed_rows: number;
+    snoozed_rows: number;
+    not_snoozed_rows: number;
+    snoozed_estimated_capital_tied_up: number;
+    not_snoozed_estimated_capital_tied_up: number;
     by_tier: Record<RecommendationTier, number>;
     by_bucket: Record<AdvisorBucket, number>;
   };
@@ -192,7 +198,9 @@ export default function RepricingPage() {
   const [missingOnly, setMissingOnly] = useState(false);
   const [issueOnly, setIssueOnly] = useState(false);
   const [keepaFilter, setKeepaFilter] = useState<"all" | "has" | "missing">("all");
+  const [snoozeFilter, setSnoozeFilter] = useState<"not_snoozed" | "all">("not_snoozed");
   const [competitionRow, setCompetitionRow] = useState<AdvisorRow | null>(null);
+  const [snoozingSku, setSnoozingSku] = useState<string | null>(null);
 
   useEffect(() => {
     loadAdvisor();
@@ -217,9 +225,35 @@ export default function RepricingPage() {
     }
   }
 
+  async function snoozeRow(row: AdvisorRow) {
+    setSnoozingSku(row.seller_sku);
+    setError(null);
+
+    try {
+      const response = await fetch("/api/amazon/repricing-advisor", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          seller_sku: row.seller_sku,
+          asin: row.asin,
+          snooze_days: 30,
+        }),
+      });
+      if (!response.ok) {
+        throw new Error(`Failed to snooze row: ${response.status}`);
+      }
+      await loadAdvisor();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to snooze row.");
+    } finally {
+      setSnoozingSku(null);
+    }
+  }
+
   const rows = useMemo(() => {
     return (data?.rows ?? []).filter((row) => {
       if (tier !== "All" && row.recommendation_tier !== tier) return false;
+      if (snoozeFilter === "not_snoozed" && row.is_snoozed) return false;
       if (advisorBucket !== "All" && row.advisor_bucket !== advisorBucket) return false;
       if (!inAgeBucket(row, ageBucket)) return false;
       if (missingOnly && row.recommendation_tier !== "Needs Data") return false;
@@ -230,7 +264,7 @@ export default function RepricingPage() {
       if (keepaFilter === "missing" && row.has_keepa_data) return false;
       return true;
     });
-  }, [advisorBucket, ageBucket, data, issueOnly, keepaFilter, missingOnly, tier]);
+  }, [advisorBucket, ageBucket, data, issueOnly, keepaFilter, missingOnly, snoozeFilter, tier]);
 
   return (
     <main className="min-h-screen bg-slate-100 p-4 text-slate-900">
@@ -258,11 +292,24 @@ export default function RepricingPage() {
       ) : null}
 
       <section className="mb-4 grid gap-3 xl:grid-cols-6">
-        <Metric label="Rows" value={formatNumber(data?.summary.total_rows)} loading={loading} />
-        <Metric label="Units" value={formatNumber(data?.summary.total_units)} loading={loading} />
         <Metric
-          label="Capital"
-          value={formatMoney(data?.summary.total_estimated_capital_tied_up)}
+          label="Not snoozed"
+          value={formatNumber(data?.summary.not_snoozed_rows)}
+          loading={loading}
+        />
+        <Metric
+          label="Snoozed"
+          value={formatNumber(data?.summary.snoozed_rows)}
+          loading={loading}
+        />
+        <Metric
+          label="Active capital"
+          value={formatMoney(data?.summary.not_snoozed_estimated_capital_tied_up)}
+          loading={loading}
+        />
+        <Metric
+          label="Snoozed capital"
+          value={formatMoney(data?.summary.snoozed_estimated_capital_tied_up)}
           loading={loading}
         />
         <Metric
@@ -283,7 +330,18 @@ export default function RepricingPage() {
       </section>
 
       <section className="mb-4 rounded-md border border-slate-200 bg-white p-3 shadow-sm">
-        <div className="grid gap-3 lg:grid-cols-[180px_220px_160px_repeat(4,max-content)]">
+        <div className="grid gap-3 lg:grid-cols-[180px_180px_220px_160px_repeat(4,max-content)]">
+          <label className="text-sm">
+            <span className="mb-1 block text-xs font-medium uppercase text-slate-500">Snooze</span>
+            <select
+              value={snoozeFilter}
+              onChange={(event) => setSnoozeFilter(event.target.value as typeof snoozeFilter)}
+              className="w-full rounded-md border border-slate-300 bg-white px-2 py-2"
+            >
+              <option value="not_snoozed">Not Snoozed</option>
+              <option value="all">All</option>
+            </select>
+          </label>
           <label className="text-sm">
             <span className="mb-1 block text-xs font-medium uppercase text-slate-500">Tier</span>
             <select
@@ -388,6 +446,19 @@ export default function RepricingPage() {
                       >
                         Competition
                       </button>
+                      <button
+                        type="button"
+                        onClick={() => snoozeRow(row)}
+                        disabled={snoozingSku === row.seller_sku}
+                        className="mt-2 ml-2 rounded border border-slate-300 bg-white px-2 py-1 text-xs font-medium text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        {snoozingSku === row.seller_sku ? "Snoozing..." : "Snooze"}
+                      </button>
+                      {row.is_snoozed ? (
+                        <div className="mt-2 text-xs font-medium text-slate-500">
+                          Snoozed until {formatDate(row.snoozed_until)}
+                        </div>
+                      ) : null}
                     </td>
                     <td className="w-[340px] px-3 py-2">
                       <div className="line-clamp-2 font-medium leading-snug">{row.title}</div>
@@ -759,5 +830,16 @@ function formatDateTime(value?: string | null) {
     day: "numeric",
     hour: "numeric",
     minute: "2-digit",
+  }).format(date);
+}
+
+function formatDate(value?: string | null) {
+  if (!value) return "--";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "--";
+  return new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
   }).format(date);
 }

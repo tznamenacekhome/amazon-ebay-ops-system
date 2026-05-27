@@ -233,6 +233,13 @@ type InventoryPositionRow = {
   listing_channel: string | null;
 };
 
+type SnoozeRow = {
+  asin: string | null;
+  seller_sku: string | null;
+  snoozed_at: string | null;
+  snoozed_until: string | null;
+};
+
 type AdvisorRow = {
   asin: string | null;
   seller_sku: string;
@@ -309,6 +316,8 @@ type AdvisorRow = {
   recommendation_tier: RecommendationTier;
   recommended_manual_action: string;
   reason: string;
+  snoozed_until: string | null;
+  is_snoozed: boolean;
 };
 
 export async function GET() {
@@ -323,6 +332,7 @@ export async function GET() {
       inventoryLabRows,
       keepaRows,
       positionRows,
+      snoozeRows,
     ] = await Promise.all([
         fetchAll<InventoryRow>(
           "vw_latest_amazon_fba_inventory_snapshot",
@@ -382,6 +392,10 @@ export async function GET() {
           "asin,seller_sku,quantity,unit_cost,total_cost,effective_at,inventory_state," +
             "physical_location,marketplace_intent,listing_channel"
         ),
+        fetchAll<SnoozeRow>(
+          "amazon_repricing_advisor_snoozes",
+          "asin,seller_sku,snoozed_at,snoozed_until"
+        ),
       ]);
 
     const rows = buildAdvisorRows(
@@ -393,7 +407,8 @@ export async function GET() {
       keyByInformedRuleId(informedRuleOverrides),
       keyBySellerSku(inventoryLabRows),
       keyByAsin(keepaRows),
-      aggregatePositions(positionRows)
+      aggregatePositions(positionRows),
+      activeSnoozesBySku(snoozeRows)
     );
 
     return NextResponse.json({
@@ -414,6 +429,51 @@ export async function GET() {
           error instanceof Error
             ? error.message
             : "Failed to build repricing recommendations",
+      },
+      { status: 500 }
+    );
+  }
+}
+
+export async function POST(request: Request) {
+  try {
+    const body = await request.json();
+    const sellerSku = cleanText(body?.seller_sku);
+    if (!sellerSku) {
+      return NextResponse.json({ error: "seller_sku is required" }, { status: 400 });
+    }
+
+    const asin = normalizeAsin(body?.asin);
+    const snoozeDays = clampSnoozeDays(toNumber(body?.snooze_days, 30));
+    const now = new Date();
+    const snoozedUntil = new Date(now.getTime() + snoozeDays * 86_400_000).toISOString();
+
+    const { data, error } = await supabase
+      .from("amazon_repricing_advisor_snoozes")
+      .upsert(
+        {
+          seller_sku: sellerSku,
+          asin,
+          snoozed_at: now.toISOString(),
+          snoozed_until: snoozedUntil,
+          snooze_days: snoozeDays,
+          updated_at: now.toISOString(),
+        },
+        { onConflict: "seller_sku" }
+      )
+      .select("seller_sku,asin,snoozed_at,snoozed_until")
+      .single();
+
+    if (error) throw new Error(error.message);
+
+    return NextResponse.json({ snooze: data });
+  } catch (error) {
+    return NextResponse.json(
+      {
+        error:
+          error instanceof Error
+            ? error.message
+            : "Failed to snooze repricing row",
       },
       { status: 500 }
     );
@@ -448,7 +508,8 @@ function buildAdvisorRows(
   informedRuleNameById: Map<string, string>,
   inventoryLabBySku: Map<string, InventoryLabRow>,
   keepaByAsin: Map<string, KeepaRow>,
-  positionBySku: Map<string, { unit_cost: number | null; oldest_date: string | null }>
+  positionBySku: Map<string, { unit_cost: number | null; oldest_date: string | null }>,
+  snoozeBySku: Map<string, SnoozeRow>
 ): AdvisorRow[] {
   return inventoryRows
     .map((inventory) => {
@@ -457,6 +518,7 @@ function buildAdvisorRows(
       if (!sellerSku || !marketplaceId) return null;
 
       const key = skuKey(sellerSku, marketplaceId);
+      const activeSnooze = snoozeBySku.get(sellerSku);
       const sku = skuByKey.get(key);
       const listing = listingByKey.get(key);
       const planning = planningByKey.get(key);
@@ -689,6 +751,8 @@ function buildAdvisorRows(
         recommendation_tier: recommendation.tier,
         recommended_manual_action: recommendation.action,
         reason: recommendation.reason,
+        snoozed_until: activeSnooze?.snoozed_until ?? null,
+        is_snoozed: !!activeSnooze,
       };
     })
     .filter((row): row is AdvisorRow => !!row)
@@ -1383,6 +1447,14 @@ function summarizeRows(rows: AdvisorRow[]) {
     aged_capital_over_180_days: roundMoney(agedCapital180),
     rows_needing_data: rowsNeedingData,
     unsellable_or_suppressed_rows: unsellableOrSuppressed,
+    snoozed_rows: rows.filter((row) => row.is_snoozed).length,
+    not_snoozed_rows: rows.filter((row) => !row.is_snoozed).length,
+    snoozed_estimated_capital_tied_up: roundMoney(
+      rows.reduce((total, row) => total + (row.is_snoozed ? row.estimated_capital_tied_up ?? 0 : 0), 0)
+    ),
+    not_snoozed_estimated_capital_tied_up: roundMoney(
+      rows.reduce((total, row) => total + (!row.is_snoozed ? row.estimated_capital_tied_up ?? 0 : 0), 0)
+    ),
     by_tier: byTier,
     by_bucket: rows.reduce(
       (counts, row) => {
@@ -1558,6 +1630,19 @@ function keyByInformedRuleId(rows: InformedRuleOverrideRow[]) {
   return map;
 }
 
+function activeSnoozesBySku(rows: SnoozeRow[]) {
+  const now = Date.now();
+  const map = new Map<string, SnoozeRow>();
+  for (const row of rows) {
+    const sellerSku = cleanText(row.seller_sku);
+    const snoozedUntil = row.snoozed_until ? new Date(row.snoozed_until).getTime() : NaN;
+    if (sellerSku && Number.isFinite(snoozedUntil) && snoozedUntil > now) {
+      map.set(sellerSku, row);
+    }
+  }
+  return map;
+}
+
 function skuKey(sellerSku: string, marketplaceId: string) {
   return `${sellerSku}::${marketplaceId}`;
 }
@@ -1636,6 +1721,11 @@ function toOptionalBoolean(value: unknown) {
   if (["true", "yes", "y", "1"].includes(text)) return true;
   if (["false", "no", "n", "0"].includes(text)) return false;
   return null;
+}
+
+function clampSnoozeDays(value: number) {
+  if (!Number.isFinite(value)) return 30;
+  return Math.min(365, Math.max(1, Math.round(value)));
 }
 
 function roundMoney(value: number) {

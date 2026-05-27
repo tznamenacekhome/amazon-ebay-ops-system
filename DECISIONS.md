@@ -594,6 +594,26 @@ The frontend must not call Keepa directly or trigger token-spending syncs. Keepa
 
 ---
 
+## Repricing Snoozes Are Advisory Workflow State
+
+Decision:
+Store Aged Amazon Inventory snoozes in an Amazon repricing-advisor-specific table.
+
+Reason:
+The operator needs to temporarily remove reviewed rows from the default work queue without changing Amazon, Informed, Keepa, inventory, purchase, receiving, or FBA workflow ownership. Snooze is page workflow state, not inventory state.
+
+Implementation:
+- `amazon_repricing_advisor_snoozes` stores seller SKU, ASIN, snoozed timestamp, and snoozed-until timestamp.
+- `/api/amazon/repricing-advisor` reads active snoozes and marks rows as snoozed.
+- `/api/amazon/repricing-advisor` `POST` upserts a 30-day snooze.
+- `/repricing` defaults to Not Snoozed and can switch to All.
+- summary metrics split active/not-snoozed and snoozed counts/capital.
+
+Rule:
+Snoozes must not write to Amazon, Informed, Keepa, purchases, purchase_items, receiving rows, FBA workflow rows, or inventory positions.
+
+---
+
 ## Amazon Inventory Planning Is The Repricing Age Source
 
 Decision:
