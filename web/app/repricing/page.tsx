@@ -145,22 +145,24 @@ type AdvisorRow = {
 
 type AdvisorData = {
   generated_at: string;
-  summary: {
-    total_rows: number;
-    total_units: number;
-    total_estimated_capital_tied_up: number;
-    aged_capital_over_90_days: number;
-    aged_capital_over_180_days: number;
-    rows_needing_data: number;
-    unsellable_or_suppressed_rows: number;
-    snoozed_rows: number;
-    not_snoozed_rows: number;
-    snoozed_estimated_capital_tied_up: number;
-    not_snoozed_estimated_capital_tied_up: number;
-    by_tier: Record<RecommendationTier, number>;
-    by_bucket: Record<AdvisorBucket, number>;
-  };
+  summary: AdvisorSummary;
   rows: AdvisorRow[];
+};
+
+type AdvisorSummary = {
+  total_rows: number;
+  total_units: number;
+  total_estimated_capital_tied_up: number;
+  aged_capital_over_90_days: number;
+  aged_capital_over_180_days: number;
+  rows_needing_data: number;
+  unsellable_or_suppressed_rows: number;
+  snoozed_rows: number;
+  not_snoozed_rows: number;
+  snoozed_estimated_capital_tied_up: number;
+  not_snoozed_estimated_capital_tied_up: number;
+  by_tier: Record<RecommendationTier, number>;
+  by_bucket: Record<AdvisorBucket, number>;
 };
 
 const TIERS: Array<"All" | RecommendationTier> = [
@@ -244,7 +246,25 @@ export default function RepricingPage() {
       if (!response.ok) {
         throw new Error(`Failed to snooze row: ${response.status}`);
       }
-      await loadAdvisor();
+      const result = await response.json();
+      const snoozedUntil = result?.snooze?.snoozed_until ?? new Date(Date.now() + 30 * 86_400_000).toISOString();
+      setData((current) => {
+        if (!current) return current;
+        const updatedRows = current.rows.map((existingRow) =>
+          existingRow.seller_sku === row.seller_sku
+            ? {
+                ...existingRow,
+                is_snoozed: true,
+                snoozed_until: snoozedUntil,
+              }
+            : existingRow
+        );
+        return {
+          ...current,
+          summary: summarizeAdvisorRows(updatedRows),
+          rows: updatedRows,
+        };
+      });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to snooze row.");
     } finally {
@@ -503,16 +523,6 @@ export default function RepricingPage() {
                     </td>
                     <td className="w-[180px] px-3 py-2">
                       <div>{row.informed_rule_name ?? "--"}</div>
-                      {row.informed_rule_id && row.informed_rule_id !== row.informed_rule_name ? (
-                        <div className="text-xs text-slate-500">ID {row.informed_rule_id}</div>
-                      ) : null}
-                      <div className="text-xs text-slate-500">
-                        {row.informed_repricing_enabled === null
-                          ? "--"
-                          : row.informed_repricing_enabled
-                            ? "enabled"
-                            : "disabled"}
-                      </div>
                       <div className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1 text-xs">
                         <span className="text-slate-500">Min</span>
                         <span className="text-right font-medium">{formatMoney(row.informed_min_price)}</span>
@@ -781,6 +791,78 @@ function inAgeBucket(row: AdvisorRow, bucket: (typeof AGE_BUCKETS)[number]) {
   return age >= 366;
 }
 
+function summarizeAdvisorRows(rows: AdvisorRow[]): AdvisorSummary {
+  const byTier = Object.fromEntries(
+    TIERS.filter((tier): tier is RecommendationTier => tier !== "All").map((tier) => [tier, 0])
+  ) as Record<RecommendationTier, number>;
+  const byBucket = {
+    Pricing: 0,
+    "Inventory / Listing Issue": 0,
+    "Missing Data": 0,
+  } as Record<AdvisorBucket, number>;
+
+  let totalCapital = 0;
+  let snoozedCapital = 0;
+  let notSnoozedCapital = 0;
+  let agedCapital90 = 0;
+  let agedCapital180 = 0;
+  let rowsNeedingData = 0;
+  let unsellableOrSuppressedRows = 0;
+  let snoozedRows = 0;
+
+  for (const row of rows) {
+    byTier[row.recommendation_tier] += 1;
+    byBucket[row.advisor_bucket] += 1;
+
+    const capital = row.estimated_capital_tied_up ?? 0;
+    const costBasis = row.cost_basis ?? 0;
+    const aged90Units =
+      row.inv_age_91_to_180_days +
+      row.inv_age_181_to_270_days +
+      row.inv_age_271_to_365_days +
+      row.inv_age_365_plus_days;
+    const aged180Units =
+      row.inv_age_181_to_270_days + row.inv_age_271_to_365_days + row.inv_age_365_plus_days;
+
+    totalCapital += capital;
+    if (row.is_snoozed) {
+      snoozedRows += 1;
+      snoozedCapital += capital;
+    } else {
+      notSnoozedCapital += capital;
+    }
+
+    if (row.amazon_age_bucket) {
+      agedCapital90 += costBasis * aged90Units;
+      agedCapital180 += costBasis * aged180Units;
+    } else {
+      if ((row.inventory_age_days ?? 0) >= 90) agedCapital90 += capital;
+      if ((row.inventory_age_days ?? 0) >= 180) agedCapital180 += capital;
+    }
+
+    if (row.recommendation_tier === "Needs Data") rowsNeedingData += 1;
+    if (row.unsellable_quantity > 0 || row.listing_issue_count > 0) {
+      unsellableOrSuppressedRows += 1;
+    }
+  }
+
+  return {
+    total_rows: rows.length,
+    total_units: rows.reduce((total, row) => total + row.total_quantity, 0),
+    total_estimated_capital_tied_up: roundMoney(totalCapital),
+    aged_capital_over_90_days: roundMoney(agedCapital90),
+    aged_capital_over_180_days: roundMoney(agedCapital180),
+    rows_needing_data: rowsNeedingData,
+    unsellable_or_suppressed_rows: unsellableOrSuppressedRows,
+    snoozed_rows: snoozedRows,
+    not_snoozed_rows: rows.length - snoozedRows,
+    snoozed_estimated_capital_tied_up: roundMoney(snoozedCapital),
+    not_snoozed_estimated_capital_tied_up: roundMoney(notSnoozedCapital),
+    by_tier: byTier,
+    by_bucket: byBucket,
+  };
+}
+
 function salesRankSignal(row: AdvisorRow) {
   const drops = row.keepa_sales_rank_drops30 ?? row.keepa_sales_rank_drops90;
   const window = row.keepa_sales_rank_drops30 !== null ? "30d" : "90d";
@@ -823,6 +905,10 @@ function formatPct(value?: number | null) {
   if (value === null || value === undefined || !Number.isFinite(Number(value))) return "--";
   const sign = value > 0 ? "+" : "";
   return `${sign}${value.toFixed(1)}%`;
+}
+
+function roundMoney(value: number) {
+  return Math.round(value * 100) / 100;
 }
 
 function formatDateTime(value?: string | null) {
