@@ -48,6 +48,7 @@ type CompetitionOffer = {
 type CompetitionSummary = {
   source: "Keepa offers" | "Keepa summary" | "Missing";
   note: string;
+  condition_filter: string | null;
   offer_count: number | null;
   fba_offer_count: number;
   mfn_offer_count: number;
@@ -531,6 +532,7 @@ function CompetitionDrawer({
           <div className="mt-4 grid gap-3 md:grid-cols-4">
             <DrawerMetric label="Source" value={summary.source} />
             <DrawerMetric label="Offers" value={formatNumber(summary.offer_count)} />
+            <DrawerMetric label="Condition" value={summary.condition_filter ?? "--"} />
             <DrawerMetric
               label="Lowest FBA / MFN"
               value={`${formatMoney(summary.lowest_fba_price)} / ${formatMoney(summary.lowest_mfn_price)}`}

@@ -202,6 +202,7 @@ type CompetitionOffer = {
 type CompetitionSummary = {
   source: "Keepa offers" | "Keepa summary" | "Missing";
   note: string;
+  condition_filter: string | null;
   offer_count: number | null;
   fba_offer_count: number;
   mfn_offer_count: number;
@@ -458,6 +459,11 @@ function buildAdvisorRows(
         ? (informedRuleNameById.get(informedRuleId) ?? informedRuleId)
         : null;
       const inventoryLab = inventoryLabBySku.get(sellerSku);
+      const itemCondition =
+        cleanText(inventory.condition) ??
+        cleanText(listing?.condition) ??
+        cleanText(sku?.condition) ??
+        cleanText(inventoryLab?.condition);
       const asin = normalizeAsin(
         inventory.asin ?? sku?.asin ?? listing?.asin ?? planning?.asin ?? inventoryLab?.asin
       );
@@ -511,7 +517,7 @@ function buildAdvisorRows(
         toOptionalNumber(inventoryLab?.list_price) ??
         null;
       const keepaBuyBoxPrice = centsToDollars(keepa?.buy_box_price_current_cents);
-      const competition = buildCompetitionContext(keepa, keepaBuyBoxPrice);
+      const competition = buildCompetitionContext(keepa, keepaBuyBoxPrice, itemCondition);
       const informedBuyBoxPrice = toOptionalNumber(informed?.buy_box_price);
       const marketReferencePrice =
         informedBuyBoxPrice ??
@@ -572,10 +578,7 @@ function buildAdvisorRows(
           cleanText(keepa?.title) ??
           "Untitled Amazon item",
         condition:
-          cleanText(inventory.condition) ??
-          cleanText(listing?.condition) ??
-          cleanText(sku?.condition) ??
-          cleanText(inventoryLab?.condition),
+          itemCondition,
         fba_sellable_quantity: fbaSellableQuantity,
         inbound_quantity: inboundQuantity,
         reserved_quantity: reservedQuantity,
@@ -882,13 +885,16 @@ function recommend(input: {
 
 function buildCompetitionContext(
   keepa?: KeepaRow,
-  fallbackBuyBoxPrice?: number | null
+  fallbackBuyBoxPrice?: number | null,
+  listingCondition?: string | null
 ): { summary: CompetitionSummary; offers: CompetitionOffer[] } {
+  const conditionFilter = conditionGroup(listingCondition);
   if (!keepa) {
     return {
       summary: {
         source: "Missing",
         note: "Keepa snapshot missing; run targeted Keepa sync before reviewing competitors.",
+        condition_filter: conditionFilter,
         offer_count: null,
         fba_offer_count: 0,
         mfn_offer_count: 0,
@@ -918,6 +924,7 @@ function buildCompetitionContext(
   const offers = offersRaw
     .map((offer) => parseKeepaOffer(offer, buyBoxSellerId, buyBoxPrice))
     .filter((offer): offer is CompetitionOffer => offer !== null)
+    .filter((offer) => sameConditionGroup(offer.condition, conditionFilter))
     .sort((left, right) => {
       if (left.is_buy_box_winner !== right.is_buy_box_winner) {
         return left.is_buy_box_winner ? -1 : 1;
@@ -942,6 +949,7 @@ function buildCompetitionContext(
         source: "Keepa summary",
         note:
           "Latest Keepa snapshot has summary data but no offer-level rows; run a targeted Keepa sync with offers for this ASIN.",
+        condition_filter: conditionFilter,
         offer_count: toOptionalNumber(keepa.offer_count_current),
         fba_offer_count: 0,
         mfn_offer_count: 0,
@@ -959,8 +967,9 @@ function buildCompetitionContext(
     summary: {
       source: "Keepa offers",
       note:
-        "Offer rows come from the latest stored Keepa payload. Seller stock is Keepa-estimated when available and may be capped or incomplete.",
-      offer_count: toOptionalNumber(keepa.offer_count_current) ?? offers.length,
+        "Offer rows come from the latest stored Keepa payload and are filtered to the same condition as your listing when condition is known. Seller stock is Keepa-estimated when available and may be capped or incomplete.",
+      condition_filter: conditionFilter,
+      offer_count: offers.length,
       fba_offer_count: offers.filter((offer) => offer.fulfillment === "FBA").length,
       mfn_offer_count: offers.filter((offer) => offer.fulfillment === "MFN").length,
       lowest_fba_price: fbaPrices.length ? roundMoney(Math.min(...fbaPrices)) : null,
@@ -1023,8 +1032,9 @@ function parseKeepaOffer(
     stock_quantity: stockQuantity,
     condition,
     is_buy_box_winner:
-      (sellerId !== null && buyBoxSellerId !== null && sellerId === buyBoxSellerId) ||
-      (buyBoxPrice !== null && landedPrice !== null && Math.abs(landedPrice - buyBoxPrice) < 0.01),
+      sellerId !== null && buyBoxSellerId !== null
+        ? sellerId === buyBoxSellerId
+        : buyBoxPrice !== null && landedPrice !== null && Math.abs(landedPrice - buyBoxPrice) < 0.01,
     is_amazon:
       sellerId === "ATVPDKIKX0DER" ||
       String(cleanText(offer.sellerName) ?? "").toLowerCase() === "amazon",
@@ -1094,18 +1104,37 @@ function keepaMinutesToIso(value: number | null) {
 function keepaConditionName(value: number | null) {
   if (value === null) return null;
   const labels: Record<number, string> = {
-    0: "New",
-    1: "Used - Like New",
-    2: "Used - Very Good",
-    3: "Used - Good",
-    4: "Used - Acceptable",
-    5: "Collectible - Like New",
-    6: "Collectible - Very Good",
-    7: "Collectible - Good",
-    8: "Collectible - Acceptable",
-    9: "Refurbished",
+    1: "New",
+    2: "Used - Like New",
+    3: "Used - Very Good",
+    4: "Used - Good",
+    5: "Used - Acceptable",
+    6: "Refurbished",
+    7: "Collectible - Like New",
+    8: "Collectible - Very Good",
+    9: "Collectible - Good",
+    10: "Collectible - Acceptable",
   };
   return labels[value] ?? `Condition ${value}`;
+}
+
+function conditionGroup(value?: string | null) {
+  const text = cleanText(value)?.toLowerCase();
+  if (!text) return null;
+  if (text.includes("used")) return "used";
+  if (text.includes("collectible")) return "collectible";
+  if (text.includes("refurbished") || text.includes("renewed")) return "refurbished";
+  if (text.includes("acceptable") || text.includes("good") || text.includes("like new")) {
+    return "used";
+  }
+  if (text.includes("new")) return "new";
+  return null;
+}
+
+function sameConditionGroup(offerCondition: string | null, targetConditionGroup: string | null) {
+  if (!targetConditionGroup) return true;
+  const offerGroup = conditionGroup(offerCondition);
+  return offerGroup === targetConditionGroup;
 }
 
 function needsData(reason: string) {
