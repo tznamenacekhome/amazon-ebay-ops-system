@@ -6,10 +6,11 @@ type PurchaseMetricsProps = {
 
 export function PurchaseMetrics({ stats }: PurchaseMetricsProps) {
   return (
-    <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-4">
+    <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-5">
       <Metric label="Total Rows" value={stats.total} />
       <Metric label="Visible" value={stats.visible} />
       <Metric label="Missing Data" value={stats.needsReview} />
+      <Metric label="Order Problems" value={stats.orderProblems} />
       <Metric label="Delivered" value={stats.delivered} />
     </div>
   );

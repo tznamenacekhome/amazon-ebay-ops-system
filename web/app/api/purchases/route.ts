@@ -328,7 +328,7 @@ async function fetchPurchaseStats(
   excludedItemIds: string[],
   amazonTitleReviewItemIds: string[]
 ) {
-  const [total, needsReview, delivered] = await Promise.all([
+  const [total, needsReview, orderProblems, delivered] = await Promise.all([
     countPurchaseRows(
       { ...query, searchText: "", asinFilter: "all", statusFilter: "all" },
       excludedItemIds,
@@ -336,6 +336,11 @@ async function fetchPurchaseStats(
     ),
     countPurchaseRows(
       { ...query, searchText: "", asinFilter: "needs_review", statusFilter: "active" },
+      excludedItemIds,
+      amazonTitleReviewItemIds
+    ),
+    countPurchaseRows(
+      { ...query, searchText: "", asinFilter: "order_problems", statusFilter: "active" },
       excludedItemIds,
       amazonTitleReviewItemIds
     ),
@@ -350,6 +355,7 @@ async function fetchPurchaseStats(
     total,
     visible: visibleTotal,
     needsReview,
+    orderProblems,
     delivered,
   };
 }

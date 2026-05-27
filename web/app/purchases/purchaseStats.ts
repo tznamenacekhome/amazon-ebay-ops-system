@@ -9,6 +9,7 @@ export function getPurchaseStats(
     total: rows.length,
     visible: visibleRows.length,
     needsReview: rows.filter(needsAsinReview).length,
+    orderProblems: 0,
     delivered: rows.filter(isDelivered).length,
   };
 }

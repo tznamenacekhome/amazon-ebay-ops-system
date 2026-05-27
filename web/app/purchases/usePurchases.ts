@@ -28,6 +28,7 @@ export function usePurchases(query: PurchaseQuery) {
     total: 0,
     visible: 0,
     needsReview: 0,
+    orderProblems: 0,
     delivered: 0,
   });
   const [totalRows, setTotalRows] = useState(0);
@@ -299,6 +300,7 @@ function normalizeResponse(
         total: data.length,
         visible: data.length,
         needsReview: 0,
+        orderProblems: 0,
         delivered: 0,
       },
     };

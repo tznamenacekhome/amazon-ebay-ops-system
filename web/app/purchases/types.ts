@@ -37,6 +37,7 @@ export type PurchaseStats = {
   total: number;
   visible: number;
   needsReview: number;
+  orderProblems: number;
   delivered: number;
 };
 
