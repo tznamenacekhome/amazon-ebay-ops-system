@@ -910,7 +910,7 @@ function buildCompetitionContext(
 
   const rawProduct = firstKeepaProduct(keepa.raw_keepa_json);
   const stats = isRecord(rawProduct?.stats) ? rawProduct.stats : null;
-  const offersRaw = Array.isArray(rawProduct?.offers) ? rawProduct.offers : [];
+  const offersRaw = liveKeepaOffers(rawProduct);
   const buyBoxSellerId =
     cleanText(lastValue(stats?.buyBoxSellerId)) ??
     cleanText(lastValue(rawProduct?.buyBoxSellerIdHistory)) ??
@@ -1041,6 +1041,18 @@ function parseKeepaOffer(
     is_prime: toOptionalBoolean(offer.isPrime ?? offer.prime),
     last_seen: lastSeen,
   };
+}
+
+function liveKeepaOffers(rawProduct: Record<string, unknown> | null) {
+  if (!rawProduct || !Array.isArray(rawProduct.offers)) return [];
+  if (Array.isArray(rawProduct.liveOffersOrder) && rawProduct.liveOffersOrder.length) {
+    return rawProduct.liveOffersOrder
+      .map((index) => toOptionalNumber(index))
+      .filter((index): index is number => index !== null && index >= 0)
+      .map((index) => (rawProduct.offers as unknown[])[index])
+      .filter(Boolean);
+  }
+  return rawProduct.offers;
 }
 
 function offerFulfillment(offer: Record<string, unknown>): "FBA" | "MFN" | "Unknown" {

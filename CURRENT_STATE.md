@@ -364,7 +364,7 @@ Current recommendation rules:
 - rows under 90 days old are excluded from the action list unless they have an actionable issue
 - normal inbound/FC-transfer movement is displayed as inventory detail, but is not treated as an operator-action issue by itself
 - competition drawer summarizes FBA/MFN offer counts, observed stock, lowest FBA/MFN price, Buy Box seller, and per-offer seller/fulfillment/price/stock signals from the stored Keepa payload
-- competition drawer filters offers to the same condition as the operator's listing when condition is known, keeps the Buy Box row first, and sorts the remaining offers by landed price from low to high
+- competition drawer uses Keepa `liveOffersOrder` when present so it shows currently live offers, filters offers to the same condition as the operator's listing when condition is known, keeps the Buy Box row first, and sorts the remaining offers by landed price from low to high
 - if stored Keepa data only has summary fields, the drawer shows that offer-level data is missing and recommends targeted Keepa offer sync for that ASIN
 
 Latest validation:
