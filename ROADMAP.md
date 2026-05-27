@@ -80,9 +80,12 @@ Completed:
 - reduced active cost variance to $4.05 MBOP-over-spreadsheet after one-time cleanup and net-cost corrections
 - kept landed-cost math backend-owned through vw_purchases_dashboard.unit_cost
 - confirmed 2024 and 2025 dashboard totals match the legacy Excel pivot exactly
-- added inventory-by-location value table for At Amazon FBA, On the way to Amazon FBA, Received, Ordered and not received yet, and Total
-- added business inventory/cash value box with Amazon/current inbound inventory value and pre-Amazon purchased inventory value
-- added placeholders for future Amazon cash balance and YNAB cash-on-hand integrations
+- added Inventory Visibility as the first dashboard section
+- added Inventory Value By Location table for At Amazon FBA, On the way to Amazon FBA, Received, Ordered and not received yet, and Total
+- added Business Inventory And Cash Value summary with Amazon inventory, pre-Amazon purchased inventory, Amazon cash, Amazon-to-bank in-transit cash, YNAB Business cash, and total business value
+- added daily business value snapshots and a history graph from the total row
+- moved open inventory reconciliation findings to the dedicated Reconciliation page
+- moved purchase order problems to a dedicated Purchases tab while keeping Missing Data in the editable purchases view
 
 Next steps:
 - build a repeatable dashboard reconciliation report using the shared reference spreadsheet and Supabase
@@ -94,15 +97,14 @@ Next steps:
 - add a UI control for marking purchase items excluded from reporting with a reason
 - add filters for status, marketplace, received date, and system after the first chart proves useful
 - keep 2026-05-16+ MBOP-only purchases reportable unless explicitly confirmed as non-resale, return/cancelled, or otherwise excluded
-- define Amazon cash balance source, likely a future settlements/disbursements integration
-- evaluate YNAB API integration for cash-on-hand reporting without mixing personal budget data into purchase/inventory tables
+- refine Amazon Finance cash mapping if Seller Central exposes an additional UI-only reserve/available-balance adjustment source
 
 ---
 
 ## Purchases ASIN Review Workflow
 
 Goals:
-- make Needs Review work faster
+- make Missing Data review faster
 - show title and system/platform prominently
 - support manual ASIN review with minimal clicks
 - provide Amazon search / ASIN links
@@ -171,11 +173,7 @@ Completed:
 - FBA title hydration falls back to another purchase item with the same ASIN when the current Received row has a blank Amazon title
 
 Next steps:
-- apply sql/2026-05-23_add_receiving_fields.sql in Supabase
-- test receiving flow against real delivered and shipped-without-tracking rows
 - decide source for eBay listing image URLs
-- apply/backfill sql/2026-05-24_add_fba_shipments.sql in Supabase
-- test FBA export against InventoryLab import requirements
 - review whether FBA needs a historical shipments screen or shipment lookup by shipment ID
 - keep receiving/listing workflows separate from purchases review UI
 
@@ -250,7 +248,7 @@ Completed:
 Remaining:
 - resolve FedEx credential errors for tracking 381367337613 and 381418656302
 - decide whether FedEx should be configured in EasyPost or handled through a direct carrier fallback
-- validate the local Windows AM/PM scheduler now that it points to `C:\Dev\amazon-ebay-ops-system\run_all_syncs.bat`
+- monitor the local Windows AM/PM scheduler now that it points to `C:\Dev\amazon-ebay-ops-system\run_all_syncs.bat`
 - keep scheduled polling as the local freshness fallback until public EasyPost webhooks are live
 
 ---
@@ -270,7 +268,7 @@ Completed:
 - scheduled Keepa enrichment only refreshes stale active-Amazon ASINs and skips calls when the token pool is below the configured floor
 
 Next steps:
-- confirm both scheduled tasks append successful runs to `logs/scheduler.log`
+- confirm both scheduled tasks continue appending successful runs to `logs/scheduler.log`
 - when manually triggering tasks, use the root task path, for example `schtasks /Run /TN "\Amazon eBay Ops Sync PM"`
 - monitor scheduler logs for EasyPost FedEx credential errors, eBay token/auth issues, SP-API throttling, and Keepa token skips
 
@@ -294,9 +292,9 @@ Foundation completed:
 - added token-aware Keepa client and product sync script
 - Keepa dry run/write path verified with 5 ASINs
 - Keepa plan-only mode selected 409 canonical ASINs with 285 available tokens, so broad sync should be staged by token availability
+- scheduled Keepa enrichment now refreshes only stale active-Amazon ASINs, caps each run, and skips token-spending calls when token balance is below the configured floor
 
 Planned scope:
-- plan a staged Keepa sync cadence that respects token availability
 - use marketplace-title cleaning before catalog searches
 - return ASIN candidates for operator review before any automatic assignment
 - validate candidate title and system/platform before writing ASINs
@@ -304,7 +302,7 @@ Planned scope:
 - preserve the rule that video game matching must never cross systems
 
 First next step:
-surface Keepa price/rank/sales-rank-drop signals in operator review views without allowing Keepa to overwrite workflow-owned purchase data
+surface Keepa price/rank/sales-rank-drop and competition signals where useful without allowing Keepa to overwrite workflow-owned purchase data
 
 Operational caution:
 Run `integrations/keepa_sync_products.py --plan-only` before broad Keepa syncs, then sync in staged batches based on available token balance.
@@ -320,7 +318,7 @@ Goals:
 - mark Amazon FBA inventory as sold when Amazon reports sales
 - reduce current inventory value using MBOP go-forward cost basis and legacy opening-balance valuation where applicable
 - support sell-through analytics by ASIN, system, purchase cohort, and listing age
-- support future Amazon cash balance and settlement/disbursement reporting
+- support richer Amazon settlement/disbursement detail beyond the current Finance balance snapshot
 - improve repricing decisions with actual MBOP sales velocity and realized sale prices
 - replace the Aged Amazon Inventory page's temporary Informed `current-velocity` signal with Amazon order/sales data once the Amazon sales integration is implemented
 
@@ -441,7 +439,4 @@ Completed foundation:
 - reusable marketplace-title cleaner added for frontend search and backend matching
 
 Remaining:
-- apply sql/2026-05-22_add_manual_item_matches.sql in Supabase
-- apply sql/2026-05-23_add_purchase_item_manual_overrides.sql in Supabase
-- apply sql/2026-05-23_add_receiving_fields.sql in Supabase
 - review unresolved legacy sheet matches: 28 ambiguous order matches and 30 missing order matches

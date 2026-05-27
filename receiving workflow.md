@@ -1,5 +1,7 @@
 # MBOP Receiving Workflow Requirements
 
+Status: first slice implemented.
+
 Goal: highly efficient receiving processing of delivered items.
 
 ## Workflow
@@ -34,7 +36,7 @@ Impact:
 
 ## Data Requirements
 
-- Add nullable `purchase_items.marketplace`.
+- Nullable `purchase_items.marketplace` exists.
 - Allowed marketplace values are `Amazon` and `eBay`.
 - Marketplace should not be set until the item is received.
 - ASIN and sell price may be missing while an item waits in the receiving queue.

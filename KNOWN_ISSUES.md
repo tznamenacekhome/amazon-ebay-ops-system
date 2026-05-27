@@ -2,7 +2,7 @@
 
 This file tracks active issues, monitor items, and deferred decisions for Midnight Blue Operations Platform (MBOP).
 
-Last reviewed: 2026-05-26
+Last reviewed: 2026-05-27
 
 # Active Issues
 
@@ -25,13 +25,13 @@ Resolved rows:
 
 Current mitigation:
 - purchase detail drawer can edit Amazon title, system, ASIN, purchase price, and target sell price.
-- Purchases Needs Review catches missing ASIN, invalid ASIN placeholder, missing target sell price, missing system, and missing Amazon title for ASIN-bearing rows.
+- Purchases Missing Data catches missing ASIN, invalid ASIN placeholder, missing target sell price, missing system, and missing Amazon title for ASIN-bearing rows.
 - FBA displays Missing Amazon title instead of silently using the eBay title.
 - manual corrections can propagate to matching title/system rows where safe.
 
 Recommended guardrail:
 - avoid treating `N/A` as a valid ASIN in future imports/backfills.
-- keep Needs Review server-side so cancelled, return, listed, and reporting-excluded rows do not reappear in the review queue.
+- keep Missing Data server-side so cancelled, return, listed, and reporting-excluded rows do not reappear in the review queue.
 
 ---
 
@@ -120,27 +120,25 @@ Recommended next mitigation:
 
 ## Repricing Advisor Data Coverage Gaps
 
-Status: ACTIVE / IMPROVED WITH AMAZON PLANNING DATA AND PRICING BUCKETS
+Status: ACTIVE / IMPROVED WITH AUTOMATED REFRESH AND PRICING BUCKETS
 
 Problem:
 The aged Amazon inventory repricing advisor is useful as a manual work queue, but many active Amazon rows still lack enough Keepa/Informed/cost context for confident pricing recommendations.
 
 Current observed result:
-- API action list currently returns 199 active Amazon SKU rows and 583 units after excluding non-actionable under-90-day rows.
-- 68 rows are currently Needs Data after additional missing-Keepa backfill batches.
-- Amazon FBA Inventory Planning report import inserted 297 rows and now provides Amazon-native age buckets for active FBA inventory.
-- latest planning report showed 735 available units and 273 units in 91+ day age buckets.
-- 303 additional missing Keepa snapshots were written after adding a missing-only sync mode.
-- 101 canonical ASINs still need Keepa snapshots, but the remaining backfill is token-refill limited.
-- Informed `All_Fields_NextGen` report imported 969 listing snapshots and now provides repricer rule/price context where seller SKU matches.
+- Amazon FBA Inventory Planning report import provides Amazon-native age buckets for active FBA inventory.
+- latest all-sync run inserted 295 planning rows and 968 Informed listing snapshots.
+- Keepa backfill and scheduled stale-ASIN refresh have substantially reduced missing active-Amazon Keepa coverage, but offer-level competition detail still depends on snapshots captured with `--offers` and `--stock`.
+- scheduled Keepa refresh now caps each run, selects stale active-Amazon ASINs first, and skips calls when tokens are below the configured floor.
+- Informed `All_Fields_NextGen` report provides repricer rule/price/current-velocity context where seller SKU matches.
 - the current Informed report did not include ASIN-shaped values, so matching is by seller SKU for this first slice.
 - the current Informed report exposes numeric strategy IDs rather than friendly rule names; `informed_rule_name_overrides` provides the operator-facing display names.
 - Amazon FBA inventory detail quantities are now normalized for reserved customer order, FC transfer, FC processing, future supply, researching, and unfulfillable breakdowns.
 - the advisor now separates rows into Pricing, Inventory / Listing Issue, and Missing Data buckets.
 - buyable/discoverable listings with Amazon catalog metadata issues are ignored because the operator only cares when inventory becomes suppressed/non-buyable or unsellable.
-- current bucket counts are 128 Pricing, 6 Inventory / Listing Issue, and 1 Missing Data.
+- current bucket counts should be treated as live dashboard/API output because snoozes, Informed velocity, and Keepa refreshes now change the action list frequently.
 - Pricing rows now receive a backend-generated manual target price using controlled markdowns against Buy Box/reference price while preserving a cost + 10% floor.
-- Amazon planning 30/90-day shipped-unit fields are now surfaced as a sales velocity signal and tune target markdowns.
+- Informed `current-velocity` is the temporary sales-velocity source for repricing decisions; Amazon planning shipped-unit fields remain stored but are not trusted as the operator's actual sales velocity.
 - InventoryLab/MBOP purchase dates are fallback age context only when Amazon planning data is missing.
 - competition drawer rows depend on Keepa snapshots captured with offer-level data; snapshots captured without offers can only show summary competition context.
 
@@ -155,13 +153,13 @@ Current mitigation:
 - FC transfer and normal inbound movement are displayed as detail, not treated as action issues by themselves.
 - aged sellable inventory without listing issues is kept in the Pricing bucket instead of being treated as removal/eBay work.
 - sell-through signal keeps moving inventory from getting overly aggressive markdowns while still prioritizing high-capital stale inventory.
-- Keepa sync has `--plan-only`, `--missing-only`, dry-run default, and staged write support.
+- rows with any Informed sales in the last 30 days are excluded from the aged inventory action list even when Amazon planning age is over 90 days.
+- Keepa sync has `--plan-only`, `--missing-only`, `--stale-days`, `--min-tokens`, dry-run default, and staged write support.
 
 Recommended next mitigation:
-- run staged Keepa sync batches for active Amazon inventory as tokens refill.
-- run targeted Keepa sync with offer detail for high-capital aged ASINs before deep competitor review.
+- monitor scheduled Keepa stale refreshes and run targeted Keepa sync with offer detail for high-capital aged ASINs before deep competitor review.
 - add Amazon Product Pricing sync if current/list prices remain sparse.
-- review whether another Informed report exposes rule names instead of only strategy IDs.
+- keep manual Informed rule-name overrides current unless another Informed report exposes friendly rule names.
 - use Amazon planning data for a while before deciding whether ledger-level available-for-sale inference is worth the complexity.
 
 ---
@@ -254,8 +252,8 @@ The repo moved from a OneDrive path to `C:\Dev\amazon-ebay-ops-system`, so the l
 
 Current mitigation:
 - `run_all_syncs.bat` runs successfully when launched directly from the repo.
-- `run_all_syncs.py` now includes eBay buyer purchase sync, EasyPost shipment sync, supplier returns sync, and RevSeller enrichment.
-- direct run validation wrote a successful exit code 0 to `logs/scheduler.log`.
+- `run_all_syncs.py` now includes eBay buyer purchase sync, EasyPost shipment sync, supplier returns sync, RevSeller enrichment, Amazon FBA inventory, Amazon listing status, Amazon inventory planning, Amazon Finance, Informed reports, YNAB cash balance, guarded Keepa refresh, and business value snapshot.
+- direct full-orchestrator validation completed with exit code 0.
 - the stale OneDrive working-directory problem has been replaced by AM/PM scheduled tasks that target the `C:\Dev` path.
 
 Recommended guardrail:

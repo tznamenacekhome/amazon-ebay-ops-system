@@ -19,7 +19,7 @@ MBOP is the internal operations platform for Midnight Blue Enterprises, LLC.
 | Dashboard analytics | First slice implemented |
 | Matching engine | Emerging subsystem |
 | Amazon SP-API foundation | Read-only inventory/listing sync working |
-| Keepa catalog intelligence | Foundation implemented / small write verified |
+| Keepa catalog intelligence | Token-aware enrichment working |
 | Informed Repricer intelligence | Read-only report snapshot import working |
 | Unified inventory state / reconciliation | First slice implemented |
 | Amazon FBA workflow | First slice implemented |
@@ -233,8 +233,8 @@ Current validation:
 - full sync fetched 6,292 FBA inventory summaries, upserted 6,292 SKU rows, and inserted 6,292 inventory snapshot rows
 - active listing-status sync selected 296 current Amazon SKUs, inserted 296 listing snapshots, updated 296 Amazon SKU rows, and had 0 fetch failures
 - latest active listing snapshot set contains 49 rows with Amazon listing issues
-- inventory planning dry run and write run each parsed 297 Amazon planning rows
-- latest inventory planning write inserted 297 planning snapshot rows, showing 735 available units and 273 units in Amazon's 91+ day age buckets
+- inventory planning dry run/write validation has parsed the Amazon planning report successfully
+- latest all-sync inventory planning write inserted 295 planning snapshot rows
 - Amazon FBA inventory snapshots now normalize reserved customer order, FC transfer, FC processing, future supply, researching, and unfulfillable damage/defect breakdowns from raw SP-API inventory details
 - a follow-up full FBA inventory sync initially hit Amazon SP-API 429 QuotaExceeded; after adding retry/backoff and page pacing, the sync fetched 6,292 summaries, upserted 6,292 SKUs, and inserted 6,292 fresh inventory snapshots
 
@@ -277,7 +277,7 @@ Latest validation:
 - small write inserted 5 Keepa product snapshots and 0 history rows
 - plan-only mode selected 409 canonical ASINs with 285 Keepa tokens available, so a broad sync was intentionally not run yet
 - follow-up missing-only writes inserted 303 additional Keepa snapshots with 0 failures and no normalized history rows
-- 101 canonical ASINs still need Keepa snapshots after the refill-limited batches
+- scheduled stale-refresh mode now keeps active-Amazon Keepa snapshots fresh without broad token-spending runs
 - scheduled active-Amazon Keepa run currently uses `--limit 10 --batch-size 10 --stale-days 7 --min-tokens 100 --offers 20 --stock --no-history --write`
 - latest scheduled Keepa write selected 1 stale active-Amazon ASIN, inserted 1 snapshot, and spent 5 tokens
 
@@ -317,7 +317,7 @@ Latest validation:
 - official docs confirmed Reports API request/status/download behavior, that Reports API supersedes Export API, and that Listings Management API is the write/upload path
 - plan-only discovery returned 0 recent report requests and made no report request
 - `All_Fields_NextGen` dry run parsed 969 rows with 0 parse errors
-- write mode inserted 969 Informed listing snapshots
+- latest write mode inserted 968 Informed listing snapshots
 - the Informed report provided SKU/MSKU values but no ASIN-shaped values, so advisor joins use seller SKU where ASIN is unavailable
 - repricing advisor API now returns Informed rule, current price, min/max price, Buy Box price/status, repricing-enabled flag, price-gap calculations, and an Informed note where snapshots are available
 - Informed rule IDs are mapped to operator-friendly names through `informed_rule_name_overrides` because the listing report exports strategy IDs but not display names
@@ -390,16 +390,10 @@ Current recommendation rules:
 
 Latest validation:
 - Next.js production build passed
-- Amazon inventory planning report dry run parsed 297 rows and 735 available units
-- Amazon inventory planning report write inserted 297 planning snapshot rows
-- API route returned 297 active Amazon SKU rows and 761 units with planning age buckets where available
-- Informed `All_Fields_NextGen` report imported 969 listing snapshot rows and joined to advisor rows by seller SKU
-- sales shipped 30/90-day fields from Amazon Inventory Planning are surfaced as sell-through signal on the advisor page
-- estimated capital tied up: $13,597.34
-- aged capital over 90 days: $5,265.19
-- aged capital over 180 days: $1,881.41
-- tier counts after ignoring non-actionable buyable-listing metadata issues: 6 Remove / eBay, 33 Liquidate, 95 Reprice, 1 Needs Data
-- bucket counts after pricing/issue split and metadata-noise suppression: 128 Pricing, 6 Inventory / Listing Issue, 1 Missing Data
+- Amazon inventory planning report write inserted 295 planning snapshot rows in the latest all-sync run
+- Informed `All_Fields_NextGen` report imported 968 listing snapshot rows in the latest all-sync run and joins to advisor rows by seller SKU
+- Amazon planning shipped-unit fields are stored for reference, but Informed `current-velocity` is currently used as the operator-facing 30-day sales signal
+- action-list counts and capital totals are live API output because snoozes, Informed velocity, and Keepa refreshes can change the visible queue
 - `/repricing` rendered successfully with HTTP 200
 
 Boundary:
@@ -573,7 +567,7 @@ Implemented:
 - search input includes an inline clear button
 - table headers use server-side sorting through /api/purchases
 - status filter includes Received and Listed workflow statuses
-- Needs Review now includes missing ASIN, invalid ASIN placeholder, missing sell price, missing system, or missing Amazon title for rows with an ASIN
+- Missing Data includes missing ASIN, invalid ASIN placeholder, missing sell price, missing system, or missing Amazon title for rows with an ASIN
 - purchases API uses server-side filtering, sorting, and paging from vw_purchases_dashboard
 - purchases API filters directly on backend-normalized purchase_items.current_status
 - purchases list payload is lean; detail-only metadata is hydrated only for returned page rows

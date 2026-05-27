@@ -48,7 +48,7 @@ Purchases and Receiving are separate workflows, but operators need fast switchin
 
 Implementation:
 - `web/app/AppShell.tsx`
-- current entries are Dashboard, Purchases, Receiving, and Amazon FBA
+- current entries are Dashboard, Purchases, Receiving, Amazon FBA, Repricing, and Reconciliation
 - active mode is highlighted
 - the shell remains narrow so dense operational tables keep most of the viewport
 
@@ -164,7 +164,7 @@ Implementation:
 - status filters use backend-normalized `purchase_items.current_status`
 - detail-only metadata such as `amazon_title` and eBay raw payload-derived fields are hydrated only for the returned page
 - the default status filter is `active`, meaning all statuses except `listed`
-- Needs Review excludes listed, cancelled, return opened, and return pending rows
+- Missing Data excludes listed, cancelled, return opened, and return pending rows
 - browser caching code exists, but it is currently disabled while server-side performance is validated
 - Refresh clears any purchases cache entries and reloads from `/api/purchases`
 
