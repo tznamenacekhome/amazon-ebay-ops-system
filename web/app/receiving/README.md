@@ -14,6 +14,9 @@ This folder contains the Midnight Blue Operations Platform receiving workflow UI
 - `/api/receiving` returns only backend-normalized `Delivered` and `Shipped (No Tracking)` rows.
 - Queue displays the count of items ready to receive, and the current matching count while searching.
 - Search input autofocuses on load for barcode scanning.
+- Search supports order number, stored tracking number, scanned carrier barcode payload, and title text.
+- Carrier barcode search normalizes scanner input into tracking candidates, including USPS postal routing payloads, UPS `1Z` payloads, FedEx/common numeric suffixes, and generic cleaned alphanumeric values.
+- Tracking search compares cleaned stored tracking values so pasted/scanned values with spaces, dashes, or carrier payload prefixes still match.
 - If a search has exactly one match, the detail view opens automatically.
 - If a search has multiple matches, the filtered queue remains visible for manual selection.
 - Queue columns are sortable by displayed values.
@@ -25,10 +28,12 @@ This folder contains the Midnight Blue Operations Platform receiving workflow UI
 - eBay title links to the eBay listing when `ebay_listing_url` can be derived.
 - Amazon title links to the Amazon ASIN page when ASIN exists.
 - Amazon title display may append the system label when the stored title omits the system.
+- System is shown in the item title area so operators can verify platform while receiving.
 - Quantity received, return flag, and marketplace are recorded per item.
 - ASIN and sell price are editable per item.
 - Amazon-bound received items require ASIN and sell price before save is enabled.
 - eBay marketplace items do not require Amazon title, ASIN, or sell price.
+- Keyboard shortcuts while detail is open: `Enter` receives the order when validation passes, and `Escape` closes the detail view without receiving.
 
 ## Save Behavior
 

@@ -102,6 +102,11 @@ def fetch_shipments(start_date=None, limit=100):
         if not purchase_ids:
             return []
 
+        shipments = fetch_undelivered_shipments(purchase_ids)
+
+        if len(shipments) >= limit:
+            return shipments
+
         result = (
             supabase.table("inbound_shipments")
             .select("*")
@@ -111,7 +116,24 @@ def fetch_shipments(start_date=None, limit=100):
             .execute()
         )
 
-        return result.data or []
+        seen = {
+            row["inbound_shipment_id"]
+            for row in shipments
+            if row.get("inbound_shipment_id")
+        }
+
+        for row in result.data or []:
+            shipment_id = row.get("inbound_shipment_id")
+            if not shipment_id or shipment_id in seen:
+                continue
+
+            shipments.append(row)
+            seen.add(shipment_id)
+
+            if len(shipments) >= limit:
+                break
+
+        return shipments
 
     cutoff = (
         datetime.now(timezone.utc) - timedelta(days=LOOKBACK_DAYS)
@@ -131,6 +153,40 @@ def fetch_shipments(start_date=None, limit=100):
     )
 
     return result.data or []
+
+
+def fetch_undelivered_shipments(purchase_ids):
+    rows = []
+    page_size = 1000
+
+    for purchase_chunk in chunks(purchase_ids, 100):
+        offset = 0
+
+        while True:
+            result = (
+                supabase.table("inbound_shipments")
+                .select("*")
+                .in_("purchase_id", purchase_chunk)
+                .or_("delivered_date.is.null,normalized_status.neq.delivered")
+                .order("updated_at", desc=True)
+                .range(offset, offset + page_size - 1)
+                .execute()
+            )
+            page = result.data or []
+            rows.extend(page)
+
+            if len(page) < page_size:
+                break
+
+            offset += page_size
+
+    rows.sort(key=lambda row: row.get("updated_at") or "", reverse=True)
+    return rows
+
+
+def chunks(values, size):
+    for index in range(0, len(values), size):
+        yield values[index:index + size]
 
 
 def clean_tracking_number(value):
@@ -345,6 +401,7 @@ def update_shipment(shipment, tracker):
     )
 
     payload = {
+        "tracking_number": shipment.get("tracking_number"),
         "carrier": tracker_value(tracker, "carrier"),
         "carrier_status": tracker_value(tracker, "status"),
         "normalized_status": normalize_status(
@@ -406,6 +463,11 @@ def update_linked_purchase_item_statuses(shipment_id, shipment_payload):
     )
 
     for item in items.data or []:
+        if clean_tracking_number(item.get("tracking_number") or "") != clean_tracking_number(
+            shipment_payload.get("tracking_number") or ""
+        ):
+            continue
+
         next_status = derive_purchase_item_status(
             current_status=item.get("current_status"),
             tracking_number=item.get("tracking_number"),
@@ -423,6 +485,225 @@ def update_linked_purchase_item_statuses(shipment_id, shipment_payload):
             .eq("item_id", item["item_id"])
             .execute()
         )
+
+
+def tracker_has_activity(tracker):
+    normalized_status = normalize_status(tracker_value(tracker, "status"))
+
+    if normalized_status not in {"unknown", "pre_transit"}:
+        return True
+
+    details = tracker_value(tracker, "tracking_details") or []
+    return any(
+        normalize_status(getattr(detail, "status", None))
+        not in {"unknown", "pre_transit"}
+        for detail in details
+    )
+
+
+def extract_tracking_candidates(raw_value):
+    candidates = []
+
+    def walk(value):
+        if isinstance(value, dict):
+            tracking = value.get("ShipmentTrackingNumber")
+            carrier = value.get("ShippingCarrierUsed")
+
+            if tracking:
+                candidates.append({
+                    "tracking_number": str(tracking).strip(),
+                    "carrier": str(carrier).strip() if carrier else None,
+                })
+
+            for child in value.values():
+                walk(child)
+
+        elif isinstance(value, list):
+            for child in value:
+                walk(child)
+
+    walk(raw_value)
+
+    unique = []
+    seen = set()
+
+    for candidate in candidates:
+        tracking_number = clean_tracking_number(candidate.get("tracking_number"))
+        if not tracking_number or tracking_number in seen:
+            continue
+
+        unique.append({
+            "tracking_number": tracking_number,
+            "carrier": candidate.get("carrier"),
+        })
+        seen.add(tracking_number)
+
+    return unique
+
+
+def fetch_purchase_tracking_context(purchase_id):
+    purchase = (
+        supabase.table("purchases")
+        .select("purchase_id,raw_import_json")
+        .eq("purchase_id", purchase_id)
+        .single()
+        .execute()
+    )
+
+    items = (
+        supabase.table("purchase_items")
+        .select("item_id,quantity,tracking_number,current_status")
+        .eq("purchase_id", purchase_id)
+        .execute()
+    )
+
+    return {
+        "purchase": purchase.data,
+        "items": items.data or [],
+    }
+
+
+def total_units(items):
+    total = 0
+
+    for item in items:
+        try:
+            total += int(item.get("quantity") or 0)
+        except Exception:
+            continue
+
+    return total
+
+
+def ensure_inbound_shipment(purchase_id, candidate):
+    existing = (
+        supabase.table("inbound_shipments")
+        .select("inbound_shipment_id,tracking_number,easypost_tracker_id,carrier")
+        .eq("purchase_id", purchase_id)
+        .eq("tracking_number", candidate["tracking_number"])
+        .limit(1)
+        .execute()
+    )
+
+    if existing.data:
+        return existing.data[0]
+
+    result = supabase.table("inbound_shipments").insert({
+        "purchase_id": purchase_id,
+        "tracking_number": candidate["tracking_number"],
+        "carrier": normalize_carrier(candidate.get("carrier")),
+        "shipment_status": "unknown",
+        "normalized_status": "unknown",
+        "updated_at": iso_now(),
+    }).execute()
+
+    return result.data[0]
+
+
+def switch_purchase_to_shipment(context, shipment, tracker):
+    tracking_number = shipment.get("tracking_number")
+
+    if not tracking_number:
+        return False
+
+    switched = False
+
+    for item in context["items"]:
+        if clean_tracking_number(str(item.get("tracking_number") or "")) == tracking_number:
+            continue
+
+        supabase.table("purchase_items").update({
+            "tracking_number": tracking_number,
+            "current_status": derive_purchase_item_status(
+                current_status=item.get("current_status"),
+                tracking_number=tracking_number,
+                carrier_status=normalize_status(tracker_value(tracker, "status")),
+                delivered_date=extract_delivered_time(tracker),
+                seller_shipped=True,
+            ),
+        }).eq("item_id", item["item_id"]).execute()
+        switched = True
+
+        existing_link = (
+            supabase.table("inbound_shipment_items")
+            .select("inbound_shipment_item_id")
+            .eq("inbound_shipment_id", shipment["inbound_shipment_id"])
+            .eq("item_id", item["item_id"])
+            .limit(1)
+            .execute()
+        )
+
+        if not existing_link.data:
+            supabase.table("inbound_shipment_items").insert({
+                "inbound_shipment_id": shipment["inbound_shipment_id"],
+                "item_id": item["item_id"],
+                "quantity_expected_in_package": item.get("quantity") or 1,
+                "notes": "Linked after alternate tracking activity check",
+            }).execute()
+
+    return switched
+
+
+def resolve_alternate_tracking_if_needed(shipment, tracker, remaining_new_trackers):
+    if tracker_has_activity(tracker):
+        return 0
+
+    purchase_id = shipment.get("purchase_id")
+    if not purchase_id:
+        return 0
+
+    context = fetch_purchase_tracking_context(purchase_id)
+    candidates = extract_tracking_candidates(context["purchase"].get("raw_import_json"))
+
+    if len(candidates) <= total_units(context["items"]):
+        return 0
+
+    created = 0
+    current_tracking = clean_tracking_number(shipment.get("tracking_number") or "")
+
+    # eBay often appends replacement tracking after a dead label, so check newest first.
+    for candidate in reversed(candidates):
+        tracking_number = candidate["tracking_number"]
+        if tracking_number == current_tracking:
+            continue
+
+        alternate_shipment = ensure_inbound_shipment(purchase_id, candidate)
+        alternate_tracker_id = alternate_shipment.get("easypost_tracker_id")
+
+        if alternate_tracker_id:
+            alternate_tracker = retrieve_tracker(alternate_tracker_id)
+        else:
+            if created >= remaining_new_trackers:
+                continue
+
+            alternate_tracker = create_tracker(
+                tracking_number,
+                carrier=candidate.get("carrier"),
+            )
+            created += 1
+            supabase.table("inbound_shipments").update({
+                "easypost_tracker_id": tracker_value(alternate_tracker, "id"),
+            }).eq(
+                "inbound_shipment_id",
+                alternate_shipment["inbound_shipment_id"],
+            ).execute()
+
+        update_shipment(alternate_shipment, alternate_tracker)
+
+        if tracker_has_activity(alternate_tracker):
+            switched = switch_purchase_to_shipment(
+                context,
+                alternate_shipment,
+                alternate_tracker,
+            )
+            if switched:
+                print(
+                    "Switching purchase "
+                    f"{purchase_id} to active tracking {tracking_number}"
+                )
+            return created
+
+    return created
 
 
 def main():
@@ -487,6 +768,11 @@ def main():
                 created_trackers += 1
 
             update_shipment(shipment, tracker)
+            created_trackers += resolve_alternate_tracking_if_needed(
+                shipment,
+                tracker,
+                max(args.max_new_trackers - created_trackers, 0),
+            )
 
             processed += 1
 

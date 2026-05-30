@@ -173,6 +173,8 @@ Completed:
 - FBA title hydration falls back to another purchase item with the same ASIN when the current Received row has a blank Amazon title
 
 Next steps:
+- make the System value more prominent in receiving detail, visually comparable to the eBay title
+- when a scanned/searched tracking number matches multiple receiving rows or orders, auto-open the combined detail view with all matching rows, matching the behavior of clicking one of the filtered receiving results
 - decide source for eBay listing image URLs
 - review whether FBA needs a historical shipments screen or shipment lookup by shipment ID
 - keep receiving/listing workflows separate from purchases review UI
@@ -238,6 +240,7 @@ Next steps:
 Completed:
 - EasyPost dependency added
 - EasyPost sync made date-scoped from 2026-05-01 by default
+- EasyPost sync checks all non-delivered shipment rows before filling the remaining run with recent delivered rows
 - 5 requests/second cap added
 - 429 retry/backoff added
 - invalid tracking placeholders skipped

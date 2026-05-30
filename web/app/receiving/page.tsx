@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ArrowDown, ArrowUp, Check, PackageCheck, Search, X } from "lucide-react";
 
 import type { PurchaseRow } from "../purchases/types";
@@ -12,6 +12,10 @@ import {
   getOperationalStatus,
   rowKey,
 } from "../purchases/utils";
+import {
+  cleanTrackingScanValue,
+  normalizeTrackingScan,
+} from "./trackingScan";
 
 type ReceivingDraft = {
   quantityReceived: string;
@@ -48,9 +52,32 @@ export default function ReceivingPage() {
   const searchInputRef = useRef<HTMLInputElement>(null);
   const lastAutoOpenedSearch = useRef("");
 
-  useEffect(() => {
-    loadQueue();
+  const loadQueue = useCallback(async () => {
+    try {
+      const response = await fetch("/api/receiving", { cache: "no-store" });
+
+      if (!response.ok) {
+        throw new Error(`Failed to load receiving queue: ${response.status}`);
+      }
+
+      setRows(await response.json());
+      setError(null);
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Failed to load receiving queue."
+      );
+    } finally {
+      setLoading(false);
+    }
   }, []);
+
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      void loadQueue();
+    }, 0);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [loadQueue]);
 
   useEffect(() => {
     searchInputRef.current?.focus();
@@ -58,10 +85,36 @@ export default function ReceivingPage() {
 
   const filteredRows = useMemo(() => {
     const needle = searchText.trim().toLowerCase();
+    const trackingScan = normalizeTrackingScan(searchText);
+    const trackingCandidates = new Set(
+      trackingScan.candidates.map((candidate) => candidate.toUpperCase())
+    );
+    const normalizedSearch = trackingScan.normalizedInput.toUpperCase();
     if (!needle) return rows;
 
-    return rows.filter((row) =>
-      [
+    return rows.filter((row) => {
+      const normalizedTracking = cleanTrackingScanValue(
+        row.tracking_number
+      ).toUpperCase();
+      const normalizedOrder = cleanTrackingScanValue(
+        row.supplier_order_id
+      ).toUpperCase();
+
+      if (
+        trackingMatchesScan(
+          normalizedTracking,
+          normalizedSearch,
+          trackingCandidates
+        )
+      ) {
+        return true;
+      }
+
+      if (normalizedOrder && normalizedSearch && normalizedOrder === normalizedSearch) {
+        return true;
+      }
+
+      return [
         row.supplier_order_id,
         row.tracking_number,
         row.carrier,
@@ -73,8 +126,8 @@ export default function ReceivingPage() {
         row.current_status,
       ]
         .filter(Boolean)
-        .some((value) => String(value).toLowerCase().includes(needle))
-    );
+        .some((value) => String(value).toLowerCase().includes(needle));
+    });
   }, [rows, searchText]);
 
   const sortedRows = useMemo(() => {
@@ -83,6 +136,32 @@ export default function ReceivingPage() {
       return sortDirection === "asc" ? result : -result;
     });
   }, [filteredRows, sortColumn, sortDirection]);
+
+  const openDetail = useCallback(
+    (row: PurchaseRow) => {
+      const groupRows = hasUsableTrackingNumber(row.tracking_number)
+        ? rows.filter((candidate) =>
+            hasSameTrackingNumber(candidate.tracking_number, row.tracking_number)
+          )
+        : rows.filter((candidate) => candidate.purchase_id === row.purchase_id);
+
+      const nextDrafts: Record<string, ReceivingDraft> = {};
+
+      for (const groupRow of groupRows) {
+        nextDrafts[rowKey(groupRow)] = {
+          quantityReceived: String(groupRow.quantity ?? 1),
+          returnPending: false,
+          marketplace: "Amazon",
+          asin: groupRow.asin || "",
+          sellPrice: formatPriceDraft(groupRow.sell_price ?? groupRow.target_price),
+        };
+      }
+
+      setDrafts(nextDrafts);
+      setSelectedRow(row);
+    },
+    [rows]
+  );
 
   useEffect(() => {
     const normalizedSearch = searchText.trim();
@@ -94,14 +173,14 @@ export default function ReceivingPage() {
       openDetail(filteredRows[0]);
       lastAutoOpenedSearch.current = normalizedSearch;
     }
-  }, [filteredRows, searchText]);
+  }, [filteredRows, openDetail, searchText]);
 
   const detailRows = useMemo(() => {
     if (!selectedRow) return [];
 
     if (hasUsableTrackingNumber(selectedRow.tracking_number)) {
       return rows.filter(
-        (row) => row.tracking_number === selectedRow.tracking_number
+        (row) => hasSameTrackingNumber(row.tracking_number, selectedRow.tracking_number)
       );
     }
 
@@ -137,50 +216,14 @@ export default function ReceivingPage() {
     return "";
   }, [detailRows, drafts, selectedRow]);
 
-  async function loadQueue() {
-    setLoading(true);
-    setError(null);
+  const closeDetail = useCallback(() => {
+    setSelectedRow(null);
+    setTimeout(() => searchInputRef.current?.focus(), 0);
+  }, []);
 
-    try {
-      const response = await fetch("/api/receiving", { cache: "no-store" });
-
-      if (!response.ok) {
-        throw new Error(`Failed to load receiving queue: ${response.status}`);
-      }
-
-      setRows(await response.json());
-    } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Failed to load receiving queue."
-      );
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  function openDetail(row: PurchaseRow) {
-    const groupRows = hasUsableTrackingNumber(row.tracking_number)
-      ? rows.filter((candidate) => candidate.tracking_number === row.tracking_number)
-      : rows.filter((candidate) => candidate.purchase_id === row.purchase_id);
-
-    const nextDrafts: Record<string, ReceivingDraft> = {};
-
-    for (const groupRow of groupRows) {
-      nextDrafts[rowKey(groupRow)] = {
-        quantityReceived: String(groupRow.quantity ?? 1),
-        returnPending: false,
-        marketplace: "Amazon",
-        asin: groupRow.asin || "",
-        sellPrice: formatPriceDraft(groupRow.sell_price ?? groupRow.target_price),
-      };
-    }
-
-    setDrafts(nextDrafts);
-    setSelectedRow(row);
-  }
-
-  async function saveReceiving() {
+  const saveReceiving = useCallback(async () => {
     if (!selectedRow) return;
+    if (saving) return;
 
     const items = detailRows.map((row) => {
       const draft = drafts[rowKey(row)];
@@ -243,7 +286,39 @@ export default function ReceivingPage() {
     } finally {
       setSaving(false);
     }
-  }
+  }, [detailRows, drafts, receivingValidationMessage, saving, selectedRow]);
+
+  useEffect(() => {
+    if (!selectedRow) return;
+
+    function handleDetailKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        closeDetail();
+        return;
+      }
+
+      if (
+        event.key === "Enter" &&
+        !event.repeat &&
+        !saving &&
+        !receivingValidationMessage
+      ) {
+        event.preventDefault();
+        void saveReceiving();
+      }
+    }
+
+    window.addEventListener("keydown", handleDetailKeyDown);
+
+    return () => window.removeEventListener("keydown", handleDetailKeyDown);
+  }, [
+    closeDetail,
+    receivingValidationMessage,
+    saveReceiving,
+    saving,
+    selectedRow,
+  ]);
 
   function updateDraft(row: PurchaseRow, patch: Partial<ReceivingDraft>) {
     const key = rowKey(row);
@@ -312,7 +387,7 @@ export default function ReceivingPage() {
               lastAutoOpenedSearch.current = "";
             }}
             className="w-full rounded-lg border border-slate-300 py-3 pl-10 pr-10 text-lg"
-            placeholder="Scan tracking barcode or search receiving queue..."
+            placeholder="Scan label or search order, tracking, title..."
           />
           {searchText && (
             <button
@@ -552,6 +627,9 @@ export default function ReceivingPage() {
                             {row.ebay_title || row.title || "--"}
                           </div>
                         )}
+                        <div className="mt-2 text-sm font-medium text-slate-600">
+                          System: {row.system || "--"}
+                        </div>
                         <div className="mt-4 text-xs uppercase tracking-wide text-slate-500">
                           Amazon Title
                         </div>
@@ -854,4 +932,28 @@ function hasUsableTrackingNumber(value?: string | null) {
     "shipped untracked",
     "shipped without tracking",
   ].includes(normalizedValue);
+}
+
+function hasSameTrackingNumber(left?: string | null, right?: string | null) {
+  const normalizedLeft = cleanTrackingScanValue(left).toUpperCase();
+  const normalizedRight = cleanTrackingScanValue(right).toUpperCase();
+
+  return !!normalizedLeft && normalizedLeft === normalizedRight;
+}
+
+function trackingMatchesScan(
+  normalizedTracking: string,
+  normalizedSearch: string,
+  trackingCandidates: Set<string>
+) {
+  if (!normalizedTracking) return false;
+  if (trackingCandidates.has(normalizedTracking)) return true;
+
+  return (
+    normalizedTracking.length >= 8 &&
+    (normalizedSearch.includes(normalizedTracking) ||
+      [...trackingCandidates].some((candidate) =>
+        candidate.includes(normalizedTracking)
+      ))
+  );
 }

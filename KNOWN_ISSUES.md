@@ -263,6 +263,32 @@ Recommended guardrail:
 
 ---
 
+## System Health Signal Gaps
+
+Status: MITIGATED / MONITOR
+
+Problem:
+The System Health page previously did not reliably report every sync after direct `run_all_syncs.py` runs because some checks depended on schema fields or snapshot semantics that did not match the current database.
+
+Current mitigation:
+- Amazon FBA inventory, Amazon listing status, Amazon inventory planning, Informed repricing reports, and YNAB cash balance updated correctly from Supabase signal tables.
+- eBay buyer purchases now uses `import_batches.imported_at`.
+- RevSeller enrichment now uses the latest local `data/revseller_enrichment_diagnostics_*.csv` file as its run signal.
+- EasyPost shipments and eBay supplier returns ignore null timestamp rows when selecting their latest signal.
+- Keepa products can remain on the previous snapshot timestamp when the guarded scheduled run selects 0 ASINs and writes no new snapshot rows.
+- `run_all_syncs.py` now writes `logs/sync_health.json`, so direct orchestrator runs can overlay a newer success/failure when a domain table does not write a fresh row.
+- Business value snapshot upserts now refresh `captured_at`.
+- Inventory reconciliation is now included in `run_all_syncs.py` so its health expectation matches the orchestrator.
+
+Impact:
+The health page is less likely to make completed syncs look stale or unknown when the underlying integration ran successfully.
+
+Recommended next mitigation:
+- monitor the next scheduled/direct all-sync to confirm Keepa and business value use `logs/sync_health.json` when no newer product snapshot is written.
+- consider a future Supabase sync-run ledger if local-only health records become insufficient.
+
+---
+
 ## Legacy Multi-Row Purchase Shape
 
 Status: ACTIVE / LOW RISK

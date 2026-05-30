@@ -138,6 +138,7 @@ def build_snapshot(supabase, snapshot_date: str) -> dict[str, Any]:
 
     return {
         "snapshot_date": snapshot_date,
+        "captured_at": dt.datetime.now(dt.timezone.utc).isoformat(),
         "amazon_inventory_value": round(amazon_inventory_value, 2),
         "pre_amazon_inventory_value": round(pre_amazon_inventory_value, 2),
         "amazon_cash_balance": round(amazon_cash_balance, 2),

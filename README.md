@@ -19,6 +19,8 @@ Python integrations -> Supabase PostgreSQL -> Next.js API routes -> React fronte
 
 Supabase is the operational source of truth. The frontend uses API routes only and must not recalculate landed cost, inventory value, or repricing recommendations.
 
+Capacity guardrails for Supabase billing limits, Disk IO Budget, and recovery are documented in `docs/supabase_capacity.md`. Check that file before adding broad syncs, heavy backfills, raw snapshot storage, or full-table dashboard queries.
+
 ## Key Docs
 
 - `AGENTS.md`: project rules for coding agents.

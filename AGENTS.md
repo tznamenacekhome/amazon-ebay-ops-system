@@ -32,6 +32,12 @@ Frontend
 -> API Routes
 -> Supabase
 
+Supabase capacity guardrail:
+- current paid-plan limits and recovery notes are documented in `docs/supabase_capacity.md`
+- paid plan quotas do not guarantee sufficient compute or sustained disk IO
+- before broad syncs, large backfills, raw snapshot expansion, or full-table dashboard queries, check/warn about Supabase Disk IO Budget and database size risk
+- if Supabase is refusing connections or returning 522/ECONNREFUSED, pause scheduled syncs and do not rerun full orchestration until a tiny read succeeds
+
 ---
 
 # Current Frontend Structure
@@ -93,6 +99,7 @@ ETA precedence:
 EasyPost sync must:
 - reuse existing easypost_tracker_id values
 - avoid invalid placeholder tracking values
+- check all non-delivered inbound shipment rows before filling any remaining batch with recent delivered rows
 - stay at or below 5 EasyPost requests per second
 - retry 429 responses with backoff
 - pass known carrier when available

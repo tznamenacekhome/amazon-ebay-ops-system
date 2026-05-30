@@ -1,6 +1,6 @@
 # CURRENT_STATE.md
 
-Last Updated: 2026-05-27
+Last Updated: 2026-05-29
 
 # Midnight Blue Operations Platform (MBOP)
 
@@ -25,6 +25,17 @@ MBOP is the internal operations platform for Midnight Blue Enterprises, LLC.
 | Amazon FBA workflow | First slice implemented |
 | Aged Amazon Inventory Repricing Advisor | First slice implemented |
 | Legacy spreadsheet backfill | Recently used / repeatable script available |
+
+---
+
+# Supabase Capacity
+
+Status: PAID PLAN / IO GUARDRAILS DOCUMENTED
+
+Current plan limits are documented in `docs/supabase_capacity.md`, including 8 GB included disk size per project, 250 GB egress, 250 GB cached egress, 100 GB file storage, 7-day backups, and 7-day log retention.
+
+Important operating note:
+The paid plan limits do not by themselves guarantee enough sustained disk IO for MBOP. Disk IO Budget exhaustion caused Supabase API/Table Editor connection failures on 2026-05-28. Before broad syncs, large backfills, or snapshot-heavy changes, check Database Health and warn the operator if Disk IO Budget is materially consumed or database size approaches the 8 GB included disk limit.
 
 ---
 
@@ -628,6 +639,7 @@ Implemented:
 - receiving API route at /api/receiving
 - receiving API applies the ready-to-receive status filter before returning rows
 - scan-first search field with autofocus
+- search supports order number, tracking number, scanned carrier barcode payloads, and title text
 - queue includes Delivered and Shipped (No Tracking) operational statuses
 - single search result auto-opens the receiving detail view
 - multiple search results remain filtered for manual row selection
@@ -637,6 +649,7 @@ Implemented:
 - detail view links eBay title to the eBay listing when a supplier listing URL or eBay item ID is available
 - detail view links Amazon title to Amazon using ASIN
 - Amazon title display appends an operator-facing system suffix when the stored title omits the system
+- detail view shows system/platform near the title and supports Enter to receive plus Escape to close without receiving
 - per-item quantity received input
 - per-item return checkbox
 - per-item marketplace pick list, defaulting to Amazon
@@ -674,6 +687,7 @@ Implemented:
 - rows are sorted by system and Amazon title
 - shipment stats show ASIN count, total units, total cost, and selected cost
 - CSV export uses the currently selected quantities for InventoryLab import
+- CSV export labels the target sell price column as List Price
 - detail expansion shows supplier order ID, Amazon title, ASIN, received quantity, quantity to send, and unit cost for underlying purchase items
 - quantity-to-send supports excluding a specific unit from an FBA shipment
 - saving with a shipment ID links included items to fba_shipments/fba_shipment_items and moves included quantities to Listed

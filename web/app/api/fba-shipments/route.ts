@@ -330,9 +330,11 @@ function groupCandidates(
       cost_per_unit:
         group.cost_quantity > 0 ? group.total_cost / group.cost_quantity : null,
       supplier: suppliers.join(", "),
-      details: group.details.sort((left, right) =>
-        compareStrings(left.supplier_order_id, right.supplier_order_id)
-      ),
+      details: group.details.sort((left, right) => {
+        const dateCompare = compareStrings(left.order_date, right.order_date);
+        if (dateCompare !== 0) return dateCompare;
+        return compareStrings(left.supplier_order_id, right.supplier_order_id);
+      }),
     };
   });
 

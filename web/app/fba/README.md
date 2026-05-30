@@ -27,6 +27,8 @@ The CSV export mirrors the current shipment quantities.
 
 If a detail row quantity is reduced before export, the exported quantity and weighted cost reflect that exclusion.
 
+The export column for the target selling price is labeled `List Price` for InventoryLab workflow clarity.
+
 ## Save Behavior
 
 The operator enters an InventoryLab/Amazon shipment ID and saves the included quantities.

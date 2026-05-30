@@ -132,7 +132,7 @@ export default function FbaPage() {
         "Title",
         "System",
         "Cost per unit",
-        "Sell Price",
+        "List Price",
         "Quantity",
         "Purchase date",
         "Supplier",
@@ -207,7 +207,7 @@ export default function FbaPage() {
     <main className="min-h-screen bg-slate-100 p-4 text-slate-900">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Amazon FBA</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">Ready to ship to Amazon FBA</h1>
           <p className="text-sm text-slate-600">
             MBOP shipment preparation for Received Amazon inventory
           </p>
@@ -434,6 +434,7 @@ function DetailTable({
         <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
           <tr>
             <th className="px-3 py-2">Supplier Order</th>
+            <th className="px-3 py-2">Order Date</th>
             <th className="px-3 py-2">Amazon Title</th>
             <th className="px-3 py-2">ASIN</th>
             <th className="px-3 py-2 text-right">Received Qty</th>
@@ -451,6 +452,9 @@ function DetailTable({
               <tr key={detail.item_id} className="border-t border-slate-100">
                 <td className="whitespace-nowrap px-3 py-2 font-medium">
                   {detail.supplier_order_id || "--"}
+                </td>
+                <td className="whitespace-nowrap px-3 py-2">
+                  {formatDate(detail.order_date)}
                 </td>
                 <td className="px-3 py-2">{detail.amazon_title || "--"}</td>
                 <td className="whitespace-nowrap px-3 py-2 text-blue-700">
