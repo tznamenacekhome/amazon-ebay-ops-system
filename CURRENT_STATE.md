@@ -1,6 +1,6 @@
 # CURRENT_STATE.md
 
-Last Updated: 2026-05-29
+Last Updated: 2026-05-30
 
 # Midnight Blue Operations Platform (MBOP)
 
@@ -449,9 +449,10 @@ Current behavior:
 - Amazon listing-status snapshots are consumed as reconciliation findings only, not as additional inventory units
 - InventoryLab historical active-inventory backfill can provide legacy cost/date context for current Amazon FBA inventory
 - InventoryLab inventory valuation snapshots provide the legacy opening-balance valuation for current Amazon FBA inventory
-- canonical current inventory is defined as current Amazon FBA inventory plus MBOP purchase inventory that has not yet reached the Listed workflow state
-- Amazon-bound purchase inventory with `current_status = listed` is treated as historical/sold-through in the derived purchase projection; current Amazon FBA inventory is represented by Amazon SP-API snapshot positions instead
+- canonical current inventory is defined as current Amazon FBA inventory plus MBOP purchase inventory that has not yet reached the Listed workflow state, plus current non-historical FBA shipment links on the way to Amazon
+- Amazon-bound purchase inventory with `current_status = listed` and no current FBA shipment link is treated as historical/sold-through in the derived purchase projection; current FBA shipment links are projected as `outbound_to_amazon`
 - dashboard Amazon FBA value prefers the latest InventoryLab valuation snapshot when available, while MBOP remains authoritative for received, ordered, and outbound inventory
+- business value snapshots use MBOP outbound shipment cost for saved FBA shipments and avoid double-counting overlapping Amazon inbound rows for the same ASINs
 - reconciliation currently compares MBOP Amazon-intended inventory to latest Amazon FBA inventory at ASIN level and surfaces Amazon listing issue/suppression signals
 - old open reconciliation findings are deferred when a new reconciliation run writes current findings
 
@@ -459,7 +460,8 @@ Latest validation:
 - InventoryLab active inventory import read 951 rows, skipped 653 inactive rows, matched 298 active rows by MSKU, found 0 ambiguous rows, and upserted 298 legacy backfill records
 - InventoryLab valuation import read 297 rows, found 0 missing MSKUs, 0 missing total values, 0 duplicate MSKUs, and upserted a $13,453.87 / 761-unit legacy Amazon FBA opening-balance valuation
 - inventory reconciliation loaded 298 InventoryLab cost/date overlay rows
-- latest write run projected 2,923 MBOP positions, 311 Amazon positions, and 377 open findings after adding Amazon listing-status issue findings
+- latest write run projected 2,943 MBOP positions, 451 Amazon positions, and 392 open findings after adding current FBA shipment outbound projection
+- current Amazon shipment `FBA19F8YW7CV` projects 216 linked shipment rows, 277 units, and $5,634.77 as `outbound_to_amazon`
 - latest reconciliation includes 55 Amazon stranded/suppressed listing findings from the read-only Listings Items snapshots
 - 310 Amazon inventory positions currently carry InventoryLab legacy cost/date context
 - Next.js production build passed after dashboard API/UI updates
@@ -522,7 +524,7 @@ Implemented:
 - `integrations/amazon_sync_finance_balances.py` stores read-only Amazon Finance cash snapshots in `amazon_finance_balance_snapshots`
 - latest Amazon Finance snapshot reports $2,979.69 Amazon cash, $2,232.84 Amazon-to-bank in-transit cash, $2,631.96 deferred/reserved cash, and $347.73 API open/available balance
 - `integrations/business_value_snapshot.py` stores one backend-computed business value snapshot per day in `business_value_snapshots`
-- latest business value snapshot for 2026-05-27 reports $26,083.47 total business value
+- latest business value snapshot for 2026-05-30 reports $28,627.77 total business value, including $5,980.36 of Amazon outbound/on-way value
 - clicking the Total row in the Business Inventory And Cash Value dashboard panel opens a modal with a business value history graph
 - Purchases workspace now has separate tabs for the normal editable purchases table and an Order Problems table
 - Purchases `Missing Data` filter keeps ASIN/sell-price/system/Amazon-title cleanup in the normal editable view
@@ -574,6 +576,7 @@ Implemented:
 - detail drawer shows "--" for Amazon Title when ASIN is missing
 - detail drawer saves eBay title, Amazon title, purchase price, system, ASIN, and sell price together
 - detail drawer can edit system from the canonical system pick list
+- detail drawer can mark an item Return Pending for return/refund follow-up
 - detail drawer can create a manual split item row for multi-game eBay listings
 - search input includes an inline clear button
 - table headers use server-side sorting through /api/purchases
@@ -688,9 +691,11 @@ Implemented:
 - shipment stats show ASIN count, total units, total cost, and selected cost
 - CSV export uses the currently selected quantities for InventoryLab import
 - CSV export labels the target sell price column as List Price
+- shipment input is labeled Amazon Shipment ID and uses an Amazon shipment ID example placeholder
 - detail expansion shows supplier order ID, Amazon title, ASIN, received quantity, quantity to send, and unit cost for underlying purchase items
 - quantity-to-send supports excluding a specific unit from an FBA shipment
 - saving with a shipment ID links included items to fba_shipments/fba_shipment_items and moves included quantities to Listed
+- saved current shipment links are projected as outbound-to-Amazon inventory value
 - partial included quantities split the remaining quantity into a Received split child row
 - same-ASIN Amazon title fallback fills FBA display titles when a Received row has ASIN but blank amazon_title
 - rows with no stored Amazon title display an explicit Missing Amazon title indicator instead of silently using the eBay title

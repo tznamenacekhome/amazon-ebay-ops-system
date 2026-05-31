@@ -100,17 +100,18 @@ def get_supabase_client():
 
 
 def build_snapshot(supabase, snapshot_date: str) -> dict[str, Any]:
-    summary_rows = fetch_all(supabase, "vw_inventory_position_summary", "*")
-    cost_by_state = {
-        row["inventory_state"]: float(row.get("total_cost") or 0)
-        for row in summary_rows
-    }
+    position_rows = fetch_all(
+        supabase,
+        "inventory_positions",
+        "inventory_state,asin,quantity,total_cost,source_system",
+    )
+    cost_by_state = cost_by_inventory_state(position_rows)
     inventorylab_value = fetch_inventorylab_valuation(supabase)
     finance = fetch_latest_row(supabase, "vw_latest_amazon_finance_balance_snapshot")
     ynab = fetch_latest_business_ynab_row(supabase)
 
     amazon_at_fba_value = inventorylab_value or sum_states(cost_by_state, AMAZON_FBA_STATES)
-    amazon_outbound_value = sum_states(cost_by_state, AMAZON_OUTBOUND_STATES)
+    amazon_outbound_value = calculate_amazon_outbound_value(position_rows)
     amazon_inventory_value = amazon_at_fba_value + amazon_outbound_value
     pre_amazon_inventory_value = sum_states(cost_by_state, PRE_AMAZON_STATES)
     amazon_cash_balance = float((finance or {}).get("total_amazon_cash") or 0)
@@ -147,6 +148,37 @@ def build_snapshot(supabase, snapshot_date: str) -> dict[str, Any]:
         "total_business_value": round(total_business_value, 2),
         "raw_rollup_json": rollup,
     }
+
+
+def cost_by_inventory_state(rows: list[dict[str, Any]]) -> dict[str, float]:
+    costs: dict[str, float] = {}
+    for row in rows:
+        state = str(row.get("inventory_state") or "")
+        costs[state] = costs.get(state, 0) + float(row.get("total_cost") or 0)
+    return costs
+
+
+def calculate_amazon_outbound_value(rows: list[dict[str, Any]]) -> float:
+    outbound_cost = 0.0
+    outbound_asins: set[str] = set()
+    amazon_inbound_by_asin: dict[str, float] = {}
+
+    for row in rows:
+        state = str(row.get("inventory_state") or "")
+        asin = str(row.get("asin") or "").strip().upper()
+        cost = float(row.get("total_cost") or 0)
+
+        if state == "outbound_to_amazon":
+            outbound_cost += cost
+            if asin:
+                outbound_asins.add(asin)
+        elif state == "amazon_fba_inbound_receiving" and asin:
+            amazon_inbound_by_asin[asin] = amazon_inbound_by_asin.get(asin, 0) + cost
+
+    uncovered_amazon_inbound_cost = sum(
+        cost for asin, cost in amazon_inbound_by_asin.items() if asin not in outbound_asins
+    )
+    return outbound_cost + uncovered_amazon_inbound_cost
 
 
 def fetch_all(supabase, table: str, columns: str) -> list[dict[str, Any]]:

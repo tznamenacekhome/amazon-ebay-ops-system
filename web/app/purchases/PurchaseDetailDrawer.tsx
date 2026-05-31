@@ -1,4 +1,4 @@
-import { Plus, Save, X } from "lucide-react";
+import { Plus, RotateCcw, Save, X } from "lucide-react";
 
 import { SYSTEM_OPTIONS } from "./systemOptions";
 import type { PurchaseRow } from "./types";
@@ -28,6 +28,7 @@ type PurchaseDetailDrawerProps = {
   onUnitCostChange: (value: string) => void;
   onSystemChange: (value: string) => void;
   onAddSplitItem: () => void;
+  onMarkReturnPending: () => void;
   onSave: () => void;
   onClose: () => void;
 };
@@ -48,12 +49,14 @@ export function PurchaseDetailDrawer({
   onUnitCostChange,
   onSystemChange,
   onAddSplitItem,
+  onMarkReturnPending,
   onSave,
   onClose,
 }: PurchaseDetailDrawerProps) {
   const operationalStatus = getOperationalStatus(row);
   const displayAmazonTitle = row.asin ? drawerAmazonTitle || row.amazon_title || "--" : "--";
   const isSaving = savingKey === rowKey(row);
+  const isReturnPending = operationalStatus.value === "return_pending";
 
   return (
     <div className="fixed inset-0 z-40">
@@ -182,6 +185,16 @@ export function PurchaseDetailDrawer({
                 >
                   <Plus className="h-4 w-4" />
                   Split Item
+                </button>
+
+                <button
+                  onClick={onMarkReturnPending}
+                  disabled={isSaving || isReturnPending}
+                  className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm font-medium text-amber-800 hover:bg-amber-100 disabled:opacity-60"
+                  type="button"
+                >
+                  <RotateCcw className="h-4 w-4" />
+                  {isReturnPending ? "Return Pending" : "Mark Return Pending"}
                 </button>
               </div>
             </div>

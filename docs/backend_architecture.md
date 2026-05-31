@@ -1,6 +1,6 @@
 # Backend Architecture
 
-Last updated: 2026-05-27
+Last updated: 2026-05-30
 
 ## Core Flow
 
@@ -17,6 +17,7 @@ Purchases, receiving, Amazon FBA shipment prep, inventory reconciliation, repric
 - `purchases` and `purchase_items` own acquired eBay buyer purchase inventory.
 - Receiving owns physical verification, received quantities, return-pending decisions, marketplace assignment, received dates, and the transition to `received`.
 - Amazon FBA shipment prep owns grouping received Amazon-bound items for export, shipment ID assignment, and moving included units to `listed`.
+- Non-historical FBA shipment item links remain workflow-owned by FBA prep and are projected into inventory value as outbound to Amazon.
 - Amazon SP-API snapshot tables own read-only Amazon inventory, listing, planning, and finance data.
 - Keepa tables own read-only catalog, offer, price-history, sales-rank, and competition intelligence.
 - Informed tables own read-only repricer report snapshots and advisory rule/price context.
@@ -64,5 +65,6 @@ Backend/API layers own:
 - repricing recommendation tiers, buckets, target prices, and reasons
 - business value snapshots
 
-Frontend components render API-provided values and manage UI workflow state only.
+Inventory value rollups treat saved current FBA shipment links as MBOP outbound-to-Amazon cost, while Amazon SP-API and InventoryLab snapshots represent inventory already in Amazon's inventory layers. The rollup avoids double-counting Amazon inbound rows for ASINs already covered by a saved MBOP outbound shipment.
 
+Frontend components render API-provided values and manage UI workflow state only.

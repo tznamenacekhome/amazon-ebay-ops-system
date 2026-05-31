@@ -176,6 +176,8 @@ Next steps:
 - make the System value more prominent in receiving detail, visually comparable to the eBay title
 - when a scanned/searched tracking number matches multiple receiving rows or orders, auto-open the combined detail view with all matching rows, matching the behavior of clicking one of the filtered receiving results
 - decide source for eBay listing image URLs
+- during the Send to Amazon workflow, allow a damaged/problem copy to be moved from Amazon-bound Received inventory to eBay marketplace inventory, including splitting one unit out of a multi-quantity row when needed
+- during the Send to Amazon workflow, allow an item to be moved out of FBA prep and back to the previous Delivered phase so it returns to Receiving instead of staying eligible for Amazon shipment
 - review whether FBA needs a historical shipments screen or shipment lookup by shipment ID
 - keep receiving/listing workflows separate from purchases review UI
 
@@ -209,6 +211,7 @@ Needed for:
 
 Next steps:
 - choose hosting target
+- add app security before public exposure, including an authenticated login solution and protected routes for operational pages/API routes
 - configure environment variables securely
 - deploy the web app
 - confirm /api/purchases and /api/easypost/webhook are reachable over HTTPS

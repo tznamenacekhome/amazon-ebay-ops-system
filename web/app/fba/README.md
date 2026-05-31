@@ -31,11 +31,12 @@ The export column for the target selling price is labeled `List Price` for Inven
 
 ## Save Behavior
 
-The operator enters an InventoryLab/Amazon shipment ID and saves the included quantities.
+The operator enters the Amazon Shipment ID, for example `FBA19F8YW7CV`, and saves the included quantities.
 
 Included quantities:
 - get linked to `fba_shipments` / `fba_shipment_items`
 - move from `received` to `listed`
+- are projected as outbound-to-Amazon inventory value while the shipment link is current and non-historical
 
 Excluded quantities:
 - remain `received`
@@ -52,3 +53,5 @@ Historical listed items that predate MBOP shipment tracking should be linked to:
 `legacy_listed_no_shipment_id`
 
 This is not a real Amazon shipment ID. It means the item was already listed before MBOP started tracking FBA shipment IDs.
+
+Historical marker links are not counted as current outbound-to-Amazon inventory value.

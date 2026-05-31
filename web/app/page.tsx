@@ -166,6 +166,18 @@ export default function PurchasesPage() {
     }
   }
 
+  async function markSelectedReturnPending() {
+    if (!selectedRow) return;
+
+    const updatedRow = await patchPurchase(selectedRow, {
+      current_status: "return_pending",
+    });
+
+    if (updatedRow) {
+      setSelectedRow(updatedRow);
+    }
+  }
+
   function updatePriceDraft(key: string, value: string) {
     setPriceDrafts((current) => ({
       ...current,
@@ -337,6 +349,7 @@ export default function PurchasesPage() {
           onUnitCostChange={setDrawerUnitCost}
           onSystemChange={setDrawerSystem}
           onAddSplitItem={addSplitItem}
+          onMarkReturnPending={markSelectedReturnPending}
           onSave={saveDrawerMatch}
           onClose={() => setSelectedRow(null)}
         />

@@ -259,12 +259,12 @@ export default function FbaPage() {
       <section className="mb-4 rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
         <div className="grid gap-3 lg:grid-cols-[minmax(260px,360px)_1fr_auto] lg:items-end">
           <label className="grid gap-1 text-sm font-medium text-slate-700">
-            Shipment ID
+            Amazon Shipment ID
             <input
               value={shipmentId}
               onChange={(event) => setShipmentId(event.target.value)}
               className="h-11 rounded-lg border border-slate-300 px-3 text-base font-medium"
-              placeholder="Enter InventoryLab / Amazon shipment ID"
+              placeholder="example: FBA19F8YW7CV"
             />
           </label>
 

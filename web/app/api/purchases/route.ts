@@ -594,6 +594,7 @@ export async function PATCH(request: Request) {
     title?: string | null;
     unit_cost?: number | null;
     system?: string | null;
+    current_status?: string;
     manual_title_override?: boolean;
     manual_unit_cost_override?: boolean;
   } = {};
@@ -647,6 +648,19 @@ export async function PATCH(request: Request) {
   if ("system" in body) {
     const system = body.system === null ? "" : String(body.system ?? "").trim();
     updates.system = system || null;
+  }
+
+  if ("current_status" in body) {
+    const currentStatus = String(body.current_status ?? "").trim();
+
+    if (currentStatus !== "return_pending") {
+      return NextResponse.json(
+        { error: "current_status can only be set to return_pending here" },
+        { status: 400 }
+      );
+    }
+
+    updates.current_status = currentStatus;
   }
 
   const { data: sourceItem, error: sourceError } = await supabase

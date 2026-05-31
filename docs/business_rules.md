@@ -1,6 +1,6 @@
 # Business Rules
 
-Last updated: 2026-05-27
+Last updated: 2026-05-30
 
 ## Cost And Reporting
 
@@ -50,13 +50,16 @@ Carrier/status syncs must not downgrade workflow-owned statuses.
 - Grouped cost is backend-owned and quantity-weighted.
 - Operator-entered shipment ID links included items to FBA shipment rows.
 - Included quantities move to `listed`; excluded quantities remain `received`.
+- Current non-historical FBA shipment links are valued as `outbound_to_amazon` until Amazon/InventoryLab inventory takes over.
+- The historical marker `legacy_listed_no_shipment_id` must not create outbound-to-Amazon value.
 
 ## Inventory And Valuation
 
-- Current canonical inventory equals current Amazon FBA inventory plus MBOP purchase inventory that has not reached `listed`.
-- Amazon-bound `listed` purchase rows are historical/sold-through for current inventory purposes; current Amazon inventory is represented by Amazon SP-API snapshots.
+- Current canonical inventory equals current Amazon FBA inventory plus MBOP purchase inventory that has not reached `listed`, plus non-historical MBOP FBA shipment links that are on the way to Amazon.
+- Amazon-bound `listed` purchase rows without a current FBA shipment link are historical/sold-through for current inventory purposes; current Amazon inventory is represented by Amazon SP-API snapshots.
 - InventoryLab valuation snapshots are legacy opening-balance valuation context for current Amazon FBA inventory.
 - MBOP purchase/receiving/FBA workflows own go-forward cost.
+- Business value snapshots use MBOP outbound shipment cost for saved FBA shipments and avoid double-counting overlapping Amazon inbound rows for the same ASINs.
 - YNAB Business category balance is cash-on-hand context only.
 - Amazon Finance cash is value that has moved from inventory into Amazon-held cash or Amazon-to-bank in-transit cash.
 - Business value snapshots are reporting snapshots only.
@@ -73,4 +76,3 @@ Carrier/status syncs must not downgrade workflow-owned statuses.
 - Buyable/discoverable Amazon catalog metadata issues are ignored unless inventory becomes suppressed/non-buyable or unsellable.
 - Snoozes hide advisory rows from the default queue for 30 days and do not change inventory state.
 - Keepa competition data must come from stored snapshots or explicit operator-run scripts, not from page-load token spending.
-

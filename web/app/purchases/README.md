@@ -35,6 +35,7 @@ This folder contains the Midnight Blue Operations Platform purchases workflow UI
 - `ETA` appears next to `Order Date` and uses the same display-date logic as the table.
 - When ASIN is missing, `Amazon Title` displays `--`; the eBay supplier title remains visible separately.
 - eBay title, purchase price, ASIN, and sell price are edited together with one drawer save action.
+- The drawer can mark an item `Return Pending` for the return/refund follow-up workflow.
 - `Split Item` creates a manual purchase item row for multi-game eBay listings.
 
 ## Title Cleaning

@@ -1,6 +1,6 @@
 # Database Schema Overview
 
-Last updated: 2026-05-27
+Last updated: 2026-05-30
 
 This document is a high-level map of MBOP's schema. SQL migrations remain the source of exact column definitions.
 
@@ -19,6 +19,8 @@ Authoritative cost for dashboards and purchase reporting comes through `vw_purch
 - `fba_shipment_items`: item-level links between purchase items and FBA shipments.
 
 Receiving state is stored on `purchase_items`; shipment prep links included quantities to FBA shipment rows and moves those included quantities to `listed`.
+
+Current non-historical `fba_shipment_items` links are projected into `inventory_positions.inventory_state = outbound_to_amazon` for inventory valuation. Historical links using `legacy_listed_no_shipment_id` remain historical markers and are not valued as current outbound inventory.
 
 ## Amazon Snapshot Tables
 
@@ -54,6 +56,8 @@ Keepa and Informed data are advisory intelligence only.
 - `ynab_category_balance_snapshots`: YNAB Business category cash-balance snapshots.
 - `business_value_snapshots`: daily backend-computed total business value rollups.
 
+`business_value_snapshots.raw_rollup_json.amazon_outbound_value` includes MBOP outbound FBA shipment cost plus Amazon inbound cost not already covered by a saved MBOP outbound shipment ASIN.
+
 Inventory reconciliation tables are derived and additive. Workflow corrections must route through the workflow that owns the underlying state.
 
 ## Important Views
@@ -69,4 +73,3 @@ Inventory reconciliation tables are derived and additive. Workflow corrections m
 - `vw_latest_amazon_finance_balance_snapshot`
 - `vw_inventory_position_summary`
 - `vw_open_inventory_reconciliation_items`
-

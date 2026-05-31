@@ -449,11 +449,12 @@ Implementation:
 - grouped sell price uses the highest non-null target sell price
 
 Save behavior:
-- operator enters the InventoryLab/Amazon shipment ID
+- operator enters the Amazon shipment ID
 - included quantities are linked to `fba_shipments` and `fba_shipment_items`
 - included quantities move from `received` to `listed`
 - excluded quantities remain `received`
 - partial included quantities split the purchase item so only the included quantity becomes `listed`
+- non-historical saved shipment links are projected into `inventory_positions` as `outbound_to_amazon` for inventory value until Amazon/InventoryLab inventory takes over
 
 Historical marker:
 Use `legacy_listed_no_shipment_id` for already Listed items that predate MBOP shipment ID tracking. This value is not a real Amazon shipment ID.
@@ -692,7 +693,7 @@ Rule:
 Do not write reconciliation corrections directly into workflow tables unless a specific workflow action owns that correction. Reconciliation findings should surface review work first.
 
 Canonical inventory definition:
-Current canonical inventory equals current Amazon FBA inventory plus MBOP purchase inventory that has not yet reached the Listed workflow state. Purchase rows with `purchase_items.current_status = listed` remain useful for purchase amount/frequency and historical analysis, but they are not counted as current purchase-held inventory in the derived canonical inventory total. Amazon-bound Listed purchase rows are treated as sold-through/history in the purchase projection; current active Amazon inventory is represented by Amazon SP-API snapshot positions.
+Current canonical inventory equals current Amazon FBA inventory plus MBOP purchase inventory that has not yet reached the Listed workflow state, plus current non-historical FBA shipment links that are on the way to Amazon. Purchase rows with `purchase_items.current_status = listed` remain useful for purchase amount/frequency and historical analysis. Listed rows without a current FBA shipment link are treated as sold-through/history in the purchase projection; listed rows with a current FBA shipment link are projected as `outbound_to_amazon`. Current active Amazon inventory is represented by Amazon SP-API snapshot positions.
 
 ---
 
@@ -789,6 +790,7 @@ Implementation:
 - `integrations/business_value_snapshot.py` computes and upserts the daily row.
 - `/api/dashboard/purchases` returns business value history from `business_value_snapshots`.
 - the dashboard Total row opens a graph modal using API-provided history values.
+- Amazon outbound value uses MBOP cost for saved current FBA shipment links and includes only Amazon inbound cost whose ASIN is not already covered by a saved MBOP outbound shipment.
 
 Rule:
 Business value snapshots are reporting snapshots only. They do not write back to purchases, purchase_items, inventory_positions, Amazon Finance snapshots, YNAB snapshots, or workflow tables.

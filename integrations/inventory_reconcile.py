@@ -47,7 +47,12 @@ def main() -> int:
 
     try:
         supabase = get_supabase_client()
-        purchase_rows = fetch_all(supabase, "vw_purchases_dashboard", "*")
+        purchase_rows = fetch_all(
+            supabase,
+            "vw_purchases_dashboard",
+            "*",
+            order_by="item_id",
+        )
         item_meta = fetch_item_meta(supabase, purchase_rows)
         fba_item_links = fetch_fba_item_links(supabase)
         amazon_skus = fetch_amazon_skus(supabase)
@@ -123,17 +128,20 @@ def get_supabase_client():
     return create_client(supabase_url, supabase_key)
 
 
-def fetch_all(supabase, table: str, select: str) -> list[dict[str, Any]]:
+def fetch_all(
+    supabase,
+    table: str,
+    select: str,
+    order_by: str | None = None,
+) -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
     offset = 0
 
     while True:
-        response = (
-            supabase.table(table)
-            .select(select)
-            .range(offset, offset + BATCH_SIZE - 1)
-            .execute()
-        )
+        query = supabase.table(table).select(select)
+        if order_by:
+            query = query.order(order_by)
+        response = query.range(offset, offset + BATCH_SIZE - 1).execute()
         data = response.data or []
         rows.extend(data)
 
@@ -171,6 +179,15 @@ def fetch_item_meta(
 
 def fetch_fba_item_links(supabase) -> dict[str, list[dict[str, Any]]]:
     links: dict[str, list[dict[str, Any]]] = defaultdict(list)
+    shipment_meta = {
+        row["fba_shipment_id"]: row
+        for row in fetch_all(
+            supabase,
+            "fba_shipments",
+            "fba_shipment_id,shipment_code,workflow_status",
+        )
+        if row.get("fba_shipment_id")
+    }
     rows = fetch_all(
         supabase,
         "fba_shipment_items",
@@ -180,6 +197,9 @@ def fetch_fba_item_links(supabase) -> dict[str, list[dict[str, Any]]]:
     for row in rows:
         item_id = row.get("item_id")
         if row.get("included") and isinstance(item_id, str):
+            shipment = shipment_meta.get(row.get("fba_shipment_id"), {})
+            row["fba_shipment_code"] = shipment.get("shipment_code")
+            row["fba_shipment_workflow_status"] = shipment.get("workflow_status")
             links[item_id].append(row)
 
     return links
@@ -236,6 +256,7 @@ def build_mbop_positions(
     amazon_current_asins: set[str],
 ) -> list[dict[str, Any]]:
     positions: list[dict[str, Any]] = []
+    projected_fba_shipment_item_ids: set[str] = set()
     effective_at = utc_now_iso()
 
     for row in purchase_rows:
@@ -251,24 +272,30 @@ def build_mbop_positions(
         if quantity <= 0:
             continue
 
+        links = fba_item_links.get(item_id) or [{}]
         projection = project_purchase_state(
             row,
             meta,
-            bool(fba_item_links.get(item_id)),
+            has_current_fba_shipment_link(links),
             amazon_current_asins,
         )
         unit_cost = to_float(row.get("unit_cost"))
         title = meta.get("amazon_title") or row.get("amazon_title") or row.get("title")
-        links = fba_item_links.get(item_id) or [{}]
 
         for link in links:
+            fba_shipment_item_id = link.get("fba_shipment_item_id")
+            if isinstance(fba_shipment_item_id, str):
+                if fba_shipment_item_id in projected_fba_shipment_item_ids:
+                    continue
+                projected_fba_shipment_item_ids.add(fba_shipment_item_id)
+
             link_quantity = to_int(link.get("quantity"), default=quantity)
             link_quantity = min(max(link_quantity, 1), quantity)
             positions.append(
                 {
                     "purchase_item_id": item_id,
                     "fba_shipment_id": link.get("fba_shipment_id"),
-                    "fba_shipment_item_id": link.get("fba_shipment_item_id"),
+                    "fba_shipment_item_id": fba_shipment_item_id,
                     "source_system": "mbop",
                     "source_table": "purchase_items",
                     "source_id": item_id,
@@ -298,10 +325,22 @@ def build_mbop_positions(
     return positions
 
 
+def has_current_fba_shipment_link(links: list[dict[str, Any]]) -> bool:
+    for link in links:
+        shipment_code = clean_text(link.get("fba_shipment_code"))
+        workflow_status = normalize_status(link.get("fba_shipment_workflow_status"))
+        if not shipment_code or shipment_code == "legacy_listed_no_shipment_id":
+            continue
+        if workflow_status == "historical":
+            continue
+        return True
+    return False
+
+
 def project_purchase_state(
     row: dict[str, Any],
     meta: dict[str, Any],
-    has_fba_link: bool,
+    has_current_fba_link: bool,
     amazon_current_asins: set[str],
 ) -> StateProjection:
     status = normalize_status(row.get("current_status"))
@@ -325,6 +364,15 @@ def project_purchase_state(
     if status == "listed":
         if marketplace == "eBay":
             return StateProjection("home_ebay_resale_listed", "home", "ebay_resale", "ebay", "listed")
+        if has_current_fba_link:
+            return StateProjection(
+                "outbound_to_amazon",
+                "in_transit_to_amazon",
+                "amazon_fba",
+                "amazon",
+                "listed",
+                needs_reconciliation=True,
+            )
         return StateProjection("sold_amazon", "buyer", "amazon_fba", "amazon", "sold")
     if status == "received":
         if marketplace == "eBay":
