@@ -35,6 +35,7 @@ def main() -> int:
         orders = fetch_orders(
             supabase,
             order_id=args.order_id,
+            missing_fees_only=args.missing_fees_only,
             purchase_date_start=args.purchase_date_start,
             purchase_date_end=args.purchase_date_end,
             limit=args.limit,
@@ -89,6 +90,11 @@ def parse_args() -> argparse.Namespace:
         default=None,
         help="Maximum stored orders to process. Defaults to 500 for recent-order mode.",
     )
+    parser.add_argument(
+        "--missing-fees-only",
+        action="store_true",
+        help="Only recalculate orders currently stored with missing fee data.",
+    )
     parser.add_argument("--apply", action="store_true", help="Write to Supabase.")
     parser.add_argument("--dry-run", action="store_true", help="Dry run; default mode.")
     return parser.parse_args()
@@ -106,6 +112,7 @@ def fetch_orders(
     supabase,
     *,
     order_id: str | None,
+    missing_fees_only: bool,
     purchase_date_start: str | None,
     purchase_date_end: str | None,
     limit: int | None,
@@ -118,6 +125,16 @@ def fetch_orders(
         request = request.gte("purchase_date", effective_start)
     if purchase_date_end:
         request = request.lt("purchase_date", purchase_date_end)
+    if missing_fees_only and not order_id:
+        order_ids = fetch_missing_fee_order_ids(
+            supabase,
+            purchase_date_start=effective_start,
+            purchase_date_end=purchase_date_end,
+            limit=limit,
+        )
+        if not order_ids:
+            return []
+        request = request.in_("amazon_order_id", order_ids)
     if purchase_date_start or purchase_date_end:
         request = request.order("purchase_date", desc=False)
         if limit:
@@ -127,6 +144,36 @@ def fetch_orders(
 
     result = request.execute()
     return result.data or []
+
+
+def fetch_missing_fee_order_ids(
+    supabase,
+    *,
+    purchase_date_start: str | None,
+    purchase_date_end: str | None,
+    limit: int | None,
+) -> list[str]:
+    request = (
+        supabase.table("vw_amazon_sales_orders_recent")
+        .select("amazon_order_id,purchase_date")
+        .eq("data_status", "missing_fees")
+    )
+    if purchase_date_start:
+        request = request.gte("purchase_date", purchase_date_start)
+    if purchase_date_end:
+        request = request.lt("purchase_date", purchase_date_end)
+    request = request.order("purchase_date", desc=False)
+    if limit:
+        request = request.limit(max(limit, 1))
+    result = request.execute()
+    seen: set[str] = set()
+    order_ids: list[str] = []
+    for row in result.data or []:
+        order_id = row.get("amazon_order_id")
+        if order_id and order_id not in seen:
+            seen.add(order_id)
+            order_ids.append(order_id)
+    return order_ids
 
 
 def build_order_profitability(

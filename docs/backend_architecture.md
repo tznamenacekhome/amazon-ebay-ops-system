@@ -118,3 +118,10 @@ API also clamps requested start dates to 2025-01-01.
 `missing_fees` remains the stored profitability status for compatibility. The
 Sales Orders API uses Amazon `order_status` to split display status: unfulfilled
 orders show `Pending`, while shipped/fulfilled orders show `Missing Fees`.
+
+Amazon sales finance sync uses the legacy order-specific financial-events
+endpoint first. It also stores newer `/finances/2024-06-19/transactions` rows in
+`amazon_sales_finance_transactions` and derives normalized fee rows from the
+transaction `AmazonFees` breakdown only when the legacy endpoint is empty for
+that order. This covers Seller Central `DEFERRED` transactions whose fee
+breakdown is visible before the older endpoint returns order events.

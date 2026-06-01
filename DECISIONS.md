@@ -974,3 +974,30 @@ Implementation:
   displays as `Missing Fees`
 - the Sales Orders API exposes separate summary counts and filter options for
   Pending and Missing Fees
+
+---
+
+## Sales Finance Uses Transactions API As Missing-Fee Fallback
+
+Decision:
+Keep the legacy order-specific financial-events endpoint as the first source
+for Amazon Sales Orders fees, but also store rows from
+`/finances/2024-06-19/transactions` and use them as a fallback when the legacy
+endpoint is empty.
+
+Reason:
+Seller Central can show a `DEFERRED` transaction with a full order fee
+breakdown while the legacy `listFinancialEventsByOrderId` response is still
+empty. The Transactions API exposes the transaction status and nested
+`AmazonFees` breakdown, which lets MBOP calculate profitability before the
+transaction is released.
+
+Implementation:
+- `amazon_sales_finance_transactions` stores raw transaction rows and status
+- `amazon_sync_sales_finances.py` scans Transactions API rows for selected
+  order IDs and upserts matching transactions
+- transaction-derived normalized fee rows are inserted into
+  `amazon_sales_financial_events` only when the legacy endpoint returned no
+  rows for that order
+- the 2026 repair pass reduced the shipped missing-fee set to mostly no-charge
+  replacement orders, plus a small refund/adjustment edge case

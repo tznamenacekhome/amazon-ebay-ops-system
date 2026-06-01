@@ -51,11 +51,17 @@ Implemented:
 - Amazon sales order and order-item tables remain separate from `purchases` and `purchase_items`
 - Amazon order sync imports non-PII order headers and item detail from SP-API Orders
 - Amazon finance sync stores normalized financial events for fee and fulfillment-cost calculation
+- Amazon finance sync also stores newer Finances Transactions API rows and uses
+  them as a fallback when the legacy order-specific financial-events endpoint is
+  empty but Seller Central exposes a transaction fee breakdown
 - Veeqo label sync stores Merchant Fulfilled shipment/label cost where Veeqo has a matching order
 - `amazon_sales_profitability` stores backend-calculated revenue, fees, fulfillment cost, COGS, net profit, ROI, and data status
 - Sales Orders UI at `/sales-orders` displays backend/API-provided values only
 - Sales Orders refresh runs the scheduled-style sales sync on demand without historical backfill
 - Sales Orders splits stored `missing_fees` rows for display: unfulfilled orders show `Pending`, while shipped/fulfilled orders show `Missing Fees`
+- a targeted 2026 missing-fees repair using the Transactions API fallback
+  reduced the remaining missing-fee set to pending/unshipped orders, no-charge
+  replacement orders, and a small refund/adjustment edge case
 - Sales Orders API and sync/backfill scripts enforce a 2025-01-01 operating cutoff
 - pre-2025 Amazon sales orders imported by recent Amazon LastUpdated activity are excluded from the UI/API and have cleanup SQL in `sql/2026-05-31_remove_pre_2025_amazon_sales_orders.sql`
 

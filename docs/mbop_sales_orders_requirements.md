@@ -98,14 +98,19 @@ Do not request or store restricted customer PII unless a future workflow explici
 
 Use Amazon SP-API Finances API to retrieve order financial events.
 
-Preferred order-specific endpoint:
-- financial events by Amazon order ID
+Preferred sources:
+- order-specific financial events by Amazon order ID
+- newer `/finances/2024-06-19/transactions` rows as a fallback when the
+  order-specific endpoint returns no events but Seller Central has a transaction
+  and fee breakdown
 
 Important timing note:
 - Financial events may lag recent orders.
 - The sync should allow orders to exist before fees are complete.
 - UI should show missing fee data as `Pending` only when the Amazon order has not shipped.
 - UI should show missing fee data as `Missing Fees` when the Amazon order has shipped or is otherwise fulfilled.
+- Seller Central may show `DEFERRED` transactions with fee details before money
+  is released; MBOP should still capture those fee rows for profitability.
 
 ### Veeqo API
 
@@ -209,6 +214,33 @@ Suggested columns:
 - `created_at`
 
 Store enough detail to support recalculation.
+
+### `amazon_sales_finance_transactions`
+
+Store order-level rows from the newer Amazon Finances Transactions API.
+
+Suggested columns:
+- `transaction_id`
+- `amazon_order_id`
+- `transaction_type`
+- `transaction_status`
+- `posted_date`
+- `marketplace_id`
+- `marketplace_name`
+- `financial_event_group_id`
+- `shipment_id`
+- `settlement_id`
+- `total_amount`
+- `currency`
+- `description`
+- `source`
+- `raw_transaction_json`
+- `created_at`
+- `updated_at`
+
+Use these rows to preserve Seller Central transaction status such as
+`DEFERRED`, `RELEASED`, or `DEFERRED_RELEASED` and to derive fee rows when the
+legacy order-specific financial-events endpoint is empty.
 
 ### `amazon_sales_profitability`
 
@@ -390,6 +422,15 @@ Must support:
 - safe retry/backoff for throttling
 - raw payload preservation
 - idempotent upserts
+
+Finance sync behavior:
+- call the legacy order-specific finances endpoint for each selected order
+- scan the newer Transactions API for matching order IDs over the selected
+  rolling window
+- store matching transaction rows in `amazon_sales_finance_transactions`
+- derive normalized Amazon fee rows from Transactions API `AmazonFees`
+  breakdowns only when the legacy order-specific endpoint returned no rows for
+  that order, so fees are not double-counted
 
 Required test command:
 
@@ -625,6 +666,11 @@ Implemented:
   finance, Veeqo, and Sales Orders API paths
 - UI display now splits stored `missing_fees` rows into `Pending` for unfulfilled
   orders and `Missing Fees` for shipped/fulfilled orders
+- sales finance sync now stores newer Amazon Finances Transactions API rows and
+  uses them as a fallback for deferred transactions whose fee breakdown is
+  visible in Seller Central but absent from the legacy order-specific endpoint
+- targeted missing-fee repair mode exists for both sales finance sync and
+  profitability recalculation
 - non-eBay purchase COGS source table and manual importer for TIM/prep-center
   and Merchant Fulfilled supplier purchase sheets
 - non-eBay FIFO COGS allocation support for current inventory and matching sales
@@ -632,6 +678,9 @@ Implemented:
   `merchant_allocated`
 
 Known remaining work:
+- remaining shipped `Missing Fees` rows after the Transactions fallback are
+  mostly no-charge replacement orders or refund/adjustment edge cases; decide
+  whether Sales Orders should get an explicit replacement/no-charge data status
 - after the 2025 Amazon sales backfill completes, run an eBay purchase FIFO
   allocator so costed eBay `purchase_items` consume into
   `amazon_sales_cogs_consumption`
