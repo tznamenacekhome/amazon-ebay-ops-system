@@ -268,11 +268,20 @@ def fetch_transaction_fallback_rows(
             continue
 
         transaction_rows.append(build_transaction_row(transaction, amazon_order_id))
-        if legacy_rows_by_order_id.get(amazon_order_id):
+        if has_legacy_non_refund_fee_rows(legacy_rows_by_order_id.get(amazon_order_id, [])):
             continue
         event_rows.extend(build_transaction_financial_event_rows(transaction, amazon_order_id))
 
     return dedupe_transaction_rows(transaction_rows), dedupe_rows(event_rows)
+
+
+def has_legacy_non_refund_fee_rows(rows: list[dict[str, Any]]) -> bool:
+    return any(
+        row.get("fee_type")
+        and row.get("event_type") != "RefundEventList"
+        and row.get("source") == "amazon_spapi_finances"
+        for row in rows
+    )
 
 
 def iter_transactions(client: AmazonSPAPIClient, *, posted_after: str):
