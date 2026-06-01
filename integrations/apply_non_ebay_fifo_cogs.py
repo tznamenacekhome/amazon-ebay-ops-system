@@ -58,6 +58,7 @@ def main() -> int:
         lots = fetch_source_lots(supabase)
         pools = build_pools(lots)
         deduct_existing_sales_consumption(supabase, pools)
+        deduct_source_adjustments(supabase, pools)
 
         sales_plan = build_sales_plan(
             supabase,
@@ -202,6 +203,44 @@ def deduct_existing_sales_consumption(
         if not lot:
             continue
         lot.remaining = max(lot.remaining - quantity, 0)
+
+
+def deduct_source_adjustments(
+    supabase,
+    pools: dict[str, list[SourceLot]],
+) -> None:
+    """Deduct source-level inventory adjustments from FIFO availability."""
+    adjustment_rows = fetch_all(
+        supabase,
+        "inventory_movements",
+        "source_id,quantity,movement_type,source_table,external_reference_type",
+    )
+    adjusted_by_source: dict[str, int] = {}
+    for row in adjustment_rows:
+        if (
+            row.get("source_table") != "non_ebay_purchase_cogs_sources"
+            or row.get("movement_type") != "manual_adjustment"
+            or row.get("external_reference_type") != "opening_history_boundary"
+            or not row.get("source_id")
+        ):
+            continue
+        source_id = row["source_id"]
+        adjusted_by_source[source_id] = adjusted_by_source.get(source_id, 0) + int(
+            row.get("quantity") or 0
+        )
+
+    if not adjusted_by_source:
+        return
+
+    lots_by_source = {
+        lot.source_id: lot
+        for lots in pools.values()
+        for lot in lots
+    }
+    for source_id, quantity in adjusted_by_source.items():
+        lot = lots_by_source.get(source_id)
+        if lot:
+            lot.remaining = max(lot.remaining - quantity, 0)
 
 
 def build_sales_plan(

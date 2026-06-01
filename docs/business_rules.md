@@ -59,6 +59,9 @@ Carrier/status syncs must not downgrade workflow-owned statuses.
 - Amazon-bound `listed` purchase rows without a current FBA shipment link are historical/sold-through for current inventory purposes; current Amazon inventory is represented by Amazon SP-API snapshots.
 - InventoryLab valuation snapshots are legacy opening-balance valuation context for current Amazon FBA inventory.
 - MBOP purchase/receiving/FBA workflows own go-forward cost.
+- Opening-history boundary adjustments record units sold before MBOP's
+  operating-history window and must stay separate from future inventory count or
+  discrepancy adjustments.
 - Business value snapshots use MBOP outbound shipment cost for saved FBA shipments and avoid double-counting overlapping Amazon inbound rows for the same ASINs.
 - YNAB Business category balance is cash-on-hand context only.
 - Amazon Finance cash is value that has moved from inventory into Amazon-held cash or Amazon-to-bank in-transit cash.
