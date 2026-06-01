@@ -184,6 +184,11 @@ def build_order_profitability(
     items = fetch_order_items(supabase, amazon_order_id)
     financial_events = fetch_financial_events(supabase, amazon_order_id)
     label_cost = fetch_veeqo_label_cost(supabase, amazon_order_id)
+    order_fulfillment_override = fetch_fulfillment_cost_override(
+        supabase,
+        amazon_order_id,
+        None,
+    )
     rows: list[dict[str, Any]] = []
     consumption_rows: list[dict[str, Any]] = []
 
@@ -198,10 +203,17 @@ def build_order_profitability(
             or event.get("amazon_order_item_id") == item_id
         ]
         fee_totals = split_fee_totals(item_events)
+        item_fulfillment_override = fetch_fulfillment_cost_override(
+            supabase,
+            amazon_order_id,
+            item_id,
+        )
         fulfillment_cost, fulfillment_source = fulfillment_cost_for_order(
             order,
             fee_totals["fba_fulfillment_fee"],
             label_cost,
+            amazon_shipping_label_cost(financial_events),
+            item_fulfillment_override or order_fulfillment_override,
         )
         existing_fifo_consumption = fetch_existing_mbop_fifo_consumption(supabase, item_id)
         if existing_fifo_consumption:
@@ -224,6 +236,8 @@ def build_order_profitability(
 
         data_status = data_status_for_row(
             order,
+            sale_price=sale_price,
+            financial_events=item_events,
             amazon_fees=amazon_fees,
             fees_present=fee_totals["fees_present"],
             fulfillment_cost=fulfillment_cost,
@@ -315,6 +329,26 @@ def fetch_veeqo_label_cost(supabase, amazon_order_id: str) -> float | None:
     return round(sum(amounts), 2) if amounts else None
 
 
+def fetch_fulfillment_cost_override(
+    supabase,
+    amazon_order_id: str,
+    amazon_order_item_id: str | None,
+) -> dict[str, Any] | None:
+    request = (
+        supabase.table("amazon_sales_fulfillment_cost_overrides")
+        .select("fulfillment_cost,fulfillment_cost_source,currency")
+        .eq("amazon_order_id", amazon_order_id)
+        .eq("active", True)
+        .limit(1)
+    )
+    if amazon_order_item_id:
+        request = request.eq("amazon_order_item_id", amazon_order_item_id)
+    else:
+        request = request.is_("amazon_order_item_id", "null")
+    result = request.execute()
+    return (result.data or [None])[0]
+
+
 def fetch_existing_mbop_fifo_consumption(
     supabase,
     amazon_order_item_id: str,
@@ -375,13 +409,37 @@ def fulfillment_cost_for_order(
     order: dict[str, Any],
     fba_fee: float,
     label_cost: float | None,
+    amazon_label_cost: float | None,
+    fulfillment_override: dict[str, Any] | None,
 ) -> tuple[float | None, str]:
+    if fulfillment_override and to_float(fulfillment_override.get("fulfillment_cost")) is not None:
+        return (
+            round(to_float(fulfillment_override.get("fulfillment_cost")) or 0, 2),
+            fulfillment_override.get("fulfillment_cost_source") or "manual",
+        )
+
     fulfillment_channel = (order.get("fulfillment_channel") or "").lower()
     if fulfillment_channel in {"afn", "amazon", "amazonfulfilled"}:
         return (fba_fee if fba_fee > 0 else None, "amazon_fba_fee" if fba_fee > 0 else "missing")
     if label_cost is not None:
         return label_cost, "veeqo_label"
+    if amazon_label_cost is not None:
+        return amazon_label_cost, "amazon_shipping_label"
     return None, "missing"
+
+
+def amazon_shipping_label_cost(events: list[dict[str, Any]]) -> float | None:
+    adjustment_costs = [
+        abs(amount)
+        for event in events
+        if (event.get("event_type") or "") == "AdjustmentEventList"
+        and not event.get("fee_type")
+        and not event.get("charge_type")
+        and not event.get("promotion_type")
+        for amount in [to_float(event.get("amount"))]
+        if amount is not None and amount < 0
+    ]
+    return round(sum(adjustment_costs), 2) if adjustment_costs else None
 
 
 def lookup_cogs(
@@ -456,6 +514,8 @@ def fetch_inventorylab_backfill(
 def data_status_for_row(
     order: dict[str, Any],
     *,
+    sale_price: float | None,
+    financial_events: list[dict[str, Any]],
     amazon_fees: float | None,
     fees_present: bool,
     fulfillment_cost: float | None,
@@ -466,6 +526,8 @@ def data_status_for_row(
         return "cancelled"
     if "refund" in order_status:
         return "refunded"
+    if is_fully_refunded(sale_price, financial_events):
+        return "refunded"
     if not fees_present or amazon_fees is None:
         return "missing_fees"
     if fulfillment_cost is None:
@@ -473,6 +535,23 @@ def data_status_for_row(
     if cogs is None:
         return "missing_cogs"
     return "complete"
+
+
+def is_fully_refunded(
+    sale_price: float | None,
+    financial_events: list[dict[str, Any]],
+) -> bool:
+    if sale_price is None or sale_price <= 0:
+        return False
+    refunded_principal = sum(
+        abs(amount)
+        for event in financial_events
+        if (event.get("event_type") or "") == "RefundEventList"
+        and (event.get("charge_type") or "") == "Principal"
+        for amount in [to_float(event.get("amount"))]
+        if amount is not None and amount < 0
+    )
+    return refunded_principal >= round(sale_price, 2)
 
 
 def upsert_rows(supabase, table: str, rows: list[dict[str, Any]], on_conflict: str) -> None:

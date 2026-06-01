@@ -21,6 +21,7 @@ type SalesOrderRow = {
   sale_price: number | null;
   fulfillment_channel: string | null;
   order_status: string | null;
+  is_replacement_order?: boolean | null;
   amazon_fees_excluding_fulfillment: number | null;
   fulfillment_cost: number | null;
   fulfillment_cost_source: string | null;
@@ -507,6 +508,7 @@ function formatSource(value?: string | null) {
   if (!value) return "";
   if (value === "pending_fees") return "Pending";
   if (value === "missing_fees") return "Missing Fees";
+  if (value === "replacement") return "Replacement";
   return value
     .split("_")
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1))

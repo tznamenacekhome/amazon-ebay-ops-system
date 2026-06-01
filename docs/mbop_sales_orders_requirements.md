@@ -666,11 +666,19 @@ Implemented:
   finance, Veeqo, and Sales Orders API paths
 - UI display now splits stored `missing_fees` rows into `Pending` for unfulfilled
   orders and `Missing Fees` for shipped/fulfilled orders
+- Sales Orders display no-charge Amazon replacement orders as `Replacement`
+  instead of `Missing Fees`
 - sales finance sync now stores newer Amazon Finances Transactions API rows and
   uses them as a fallback for deferred transactions whose fee breakdown is
   visible in Seller Central but absent from the legacy order-specific endpoint
 - targeted missing-fee repair mode exists for both sales finance sync and
   profitability recalculation
+- fulfillment cost overrides can preserve external label costs, and MFN orders
+  can use Amazon/Seller Central label adjustment events when Veeqo has no label
+  cost
+- fully refunded Amazon sales rows are classified as refunded when refund
+  principal equals or exceeds the item sale price, even if the Amazon order
+  status remains shipped
 - non-eBay purchase COGS source table and manual importer for TIM/prep-center
   and Merchant Fulfilled supplier purchase sheets
 - non-eBay FIFO COGS allocation support for current inventory and matching sales
@@ -678,9 +686,6 @@ Implemented:
   `merchant_allocated`
 
 Known remaining work:
-- remaining shipped `Missing Fees` rows after the Transactions fallback are
-  mostly no-charge replacement orders or refund/adjustment edge cases; decide
-  whether Sales Orders should get an explicit replacement/no-charge data status
 - after the 2025 Amazon sales backfill completes, run an eBay purchase FIFO
   allocator so costed eBay `purchase_items` consume into
   `amazon_sales_cogs_consumption`

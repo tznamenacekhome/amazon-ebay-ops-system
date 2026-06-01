@@ -1001,3 +1001,31 @@ Implementation:
   rows for that order
 - the 2026 repair pass reduced the shipped missing-fee set to mostly no-charge
   replacement orders, plus a small refund/adjustment edge case
+
+---
+
+## Sales Orders Fulfillment Cost Sources
+
+Decision:
+Use a source hierarchy for Sales Orders fulfillment cost instead of only Veeqo
+for Merchant Fulfilled orders.
+
+Reason:
+Some Merchant Fulfilled labels are bought in Seller Central or another shipping
+platform. Veeqo is still preferred when it has the shipment label cost, but
+Seller Central label charges can appear as Amazon adjustment events, and
+operator-supplied external label costs need to survive profitability
+recalculations.
+
+Implementation:
+- `amazon_sales_fulfillment_cost_overrides` stores active manual fulfillment
+  cost overrides
+- AFN/FBA orders use Amazon FBA fulfillment fee rows
+- MFN orders use Veeqo label cost first
+- if Veeqo is missing, MFN orders can use negative Amazon
+  `AdjustmentEventList` rows without fee/charge/promotion type as
+  `amazon_shipping_label`
+- no-charge Amazon replacement orders display as `Replacement`, not
+  `Missing Fees`
+- full refund rows are classified as `refunded` when refund principal equals or
+  exceeds the item sale price, even if Amazon order status remains `Shipped`

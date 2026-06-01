@@ -21,6 +21,7 @@ type SalesOrderRow = {
   sale_price: number | null;
   fulfillment_channel: string | null;
   order_status: string | null;
+  is_replacement_order?: boolean | null;
   amazon_fees_excluding_fulfillment: number | null;
   fulfillment_cost: number | null;
   fulfillment_cost_source: string | null;
@@ -123,9 +124,32 @@ async function fetchRows(query: SalesOrderQuery, paged: boolean) {
   if (error) throw new Error(error.message);
 
   return {
-    rows: (data ?? []) as SalesOrderRow[],
+    rows: await withReplacementFlags((data ?? []) as SalesOrderRow[]),
     total: count ?? data?.length ?? 0,
   };
+}
+
+async function withReplacementFlags(rows: SalesOrderRow[]) {
+  const orderIds = Array.from(new Set(rows.map((row) => row.amazon_order_id).filter(Boolean)));
+  if (orderIds.length === 0) return rows;
+
+  const replacementByOrderId = new Map<string, boolean>();
+  for (let index = 0; index < orderIds.length; index += 500) {
+    const chunk = orderIds.slice(index, index + 500);
+    const { data, error } = await supabase
+      .from("amazon_sales_orders")
+      .select("amazon_order_id,is_replacement_order")
+      .in("amazon_order_id", chunk);
+    if (error) throw new Error(error.message);
+    for (const row of data ?? []) {
+      replacementByOrderId.set(row.amazon_order_id, Boolean(row.is_replacement_order));
+    }
+  }
+
+  return rows.map((row) => ({
+    ...row,
+    is_replacement_order: replacementByOrderId.get(row.amazon_order_id) ?? false,
+  }));
 }
 
 function applyFilters(request: any, query: SalesOrderQuery) {
@@ -213,12 +237,12 @@ function summarizeRows(rows: SalesOrderRow[]) {
       units: sum.units + Number(row.quantity ?? 0),
       pendingFees:
         sum.pendingFees +
-        (row.data_status === "missing_fees" && !isFulfilledOrderStatus(row.order_status)
+        (isPendingFeesRow(row)
           ? 1
           : 0),
       missingFees:
         sum.missingFees +
-        (row.data_status === "missing_fees" && isFulfilledOrderStatus(row.order_status)
+        (isMissingFeesRow(row)
           ? 1
           : 0),
       missingCogs: sum.missingCogs + (row.data_status === "missing_cogs" ? 1 : 0),
@@ -264,7 +288,9 @@ function withDisplayStatus(row: SalesOrderRow) {
   return {
     ...row,
     display_data_status:
-      row.data_status === "missing_fees" && !isFulfilledOrderStatus(row.order_status)
+      isReplacementRow(row)
+        ? "replacement"
+        : isPendingFeesRow(row)
         ? "pending_fees"
         : row.data_status,
   };
@@ -272,6 +298,26 @@ function withDisplayStatus(row: SalesOrderRow) {
 
 function isFulfilledOrderStatus(value?: string | null) {
   return FULFILLED_ORDER_STATUSES.includes(value || "");
+}
+
+function isReplacementRow(row: SalesOrderRow) {
+  return row.data_status === "missing_fees" && Boolean(row.is_replacement_order);
+}
+
+function isPendingFeesRow(row: SalesOrderRow) {
+  return (
+    row.data_status === "missing_fees" &&
+    !row.is_replacement_order &&
+    !isFulfilledOrderStatus(row.order_status)
+  );
+}
+
+function isMissingFeesRow(row: SalesOrderRow) {
+  return (
+    row.data_status === "missing_fees" &&
+    !row.is_replacement_order &&
+    isFulfilledOrderStatus(row.order_status)
+  );
 }
 
 function salesSortColumn(column: string) {

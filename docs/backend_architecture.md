@@ -125,3 +125,12 @@ endpoint first. It also stores newer `/finances/2024-06-19/transactions` rows in
 transaction `AmazonFees` breakdown only when the legacy endpoint is empty for
 that order. This covers Seller Central `DEFERRED` transactions whose fee
 breakdown is visible before the older endpoint returns order events.
+
+Fulfillment cost for Sales Orders is backend-owned. Active manual overrides in
+`amazon_sales_fulfillment_cost_overrides` are applied first for external label
+purchases. Otherwise, AFN/FBA orders use Amazon FBA fulfillment fee rows, and
+MFN orders prefer Veeqo label costs before falling back to Amazon Seller Central
+shipping-label adjustment events when Veeqo is missing. Sales Orders displays
+no-charge Amazon replacements as
+`Replacement`, while fully refunded rows are classified as `refunded` from
+refund principal events even if the Amazon order status still says `Shipped`.
