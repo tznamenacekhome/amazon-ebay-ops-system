@@ -63,6 +63,15 @@ Carrier/status syncs must not downgrade workflow-owned statuses.
 - YNAB Business category balance is cash-on-hand context only.
 - Amazon Finance cash is value that has moved from inventory into Amazon-held cash or Amazon-to-bank in-transit cash.
 - Business value snapshots are reporting snapshots only.
+- Amazon reserved inventory is normal Amazon processing and should not be
+  surfaced as an operator problem by itself.
+- Amazon listing/catalog issue signals should be ignored when your FBA units are
+  still sellable/available for sale.
+- Amazon damaged/unsellable units should be tracked as a removals workflow, not
+  as purchase or receiving cleanup.
+- Amazon receiving shortages, lost units, warehouse damage, and customer returns
+  that do not come back to the business belong in a future Amazon Inventory
+  Discrepancy workflow.
 
 ## Repricing Advisor
 

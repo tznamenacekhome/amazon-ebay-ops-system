@@ -500,6 +500,9 @@ Current behavior:
 - dashboard Amazon FBA value prefers the latest InventoryLab valuation snapshot when available, while MBOP remains authoritative for received, ordered, and outbound inventory
 - business value snapshots use MBOP outbound shipment cost for saved FBA shipments and avoid double-counting overlapping Amazon inbound rows for the same ASINs
 - reconciliation currently compares MBOP Amazon-intended inventory to latest Amazon FBA inventory at ASIN level and surfaces Amazon listing issue/suppression signals
+- reconciliation ignores Amazon listing/catalog issue signals when Amazon still
+  reports sellable FBA units for the ASIN; buyable inventory with catalog
+  metadata issues is not an MBOP problem queue item
 - old open reconciliation findings are deferred when a new reconciliation run writes current findings
 
 Latest validation:
@@ -520,6 +523,18 @@ ASIN is MBOP's primary Amazon inventory identity. MSKU/Seller SKU remains stored
 
 First-pass limitation:
 Amazon reconciliation is intentionally noisy while MBOP separates current Amazon inventory from historical purchase/listing records. Findings are meant to drive inventory confidence work, not imply all mismatches are defects.
+
+Known follow-up:
+- hold `amazon_unknown_to_mbop` and `quantity_mismatch` cleanup until the 2025
+  Amazon sales backfill and eBay purchase FIFO allocator are complete, then
+  rerun reconciliation and review the smaller remaining set. ASIN `B002BRYXRQ`
+  is an example that should have an eBay purchase source unless the purchase is
+  older than the 2025-forward operating window.
+- returned-to-seller Amazon removals are not yet modeled. Some FBA units are
+  returned by Amazon as damaged/unsellable, inspected by the operator, and then
+  sent back to Amazon when still new; this needs a dedicated removals workflow.
+- Amazon-side receiving/lost/damaged/customer-return discrepancies are deferred
+  to a future Amazon Inventory Discrepancy workflow.
 
 ---
 

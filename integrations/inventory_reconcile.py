@@ -742,6 +742,8 @@ def amazon_listing_issue_items(
 
         asin = clean_asin(listing.get("asin"))
         amazon = amazon_by_asin.get(asin or "", {})
+        if amazon.get("sellable", 0) > 0:
+            continue
         external = {
             "amazon_sku_id": listing.get("amazon_sku_id"),
             "source_system": "amazon_spapi",

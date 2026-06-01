@@ -79,6 +79,15 @@ Roadmap:
   item-level profitability rows.
 - Add manual adjustment workflows for exceptional fulfillment cost and COGS
   corrections using the existing `manual` source values.
+- Add an Amazon FBA removals workflow for damaged/unsellable units that Amazon
+  automatically returns. The workflow should track removal orders, receiving
+  returned units, deciding whether they are still new/sellable, and routing good
+  units back into the send-to-Amazon workflow.
+- Add an Amazon Inventory Discrepancy workflow for Amazon receiving shortages,
+  lost inventory, warehouse-damaged inventory, and customer returns that do not
+  come back to the business. This should be separate from Purchases, Receiving,
+  and FBA shipment prep because Amazon-side discrepancies have different
+  evidence and resolution paths.
 - Add future eBay seller-order ingestion in separate seller-sales tables without
   writing to `purchases` or `purchase_items`.
 

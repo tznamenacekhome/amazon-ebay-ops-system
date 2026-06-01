@@ -692,6 +692,22 @@ Ownership boundary:
 Rule:
 Do not write reconciliation corrections directly into workflow tables unless a specific workflow action owns that correction. Reconciliation findings should surface review work first.
 
+Refinements:
+- hold Amazon-unknown-to-MBOP and quantity-mismatch cleanup until the 2025
+  Amazon sales backfill and eBay purchase FIFO allocator have run, then rerun
+  reconciliation and review what remains.
+- Amazon reserved inventory is normal Amazon processing and should not be
+  treated as a problem queue item by itself.
+- Amazon listing/catalog issue signals are not actionable when Amazon reports
+  your FBA units as sellable; these should be ignored as reconciliation
+  problems unless inventory becomes non-buyable, stranded without sellable
+  quantity, or unsellable.
+- Amazon removal orders for damaged/unsellable units need a future workflow that
+  tracks the removal, receiving the returned unit, deciding whether it is still
+  new/sellable, and sending it back to Amazon when appropriate.
+- Amazon receiving discrepancies, lost inventory, warehouse damage, and customer
+  return exceptions belong in a future Amazon Inventory Discrepancy workflow.
+
 Canonical inventory definition:
 Current canonical inventory equals current Amazon FBA inventory plus MBOP purchase inventory that has not yet reached the Listed workflow state, plus current non-historical FBA shipment links that are on the way to Amazon. Purchase rows with `purchase_items.current_status = listed` remain useful for purchase amount/frequency and historical analysis. Listed rows without a current FBA shipment link are treated as sold-through/history in the purchase projection; listed rows with a current FBA shipment link are projected as `outbound_to_amazon`. Current active Amazon inventory is represented by Amazon SP-API snapshot positions.
 

@@ -124,8 +124,8 @@ export default function InventoryReconciliationPage() {
             <p>Usually legacy FBA inventory, SKU mapping gaps, or opening-balance inventory. Confirm ASIN/SKU and add mapping/backfill context if needed.</p>
           </div>
           <div>
-            <div className="font-medium text-slate-800">Unsellable/stranded/suppressed</div>
-            <p>Review Seller Central or the pricing advisor. Decide whether to fix the listing, remove inventory, or transfer it to eBay.</p>
+            <div className="font-medium text-slate-800">Unsellable / non-buyable</div>
+            <p>Review Seller Central when units are damaged, unsellable, or not available for sale. Listing catalog issues are ignored when your FBA units are sellable.</p>
           </div>
         </div>
       </section>
