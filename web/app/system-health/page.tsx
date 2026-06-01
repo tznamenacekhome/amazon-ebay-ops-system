@@ -1,14 +1,26 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { CheckCircle2, Clock3, HelpCircle, RefreshCw, XCircle } from "lucide-react";
+import {
+  CheckCircle2,
+  Clock3,
+  HelpCircle,
+  PauseCircle,
+  RefreshCw,
+  ShieldAlert,
+  XCircle,
+} from "lucide-react";
 
-type HealthStatus = "ok" | "delayed" | "failed" | "unknown";
+type HealthStatus = "ok" | "delayed" | "failed" | "unknown" | "skipped";
+type HealthGroup = "core" | "daily" | "catalog" | "disabled";
 
 type HealthJob = {
   id: string;
   name: string;
   command: string;
+  group: HealthGroup;
+  blocking: boolean;
+  enabled: boolean;
   status: HealthStatus;
   lastRunAt: string | null;
   hoursSinceLastRun: number | null;
@@ -27,6 +39,7 @@ type HealthData = {
     delayed: number;
     failed: number;
     unknown: number;
+    skipped: number;
   };
   jobs: HealthJob[];
 };
@@ -35,7 +48,15 @@ const STATUS_RANK: Record<HealthStatus, number> = {
   failed: 0,
   delayed: 1,
   unknown: 2,
-  ok: 3,
+  skipped: 3,
+  ok: 4,
+};
+
+const GROUP_LABEL: Record<HealthGroup, string> = {
+  core: "Core 2x/day",
+  daily: "Daily",
+  catalog: "Catalog",
+  disabled: "Disabled",
 };
 
 export default function SystemHealthPage() {
@@ -49,6 +70,8 @@ export default function SystemHealthPage() {
 
   const jobs = useMemo(() => {
     return [...(data?.jobs ?? [])].sort((a, b) => {
+      const groupSort = groupRank(a.group) - groupRank(b.group);
+      if (groupSort !== 0) return groupSort;
       const statusSort = STATUS_RANK[a.status] - STATUS_RANK[b.status];
       if (statusSort !== 0) return statusSort;
       return (b.hoursSinceLastRun ?? -1) - (a.hoursSinceLastRun ?? -1);
@@ -76,7 +99,7 @@ export default function SystemHealthPage() {
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">System Health</h1>
           <p className="mt-1 text-sm text-slate-600">
-            Scheduled sync visibility with Pacific-time run history and operational result signals.
+            Scheduler groups, latest run signals, blocking behavior, and stale-data checks.
           </p>
         </div>
 
@@ -96,12 +119,34 @@ export default function SystemHealthPage() {
         </div>
       )}
 
-      <section className="mb-4 grid gap-3 md:grid-cols-5">
+      <section className="mb-4 grid gap-3 md:grid-cols-6">
         <Summary label="Jobs" value={formatNumber(data?.summary.total)} tone="neutral" />
         <Summary label="Healthy" value={formatNumber(data?.summary.ok)} tone="ok" />
         <Summary label="Delayed" value={formatNumber(data?.summary.delayed)} tone="delayed" />
         <Summary label="Failed" value={formatNumber(data?.summary.failed)} tone="failed" />
         <Summary label="Unknown" value={formatNumber(data?.summary.unknown)} tone="unknown" />
+        <Summary label="Skipped" value={formatNumber(data?.summary.skipped)} tone="skipped" />
+      </section>
+
+      <section className="mb-4 grid gap-3 lg:grid-cols-3">
+        <GroupPanel
+          title="Core"
+          cadence="2x/day"
+          detail="Purchases, tracking, RevSeller, recent sales, MF labels, profitability, and reconciliation."
+          jobs={jobs.filter((job) => job.group === "core")}
+        />
+        <GroupPanel
+          title="Daily"
+          cadence="1x/day"
+          detail="Marketplace snapshots, Amazon cash, 60-day sales finance refresh, reports, YNAB, and value snapshot."
+          jobs={jobs.filter((job) => job.group === "daily")}
+        />
+        <GroupPanel
+          title="Catalog"
+          cadence="token-aware"
+          detail="Keepa active-product enrichment. Out-of-stock history belongs in a separate backfill runner."
+          jobs={jobs.filter((job) => job.group === "catalog")}
+        />
       </section>
 
       <section className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
@@ -116,11 +161,13 @@ export default function SystemHealthPage() {
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[1100px] text-left text-sm">
+          <table className="w-full min-w-[1280px] text-left text-sm">
             <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
               <tr>
                 <th className="px-3 py-2">Status</th>
                 <th className="px-3 py-2">Sync Job</th>
+                <th className="px-3 py-2">Group</th>
+                <th className="px-3 py-2">Mode</th>
                 <th className="px-3 py-2">Last Run Pacific</th>
                 <th className="px-3 py-2 text-right">Age</th>
                 <th className="px-3 py-2">Expected</th>
@@ -131,7 +178,7 @@ export default function SystemHealthPage() {
             <tbody>
               {loading ? (
                 <tr>
-                  <td className="px-3 py-8 text-center text-slate-500" colSpan={7}>
+                  <td className="px-3 py-8 text-center text-slate-500" colSpan={9}>
                     Loading sync health...
                   </td>
                 </tr>
@@ -145,6 +192,10 @@ export default function SystemHealthPage() {
                       <div className="font-medium text-slate-900">{job.name}</div>
                       <div className="mt-1 font-mono text-xs text-slate-500">{job.command}</div>
                       {job.message && <div className="mt-2 text-xs text-red-700">{job.message}</div>}
+                    </td>
+                    <td className="whitespace-nowrap px-3 py-3 text-slate-700">{GROUP_LABEL[job.group]}</td>
+                    <td className="whitespace-nowrap px-3 py-3">
+                      <ModeBadge blocking={job.blocking} enabled={job.enabled} />
                     </td>
                     <td className="whitespace-nowrap px-3 py-3">{formatPacificDateTime(job.lastRunAt)}</td>
                     <td className="whitespace-nowrap px-3 py-3 text-right">{formatAge(job.hoursSinceLastRun)}</td>
@@ -174,7 +225,7 @@ export default function SystemHealthPage() {
                 ))
               ) : (
                 <tr>
-                  <td className="px-3 py-8 text-center text-slate-500" colSpan={7}>
+                  <td className="px-3 py-8 text-center text-slate-500" colSpan={9}>
                     No sync jobs found.
                   </td>
                 </tr>
@@ -194,7 +245,7 @@ function Summary({
 }: {
   label: string;
   value: string;
-  tone: "neutral" | "ok" | "delayed" | "failed" | "unknown";
+  tone: "neutral" | "ok" | "delayed" | "failed" | "unknown" | "skipped";
 }) {
   const toneClass = {
     neutral: "border-slate-200 bg-white text-slate-900",
@@ -202,12 +253,45 @@ function Summary({
     delayed: "border-amber-200 bg-amber-50 text-amber-900",
     failed: "border-red-200 bg-red-50 text-red-900",
     unknown: "border-slate-200 bg-slate-50 text-slate-700",
+    skipped: "border-slate-200 bg-white text-slate-500",
   }[tone];
 
   return (
     <div className={`rounded-lg border p-3 shadow-sm ${toneClass}`}>
       <div className="text-xs uppercase tracking-wide opacity-70">{label}</div>
       <div className="mt-1 text-xl font-semibold">{value}</div>
+    </div>
+  );
+}
+
+function GroupPanel({
+  title,
+  cadence,
+  detail,
+  jobs,
+}: {
+  title: string;
+  cadence: string;
+  detail: string;
+  jobs: HealthJob[];
+}) {
+  const failed = jobs.filter((job) => job.status === "failed").length;
+  const delayed = jobs.filter((job) => job.status === "delayed").length;
+  const ok = jobs.filter((job) => job.status === "ok").length;
+  return (
+    <div className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm">
+      <div className="flex items-center justify-between gap-2">
+        <div>
+          <div className="text-sm font-semibold text-slate-900">{title}</div>
+          <div className="text-xs text-slate-500">{cadence}</div>
+        </div>
+        <div className="flex gap-1 text-xs">
+          <span className="rounded-md bg-emerald-50 px-2 py-1 text-emerald-800">{ok} ok</span>
+          <span className="rounded-md bg-amber-50 px-2 py-1 text-amber-800">{delayed} late</span>
+          <span className="rounded-md bg-red-50 px-2 py-1 text-red-800">{failed} fail</span>
+        </div>
+      </div>
+      <p className="mt-2 text-xs leading-5 text-slate-600">{detail}</p>
     </div>
   );
 }
@@ -234,6 +318,11 @@ function StatusBadge({ status }: { status: HealthStatus }) {
       icon: HelpCircle,
       className: "border-slate-200 bg-slate-50 text-slate-700",
     },
+    skipped: {
+      label: "Skipped",
+      icon: PauseCircle,
+      className: "border-slate-200 bg-white text-slate-600",
+    },
   }[status];
   const Icon = config.icon;
 
@@ -243,6 +332,34 @@ function StatusBadge({ status }: { status: HealthStatus }) {
       {config.label}
     </span>
   );
+}
+
+function ModeBadge({ blocking, enabled }: { blocking: boolean; enabled: boolean }) {
+  if (!enabled) {
+    return (
+      <span className="inline-flex items-center gap-1 rounded-md border border-slate-200 bg-white px-2 py-1 text-xs font-medium text-slate-600">
+        <PauseCircle className="h-3.5 w-3.5" />
+        Disabled
+      </span>
+    );
+  }
+  if (!blocking) {
+    return (
+      <span className="inline-flex items-center gap-1 rounded-md border border-amber-200 bg-amber-50 px-2 py-1 text-xs font-medium text-amber-800">
+        <ShieldAlert className="h-3.5 w-3.5" />
+        Nonblocking
+      </span>
+    );
+  }
+  return (
+    <span className="inline-flex rounded-md border border-slate-200 bg-slate-50 px-2 py-1 text-xs font-medium text-slate-700">
+      Blocking
+    </span>
+  );
+}
+
+function groupRank(group: HealthGroup) {
+  return { core: 0, daily: 1, catalog: 2, disabled: 3 }[group];
 }
 
 function formatPacificDateTime(value?: string | null) {

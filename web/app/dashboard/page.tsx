@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { BarChart3, RefreshCw } from "lucide-react";
+import { runOnDemandRefresh, type RefreshNotice } from "../syncRefresh";
 
 type MonthAggregate = {
   year: number;
@@ -179,6 +180,8 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showBusinessValueHistory, setShowBusinessValueHistory] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const [refreshNotice, setRefreshNotice] = useState<RefreshNotice | null>(null);
 
   useEffect(() => {
     loadDashboard();
@@ -209,6 +212,18 @@ export default function DashboardPage() {
     }
   }
 
+  async function refreshDashboard() {
+    setRefreshing(true);
+    setError(null);
+    try {
+      await runOnDemandRefresh("dashboard", loadDashboard, setRefreshNotice);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Refresh failed.");
+    } finally {
+      setRefreshing(false);
+    }
+  }
+
   return (
     <main className="min-h-screen bg-slate-100 p-4 text-slate-900">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
@@ -220,14 +235,21 @@ export default function DashboardPage() {
         </div>
 
         <button
-          onClick={loadDashboard}
+          onClick={refreshDashboard}
+          disabled={refreshing}
           className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium shadow-sm hover:bg-slate-50"
           type="button"
         >
-          <RefreshCw className="h-4 w-4" />
-          Refresh
+          <RefreshCw className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
+          {refreshing ? "Refreshing" : "Refresh"}
         </button>
       </div>
+
+      {refreshNotice && (
+        <div className={`mb-4 rounded-lg border px-3 py-2 text-sm ${noticeClass(refreshNotice.tone)}`}>
+          {refreshNotice.text}
+        </div>
+      )}
 
       {error && (
         <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
@@ -1113,6 +1135,12 @@ function formatDays(value?: number | null) {
   }
 
   return `${formatNumber(value)}d`;
+}
+
+function noticeClass(tone: RefreshNotice["tone"]) {
+  if (tone === "success") return "border-green-200 bg-green-50 text-green-700";
+  if (tone === "warning") return "border-amber-200 bg-amber-50 text-amber-800";
+  return "border-blue-200 bg-blue-50 text-blue-700";
 }
 
 function formatDateTime(value?: string | null) {

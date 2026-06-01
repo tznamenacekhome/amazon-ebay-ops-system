@@ -27,6 +27,7 @@ yarn-error.log*
 # Local exports / temp data
 # =========================
 data/*.csv
+data/*.xlsx
 data/imports/*.csv
 exports/*.csv
 tmp/

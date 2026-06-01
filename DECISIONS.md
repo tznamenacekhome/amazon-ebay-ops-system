@@ -927,3 +927,46 @@ Implementation:
 
 Reason:
 Missing data cleanup benefits from the normal editable purchase columns, while order problems need issue, age, ETA, tracking, and follow-up guidance.
+
+---
+
+## Amazon Sales Orders Are 2025-Forward
+
+Decision:
+Treat `2025-01-01` as the operating cutoff for Amazon Sales Orders data in MBOP.
+
+Reason:
+The business has much older Amazon history, but MBOP's go-forward analytics and
+COGS work should not require reconstructing ten years of purchases. Amazon can
+return old orders during incremental syncs when those orders receive a recent
+`LastUpdatedDate`, so relying only on `LastUpdatedAfter` can import orders
+outside the intended operating window.
+
+Implementation:
+- Amazon sales order sync skips orders whose `PurchaseDate` is before
+  `2025-01-01T00:00:00Z`
+- the sales history backfill rejects start dates before 2025-01-01
+- finance, Veeqo label, and profitability jobs clamp broad order selection to
+  2025-01-01 or later
+- the Sales Orders API clamps requested start dates to 2025-01-01 or later
+- pre-2025 cleanup SQL exists for the two old orders imported before the
+  guardrail was added
+
+---
+
+## Sales Missing Fees Display As Pending
+
+Decision:
+Keep the stored `amazon_sales_profitability.data_status = missing_fees` value,
+but display it in the UI as `Pending`.
+
+Reason:
+For newly ordered Amazon items, fees can be absent until Amazon ships the item
+and posts financial events. Calling those rows "Missing Fees" made normal
+in-flight orders look like data defects.
+
+Implementation:
+- Sales Orders summary card and filter label show `Pending`
+- row badges convert `missing_fees` to `Pending`
+- shipped rows with pending fees remain useful as a follow-up queue after the
+  finance sync has had time to catch up

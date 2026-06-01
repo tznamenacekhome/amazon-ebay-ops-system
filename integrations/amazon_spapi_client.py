@@ -42,8 +42,11 @@ REGION_ENDPOINTS = {
 
 READ_ONLY_OPERATION_PREFIXES = (
     "/fba/inventory/",
+    "/orders/v0/orders",
+    "/orders/v0/orders/",
     "/finances/v0/financialEventGroups",
     "/finances/v0/financialEventGroups/",
+    "/finances/v0/orders/",
     "/finances/2024-06-19/transactions",
     "/listings/2021-08-01/items/",
     "/products/pricing/",
@@ -302,6 +305,96 @@ class AmazonSPAPIClient:
         }
         path = f"/products/pricing/v0/listings/{quote(seller_sku, safe='')}/offers"
         return self.request("GET", path, params=params)
+
+    def get_order(self, amazon_order_id: str) -> dict[str, Any]:
+        path = f"/orders/v0/orders/{quote(amazon_order_id, safe='')}"
+        return self.request("GET", path)
+
+    def get_order_items(
+        self,
+        amazon_order_id: str,
+        *,
+        next_token: str | None = None,
+    ) -> dict[str, Any]:
+        path = f"/orders/v0/orders/{quote(amazon_order_id, safe='')}/orderItems"
+        params = {"NextToken": next_token} if next_token else None
+        return self.request("GET", path, params=params)
+
+    def iter_order_items(self, amazon_order_id: str):
+        next_token: str | None = None
+
+        while True:
+            payload = self.get_order_items(amazon_order_id, next_token=next_token)
+            container = payload.get("payload") or payload
+            for item in container.get("OrderItems") or []:
+                yield item
+
+            next_token = container.get("NextToken")
+            if not next_token:
+                return
+
+    def list_orders(
+        self,
+        *,
+        last_updated_after: str | None = None,
+        created_after: str | None = None,
+        created_before: str | None = None,
+        next_token: str | None = None,
+        max_results_per_page: int = 100,
+    ) -> dict[str, Any]:
+        params: dict[str, Any]
+        if next_token:
+            params = {"NextToken": next_token}
+        else:
+            params = {
+                "MarketplaceIds": self.config.marketplace_id,
+                "MaxResultsPerPage": str(max_results_per_page),
+            }
+            if last_updated_after:
+                params["LastUpdatedAfter"] = last_updated_after
+            if created_after:
+                params["CreatedAfter"] = created_after
+            if created_before:
+                params["CreatedBefore"] = created_before
+
+        return self.request("GET", "/orders/v0/orders", params=params)
+
+    def iter_orders(
+        self,
+        *,
+        last_updated_after: str | None = None,
+        created_after: str | None = None,
+        created_before: str | None = None,
+        max_pages: int | None = None,
+        page_delay_seconds: float = 1.0,
+    ):
+        next_token: str | None = None
+        pages_seen = 0
+
+        while True:
+            payload = self.list_orders(
+                last_updated_after=last_updated_after,
+                created_after=created_after,
+                created_before=created_before,
+                next_token=next_token,
+            )
+            pages_seen += 1
+            container = payload.get("payload") or payload
+            for order in container.get("Orders") or []:
+                yield order
+
+            next_token = container.get("NextToken")
+            if not next_token:
+                return
+            if max_pages and pages_seen >= max_pages:
+                LOGGER.warning("Stopping Amazon orders pagination at max_pages=%s", max_pages)
+                return
+            if page_delay_seconds > 0:
+                time.sleep(page_delay_seconds)
+
+    def get_order_financial_events(self, amazon_order_id: str) -> dict[str, Any]:
+        path = f"/finances/v0/orders/{quote(amazon_order_id, safe='')}/financialEvents"
+        return self.request("GET", path)
 
     def create_report(
         self,

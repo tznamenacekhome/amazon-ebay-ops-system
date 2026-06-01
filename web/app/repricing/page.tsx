@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { RefreshCw, X } from "lucide-react";
+import { runOnDemandRefresh, type RefreshNotice } from "../syncRefresh";
 
 type RecommendationTier =
   | "Healthy"
@@ -205,6 +206,8 @@ export default function RepricingPage() {
   const [snoozeFilter, setSnoozeFilter] = useState<"not_snoozed" | "all">("not_snoozed");
   const [competitionRow, setCompetitionRow] = useState<AdvisorRow | null>(null);
   const [snoozingSku, setSnoozingSku] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
+  const [refreshNotice, setRefreshNotice] = useState<RefreshNotice | null>(null);
 
   useEffect(() => {
     loadAdvisor();
@@ -226,6 +229,18 @@ export default function RepricingPage() {
       setError(err instanceof Error ? err.message : "Failed to load repricing advisor.");
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function refreshAdvisor() {
+    setRefreshing(true);
+    setError(null);
+    try {
+      await runOnDemandRefresh("repricing", loadAdvisor, setRefreshNotice);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Refresh failed.");
+    } finally {
+      setRefreshing(false);
     }
   }
 
@@ -298,14 +313,21 @@ export default function RepricingPage() {
           </p>
         </div>
         <button
-          onClick={loadAdvisor}
+          onClick={refreshAdvisor}
+          disabled={refreshing}
           className="inline-flex items-center gap-2 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-medium shadow-sm hover:bg-slate-50"
           type="button"
         >
-          <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
-          Refresh
+          <RefreshCw className={`h-4 w-4 ${loading || refreshing ? "animate-spin" : ""}`} />
+          {refreshing ? "Refreshing" : "Refresh"}
         </button>
       </div>
+
+      {refreshNotice ? (
+        <div className={`mb-4 rounded-md border px-3 py-2 text-sm ${noticeClass(refreshNotice.tone)}`}>
+          {refreshNotice.text}
+        </div>
+      ) : null}
 
       {error ? (
         <div className="mb-4 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
@@ -936,6 +958,12 @@ function formatPct(value?: number | null) {
 
 function roundMoney(value: number) {
   return Math.round(value * 100) / 100;
+}
+
+function noticeClass(tone: RefreshNotice["tone"]) {
+  if (tone === "success") return "border-green-200 bg-green-50 text-green-700";
+  if (tone === "warning") return "border-amber-200 bg-amber-50 text-amber-800";
+  return "border-blue-200 bg-blue-50 text-blue-700";
 }
 
 function formatDateTime(value?: string | null) {

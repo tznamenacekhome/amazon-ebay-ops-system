@@ -332,6 +332,37 @@ Options:
 
 # Monitor Items
 
+## Amazon Sales Missing COGS Needs eBay FIFO Allocation
+
+Status: ACTIVE / WAITING FOR 2025 SALES BACKFILL COMPLETION
+
+Problem:
+The Sales Orders page shows many Amazon sales rows with missing COGS even though
+the matching eBay purchase rows already exist in MBOP with ASIN, quantity, and
+unit cost.
+
+Current analysis:
+- current review export: `exports/missing_amazon_cogs_review.csv`
+- most missing COGS rows are in the `purchase_data_available_needs_fifo` bucket
+- these should not be fixed manually one by one
+- the correct fix is to allocate eBay `purchase_items` into
+  `amazon_sales_cogs_consumption` using FIFO by ASIN
+
+Current blocker:
+- wait for the 2025 Amazon sales-order backfill to finish before applying broad
+  FIFO allocation, so the allocator sees the full 2025-forward sales set
+
+Recommended next step:
+- implement and run an eBay purchase FIFO allocator after the 2025 backfill
+  completes
+- rerun the missing COGS review export
+- manually review only the remaining exception buckets:
+  - no purchase ASIN match
+  - purchase quantity short
+  - purchase rows missing cost
+
+---
+
 ## eBay Seller Orders In Purchases
 
 Status: RESOLVED / MONITOR

@@ -1,6 +1,6 @@
 # CURRENT_STATE.md
 
-Last Updated: 2026-05-30
+Last Updated: 2026-05-31
 
 # Midnight Blue Operations Platform (MBOP)
 
@@ -24,6 +24,8 @@ MBOP is the internal operations platform for Midnight Blue Enterprises, LLC.
 | Unified inventory state / reconciliation | First slice implemented |
 | Amazon FBA workflow | First slice implemented |
 | Aged Amazon Inventory Repricing Advisor | First slice implemented |
+| Amazon Sales Orders | First slice implemented / backfill in progress |
+| Non-eBay purchase COGS sources | Manual import bridge implemented |
 | Legacy spreadsheet backfill | Recently used / repeatable script available |
 
 ---
@@ -40,6 +42,40 @@ The paid plan limits do not by themselves guarantee enough sustained disk IO for
 ---
 
 # Current Backend State
+
+## Amazon Sales Orders
+
+Status: FIRST SLICE IMPLEMENTED / 2025-FORWARD DATA SET
+
+Implemented:
+- Amazon sales order and order-item tables remain separate from `purchases` and `purchase_items`
+- Amazon order sync imports non-PII order headers and item detail from SP-API Orders
+- Amazon finance sync stores normalized financial events for fee and fulfillment-cost calculation
+- Veeqo label sync stores Merchant Fulfilled shipment/label cost where Veeqo has a matching order
+- `amazon_sales_profitability` stores backend-calculated revenue, fees, fulfillment cost, COGS, net profit, ROI, and data status
+- Sales Orders UI at `/sales-orders` displays backend/API-provided values only
+- Sales Orders refresh runs the scheduled-style sales sync on demand without historical backfill
+- UI now labels `missing_fees` as `Pending` because Amazon fees can lag until an order ships
+- Sales Orders API and sync/backfill scripts enforce a 2025-01-01 operating cutoff
+- pre-2025 Amazon sales orders imported by recent Amazon LastUpdated activity are excluded from the UI/API and have cleanup SQL in `sql/2026-05-31_remove_pre_2025_amazon_sales_orders.sql`
+
+Backfill:
+- 2026 Amazon sales history backfill completed through May except the current-day edge chunk rejected by Amazon's CreatedBefore freshness rule
+- `integrations/backfill_amazon_sales_history.py` now caps through-today backfill chunks at a safe retrieval cutoff
+- 2025 Amazon sales history backfill is running from `logs/amazon_sales_backfill_2025_state.json`
+
+COGS state:
+- InventoryLab import/backfill is now treated as a completed legacy bridge
+- non-eBay purchase COGS source imports have been loaded for TIM/prep-center and Merchant Fulfilled supplier sheets
+- active Merchant Fulfilled inventory layers support `merchant_available` and `merchant_allocated`
+- most current missing Amazon sales COGS rows already have matching costed eBay purchase data by ASIN
+- next required COGS step is an eBay purchase FIFO allocator that consumes `purchase_items` into `amazon_sales_cogs_consumption` after the 2025 sales backfill finishes
+
+Manual review export:
+- latest missing COGS review export: `exports/missing_amazon_cogs_review.csv`
+- current pattern before 2025 backfill completion: most missing rows are `purchase_data_available_needs_fifo`, with a small exception set for purchase quantity short or no purchase ASIN match
+
+---
 
 ## eBay Buyer Purchase Sync
 

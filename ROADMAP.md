@@ -8,6 +8,32 @@ This roadmap tracks MBOP, the internal operations platform for Midnight Blue Ent
 
 # High Priority
 
+## Amazon Sales COGS Allocation
+
+Status:
+Next after 2025 sales-order backfill completes.
+
+Context:
+- Sales Orders now has Amazon order, finance, Veeqo label, profitability, and UI
+  foundations in place.
+- Non-eBay COGS source rows and inventory layers have been imported for the TIM
+  prep-center sheet and Merchant Fulfilled supplier sheet.
+- InventoryLab imports are now considered completed legacy bridge data rather
+  than the go-forward purchase-cost source.
+- Missing COGS review shows most missing Amazon sales COGS rows already have
+  matching costed eBay purchase data by ASIN.
+
+Next work:
+- implement eBay purchase FIFO allocation from `purchase_items` into
+  `amazon_sales_cogs_consumption`
+- apply allocation only after the 2025 Amazon sales backfill finishes
+- preserve separate consumption rows per source purchase item
+- avoid over-consuming purchase quantity across sales and current inventory
+- rerun `exports/missing_amazon_cogs_review.csv`
+- manually review remaining no-match or quantity-short exceptions
+
+---
+
 ## Frontend Componentization
 
 Status:
@@ -180,6 +206,35 @@ Next steps:
 - during the Send to Amazon workflow, allow an item to be moved out of FBA prep and back to the previous Delivered phase so it returns to Receiving instead of staying eligible for Amazon shipment
 - review whether FBA needs a historical shipments screen or shipment lookup by shipment ID
 - keep receiving/listing workflows separate from purchases review UI
+
+---
+
+## Non-eBay Purchase Entry
+
+Future scope:
+Add a dedicated non-eBay purchases screen for supplier purchases that do not
+come from the eBay buyer purchase sync.
+
+Direction:
+- treat InventoryLab imports as completed legacy backfill/bridge data
+- use eBay purchase sync as the source of cost for eBay-sourced inventory
+- use MBOP-entered non-eBay purchases as the go-forward source of cost for
+  supplier, prep-center, and direct-to-Amazon purchases
+- support eventual MBOP -> TIM Sheet export/update rather than scheduled TIM
+  Sheet -> MBOP sync
+
+Expected screen capabilities:
+- list non-eBay purchases with supplier, order date, order number, ASIN, MSKU,
+  description, quantity, received/prep-center quantity, damaged quantity, unit
+  cost, list price, fulfillment channel, tracking, notes, and shipment context
+- add new non-eBay purchase rows as purchases are made
+- edit/correct cost, quantity, fulfillment channel, and source metadata
+- preserve FIFO COGS source rows for Amazon sales profitability and current
+  Amazon inventory cost layers
+- identify rows assigned to FBA shipments, including in-transit shipments
+- keep this workflow separate from eBay `purchases`/`purchase_items` unless a
+  later design intentionally promotes non-eBay purchases into the same receiving
+  model
 
 ---
 

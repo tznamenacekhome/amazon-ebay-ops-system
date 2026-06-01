@@ -10,6 +10,7 @@ import {
   RefreshCw,
   Save,
 } from "lucide-react";
+import { runOnDemandRefresh, type RefreshNotice } from "../syncRefresh";
 
 type FbaDetail = {
   item_id: string;
@@ -57,6 +58,8 @@ export default function FbaPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
+  const [refreshNotice, setRefreshNotice] = useState<RefreshNotice | null>(null);
 
   useEffect(() => {
     loadFba();
@@ -121,6 +124,18 @@ export default function FbaPage() {
       setError(err instanceof Error ? err.message : "Failed to load FBA workflow.");
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function refreshFba() {
+    setRefreshing(true);
+    setError(null);
+    try {
+      await runOnDemandRefresh("fba", loadFba, setRefreshNotice);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Refresh failed.");
+    } finally {
+      setRefreshing(false);
     }
   }
 
@@ -215,12 +230,13 @@ export default function FbaPage() {
 
         <div className="flex flex-wrap gap-2">
           <button
-            onClick={loadFba}
+            onClick={refreshFba}
+            disabled={refreshing}
             className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium shadow-sm hover:bg-slate-50"
             type="button"
           >
-            <RefreshCw className="h-4 w-4" />
-            Refresh
+            <RefreshCw className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
+            {refreshing ? "Refreshing" : "Refresh"}
           </button>
           <button
             onClick={exportCsv}
@@ -243,6 +259,12 @@ export default function FbaPage() {
       {notice && (
         <div className="mb-4 rounded-lg border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-700">
           {notice}
+        </div>
+      )}
+
+      {refreshNotice && (
+        <div className={`mb-4 rounded-lg border px-3 py-2 text-sm ${noticeClass(refreshNotice.tone)}`}>
+          {refreshNotice.text}
         </div>
       )}
 
@@ -549,6 +571,12 @@ function formatMoney(value?: number | null) {
     style: "currency",
     currency: "USD",
   });
+}
+
+function noticeClass(tone: RefreshNotice["tone"]) {
+  if (tone === "success") return "border-green-200 bg-green-50 text-green-700";
+  if (tone === "warning") return "border-amber-200 bg-amber-50 text-amber-800";
+  return "border-blue-200 bg-blue-50 text-blue-700";
 }
 
 function formatDate(value?: string | null) {

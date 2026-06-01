@@ -16,6 +16,7 @@ import type {
 } from "./purchases/types";
 import { usePurchases } from "./purchases/usePurchases";
 import { rowKey } from "./purchases/utils";
+import { runOnDemandRefresh, type RefreshNotice } from "./syncRefresh";
 
 const PAGE_SIZE = 100;
 
@@ -79,6 +80,24 @@ export default function PurchasesPage() {
   const [drawerUnitCost, setDrawerUnitCost] = useState("");
   const [drawerSystem, setDrawerSystem] = useState("");
   const [priceDrafts, setPriceDrafts] = useState<Record<string, string>>({});
+  const [refreshing, setRefreshing] = useState(false);
+  const [refreshNotice, setRefreshNotice] = useState<RefreshNotice | null>(null);
+
+  async function refreshPurchases() {
+    setRefreshing(true);
+    setError(null);
+    try {
+      await runOnDemandRefresh(
+        "purchases",
+        () => loadPurchases({ forceRefresh: true }),
+        setRefreshNotice,
+      );
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Refresh failed.");
+    } finally {
+      setRefreshing(false);
+    }
+  }
 
   async function saveSellPrice(row: PurchaseRow) {
     const key = rowKey(row);
@@ -238,13 +257,20 @@ export default function PurchasesPage() {
         </div>
 
         <button
-          onClick={() => loadPurchases({ forceRefresh: true })}
+          onClick={refreshPurchases}
+          disabled={refreshing}
           className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium shadow-sm hover:bg-slate-50"
         >
-          <RefreshCw className="h-4 w-4" />
-          Refresh
+          <RefreshCw className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
+          {refreshing ? "Refreshing" : "Refresh"}
         </button>
       </div>
+
+      {refreshNotice && (
+        <div className={`mb-4 rounded-lg border px-3 py-2 text-sm ${noticeClass(refreshNotice.tone)}`}>
+          {refreshNotice.text}
+        </div>
+      )}
 
       <div className="mb-4 flex flex-wrap gap-2">
         <TabButton
@@ -388,4 +414,10 @@ function formatPriceDraft(value?: number | null) {
   }
 
   return Number(value).toFixed(2);
+}
+
+function noticeClass(tone: RefreshNotice["tone"]) {
+  if (tone === "success") return "border-green-200 bg-green-50 text-green-700";
+  if (tone === "warning") return "border-amber-200 bg-amber-50 text-amber-800";
+  return "border-blue-200 bg-blue-50 text-blue-700";
 }

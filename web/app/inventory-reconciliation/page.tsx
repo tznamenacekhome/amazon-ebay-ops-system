@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { RefreshCw } from "lucide-react";
+import { runOnDemandRefresh, type RefreshNotice } from "../syncRefresh";
 
 type ReconciliationFinding = {
   id: string;
@@ -34,6 +35,8 @@ export default function InventoryReconciliationPage() {
   const [data, setData] = useState<ReconciliationData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
+  const [refreshNotice, setRefreshNotice] = useState<RefreshNotice | null>(null);
 
   useEffect(() => {
     loadReconciliation();
@@ -54,6 +57,18 @@ export default function InventoryReconciliationPage() {
     }
   }
 
+  async function refreshReconciliation() {
+    setRefreshing(true);
+    setError(null);
+    try {
+      await runOnDemandRefresh("inventory-reconciliation", loadReconciliation, setRefreshNotice);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Refresh failed.");
+    } finally {
+      setRefreshing(false);
+    }
+  }
+
   const latest = data?.inventoryVisibility.latestReconciliation;
   const severity = data?.inventoryVisibility.reconciliationBySeverity;
 
@@ -68,14 +83,21 @@ export default function InventoryReconciliationPage() {
           </p>
         </div>
         <button
-          onClick={loadReconciliation}
+          onClick={refreshReconciliation}
+          disabled={refreshing}
           className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium shadow-sm hover:bg-slate-50"
           type="button"
         >
-          <RefreshCw className="h-4 w-4" />
-          Refresh
+          <RefreshCw className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
+          {refreshing ? "Refreshing" : "Refresh"}
         </button>
       </div>
+
+      {refreshNotice && (
+        <div className={`mb-4 rounded-lg border px-3 py-2 text-sm ${noticeClass(refreshNotice.tone)}`}>
+          {refreshNotice.text}
+        </div>
+      )}
 
       {error && (
         <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
@@ -172,6 +194,12 @@ function Summary({ label, value }: { label: string; value: string }) {
 function formatNumber(value?: number | null) {
   if (value === null || value === undefined || Number.isNaN(Number(value))) return "--";
   return Number(value).toLocaleString("en-US");
+}
+
+function noticeClass(tone: RefreshNotice["tone"]) {
+  if (tone === "success") return "border-green-200 bg-green-50 text-green-700";
+  if (tone === "warning") return "border-amber-200 bg-amber-50 text-amber-800";
+  return "border-blue-200 bg-blue-50 text-blue-700";
 }
 
 function formatDateTime(value?: string | null) {

@@ -10,12 +10,16 @@ const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
 const supabase = createClient(supabaseUrl, supabaseServiceRoleKey);
 
-type HealthStatus = "ok" | "delayed" | "failed" | "unknown";
+type HealthStatus = "ok" | "delayed" | "failed" | "unknown" | "skipped";
 
 type JobConfig = {
   id: string;
   name: string;
   command: string;
+  group: "core" | "daily" | "catalog" | "disabled";
+  blocking: boolean;
+  enabled?: boolean;
+  disabledReason?: string;
   expectedEveryHours: number;
   criticalAfterHours: number;
   signal: () => Promise<JobSignal>;
@@ -37,7 +41,11 @@ type SchedulerFailure = {
 
 type LocalRunRecord = {
   command: string;
-  status: "ok" | "failed";
+  job_name?: string | null;
+  group?: string | null;
+  blocking?: boolean | null;
+  enabled?: boolean | null;
+  status: "ok" | "failed" | "skipped";
   started_at?: string | null;
   finished_at?: string | null;
   message?: string | null;
@@ -63,8 +71,10 @@ const JOBS: JobConfig[] = [
     id: "ebay-buyer-purchases",
     name: "eBay buyer purchases",
     command: "integrations/ebay_sync_buyer_purchases.py",
-    expectedEveryHours: 24,
-    criticalAfterHours: 36,
+    group: "core",
+    blocking: true,
+    expectedEveryHours: 12,
+    criticalAfterHours: 24,
     signal: async () => {
       const batch = await latestRow("import_batches", "imported_at", "source_name,imported_at,import_batch_id", {
         source_name: "eBay Trading API Buyer Purchase Sync",
@@ -91,6 +101,8 @@ const JOBS: JobConfig[] = [
     id: "easypost-shipments",
     name: "EasyPost shipments",
     command: "integrations/easypost_sync_shipments.py",
+    group: "core",
+    blocking: true,
     expectedEveryHours: 12,
     criticalAfterHours: 24,
     signal: async () => latestTimestampSignal("inbound_shipments", "last_tracking_sync", "Shipments"),
@@ -99,6 +111,10 @@ const JOBS: JobConfig[] = [
     id: "supplier-returns",
     name: "eBay supplier returns",
     command: "integrations/ebay_sync_supplier_returns.py",
+    group: "disabled",
+    blocking: true,
+    enabled: false,
+    disabledReason: "Disabled pending returns feature redesign.",
     expectedEveryHours: 24,
     criticalAfterHours: 48,
     signal: async () => latestTimestampSignal("supplier_returns", "updated_at", "Returns"),
@@ -107,14 +123,18 @@ const JOBS: JobConfig[] = [
     id: "revseller-enrichment",
     name: "RevSeller enrichment",
     command: "integrations/sync_revseller_sheet.py",
-    expectedEveryHours: 24,
-    criticalAfterHours: 48,
+    group: "core",
+    blocking: true,
+    expectedEveryHours: 12,
+    criticalAfterHours: 24,
     signal: async () => latestRevsellerDiagnosticsSignal(),
   },
   {
     id: "amazon-fba-inventory",
     name: "Amazon FBA inventory",
     command: "integrations/amazon_sync_fba_inventory.py",
+    group: "daily",
+    blocking: true,
     expectedEveryHours: 24,
     criticalAfterHours: 36,
     signal: async () => snapshotSignal("amazon_fba_inventory_snapshots", "captured_at", "Snapshot rows"),
@@ -123,6 +143,8 @@ const JOBS: JobConfig[] = [
     id: "amazon-listing-status",
     name: "Amazon listing status",
     command: "integrations/amazon_sync_listing_status.py",
+    group: "daily",
+    blocking: true,
     expectedEveryHours: 24,
     criticalAfterHours: 36,
     signal: async () => snapshotSignal("amazon_listing_snapshots", "captured_at", "Snapshot rows"),
@@ -131,6 +153,8 @@ const JOBS: JobConfig[] = [
     id: "amazon-inventory-planning",
     name: "Amazon inventory planning",
     command: "integrations/amazon_sync_inventory_planning.py",
+    group: "daily",
+    blocking: true,
     expectedEveryHours: 24,
     criticalAfterHours: 36,
     signal: async () => {
@@ -158,6 +182,8 @@ const JOBS: JobConfig[] = [
     id: "amazon-finance-balances",
     name: "Amazon finance balances",
     command: "integrations/amazon_sync_finance_balances.py",
+    group: "daily",
+    blocking: true,
     expectedEveryHours: 24,
     criticalAfterHours: 36,
     signal: async () => {
@@ -178,9 +204,51 @@ const JOBS: JobConfig[] = [
     },
   },
   {
+    id: "amazon-sales-orders",
+    name: "Amazon sales orders",
+    command: "integrations/amazon_sync_sales_orders.py",
+    group: "core",
+    blocking: false,
+    expectedEveryHours: 12,
+    criticalAfterHours: 24,
+    signal: async () => latestTimestampSignal("amazon_sales_orders", "updated_at", "Orders updated"),
+  },
+  {
+    id: "veeqo-sales-labels",
+    name: "Veeqo MF label costs",
+    command: "integrations/veeqo_sync_sales_labels.py",
+    group: "core",
+    blocking: false,
+    expectedEveryHours: 12,
+    criticalAfterHours: 24,
+    signal: async () => latestTimestampSignal("veeqo_sales_orders", "updated_at", "Veeqo orders"),
+  },
+  {
+    id: "amazon-sales-finances",
+    name: "Amazon sales finances",
+    command: "integrations/amazon_sync_sales_finances.py",
+    group: "daily",
+    blocking: false,
+    expectedEveryHours: 24,
+    criticalAfterHours: 36,
+    signal: async () => latestTimestampSignal("amazon_sales_financial_events", "created_at", "Financial rows"),
+  },
+  {
+    id: "amazon-sales-profitability",
+    name: "Amazon sales profitability",
+    command: "integrations/amazon_sales_profitability.py",
+    group: "core",
+    blocking: false,
+    expectedEveryHours: 12,
+    criticalAfterHours: 24,
+    signal: async () => latestTimestampSignal("amazon_sales_profitability", "updated_at", "Profit rows"),
+  },
+  {
     id: "informed-repricing",
     name: "Informed repricing reports",
     command: "integrations/informed_sync_reports.py",
+    group: "daily",
+    blocking: true,
     expectedEveryHours: 24,
     criticalAfterHours: 36,
     signal: async () => {
@@ -208,6 +276,8 @@ const JOBS: JobConfig[] = [
     id: "ynab-cash-balance",
     name: "YNAB cash balance",
     command: "integrations/ynab_sync_cash_balance.py",
+    group: "daily",
+    blocking: true,
     expectedEveryHours: 24,
     criticalAfterHours: 36,
     signal: async () => {
@@ -230,6 +300,8 @@ const JOBS: JobConfig[] = [
     id: "keepa-products",
     name: "Keepa products",
     command: "integrations/keepa_sync_products.py",
+    group: "catalog",
+    blocking: true,
     expectedEveryHours: 24,
     criticalAfterHours: 48,
     signal: async () => {
@@ -256,6 +328,8 @@ const JOBS: JobConfig[] = [
     id: "business-value",
     name: "Business value snapshot",
     command: "integrations/business_value_snapshot.py",
+    group: "daily",
+    blocking: true,
     expectedEveryHours: 24,
     criticalAfterHours: 36,
     signal: async () => {
@@ -278,8 +352,10 @@ const JOBS: JobConfig[] = [
     id: "inventory-reconciliation",
     name: "Inventory reconciliation",
     command: "integrations/inventory_reconcile.py",
-    expectedEveryHours: 24,
-    criticalAfterHours: 36,
+    group: "core",
+    blocking: true,
+    expectedEveryHours: 12,
+    criticalAfterHours: 24,
     signal: async () => {
       const row = await latestRow(
         "inventory_reconciliation_events",
@@ -306,9 +382,27 @@ export async function GET() {
     const [failures, localRuns] = await Promise.all([readSchedulerFailures(), readLocalRunRecords()]);
     const jobs = await Promise.all(
       JOBS.map(async (job) => {
+        if (job.enabled === false) {
+          return {
+            id: job.id,
+            name: job.name,
+            command: job.command,
+            group: job.group,
+            blocking: job.blocking,
+            enabled: false,
+            status: "skipped" as HealthStatus,
+            lastRunAt: null,
+            hoursSinceLastRun: null,
+            expectedEveryHours: job.expectedEveryHours,
+            criticalAfterHours: job.criticalAfterHours,
+            source: "run_all_syncs.py",
+            stats: [],
+            message: job.disabledReason || null,
+          };
+        }
         const signal = await safeSignal(job);
         const failure = latestFailureForCommand(failures, job.command);
-        const localRun = latestLocalRunForCommand(localRuns, job.command);
+        const localRun = latestLocalRunForJob(localRuns, job);
         const localRunAt = stringValue(localRun?.finished_at);
         const hasNewerLocalRun = localRunAt && isTimestampNewer(localRunAt, signal.lastRunAt);
         const lastRunAt = hasNewerLocalRun ? localRunAt : signal.lastRunAt;
@@ -319,7 +413,10 @@ export async function GET() {
 
         if (hasNewerLocalRun) {
           source = `${source} + logs/sync_health.json`;
-          if (localRun?.status === "failed") {
+          if (localRun?.status === "skipped") {
+            status = "skipped";
+            message = localRun.message || message;
+          } else if (localRun?.status === "failed") {
             status = "failed";
             message = localRun.message || `${job.command} failed in the latest local orchestrator run.`;
           } else {
@@ -336,6 +433,9 @@ export async function GET() {
           id: job.id,
           name: job.name,
           command: job.command,
+          group: job.group,
+          blocking: job.blocking,
+          enabled: true,
           status,
           lastRunAt,
           hoursSinceLastRun,
@@ -357,6 +457,7 @@ export async function GET() {
         delayed: jobs.filter((job) => job.status === "delayed").length,
         failed: jobs.filter((job) => job.status === "failed").length,
         unknown: jobs.filter((job) => job.status === "unknown").length,
+        skipped: jobs.filter((job) => job.status === "skipped").length,
       },
     });
   } catch (error) {
@@ -580,9 +681,9 @@ function latestFailureForCommand(failures: SchedulerFailure[], command: string) 
     .sort((a, b) => (Date.parse(b.failedAt || "") || 0) - (Date.parse(a.failedAt || "") || 0))[0];
 }
 
-function latestLocalRunForCommand(records: LocalRunRecord[], command: string) {
+function latestLocalRunForJob(records: LocalRunRecord[], job: JobConfig) {
   return records
-    .filter((record) => record.command.includes(command))
+    .filter((record) => record.job_name === job.name || record.command.includes(job.command))
     .sort((a, b) => (Date.parse(b.finished_at || "") || 0) - (Date.parse(a.finished_at || "") || 0))[0];
 }
 
@@ -613,7 +714,7 @@ function isLocalRunRecord(value: unknown): value is LocalRunRecord {
   const record = value as Record<string, unknown>;
   return (
     typeof record.command === "string" &&
-    (record.status === "ok" || record.status === "failed") &&
+    (record.status === "ok" || record.status === "failed" || record.status === "skipped") &&
     (record.finished_at === undefined || record.finished_at === null || typeof record.finished_at === "string")
   );
 }

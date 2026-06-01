@@ -1,6 +1,6 @@
 # Backend Architecture
 
-Last updated: 2026-05-30
+Last updated: 2026-05-31
 
 ## Core Flow
 
@@ -26,22 +26,61 @@ Purchases, receiving, Amazon FBA shipment prep, inventory reconciliation, repric
 
 ## Integration Orchestration
 
-`run_all_syncs.py` is the local orchestrator. It currently runs:
+`run_all_syncs.py` is the local orchestrator. It supports grouped runs so Task
+Scheduler can keep operational data fresh without running heavyweight snapshots
+twice per day.
 
-- eBay buyer purchases and tracking ingestion
-- EasyPost carrier updates
-- eBay supplier returns
-- RevSeller enrichment
-- Amazon FBA inventory
-- Amazon listing status
-- Amazon inventory planning
-- Amazon Finance balances
-- Informed Repricer reports
-- YNAB Business cash balance
-- guarded Keepa active-Amazon stale refresh
-- daily business value snapshot
+- `core`: eBay buyer purchases, EasyPost tracking, RevSeller enrichment, recent
+  Amazon sales orders, new MF Veeqo label costs, recent sales profitability, and
+  inventory reconciliation. This group is intended for 2x/day runs.
+- `daily`: Amazon FBA inventory, Amazon listing status, Amazon inventory
+  planning, Amazon finance balances, 60-day Amazon sales finance refresh,
+  daily sales profitability, Informed Repricer reports, YNAB Business cash, and
+  the daily business value snapshot. This group is intended for 1x/day runs.
+- `catalog`: guarded Keepa active-Amazon stale refresh. This group is
+  token-aware and can run daily or less often.
+
+The eBay supplier returns sync is intentionally disabled while the returns
+feature is redesigned.
 
 Independent integration failures are collected and reported while later syncs continue running. This prevents one external API failure from blocking unrelated freshness work.
+
+The orchestrator writes the latest per-job state to `logs/sync_health.json`,
+appends run history to `logs/sync_runs.jsonl`, uses a local lock file to prevent
+overlapping scheduled runs, and performs a tiny Supabase read before launching
+work.
+
+Roadmap:
+
+- Add a resumable Keepa backfill runner, similar to the Amazon sales history
+  backfill, for controlled capture of Keepa data for out-of-stock inventory
+  items without spending tokens from frontend page loads.
+- Add a non-eBay purchases workspace as the go-forward source for supplier,
+  prep-center, and direct-to-Amazon purchase cost entry. InventoryLab imports
+  should be treated as completed legacy bridge/backfill data; future purchase
+  costs should come from either the eBay purchase sync or MBOP-entered non-eBay
+  purchases. The future direction for the TIM spreadsheet is MBOP -> TIM export
+  or update, not scheduled TIM -> MBOP sync.
+- Complete Sales Orders COGS handling:
+  - run the eBay purchase FIFO allocator after the 2025 Amazon sales-order
+    backfill finishes.
+  - allocate costed eBay `purchase_items` into
+    `amazon_sales_cogs_consumption` by ASIN and FIFO order.
+  - rerun the missing COGS review export and manually review only the remaining
+    no-match or quantity-short exceptions.
+  - track legacy InventoryLab/opening inventory drawdown separately from MBOP
+    FIFO-owned inventory.
+  - prevent cost-layer over-consumption and preserve separate
+    `amazon_sales_cogs_consumption` records.
+- Expand Sales Orders refund handling beyond basic canceled/refunded exclusion,
+  including full versus partial refund classification from Amazon finance
+  events.
+- Add Sales Orders order-level drilldown/rollup views on top of the current
+  item-level profitability rows.
+- Add manual adjustment workflows for exceptional fulfillment cost and COGS
+  corrections using the existing `manual` source values.
+- Add future eBay seller-order ingestion in separate seller-sales tables without
+  writing to `purchases` or `purchase_items`.
 
 ## External API Safety
 
@@ -68,3 +107,14 @@ Backend/API layers own:
 Inventory value rollups treat saved current FBA shipment links as MBOP outbound-to-Amazon cost, while Amazon SP-API and InventoryLab snapshots represent inventory already in Amazon's inventory layers. The rollup avoids double-counting Amazon inbound rows for ASINs already covered by a saved MBOP outbound shipment.
 
 Frontend components render API-provided values and manage UI workflow state only.
+
+## Sales Orders Operating Cutoff
+
+Amazon Sales Orders is a 2025-forward MBOP operating dataset. The sales sync and
+backfill scripts enforce a 2025-01-01 purchase-date cutoff because Amazon can
+surface old orders through recent `LastUpdatedAfter` activity. The Sales Orders
+API also clamps requested start dates to 2025-01-01.
+
+`missing_fees` remains the stored profitability status for compatibility, but
+the UI labels it as `Pending` because fees can legitimately lag until Amazon
+ships the order and posts financial events.

@@ -7,6 +7,7 @@ import {
   AlertTriangle,
   BarChart3,
   PackageCheck,
+  ReceiptText,
   Send,
   ShoppingCart,
   TrendingDown,
@@ -32,6 +33,11 @@ const navItems = [
     href: "/fba",
     label: "Amazon FBA",
     icon: Send,
+  },
+  {
+    href: "/sales-orders",
+    label: "Sales Orders",
+    icon: ReceiptText,
   },
   {
     href: "/repricing",
