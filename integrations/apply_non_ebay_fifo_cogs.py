@@ -231,7 +231,7 @@ def build_sales_plan(
         if clean_asin(row.get("asin")) in source_asins
         and int(row.get("quantity") or 0) > 0
         and (row.get("cogs") is None or row.get("cogs_source") == "missing")
-        and row.get("data_status") not in {"cancelled", "refunded"}
+        and row.get("data_status") == "missing_cogs"
     ]
     candidates.sort(
         key=lambda row: (

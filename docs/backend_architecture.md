@@ -62,10 +62,9 @@ Roadmap:
   purchases. The future direction for the TIM spreadsheet is MBOP -> TIM export
   or update, not scheduled TIM -> MBOP sync.
 - Complete Sales Orders COGS handling:
-  - run the eBay purchase FIFO allocator after the 2025 Amazon sales-order
-    backfill finishes.
-  - allocate costed eBay `purchase_items` into
-    `amazon_sales_cogs_consumption` by ASIN and FIFO order.
+  - eBay purchase FIFO allocation has been implemented in
+    `integrations/apply_ebay_purchase_fifo_cogs.py` and run after the 2025
+    Amazon sales-order backfill.
   - rerun the missing COGS review export and manually review only the remaining
     no-match or quantity-short exceptions.
   - track legacy InventoryLab/opening inventory drawdown separately from MBOP

@@ -686,11 +686,9 @@ Implemented:
   `merchant_allocated`
 
 Known remaining work:
-- after the 2025 Amazon sales backfill completes, run an eBay purchase FIFO
-  allocator so costed eBay `purchase_items` consume into
-  `amazon_sales_cogs_consumption`
-- rerun `exports/missing_amazon_cogs_review.csv` and manually review the smaller
-  no-match / quantity-short exception set
+- eBay purchase FIFO allocation has run after the 2025 Amazon sales backfill;
+  use `exports/missing_amazon_cogs_review.csv` to manually review the remaining
+  no-source, source-after-sale, or quantity-short exception set
 - add a first-class non-eBay purchases MBOP screen as the go-forward source for
   supplier and prep-center purchase cost entry
 

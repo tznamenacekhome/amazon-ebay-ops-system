@@ -693,9 +693,12 @@ Rule:
 Do not write reconciliation corrections directly into workflow tables unless a specific workflow action owns that correction. Reconciliation findings should surface review work first.
 
 Refinements:
-- hold Amazon-unknown-to-MBOP and quantity-mismatch cleanup until the 2025
-  Amazon sales backfill and eBay purchase FIFO allocator have run, then rerun
-  reconciliation and review what remains.
+- Amazon-unknown-to-MBOP and quantity-mismatch cleanup was held until the 2025
+  Amazon sales backfill and eBay purchase FIFO allocator ran. After rerunning
+  reconciliation, examples such as `B002BRYXRQ` still show that some Amazon FBA
+  units have eBay purchase records but no current MBOP FBA shipment/active
+  inventory lineage; those belong to future inventory-position resolution, not
+  sales COGS allocation.
 - Amazon reserved inventory is normal Amazon processing and should not be
   treated as a problem queue item by itself.
 - Amazon listing/catalog issue signals are not actionable when Amazon reports

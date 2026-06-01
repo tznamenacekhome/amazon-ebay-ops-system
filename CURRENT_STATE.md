@@ -68,22 +68,32 @@ Implemented:
   the Amazon order status remains shipped
 - Sales Orders API and sync/backfill scripts enforce a 2025-01-01 operating cutoff
 - pre-2025 Amazon sales orders imported by recent Amazon LastUpdated activity are excluded from the UI/API and have cleanup SQL in `sql/2026-05-31_remove_pre_2025_amazon_sales_orders.sql`
+- `integrations/apply_ebay_purchase_fifo_cogs.py` allocates costed eBay
+  `purchase_items` into `amazon_sales_cogs_consumption` by ASIN and FIFO order
 
 Backfill:
 - 2026 Amazon sales history backfill completed through May except the current-day edge chunk rejected by Amazon's CreatedBefore freshness rule
 - `integrations/backfill_amazon_sales_history.py` now caps through-today backfill chunks at a safe retrieval cutoff
-- 2025 Amazon sales history backfill is running from `logs/amazon_sales_backfill_2025_state.json`
+- 2025 Amazon sales history backfill completed
 
 COGS state:
 - InventoryLab import/backfill is now treated as a completed legacy bridge
 - non-eBay purchase COGS source imports have been loaded for TIM/prep-center and Merchant Fulfilled supplier sheets
 - active Merchant Fulfilled inventory layers support `merchant_available` and `merchant_allocated`
-- most current missing Amazon sales COGS rows already have matching costed eBay purchase data by ASIN
-- next required COGS step is an eBay purchase FIFO allocator that consumes `purchase_items` into `amazon_sales_cogs_consumption` after the 2025 sales backfill finishes
+- non-eBay FIFO COGS allocation was rerun after the 2025 backfill and applied
+  109 additional sales rows
+- eBay purchase FIFO COGS allocation was run after the 2025 backfill and
+  applied 2,123 additional sales rows / 2,127 consumption rows
+- Amazon sales profitability now has 3,532 complete rows and 500 remaining
+  `missing_cogs` rows
 
 Manual review export:
 - latest missing COGS review export: `exports/missing_amazon_cogs_review.csv`
-- current pattern before 2025 backfill completion: most missing rows are `purchase_data_available_needs_fifo`, with a small exception set for purchase quantity short or no purchase ASIN match
+- latest remaining missing COGS review has 500 rows:
+  - 285 no purchase source found
+  - 111 non-eBay purchase source exists and needs review
+  - 54 eBay purchase source exists and needs review
+  - 50 purchase source is after sale date or already consumed
 
 ---
 
