@@ -62,6 +62,10 @@ Carrier/status syncs must not downgrade workflow-owned statuses.
 - Opening-history boundary adjustments record units sold before MBOP's
   operating-history window and must stay separate from future inventory count or
   discrepancy adjustments.
+- The Inventory Source Balance Audit checks that purchase source units equal
+  sold units plus active inventory, opening-history boundary units, and explicit
+  adjustments. It is a control process for close/tax confidence, not a scheduled
+  external-data freshness sync.
 - Business value snapshots use MBOP outbound shipment cost for saved FBA shipments and avoid double-counting overlapping Amazon inbound rows for the same ASINs.
 - YNAB Business category balance is cash-on-hand context only.
 - Amazon Finance cash is value that has moved from inventory into Amazon-held cash or Amazon-to-bank in-transit cash.

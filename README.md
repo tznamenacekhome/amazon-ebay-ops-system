@@ -37,3 +37,10 @@ Capacity guardrails for Supabase billing limits, Disk IO Budget, and recovery ar
 `run_all_syncs.py` is the local integration orchestrator. It runs eBay, EasyPost, RevSeller, Amazon, Informed, YNAB, guarded Keepa refresh, and daily business value snapshot jobs.
 
 `run_all_syncs.bat` appends scheduler output to `logs/scheduler.log`.
+
+`inventory_source_balance_audit.py` is a secondary control for purchase-source
+unit balancing. Run it after FIFO allocator/import backfill work and during
+monthly close. The local monthly scheduler entry point is
+`inventory_source_balance_audit.bat`, which appends to
+`logs/inventory_source_balance_audit.log` and writes the latest report to
+`exports/inventory_source_balance_audit.csv`.

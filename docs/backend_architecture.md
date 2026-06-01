@@ -43,6 +43,15 @@ twice per day.
 The eBay supplier returns sync is intentionally disabled while the returns
 feature is redesigned.
 
+`integrations/inventory_source_balance_audit.py` is a secondary control, not a
+freshness sync. It should run after FIFO allocator runs, after large purchase or
+sales backfills, and as a monthly close check. It verifies that purchase source
+units reconcile to sales COGS consumption, active inventory COGS layers,
+opening-history boundary adjustments, and other explicit adjustments. The local
+monthly scheduler entry point is `inventory_source_balance_audit.bat`, with
+latest report files written to `exports/inventory_source_balance_audit.csv` and
+`logs/inventory_source_balance_audit_latest.json`.
+
 Independent integration failures are collected and reported while later syncs continue running. This prevents one external API failure from blocking unrelated freshness work.
 
 The orchestrator writes the latest per-job state to `logs/sync_health.json`,
