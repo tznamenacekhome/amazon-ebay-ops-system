@@ -20,6 +20,7 @@ type SalesOrderRow = {
   quantity: number | null;
   sale_price: number | null;
   fulfillment_channel: string | null;
+  order_status: string | null;
   amazon_fees_excluding_fulfillment: number | null;
   fulfillment_cost: number | null;
   fulfillment_cost_source: string | null;
@@ -28,6 +29,7 @@ type SalesOrderRow = {
   net_profit: number | null;
   roi: number | null;
   data_status: string | null;
+  display_data_status: string | null;
 };
 
 type SalesSummary = {
@@ -39,6 +41,7 @@ type SalesSummary = {
   averageRoi: number | null;
   orderCount: number;
   unitCount: number;
+  pendingFees: number;
   missingFees: number;
   missingCogs: number;
   missingFulfillment: number;
@@ -204,14 +207,15 @@ export default function SalesOrdersPage() {
         </div>
       )}
 
-      <section className="mb-4 grid gap-3 xl:grid-cols-9">
+      <section className="mb-4 grid gap-3 xl:grid-cols-10">
         <Metric label="Revenue" value={formatMoney(data?.summary.revenue)} />
         <Metric label="Amazon Fees" value={formatMoney(data?.summary.amazonFees)} />
         <Metric label="Fulfillment" value={formatMoney(data?.summary.fulfillment)} />
         <Metric label="COGS" value={formatMoney(data?.summary.cogs)} />
         <Metric label="Net Profit" value={formatMoney(data?.summary.netProfit)} />
         <Metric label="Avg ROI" value={formatPercent(data?.summary.averageRoi)} />
-        <Metric label="Pending" value={formatNumber(data?.summary.missingFees)} />
+        <Metric label="Pending" value={formatNumber(data?.summary.pendingFees)} />
+        <Metric label="Missing Fees" value={formatNumber(data?.summary.missingFees)} />
         <Metric label="Missing COGS" value={formatNumber(data?.summary.missingCogs)} />
         <Metric
           label="Missing Fulfillment"
@@ -291,7 +295,8 @@ export default function SalesOrdersPage() {
           >
             <option value="all">All data status</option>
             <option value="complete">Complete</option>
-            <option value="missing_fees">Pending</option>
+            <option value="pending_fees">Pending</option>
+            <option value="missing_fees">Missing Fees</option>
             <option value="missing_fulfillment_cost">Missing Fulfillment Cost</option>
             <option value="missing_cogs">Missing COGS</option>
           </select>
@@ -394,7 +399,7 @@ export default function SalesOrdersPage() {
                   </td>
                   <td className="px-3 py-2 text-right">{formatPercent(row.roi)}</td>
                   <td className="whitespace-nowrap px-3 py-2">
-                    <StatusBadge status={row.data_status} />
+                    <StatusBadge status={row.display_data_status ?? row.data_status} />
                   </td>
                 </tr>
               ))
@@ -500,7 +505,8 @@ function formatFulfillment(value?: string | null) {
 
 function formatSource(value?: string | null) {
   if (!value) return "";
-  if (value === "missing_fees") return "Pending";
+  if (value === "pending_fees") return "Pending";
+  if (value === "missing_fees") return "Missing Fees";
   return value
     .split("_")
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1))

@@ -55,7 +55,7 @@ Implemented:
 - `amazon_sales_profitability` stores backend-calculated revenue, fees, fulfillment cost, COGS, net profit, ROI, and data status
 - Sales Orders UI at `/sales-orders` displays backend/API-provided values only
 - Sales Orders refresh runs the scheduled-style sales sync on demand without historical backfill
-- UI now labels `missing_fees` as `Pending` because Amazon fees can lag until an order ships
+- Sales Orders splits stored `missing_fees` rows for display: unfulfilled orders show `Pending`, while shipped/fulfilled orders show `Missing Fees`
 - Sales Orders API and sync/backfill scripts enforce a 2025-01-01 operating cutoff
 - pre-2025 Amazon sales orders imported by recent Amazon LastUpdated activity are excluded from the UI/API and have cleanup SQL in `sql/2026-05-31_remove_pre_2025_amazon_sales_orders.sql`
 

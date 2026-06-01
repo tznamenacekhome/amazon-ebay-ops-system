@@ -7,6 +7,8 @@ const supabase = createClient(supabaseUrl, supabaseServiceRoleKey);
 
 const LOW_ROI_THRESHOLD = 0.4;
 const SALES_DATA_START_DATE = "2025-01-01";
+const FULFILLED_ORDER_STATUSES = ["PartiallyShipped", "Shipped", "InvoiceUnconfirmed"];
+const NOT_YET_FULFILLED_ORDER_STATUSES = ["Pending", "PendingAvailability", "Unshipped"];
 
 type SalesOrderRow = {
   purchase_date: string | null;
@@ -18,6 +20,7 @@ type SalesOrderRow = {
   quantity: number | null;
   sale_price: number | null;
   fulfillment_channel: string | null;
+  order_status: string | null;
   amazon_fees_excluding_fulfillment: number | null;
   fulfillment_cost: number | null;
   fulfillment_cost_source: string | null;
@@ -52,7 +55,7 @@ export async function GET(request: Request) {
     ]);
 
     return NextResponse.json({
-      rows: pageResult.rows,
+      rows: pageResult.rows.map(withDisplayStatus),
       total: pageResult.total,
       page: query.page,
       pageSize: query.pageSize,
@@ -145,7 +148,17 @@ function applyFilters(request: any, query: SalesOrderQuery) {
   }
 
   if (query.dataStatus !== "all") {
-    request = request.eq("data_status", query.dataStatus);
+    if (query.dataStatus === "pending_fees") {
+      request = request
+        .eq("data_status", "missing_fees")
+        .in("order_status", NOT_YET_FULFILLED_ORDER_STATUSES);
+    } else if (query.dataStatus === "missing_fees") {
+      request = request
+        .eq("data_status", "missing_fees")
+        .in("order_status", FULFILLED_ORDER_STATUSES);
+    } else {
+      request = request.eq("data_status", query.dataStatus);
+    }
   }
 
   if (query.quickFilter === "profit_exceptions") {
@@ -198,7 +211,16 @@ function summarizeRows(rows: SalesOrderRow[]) {
       roiCount: sum.roiCount + (row.roi === null || row.roi === undefined ? 0 : 1),
       orderIds: sum.orderIds.add(row.amazon_order_id),
       units: sum.units + Number(row.quantity ?? 0),
-      missingFees: sum.missingFees + (row.data_status === "missing_fees" ? 1 : 0),
+      pendingFees:
+        sum.pendingFees +
+        (row.data_status === "missing_fees" && !isFulfilledOrderStatus(row.order_status)
+          ? 1
+          : 0),
+      missingFees:
+        sum.missingFees +
+        (row.data_status === "missing_fees" && isFulfilledOrderStatus(row.order_status)
+          ? 1
+          : 0),
       missingCogs: sum.missingCogs + (row.data_status === "missing_cogs" ? 1 : 0),
       missingFulfillment:
         sum.missingFulfillment +
@@ -215,6 +237,7 @@ function summarizeRows(rows: SalesOrderRow[]) {
       orderIds: new Set<string>(),
       units: 0,
       missingFees: 0,
+      pendingFees: 0,
       missingCogs: 0,
       missingFulfillment: 0,
     }
@@ -230,10 +253,25 @@ function summarizeRows(rows: SalesOrderRow[]) {
       summary.roiCount > 0 ? Number((summary.roiTotal / summary.roiCount).toFixed(4)) : null,
     orderCount: summary.orderIds.size,
     unitCount: summary.units,
+    pendingFees: summary.pendingFees,
     missingFees: summary.missingFees,
     missingCogs: summary.missingCogs,
     missingFulfillment: summary.missingFulfillment,
   };
+}
+
+function withDisplayStatus(row: SalesOrderRow) {
+  return {
+    ...row,
+    display_data_status:
+      row.data_status === "missing_fees" && !isFulfilledOrderStatus(row.order_status)
+        ? "pending_fees"
+        : row.data_status,
+  };
+}
+
+function isFulfilledOrderStatus(value?: string | null) {
+  return FULFILLED_ORDER_STATUSES.includes(value || "");
 }
 
 function salesSortColumn(column: string) {

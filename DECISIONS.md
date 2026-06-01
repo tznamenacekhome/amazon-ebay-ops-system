@@ -954,19 +954,23 @@ Implementation:
 
 ---
 
-## Sales Missing Fees Display As Pending
+## Sales Missing Fees Display Depends On Fulfillment Status
 
 Decision:
 Keep the stored `amazon_sales_profitability.data_status = missing_fees` value,
-but display it in the UI as `Pending`.
+but split the UI display by Amazon order status.
 
 Reason:
 For newly ordered Amazon items, fees can be absent until Amazon ships the item
 and posts financial events. Calling those rows "Missing Fees" made normal
-in-flight orders look like data defects.
+in-flight orders look like data defects. Once an order is shipped or otherwise
+fulfilled, missing financial events are more likely to represent a sync/data
+gap that needs follow-up.
 
 Implementation:
-- Sales Orders summary card and filter label show `Pending`
-- row badges convert `missing_fees` to `Pending`
-- shipped rows with pending fees remain useful as a follow-up queue after the
-  finance sync has had time to catch up
+- `missing_fees` plus `Pending`, `PendingAvailability`, or `Unshipped` displays
+  as `Pending`
+- `missing_fees` plus `PartiallyShipped`, `Shipped`, or `InvoiceUnconfirmed`
+  displays as `Missing Fees`
+- the Sales Orders API exposes separate summary counts and filter options for
+  Pending and Missing Fees

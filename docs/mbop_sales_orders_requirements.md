@@ -104,7 +104,8 @@ Preferred order-specific endpoint:
 Important timing note:
 - Financial events may lag recent orders.
 - The sync should allow orders to exist before fees are complete.
-- UI should show the fee-lag status as `Pending`.
+- UI should show missing fee data as `Pending` only when the Amazon order has not shipped.
+- UI should show missing fee data as `Missing Fees` when the Amazon order has shipped or is otherwise fulfilled.
 
 ### Veeqo API
 
@@ -238,7 +239,7 @@ Suggested columns:
 - `roi`
 - `data_status`
   - `complete`
-  - `missing_fees` stored status, displayed as `Pending`
+  - `missing_fees` stored status, displayed as either `Pending` or `Missing Fees` based on Amazon order status
   - `missing_fulfillment_cost`
   - `missing_cogs`
   - `refunded`
@@ -344,6 +345,7 @@ Suggested fields:
 - order count
 - unit count
 - pending fee count
+- missing fee count
 - missing COGS count
 - missing fulfillment cost count
 - MF order count
@@ -450,7 +452,7 @@ Default:
 Provide:
 - Fulfillment: All, FBA, MF
 - Profitability: All, Profitable, Low ROI, Loss
-- Data Status: All, Complete, Pending, Missing Fulfillment Cost, Missing COGS
+- Data Status: All, Complete, Pending, Missing Fees, Missing Fulfillment Cost, Missing COGS
 - Search: Amazon order ID, ASIN, SKU, title
 
 ### Table columns
@@ -486,6 +488,7 @@ Above the table show:
 - Net Profit
 - Avg ROI
 - Pending
+- Missing Fees
 - Missing COGS
 - Missing Fulfillment Cost
 
@@ -570,7 +573,7 @@ Do:
    - COGS
    - net profit
    - ROI
-7. Pending fees, missing COGS, or missing fulfillment cost are visible as data status values.
+7. Pending fees, missing fees, missing COGS, or missing fulfillment cost are visible as data status values.
 8. `/sales-orders` displays recent non-canceled, non-refunded orders.
 9. Default date range is 30 days.
 10. UI includes configurable date filters.
@@ -620,7 +623,8 @@ Implemented:
 - on-demand Sales Orders refresh through the shared sync-refresh API
 - 2025-01-01 sales operating cutoff in sales sync, backfill, profitability,
   finance, Veeqo, and Sales Orders API paths
-- UI display text changed from `Missing Fees` to `Pending`
+- UI display now splits stored `missing_fees` rows into `Pending` for unfulfilled
+  orders and `Missing Fees` for shipped/fulfilled orders
 - non-eBay purchase COGS source table and manual importer for TIM/prep-center
   and Merchant Fulfilled supplier purchase sheets
 - non-eBay FIFO COGS allocation support for current inventory and matching sales

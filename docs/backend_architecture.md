@@ -115,6 +115,6 @@ backfill scripts enforce a 2025-01-01 purchase-date cutoff because Amazon can
 surface old orders through recent `LastUpdatedAfter` activity. The Sales Orders
 API also clamps requested start dates to 2025-01-01.
 
-`missing_fees` remains the stored profitability status for compatibility, but
-the UI labels it as `Pending` because fees can legitimately lag until Amazon
-ships the order and posts financial events.
+`missing_fees` remains the stored profitability status for compatibility. The
+Sales Orders API uses Amazon `order_status` to split display status: unfulfilled
+orders show `Pending`, while shipped/fulfilled orders show `Missing Fees`.
