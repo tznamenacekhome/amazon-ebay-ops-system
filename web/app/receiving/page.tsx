@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ArrowDown, ArrowUp, Check, PackageCheck, Search, X } from "lucide-react";
+import { ArrowDown, ArrowUp, Check, PackageCheck, RefreshCw, Search, X } from "lucide-react";
+import { DataFreshness } from "../DataFreshness";
 
 import type { PurchaseRow } from "../purchases/types";
 import {
@@ -49,6 +50,8 @@ export default function ReceivingPage() {
   const [drafts, setDrafts] = useState<Record<string, ReceivingDraft>>({});
   const [sortColumn, setSortColumn] = useState<SortColumn>("date");
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
+  const [refreshing, setRefreshing] = useState(false);
+  const [freshnessKey, setFreshnessKey] = useState(0);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const lastAutoOpenedSearch = useRef("");
 
@@ -70,6 +73,17 @@ export default function ReceivingPage() {
       setLoading(false);
     }
   }, []);
+
+  async function refreshReceiving() {
+    setRefreshing(true);
+    setError(null);
+    try {
+      await loadQueue();
+    } finally {
+      setRefreshing(false);
+      setFreshnessKey((current) => current + 1);
+    }
+  }
 
   useEffect(() => {
     const timeoutId = window.setTimeout(() => {
@@ -360,8 +374,20 @@ export default function ReceivingPage() {
           </p>
         </div>
 
-        <div className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium shadow-sm">
-          Scan Ready
+        <div className="flex flex-wrap items-center justify-end gap-3">
+          <DataFreshness screen="receiving" refreshKey={freshnessKey} />
+          <button
+            onClick={refreshReceiving}
+            disabled={refreshing}
+            className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium shadow-sm hover:bg-slate-50"
+            type="button"
+          >
+            <RefreshCw className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
+            {refreshing ? "Refreshing" : "Refresh"}
+          </button>
+          <div className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium shadow-sm">
+            Scan Ready
+          </div>
         </div>
       </div>
 

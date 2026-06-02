@@ -689,6 +689,11 @@ Known remaining work:
 - eBay purchase FIFO allocation has run after the 2025 Amazon sales backfill;
   use `exports/missing_amazon_cogs_review.csv` to manually review the remaining
   no-source, source-after-sale, or quantity-short exception set
+- as of 2026-06-02, Amazon sales order cleanup still has 159 `missing_cogs`
+  rows, 32 stored `missing_fees` rows, and 0 `missing_fulfillment_cost` rows
+- Amazon inventory cleanup still has open reconciliation findings that should be
+  resolved or explicitly classified before treating inventory value as fully
+  close-ready
 - add a first-class non-eBay purchases MBOP screen as the go-forward source for
   supplier and prep-center purchase cost entry
 

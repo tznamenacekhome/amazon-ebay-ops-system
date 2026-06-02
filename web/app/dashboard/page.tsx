@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { BarChart3, RefreshCw } from "lucide-react";
 import { runOnDemandRefresh, type RefreshNotice } from "../syncRefresh";
+import { DataFreshness } from "../DataFreshness";
 
 type MonthAggregate = {
   year: number;
@@ -182,6 +183,7 @@ export default function DashboardPage() {
   const [showBusinessValueHistory, setShowBusinessValueHistory] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [refreshNotice, setRefreshNotice] = useState<RefreshNotice | null>(null);
+  const [freshnessKey, setFreshnessKey] = useState(0);
 
   useEffect(() => {
     loadDashboard();
@@ -221,6 +223,7 @@ export default function DashboardPage() {
       setError(err instanceof Error ? err.message : "Refresh failed.");
     } finally {
       setRefreshing(false);
+      setFreshnessKey((current) => current + 1);
     }
   }
 
@@ -234,15 +237,18 @@ export default function DashboardPage() {
           </p>
         </div>
 
-        <button
-          onClick={refreshDashboard}
-          disabled={refreshing}
-          className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium shadow-sm hover:bg-slate-50"
-          type="button"
-        >
-          <RefreshCw className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
-          {refreshing ? "Refreshing" : "Refresh"}
-        </button>
+        <div className="flex flex-wrap items-center justify-end gap-3">
+          <DataFreshness screen="dashboard" refreshKey={freshnessKey} />
+          <button
+            onClick={refreshDashboard}
+            disabled={refreshing}
+            className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium shadow-sm hover:bg-slate-50"
+            type="button"
+          >
+            <RefreshCw className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
+            {refreshing ? "Refreshing" : "Refresh"}
+          </button>
+        </div>
       </div>
 
       {refreshNotice && (

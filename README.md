@@ -44,3 +44,10 @@ monthly close. The local monthly scheduler entry point is
 `inventory_source_balance_audit.bat`, which appends to
 `logs/inventory_source_balance_audit.log` and writes the latest report to
 `exports/inventory_source_balance_audit.csv`.
+
+## UI Freshness
+
+MBOP screens show a `Last updated` timestamp near their refresh controls. These
+timestamps come from `/api/screen-data-freshness`, not direct frontend Supabase
+queries. Dashboard uses the oldest required cash/value input so stale Amazon or
+YNAB cash data is visible even if another dashboard source refreshed recently.

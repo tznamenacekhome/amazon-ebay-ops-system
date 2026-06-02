@@ -11,6 +11,7 @@ import {
   Save,
 } from "lucide-react";
 import { runOnDemandRefresh, type RefreshNotice } from "../syncRefresh";
+import { DataFreshness } from "../DataFreshness";
 
 type FbaDetail = {
   item_id: string;
@@ -60,6 +61,7 @@ export default function FbaPage() {
   const [notice, setNotice] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [refreshNotice, setRefreshNotice] = useState<RefreshNotice | null>(null);
+  const [freshnessKey, setFreshnessKey] = useState(0);
 
   useEffect(() => {
     loadFba();
@@ -136,6 +138,7 @@ export default function FbaPage() {
       setError(err instanceof Error ? err.message : "Refresh failed.");
     } finally {
       setRefreshing(false);
+      setFreshnessKey((current) => current + 1);
     }
   }
 
@@ -228,7 +231,8 @@ export default function FbaPage() {
           </p>
         </div>
 
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap items-center justify-end gap-3">
+          <DataFreshness screen="fba" refreshKey={freshnessKey} />
           <button
             onClick={refreshFba}
             disabled={refreshing}

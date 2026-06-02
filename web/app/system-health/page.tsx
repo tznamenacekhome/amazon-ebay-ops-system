@@ -10,6 +10,7 @@ import {
   ShieldAlert,
   XCircle,
 } from "lucide-react";
+import { DataFreshness } from "../DataFreshness";
 
 type HealthStatus = "ok" | "delayed" | "failed" | "unknown" | "skipped";
 type HealthGroup = "core" | "daily" | "catalog" | "disabled";
@@ -63,6 +64,7 @@ export default function SystemHealthPage() {
   const [data, setData] = useState<HealthData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [freshnessKey, setFreshnessKey] = useState(0);
 
   useEffect(() => {
     loadHealth();
@@ -90,6 +92,7 @@ export default function SystemHealthPage() {
       setError(err instanceof Error ? err.message : "Failed to load system health.");
     } finally {
       setLoading(false);
+      setFreshnessKey((current) => current + 1);
     }
   }
 
@@ -103,14 +106,17 @@ export default function SystemHealthPage() {
           </p>
         </div>
 
-        <button
-          onClick={loadHealth}
-          className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium shadow-sm hover:bg-slate-50"
-          type="button"
-        >
-          <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
-          Refresh
-        </button>
+        <div className="flex flex-wrap items-center justify-end gap-3">
+          <DataFreshness screen="system-health" refreshKey={freshnessKey} />
+          <button
+            onClick={loadHealth}
+            className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium shadow-sm hover:bg-slate-50"
+            type="button"
+          >
+            <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+            Refresh
+          </button>
+        </div>
       </div>
 
       {error && (

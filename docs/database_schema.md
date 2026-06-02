@@ -1,6 +1,6 @@
 # Database Schema Overview
 
-Last updated: 2026-05-30
+Last updated: 2026-06-02
 
 This document is a high-level map of MBOP's schema. SQL migrations remain the source of exact column definitions.
 
@@ -59,6 +59,13 @@ Keepa and Informed data are advisory intelligence only.
 `business_value_snapshots.raw_rollup_json.amazon_outbound_value` includes MBOP outbound FBA shipment cost plus Amazon inbound cost not already covered by a saved MBOP outbound shipment ASIN.
 
 Inventory reconciliation tables are derived and additive. Workflow corrections must route through the workflow that owns the underlying state.
+
+## Frontend Support APIs
+
+- `/api/screen-data-freshness`: backend-only freshness map used by MBOP screens
+  to display screen-specific `Last updated` timestamps near refresh controls.
+  The route reads lightweight timestamp signals from source tables and local
+  sync files; it does not create schema objects.
 
 ## Important Views
 

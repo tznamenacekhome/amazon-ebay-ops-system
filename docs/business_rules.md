@@ -1,6 +1,6 @@
 # Business Rules
 
-Last updated: 2026-05-30
+Last updated: 2026-06-02
 
 ## Cost And Reporting
 
@@ -70,6 +70,9 @@ Carrier/status syncs must not downgrade workflow-owned statuses.
 - YNAB Business category balance is cash-on-hand context only.
 - Amazon Finance cash is value that has moved from inventory into Amazon-held cash or Amazon-to-bank in-transit cash.
 - Business value snapshots are reporting snapshots only.
+- Dashboard cash/value freshness is limited by the oldest required cash/value
+  input: business value snapshot, Amazon Finance balance snapshot, or YNAB cash
+  snapshot.
 - Amazon reserved inventory is normal Amazon processing and should not be
   surfaced as an operator problem by itself.
 - Amazon listing/catalog issue signals should be ignored when your FBA units are

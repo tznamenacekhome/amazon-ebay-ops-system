@@ -17,6 +17,7 @@ import type {
 import { usePurchases } from "./purchases/usePurchases";
 import { rowKey } from "./purchases/utils";
 import { runOnDemandRefresh, type RefreshNotice } from "./syncRefresh";
+import { DataFreshness } from "./DataFreshness";
 
 const PAGE_SIZE = 100;
 
@@ -82,6 +83,7 @@ export default function PurchasesPage() {
   const [priceDrafts, setPriceDrafts] = useState<Record<string, string>>({});
   const [refreshing, setRefreshing] = useState(false);
   const [refreshNotice, setRefreshNotice] = useState<RefreshNotice | null>(null);
+  const [freshnessKey, setFreshnessKey] = useState(0);
 
   async function refreshPurchases() {
     setRefreshing(true);
@@ -96,6 +98,7 @@ export default function PurchasesPage() {
       setError(err instanceof Error ? err.message : "Refresh failed.");
     } finally {
       setRefreshing(false);
+      setFreshnessKey((current) => current + 1);
     }
   }
 
@@ -256,14 +259,17 @@ export default function PurchasesPage() {
           </p>
         </div>
 
-        <button
-          onClick={refreshPurchases}
-          disabled={refreshing}
-          className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium shadow-sm hover:bg-slate-50"
-        >
-          <RefreshCw className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
-          {refreshing ? "Refreshing" : "Refresh"}
-        </button>
+        <div className="flex flex-wrap items-center justify-end gap-3">
+          <DataFreshness screen="purchases" refreshKey={freshnessKey} />
+          <button
+            onClick={refreshPurchases}
+            disabled={refreshing}
+            className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium shadow-sm hover:bg-slate-50"
+          >
+            <RefreshCw className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
+            {refreshing ? "Refreshing" : "Refresh"}
+          </button>
+        </div>
       </div>
 
       {refreshNotice && (

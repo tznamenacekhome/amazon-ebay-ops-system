@@ -11,7 +11,7 @@ This roadmap tracks MBOP, the internal operations platform for Midnight Blue Ent
 ## Amazon Sales COGS Allocation
 
 Status:
-Next after 2025 sales-order backfill completes.
+Implemented / cleanup remaining exceptions.
 
 Context:
 - Sales Orders now has Amazon order, finance, Veeqo label, profitability, and UI
@@ -24,13 +24,15 @@ Context:
   matching costed eBay purchase data by ASIN.
 
 Next work:
-- implement eBay purchase FIFO allocation from `purchase_items` into
-  `amazon_sales_cogs_consumption`
-- apply allocation only after the 2025 Amazon sales backfill finishes
-- preserve separate consumption rows per source purchase item
-- avoid over-consuming purchase quantity across sales and current inventory
-- rerun `exports/missing_amazon_cogs_review.csv`
-- manually review remaining no-match or quantity-short exceptions
+- continue filling missing purchase-source data for the remaining Amazon
+  `missing_cogs` rows
+- rerun the eBay and non-eBay FIFO allocators after purchase-source fixes
+- rerun `exports/missing_amazon_cogs_review.csv` and the Inventory Source
+  Balance Audit after each meaningful correction batch
+- manually review remaining no-match, source-after-sale, or quantity-short
+  exceptions
+- preserve separate consumption rows per source purchase item and avoid
+  over-consuming source quantity across sales and current inventory
 
 ---
 
@@ -77,6 +79,9 @@ Recent UI cleanup:
 - added search-box clear button
 - replaced full-table client filtering/sorting with server-side query handling
 - defaulted purchases to all statuses except Listed while still allowing All Status history
+- added shared per-screen `Last updated` indicators near refresh controls,
+  backed by `/api/screen-data-freshness`
+- added a Receiving refresh button to match the other MBOP screens
 
 ---
 
@@ -124,6 +129,8 @@ Next steps:
 - add filters for status, marketplace, received date, and system after the first chart proves useful
 - keep 2026-05-16+ MBOP-only purchases reportable unless explicitly confirmed as non-resale, return/cancelled, or otherwise excluded
 - refine Amazon Finance cash mapping if Seller Central exposes an additional UI-only reserve/available-balance adjustment source
+- monitor Dashboard freshness against the oldest required cash/value input so
+  stale Amazon cash, YNAB cash, or business value snapshots are visible
 
 ---
 

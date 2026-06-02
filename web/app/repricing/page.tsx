@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { RefreshCw, X } from "lucide-react";
 import { runOnDemandRefresh, type RefreshNotice } from "../syncRefresh";
+import { DataFreshness } from "../DataFreshness";
 
 type RecommendationTier =
   | "Healthy"
@@ -208,6 +209,7 @@ export default function RepricingPage() {
   const [snoozingSku, setSnoozingSku] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [refreshNotice, setRefreshNotice] = useState<RefreshNotice | null>(null);
+  const [freshnessKey, setFreshnessKey] = useState(0);
 
   useEffect(() => {
     loadAdvisor();
@@ -241,6 +243,7 @@ export default function RepricingPage() {
       setError(err instanceof Error ? err.message : "Refresh failed.");
     } finally {
       setRefreshing(false);
+      setFreshnessKey((current) => current + 1);
     }
   }
 
@@ -312,15 +315,18 @@ export default function RepricingPage() {
             Manual repricing advisor for active Amazon FBA inventory
           </p>
         </div>
-        <button
-          onClick={refreshAdvisor}
-          disabled={refreshing}
-          className="inline-flex items-center gap-2 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-medium shadow-sm hover:bg-slate-50"
-          type="button"
-        >
-          <RefreshCw className={`h-4 w-4 ${loading || refreshing ? "animate-spin" : ""}`} />
-          {refreshing ? "Refreshing" : "Refresh"}
-        </button>
+        <div className="flex flex-wrap items-center justify-end gap-3">
+          <DataFreshness screen="repricing" refreshKey={freshnessKey} />
+          <button
+            onClick={refreshAdvisor}
+            disabled={refreshing}
+            className="inline-flex items-center gap-2 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-medium shadow-sm hover:bg-slate-50"
+            type="button"
+          >
+            <RefreshCw className={`h-4 w-4 ${loading || refreshing ? "animate-spin" : ""}`} />
+            {refreshing ? "Refreshing" : "Refresh"}
+          </button>
+        </div>
       </div>
 
       {refreshNotice ? (

@@ -1,6 +1,6 @@
 # Backend Architecture
 
-Last updated: 2026-05-31
+Last updated: 2026-06-02
 
 ## Core Flow
 
@@ -59,6 +59,16 @@ appends run history to `logs/sync_runs.jsonl`, uses a local lock file to prevent
 overlapping scheduled runs, and performs a tiny Supabase read before launching
 work.
 
+## UI Data Freshness
+
+Each MBOP screen with a refresh control shows a nearby `Last updated` indicator.
+The frontend reads these values through `/api/screen-data-freshness`; it does
+not query Supabase directly. Most screens display the newest relevant source
+timestamp for that screen. Dashboard is stricter: because Business Inventory And
+Cash Value depends on multiple cash/value inputs, its freshness indicator shows
+the oldest of the required business value, Amazon cash, and YNAB cash snapshots
+so a fresh reconciliation run cannot hide stale cash data.
+
 Roadmap:
 
 - Add a resumable Keepa backfill runner, similar to the Amazon sales history
@@ -74,6 +84,8 @@ Roadmap:
   - eBay purchase FIFO allocation has been implemented in
     `integrations/apply_ebay_purchase_fifo_cogs.py` and run after the 2025
     Amazon sales-order backfill.
+  - non-eBay FIFO allocation and targeted rebalancing have been implemented in
+    `integrations/apply_non_ebay_fifo_cogs.py`.
   - rerun the missing COGS review export and manually review only the remaining
     no-match or quantity-short exceptions.
   - track legacy InventoryLab/opening inventory drawdown separately from MBOP
@@ -87,6 +99,9 @@ Roadmap:
   item-level profitability rows.
 - Add manual adjustment workflows for exceptional fulfillment cost and COGS
   corrections using the existing `manual` source values.
+- Continue Amazon order and inventory missing-data cleanup until remaining
+  Sales Orders COGS/fee exceptions and open inventory reconciliation findings
+  are either resolved or explicitly classified.
 - Add an Amazon FBA removals workflow for damaged/unsellable units that Amazon
   automatically returns. The workflow should track removal orders, receiving
   returned units, deciding whether they are still new/sellable, and routing good

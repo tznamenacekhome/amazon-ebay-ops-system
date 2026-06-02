@@ -2,9 +2,63 @@
 
 This file tracks active issues, monitor items, and deferred decisions for Midnight Blue Operations Platform (MBOP).
 
-Last reviewed: 2026-05-27
+Last reviewed: 2026-06-02
 
 # Active Issues
+
+## Amazon Orders And Inventory Missing Data
+
+Status: ACTIVE
+
+Problem:
+Amazon Sales Orders and Amazon inventory are now substantially backfilled, but
+the operating dataset still has a small set of missing order profitability data
+and a larger inventory-confidence queue.
+
+Current observed counts as of 2026-06-02:
+- 159 Amazon sales profitability rows are still `missing_cogs`.
+- 32 Amazon sales profitability rows are still stored as `missing_fees`; the UI
+  displays unfulfilled rows as `Pending` and no-charge rows as `Replacement`
+  where the API can identify those cases.
+- 0 Amazon sales profitability rows are currently
+  `missing_fulfillment_cost`.
+- 454 inventory reconciliation findings remain open:
+  - 253 `amazon_unknown_to_mbop`
+  - 126 `amazon_stranded_or_suppressed`
+  - 42 `quantity_mismatch`
+  - 18 `amazon_reserved`
+  - 8 `amazon_unsellable`
+  - 7 `amazon_inbound_discrepancy`
+
+Impact:
+- Sales Orders profitability is not fully complete until remaining COGS and
+  fee exceptions are resolved or classified.
+- Inventory value and tax-close confidence depends on resolving or explicitly
+  classifying remaining open reconciliation findings.
+
+Current mitigation:
+- Amazon order sync/backfill is limited to the 2025-forward operating window.
+- eBay and non-eBay FIFO allocators have been run after the 2025 Amazon order
+  backfill.
+- `exports/missing_amazon_cogs_review.csv` is the current review artifact for
+  remaining COGS exceptions.
+- `integrations/inventory_source_balance_audit.py` provides a secondary
+  purchase-source balance control and should be rerun after COGS/import fixes.
+- Reconciliation findings are treated as investigation prompts; corrections
+  should route through the owning workflow instead of editing derived
+  reconciliation rows.
+
+Recommended next mitigation:
+- Continue filling missing purchase-source data for Amazon sales COGS,
+  prioritizing non-game/eBay rows and quantity-short ASINs.
+- Re-run eBay/non-eBay FIFO allocators after adding purchase source records.
+- Re-run inventory reconciliation and Inventory Source Balance Audit after each
+  meaningful COGS/import correction batch.
+- Split future Amazon-side cleanup into first-class workflows for removals and
+  inventory discrepancies instead of treating normal reserved/inbound movement
+  as purchase cleanup.
+
+---
 
 ## Remaining Item Data Completeness Gaps
 

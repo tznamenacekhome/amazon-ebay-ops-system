@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { RefreshCw } from "lucide-react";
 import { runOnDemandRefresh, type RefreshNotice } from "../syncRefresh";
+import { DataFreshness } from "../DataFreshness";
 
 type ReconciliationFinding = {
   id: string;
@@ -37,6 +38,7 @@ export default function InventoryReconciliationPage() {
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [refreshNotice, setRefreshNotice] = useState<RefreshNotice | null>(null);
+  const [freshnessKey, setFreshnessKey] = useState(0);
 
   useEffect(() => {
     loadReconciliation();
@@ -66,6 +68,7 @@ export default function InventoryReconciliationPage() {
       setError(err instanceof Error ? err.message : "Refresh failed.");
     } finally {
       setRefreshing(false);
+      setFreshnessKey((current) => current + 1);
     }
   }
 
@@ -82,15 +85,18 @@ export default function InventoryReconciliationPage() {
             Treat these as investigation prompts: confirm the source snapshot, then correct workflow state, mapping, or external inventory as appropriate.
           </p>
         </div>
-        <button
-          onClick={refreshReconciliation}
-          disabled={refreshing}
-          className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium shadow-sm hover:bg-slate-50"
-          type="button"
-        >
-          <RefreshCw className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
-          {refreshing ? "Refreshing" : "Refresh"}
-        </button>
+        <div className="flex flex-wrap items-center justify-end gap-3">
+          <DataFreshness screen="inventory-reconciliation" refreshKey={freshnessKey} />
+          <button
+            onClick={refreshReconciliation}
+            disabled={refreshing}
+            className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium shadow-sm hover:bg-slate-50"
+            type="button"
+          >
+            <RefreshCw className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
+            {refreshing ? "Refreshing" : "Refresh"}
+          </button>
+        </div>
       </div>
 
       {refreshNotice && (

@@ -1,6 +1,6 @@
 # CURRENT_STATE.md
 
-Last Updated: 2026-05-31
+Last Updated: 2026-06-02
 
 # Midnight Blue Operations Platform (MBOP)
 
@@ -24,7 +24,7 @@ MBOP is the internal operations platform for Midnight Blue Enterprises, LLC.
 | Unified inventory state / reconciliation | First slice implemented |
 | Amazon FBA workflow | First slice implemented |
 | Aged Amazon Inventory Repricing Advisor | First slice implemented |
-| Amazon Sales Orders | First slice implemented / backfill in progress |
+| Amazon Sales Orders | First slice implemented / 2025-forward backfill complete |
 | Non-eBay purchase COGS sources | Manual import bridge implemented |
 | Legacy spreadsheet backfill | Recently used / repeatable script available |
 
@@ -70,6 +70,9 @@ Implemented:
 - pre-2025 Amazon sales orders imported by recent Amazon LastUpdated activity are excluded from the UI/API and have cleanup SQL in `sql/2026-05-31_remove_pre_2025_amazon_sales_orders.sql`
 - `integrations/apply_ebay_purchase_fifo_cogs.py` allocates costed eBay
   `purchase_items` into `amazon_sales_cogs_consumption` by ASIN and FIFO order
+- `integrations/apply_non_ebay_fifo_cogs.py` allocates and can rebalance TIM,
+  prep-center, Merchant Fulfilled, and other non-eBay source rows into Amazon
+  sales/current inventory COGS layers
 
 Backfill:
 - 2026 Amazon sales history backfill completed through May except the current-day edge chunk rejected by Amazon's CreatedBefore freshness rule
@@ -84,16 +87,19 @@ COGS state:
   109 additional sales rows
 - eBay purchase FIFO COGS allocation was run after the 2025 backfill and
   applied 2,123 additional sales rows / 2,127 consumption rows
-- Amazon sales profitability now has 3,532 complete rows and 500 remaining
-  `missing_cogs` rows
+- Amazon sales profitability currently has 3,873 complete rows and 159
+  remaining `missing_cogs` rows
+- Amazon sales profitability currently has 32 stored `missing_fees` rows and 0
+  `missing_fulfillment_cost` rows
 
 Manual review export:
 - latest missing COGS review export: `exports/missing_amazon_cogs_review.csv`
-- latest remaining missing COGS review has 500 rows:
-  - 285 no purchase source found
-  - 111 non-eBay purchase source exists and needs review
-  - 54 eBay purchase source exists and needs review
-  - 50 purchase source is after sale date or already consumed
+- rerun the export after each purchase-source correction and FIFO allocator run
+
+Known remaining cleanup:
+- fill or explicitly classify remaining Amazon Sales Orders missing COGS/fees
+- resolve or classify open Amazon inventory reconciliation findings
+- rerun Inventory Source Balance Audit after meaningful COGS/import fixes
 
 ---
 
@@ -140,6 +146,10 @@ Implemented:
 - local AM/PM Windows scheduled tasks were recreated after the repo moved out of OneDrive
 - individual script failures are collected and reported without preventing later independent syncs from running
 - scheduled Keepa enrichment is capped to 10 stale active-Amazon ASINs, uses stock/offers without history, and skips calls unless at least 100 Keepa tokens are available
+- MBOP screens show a screen-specific `Last updated` timestamp near refresh
+  controls using `/api/screen-data-freshness`
+- Dashboard freshness uses the oldest required cash/value input so stale Amazon
+  Finance, YNAB, or business value snapshots are visible
 
 Recent validation:
 - direct all-sync execution completed successfully with exit code 0 after adding Amazon FBA inventory throttling safeguards

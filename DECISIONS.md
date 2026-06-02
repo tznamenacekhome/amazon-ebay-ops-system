@@ -173,6 +173,33 @@ Do not reintroduce full-table client-side filtering or sorting for the purchases
 
 ---
 
+## Screen Data Freshness Is Backend-Owned
+
+Decision:
+MBOP screens show screen-specific `Last updated` timestamps near refresh
+controls, and those timestamps are provided by API routes rather than frontend
+Supabase queries.
+
+Reason:
+Different screens are fresh for different reasons. A single page load time or
+the newest related sync can be misleading, especially on Dashboard where a fresh
+inventory reconciliation can hide stale Amazon or YNAB cash data.
+
+Implementation:
+- `/api/screen-data-freshness` reads lightweight timestamp signals from source
+  tables and local sync files.
+- `web/app/DataFreshness.tsx` renders the shared indicator.
+- most screens show the newest relevant source timestamp.
+- Dashboard shows the oldest required cash/value input across business value,
+  Amazon Finance, and YNAB cash snapshots.
+
+Rule:
+Do not show browser reload time as business data freshness. When a screen's data
+dependencies change, update `/api/screen-data-freshness` with the relevant
+backend-owned source signals.
+
+---
+
 ## Purchase Item Status Is Backend-Owned
 
 Decision:
