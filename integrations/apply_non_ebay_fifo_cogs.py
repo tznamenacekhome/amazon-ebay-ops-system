@@ -56,14 +56,20 @@ def main() -> int:
     try:
         supabase = get_supabase_client()
         lots = fetch_source_lots(supabase)
+        selected_asins = selected_asin_set(args.asin)
+        if selected_asins:
+            lots = [lot for lot in lots if lot.asin in selected_asins]
         pools = build_pools(lots)
-        deduct_existing_sales_consumption(supabase, pools)
+        if not args.rebalance_existing:
+            deduct_existing_sales_consumption(supabase, pools)
         deduct_source_adjustments(supabase, pools)
 
         sales_plan = build_sales_plan(
             supabase,
             pools,
             reserve_source_date=args.shipment_source_date,
+            rebalance_existing=args.rebalance_existing,
+            selected_asins=selected_asins,
         )
         inventory_plan = build_inventory_plan(
             supabase,
@@ -97,6 +103,20 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--apply", action="store_true", help="Write allocations.")
     parser.add_argument(
+        "--asin",
+        action="append",
+        help=(
+            "Limit allocation to one ASIN. Can be passed multiple times. When used "
+            "with --rebalance-existing, existing non-eBay FIFO rows for the ASIN are "
+            "reset and reallocated in sale-date order."
+        ),
+    )
+    parser.add_argument(
+        "--rebalance-existing",
+        action="store_true",
+        help="Reset existing non-eBay FIFO COGS for selected --asin values before planning.",
+    )
+    parser.add_argument(
         "--shipment-source-date",
         type=parse_date,
         default=DEFAULT_SHIPMENT_SOURCE_DATE,
@@ -108,6 +128,10 @@ def parse_args() -> argparse.Namespace:
         help="FBA shipment ID for the reserved source order date.",
     )
     return parser.parse_args()
+
+
+def selected_asin_set(values: list[str] | None) -> set[str]:
+    return {clean_asin(value) for value in values or [] if clean_asin(value)}
 
 
 def get_supabase_client():
@@ -248,6 +272,8 @@ def build_sales_plan(
     pools: dict[str, list[SourceLot]],
     *,
     reserve_source_date: date,
+    rebalance_existing: bool,
+    selected_asins: set[str],
 ) -> dict[str, list[dict[str, Any]]]:
     profit_rows = fetch_all(
         supabase,
@@ -264,14 +290,27 @@ def build_sales_plan(
     orders_by_id = {row["amazon_order_id"]: row for row in order_rows}
     source_asins = set(pools)
 
-    candidates = [
-        row
-        for row in profit_rows
-        if clean_asin(row.get("asin")) in source_asins
-        and int(row.get("quantity") or 0) > 0
-        and (row.get("cogs") is None or row.get("cogs_source") == "missing")
-        and row.get("data_status") == "missing_cogs"
-    ]
+    candidates = []
+    for row in profit_rows:
+        asin = clean_asin(row.get("asin"))
+        if asin not in source_asins:
+            continue
+        if selected_asins and asin not in selected_asins:
+            continue
+        if int(row.get("quantity") or 0) <= 0:
+            continue
+        is_missing_cogs = (
+            (row.get("cogs") is None or row.get("cogs_source") == "missing")
+            and row.get("data_status") == "missing_cogs"
+        )
+        is_rebalance_candidate = (
+            rebalance_existing
+            and selected_asins
+            and row.get("data_status") == "complete"
+            and row.get("cogs_source") == "mbop_fifo"
+        )
+        if is_missing_cogs or is_rebalance_candidate:
+            candidates.append(row)
     candidates.sort(
         key=lambda row: (
             orders_by_id.get(row["amazon_order_id"], {}).get("purchase_date") or "",
