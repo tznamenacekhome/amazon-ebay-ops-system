@@ -134,14 +134,24 @@ export function PurchaseProblemTable({
                     </td>
                     <td className="px-2 py-2">
                       {row.supplier_order_id ? (
-                        <a
-                          href={ebayOrderUrl(row.supplier_order_id)}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="text-blue-700 hover:underline"
-                        >
-                          {row.supplier_order_id}
-                        </a>
+                        <div>
+                          <button
+                            type="button"
+                            onClick={() => onSelectRow(row)}
+                            className="text-left font-medium text-blue-700 hover:underline"
+                            title="Open MBOP case details"
+                          >
+                            {row.supplier_order_id}
+                          </button>
+                          <a
+                            href={ebayOrderUrl(row.supplier_order_id)}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="mt-1 block text-xs text-slate-500 hover:text-blue-700 hover:underline"
+                          >
+                            eBay order
+                          </a>
+                        </div>
                       ) : (
                         <span className="text-slate-400">--</span>
                       )}
@@ -173,15 +183,15 @@ export function PurchaseProblemTable({
                       ) : null}
                     </td>
                     <td className="px-2 py-2">
-                      <div>{ebayStatus || "--"}</div>
+                      <div>{ebayStatus || ebaySyncFallback(row.problem_source)}</div>
                       {row.ebay_return_id || row.ebay_case_id || row.ebay_inquiry_id ? (
                         <div className="text-xs text-slate-500">
                           {[row.ebay_return_id, row.ebay_case_id, row.ebay_inquiry_id].filter(Boolean).join(" / ")}
                         </div>
                       ) : null}
                     </td>
-                    <td className="px-2 py-2 text-right">{formatMoney(row.expected_refund_amount)}</td>
-                    <td className="px-2 py-2 text-right">{formatMoney(row.actual_refund_amount)}</td>
+                    <td className="px-2 py-2 text-right">{formatMoney(row.expected_refund_amount) || "--"}</td>
+                    <td className="px-2 py-2 text-right">{formatMoney(row.actual_refund_amount) || "--"}</td>
                     <td className="px-2 py-2">
                       <div className="break-all">{row.replacement_tracking_number || row.tracking_number || "--"}</div>
                       <div className="text-xs text-slate-500">{formatDate(row.estimated_delivery_date)}</div>
@@ -294,6 +304,13 @@ function sourceLabel(value?: string | null) {
     ebay_cancellation_sync: "eBay cancellation",
   };
   return labels[value || ""] || titleCase(value || "");
+}
+
+function ebaySyncFallback(value?: string | null) {
+  if (value === "ebay_return_sync" || value === "ebay_inquiry_sync" || value === "ebay_cancellation_sync") {
+    return "--";
+  }
+  return "Not synced";
 }
 
 function ageDays(value?: string | null) {
