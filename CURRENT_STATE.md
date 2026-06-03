@@ -169,6 +169,8 @@ Status: LOCAL SCHEDULER CONFIGURED / BROAD INTEGRATION AUTOMATION ENABLED
 
 Implemented:
 - `run_all_syncs.py` runs eBay buyer purchase sync, EasyPost shipment sync, RevSeller enrichment, Amazon FBA inventory, Amazon listing status, Amazon inventory planning, Amazon Finance, Informed Repricer reports, YNAB Business cash balance, guarded Keepa enrichment, and the daily business value snapshot
+- `run_all_syncs.py` also stores YNAB Business-category transaction history
+  daily for future P&L, Schedule C, and cash reconciliation features
 - `run_all_syncs.bat` targets the repo at `C:\Dev\amazon-ebay-ops-system`
 - scheduler output is appended to `logs/scheduler.log`
 - local AM/PM Windows scheduled tasks were recreated after the repo moved out of OneDrive
@@ -195,6 +197,8 @@ Recent validation:
 - Amazon Finance sync inserted a balance snapshot
 - Informed report sync inserted 968 listing snapshots
 - YNAB Business balance sync inserted a $3,231.24 snapshot
+- YNAB Business transaction sync backfilled 1,225 Business-category
+  transactions from 2026-01-01 forward
 - scheduled Keepa run selected 1 stale active-Amazon ASIN, inserted 1 snapshot, and spent 5 tokens
 - business value snapshot upserted the 2026-05-27 daily value
 

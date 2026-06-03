@@ -134,6 +134,26 @@ Next steps:
 
 ---
 
+## Business Financial Reporting
+
+Goal:
+Build MBOP-owned reporting for business P&L, Schedule C support, and cash
+reconciliation using YNAB Business transactions plus Amazon/eBay financial data.
+
+Foundation:
+- `ynab_business_transactions` stores YNAB transactions categorized as Business.
+- The initial backfill starts at 2026-01-01.
+- The daily scheduler refreshes the YNAB Business transaction copy once per day.
+
+Next steps:
+- classify YNAB Business transactions into tax/reporting categories.
+- reconcile Amazon payout groups to YNAB deposit transactions to remove the
+  current payout bridge heuristic.
+- combine YNAB expense/cash records with Amazon and eBay sales/fee data for P&L.
+- design Schedule C reporting views after category mapping is reviewed.
+
+---
+
 ## Purchases ASIN Review Workflow
 
 Goals:

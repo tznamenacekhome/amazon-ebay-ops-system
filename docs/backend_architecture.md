@@ -26,7 +26,8 @@ separate domains.
 - Amazon SP-API snapshot tables own read-only Amazon inventory, listing, planning, and finance data.
 - Keepa tables own read-only catalog, offer, price-history, sales-rank, and competition intelligence.
 - Informed tables own read-only repricer report snapshots and advisory rule/price context.
-- YNAB tables own read-only category balance snapshots.
+- YNAB tables own read-only category balance snapshots and Business-category
+  transaction history.
 - `inventory_positions` and reconciliation tables are derived and rebuildable; they do not replace workflow ownership.
 
 ## Integration Orchestration
@@ -40,8 +41,9 @@ twice per day.
   inventory reconciliation. This group is intended for 2x/day runs.
 - `daily`: Amazon FBA inventory, Amazon listing status, Amazon inventory
   planning, Amazon finance balances, 60-day Amazon sales finance refresh,
-  daily sales profitability, Informed Repricer reports, YNAB Business cash, and
-  the daily business value snapshot. This group is intended for 1x/day runs.
+  daily sales profitability, Informed Repricer reports, YNAB Business cash,
+  YNAB Business transactions, and the daily business value snapshot. This group
+  is intended for 1x/day runs.
 - `catalog`: guarded Keepa active-Amazon stale refresh. This group is
   token-aware and can run daily or less often.
 
@@ -137,7 +139,7 @@ All external API integrations are read-only unless explicitly documented otherwi
 - Amazon write endpoints, restricted PII flows, and seller order/customer PII are not used.
 - Keepa token-spending calls are never triggered by frontend page loads.
 - Informed Listings Management upload/write paths are not used.
-- YNAB data is cash/budget context only.
+- YNAB data is read-only cash/budget and transaction context only.
 
 ## Backend-Owned Business Logic
 

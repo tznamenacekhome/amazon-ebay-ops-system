@@ -177,6 +177,17 @@ JOBS: tuple[SyncJob, ...] = (
         timeout_seconds=20 * 60,
     ),
     SyncJob(
+        name="YNAB Business transactions",
+        command=static_command(
+            "integrations/ynab_sync_business_transactions.py",
+            "--since-date",
+            "2026-01-01",
+            "--apply",
+        ),
+        groups=("daily", "dashboard"),
+        timeout_seconds=30 * 60,
+    ),
+    SyncJob(
         name="Business value snapshot",
         command=static_command("integrations/business_value_snapshot.py", "--apply"),
         groups=("daily", "dashboard"),

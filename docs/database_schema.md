@@ -66,6 +66,9 @@ Keepa and Informed data are advisory intelligence only.
 - `inventorylab_active_inventory_backfill`: historical InventoryLab active-inventory cost/date context.
 - `inventorylab_inventory_valuation_snapshots`: InventoryLab valuation opening-balance snapshots for legacy Amazon FBA inventory.
 - `ynab_category_balance_snapshots`: YNAB Business category cash-balance snapshots.
+- `ynab_business_transactions`: read-only local copy of YNAB transactions
+  categorized as Business, currently backfilled from 2026-01-01 for future P&L,
+  Schedule C, and cash reconciliation features.
 - `business_value_snapshots`: daily backend-computed total business value rollups.
 
 `business_value_snapshots.raw_rollup_json.amazon_outbound_value` includes MBOP outbound FBA shipment cost plus Amazon inbound cost not already covered by a saved MBOP outbound shipment ASIN.

@@ -297,6 +297,40 @@ const JOBS: JobConfig[] = [
     },
   },
   {
+    id: "ynab-business-transactions",
+    name: "YNAB Business transactions",
+    command: "integrations/ynab_sync_business_transactions.py",
+    group: "daily",
+    blocking: true,
+    expectedEveryHours: 24,
+    criticalAfterHours: 36,
+    signal: async () => {
+      const [latestSynced, latestTransaction, countRow] = await Promise.all([
+        latestRow(
+          "ynab_business_transactions",
+          "synced_at",
+          "synced_at",
+        ),
+        latestRow(
+          "ynab_business_transactions",
+          "transaction_date",
+          "transaction_date,amount_currency,payee_name",
+        ),
+        exactCount("ynab_business_transactions", {}),
+      ]);
+
+      return {
+        lastRunAt: stringValue(latestSynced?.synced_at),
+        source: "ynab_business_transactions",
+        stats: [
+          { label: "Rows", value: formatCount(countRow) },
+          { label: "Latest txn", value: stringValue(latestTransaction?.transaction_date) || "--" },
+          { label: "Latest amount", value: formatCurrency(latestTransaction?.amount_currency) },
+        ],
+      };
+    },
+  },
+  {
     id: "keepa-products",
     name: "Keepa products",
     command: "integrations/keepa_sync_products.py",
