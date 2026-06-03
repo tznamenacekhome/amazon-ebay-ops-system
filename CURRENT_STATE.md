@@ -179,7 +179,7 @@ Implemented:
 - Dashboard freshness uses the oldest required cash/value input so stale Amazon
   Finance, YNAB, or business value snapshots are visible
 - Amazon Finance balance snapshots now keep recently completed/succeeded Amazon
-  payouts in `in_transit_to_bank` during a five-day bridge window so business
+  payouts in `in_transit_to_bank` during a two-day bridge window so business
   value does not drop between Amazon payout completion and the YNAB bank/cash
   update
 

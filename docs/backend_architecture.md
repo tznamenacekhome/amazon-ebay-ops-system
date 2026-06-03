@@ -193,6 +193,6 @@ Amazon cash valuation uses two Amazon Finance concepts:
 
 The completed-transfer bridge covers the operational gap after Amazon considers a
 payout complete but before YNAB cash on hand reflects the bank deposit. The
-bridge defaults to five days and can be overridden with
+bridge defaults to two days and can be overridden with
 `AMAZON_COMPLETED_TRANSFER_BRIDGE_DAYS` or
 `amazon_sync_finance_balances.py --completed-transfer-bridge-days`.
