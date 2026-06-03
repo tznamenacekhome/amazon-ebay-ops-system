@@ -31,6 +31,30 @@ export type PurchaseRow = {
   marketplace?: "Amazon" | "eBay" | null;
   exclude_from_purchase_reporting?: boolean | null;
   exclusion_reason?: string | null;
+  problem_case_id?: string | null;
+  problem_type?: string | null;
+  problem_source?: string | null;
+  workflow_state?: string | null;
+  problem_priority?: string | null;
+  problem_is_open?: boolean | null;
+  problem_needs_response?: boolean | null;
+  problem_next_action?: string | null;
+  problem_next_action_due_at?: string | null;
+  problem_first_detected_at?: string | null;
+  problem_last_detected_at?: string | null;
+  ebay_return_id?: string | null;
+  ebay_inquiry_id?: string | null;
+  ebay_case_id?: string | null;
+  ebay_return_state?: string | null;
+  ebay_return_status?: string | null;
+  ebay_current_type?: string | null;
+  ebay_action_url?: string | null;
+  expected_refund_amount?: number | null;
+  actual_refund_amount?: number | null;
+  partial_refund_amount?: number | null;
+  refund_currency?: string | null;
+  replacement_tracking_number?: string | null;
+  problem_notes?: string | null;
 };
 
 export type PurchaseStats = {
@@ -64,6 +88,7 @@ export type PurchaseQuery = {
   sortDirection: PurchaseSortDirection;
   page: number;
   pageSize: number;
+  problemStage?: string;
 };
 
 export type PurchasesApiResponse = {

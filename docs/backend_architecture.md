@@ -12,10 +12,15 @@ Supabase is the operational source of truth. The frontend never talks directly t
 
 ## Ownership Boundaries
 
-Purchases, receiving, Amazon FBA shipment prep, inventory reconciliation, repricing advice, and external intelligence are separate domains.
+Purchases, receiving, order problems/returns, Amazon FBA shipment prep,
+inventory reconciliation, repricing advice, and external intelligence are
+separate domains.
 
 - `purchases` and `purchase_items` own acquired eBay buyer purchase inventory.
 - Receiving owns physical verification, received quantities, return-pending decisions, marketplace assignment, received dates, and the transition to `received`.
+- Order Problems owns return/refund follow-up, eBay return/case metadata,
+  cancelled-refund follow-up, missing-item/replacement follow-up, and local
+  operator action history in `order_problem_cases` and `order_problem_events`.
 - Amazon FBA shipment prep owns grouping received Amazon-bound items for export, shipment ID assignment, and moving included units to `listed`.
 - Non-historical FBA shipment item links remain workflow-owned by FBA prep and are projected into inventory value as outbound to Amazon.
 - Amazon SP-API snapshot tables own read-only Amazon inventory, listing, planning, and finance data.
@@ -40,8 +45,10 @@ twice per day.
 - `catalog`: guarded Keepa active-Amazon stale refresh. This group is
   token-aware and can run daily or less often.
 
-The eBay supplier returns sync is intentionally disabled while the returns
-feature is redesigned.
+The legacy eBay supplier returns sync is intentionally disabled. The new Order
+Problems return workflow uses `integrations/ebay_sync_order_problem_returns.py`
+as a read-only eBay Post-Order importer, but it should be validated against live
+return data before being added to scheduled groups.
 
 `integrations/inventory_source_balance_audit.py` is a secondary control, not a
 freshness sync. It should run after FIFO allocator runs, after large purchase or
@@ -68,6 +75,11 @@ timestamp for that screen. Dashboard is stricter: because Business Inventory And
 Cash Value depends on multiple cash/value inputs, its freshness indicator shows
 the oldest of the required business value, Amazon cash, and YNAB cash snapshots
 so a fresh reconciliation run cannot hide stale cash data.
+
+Purchases freshness includes eBay purchase import batches, tracking updates,
+Order Problems case/event updates, and RevSeller enrichment diagnostics because
+the Purchases workspace now contains both the editable purchases table and the
+Order Problems queue.
 
 Roadmap:
 
@@ -102,6 +114,9 @@ Roadmap:
 - Continue Amazon order and inventory missing-data cleanup until remaining
   Sales Orders COGS/fee exceptions and open inventory reconciliation findings
   are either resolved or explicitly classified.
+- Extend Order Problems return handling with full case/event drawer timelines,
+  live validation of the read-only eBay Post-Order sync, and controlled partial
+  refund cost adjustment when the item is kept.
 - Add an Amazon FBA removals workflow for damaged/unsellable units that Amazon
   automatically returns. The workflow should track removal orders, receiving
   returned units, deciding whether they are still new/sellable, and routing good

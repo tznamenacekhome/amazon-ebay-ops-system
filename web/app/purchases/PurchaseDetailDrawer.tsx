@@ -1,4 +1,5 @@
-import { Plus, RotateCcw, Save, X } from "lucide-react";
+import { ExternalLink, Plus, RotateCcw, Save, X } from "lucide-react";
+import { useState } from "react";
 
 import { SYSTEM_OPTIONS } from "./systemOptions";
 import type { PurchaseRow } from "./types";
@@ -29,6 +30,7 @@ type PurchaseDetailDrawerProps = {
   onSystemChange: (value: string) => void;
   onAddSplitItem: () => void;
   onMarkReturnPending: () => void;
+  onProblemAction?: (action: string, payload?: { notes?: string; amount?: number | null; tracking_number?: string | null }) => void;
   onSave: () => void;
   onClose: () => void;
 };
@@ -50,13 +52,30 @@ export function PurchaseDetailDrawer({
   onSystemChange,
   onAddSplitItem,
   onMarkReturnPending,
+  onProblemAction,
   onSave,
   onClose,
 }: PurchaseDetailDrawerProps) {
+  const [problemNotes, setProblemNotes] = useState("");
+  const [problemAmount, setProblemAmount] = useState("");
+  const [problemTracking, setProblemTracking] = useState("");
   const operationalStatus = getOperationalStatus(row);
   const displayAmazonTitle = row.asin ? drawerAmazonTitle || row.amazon_title || "--" : "--";
   const isSaving = savingKey === rowKey(row);
   const isReturnPending = operationalStatus.value === "return_pending";
+  const hasProblemCase = Boolean(row.problem_case_id);
+
+  function runProblemAction(action: string) {
+    const amount = problemAmount.trim() === "" ? null : Number(problemAmount);
+    onProblemAction?.(action, {
+      notes: problemNotes,
+      amount: Number.isFinite(amount) ? amount : null,
+      tracking_number: problemTracking,
+    });
+    setProblemNotes("");
+    setProblemAmount("");
+    setProblemTracking("");
+  }
 
   return (
     <div className="fixed inset-0 z-40">
@@ -103,6 +122,78 @@ export function PurchaseDetailDrawer({
               </>
             )}
           </section>
+
+          {hasProblemCase && (
+            <section className="rounded-xl border border-amber-200 bg-amber-50/50 p-4">
+              <div className="mb-3">
+                <div className="text-xs uppercase tracking-wide text-amber-700">
+                  Order Problem Workflow
+                </div>
+                <div className="mt-1 text-sm text-slate-700">
+                  {workflowStateLabel(row.workflow_state)} / {problemTypeLabel(row.problem_type)}
+                </div>
+                {row.problem_next_action && (
+                  <div className="mt-1 text-sm font-medium text-slate-900">
+                    {row.problem_next_action}
+                  </div>
+                )}
+                {row.ebay_action_url && (
+                  <a
+                    href={row.ebay_action_url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="mt-2 inline-flex items-center gap-1 text-sm font-medium text-blue-700 hover:underline"
+                  >
+                    <ExternalLink className="h-4 w-4" />
+                    Open eBay action
+                  </a>
+                )}
+              </div>
+
+              <div className="grid gap-2">
+                <textarea
+                  value={problemNotes}
+                  onChange={(event) => setProblemNotes(event.target.value)}
+                  className="min-h-16 rounded-lg border border-amber-200 bg-white px-3 py-2 text-sm"
+                  placeholder="Optional workflow note"
+                />
+                <div className="grid grid-cols-2 gap-2">
+                  <CurrencyInput value={problemAmount} onChange={setProblemAmount} />
+                  <input
+                    value={problemTracking}
+                    onChange={(event) => setProblemTracking(event.target.value)}
+                    className="rounded-lg border border-amber-200 bg-white px-3 py-2 text-sm"
+                    placeholder="Return/replacement tracking"
+                  />
+                </div>
+              </div>
+
+              <div className="mt-3 grid grid-cols-2 gap-2">
+                <WorkflowButton label="Return Needed" onClick={() => runProblemAction("mark_return_needed")} />
+                <WorkflowButton label="Return Opened" onClick={() => runProblemAction("mark_return_opened")} />
+                <WorkflowButton label="Seller Messaged" onClick={() => runProblemAction("mark_seller_messaged")} />
+                <WorkflowButton label="I Responded" onClick={() => runProblemAction("mark_operator_responded")} />
+                <WorkflowButton label="Partial Offered" onClick={() => runProblemAction("mark_partial_refund_offered")} />
+                <WorkflowButton label="Partial Accepted" onClick={() => runProblemAction("mark_partial_refund_accepted")} />
+                <WorkflowButton label="Label Available" onClick={() => runProblemAction("mark_label_available")} />
+                <WorkflowButton label="Return Shipped" onClick={() => runProblemAction("mark_return_shipped")} />
+                <WorkflowButton label="Seller Received" onClick={() => runProblemAction("mark_seller_received_return")} />
+                <WorkflowButton label="Refund Pending" onClick={() => runProblemAction("mark_refund_pending")} />
+                <WorkflowButton label="Refund Received" onClick={() => runProblemAction("mark_refund_received")} />
+                <WorkflowButton label="Missing Pending" onClick={() => runProblemAction("mark_missing_item_pending")} />
+                <WorkflowButton label="Missing Received" onClick={() => runProblemAction("mark_missing_item_received")} />
+                <WorkflowButton label="Escalation Available" onClick={() => runProblemAction("mark_escalation_available")} />
+                <WorkflowButton label="Escalated" onClick={() => runProblemAction("mark_escalated")} />
+                <WorkflowButton label="Close" onClick={() => runProblemAction("close_resolve")} />
+              </div>
+
+              {row.problem_notes && (
+                <div className="mt-3 whitespace-pre-wrap rounded-lg bg-white p-3 text-sm text-slate-700">
+                  {row.problem_notes}
+                </div>
+              )}
+            </section>
+          )}
 
           <section className="rounded-xl border border-slate-200 p-4">
             <div className="grid gap-3">
@@ -229,6 +320,24 @@ export function PurchaseDetailDrawer({
   );
 }
 
+function WorkflowButton({
+  label,
+  onClick,
+}: {
+  label: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="rounded-lg border border-amber-300 bg-white px-2 py-2 text-xs font-medium text-slate-700 hover:bg-amber-100"
+    >
+      {label}
+    </button>
+  );
+}
+
 function CurrencyInput({
   value,
   onChange,
@@ -268,4 +377,30 @@ function Detail({
       <div className="mt-1 font-medium text-slate-800">{value || "--"}</div>
     </div>
   );
+}
+
+function workflowStateLabel(value?: string | null) {
+  return titleCase(value || "unknown");
+}
+
+function problemTypeLabel(value?: string | null) {
+  const labels: Record<string, string> = {
+    late_delivery_candidate: "Late Delivery Candidate",
+    stale_tracking_candidate: "Stale Tracking Candidate",
+    carrier_exception_candidate: "Carrier Exception Candidate",
+    return_needed: "Return Needed",
+    not_as_listed: "Wrong Item / Not as Listed",
+    buyer_choice: "Changed Plan / Return Anyway",
+    missing_items: "Missing Item / Incomplete Order",
+    cancelled_refund_followup: "Cancelled / Refund Follow-Up",
+  };
+  return labels[value || ""] || titleCase(value || "Unknown");
+}
+
+function titleCase(value: string) {
+  return value
+    .split("_")
+    .filter(Boolean)
+    .map((part) => `${part.charAt(0).toUpperCase()}${part.slice(1)}`)
+    .join(" ");
 }

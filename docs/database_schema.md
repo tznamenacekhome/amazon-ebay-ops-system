@@ -22,6 +22,18 @@ Receiving state is stored on `purchase_items`; shipment prep links included quan
 
 Current non-historical `fba_shipment_items` links are projected into `inventory_positions.inventory_state = outbound_to_amazon` for inventory valuation. Historical links using `legacy_listed_no_shipment_id` remain historical markers and are not valued as current outbound inventory.
 
+## Order Problems And Return Workflow
+
+- `order_problem_cases`: persistent workflow cases for purchase-item problems,
+  including late/stale shipment candidates, return-needed items, eBay return/case
+  metadata, cancelled/refund follow-up, missing-item/replacement follow-up, local
+  workflow state, refund amounts, replacement tracking, notes, and raw eBay JSON.
+- `order_problem_events`: append-only timeline for system, operator, eBay API,
+  and tracking events tied to an order problem case.
+
+There is at most one open `order_problem_cases` row per purchase item. Resolved
+history remains queryable through closed case rows and the event timeline.
+
 ## Amazon Snapshot Tables
 
 - `amazon_skus`: seller SKU/MSKU traceability, ASIN, FNSKU, listing/pricing fields, and raw listing/pricing payloads.
@@ -66,6 +78,9 @@ Inventory reconciliation tables are derived and additive. Workflow corrections m
   to display screen-specific `Last updated` timestamps near refresh controls.
   The route reads lightweight timestamp signals from source tables and local
   sync files; it does not create schema objects.
+- `/api/order-problems`: backend-owned unified problem/return queue with
+  candidate detection, stage filtering, sorting, pagination, and summary counts.
+- `/api/order-problems/[id]/actions`: MBOP-local order-problem workflow actions.
 
 ## Important Views
 

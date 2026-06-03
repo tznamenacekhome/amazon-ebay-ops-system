@@ -27,6 +27,7 @@ MBOP is the internal operations platform for Midnight Blue Enterprises, LLC.
 | Amazon Sales Orders | First slice implemented / 2025-forward backfill complete |
 | Non-eBay purchase COGS sources | Manual import bridge implemented |
 | Legacy spreadsheet backfill | Recently used / repeatable script available |
+| Order Problems / eBay Returns | First slice implemented / eBay read-only |
 
 ---
 
@@ -135,12 +136,39 @@ Recent cleanup:
 
 ---
 
+## Order Problems And eBay Returns
+
+Status: FIRST SLICE IMPLEMENTED / READ-ONLY EBAY
+
+Implemented:
+- legacy supplier return workflow rows were cleared through `sql/2026-06-02_add_order_problem_return_workflow.sql` without downgrading `purchase_items.current_status`
+- `order_problem_cases` stores one open workflow case per purchase item for late/stale shipment candidates, return-needed items, eBay return/case follow-up, cancelled/refund follow-up, missing-item/replacement follow-up, and manual resolution
+- `order_problem_events` stores an append-only timeline for system, operator, eBay API, and tracking events
+- `/api/order-problems` owns candidate detection, open/resolved stage filtering, pagination, sorting, and summary counts
+- `/api/order-problems/[id]/actions` supports MBOP-local workflow actions such as Mark Return Needed, Mark Return Opened, Mark Label Available, Mark Return Shipped, Mark Refund Received, Mark Missing Item Received, Mark Escalated, and Close / Resolve
+- Purchases -> Order Problems is now the unified queue for delivery candidates and return/refund follow-up, with dense stage chips and operational columns
+- the purchase detail drawer shows the order-problem workflow panel, eBay status/action link when available, refund fields, replacement tracking, notes, and local action buttons
+- `integrations/ebay_sync_order_problem_returns.py` is a read-only eBay Post-Order returns importer that writes only to `order_problem_cases` and `order_problem_events`
+- `/api/screen-data-freshness` includes order-problem case/event timestamps in the Purchases freshness signal
+
+Safety:
+- MBOP does not create eBay returns, send messages, accept offers, escalate cases, issue refunds, or upload files
+- the old `integrations/ebay_sync_supplier_returns.py` remains disabled in `run_all_syncs.py`
+- current eBay return actions are performed manually on ebay.com, with MBOP storing local workflow state and links
+
+Known follow-up:
+- add dedicated case/event detail API routes if the drawer needs full timelines beyond the current row fields
+- validate the new read-only eBay returns sync against live Post-Order API data before scheduling it
+- decide how accepted partial refunds should adjust purchase cost when the item is kept
+
+---
+
 ## Sync Orchestration
 
 Status: LOCAL SCHEDULER CONFIGURED / BROAD INTEGRATION AUTOMATION ENABLED
 
 Implemented:
-- `run_all_syncs.py` runs eBay buyer purchase sync, EasyPost shipment sync, eBay supplier returns sync, RevSeller enrichment, Amazon FBA inventory, Amazon listing status, Amazon inventory planning, Amazon Finance, Informed Repricer reports, YNAB Business cash balance, guarded Keepa enrichment, and the daily business value snapshot
+- `run_all_syncs.py` runs eBay buyer purchase sync, EasyPost shipment sync, RevSeller enrichment, Amazon FBA inventory, Amazon listing status, Amazon inventory planning, Amazon Finance, Informed Repricer reports, YNAB Business cash balance, guarded Keepa enrichment, and the daily business value snapshot
 - `run_all_syncs.bat` targets the repo at `C:\Dev\amazon-ebay-ops-system`
 - scheduler output is appended to `logs/scheduler.log`
 - local AM/PM Windows scheduled tasks were recreated after the repo moved out of OneDrive
@@ -155,7 +183,7 @@ Recent validation:
 - direct all-sync execution completed successfully with exit code 0 after adding Amazon FBA inventory throttling safeguards
 - eBay buyer purchase sync retrieved 652 orders and updated 31
 - EasyPost sync processed/reused 103 shipment trackers with 2 FedEx credential errors remaining
-- eBay supplier returns sync updated 7 returns
+- legacy eBay supplier returns sync remains disabled pending validation of the new Order Problems return sync
 - RevSeller sync completed and wrote diagnostics
 - Amazon FBA inventory sync fetched 6,292 summaries, upserted 6,292 SKUs, and inserted 6,292 snapshots
 - Amazon listing-status sync inserted 296 active listing snapshots

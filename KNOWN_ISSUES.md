@@ -306,7 +306,9 @@ The repo moved from a OneDrive path to `C:\Dev\amazon-ebay-ops-system`, so the l
 
 Current mitigation:
 - `run_all_syncs.bat` runs successfully when launched directly from the repo.
-- `run_all_syncs.py` now includes eBay buyer purchase sync, EasyPost shipment sync, supplier returns sync, RevSeller enrichment, Amazon FBA inventory, Amazon listing status, Amazon inventory planning, Amazon Finance, Informed reports, YNAB cash balance, guarded Keepa refresh, and business value snapshot.
+- `run_all_syncs.py` now includes eBay buyer purchase sync, EasyPost shipment sync, RevSeller enrichment, Amazon FBA inventory, Amazon listing status, Amazon inventory planning, Amazon Finance, Informed reports, YNAB cash balance, guarded Keepa refresh, and business value snapshot.
+- legacy supplier returns sync remains disabled while the new Order Problems
+  return sync is validated.
 - direct full-orchestrator validation completed with exit code 0.
 - the stale OneDrive working-directory problem has been replaced by AM/PM scheduled tasks that target the `C:\Dev` path.
 
@@ -314,6 +316,34 @@ Recommended guardrail:
 - confirm both scheduled tasks append successful runs to `logs/scheduler.log`.
 - use the root scheduled-task path when manually triggering, for example `schtasks /Run /TN "\Amazon eBay Ops Sync PM"`.
 - keep public EasyPost webhooks on the roadmap so the scheduler is not the only long-term carrier-update mechanism.
+
+---
+
+## Order Problems eBay Return Sync Needs Live Validation
+
+Status: ACTIVE / NEW WORKFLOW
+
+Problem:
+The new Order Problems workflow has a read-only eBay Post-Order return sync, but
+it has not yet been validated against live eBay return/case data or scheduled.
+
+Risk:
+Operator-entered local workflow state is available now, but eBay status/deadline
+automation may be incomplete until live return payloads confirm buyer-side
+Post-Order API fields and scopes.
+
+Current mitigation:
+- old supplier returns data was cleared and the legacy supplier returns sync is
+  disabled.
+- `integrations/ebay_sync_order_problem_returns.py` is read-only and writes only
+  to `order_problem_cases` and `order_problem_events`.
+- marketplace actions still happen manually on ebay.com.
+
+Recommended next mitigation:
+- run the new sync in dry-run mode against known open eBay returns.
+- inspect mapped return IDs, statuses, due dates, action URLs, refund amounts,
+  and raw JSON.
+- only add the new sync to scheduled groups after mapping is validated.
 
 ---
 

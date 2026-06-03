@@ -1,226 +1,323 @@
 "use client";
 
-import { useMemo, useState } from "react";
 import { PanelRightOpen } from "lucide-react";
 
 import type { PurchaseRow } from "./types";
 import {
   ebayOrderUrl,
   formatDate,
+  formatMoney,
   getDisplayTitleParts,
-  getOperationalStatus,
   rowKey,
 } from "./utils";
 
 type PurchaseProblemTableProps = {
   rows: PurchaseRow[];
   loading: boolean;
+  stage: string;
+  onStageChange: (stage: string) => void;
   onSelectRow: (row: PurchaseRow) => void;
 };
+
+const STAGE_FILTERS = [
+  ["open", "All Open Problems"],
+  ["candidates", "Candidates"],
+  ["return_needed", "Return Needed"],
+  ["return_opened", "Return Opened"],
+  ["needs_response", "Needs My Response"],
+  ["waiting_on_seller", "Waiting on Seller"],
+  ["ready_to_ship", "Ready to Ship Back"],
+  ["return_shipped", "Return Shipped"],
+  ["refund_pending", "Refund Pending"],
+  ["missing_item_pending", "Missing Item Pending"],
+  ["escalation_available", "Escalation Available"],
+  ["resolved", "Resolved / Closed"],
+] as const;
 
 export function PurchaseProblemTable({
   rows,
   loading,
+  stage,
+  onStageChange,
   onSelectRow,
 }: PurchaseProblemTableProps) {
-  const [issueFilter, setIssueFilter] = useState("all");
-  const rowsWithProblems = useMemo(
-    () =>
-      rows
-        .map((row) => ({ row, problem: getOrderProblem(row) }))
-        .sort((left, right) => (right.problem.ageDays ?? -1) - (left.problem.ageDays ?? -1)),
-    [rows]
-  );
-  const issueOptions = useMemo(() => {
-    const issues = new Set(rowsWithProblems.map(({ problem }) => problem.issue));
-    return Array.from(issues).sort((left, right) => left.localeCompare(right));
-  }, [rowsWithProblems]);
-  const sortedRows =
-    issueFilter === "all"
-      ? rowsWithProblems
-      : rowsWithProblems.filter(({ problem }) => problem.issue === issueFilter);
-
   return (
     <div className="rounded-xl border border-slate-200 bg-white shadow-sm">
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 bg-slate-50 px-3 py-2">
-        <div>
-          <div className="text-sm font-semibold">Order Problems</div>
+      <div className="border-b border-slate-200 bg-slate-50 px-3 py-2">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <div className="text-sm font-semibold">Order Problems</div>
+            <div className="text-xs text-slate-500">
+              Unified queue for delivery problems, return follow-up, seller responses, refunds, and missing items.
+            </div>
+          </div>
           <div className="text-xs text-slate-500">
-            Filter by issue type before working the oldest rows.
+            {rows.length.toLocaleString("en-US")} rows in current filter
           </div>
         </div>
-        <label className="flex items-center gap-2 text-sm">
-          <span className="text-slate-500">Issue</span>
-          <select
-            value={issueFilter}
-            onChange={(event) => setIssueFilter(event.target.value)}
-            className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm"
-          >
-            <option value="all">All Issues</option>
-            {issueOptions.map((issue) => (
-              <option key={issue} value={issue}>
-                {issue}
-              </option>
-            ))}
-          </select>
-        </label>
+
+        <div className="mt-3 flex flex-wrap gap-2">
+          {STAGE_FILTERS.map(([value, label]) => (
+            <button
+              key={value}
+              type="button"
+              onClick={() => onStageChange(value)}
+              className={`rounded-md px-3 py-1.5 text-xs font-medium ${
+                stage === value
+                  ? "bg-slate-900 text-white"
+                  : "border border-slate-300 bg-white text-slate-700 hover:bg-slate-100"
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
       </div>
 
       <div className="overflow-x-auto">
-        <table className="min-w-[1120px] border-collapse text-left text-sm">
-        <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
-          <tr>
-            <th className="w-[170px] px-2 py-2">Issue</th>
-            <th className="w-[70px] px-2 py-2 text-right">Age</th>
-            <th className="w-[120px] px-2 py-2">Order</th>
-            <th className="w-[430px] px-2 py-2">Item</th>
-            <th className="w-[90px] px-2 py-2">Order Date</th>
-            <th className="w-[90px] px-2 py-2">ETA</th>
-            <th className="w-[150px] px-2 py-2">Tracking</th>
-            <th className="w-[120px] px-2 py-2">Status</th>
-            <th className="w-[52px] px-2 py-2 text-center">Details</th>
-          </tr>
-        </thead>
-        <tbody>
-          {loading ? (
+        <table className="min-w-[1540px] border-collapse text-left text-sm">
+          <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
             <tr>
-              <td className="px-2 py-6 text-center text-slate-500" colSpan={9}>
-                Loading order problems...
-              </td>
+              <th className="w-[90px] px-2 py-2">Priority</th>
+              <th className="w-[150px] px-2 py-2">Problem Stage</th>
+              <th className="w-[115px] px-2 py-2">Due / Age</th>
+              <th className="w-[130px] px-2 py-2">Order ID</th>
+              <th className="w-[360px] px-2 py-2">Item</th>
+              <th className="w-[90px] px-2 py-2">System</th>
+              <th className="w-[170px] px-2 py-2">Issue Type</th>
+              <th className="w-[140px] px-2 py-2">Return Type</th>
+              <th className="w-[240px] px-2 py-2">Next Action</th>
+              <th className="w-[150px] px-2 py-2">eBay Status</th>
+              <th className="w-[110px] px-2 py-2 text-right">Expected</th>
+              <th className="w-[110px] px-2 py-2 text-right">Received</th>
+              <th className="w-[120px] px-2 py-2">Tracking / ETA</th>
+              <th className="w-[70px] px-2 py-2 text-center">Notes</th>
+              <th className="w-[52px] px-2 py-2 text-center">Details</th>
             </tr>
-          ) : sortedRows.length === 0 ? (
-            <tr>
-              <td className="px-2 py-6 text-center text-slate-500" colSpan={9}>
-                No order problems found.
-              </td>
-            </tr>
-          ) : (
-            sortedRows.map(({ row, problem }) => {
-              const { primaryTitle, ebayTitle, showEbaySubtitle } =
-                getDisplayTitleParts(row);
+          </thead>
+          <tbody>
+            {loading ? (
+              <tr>
+                <td className="px-2 py-6 text-center text-slate-500" colSpan={15}>
+                  Loading order problems...
+                </td>
+              </tr>
+            ) : rows.length === 0 ? (
+              <tr>
+                <td className="px-2 py-6 text-center text-slate-500" colSpan={15}>
+                  No order problems found.
+                </td>
+              </tr>
+            ) : (
+              rows.map((row) => {
+                const { primaryTitle, ebayTitle, showEbaySubtitle } =
+                  getDisplayTitleParts(row);
+                const ebayStatus = [row.ebay_return_state, row.ebay_return_status]
+                  .filter(Boolean)
+                  .join(" / ");
 
-              return (
-                <tr
-                  key={rowKey(row)}
-                  className="border-t border-slate-100 align-top hover:bg-slate-50"
-                >
-                  <td className="px-2 py-2">
-                    <div className="font-medium text-slate-900">{problem.issue}</div>
-                    <div className="text-xs text-slate-500">{problem.guidance}</div>
-                  </td>
-                  <td className="whitespace-nowrap px-2 py-2 text-right">
-                    {formatAge(problem.ageDays)}
-                  </td>
-                  <td className="px-2 py-2">
-                    {row.supplier_order_id ? (
-                      <a
-                        href={ebayOrderUrl(row.supplier_order_id)}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="text-blue-700 hover:underline"
-                      >
-                        {row.supplier_order_id}
-                      </a>
-                    ) : (
-                      <span className="text-slate-400">--</span>
-                    )}
-                  </td>
-                  <td className="px-2 py-2">
-                    <div className="font-medium leading-snug text-slate-900">
-                      {primaryTitle}
-                    </div>
-                    {showEbaySubtitle && (
-                      <div className="mt-1 line-clamp-2 text-xs leading-snug text-slate-500">
-                        ebay: {ebayTitle}
+                return (
+                  <tr
+                    key={row.problem_case_id || rowKey(row)}
+                    className="border-t border-slate-100 align-top hover:bg-slate-50"
+                  >
+                    <td className="px-2 py-2">
+                      <PriorityBadge value={row.problem_priority} needsResponse={row.problem_needs_response} />
+                    </td>
+                    <td className="px-2 py-2">
+                      <div className="font-medium text-slate-900">{workflowStateLabel(row.workflow_state)}</div>
+                      <div className="text-xs text-slate-500">{sourceLabel(row.problem_source)}</div>
+                    </td>
+                    <td className="px-2 py-2">
+                      <div>{formatDate(row.problem_next_action_due_at)}</div>
+                      <div className="text-xs text-slate-500">{formatAge(ageDays(row.problem_first_detected_at))}</div>
+                    </td>
+                    <td className="px-2 py-2">
+                      {row.supplier_order_id ? (
+                        <a
+                          href={ebayOrderUrl(row.supplier_order_id)}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-blue-700 hover:underline"
+                        >
+                          {row.supplier_order_id}
+                        </a>
+                      ) : (
+                        <span className="text-slate-400">--</span>
+                      )}
+                    </td>
+                    <td className="px-2 py-2">
+                      <div className="font-medium leading-snug text-slate-900">
+                        {primaryTitle}
                       </div>
-                    )}
-                  </td>
-                  <td className="whitespace-nowrap px-2 py-2">
-                    {formatDate(row.order_date)}
-                  </td>
-                  <td className="whitespace-nowrap px-2 py-2 font-medium text-yellow-700">
-                    {formatDate(row.estimated_delivery_date)}
-                  </td>
-                  <td className="px-2 py-2">
-                    <div>{row.tracking_number || "--"}</div>
-                    <div className="text-xs text-slate-500">{row.carrier || ""}</div>
-                  </td>
-                  <td className="px-2 py-2">{getOperationalStatus(row).label}</td>
-                  <td className="px-2 py-2 text-center">
-                    <button
-                      onClick={() => onSelectRow(row)}
-                      className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-300 bg-white text-slate-700 shadow-sm hover:bg-slate-100"
-                      title="Open details"
-                    >
-                      <PanelRightOpen className="h-4 w-4" />
-                    </button>
-                  </td>
-                </tr>
-              );
-            })
-          )}
-        </tbody>
+                      {showEbaySubtitle && (
+                        <div className="mt-1 line-clamp-2 text-xs leading-snug text-slate-500">
+                          ebay: {ebayTitle}
+                        </div>
+                      )}
+                    </td>
+                    <td className="px-2 py-2">{row.system || "--"}</td>
+                    <td className="px-2 py-2">{problemTypeLabel(row.problem_type)}</td>
+                    <td className="px-2 py-2">{returnTypeLabel(row.problem_type)}</td>
+                    <td className="px-2 py-2">
+                      <div>{row.problem_next_action || "--"}</div>
+                      {row.ebay_action_url ? (
+                        <a
+                          href={row.ebay_action_url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="mt-1 inline-block text-xs text-blue-700 hover:underline"
+                        >
+                          Open eBay action
+                        </a>
+                      ) : null}
+                    </td>
+                    <td className="px-2 py-2">
+                      <div>{ebayStatus || "--"}</div>
+                      {row.ebay_return_id || row.ebay_case_id || row.ebay_inquiry_id ? (
+                        <div className="text-xs text-slate-500">
+                          {[row.ebay_return_id, row.ebay_case_id, row.ebay_inquiry_id].filter(Boolean).join(" / ")}
+                        </div>
+                      ) : null}
+                    </td>
+                    <td className="px-2 py-2 text-right">{formatMoney(row.expected_refund_amount)}</td>
+                    <td className="px-2 py-2 text-right">{formatMoney(row.actual_refund_amount)}</td>
+                    <td className="px-2 py-2">
+                      <div className="break-all">{row.replacement_tracking_number || row.tracking_number || "--"}</div>
+                      <div className="text-xs text-slate-500">{formatDate(row.estimated_delivery_date)}</div>
+                    </td>
+                    <td className="px-2 py-2 text-center">
+                      {row.problem_notes ? (
+                        <span className="rounded bg-amber-100 px-2 py-1 text-xs font-medium text-amber-800">Yes</span>
+                      ) : (
+                        <span className="text-slate-400">--</span>
+                      )}
+                    </td>
+                    <td className="px-2 py-2 text-center">
+                      <button
+                        onClick={() => onSelectRow(row)}
+                        className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-300 bg-white text-slate-700 shadow-sm hover:bg-slate-100"
+                        title="Open details"
+                        type="button"
+                      >
+                        <PanelRightOpen className="h-4 w-4" />
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })
+            )}
+          </tbody>
         </table>
       </div>
     </div>
   );
 }
 
-function getOrderProblem(row: PurchaseRow) {
-  const status = getOperationalStatus(row).value;
-  const orderAge = ageDays(row.order_date);
-  const etaAge = ageDays(row.estimated_delivery_date);
-
-  if (status === "exception") {
-    return {
-      issue: "Carrier exception",
-      guidance: "Review carrier tracking and contact seller or carrier if needed.",
-      ageDays: orderAge,
-    };
+function PriorityBadge({
+  value,
+  needsResponse,
+}: {
+  value?: string | null;
+  needsResponse?: boolean | null;
+}) {
+  if (needsResponse) {
+    return <span className="rounded bg-red-100 px-2 py-1 text-xs font-semibold text-red-700">Urgent</span>;
   }
 
-  if (status === "return_pending") {
-    return {
-      issue: "Return pending",
-      guidance: "Open or follow up on the return/refund workflow.",
-      ageDays: orderAge,
-    };
-  }
+  const label = value ? titleCase(value) : "Normal";
+  const className =
+    value === "high"
+      ? "bg-orange-100 text-orange-700"
+      : value === "low"
+        ? "bg-slate-100 text-slate-600"
+        : "bg-blue-100 text-blue-700";
 
-  if (
-    ["no_tracking", "shipped_no_tracking", "awaiting_carrier_scan"].includes(status) &&
-    orderAge !== null &&
-    orderAge >= 7
-  ) {
-    return {
-      issue: "Tracking stale/no tracking",
-      guidance: "Check eBay order details and ask seller for a usable shipment update.",
-      ageDays: orderAge,
-    };
-  }
+  return <span className={`rounded px-2 py-1 text-xs font-semibold ${className}`}>{label}</span>;
+}
 
-  return {
-    issue: "Past ETA",
-    guidance: "Delivery estimate has passed; check tracking and seller communication.",
-    ageDays: etaAge,
+function workflowStateLabel(value?: string | null) {
+  const labels: Record<string, string> = {
+    candidate: "Candidate",
+    return_needed: "Return Needed",
+    return_opened: "Return Opened",
+    seller_message_needs_response: "Needs Response",
+    waiting_on_seller: "Waiting on Seller",
+    partial_refund_offered: "Partial Refund Offered",
+    partial_refund_accepted: "Partial Refund Accepted",
+    label_pending: "Waiting for Label",
+    label_received: "Ready to Ship Back",
+    return_shipped: "Return Shipped",
+    seller_received_return: "Seller Received",
+    refund_pending: "Refund Pending",
+    replacement_pending: "Replacement Pending",
+    replacement_shipped: "Replacement Shipped",
+    replacement_received: "Missing Item Received",
+    escalation_available: "Escalation Available",
+    escalated: "Escalated",
+    resolved_refunded: "Resolved Refunded",
+    resolved_received_item: "Resolved Item Received",
+    closed_no_action: "Closed",
+    closed_no_refund: "Closed No Refund",
   };
+  return labels[value || ""] || titleCase(value || "Unknown");
+}
+
+function problemTypeLabel(value?: string | null) {
+  const labels: Record<string, string> = {
+    late_delivery_candidate: "Late Delivery Candidate",
+    stale_tracking_candidate: "Stale Tracking Candidate",
+    carrier_exception_candidate: "Carrier Exception Candidate",
+    return_needed: "Return Needed",
+    not_as_listed: "Wrong Item / Not as Listed",
+    buyer_choice: "Changed Plan / Return Anyway",
+    missing_items: "Missing Item / Incomplete Order",
+    cancelled_refund_followup: "Cancelled / Refund Follow-Up",
+  };
+  return labels[value || ""] || titleCase(value || "Unknown");
+}
+
+function returnTypeLabel(value?: string | null) {
+  if (["not_as_listed", "buyer_choice", "missing_items", "cancelled_refund_followup"].includes(value || "")) {
+    return problemTypeLabel(value);
+  }
+  return "--";
+}
+
+function sourceLabel(value?: string | null) {
+  const labels: Record<string, string> = {
+    derived_order_problem: "System candidate",
+    receiving_return_pending: "Receiving",
+    manual: "MBOP",
+    ebay_return_sync: "eBay return",
+    ebay_inquiry_sync: "eBay inquiry",
+    ebay_cancellation_sync: "eBay cancellation",
+  };
+  return labels[value || ""] || titleCase(value || "");
 }
 
 function ageDays(value?: string | null) {
   const date = parseDate(value);
   if (!date) return null;
   const now = new Date();
-  const today = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
-  return Math.floor((today.getTime() - date.getTime()) / 86_400_000);
+  return Math.floor((now.getTime() - date.getTime()) / 86_400_000);
 }
 
 function parseDate(value?: string | null) {
   if (!value) return null;
-  const match = value.match(/^(\d{4})-(\d{2})-(\d{2})/);
-  if (!match) return null;
-  return new Date(Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3])));
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+  return date;
 }
 
 function formatAge(value: number | null) {
-  return value === null ? "--" : `${value.toLocaleString("en-US")}d`;
+  return value === null ? "--" : `${value.toLocaleString("en-US")}d old`;
+}
+
+function titleCase(value: string) {
+  return value
+    .split("_")
+    .filter(Boolean)
+    .map((part) => `${part.charAt(0).toUpperCase()}${part.slice(1)}`)
+    .join(" ");
 }

@@ -60,6 +60,8 @@ const SCREEN_SOURCES: Record<ScreenKey, FreshnessSource[]> = {
       equals: { source_name: "eBay Trading API Buyer Purchase Sync" },
     },
     { label: "tracking", table: "inbound_shipments", column: "last_tracking_sync" },
+    { label: "order problems", table: "order_problem_cases", column: "updated_at" },
+    { label: "order problem events", table: "order_problem_events", column: "created_at" },
     { label: "RevSeller", filePattern: /^revseller_enrichment_diagnostics_\d{8}_\d{6}\.csv$/ },
   ],
   dashboard: [
@@ -174,7 +176,8 @@ async function latestTableRow(source: FreshnessSource): Promise<Record<string, u
 }
 
 async function latestFileTimestamp(source: FreshnessSource): Promise<{ lastUpdatedAt: string | null; source: string }> {
-  const directories = [path.resolve(process.cwd(), "..", "data"), path.resolve(process.cwd(), "..", "logs")];
+  const workspaceRoot = path.resolve(/* turbopackIgnore: true */ process.cwd(), "..");
+  const directories = [path.join(workspaceRoot, "data"), path.join(workspaceRoot, "logs")];
 
   for (const directory of directories) {
     try {

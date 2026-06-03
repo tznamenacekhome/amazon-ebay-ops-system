@@ -327,7 +327,9 @@ Status:
 Local scheduler configured; broad integration automation enabled with ongoing task-run validation.
 
 Completed:
-- `run_all_syncs.py` now runs eBay buyer purchase sync, EasyPost shipment sync, eBay supplier returns sync, RevSeller enrichment, Amazon FBA inventory, Amazon listing status, Amazon inventory planning, Amazon Finance balances, Informed Repricer reports, YNAB Business cash balance, guarded Keepa enrichment, and business value snapshots
+- `run_all_syncs.py` now runs eBay buyer purchase sync, EasyPost shipment sync, RevSeller enrichment, Amazon FBA inventory, Amazon listing status, Amazon inventory planning, Amazon Finance balances, Informed Repricer reports, YNAB Business cash balance, guarded Keepa enrichment, and business value snapshots
+- legacy eBay supplier returns sync is disabled while the new Order Problems
+  return sync is validated
 - `run_all_syncs.bat` creates the logs directory when missing and appends to `logs/scheduler.log`
 - local Windows scheduled tasks were recreated after the repo moved from OneDrive to `C:\Dev`
 - direct batch execution completed successfully with exit code 0
@@ -433,25 +435,33 @@ Next steps:
 Goal:
 Track return/cancellation outcomes through refund confirmation.
 
-Required scope:
-- Return Pending items from receiving
-- Return Opened items from eBay return/case state
-- Cancelled items from eBay/seller cancellation or reconciliation
+Status:
+First slice implemented in Purchases -> Order Problems.
 
-Key requirement:
-Cancelled items must remain visible to this workflow until refund receipt is confirmed.
+Implemented:
+- `order_problem_cases` and `order_problem_events` provide the separate workflow
+  tables for return/refund/cancellation follow-up.
+- Return Pending items from receiving seed Return Needed cases.
+- Return Opened and Cancelled items remain visible until operator resolution.
+- Order Problems stage chips cover candidates, return needed, return opened,
+  needs response, waiting on seller, ready to ship back, return shipped, refund
+  pending, missing item pending, escalation available, and resolved/closed.
+- The detail drawer supports MBOP-local workflow actions and notes.
+- `integrations/ebay_sync_order_problem_returns.py` reads eBay Post-Order return
+  data and stores local case/event updates without writing back to eBay.
 
-Future cost requirements:
-- store refund amount, refund date, source, and affected purchase item or quantity
-- support partial refunds where the item is kept and inventory cost should be reduced
-- avoid automatically spreading a multi-item partial refund across unrelated items unless the operator assigns it
-- preserve manual unit-cost overrides made during reconciliation or refund review
-
-Next steps:
-- define refund fields, such as refund_expected, refund_received, refund_received_date, refund_amount, and refund_notes
-- decide whether refund state belongs directly on purchase_items or in a separate return/refund workflow table
-- add filters/views for refund missing and refund received
-- integrate future eBay return/case/refund APIs where available
+Remaining:
+- validate the read-only eBay return sync against live return data before
+  scheduling it.
+- add full case/event timeline endpoints and richer drawer history.
+- add read-only support for eBay INR/item-not-received inquiries and cases if
+  those endpoints are available for buyer-side data.
+- define a controlled partial-refund cost adjustment workflow for cases where
+  the item is kept and inventory cost should be reduced.
+- preserve manual unit-cost overrides made during reconciliation or refund
+  review.
+- consider future eBay write actions only after explicit operator workflow,
+  permission, and safety design.
 
 ---
 

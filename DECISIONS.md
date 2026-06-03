@@ -213,7 +213,7 @@ Status writers:
 - EasyPost sync and webhook update linked purchase items from carrier state.
 - Receiving owns `received` and `return_pending`.
 - FBA/listing workflow owns `listed`.
-- Return/refund workflow will own `return_opened` and cancellation/refund follow-up.
+- Order Problems / return-refund workflow owns `return_opened` and cancellation/refund follow-up.
 
 Workflow-locked statuses:
 - `cancelled`
@@ -949,8 +949,40 @@ Implementation:
 - eBay buyer sync preserves Cancelled instead of downgrading it to shipment-derived statuses
 - status normalization scripts must preserve Cancelled
 
-Future workflow:
-The return/refund workflow must include Cancelled items and track refund received / refund missing outcomes.
+Implementation:
+Order Problems seeds cancelled rows as `cancelled_refund_followup` cases and
+keeps them visible until the operator confirms refund receipt or closes the
+case.
+
+---
+
+## Order Problems Is The Return/Refund Workflow Surface
+
+Decision:
+Do not create a separate Returns left-nav item for the MVP. Purchases -> Order
+Problems is the unified queue for delivery problem candidates, return-needed
+items, eBay return/case follow-up, missing-item/replacement follow-up, and
+cancelled/refund confirmation.
+
+Reason:
+Late deliveries, stale tracking, receiving return decisions, eBay returns, and
+refund follow-up are all purchase-item exceptions. Keeping them in one queue
+preserves operator context and avoids splitting related work across screens.
+
+Implementation:
+- `order_problem_cases` stores one persistent open workflow row per purchase
+  item, plus closed/resolved history.
+- `order_problem_events` stores the append-only timeline.
+- `/api/order-problems` owns candidate detection, stage filtering, sorting,
+  pagination, and summary counts.
+- `/api/order-problems/[id]/actions` supports MBOP-local workflow actions.
+- `integrations/ebay_sync_order_problem_returns.py` is read-only and writes only
+  local case/event records.
+
+Safety:
+MBOP does not create eBay returns, send messages, accept offers, escalate cases,
+issue refunds, or upload files in this MVP. Marketplace actions happen manually
+on ebay.com.
 
 ---
 

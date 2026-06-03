@@ -43,6 +43,26 @@ Carrier/status syncs must not downgrade workflow-owned statuses.
 - Return Pending is separate from Return Opened.
 - Cancelled items require future refund follow-up.
 
+## Order Problems And Returns
+
+- Order Problems is the unified queue for delivery problem candidates,
+  return-needed items, eBay return/case follow-up, missing-item/replacement
+  follow-up, and cancelled/refund confirmation.
+- `order_problem_cases` owns the persistent workflow case; `order_problem_events`
+  owns the append-only timeline.
+- `Return Pending` means MBOP identified a return need before an eBay return/case
+  necessarily exists.
+- `Return Opened` means an eBay return/case exists or the operator has marked it
+  opened in eBay.
+- The current eBay returns integration is read-only. MBOP may store eBay return
+  IDs, statuses, deadlines, refund amounts, action URLs, and raw payloads, but
+  must not create returns, send messages, accept offers, escalate cases, issue
+  refunds, or upload files.
+- Operator actions in the drawer update MBOP workflow state only. The operator
+  performs marketplace actions on ebay.com.
+- Partial refunds where the item is kept must not automatically change item cost
+  until a controlled cost-adjustment workflow exists.
+
 ## Amazon FBA Shipment Prep
 
 - The FBA workflow starts from Received Amazon-bound purchase items.

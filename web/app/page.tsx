@@ -28,6 +28,7 @@ export default function PurchasesPage() {
   const [searchText, setSearchText] = useState("");
   const [asinFilter, setAsinFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("active");
+  const [problemStage, setProblemStage] = useState("open");
   const [sortColumn, setSortColumn] = useState<PurchaseSortColumn>("order_date");
   const [sortDirection, setSortDirection] =
     useState<PurchaseSortDirection>("desc");
@@ -49,6 +50,7 @@ export default function PurchasesPage() {
       sortDirection: effectiveSortDirection,
       page,
       pageSize: PAGE_SIZE,
+      problemStage: viewMode === "order_problems" ? problemStage : undefined,
     }),
     [
       effectiveAsinFilter,
@@ -56,7 +58,9 @@ export default function PurchasesPage() {
       effectiveSortDirection,
       effectiveStatusFilter,
       page,
+      problemStage,
       searchText,
+      viewMode,
     ]
   );
 
@@ -200,6 +204,33 @@ export default function PurchasesPage() {
     }
   }
 
+  async function runSelectedProblemAction(
+    action: string,
+    payload: { notes?: string; amount?: number | null; tracking_number?: string | null } = {},
+  ) {
+    if (!selectedRow?.problem_case_id) return;
+
+    setError(null);
+
+    try {
+      const response = await fetch(`/api/order-problems/${selectedRow.problem_case_id}/actions`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action, ...payload }),
+      });
+
+      if (!response.ok) {
+        const message = await response.text();
+        throw new Error(message || `Workflow action failed: ${response.status}`);
+      }
+
+      await loadPurchases({ forceRefresh: true });
+      setSelectedRow(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Workflow action failed.");
+    }
+  }
+
   function updatePriceDraft(key: string, value: string) {
     setPriceDrafts((current) => ({
       ...current,
@@ -336,6 +367,11 @@ export default function PurchasesPage() {
         <PurchaseProblemTable
           rows={rows}
           loading={loading}
+          stage={problemStage}
+          onStageChange={(value) => {
+            setProblemStage(value);
+            setPage(1);
+          }}
           onSelectRow={openDetails}
         />
       )}
@@ -382,6 +418,7 @@ export default function PurchasesPage() {
           onSystemChange={setDrawerSystem}
           onAddSplitItem={addSplitItem}
           onMarkReturnPending={markSelectedReturnPending}
+          onProblemAction={runSelectedProblemAction}
           onSave={saveDrawerMatch}
           onClose={() => setSelectedRow(null)}
         />
