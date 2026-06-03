@@ -6,6 +6,37 @@ Last reviewed: 2026-06-02
 
 # Active Issues
 
+## Scheduled Sync Scope Needs Optimization
+
+Status: ACTIVE / CAPACITY
+
+Problem:
+The local scheduled runs have grown organically and now sync more domains than
+need the same cadence. Some jobs are valuable once or twice per day, while other
+data can be refreshed less often or only on demand. Running unnecessary jobs
+consumes external API quota, increases Supabase IO/load, lengthens scheduler
+runs, and can make troubleshooting harder when an unrelated sync fails.
+
+Current mitigation:
+- `run_all_syncs.py` already supports grouped runs and disabled jobs.
+- screen refresh buttons can run screen-specific scheduled-style refreshes
+  without historical backfill.
+- legacy supplier returns sync remains disabled while the new Order Problems
+  return sync is validated.
+
+Recommended next mitigation:
+- Review each scheduled job against the MBOP feature it serves and its required
+  freshness window.
+- Split high-frequency operational jobs from daily value/cash/reporting jobs
+  and lower-frequency catalog/intelligence jobs.
+- Keep jobs that feed the same calculation, such as Business Inventory And Cash
+  Value, on the same cadence so freshness indicators stay meaningful.
+- Avoid scheduling exploratory/backfill-style syncs; keep those manual and
+  resumable.
+- Revisit Windows Task Scheduler tasks after the job groups are tightened.
+
+---
+
 ## Amazon Orders And Inventory Missing Data
 
 Status: ACTIVE
