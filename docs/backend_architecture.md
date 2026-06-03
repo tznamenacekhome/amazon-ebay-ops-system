@@ -181,3 +181,18 @@ shipping-label adjustment events when Veeqo is missing. Sales Orders displays
 no-charge Amazon replacements as
 `Replacement`, while fully refunded rows are classified as `refunded` from
 refund principal events even if the Amazon order status still says `Shipped`.
+
+## Business Cash Value
+
+Amazon cash valuation uses two Amazon Finance concepts:
+
+- Amazon-held cash: deferred transactions plus open financial event groups.
+- Amazon-to-bank in-transit cash: fund transfers still marked `Processing` plus
+  recently completed/succeeded fund transfers inside the configured bridge
+  window.
+
+The completed-transfer bridge covers the operational gap after Amazon considers a
+payout complete but before YNAB cash on hand reflects the bank deposit. The
+bridge defaults to five days and can be overridden with
+`AMAZON_COMPLETED_TRANSFER_BRIDGE_DAYS` or
+`amazon_sync_finance_balances.py --completed-transfer-bridge-days`.

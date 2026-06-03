@@ -21,6 +21,7 @@ from amazon_spapi_client import AmazonSPAPIClient, AmazonSPAPIError
 LOGGER = logging.getLogger("amazon_finance_balance_sync")
 DEFAULT_LOOKBACK_DAYS = 180
 DEFAULT_TRANSACTION_LOOKBACK_DAYS = 60
+DEFAULT_COMPLETED_TRANSFER_BRIDGE_DAYS = 5
 BATCH_PAGE_LIMIT = 20
 
 
@@ -39,6 +40,7 @@ def main() -> int:
             client,
             lookback_days=args.lookback_days,
             transaction_lookback_days=args.transaction_lookback_days,
+            completed_transfer_bridge_days=args.completed_transfer_bridge_days,
         )
         print_summary(snapshot, write=args.apply)
 
@@ -80,6 +82,16 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Write a finance balance snapshot to Supabase.",
     )
+    parser.add_argument(
+        "--completed-transfer-bridge-days",
+        type=int,
+        default=int(os.getenv("AMAZON_COMPLETED_TRANSFER_BRIDGE_DAYS", DEFAULT_COMPLETED_TRANSFER_BRIDGE_DAYS)),
+        help=(
+            "Keep recently completed Amazon fund transfers in in-transit cash "
+            "for this many days so payouts do not disappear before YNAB cash "
+            "reflects the deposit."
+        ),
+    )
     return parser.parse_args()
 
 
@@ -100,21 +112,39 @@ def build_finance_snapshot(
     *,
     lookback_days: int,
     transaction_lookback_days: int,
+    completed_transfer_bridge_days: int,
 ) -> dict[str, Any]:
     financial_event_groups = fetch_financial_event_groups(client, lookback_days)
     transactions = fetch_transactions(client, transaction_lookback_days)
 
+    bridge_cutoff = dt.datetime.now(dt.timezone.utc) - dt.timedelta(
+        days=max(completed_transfer_bridge_days, 0)
+    )
     open_group_cash = sum(
         money_amount(group.get("OriginalTotal"))
         for group in financial_event_groups
         if group.get("ProcessingStatus") == "Open"
     )
-    in_transit_to_bank = sum(
-        money_amount(group.get("OriginalTotal"))
+    processing_transfer_groups = [
+        group
         for group in financial_event_groups
         if group.get("ProcessingStatus") == "Closed"
         and group.get("FundTransferStatus") == "Processing"
+    ]
+    completed_transfer_bridge_groups = [
+        group
+        for group in financial_event_groups
+        if is_recent_completed_transfer(group, bridge_cutoff)
+    ]
+    processing_transfer_cash = sum(
+        money_amount(group.get("OriginalTotal"))
+        for group in processing_transfer_groups
     )
+    completed_transfer_bridge_cash = sum(
+        money_amount(group.get("OriginalTotal"))
+        for group in completed_transfer_bridge_groups
+    )
+    in_transit_to_bank = processing_transfer_cash + completed_transfer_bridge_cash
     deferred_cash = sum(
         transaction_amount(transaction)
         for transaction in transactions
@@ -128,7 +158,10 @@ def build_finance_snapshot(
         "group totals. available_to_withdraw is the API Open financial event "
         "group total; Seller Central's withdrawable UI can differ if Amazon "
         "applies additional reserve/availability adjustments not exposed in "
-        "these payloads."
+        "these payloads. in_transit_to_bank includes Processing fund transfers "
+        "plus recently Succeeded transfers inside the completed-transfer bridge "
+        "window so payouts do not disappear before YNAB cash reflects the bank "
+        "deposit."
     )
 
     return {
@@ -142,6 +175,15 @@ def build_finance_snapshot(
         "transaction_count": len(transactions),
         "raw_financial_event_groups_json": {
             "financialEventGroups": financial_event_groups,
+            "inTransitBreakdown": {
+                "processingTransferCash": round(processing_transfer_cash, 2),
+                "completedTransferBridgeCash": round(completed_transfer_bridge_cash, 2),
+                "completedTransferBridgeDays": max(completed_transfer_bridge_days, 0),
+                "completedTransferBridgeGroupIds": [
+                    group.get("FinancialEventGroupId")
+                    for group in completed_transfer_bridge_groups
+                ],
+            },
         },
         "raw_transactions_json": {
             "transactions": transactions,
@@ -168,6 +210,22 @@ def fetch_financial_event_groups(
     )
     groups = (payload.get("payload") or {}).get("FinancialEventGroupList") or []
     return groups
+
+
+def is_recent_completed_transfer(
+    group: dict[str, Any],
+    bridge_cutoff: dt.datetime,
+) -> bool:
+    if group.get("ProcessingStatus") != "Closed":
+        return False
+    if group.get("FundTransferStatus") not in {"Succeeded", "Successful"}:
+        return False
+
+    transfer_date = parse_amazon_datetime(group.get("FundTransferDate"))
+    if not transfer_date:
+        return False
+
+    return transfer_date >= bridge_cutoff
 
 
 def fetch_transactions(
@@ -230,6 +288,19 @@ def first_currency(
     return None
 
 
+def parse_amazon_datetime(value: Any) -> dt.datetime | None:
+    if not value:
+        return None
+    text = str(value).strip()
+    try:
+        parsed = dt.datetime.fromisoformat(text.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    if parsed.tzinfo is None:
+        return parsed.replace(tzinfo=dt.timezone.utc)
+    return parsed.astimezone(dt.timezone.utc)
+
+
 def iso_z(value: dt.datetime) -> str:
     return value.isoformat().replace("+00:00", "Z")
 
@@ -245,6 +316,13 @@ def print_summary(snapshot: dict[str, Any], *, write: bool) -> None:
     print(f"API open/available balance: ${snapshot['available_to_withdraw']:,.2f}")
     print(f"In transit to bank: ${snapshot['in_transit_to_bank']:,.2f}")
     print(f"Deferred/reserved cash: ${snapshot['deferred_or_reserved_cash']:,.2f}")
+    breakdown = snapshot["raw_financial_event_groups_json"].get("inTransitBreakdown") or {}
+    print(
+        "In transit breakdown: "
+        f"processing ${breakdown.get('processingTransferCash', 0):,.2f}; "
+        f"recent completed bridge ${breakdown.get('completedTransferBridgeCash', 0):,.2f} "
+        f"({breakdown.get('completedTransferBridgeDays', 0)} days)"
+    )
 
 
 if __name__ == "__main__":

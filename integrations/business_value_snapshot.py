@@ -132,6 +132,10 @@ def build_snapshot(supabase, snapshot_date: str) -> dict[str, Any]:
         "amazon_finance_snapshot_id": (finance or {}).get(
             "amazon_finance_balance_snapshot_id"
         ),
+        "amazon_finance_in_transit_breakdown": (
+            ((finance or {}).get("raw_financial_event_groups_json") or {})
+            .get("inTransitBreakdown")
+        ),
         "ynab_category_balance_snapshot_id": (ynab or {}).get(
             "ynab_category_balance_snapshot_id"
         ),

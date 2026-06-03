@@ -70,6 +70,12 @@ type InventoryPositionSummaryRow = {
   total_cost: number | null;
 };
 
+type InventoryPositionValueRow = {
+  inventory_state: string | null;
+  asin: string | null;
+  total_cost: number | null;
+};
+
 type OpenReconciliationItemRow = {
   inventory_reconciliation_event_item_id: string;
   severity: "info" | "warning" | "critical";
@@ -474,6 +480,7 @@ async function fetchInventoryVisibility() {
     ynabCashBalance,
     amazonFinanceBalance,
     businessValueHistory,
+    inventoryValueRows,
   ] =
     await Promise.all([
     fetchInventoryPositionSummary(),
@@ -483,6 +490,7 @@ async function fetchInventoryVisibility() {
     fetchYnabCashBalanceSummary(),
     fetchAmazonFinanceBalanceSummary(),
     fetchBusinessValueHistory(),
+    fetchInventoryPositionValueRows(),
   ]);
 
   const unitsByState = new Map<string, number>();
@@ -573,6 +581,7 @@ async function fetchInventoryVisibility() {
     ),
     businessInventoryValue: buildBusinessInventoryValueSummary(
       costByState,
+      inventoryValueRows,
       inventoryLabValuation,
       ynabCashBalance,
       amazonFinanceBalance
@@ -659,6 +668,7 @@ function buildLocationValueSummary(
 
 function buildBusinessInventoryValueSummary(
   costByState: Map<string, number>,
+  inventoryValueRows: InventoryPositionValueRow[],
   inventoryLabValuation: InventoryLabValuationSummary,
   ynabCashBalance: YnabCashBalanceSummary,
   amazonFinanceBalance: AmazonFinanceBalanceSummary
@@ -671,10 +681,7 @@ function buildBusinessInventoryValueSummary(
       "amazon_fba_unsellable_damaged",
       "amazon_fba_stranded",
     ]);
-  const amazonOutboundValue = sumStates(costByState, [
-    "outbound_to_amazon",
-    "amazon_fba_inbound_receiving",
-  ]);
+  const amazonOutboundValue = calculateAmazonOutboundValue(inventoryValueRows);
   const amazonInventoryValue = amazonAtFbaValue + amazonOutboundValue;
   const preAmazonInventoryValue = sumStates(costByState, [
     "purchased_not_shipped",
@@ -706,10 +713,38 @@ function buildBusinessInventoryValueSummary(
         )}; deferred ${formatCurrencyNumber(amazonFinanceBalance.deferred_or_reserved_cash)}`
       : "Amazon Finance snapshot missing",
     amazon_cash_in_transit_source: amazonFinanceBalance
-      ? "Amazon Finance financial event groups with FundTransferStatus = Processing"
+      ? "Amazon Finance fund transfers that are Processing plus recently completed payout bridge"
       : "Amazon Finance snapshot missing",
     cash_on_hand_source: ynabCashBalance?.source ?? "YNAB Business category snapshot missing",
   };
+}
+
+function calculateAmazonOutboundValue(rows: InventoryPositionValueRow[]) {
+  let outboundCost = 0;
+  const outboundAsins = new Set<string>();
+  const amazonInboundByAsin = new Map<string, number>();
+
+  for (const row of rows) {
+    const state = row.inventory_state || "";
+    const asin = (row.asin || "").trim().toUpperCase();
+    const cost = Number(row.total_cost ?? 0);
+
+    if (state === "outbound_to_amazon") {
+      outboundCost += cost;
+      if (asin) outboundAsins.add(asin);
+    } else if (state === "amazon_fba_inbound_receiving" && asin) {
+      amazonInboundByAsin.set(asin, (amazonInboundByAsin.get(asin) ?? 0) + cost);
+    }
+  }
+
+  let uncoveredAmazonInboundCost = 0;
+  for (const [asin, cost] of amazonInboundByAsin.entries()) {
+    if (!outboundAsins.has(asin)) {
+      uncoveredAmazonInboundCost += cost;
+    }
+  }
+
+  return outboundCost + uncoveredAmazonInboundCost;
 }
 
 async function fetchInventoryLabValuationSummary(): Promise<InventoryLabValuationSummary> {
@@ -870,6 +905,28 @@ async function fetchInventoryPositionSummary() {
   }
 
   return (data ?? []) as InventoryPositionSummaryRow[];
+}
+
+async function fetchInventoryPositionValueRows() {
+  const rows: InventoryPositionValueRow[] = [];
+  const pageSize = 1000;
+  let offset = 0;
+
+  while (true) {
+    const { data, error } = await supabase
+      .from("inventory_positions")
+      .select("inventory_state,asin,total_cost")
+      .range(offset, offset + pageSize - 1);
+
+    if (error) {
+      console.warn("Inventory position value lookup failed", error.message);
+      return [] as InventoryPositionValueRow[];
+    }
+
+    rows.push(...((data ?? []) as InventoryPositionValueRow[]));
+    if ((data ?? []).length < pageSize) return rows;
+    offset += pageSize;
+  }
 }
 
 async function fetchOpenReconciliationItems() {
