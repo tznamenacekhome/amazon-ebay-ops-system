@@ -75,6 +75,10 @@ def parse_args():
         default=MAX_NEW_TRACKERS_PER_RUN,
         help="Maximum new EasyPost trackers to create in this run.",
     )
+    parser.add_argument(
+        "--tracking-number",
+        help="Only sync one inbound shipment tracking number.",
+    )
     return parser.parse_args()
 
 
@@ -215,8 +219,10 @@ def normalize_carrier(value):
         "united states postal service": "USPS",
         "usps": "USPS",
         "ups": "UPS",
-        "fedex": "FedEx",
-        "fed ex": "FedEx",
+        "fedex": "FedExDefault",
+        "fed ex": "FedExDefault",
+        "fedexdefault": "FedExDefault",
+        "fedex default": "FedExDefault",
     }
 
     return mapping.get(carrier.lower(), carrier)
@@ -575,6 +581,21 @@ def total_units(items):
     return total
 
 
+def fetch_shipments_for_tracking_number(tracking_number):
+    cleaned = clean_tracking_number(tracking_number)
+    if not cleaned:
+        return []
+
+    result = (
+        supabase.table("inbound_shipments")
+        .select("*")
+        .eq("tracking_number", cleaned)
+        .limit(10)
+        .execute()
+    )
+    return result.data or []
+
+
 def ensure_inbound_shipment(purchase_id, candidate):
     existing = (
         supabase.table("inbound_shipments")
@@ -715,10 +736,13 @@ def main():
         f"{MAX_EASYPOST_REQUESTS_PER_SECOND}/second"
     )
 
-    shipments = fetch_shipments(
-        start_date=args.start_date,
-        limit=args.limit,
-    )
+    if args.tracking_number:
+        shipments = fetch_shipments_for_tracking_number(args.tracking_number)
+    else:
+        shipments = fetch_shipments(
+            start_date=args.start_date,
+            limit=args.limit,
+        )
 
     print(f"Candidate shipments: {len(shipments)}")
 
