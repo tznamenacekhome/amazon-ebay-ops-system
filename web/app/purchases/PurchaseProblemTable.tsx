@@ -87,9 +87,9 @@ export function PurchaseProblemTable({
               <th className="w-[170px] px-2 py-2">Issue Type</th>
               <th className="w-[140px] px-2 py-2">Return Type</th>
               <th className="w-[240px] px-2 py-2">Next Action</th>
-              <th className="w-[150px] px-2 py-2">eBay Status</th>
-              <th className="w-[110px] px-2 py-2 text-right">Expected</th>
-              <th className="w-[110px] px-2 py-2 text-right">Received</th>
+              <th className="w-[150px] px-2 py-2">eBay / Local Status</th>
+              <th className="w-[110px] px-2 py-2 text-right">Expected Refund</th>
+              <th className="w-[110px] px-2 py-2 text-right">Received Refund</th>
               <th className="w-[120px] px-2 py-2">Tracking / ETA</th>
               <th className="w-[70px] px-2 py-2 text-center">Notes</th>
               <th className="w-[52px] px-2 py-2 text-center">Details</th>
@@ -183,15 +183,21 @@ export function PurchaseProblemTable({
                       ) : null}
                     </td>
                     <td className="px-2 py-2">
-                      <div>{ebayStatus || ebaySyncFallback(row.problem_source)}</div>
+                      <div>{ebayStatus || localStatusFallback(row)}</div>
                       {row.ebay_return_id || row.ebay_case_id || row.ebay_inquiry_id ? (
                         <div className="text-xs text-slate-500">
                           {[row.ebay_return_id, row.ebay_case_id, row.ebay_inquiry_id].filter(Boolean).join(" / ")}
                         </div>
-                      ) : null}
+                      ) : (
+                        <div className="text-xs text-slate-500">{sourceLabel(row.problem_source)}</div>
+                      )}
                     </td>
-                    <td className="px-2 py-2 text-right">{formatMoney(row.expected_refund_amount) || "--"}</td>
-                    <td className="px-2 py-2 text-right">{formatMoney(row.actual_refund_amount) || "--"}</td>
+                    <td className="px-2 py-2 text-right">
+                      <RefundAmount value={row.expected_refund_amount} fallback={estimatedRefund(row)} />
+                    </td>
+                    <td className="px-2 py-2 text-right">
+                      <RefundAmount value={row.actual_refund_amount} />
+                    </td>
                     <td className="px-2 py-2">
                       <div className="break-all">{row.replacement_tracking_number || row.tracking_number || "--"}</div>
                       <div className="text-xs text-slate-500">{formatDate(row.estimated_delivery_date)}</div>
@@ -306,11 +312,38 @@ function sourceLabel(value?: string | null) {
   return labels[value || ""] || titleCase(value || "");
 }
 
-function ebaySyncFallback(value?: string | null) {
-  if (value === "ebay_return_sync" || value === "ebay_inquiry_sync" || value === "ebay_cancellation_sync") {
+function localStatusFallback(row: PurchaseRow) {
+  if (row.problem_source === "ebay_return_sync" || row.problem_source === "ebay_inquiry_sync" || row.problem_source === "ebay_cancellation_sync") {
     return "--";
   }
-  return "Not synced";
+  return workflowStateLabel(row.workflow_state);
+}
+
+function RefundAmount({
+  value,
+  fallback,
+}: {
+  value?: number | null;
+  fallback?: number | null;
+}) {
+  const formatted = formatMoney(value);
+  if (formatted) return <span>{formatted}</span>;
+
+  const fallbackFormatted = formatMoney(fallback);
+  if (fallbackFormatted) {
+    return <span className="text-slate-500">~{fallbackFormatted}</span>;
+  }
+
+  return <span className="text-slate-400">--</span>;
+}
+
+function estimatedRefund(row: PurchaseRow) {
+  if (row.workflow_state === "candidate") return null;
+  const unitCost = Number(row.unit_cost);
+  const quantity = Number(row.quantity ?? 1);
+  if (!Number.isFinite(unitCost) || unitCost <= 0) return null;
+  if (!Number.isFinite(quantity) || quantity <= 0) return unitCost;
+  return unitCost * quantity;
 }
 
 function ageDays(value?: string | null) {
