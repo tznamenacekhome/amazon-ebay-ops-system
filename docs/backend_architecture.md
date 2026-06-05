@@ -36,9 +36,11 @@ separate domains.
 Scheduler can keep operational data fresh without running heavyweight snapshots
 twice per day.
 
-- `core`: eBay buyer purchases, EasyPost tracking, RevSeller enrichment, recent
-  Amazon sales orders, new MF Veeqo label costs, recent sales profitability, and
-  inventory reconciliation. This group is intended for 2x/day runs.
+- `core`: eBay buyer purchases, EasyPost tracking, RevSeller enrichment with
+  optional AI same-system review, guarded Keepa missing-purchase-title repair,
+  recent Amazon sales orders, new MF Veeqo label costs, recent sales
+  profitability, and inventory reconciliation. This group is intended for
+  2x/day runs.
 - `daily`: Amazon FBA inventory, Amazon listing status, Amazon inventory
   planning, Amazon finance balances, 60-day Amazon sales finance refresh,
   daily sales profitability, Informed Repricer reports, YNAB Business cash,
@@ -102,7 +104,9 @@ Roadmap:
 - Complete Sales Orders COGS handling:
   - eBay purchase FIFO allocation has been implemented in
     `integrations/apply_ebay_purchase_fifo_cogs.py` and run after the 2025
-    Amazon sales-order backfill.
+    Amazon sales-order backfill. It can include explicitly Listed legacy
+    purchase-item lots from non-eBay suppliers when those lots have ASIN,
+    quantity, and cost.
   - non-eBay FIFO allocation and targeted rebalancing have been implemented in
     `integrations/apply_non_ebay_fifo_cogs.py`.
   - rerun the missing COGS review export and manually review only the remaining

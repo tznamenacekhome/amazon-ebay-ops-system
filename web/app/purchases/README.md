@@ -13,6 +13,9 @@ This folder contains the Midnight Blue Operations Platform purchases workflow UI
 ## Table Display
 
 - Matched ASIN rows use `amazon_title` as the primary item title when available.
+- Rows with a reviewed ASIN but blank `amazon_title` can be repaired by
+  `integrations/backfill_amazon_titles_from_keepa.py`, which uses stored Keepa
+  snapshots first and only calls Keepa for a small guarded candidate set.
 - Matched ASIN rows show the eBay supplier title below, prefixed with `ebay: `.
 - Unmatched rows use the eBay supplier title as the primary item title.
 - Unmatched rows show a one-line `Search Amazon` link in the ASIN column.
@@ -22,7 +25,7 @@ This folder contains the Midnight Blue Operations Platform purchases workflow UI
 - Table headers send sort changes to `/api/purchases`.
 - Cancelled, return, listed, and reporting-excluded rows are excluded from the Missing Data filter and metric.
 - The status filter includes workflow statuses such as `Received`, `Listed`, `Return Pending`, `Return Opened`, and `Cancelled`.
-- The default status filter is `All Except Listed`; `All Status` includes Listed rows when full history is needed.
+- The default status filter is `Open Purchase Work`; it excludes Listed, Cancelled, Return Opened, and Return Pending rows so return/cancellation workflow rows stay in Order Problems or explicit status filters.
 - The review-state filter keeps the normal editable table focused on `Missing Data`.
 - `Missing Data` catches missing ASIN, missing sell price, missing system, and missing Amazon title for ASIN-bearing active rows.
 - The `Order Problems` tab catches past-ETA rows, stale/no-tracking rows between 14 and 90 days old, carrier exceptions, return/refund follow-up, missing-item/replacement follow-up, and cancellation refund confirmation in an issue/status-focused table.

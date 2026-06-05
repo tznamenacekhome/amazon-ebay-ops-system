@@ -1,8 +1,9 @@
 """Apply FIFO COGS from eBay purchase items to Amazon sales.
 
 This is a controlled backfill utility, not a scheduled sync. It uses costed
-eBay purchase_items as ASIN FIFO source lots and writes sales COGS consumption
-rows without changing purchases, purchase_items, or receiving workflow state.
+eBay purchase_items plus explicitly listed legacy purchase_items as ASIN FIFO
+source lots and writes sales COGS consumption rows without changing purchases,
+purchase_items, or receiving workflow state.
 """
 
 from __future__ import annotations
@@ -121,7 +122,7 @@ def fetch_source_lots(supabase) -> list[SourceLot]:
 
         if item_id in excluded_item_ids:
             continue
-        if supplier != "ebay":
+        if supplier != "ebay" and status != "listed":
             continue
         if status in EXCLUDED_PURCHASE_STATUSES:
             continue

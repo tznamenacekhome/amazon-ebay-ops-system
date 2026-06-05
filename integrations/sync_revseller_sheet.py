@@ -1,9 +1,14 @@
 import os
 import re
 import csv
+import json
+import argparse
+import requests
+import time
 from datetime import datetime, date
 from decimal import Decimal, InvalidOperation
 from collections import defaultdict
+from difflib import SequenceMatcher
 
 import gspread
 from dotenv import load_dotenv
@@ -30,6 +35,17 @@ except ImportError:
 ALLOW_REENRICHMENT = False
 PURCHASE_ITEMS_PAGE_SIZE = 1000
 DIAGNOSTIC_OUTPUT_PATH = f"data/revseller_enrichment_diagnostics_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
+DEFAULT_AI_MODEL = "gpt-4.1-mini"
+AI_CONFIDENCE_THRESHOLD = Decimal("0.86")
+AI_MIN_LOCAL_SCORE = 0.25
+AI_CANDIDATE_LIMIT = 8
+AI_REVIEW_LIMIT = 50
+OPEN_PURCHASE_WORK_EXCLUDED_STATUSES = {
+    "listed",
+    "cancelled",
+    "return_opened",
+    "return_pending",
+}
 
 REVSELLER_SHEET_ID = None
 REVSELLER_WORKSHEET_NAME = None
@@ -74,6 +90,27 @@ def token_set_key(title: str | None) -> str:
     return " ".join(sorted(set(words)))
 
 
+def title_tokens(title: str | None) -> set[str]:
+    return set((normalize_spaces(title or "")).split())
+
+
+def title_similarity(left: str | None, right: str | None) -> float:
+    left_text = normalize_spaces(left or "")
+    right_text = normalize_spaces(right or "")
+    if not left_text or not right_text:
+        return 0.0
+
+    sequence_score = SequenceMatcher(None, left_text, right_text).ratio()
+    left_tokens = title_tokens(left_text)
+    right_tokens = title_tokens(right_text)
+    if not left_tokens or not right_tokens:
+        return sequence_score
+
+    overlap_score = len(left_tokens & right_tokens) / len(left_tokens | right_tokens)
+    subset_score = len(left_tokens & right_tokens) / max(1, min(len(left_tokens), len(right_tokens)))
+    return max(sequence_score, overlap_score, subset_score)
+
+
 def normalize_title(title: str | None) -> str:
     if not title:
         return ""
@@ -92,6 +129,10 @@ def normalize_title(title: str | None) -> str:
     ]
 
     return normalize_spaces(" ".join(words))
+
+
+def clean_status(value) -> str:
+    return str(value or "").strip().lower()
 
 
 def normalized_title_variants(normalized_title: str) -> list[str]:
@@ -258,6 +299,7 @@ def load_manual_match_rows(supabase):
 def build_revseller_indexes(rows):
     by_title_system = {}
     by_title = defaultdict(list)
+    rows_by_system = defaultdict(list)
     compact_rows_by_title_system = defaultdict(list)
     token_rows_by_title_system = defaultdict(list)
 
@@ -266,6 +308,7 @@ def build_revseller_indexes(rows):
         system_key = row["system"]
 
         if system_key:
+            rows_by_system[system_key].append(row)
             for title_variant in normalized_title_variants(title_key):
                 compound_key = (title_variant, system_key)
 
@@ -328,6 +371,7 @@ def build_revseller_indexes(rows):
         ambiguous_compact_title_system,
         by_token_title_system,
         ambiguous_token_title_system,
+        rows_by_system,
     )
 
 
@@ -350,7 +394,10 @@ def fetch_purchase_items(supabase):
     while True:
         query = (
             supabase.table("purchase_items")
-            .select("item_id,title,amazon_title,system,asin,target_price")
+            .select(
+                "item_id,title,amazon_title,system,asin,target_price,"
+                "current_status,exclude_from_purchase_reporting"
+            )
             .range(offset, offset + PURCHASE_ITEMS_PAGE_SIZE - 1)
         )
 
@@ -360,7 +407,13 @@ def fetch_purchase_items(supabase):
         response = query.execute()
         rows = response.data or []
 
-        all_items.extend(rows)
+        all_items.extend(
+            row
+            for row in rows
+            if clean_status(row.get("current_status"))
+            not in OPEN_PURCHASE_WORK_EXCLUDED_STATUSES
+            and not row.get("exclude_from_purchase_reporting")
+        )
 
         if len(rows) < PURCHASE_ITEMS_PAGE_SIZE:
             break
@@ -455,6 +508,226 @@ def match_purchase_item(
     return None, "skipped_no_match"
 
 
+def rank_ai_candidates(item, rows_by_system):
+    raw_title = item.get("title") or ""
+    normalized_title = normalize_title(raw_title)
+    detected_system = normalize_system(item.get("system")) or detect_system_from_title(
+        raw_title
+    )
+
+    if not normalized_title or not detected_system:
+        return []
+
+    candidates = []
+    for row in rows_by_system.get(detected_system, []):
+        score = max(
+            title_similarity(normalized_title, row["normalized_title"]),
+            title_similarity(compact_title_key(normalized_title), compact_title_key(row["normalized_title"])),
+            title_similarity(token_set_key(normalized_title), token_set_key(row["normalized_title"])),
+        )
+        if score >= AI_MIN_LOCAL_SCORE:
+            candidates.append(
+                {
+                    "row": row,
+                    "score": score,
+                }
+            )
+
+    candidates.sort(
+        key=lambda candidate: (
+            candidate["score"],
+            candidate["row"]["row_date"],
+        ),
+        reverse=True,
+    )
+    return candidates[:AI_CANDIDATE_LIMIT]
+
+
+def ai_match_purchase_item(item, rows_by_system, ai_client):
+    if not ai_client:
+        return None, "skipped_ai_disabled", None
+
+    candidates = rank_ai_candidates(item, rows_by_system)
+    if not candidates:
+        return None, "skipped_ai_no_candidates", None
+
+    try:
+        decision = ai_client.choose_match(item, candidates)
+    except Exception as exc:
+        print(f"AI match review failed for item_id={item.get('item_id')}: {exc}")
+        decision = None
+    if not decision:
+        return None, "skipped_ai_error", None
+
+    if decision.get("decision") != "match":
+        return None, "skipped_ai_no_match", decision
+
+    candidate_index = decision.get("candidate_index")
+    confidence = parse_decimal(decision.get("confidence")) or Decimal("0")
+    if (
+        not isinstance(candidate_index, int)
+        or candidate_index < 0
+        or candidate_index >= len(candidates)
+        or confidence < ai_client.confidence_threshold
+    ):
+        return None, "skipped_ai_low_confidence", decision
+
+    return candidates[candidate_index]["row"], "matched_ai_with_system", decision
+
+
+class AiMatchClient:
+    def __init__(self, *, api_key: str, model: str, confidence_threshold: Decimal):
+        self.api_key = api_key
+        self.model = model
+        self.confidence_threshold = confidence_threshold
+        self.cache = {}
+
+    def choose_match(self, item, candidates):
+        cache_key = (
+            normalize_title(item.get("title")),
+            normalize_system(item.get("system")) or detect_system_from_title(item.get("title") or ""),
+            tuple((candidate["row"]["asin"], candidate["row"]["normalized_title"]) for candidate in candidates),
+        )
+        if cache_key in self.cache:
+            return self.cache[cache_key]
+
+        payload = self.build_payload(item, candidates)
+        decision = self.post_with_retries(payload)
+        self.cache[cache_key] = decision
+        return decision
+
+    def post_with_retries(self, payload):
+        last_error = None
+        for attempt in range(3):
+            try:
+                response = requests.post(
+                    "https://api.openai.com/v1/responses",
+                    headers={
+                        "Authorization": f"Bearer {self.api_key}",
+                        "Content-Type": "application/json",
+                    },
+                    json=payload,
+                    timeout=45,
+                )
+                response.raise_for_status()
+                return extract_response_json(response.json())
+            except requests.HTTPError as exc:
+                last_error = exc
+                status_code = exc.response.status_code if exc.response is not None else None
+                if status_code not in {408, 409, 429, 500, 502, 503, 504}:
+                    raise
+            except requests.RequestException as exc:
+                last_error = exc
+
+            if attempt < 2:
+                time.sleep(2 ** attempt)
+
+        raise last_error or RuntimeError("OpenAI request failed.")
+
+    def build_payload(self, item, candidates):
+        candidate_payload = []
+        for index, candidate in enumerate(candidates):
+            row = candidate["row"]
+            candidate_payload.append(
+                {
+                    "candidate_index": index,
+                    "asin": row["asin"],
+                    "title": row["raw_title"],
+                    "normalized_title": row["normalized_title"],
+                    "system": row["system"],
+                    "local_similarity": round(candidate["score"], 4),
+                }
+            )
+
+        prompt = {
+            "task": "Choose whether an eBay video-game purchase title matches one of the supplied RevSeller catalog candidates.",
+            "rules": [
+                "Return match only when the purchase is clearly the same game/product as one candidate.",
+                "Never match across video-game systems or platforms.",
+                "Do not treat lot quantity, sealed/new, CIB, standard edition, or game-only wording as a different product unless it changes the actual game/product.",
+                "Reject bundles, collections, sequels, remasters, DLC, accessories, or ambiguous titles unless the candidate clearly describes the same product.",
+                "Choose no_match when uncertain.",
+            ],
+            "purchase_item": {
+                "title": item.get("title") or "",
+                "normalized_title": normalize_title(item.get("title") or ""),
+                "system": normalize_system(item.get("system")) or detect_system_from_title(item.get("title") or ""),
+            },
+            "candidates": candidate_payload,
+        }
+
+        return {
+            "model": self.model,
+            "input": [
+                {
+                    "role": "system",
+                    "content": (
+                        "You are a conservative product matching reviewer for a resale operations system. "
+                        "You output only structured JSON. Prefer no_match over a risky match."
+                    ),
+                },
+                {
+                    "role": "user",
+                    "content": json.dumps(prompt, ensure_ascii=True),
+                },
+            ],
+            "text": {
+                "format": {
+                    "type": "json_schema",
+                    "name": "revseller_match_decision",
+                    "strict": True,
+                    "schema": {
+                        "type": "object",
+                        "additionalProperties": False,
+                        "properties": {
+                            "decision": {"type": "string", "enum": ["match", "no_match"]},
+                            "candidate_index": {"type": "integer"},
+                            "confidence": {"type": "number", "minimum": 0, "maximum": 1},
+                            "reason": {"type": "string"},
+                        },
+                        "required": ["decision", "candidate_index", "confidence", "reason"],
+                    },
+                }
+            },
+        }
+
+
+def extract_response_json(response_payload):
+    for output in response_payload.get("output") or []:
+        for content in output.get("content") or []:
+            if content.get("type") == "output_text" and content.get("text"):
+                return json.loads(content["text"])
+    text = response_payload.get("output_text")
+    if text:
+        return json.loads(text)
+    raise RuntimeError("OpenAI response did not include output_text.")
+
+
+def parse_decimal(value) -> Decimal | None:
+    if value is None:
+        return None
+    try:
+        return Decimal(str(value))
+    except InvalidOperation:
+        return None
+
+
+def build_ai_client(args):
+    if not args.ai_review:
+        return None
+
+    api_key = os.getenv("OPENAI_API_KEY")
+    if not api_key:
+        print("AI match review skipped: OPENAI_API_KEY is not configured.")
+        return None
+
+    return AiMatchClient(
+        api_key=api_key,
+        model=args.ai_model,
+        confidence_threshold=Decimal(str(args.ai_confidence_threshold)),
+    )
+
+
 def write_diagnostics(diagnostic_rows):
     if not diagnostic_rows:
         print("Diagnostic CSV skipped: no diagnostic rows.")
@@ -471,6 +744,13 @@ def write_diagnostics(diagnostic_rows):
         "normalized_title",
         "existing_asin",
         "existing_target_price",
+        "ai_decision",
+        "ai_candidate_index",
+        "ai_confidence",
+        "ai_reason",
+        "matched_asin",
+        "matched_title",
+        "matched_target_price",
     ]
 
     with open(DIAGNOSTIC_OUTPUT_PATH, "w", newline="", encoding="utf-8") as csvfile:
@@ -481,10 +761,20 @@ def write_diagnostics(diagnostic_rows):
     print(f"Diagnostic CSV written: {DIAGNOSTIC_OUTPUT_PATH}")
 
 
+def parse_args():
+    parser = argparse.ArgumentParser(description="Enrich purchase items from RevSeller sheet matches.")
+    parser.add_argument("--ai-review", action="store_true", help="Use OpenAI to review unmatched same-system candidates.")
+    parser.add_argument("--ai-model", default=os.getenv("OPENAI_MATCHING_MODEL", DEFAULT_AI_MODEL))
+    parser.add_argument("--ai-confidence-threshold", type=str, default=str(AI_CONFIDENCE_THRESHOLD))
+    parser.add_argument("--ai-review-limit", type=int, default=AI_REVIEW_LIMIT)
+    return parser.parse_args()
+
+
 def main():
     global REVSELLER_SHEET_ID
     global REVSELLER_WORKSHEET_NAME
 
+    args = parse_args()
     load_dotenv()
 
     REVSELLER_SHEET_ID = os.getenv("REVSELLER_GOOGLE_SHEET_ID")
@@ -492,8 +782,10 @@ def main():
 
     print("Starting RevSeller sheet enrichment...")
     print(f"ALLOW_REENRICHMENT: {ALLOW_REENRICHMENT}")
+    print(f"AI review enabled: {args.ai_review}")
 
     supabase = get_supabase_client()
+    ai_client = build_ai_client(args)
 
     revseller_rows = load_revseller_rows()
     print(f"RevSeller usable rows loaded: {len(revseller_rows)}")
@@ -509,6 +801,7 @@ def main():
         ambiguous_compact_title_system,
         by_token_title_system,
         ambiguous_token_title_system,
+        rows_by_system,
     ) = build_revseller_indexes(match_rows)
 
     print(f"RevSeller title+system keys: {len(by_title_system)}")
@@ -532,9 +825,15 @@ def main():
         "matched_compact_with_system": 0,
         "matched_condition_variant_with_system": 0,
         "matched_token_set_with_system": 0,
+        "matched_ai_with_system": 0,
         "skipped_ambiguous_system": 0,
         "skipped_ambiguous_compact_system": 0,
         "skipped_ambiguous_token_system": 0,
+        "skipped_ai_disabled": 0,
+        "skipped_ai_no_candidates": 0,
+        "skipped_ai_no_match": 0,
+        "skipped_ai_low_confidence": 0,
+        "skipped_ai_error": 0,
         "skipped_no_match": 0,
         "skipped_no_detected_system": 0,
         "updated": 0,
@@ -542,6 +841,7 @@ def main():
     }
 
     diagnostic_rows = []
+    ai_reviews_used = 0
 
     for item in purchase_items:
         matched_row, status = match_purchase_item(
@@ -554,6 +854,25 @@ def main():
             by_token_title_system,
             ambiguous_token_title_system,
         )
+
+        ai_decision = None
+        if (
+            not matched_row
+            and ai_client
+            and status
+            in {
+                "skipped_no_match",
+                "skipped_ambiguous_compact_system",
+                "skipped_ambiguous_token_system",
+            }
+            and ai_reviews_used < args.ai_review_limit
+        ):
+            ai_reviews_used += 1
+            matched_row, status, ai_decision = ai_match_purchase_item(
+                item,
+                rows_by_system,
+                ai_client,
+            )
 
         counts[status] += 1
 
@@ -570,9 +889,36 @@ def main():
                     "normalized_title": normalize_title(raw_title),
                     "existing_asin": item.get("asin"),
                     "existing_target_price": item.get("target_price"),
+                    "ai_decision": (ai_decision or {}).get("decision"),
+                    "ai_candidate_index": (ai_decision or {}).get("candidate_index"),
+                    "ai_confidence": (ai_decision or {}).get("confidence"),
+                    "ai_reason": (ai_decision or {}).get("reason"),
                 }
             )
             continue
+
+        if status == "matched_ai_with_system":
+            raw_title = item.get("title") or ""
+            diagnostic_rows.append(
+                {
+                    "item_id": item.get("item_id"),
+                    "status": status,
+                    "purchase_item_title": raw_title,
+                    "purchase_item_system": item.get("system"),
+                    "detected_system": normalize_system(item.get("system"))
+                    or detect_system_from_title(raw_title),
+                    "normalized_title": normalize_title(raw_title),
+                    "existing_asin": item.get("asin"),
+                    "existing_target_price": item.get("target_price"),
+                    "ai_decision": (ai_decision or {}).get("decision"),
+                    "ai_candidate_index": (ai_decision or {}).get("candidate_index"),
+                    "ai_confidence": (ai_decision or {}).get("confidence"),
+                    "ai_reason": (ai_decision or {}).get("reason"),
+                    "matched_asin": matched_row.get("asin"),
+                    "matched_title": matched_row.get("raw_title"),
+                    "matched_target_price": matched_row.get("target_price"),
+                }
+            )
 
         try:
             update_purchase_item(

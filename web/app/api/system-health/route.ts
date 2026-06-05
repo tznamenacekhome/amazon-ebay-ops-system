@@ -61,8 +61,10 @@ type DynamicQuery = PromiseLike<DynamicQueryResult> & {
   select: (columns: string, options?: { count?: "exact"; head?: boolean }) => DynamicQuery;
   order: (column: string, options?: { ascending?: boolean; nullsFirst?: boolean }) => DynamicQuery;
   limit: (count: number) => DynamicQuery;
-  eq: (column: string, value: string) => DynamicQuery;
-  gte: (column: string, value: string) => DynamicQuery;
+  eq: (column: string, value: unknown) => DynamicQuery;
+  neq: (column: string, value: unknown) => DynamicQuery;
+  gte: (column: string, value: unknown) => DynamicQuery;
+  is: (column: string, value: unknown) => DynamicQuery;
   not: (column: string, operator: string, value: string) => DynamicQuery;
 };
 
@@ -122,12 +124,23 @@ const JOBS: JobConfig[] = [
   {
     id: "revseller-enrichment",
     name: "RevSeller enrichment",
-    command: "integrations/sync_revseller_sheet.py",
+    command: "integrations/sync_revseller_sheet.py --ai-review --ai-review-limit 25",
     group: "core",
     blocking: true,
     expectedEveryHours: 12,
     criticalAfterHours: 24,
     signal: async () => latestRevsellerDiagnosticsSignal(),
+  },
+  {
+    id: "keepa-missing-purchase-titles",
+    name: "Keepa missing purchase titles",
+    command:
+      "integrations/backfill_amazon_titles_from_keepa.py --limit 25 --fetch-missing --min-tokens 25 --apply",
+    group: "core",
+    blocking: false,
+    expectedEveryHours: 12,
+    criticalAfterHours: 24,
+    signal: async () => missingPurchaseTitleSignal(),
   },
   {
     id: "amazon-fba-inventory",
@@ -619,6 +632,39 @@ async function latestRevsellerDiagnosticsSignal(): Promise<JobSignal> {
     lastRunAt: latest.stat.mtime.toISOString(),
     source: latest.fileName,
     stats: [{ label: "Unmatched diagnostics", value: formatCount(rows) }],
+  };
+}
+
+async function missingPurchaseTitleSignal(): Promise<JobSignal> {
+  let query = dynamicFrom("purchase_items")
+    .select("*", { count: "exact", head: true })
+    .not("asin", "is", "null")
+    .neq("asin", "N/A")
+    .not("current_status", "in", "(listed,cancelled,return_opened,return_pending)")
+    .eq("exclude_from_purchase_reporting", false)
+    .not("amazon_title", "is", "null");
+
+  const { count: titledCount } = await query;
+
+  query = dynamicFrom("purchase_items")
+    .select("*", { count: "exact", head: true })
+    .not("asin", "is", "null")
+    .neq("asin", "N/A")
+    .not("current_status", "in", "(listed,cancelled,return_opened,return_pending)")
+    .eq("exclude_from_purchase_reporting", false)
+    .is("amazon_title", null);
+
+  const { count, error } = await query;
+  if (error) throw new Error(`purchase_items: ${error.message}`);
+
+  return {
+    lastRunAt: null,
+    source: "purchase_items",
+    stats: [
+      { label: "Missing active titles", value: formatCount(count) },
+      { label: "Active titled ASINs", value: formatCount(titledCount) },
+    ],
+    statusOverride: count && count > 0 ? "delayed" : undefined,
   };
 }
 

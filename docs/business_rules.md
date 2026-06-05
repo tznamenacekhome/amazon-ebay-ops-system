@@ -32,6 +32,15 @@ Carrier/status syncs must not downgrade workflow-owned statuses.
 - Never auto-match across systems.
 - ASIN corrections may propagate only to matching normalized title + system rows and must not overwrite a different existing ASIN.
 - `purchase_items.amazon_title` stores the matched Amazon/RevSeller title separately from the supplier/eBay title.
+- AI-assisted RevSeller matching is allowed only as a same-system, candidate
+  selection review over locally ranked RevSeller rows. It must not invent ASINs
+  or override platform boundaries, and low-confidence responses must remain
+  unmatched for manual review. Scheduled AI review should focus on open
+  purchase-work rows and write an auditable diagnostics row for each AI match.
+- If a row already has a reviewed ASIN but no Amazon title, MBOP may fill only
+  `purchase_items.amazon_title` from stored Keepa catalog snapshots or a
+  guarded no-history Keepa product lookup. This must not change ASIN, system,
+  price, cost, status, or workflow state.
 - ASIN is the primary Amazon product identity for MBOP operational inventory. MSKU remains stored for Amazon traceability and InventoryLab/Informed joins.
 
 ## Receiving
@@ -77,6 +86,12 @@ Carrier/status syncs must not downgrade workflow-owned statuses.
   performs marketplace actions on ebay.com.
 - Partial refunds where the item is kept must not automatically change item cost
   until a controlled cost-adjustment workflow exists.
+- The Purchases default list is for open purchase work. It excludes Listed,
+  Cancelled, Return Opened, and Return Pending rows; those rows remain available
+  through explicit status filters, All Status, and the Order Problems workflow.
+- Cancelled/refund-follow-up order-problem actions must preserve
+  `purchase_items.current_status = cancelled` so cancelled rows do not reappear
+  in Purchases Open Purchase Work.
 
 ## Amazon FBA Shipment Prep
 
@@ -87,6 +102,10 @@ Carrier/status syncs must not downgrade workflow-owned statuses.
 - Included quantities move to `listed`; excluded quantities remain `received`.
 - Current non-historical FBA shipment links are valued as `outbound_to_amazon` until Amazon/InventoryLab inventory takes over.
 - The historical marker `legacy_listed_no_shipment_id` must not create outbound-to-Amazon value.
+- Explicitly `listed` legacy purchase-item lots with ASIN, quantity, and cost
+  may participate in Amazon sales FIFO COGS allocation even when the original
+  supplier was not stored as eBay. This is for old resale inventory sources that
+  should not re-enter receiving or open purchase work.
 
 ## Inventory And Valuation
 

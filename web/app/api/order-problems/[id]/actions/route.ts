@@ -179,7 +179,7 @@ function actionUpdate(action: string, body: ActionBody, problemCase: ProblemCase
         workflow_state: "refund_pending",
         refund_due_at: now,
         next_action: "Confirm refund received.",
-      }, null, "Marked refund pending.", amount, trackingNumber);
+      }, cancellationPurchaseStatus(problemCase), "Marked refund pending.", amount, trackingNumber);
     case "mark_refund_received":
       return result({
         ...base,
@@ -189,7 +189,7 @@ function actionUpdate(action: string, body: ActionBody, problemCase: ProblemCase
         refund_received_at: now,
         closed_at: now,
         next_action: null,
-      }, null, "Marked refund received and resolved.", amount, trackingNumber);
+      }, cancellationPurchaseStatus(problemCase), "Marked refund received and resolved.", amount, trackingNumber);
     case "mark_missing_item_pending":
       return result({
         ...base,
@@ -259,6 +259,10 @@ function result(
   trackingNumber: string | null,
 ) {
   return { caseUpdates, purchaseStatus, message, amount, trackingNumber };
+}
+
+function cancellationPurchaseStatus(problemCase: ProblemCase) {
+  return problemCase.problem_type === "cancelled_refund_followup" ? "cancelled" : null;
 }
 
 function parseAmount(value: unknown) {

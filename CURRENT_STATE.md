@@ -71,6 +71,10 @@ Implemented:
 - pre-2025 Amazon sales orders imported by recent Amazon LastUpdated activity are excluded from the UI/API and have cleanup SQL in `sql/2026-05-31_remove_pre_2025_amazon_sales_orders.sql`
 - `integrations/apply_ebay_purchase_fifo_cogs.py` allocates costed eBay
   `purchase_items` into `amazon_sales_cogs_consumption` by ASIN and FIFO order
+- eBay purchase FIFO allocation also accepts explicitly `listed` legacy
+  purchase-item lots from non-eBay suppliers, so older resale lots such as
+  PayPal/direct legacy purchase records can support Amazon COGS without
+  re-entering Purchases open work
 - `integrations/apply_non_ebay_fifo_cogs.py` allocates and can rebalance TIM,
   prep-center, Merchant Fulfilled, and other non-eBay source rows into Amazon
   sales/current inventory COGS layers
@@ -88,6 +92,8 @@ COGS state:
   109 additional sales rows
 - eBay purchase FIFO COGS allocation was run after the 2025 backfill and
   applied 2,123 additional sales rows / 2,127 consumption rows
+- targeted legacy-listed FIFO cleanup on 2026-06-04 marked three old source
+  orders as `listed` and applied 25 additional sales COGS rows
 - Amazon sales profitability currently has 3,873 complete rows and 159
   remaining `missing_cogs` rows
 - Amazon sales profitability currently has 32 stored `missing_fees` rows and 0
@@ -152,6 +158,8 @@ Implemented:
 - inquiry detail enrichment captures seller make-it-right/escalation dates and replacement tracking that are not present in the inquiry search summary
 - eBay return/case/inquiry/cancellation links are surfaced from the Order column; duplicate action links are intentionally not repeated in Next Action
 - cancellation/refund exceptions can be represented as `ebay_cancellation_sync` / `refund_pending` while waiting for the refund to post
+- cancellation/refund follow-up actions keep the linked purchase item in
+  `cancelled` status so those rows stay out of Purchases Open Purchase Work
 - `/api/screen-data-freshness` includes order-problem case/event timestamps in the Purchases freshness signal
 
 Safety:
@@ -172,13 +180,17 @@ Known follow-up:
 Status: LOCAL SCHEDULER CONFIGURED / BROAD INTEGRATION AUTOMATION ENABLED
 
 Implemented:
-- `run_all_syncs.py` runs eBay buyer purchase sync, EasyPost shipment sync, RevSeller enrichment, Amazon FBA inventory, Amazon listing status, Amazon inventory planning, Amazon Finance, Informed Repricer reports, YNAB Business cash balance, guarded Keepa enrichment, and the daily business value snapshot
+- `run_all_syncs.py` runs eBay buyer purchase sync, EasyPost shipment sync, RevSeller enrichment with optional AI same-system review, guarded missing-title Keepa repair, Amazon FBA inventory, Amazon listing status, Amazon inventory planning, Amazon Finance, Informed Repricer reports, YNAB Business cash balance, guarded Keepa enrichment, and the daily business value snapshot
 - `run_all_syncs.py` also stores YNAB Business-category transaction history
   daily for future P&L, Schedule C, and cash reconciliation features
 - `run_all_syncs.bat` targets the repo at `C:\Dev\amazon-ebay-ops-system`
 - scheduler output is appended to `logs/scheduler.log`
 - local AM/PM Windows scheduled tasks were recreated after the repo moved out of OneDrive
 - individual script failures are collected and reported without preventing later independent syncs from running
+- scheduled missing-title Keepa repair fills blank `purchase_items.amazon_title`
+  for ASIN-bearing purchase rows from stored Keepa snapshots first, and only
+  calls Keepa for up to 25 remaining candidates when at least 25 tokens are
+  available
 - scheduled Keepa enrichment is capped to 10 stale active-Amazon ASINs, uses stock/offers without history, and skips calls unless at least 100 Keepa tokens are available
 - MBOP screens show a screen-specific `Last updated` timestamp near refresh
   controls using `/api/screen-data-freshness`
@@ -711,7 +723,7 @@ Implemented:
 - purchases and receiving APIs hide purchase items marked exclude_from_purchase_reporting
 - purchases API excludes reporting-excluded rows before database pagination so pages are full usable pages
 - purchases client also filters reportable-excluded rows before storing fetched or cached rows
-- default purchases status filter is All Except Listed, with All Status available for full history
+- default purchases status filter is Open Purchase Work, with All Status available for full history
 - purchases UI browser caching is temporarily disabled for server-side performance testing
 - purchases cache key was bumped after reporting-exclusion fixes so stale non-resale rows are not reused
 - purchases cache key was bumped again after backend status normalization so stale derived-status filter results are not reused
@@ -732,8 +744,17 @@ Recent backend update:
 - one-time backend status backfill normalized 83 purchase item statuses from older ordered/in-transit/delivered placeholders
 - existing empty systems were backfilled where recognized
 - RevSeller enrichment no longer applies unique-title matches without a recognized system
+- RevSeller enrichment can use optional OpenAI structured-output review for
+  deterministic misses. AI sees only same-system RevSeller candidates, cannot
+  invent ASINs, and is accepted only above a high confidence threshold.
+- RevSeller enrichment now scans only Open Purchase Work rows and skips
+  reporting-excluded rows, aligning its candidate set with the default
+  Purchases list.
 - system names were normalized to operator-facing display values
 - purchase_items.amazon_title was added and backfilled from RevSeller where ASIN/title data was available
+- `integrations/backfill_amazon_titles_from_keepa.py` fills missing
+  Amazon-title display values for rows that already have an ASIN, without
+  changing ASIN, system, price, cost, status, or workflow state
 - Amazon search links and RevSeller matching now share marketplace-title cleaning semantics
 - marketplace-title cleaning was refined from the 100-row missing-ASIN training sheet
 - RevSeller enrichment now safely handles leading `New` as condition text only as a same-system fallback, which corrected order `20-14670-25041` to ASIN `B08MG5FYS6`

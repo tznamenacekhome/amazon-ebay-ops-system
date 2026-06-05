@@ -112,6 +112,31 @@ Example:
 - system: `Wii`
 - result: ASIN `B001TOQ8LG`
 
+## AI Same-System Review
+
+After deterministic matching fails, RevSeller enrichment can optionally call
+OpenAI with `--ai-review`.
+
+This is a conservative second-pass reviewer, not a free-form matcher:
+- AI only sees RevSeller candidates already filtered to the same detected system.
+- Candidates are pre-ranked locally by normalized title, compact title, and
+  token-set similarity.
+- AI must return structured JSON with `match` or `no_match`.
+- MBOP accepts the match only when the selected candidate index is one of the
+  supplied candidates and confidence is at or above the configured threshold
+  (`0.86` by default).
+- AI is never allowed to invent an ASIN, change system, change price/cost, or
+  match across platforms.
+- If `OPENAI_API_KEY` is missing, the enrichment safely skips AI review and
+  falls back to deterministic matching only.
+
+Scheduled sync runs AI review with a small per-run cap so it can improve fuzzy
+coverage without turning the daily purchase sync into a broad AI batch job. AI
+review calls are limited to open purchase-work rows; deterministic matching may
+still enrich older workflow rows without spending AI calls. AI matches are
+written into the diagnostics CSV with selected ASIN/title, confidence, and
+reason for auditability.
+
 ## Manual Match Memory
 
 When an operator manually adds an ASIN or target sell price in the purchases UI,
@@ -123,7 +148,11 @@ Manual corrections are stored in:
 
 The RevSeller enrichment script loads these manual rows together with Google
 Sheet rows, so future purchases of the same title/system can be enriched even
-when the game is missing from the RevSeller sheet.
+when the game is missing from the RevSeller sheet. The scheduled RevSeller pass
+only scans Open Purchase Work rows: Listed, Cancelled, Return Opened, and Return
+Pending rows are excluded from deterministic and AI matching, and rows marked
+`exclude_from_purchase_reporting` are skipped the same way they are skipped by
+the default Purchases list.
 
 ## Legacy Purchases Sheet Backfill
 

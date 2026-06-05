@@ -2,7 +2,7 @@
 
 This file tracks active issues, monitor items, and deferred decisions for Midnight Blue Operations Platform (MBOP).
 
-Last reviewed: 2026-06-02
+Last reviewed: 2026-06-04
 
 # Active Issues
 
@@ -129,7 +129,8 @@ The purchases page became slow as the table grew and the frontend loaded, filter
 
 Current mitigation:
 - `/api/purchases` owns server-side filtering, sorting, pagination, and summary counts.
-- default purchases filter is all statuses except Listed.
+- default purchases filter is Open Purchase Work: Listed, Cancelled, Return
+  Opened, and Return Pending rows are excluded.
 - reporting-excluded rows are excluded before database pagination.
 - query-aware browser cache support exists but is temporarily disabled while server-side performance is validated.
 - Refresh clears any purchases cache entries and reloads from `/api/purchases`.
@@ -157,6 +158,11 @@ Current mitigation:
 - backend system detection has been centralized.
 - eBay import/sync populates `purchase_items.system` from recognized title terms.
 - RevSeller enrichment requires system-aware matching before ASIN assignment.
+- RevSeller enrichment now scans only Open Purchase Work rows and skips
+  reporting-excluded rows, matching the default Purchases list boundary.
+- optional OpenAI structured-output review can handle deterministic misses by
+  choosing from same-system RevSeller candidates only; it cannot invent ASINs
+  and writes AI match diagnostics for audit.
 - matched Amazon/RevSeller title is stored separately from the eBay supplier title.
 - shared marketplace-title cleaning runs before RevSeller normalized matching.
 - legacy Purchases sheet backfill and ASIN validation resolved most historical gaps.
@@ -447,29 +453,31 @@ Options:
 
 # Monitor Items
 
-## Amazon Sales Missing COGS Needs eBay FIFO Allocation
+## Amazon Sales Missing COGS Needs Ongoing Source Cleanup
 
-Status: ACTIVE / WAITING FOR 2025 SALES BACKFILL COMPLETION
+Status: ACTIVE / POST-FIFO CLEANUP
 
 Problem:
-The Sales Orders page shows many Amazon sales rows with missing COGS even though
-the matching eBay purchase rows already exist in MBOP with ASIN, quantity, and
-unit cost.
+The Sales Orders page still has a smaller set of Amazon sales rows with missing
+COGS after the 2025-forward Amazon order backfill and broad FIFO allocation.
+Remaining exceptions generally need missing purchase-source rows, corrected
+ASIN/quantity/cost, or explicit classification.
 
 Current analysis:
 - current review export: `exports/missing_amazon_cogs_review.csv`
-- most missing COGS rows are in the `purchase_data_available_needs_fifo` bucket
-- these should not be fixed manually one by one
-- the correct fix is to allocate eBay `purchase_items` into
-  `amazon_sales_cogs_consumption` using FIFO by ASIN
+- broad eBay and non-eBay FIFO allocators have already been run after the 2025
+  sales-order backfill.
+- targeted legacy-listed FIFO cleanup on 2026-06-04 marked three old source
+  orders as Listed and applied 25 additional Amazon sales COGS rows.
+- the eBay FIFO allocator can now include explicitly Listed legacy
+  purchase-item lots from non-eBay suppliers, which keeps old resale source
+  records out of Purchases open work while still allowing them to support COGS.
 
 Current blocker:
-- wait for the 2025 Amazon sales-order backfill to finish before applying broad
-  FIFO allocation, so the allocator sees the full 2025-forward sales set
+- remaining rows need source-data cleanup or classification, not another broad
+  historical order backfill.
 
 Recommended next step:
-- implement and run an eBay purchase FIFO allocator after the 2025 backfill
-  completes
 - rerun the missing COGS review export
 - manually review only the remaining exception buckets:
   - no purchase ASIN match

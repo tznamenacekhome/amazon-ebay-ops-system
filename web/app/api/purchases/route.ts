@@ -14,6 +14,13 @@ const supabase = createClient(supabaseUrl, supabaseServiceRoleKey);
 
 const STALE_TRACKING_ORDER_AGE_DAYS = 14;
 const STALE_TRACKING_LOOKBACK_DAYS = 90;
+const DEFAULT_LIST_EXCLUDED_STATUSES = [
+  "listed",
+  "cancelled",
+  "return_opened",
+  "return_pending",
+];
+const DEFAULT_LIST_EXCLUDED_STATUS_FILTER = `(${DEFAULT_LIST_EXCLUDED_STATUSES.join(",")})`;
 
 type PurchaseListRow = {
   item_id: string;
@@ -234,7 +241,11 @@ function applyServerFilters(
   }
 
   if (query.statusFilter === "active") {
-    request = request.neq("current_status", "listed");
+    request = request.not(
+      "current_status",
+      "in",
+      DEFAULT_LIST_EXCLUDED_STATUS_FILTER
+    );
   } else if (query.statusFilter !== "all") {
     request = request.eq("current_status", query.statusFilter);
   }
@@ -245,7 +256,7 @@ function applyServerFilters(
     request = request.not(
       "current_status",
       "in",
-      "(listed,cancelled,return_opened,return_pending)"
+      DEFAULT_LIST_EXCLUDED_STATUS_FILTER
     );
     const needsReviewClauses = [
       "asin.is.null",

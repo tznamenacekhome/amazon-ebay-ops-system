@@ -86,9 +86,29 @@ JOBS: tuple[SyncJob, ...] = (
     ),
     SyncJob(
         name="RevSeller enrichment",
-        command=static_command("integrations/sync_revseller_sheet.py"),
+        command=static_command(
+            "integrations/sync_revseller_sheet.py",
+            "--ai-review",
+            "--ai-review-limit",
+            "25",
+        ),
         groups=("core", "purchases", "dashboard"),
         timeout_seconds=45 * 60,
+    ),
+    SyncJob(
+        name="Keepa missing purchase titles",
+        command=static_command(
+            "integrations/backfill_amazon_titles_from_keepa.py",
+            "--limit",
+            "25",
+            "--fetch-missing",
+            "--min-tokens",
+            "25",
+            "--apply",
+        ),
+        groups=("core", "purchases", "dashboard"),
+        blocking=False,
+        timeout_seconds=20 * 60,
     ),
     SyncJob(
         name="Amazon sales orders",
