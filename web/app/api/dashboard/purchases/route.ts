@@ -6,6 +6,9 @@ const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
 const supabase = createClient(supabaseUrl, supabaseServiceRoleKey);
 
+const STALE_TRACKING_ORDER_AGE_DAYS = 14;
+const STALE_TRACKING_LOOKBACK_DAYS = 90;
+
 type DashboardPurchaseRow = {
   item_id: string | null;
   purchase_id?: string | null;
@@ -381,8 +384,8 @@ function aggregateOperations(rows: DashboardPurchaseRow[]) {
     return (
       ["no_tracking", "shipped_no_tracking", "awaiting_carrier_scan"].includes(status) &&
       orderAgeDays !== null &&
-      orderAgeDays >= 7 &&
-      orderAgeDays <= 90
+      orderAgeDays >= STALE_TRACKING_ORDER_AGE_DAYS &&
+      orderAgeDays <= STALE_TRACKING_LOOKBACK_DAYS
     );
   });
   const exceptionRows = reportableRows.filter((row) =>
@@ -713,7 +716,7 @@ function buildBusinessInventoryValueSummary(
         )}; deferred ${formatCurrencyNumber(amazonFinanceBalance.deferred_or_reserved_cash)}`
       : "Amazon Finance snapshot missing",
     amazon_cash_in_transit_source: amazonFinanceBalance
-      ? "Amazon Finance fund transfers that are Processing plus recently completed payout bridge"
+      ? "Amazon Finance Processing transfers plus completed payouts not yet matched to YNAB Business deposits"
       : "Amazon Finance snapshot missing",
     cash_on_hand_source: ynabCashBalance?.source ?? "YNAB Business category snapshot missing",
   };

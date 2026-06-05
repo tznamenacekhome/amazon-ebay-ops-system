@@ -1,6 +1,6 @@
 # CURRENT_STATE.md
 
-Last Updated: 2026-06-02
+Last Updated: 2026-06-04
 
 # Midnight Blue Operations Platform (MBOP)
 
@@ -27,7 +27,7 @@ MBOP is the internal operations platform for Midnight Blue Enterprises, LLC.
 | Amazon Sales Orders | First slice implemented / 2025-forward backfill complete |
 | Non-eBay purchase COGS sources | Manual import bridge implemented |
 | Legacy spreadsheet backfill | Recently used / repeatable script available |
-| Order Problems / eBay Returns | First slice implemented / eBay read-only |
+| Order Problems / eBay Returns | Operational first slice / eBay read-only |
 
 ---
 
@@ -138,17 +138,20 @@ Recent cleanup:
 
 ## Order Problems And eBay Returns
 
-Status: FIRST SLICE IMPLEMENTED / READ-ONLY EBAY
+Status: OPERATIONAL FIRST SLICE / READ-ONLY EBAY
 
 Implemented:
 - legacy supplier return workflow rows were cleared through `sql/2026-06-02_add_order_problem_return_workflow.sql` without downgrading `purchase_items.current_status`
 - `order_problem_cases` stores one open workflow case per purchase item for late/stale shipment candidates, return-needed items, eBay return/case follow-up, cancelled/refund follow-up, missing-item/replacement follow-up, and manual resolution
 - `order_problem_events` stores an append-only timeline for system, operator, eBay API, and tracking events
 - `/api/order-problems` owns candidate detection, open/resolved stage filtering, pagination, sorting, and summary counts
-- `/api/order-problems/[id]/actions` supports MBOP-local workflow actions such as Mark Return Needed, Mark Return Opened, Mark Label Available, Mark Return Shipped, Mark Refund Received, Mark Missing Item Received, Mark Escalated, and Close / Resolve
-- Purchases -> Order Problems is now the unified queue for delivery candidates and return/refund follow-up, with dense stage chips and operational columns
+- `/api/order-problems/[id]/actions` supports MBOP-local workflow actions such as Mark Return Needed, Mark Return Opened, Mark Label Available, Mark Return Shipped, Mark Refund Received, Mark Missing Item Received, Mark Replacement Shipped, Mark Escalated, Close / Resolve, and Close No Refund
+- Purchases -> Order Problems is now the unified queue for delivery candidates and return/refund follow-up, with dense stage chips, top-of-table operational stats, and consolidated issue/status columns
 - the purchase detail drawer shows the order-problem workflow panel, eBay status/action link when available, refund fields, replacement tracking, notes, and local action buttons
-- `integrations/ebay_sync_order_problem_returns.py` is a read-only eBay Post-Order returns importer that writes only to `order_problem_cases` and `order_problem_events`
+- `integrations/ebay_sync_order_problem_returns.py` is a scheduled, read-only eBay Post-Order importer for returns, INR inquiries, inquiry details, and cases that writes only to `order_problem_cases` and `order_problem_events`
+- inquiry detail enrichment captures seller make-it-right/escalation dates and replacement tracking that are not present in the inquiry search summary
+- eBay return/case/inquiry/cancellation links are surfaced from the Order column; duplicate action links are intentionally not repeated in Next Action
+- cancellation/refund exceptions can be represented as `ebay_cancellation_sync` / `refund_pending` while waiting for the refund to post
 - `/api/screen-data-freshness` includes order-problem case/event timestamps in the Purchases freshness signal
 
 Safety:
@@ -158,7 +161,8 @@ Safety:
 
 Known follow-up:
 - add dedicated case/event detail API routes if the drawer needs full timelines beyond the current row fields
-- validate the new read-only eBay returns sync against live Post-Order API data before scheduling it
+- continue validating less-common eBay Post-Order states as they appear in live return/inquiry/case/cancellation data
+- add first-class scheduled cancellation search/import support if additional cancellation-driven refund follow-up cases appear
 - decide how accepted partial refunds should adjust purchase cost when the item is kept
 
 ---
@@ -180,16 +184,18 @@ Implemented:
   controls using `/api/screen-data-freshness`
 - Dashboard freshness uses the oldest required cash/value input so stale Amazon
   Finance, YNAB, or business value snapshots are visible
-- Amazon Finance balance snapshots now keep recently completed/succeeded Amazon
-  payouts in `in_transit_to_bank` during a two-day bridge window so business
-  value does not drop between Amazon payout completion and the YNAB bank/cash
-  update
+- Amazon Finance balance snapshots now use YNAB Business transaction matching
+  for completed/succeeded payouts: completed Amazon transfers stay in
+  `in_transit_to_bank` only until a matching YNAB Business deposit is present
 
 Recent validation:
 - direct all-sync execution completed successfully with exit code 0 after adding Amazon FBA inventory throttling safeguards
 - eBay buyer purchase sync retrieved 652 orders and updated 31
+- eBay order problem returns/inquiries sync is now part of the `core`
+  scheduled group and reads eBay Post-Order returns, INR inquiries/details, and
+  cases without performing marketplace writes
 - EasyPost sync processed/reused 103 shipment trackers with 2 FedEx credential errors remaining
-- legacy eBay supplier returns sync remains disabled pending validation of the new Order Problems return sync
+- legacy eBay supplier returns sync remains disabled because the new Order Problems return/inquiry sync owns the active workflow
 - RevSeller sync completed and wrote diagnostics
 - Amazon FBA inventory sync fetched 6,292 summaries, upserted 6,292 SKUs, and inserted 6,292 snapshots
 - Amazon listing-status sync inserted 296 active listing snapshots
@@ -645,7 +651,7 @@ Implemented:
 - clicking the Total row in the Business Inventory And Cash Value dashboard panel opens a modal with a business value history graph
 - Purchases workspace now has separate tabs for the normal editable purchases table and an Order Problems table
 - Purchases `Missing Data` filter keeps ASIN/sell-price/system/Amazon-title cleanup in the normal editable view
-- Purchases Order Problems tab shows past-ETA, stale/no-tracking, carrier exception, and return-pending rows with issue/age-focused columns
+- Purchases Order Problems tab shows delivery candidates, return/refund follow-up, missing-item/replacement follow-up, and cancellation refund confirmation with consolidated issue/status columns and current-filter stats
 
 Current purpose:
 Help identify purchase data completeness, receiving backlog, shipment prep backlog, workflow aging, and exception/missing-data visibility from one operational screen.

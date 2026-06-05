@@ -64,6 +64,20 @@ JOBS: tuple[SyncJob, ...] = (
         timeout_seconds=45 * 60,
     ),
     SyncJob(
+        name="eBay order problem returns/inquiries",
+        command=static_command(
+            "integrations/ebay_sync_order_problem_returns.py",
+            "--lookback-days",
+            "90",
+            "--limit",
+            "100",
+            "--apply",
+        ),
+        groups=("core", "purchases", "dashboard"),
+        blocking=False,
+        timeout_seconds=30 * 60,
+    ),
+    SyncJob(
         name="eBay supplier returns",
         command=static_command("integrations/ebay_sync_supplier_returns.py"),
         groups=(),

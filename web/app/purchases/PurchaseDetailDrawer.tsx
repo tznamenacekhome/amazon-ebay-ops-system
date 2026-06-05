@@ -181,9 +181,11 @@ export function PurchaseDetailDrawer({
                 <WorkflowButton label="Refund Pending" onClick={() => runProblemAction("mark_refund_pending")} />
                 <WorkflowButton label="Refund Received" onClick={() => runProblemAction("mark_refund_received")} />
                 <WorkflowButton label="Missing Pending" onClick={() => runProblemAction("mark_missing_item_pending")} />
+                <WorkflowButton label="Replacement Shipped" onClick={() => runProblemAction("mark_replacement_shipped")} />
                 <WorkflowButton label="Missing Received" onClick={() => runProblemAction("mark_missing_item_received")} />
                 <WorkflowButton label="Escalation Available" onClick={() => runProblemAction("mark_escalation_available")} />
                 <WorkflowButton label="Escalated" onClick={() => runProblemAction("mark_escalated")} />
+                <WorkflowButton label="Close No Refund" onClick={() => runProblemAction("close_no_refund")} />
                 <WorkflowButton label="Close" onClick={() => runProblemAction("close_resolve")} />
               </div>
 

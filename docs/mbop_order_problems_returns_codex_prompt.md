@@ -81,6 +81,12 @@ Modify the existing Purchases -> Order Problems screen so it becomes the unified
 
 Think of current Order Problems criteria as the earliest “problem candidate” state before Return Pending / Return Opened.
 
+Stale tracking rule:
+- `no_tracking`, `shipped_no_tracking`, and `awaiting_carrier_scan` are stale only after the order is at least 14 days old.
+- The stale-tracking candidate window only looks back 90 days.
+- `in_transit` is not stale while the carrier ETA is still in the future; it becomes a problem only through the past-ETA rule.
+- Derived stale/late/carrier candidates should auto-close when the purchase no longer matches a candidate rule.
+
 ## eBay return types
 
 Use these friendly return type names:
@@ -204,6 +210,8 @@ Recommended fields:
     - `resolved_received_item`
     - `closed_no_action`
     - `closed_no_refund`
+      - Use for cases where the item is not recoverable and no refund will be received, such as an eBay return closed because the return shipment was lost or missed the return deadline.
+      - This closes the order problem without moving the item back to Received, Listed, or Amazon-bound inventory.
 - `priority text`
   - values: `urgent`, `high`, `normal`, `low`
 - `is_open boolean not null default true`
@@ -336,7 +344,13 @@ Target capabilities:
 - Search INR/item-not-received inquiries for Type C style cases.
 - Search cases if available.
 - Store raw payloads.
-- Map eBay return IDs, inquiry IDs, case IDs, states, statuses, buyer action URLs, due dates, escalation eligibility dates, estimated refund amount, actual refund amount, and return tracking status into `order_problem_cases`.
+- Map eBay return IDs, inquiry IDs, case IDs, cancellation IDs, states,
+  statuses, buyer action URLs, due dates, escalation eligibility dates, seller
+  make-it-right dates, estimated refund amount, actual refund amount,
+  replacement tracking, and return tracking status into `order_problem_cases`.
+- For INR inquiries, call `GET /post-order/v2/inquiry/{inquiryId}` after
+  `inquiry/search`; the search summary does not include every seller action
+  date or seller-provided replacement tracking field needed by MBOP.
 - Append material changes to `order_problem_events`.
 
 Important: do not call any eBay POST/write endpoint in this MVP.
@@ -361,6 +375,7 @@ Show:
 - Item title, system, ASIN, purchase price, quantity
 - eBay order link
 - eBay listing link if available
+- Return, inquiry, or cancellation/order detail link if available
 - Current MBOP workflow state
 - Current eBay return/inquiry/case status
 - Return type selector
@@ -372,27 +387,29 @@ Show:
 - Replacement/missing-item tracking
 - Notes
 - Timeline from `order_problem_events`
-- Link/button to open eBay return/case/action URL if available
+- Link/button to open eBay return/case/action URL if available; avoid showing
+  duplicate links when the table already exposes the detail link.
 
 ## Table columns
 
 Update Order Problems table columns to support both problems and returns:
 
 - Priority
-- Problem Stage
+- Issue
 - Due / Age
 - Order ID
 - Item
 - System
-- Issue Type
-- Return Type
+- Status
 - Next Action
-- eBay Status
 - Refund Expected
 - Refund Received
-- Last Seller Message
 - Tracking / ETA
-- Notes indicator
+- Details drawer button
+
+The Order ID cell should link the order number to the eBay order page and show
+a secondary Return/Inquiry/Cancellation Details link when MBOP has a case URL or
+identifier. Notes belong in the drawer, not the dense table.
 
 Keep it dense and operational. This is not a card UI.
 

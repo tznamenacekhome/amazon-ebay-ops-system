@@ -7,6 +7,8 @@ const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 const supabase = createClient(supabaseUrl, supabaseServiceRoleKey);
 
 const PAGE_SIZE_MAX = 500;
+const STALE_TRACKING_ORDER_AGE_DAYS = 14;
+const STALE_TRACKING_LOOKBACK_DAYS = 90;
 
 type ProblemQuery = {
   searchText: string;
@@ -53,6 +55,7 @@ type ProblemCase = {
   next_action_due_at: string | null;
   first_detected_at: string | null;
   last_detected_at: string | null;
+  escalation_available_at: string | null;
   ebay_return_id: string | null;
   ebay_inquiry_id: string | null;
   ebay_case_id: string | null;
@@ -104,7 +107,9 @@ export async function GET(request: Request) {
 
   try {
     await seedDerivedProblemCases();
-    const cases = await fetchCases(query.stage === "resolved");
+    const cases = suppressDerivedCandidatesCoveredByEbayCase(
+      await fetchCases(query.stage === "resolved"),
+    );
     const itemIds = cases.map((row) => row.purchase_item_id);
     const [dashboardRows, itemMeta] = await Promise.all([
       fetchDashboardRows(itemIds),
@@ -146,6 +151,24 @@ export async function GET(request: Request) {
   }
 }
 
+function suppressDerivedCandidatesCoveredByEbayCase(cases: ProblemCase[]) {
+  const supplierOrdersWithEbayCases = new Set(
+    cases
+      .filter((row) => row.is_open)
+      .filter((row) => row.problem_source === "ebay_return_sync" || row.problem_source === "ebay_inquiry_sync")
+      .map((row) => row.supplier_order_id)
+      .filter((orderId): orderId is string => Boolean(orderId)),
+  );
+
+  if (supplierOrdersWithEbayCases.size === 0) return cases;
+
+  return cases.filter((row) => {
+    if (row.problem_source !== "derived_order_problem") return true;
+    if (!row.supplier_order_id) return true;
+    return !supplierOrdersWithEbayCases.has(row.supplier_order_id);
+  });
+}
+
 function parseProblemQuery(url: URL): ProblemQuery {
   const page = Math.max(Number(url.searchParams.get("page") || "1"), 1);
   const pageSize = Math.min(
@@ -163,7 +186,10 @@ function parseProblemQuery(url: URL): ProblemQuery {
 
 async function seedDerivedProblemCases() {
   const candidateRows = await fetchDerivedCandidateRows();
-  const seeds = dedupeSeeds(candidateRows.map(candidateSeedForRow).filter(Boolean) as ProblemSeed[]);
+  const initialSeeds = dedupeSeeds(candidateRows.map(candidateSeedForRow).filter(Boolean) as ProblemSeed[]);
+  const resolvedKeys = await fetchResolvedProblemKeys();
+  const seeds = initialSeeds.filter((seed) => !isAlreadyResolved(seed, resolvedKeys));
+  await closeResolvedDerivedCandidates(seeds);
   if (seeds.length === 0) return;
 
   const itemIds = seeds.map((seed) => seed.item_id);
@@ -222,6 +248,78 @@ async function seedDerivedProblemCases() {
   }
 }
 
+type ResolvedProblemKeys = {
+  itemIds: Set<string>;
+  supplierOrderIds: Set<string>;
+  detailByItemId: Map<string, ResolvedProblemDetail>;
+  detailBySupplierOrderId: Map<string, ResolvedProblemDetail>;
+};
+
+type ResolvedProblemDetail = {
+  ebay_return_id: string | null;
+  ebay_inquiry_id: string | null;
+  ebay_case_id: string | null;
+  ebay_action_url: string | null;
+};
+
+async function fetchResolvedProblemKeys(): Promise<ResolvedProblemKeys> {
+  const { data, error } = await supabase
+    .from("order_problem_cases")
+    .select("purchase_item_id,supplier_order_id,ebay_return_id,ebay_inquiry_id,ebay_case_id,ebay_action_url")
+    .eq("is_open", false)
+    .in("workflow_state", ["resolved_refunded", "resolved_received_item"]);
+  if (error) throw new Error(`order_problem_cases resolved lookup: ${error.message}`);
+
+  const detailByItemId = new Map<string, ResolvedProblemDetail>();
+  const detailBySupplierOrderId = new Map<string, ResolvedProblemDetail>();
+  for (const row of data ?? []) {
+    const detail = {
+      ebay_return_id: row.ebay_return_id,
+      ebay_inquiry_id: row.ebay_inquiry_id,
+      ebay_case_id: row.ebay_case_id,
+      ebay_action_url: row.ebay_action_url,
+    };
+    if (row.purchase_item_id && !detailByItemId.has(row.purchase_item_id)) {
+      detailByItemId.set(row.purchase_item_id, detail);
+    }
+    if (row.supplier_order_id && !detailBySupplierOrderId.has(row.supplier_order_id)) {
+      detailBySupplierOrderId.set(row.supplier_order_id, detail);
+    }
+  }
+
+  return {
+    itemIds: new Set((data ?? []).map((row) => row.purchase_item_id).filter(Boolean)),
+    supplierOrderIds: new Set((data ?? []).map((row) => row.supplier_order_id).filter(Boolean)),
+    detailByItemId,
+    detailBySupplierOrderId,
+  };
+}
+
+function isAlreadyResolved(seed: ProblemSeed, resolvedKeys: ResolvedProblemKeys) {
+  return resolvedKeys.itemIds.has(seed.item_id);
+}
+
+async function closeResolvedDerivedCandidates(seeds: ProblemSeed[]) {
+  const activeSeedItemIds = new Set(seeds.map((seed) => seed.item_id));
+  const existingDerivedCases = await fetchOpenDerivedCandidateCases();
+  const now = new Date().toISOString();
+  const resolvedCases = existingDerivedCases.filter((row) => !activeSeedItemIds.has(row.purchase_item_id));
+
+  for (const problemCase of resolvedCases) {
+    const { error } = await supabase
+      .from("order_problem_cases")
+      .update({
+        is_open: false,
+        workflow_state: "closed_no_action",
+        closed_at: now,
+        updated_at: now,
+        notes: "Closed automatically because the purchase no longer matches an order-problem candidate rule.",
+      })
+      .eq("problem_case_id", problemCase.problem_case_id);
+    if (error) throw new Error(`order_problem_cases close resolved derived candidate: ${error.message}`);
+  }
+}
+
 async function fetchDerivedCandidateRows() {
   const [pastEta, stale, statusRows] = await Promise.all([
     queryDashboard()
@@ -229,8 +327,8 @@ async function fetchDerivedCandidateRows() {
       .not("current_status", "in", "(delivered,received,listed,cancelled,return_opened)"),
     queryDashboard()
       .in("current_status", ["no_tracking", "shipped_no_tracking", "awaiting_carrier_scan"])
-      .lte("order_date", daysAgoDateString(7))
-      .gte("order_date", daysAgoDateString(90)),
+      .lte("order_date", daysAgoDateString(STALE_TRACKING_ORDER_AGE_DAYS))
+      .gte("order_date", daysAgoDateString(STALE_TRACKING_LOOKBACK_DAYS)),
     queryDashboard().in("current_status", ["exception", "return_pending", "return_opened", "cancelled"]),
   ]);
 
@@ -328,6 +426,17 @@ async function fetchOpenCasesForItems(itemIds: string[]) {
   return rows;
 }
 
+async function fetchOpenDerivedCandidateCases() {
+  const { data, error } = await supabase
+    .from("order_problem_cases")
+    .select("problem_case_id,purchase_item_id")
+    .eq("is_open", true)
+    .eq("problem_source", "derived_order_problem")
+    .eq("workflow_state", "candidate");
+  if (error) throw new Error(`order_problem_cases derived lookup: ${error.message}`);
+  return (data ?? []) as Array<{ problem_case_id: string; purchase_item_id: string }>;
+}
+
 async function fetchCases(includeClosed: boolean) {
   let query = supabase
     .from("order_problem_cases")
@@ -416,6 +525,7 @@ function mergeProblemCase(
     problem_next_action_due_at: problemCase.next_action_due_at,
     problem_first_detected_at: problemCase.first_detected_at,
     problem_last_detected_at: problemCase.last_detected_at,
+    problem_escalation_available_at: problemCase.escalation_available_at,
     ebay_return_id: problemCase.ebay_return_id,
     ebay_inquiry_id: problemCase.ebay_inquiry_id,
     ebay_case_id: problemCase.ebay_case_id,
@@ -491,23 +601,60 @@ function compareProblemRows(left: Record<string, unknown>, right: Record<string,
   const rightRank = problemRank(right);
   if (leftRank !== rightRank) return leftRank - rightRank;
 
-  const leftDate = Date.parse(String(left.problem_next_action_due_at || left.problem_first_detected_at || left.order_date || ""));
-  const rightDate = Date.parse(String(right.problem_next_action_due_at || right.problem_first_detected_at || right.order_date || ""));
+  if (leftRank === 2) {
+    const leftAge = ageDays(left.order_date);
+    const rightAge = ageDays(right.order_date);
+    if (leftAge !== rightAge) return rightAge - leftAge;
+  }
+
+  const leftDate = Date.parse(
+    String(left.problem_next_action_due_at || left.problem_first_detected_at || left.order_date || ""),
+  );
+  const rightDate = Date.parse(
+    String(right.problem_next_action_due_at || right.problem_first_detected_at || right.order_date || ""),
+  );
   return (Number.isNaN(leftDate) ? 0 : leftDate) - (Number.isNaN(rightDate) ? 0 : rightDate);
 }
 
 function problemRank(row: Record<string, unknown>) {
   const workflowState = String(row.workflow_state ?? "");
+  const problemType = String(row.problem_type ?? "");
+  const currentStatus = normalizeStatus(String(row.current_status ?? ""));
+  const ebayStatus = String(row.ebay_return_status ?? "").toUpperCase();
   const needsResponse = Boolean(row.problem_needs_response);
   const dueAt = Date.parse(String(row.problem_next_action_due_at ?? ""));
   const overdue = !Number.isNaN(dueAt) && dueAt < Date.now();
+  const orderAge = ageDays(row.order_date);
+  const agedReturnWindowRisk =
+    orderAge >= 21 &&
+    (
+      ["return_needed", "candidate"].includes(workflowState) ||
+      ["return_pending", "no_tracking", "shipped_no_tracking", "awaiting_carrier_scan", "in_transit", "exception"].includes(currentStatus) ||
+      ["late_delivery_candidate", "stale_tracking_candidate", "carrier_exception_candidate"].includes(problemType)
+    );
+  const labelProvidedNoCarrierActivity =
+    workflowState === "label_received" ||
+    (
+      workflowState === "return_shipped" &&
+      Boolean(row.replacement_tracking_number) &&
+      !["in_transit", "delivered"].includes(normalizeStatus(String(row.delivery_status ?? "")))
+    );
 
-  if (needsResponse || workflowState === "seller_message_needs_response") return 1;
-  if (overdue) return 2;
-  if (workflowState === "escalation_available") return 3;
-  if (workflowState === "refund_pending") return 4;
-  if (["return_needed", "return_opened"].includes(workflowState)) return 5;
-  return 6;
+  if (
+    needsResponse ||
+    workflowState === "seller_message_needs_response" ||
+    ebayStatus.includes("BUYER_RESPONSE") ||
+    ebayStatus.includes("BUYER_ACTION")
+  ) {
+    return 1;
+  }
+  if (agedReturnWindowRisk) return 2;
+  if (labelProvidedNoCarrierActivity) return 3;
+  if (overdue) return 4;
+  if (workflowState === "escalation_available") return 5;
+  if (workflowState === "refund_pending") return 6;
+  if (["return_needed", "return_opened", "replacement_pending", "replacement_shipped"].includes(workflowState)) return 7;
+  return 8;
 }
 
 function summarizeProblemRows(rows: Array<Record<string, unknown>>) {
@@ -521,6 +668,12 @@ function summarizeProblemRows(rows: Array<Record<string, unknown>>) {
 
 function normalizeStatus(value: string | null | undefined) {
   return (value ?? "").trim().toLowerCase().replace(/[\s-]+/g, "_");
+}
+
+function ageDays(value: unknown) {
+  const date = Date.parse(String(value || ""));
+  if (Number.isNaN(date)) return 0;
+  return Math.floor((Date.now() - date) / 86_400_000);
 }
 
 function todayDateString() {

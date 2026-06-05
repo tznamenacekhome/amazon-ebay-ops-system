@@ -207,7 +207,7 @@ def map_return(ret):
         "supplier_order_id": order_id,
         "ebay_return_id": return_id,
         "ebay_case_id": return_id,
-        "ebay_case_url": f"https://www.ebay.com/rtn/Return/Details?returnId={return_id}" if return_id else None,
+        "ebay_case_url": f"https://www.ebay.com/rtn/Return/ReturnsDetail?returnId={return_id}" if return_id else None,
         "ebay_order_url": f"https://www.ebay.com/mesh/ord/details?orderid={order_id}" if order_id else None,
         "ebay_item_id": item_info.get("itemId"),
         "marketplace_return_status": ret.get("status"),

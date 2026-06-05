@@ -5,6 +5,7 @@ import { PanelRightOpen } from "lucide-react";
 import type { PurchaseRow } from "./types";
 import {
   ebayOrderUrl,
+  ebayProblemDetailUrl,
   formatDate,
   formatMoney,
   getDisplayTitleParts,
@@ -41,6 +42,8 @@ export function PurchaseProblemTable({
   onStageChange,
   onSelectRow,
 }: PurchaseProblemTableProps) {
+  const stats = getProblemStats(rows);
+
   return (
     <div className="rounded-xl border border-slate-200 bg-white shadow-sm">
       <div className="border-b border-slate-200 bg-slate-50 px-3 py-2">
@@ -54,6 +57,16 @@ export function PurchaseProblemTable({
           <div className="text-xs text-slate-500">
             {rows.length.toLocaleString("en-US")} rows in current filter
           </div>
+        </div>
+
+        <div className="mt-3 grid grid-cols-2 gap-2 md:grid-cols-4 xl:grid-cols-7">
+          <ProblemStat label="Total" value={stats.total} />
+          <ProblemStat label="Urgent" value={stats.urgent} tone={stats.urgent > 0 ? "red" : "slate"} />
+          <ProblemStat label="Refund Pending" value={stats.refundPending} tone={stats.refundPending > 0 ? "amber" : "slate"} />
+          <ProblemStat label="Returns Open" value={stats.returnsOpen} />
+          <ProblemStat label="Missing Items" value={stats.missingItems} />
+          <ProblemStat label="Candidates" value={stats.candidates} />
+          <ProblemStat label="No eBay Link" value={stats.noEbayLink} tone={stats.noEbayLink > 0 ? "amber" : "slate"} />
         </div>
 
         <div className="mt-3 flex flex-wrap gap-2">
@@ -75,36 +88,33 @@ export function PurchaseProblemTable({
       </div>
 
       <div className="overflow-x-auto">
-        <table className="min-w-[1540px] border-collapse text-left text-sm">
+        <table className="min-w-[1320px] border-collapse text-left text-sm">
           <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
             <tr>
               <th className="w-[90px] px-2 py-2">Priority</th>
-              <th className="w-[150px] px-2 py-2">Problem Stage</th>
+              <th className="w-[180px] px-2 py-2">Issue</th>
               <th className="w-[115px] px-2 py-2">Due / Age</th>
               <th className="w-[130px] px-2 py-2">Order ID</th>
               <th className="w-[360px] px-2 py-2">Item</th>
               <th className="w-[90px] px-2 py-2">System</th>
-              <th className="w-[170px] px-2 py-2">Issue Type</th>
-              <th className="w-[140px] px-2 py-2">Return Type</th>
+              <th className="w-[180px] px-2 py-2">Status</th>
               <th className="w-[240px] px-2 py-2">Next Action</th>
-              <th className="w-[150px] px-2 py-2">eBay / Local Status</th>
               <th className="w-[110px] px-2 py-2 text-right">Expected Refund</th>
               <th className="w-[110px] px-2 py-2 text-right">Received Refund</th>
               <th className="w-[120px] px-2 py-2">Tracking / ETA</th>
-              <th className="w-[70px] px-2 py-2 text-center">Notes</th>
               <th className="w-[52px] px-2 py-2 text-center">Details</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
               <tr>
-                <td className="px-2 py-6 text-center text-slate-500" colSpan={15}>
+                <td className="px-2 py-6 text-center text-slate-500" colSpan={12}>
                   Loading order problems...
                 </td>
               </tr>
             ) : rows.length === 0 ? (
               <tr>
-                <td className="px-2 py-6 text-center text-slate-500" colSpan={15}>
+                <td className="px-2 py-6 text-center text-slate-500" colSpan={12}>
                   No order problems found.
                 </td>
               </tr>
@@ -115,6 +125,8 @@ export function PurchaseProblemTable({
                 const ebayStatus = [row.ebay_return_state, row.ebay_return_status]
                   .filter(Boolean)
                   .join(" / ");
+                const detailUrl = ebayProblemDetailUrl(row);
+                const detailLabel = problemDetailLabel(row);
 
                 return (
                   <tr
@@ -125,7 +137,7 @@ export function PurchaseProblemTable({
                       <PriorityBadge value={row.problem_priority} needsResponse={row.problem_needs_response} />
                     </td>
                     <td className="px-2 py-2">
-                      <div className="font-medium text-slate-900">{workflowStateLabel(row.workflow_state)}</div>
+                      <div>{problemTypeLabel(row.problem_type)}</div>
                       <div className="text-xs text-slate-500">{sourceLabel(row.problem_source)}</div>
                     </td>
                     <td className="px-2 py-2">
@@ -135,22 +147,25 @@ export function PurchaseProblemTable({
                     <td className="px-2 py-2">
                       {row.supplier_order_id ? (
                         <div>
-                          <button
-                            type="button"
-                            onClick={() => onSelectRow(row)}
-                            className="text-left font-medium text-blue-700 hover:underline"
-                            title="Open MBOP case details"
-                          >
-                            {row.supplier_order_id}
-                          </button>
                           <a
                             href={ebayOrderUrl(row.supplier_order_id)}
                             target="_blank"
                             rel="noreferrer"
-                            className="mt-1 block text-xs text-slate-500 hover:text-blue-700 hover:underline"
+                            className="font-medium text-blue-700 hover:underline"
+                            title="Open eBay order"
                           >
-                            eBay order
+                            {row.supplier_order_id}
                           </a>
+                          {detailUrl ? (
+                            <a
+                              href={detailUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="mt-1 block text-xs text-slate-500 hover:text-blue-700 hover:underline"
+                            >
+                              {detailLabel}
+                            </a>
+                          ) : null}
                         </div>
                       ) : (
                         <span className="text-slate-400">--</span>
@@ -167,30 +182,13 @@ export function PurchaseProblemTable({
                       )}
                     </td>
                     <td className="px-2 py-2">{row.system || "--"}</td>
-                    <td className="px-2 py-2">{problemTypeLabel(row.problem_type)}</td>
-                    <td className="px-2 py-2">{returnTypeLabel(row.problem_type)}</td>
                     <td className="px-2 py-2">
-                      <div>{row.problem_next_action || "--"}</div>
-                      {row.ebay_action_url ? (
-                        <a
-                          href={row.ebay_action_url}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="mt-1 inline-block text-xs text-blue-700 hover:underline"
-                        >
-                          Open eBay action
-                        </a>
-                      ) : null}
+                      <div className="font-medium text-slate-900">{workflowStateLabel(row.workflow_state)}</div>
+                      <div className="text-xs text-slate-500">{statusDetail(row, ebayStatus)}</div>
                     </td>
                     <td className="px-2 py-2">
-                      <div>{ebayStatus || localStatusFallback(row)}</div>
-                      {row.ebay_return_id || row.ebay_case_id || row.ebay_inquiry_id ? (
-                        <div className="text-xs text-slate-500">
-                          {[row.ebay_return_id, row.ebay_case_id, row.ebay_inquiry_id].filter(Boolean).join(" / ")}
-                        </div>
-                      ) : (
-                        <div className="text-xs text-slate-500">{sourceLabel(row.problem_source)}</div>
-                      )}
+                      <div>{row.problem_next_action || "--"}</div>
+                      <NextActionDetail row={row} />
                     </td>
                     <td className="px-2 py-2 text-right">
                       <RefundAmount value={row.expected_refund_amount} fallback={estimatedRefund(row)} />
@@ -201,13 +199,6 @@ export function PurchaseProblemTable({
                     <td className="px-2 py-2">
                       <div className="break-all">{row.replacement_tracking_number || row.tracking_number || "--"}</div>
                       <div className="text-xs text-slate-500">{formatDate(row.estimated_delivery_date)}</div>
-                    </td>
-                    <td className="px-2 py-2 text-center">
-                      {row.problem_notes ? (
-                        <span className="rounded bg-amber-100 px-2 py-1 text-xs font-medium text-amber-800">Yes</span>
-                      ) : (
-                        <span className="text-slate-400">--</span>
-                      )}
                     </td>
                     <td className="px-2 py-2 text-center">
                       <button
@@ -226,6 +217,119 @@ export function PurchaseProblemTable({
           </tbody>
         </table>
       </div>
+    </div>
+  );
+}
+
+function NextActionDetail({ row }: { row: PurchaseRow }) {
+  const escalationDate = formatDate(row.problem_escalation_available_at);
+  if (escalationDate) {
+    return (
+      <div className="mt-1 text-xs font-medium text-amber-700">
+        Escalate available {escalationDate}
+      </div>
+    );
+  }
+
+  return null;
+}
+
+function problemDetailLabel(row: PurchaseRow) {
+  if (row.ebay_current_type === "ORDER_CANCELLATION" || row.problem_source === "ebay_cancellation_sync") {
+    return "Cancellation Details";
+  }
+  if (row.ebay_inquiry_id) {
+    return "Inquiry Details";
+  }
+  return "Return Details";
+}
+
+type ProblemStats = {
+  total: number;
+  urgent: number;
+  refundPending: number;
+  returnsOpen: number;
+  missingItems: number;
+  candidates: number;
+  noEbayLink: number;
+};
+
+function getProblemStats(rows: PurchaseRow[]): ProblemStats {
+  return rows.reduce<ProblemStats>(
+    (stats, row) => {
+      const workflowState = row.workflow_state || "";
+      const problemType = row.problem_type || "";
+      const problemSource = row.problem_source || "";
+      const needsEbayLink = new Set([
+        "return_opened",
+        "refund_pending",
+        "label_pending",
+        "label_received",
+        "return_shipped",
+        "seller_received_return",
+        "replacement_pending",
+        "replacement_shipped",
+        "escalation_available",
+        "escalated",
+      ]).has(workflowState);
+      const hasEbayLink = Boolean(row.ebay_action_url || row.ebay_return_id || row.ebay_inquiry_id || row.ebay_case_id);
+
+      stats.total += 1;
+      if (row.problem_needs_response || row.problem_priority === "high" || workflowState === "seller_message_needs_response") {
+        stats.urgent += 1;
+      }
+      if (workflowState === "refund_pending") {
+        stats.refundPending += 1;
+      }
+      if (workflowState === "return_opened" || problemSource === "ebay_return_sync") {
+        stats.returnsOpen += 1;
+      }
+      if (problemType === "missing_items" || workflowState === "replacement_pending" || workflowState === "replacement_shipped") {
+        stats.missingItems += 1;
+      }
+      if (workflowState === "candidate") {
+        stats.candidates += 1;
+      }
+      if (needsEbayLink && !hasEbayLink) {
+        stats.noEbayLink += 1;
+      }
+
+      return stats;
+    },
+    {
+      total: 0,
+      urgent: 0,
+      refundPending: 0,
+      returnsOpen: 0,
+      missingItems: 0,
+      candidates: 0,
+      noEbayLink: 0,
+    },
+  );
+}
+
+function ProblemStat({
+  label,
+  value,
+  tone = "blue",
+}: {
+  label: string;
+  value: number;
+  tone?: "amber" | "blue" | "red" | "slate";
+}) {
+  const toneClasses =
+    tone === "red"
+      ? "border-red-200 bg-red-50 text-red-700"
+      : tone === "amber"
+        ? "border-amber-200 bg-amber-50 text-amber-700"
+        : tone === "slate"
+          ? "border-slate-200 bg-white text-slate-700"
+          : "border-blue-200 bg-blue-50 text-blue-700";
+
+  return (
+    <div className={`rounded-md border px-2.5 py-2 ${toneClasses}`}>
+      <div className="text-[11px] font-medium uppercase tracking-wide">{label}</div>
+      <div className="mt-0.5 text-lg font-semibold leading-none">{value.toLocaleString("en-US")}</div>
     </div>
   );
 }
@@ -293,13 +397,6 @@ function problemTypeLabel(value?: string | null) {
   return labels[value || ""] || titleCase(value || "Unknown");
 }
 
-function returnTypeLabel(value?: string | null) {
-  if (["not_as_listed", "buyer_choice", "missing_items", "cancelled_refund_followup"].includes(value || "")) {
-    return problemTypeLabel(value);
-  }
-  return "--";
-}
-
 function sourceLabel(value?: string | null) {
   const labels: Record<string, string> = {
     derived_order_problem: "System candidate",
@@ -312,11 +409,15 @@ function sourceLabel(value?: string | null) {
   return labels[value || ""] || titleCase(value || "");
 }
 
-function localStatusFallback(row: PurchaseRow) {
-  if (row.problem_source === "ebay_return_sync" || row.problem_source === "ebay_inquiry_sync" || row.problem_source === "ebay_cancellation_sync") {
-    return "--";
+function statusDetail(row: PurchaseRow, ebayStatus: string) {
+  const ebayIds = [row.ebay_return_id, row.ebay_case_id, row.ebay_inquiry_id].filter(Boolean).join(" / ");
+  if (ebayStatus && ebayIds) {
+    return `eBay: ${ebayStatus} · ${ebayIds}`;
   }
-  return workflowStateLabel(row.workflow_state);
+  if (ebayStatus) {
+    return `eBay: ${ebayStatus}`;
+  }
+  return sourceLabel(row.problem_source);
 }
 
 function RefundAmount({

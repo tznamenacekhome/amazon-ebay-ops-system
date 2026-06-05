@@ -25,7 +25,9 @@ This folder contains the Midnight Blue Operations Platform purchases workflow UI
 - The default status filter is `All Except Listed`; `All Status` includes Listed rows when full history is needed.
 - The review-state filter keeps the normal editable table focused on `Missing Data`.
 - `Missing Data` catches missing ASIN, missing sell price, missing system, and missing Amazon title for ASIN-bearing active rows.
-- The `Order Problems` tab catches past-ETA rows, stale/no-tracking rows between 7 and 90 days old, carrier exceptions, and return-pending rows in an issue/age-focused table.
+- The `Order Problems` tab catches past-ETA rows, stale/no-tracking rows between 14 and 90 days old, carrier exceptions, return/refund follow-up, missing-item/replacement follow-up, and cancellation refund confirmation in an issue/status-focused table.
+- Order Problems shows compact current-filter stats above the stage chips.
+- The Order column links the order ID to the eBay order page and the secondary details link to the relevant return, inquiry, or cancellation/order detail path. The Next Action column intentionally does not repeat that link.
 - The search input has an inline clear button.
 
 ## Detail Drawer Display
@@ -36,6 +38,7 @@ This folder contains the Midnight Blue Operations Platform purchases workflow UI
 - When ASIN is missing, `Amazon Title` displays `--`; the eBay supplier title remains visible separately.
 - eBay title, purchase price, ASIN, and sell price are edited together with one drawer save action.
 - The drawer can mark an item `Return Pending` for the return/refund follow-up workflow.
+- The order-problem panel supports local-only workflow actions such as refund pending/received, replacement shipped/received, close, and close no refund.
 - `Split Item` creates a manual purchase item row for multi-game eBay listings.
 
 ## Title Cleaning

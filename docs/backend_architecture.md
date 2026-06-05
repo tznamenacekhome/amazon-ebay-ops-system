@@ -1,6 +1,6 @@
 # Backend Architecture
 
-Last updated: 2026-06-02
+Last updated: 2026-06-04
 
 ## Core Flow
 
@@ -49,8 +49,13 @@ twice per day.
 
 The legacy eBay supplier returns sync is intentionally disabled. The new Order
 Problems return workflow uses `integrations/ebay_sync_order_problem_returns.py`
-as a read-only eBay Post-Order importer, but it should be validated against live
-return data before being added to scheduled groups.
+as a scheduled, read-only eBay Post-Order importer for returns, INR inquiries,
+inquiry detail records, and open cases. It writes only to `order_problem_cases`
+and `order_problem_events`. Inquiry detail enrichment is required because
+seller make-it-right/escalation dates and replacement tracking are not present
+in the inquiry search summary. Cancellation/refund exceptions can be represented
+locally as `ebay_cancellation_sync` rows while first-class cancellation search
+automation is evaluated.
 
 `integrations/inventory_source_balance_audit.py` is a secondary control, not a
 freshness sync. It should run after FIFO allocator runs, after large purchase or
@@ -117,8 +122,8 @@ Roadmap:
   Sales Orders COGS/fee exceptions and open inventory reconciliation findings
   are either resolved or explicitly classified.
 - Extend Order Problems return handling with full case/event drawer timelines,
-  live validation of the read-only eBay Post-Order sync, and controlled partial
-  refund cost adjustment when the item is kept.
+  scheduled cancellation search import if more refund-follow-up cancellations
+  appear, and controlled partial refund cost adjustment when the item is kept.
 - Add an Amazon FBA removals workflow for damaged/unsellable units that Amazon
   automatically returns. The workflow should track removal orders, receiving
   returned units, deciding whether they are still new/sellable, and routing good
@@ -190,11 +195,13 @@ Amazon cash valuation uses two Amazon Finance concepts:
 
 - Amazon-held cash: deferred transactions plus open financial event groups.
 - Amazon-to-bank in-transit cash: fund transfers still marked `Processing` plus
-  recently completed/succeeded fund transfers inside the configured bridge
-  window.
+  completed/succeeded fund transfers that do not yet have a matching YNAB
+  Business deposit transaction.
 
-The completed-transfer bridge covers the operational gap after Amazon considers a
-payout complete but before YNAB cash on hand reflects the bank deposit. The
-bridge defaults to two days and can be overridden with
-`AMAZON_COMPLETED_TRANSFER_BRIDGE_DAYS` or
-`amazon_sync_finance_balances.py --completed-transfer-bridge-days`.
+Completed payout matching uses the local `ynab_business_transactions` history,
+matching Amazon fund transfers to positive Business-category YNAB transactions
+by amount, date window, and Amazon payee/import text. Completed payouts remain
+in `in_transit_to_bank` only while no matching YNAB deposit is present. The
+unmatched-completed-payout review window defaults to 14 days and can be
+overridden with `AMAZON_UNMATCHED_COMPLETED_TRANSFER_LOOKBACK_DAYS` or
+`amazon_sync_finance_balances.py --unmatched-completed-transfer-lookback-days`.

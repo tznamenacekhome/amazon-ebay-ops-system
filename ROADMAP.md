@@ -144,11 +144,13 @@ Foundation:
 - `ynab_business_transactions` stores YNAB transactions categorized as Business.
 - The initial backfill starts at 2026-01-01.
 - The daily scheduler refreshes the YNAB Business transaction copy once per day.
+- Amazon Finance balance snapshots now reconcile completed Amazon payouts
+  against YNAB Business deposit transactions before counting them as in transit.
 
 Next steps:
 - classify YNAB Business transactions into tax/reporting categories.
-- reconcile Amazon payout groups to YNAB deposit transactions to remove the
-  current payout bridge heuristic.
+- add payout reconciliation review/reporting so unmatched Amazon payouts and
+  unmatched Amazon-looking YNAB deposits are easy to inspect.
 - combine YNAB expense/cash records with Amazon and eBay sales/fee data for P&L.
 - design Schedule C reporting views after category mapping is reviewed.
 
@@ -344,12 +346,11 @@ Remaining:
 ## Local Sync Scheduler
 
 Status:
-Local scheduler configured; broad integration automation enabled with ongoing task-run validation.
+Local scheduler configured; broad integration automation enabled with ongoing task-run validation and optimization follow-up.
 
 Completed:
-- `run_all_syncs.py` now runs eBay buyer purchase sync, EasyPost shipment sync, RevSeller enrichment, Amazon FBA inventory, Amazon listing status, Amazon inventory planning, Amazon Finance balances, Informed Repricer reports, YNAB Business cash balance, guarded Keepa enrichment, and business value snapshots
-- legacy eBay supplier returns sync is disabled while the new Order Problems
-  return sync is validated
+- `run_all_syncs.py` now runs eBay buyer purchase sync, EasyPost shipment sync, read-only eBay Order Problems return/inquiry sync, RevSeller enrichment, Amazon FBA inventory, Amazon listing status, Amazon inventory planning, Amazon Finance balances, Informed Repricer reports, YNAB Business cash balance/transactions, guarded Keepa enrichment, and business value snapshots
+- legacy eBay supplier returns sync is disabled; the new Order Problems return sync owns return/inquiry/case freshness
 - `run_all_syncs.bat` creates the logs directory when missing and appends to `logs/scheduler.log`
 - local Windows scheduled tasks were recreated after the repo moved from OneDrive to `C:\Dev`
 - direct batch execution completed successfully with exit code 0
@@ -359,6 +360,7 @@ Completed:
 
 Next steps:
 - confirm both scheduled tasks continue appending successful runs to `logs/scheduler.log`
+- optimize daily scheduled runs so jobs that do not need daily or twice-daily freshness are not doing unnecessary external/API work
 - when manually triggering tasks, use the root task path, for example `schtasks /Run /TN "\Amazon eBay Ops Sync PM"`
 - monitor scheduler logs for EasyPost FedEx credential errors, eBay token/auth issues, SP-API throttling, and Keepa token skips
 
@@ -456,7 +458,7 @@ Goal:
 Track return/cancellation outcomes through refund confirmation.
 
 Status:
-First slice implemented in Purchases -> Order Problems.
+Operational first slice implemented in Purchases -> Order Problems.
 
 Implemented:
 - `order_problem_cases` and `order_problem_events` provide the separate workflow
@@ -466,16 +468,22 @@ Implemented:
 - Order Problems stage chips cover candidates, return needed, return opened,
   needs response, waiting on seller, ready to ship back, return shipped, refund
   pending, missing item pending, escalation available, and resolved/closed.
-- The detail drawer supports MBOP-local workflow actions and notes.
-- `integrations/ebay_sync_order_problem_returns.py` reads eBay Post-Order return
-  data and stores local case/event updates without writing back to eBay.
+- The dense table has consolidated issue/status columns, top-of-table current
+  filter stats, order/detail links, next action, refund amounts, tracking/ETA,
+  and a drawer button.
+- The detail drawer supports MBOP-local workflow actions, notes, replacement
+  tracking, refund confirmation, and Close No Refund for unrecoverable/no-refund
+  outcomes.
+- `integrations/ebay_sync_order_problem_returns.py` reads eBay Post-Order
+  returns, INR inquiries/details, and cases, then stores local case/event
+  updates without writing back to eBay.
+- Inquiry detail enrichment captures seller make-it-right/escalation dates and
+  replacement tracking that eBay does not include in inquiry search summaries.
 
 Remaining:
-- validate the read-only eBay return sync against live return data before
-  scheduling it.
 - add full case/event timeline endpoints and richer drawer history.
-- add read-only support for eBay INR/item-not-received inquiries and cases if
-  those endpoints are available for buyer-side data.
+- add first-class scheduled cancellation search import if more cancellation
+  refund-follow-up cases appear.
 - define a controlled partial-refund cost adjustment workflow for cases where
   the item is kept and inventory cost should be reduced.
 - preserve manual unit-cost overrides made during reconciliation or refund

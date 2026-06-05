@@ -1,6 +1,6 @@
 # Database Schema Overview
 
-Last updated: 2026-06-02
+Last updated: 2026-06-04
 
 This document is a high-level map of MBOP's schema. SQL migrations remain the source of exact column definitions.
 
@@ -27,7 +27,8 @@ Current non-historical `fba_shipment_items` links are projected into `inventory_
 - `order_problem_cases`: persistent workflow cases for purchase-item problems,
   including late/stale shipment candidates, return-needed items, eBay return/case
   metadata, cancelled/refund follow-up, missing-item/replacement follow-up, local
-  workflow state, refund amounts, replacement tracking, notes, and raw eBay JSON.
+  workflow state, refund amounts, escalation/action dates, replacement tracking,
+  notes, and raw eBay JSON.
 - `order_problem_events`: append-only timeline for system, operator, eBay API,
   and tracking events tied to an order problem case.
 

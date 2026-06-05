@@ -12,6 +12,9 @@ const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
 const supabase = createClient(supabaseUrl, supabaseServiceRoleKey);
 
+const STALE_TRACKING_ORDER_AGE_DAYS = 14;
+const STALE_TRACKING_LOOKBACK_DAYS = 90;
+
 type PurchaseListRow = {
   item_id: string;
   purchase_id: string;
@@ -262,7 +265,7 @@ function applyServerFilters(
     request = request.or(
       [
         `and(estimated_delivery_date.lt.${todayDateString()},current_status.not.in.(delivered,received,listed,cancelled,return_opened))`,
-        `and(current_status.in.(no_tracking,shipped_no_tracking,awaiting_carrier_scan),order_date.lte.${daysAgoDateString(7)},order_date.gte.${daysAgoDateString(90)})`,
+        `and(current_status.in.(no_tracking,shipped_no_tracking,awaiting_carrier_scan),order_date.lte.${daysAgoDateString(STALE_TRACKING_ORDER_AGE_DAYS)},order_date.gte.${daysAgoDateString(STALE_TRACKING_LOOKBACK_DAYS)})`,
         "current_status.in.(exception,return_pending)",
       ].join(",")
     );

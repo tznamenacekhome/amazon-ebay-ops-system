@@ -198,6 +198,15 @@ function actionUpdate(action: string, body: ActionBody, problemCase: ProblemCase
         replacement_promised_at: now,
         next_action: "Wait for missing/replacement item.",
       }, null, "Marked missing item / replacement pending.", amount, trackingNumber);
+    case "mark_replacement_shipped":
+      return result({
+        ...base,
+        problem_type: "missing_items",
+        workflow_state: "replacement_shipped",
+        replacement_shipped_at: now,
+        replacement_tracking_number: trackingNumber,
+        next_action: "Monitor replacement tracking and confirm receipt.",
+      }, null, "Marked replacement shipped.", amount, trackingNumber);
     case "mark_missing_item_received":
       return result({
         ...base,
@@ -221,6 +230,14 @@ function actionUpdate(action: string, body: ActionBody, problemCase: ProblemCase
         escalated_at: now,
         next_action: "Wait for eBay case decision.",
       }, null, "Marked escalated in eBay.", amount, trackingNumber);
+    case "close_no_refund":
+      return result({
+        ...base,
+        workflow_state: "closed_no_refund",
+        is_open: false,
+        closed_at: now,
+        next_action: null,
+      }, null, "Closed order problem with no refund.", amount, trackingNumber);
     case "close_resolve":
       return result({
         ...base,

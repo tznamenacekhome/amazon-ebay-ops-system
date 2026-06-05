@@ -1,6 +1,6 @@
 # Business Rules
 
-Last updated: 2026-06-02
+Last updated: 2026-06-04
 
 ## Cost And Reporting
 
@@ -54,10 +54,25 @@ Carrier/status syncs must not downgrade workflow-owned statuses.
   necessarily exists.
 - `Return Opened` means an eBay return/case exists or the operator has marked it
   opened in eBay.
+- Stale tracking candidates use a 14-day order-age threshold for `no_tracking`,
+  `shipped_no_tracking`, and `awaiting_carrier_scan`, with a 90-day lookback.
+  `in_transit` is not stale while carrier ETA is in the future; it becomes a
+  problem only when ETA is past.
+- Derived stale/late/carrier candidates should auto-close when the purchase no
+  longer matches a candidate rule.
 - The current eBay returns integration is read-only. MBOP may store eBay return
-  IDs, statuses, deadlines, refund amounts, action URLs, and raw payloads, but
-  must not create returns, send messages, accept offers, escalate cases, issue
+  IDs, inquiry IDs, cancellation IDs, statuses, deadlines, escalation dates,
+  refund amounts, action URLs, replacement tracking, and raw payloads, but must
+  not create returns, send messages, accept offers, escalate cases, issue
   refunds, or upload files.
+- For INR inquiries, eBay search results are not enough. MBOP must read inquiry
+  details to capture seller make-it-right dates and seller-provided replacement
+  tracking. Those dates display as escalation/action availability in the Order
+  Problems Next Action column.
+- `Close` means the problem is resolved with no further refund or inventory
+  consequence. `Close No Refund` means the problem is closed but value was lost
+  or unrecoverable and no refund will be received; it must not move the item
+  back into Received, Listed, or Amazon-bound inventory.
 - Operator actions in the drawer update MBOP workflow state only. The operator
   performs marketplace actions on ebay.com.
 - Partial refunds where the item is kept must not automatically change item cost
@@ -90,10 +105,11 @@ Carrier/status syncs must not downgrade workflow-owned statuses.
 - YNAB Business category balance is cash-on-hand context only.
 - Amazon Finance cash is value that has moved from inventory into Amazon-held cash or Amazon-to-bank in-transit cash.
 - Amazon-to-bank in-transit cash includes transfers Amazon still marks
-  `Processing` plus recently completed/succeeded payout groups inside the
-  configured bridge window. This prevents business value from dropping during
-  the gap after Amazon completes a payout but before YNAB cash on hand reflects
-  the bank deposit.
+  `Processing` plus completed/succeeded payout groups that do not yet have a
+  matching YNAB Business deposit transaction. This prevents business value from
+  dropping during the gap after Amazon completes a payout but before the YNAB
+  bank/cash transaction is present, without double-counting deposits that YNAB
+  already captured.
 - Business value snapshots are reporting snapshots only.
 - Dashboard cash/value freshness is limited by the oldest required cash/value
   input: business value snapshot, Amazon Finance balance snapshot, or YNAB cash

@@ -40,6 +40,7 @@ export type PurchaseRow = {
   problem_needs_response?: boolean | null;
   problem_next_action?: string | null;
   problem_next_action_due_at?: string | null;
+  problem_escalation_available_at?: string | null;
   problem_first_detected_at?: string | null;
   problem_last_detected_at?: string | null;
   ebay_return_id?: string | null;

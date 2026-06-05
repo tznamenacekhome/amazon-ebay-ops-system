@@ -224,8 +224,41 @@ export default function PurchasesPage() {
         throw new Error(message || `Workflow action failed: ${response.status}`);
       }
 
+      const result = await response.json();
+      const updatedCase = result.case as Record<string, unknown> | null;
       await loadPurchases({ forceRefresh: true });
-      setSelectedRow(null);
+
+      if (
+        updatedCase &&
+        updatedCase.is_open !== false &&
+        !String(updatedCase.workflow_state ?? "").startsWith("resolved_") &&
+        !String(updatedCase.workflow_state ?? "").startsWith("closed_")
+      ) {
+        setSelectedRow((current) =>
+          current
+            ? {
+                ...current,
+                problem_type: String(updatedCase.problem_type ?? current.problem_type ?? ""),
+                workflow_state: String(updatedCase.workflow_state ?? current.workflow_state ?? ""),
+                problem_priority: String(updatedCase.priority ?? current.problem_priority ?? ""),
+                problem_is_open: Boolean(updatedCase.is_open),
+                problem_needs_response: Boolean(updatedCase.needs_response),
+                problem_next_action: String(updatedCase.next_action ?? ""),
+                problem_next_action_due_at: String(updatedCase.next_action_due_at ?? ""),
+                ebay_return_status: String(updatedCase.ebay_return_status ?? current.ebay_return_status ?? ""),
+                expected_refund_amount: numberOrNull(updatedCase.expected_refund_amount),
+                actual_refund_amount: numberOrNull(updatedCase.actual_refund_amount),
+                partial_refund_amount: numberOrNull(updatedCase.partial_refund_amount),
+                replacement_tracking_number: String(
+                  updatedCase.replacement_tracking_number ?? current.replacement_tracking_number ?? "",
+                ),
+                problem_notes: String(updatedCase.notes ?? current.problem_notes ?? ""),
+              }
+            : current,
+        );
+      } else {
+        setSelectedRow(null);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Workflow action failed.");
     }
@@ -457,6 +490,12 @@ function formatPriceDraft(value?: number | null) {
   }
 
   return Number(value).toFixed(2);
+}
+
+function numberOrNull(value: unknown) {
+  if (value === null || value === undefined || value === "") return null;
+  const numberValue = Number(value);
+  return Number.isFinite(numberValue) ? numberValue : null;
 }
 
 function noticeClass(tone: RefreshNotice["tone"]) {
