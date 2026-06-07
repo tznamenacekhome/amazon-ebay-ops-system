@@ -147,10 +147,6 @@ def build_sku_row(
         "product_name": clean_text(summary.get("productName")),
         "condition": clean_text(summary.get("condition")),
         "fulfillment_channel": "Amazon",
-        "listing_status": clean_text(summary.get("inventoryDetails", {}).get("status")),
-        "item_status": clean_text(summary.get("inventoryDetails", {}).get("status")),
-        "last_listing_sync_at": utc_now_iso(),
-        "raw_listing_json": summary,
         "updated_at": utc_now_iso(),
     }
 

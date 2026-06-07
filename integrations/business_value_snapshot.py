@@ -110,7 +110,7 @@ def build_snapshot(supabase, snapshot_date: str) -> dict[str, Any]:
     finance = fetch_latest_row(supabase, "vw_latest_amazon_finance_balance_snapshot")
     ynab = fetch_latest_business_ynab_row(supabase)
 
-    amazon_at_fba_value = inventorylab_value or sum_states(cost_by_state, AMAZON_FBA_STATES)
+    amazon_at_fba_value = sum_states(cost_by_state, AMAZON_FBA_STATES)
     amazon_outbound_value = calculate_amazon_outbound_value(position_rows)
     amazon_inventory_value = amazon_at_fba_value + amazon_outbound_value
     pre_amazon_inventory_value = sum_states(cost_by_state, PRE_AMAZON_STATES)
@@ -126,7 +126,8 @@ def build_snapshot(supabase, snapshot_date: str) -> dict[str, Any]:
     )
 
     rollup = {
-        "inventorylab_valuation_used": inventorylab_value is not None,
+        "amazon_at_fba_source": "inventory_positions",
+        "inventorylab_valuation_reference_value": inventorylab_value,
         "amazon_at_fba_value": round(amazon_at_fba_value, 2),
         "amazon_outbound_value": round(amazon_outbound_value, 2),
         "amazon_finance_snapshot_id": (finance or {}).get(

@@ -10,6 +10,7 @@ from __future__ import annotations
 import argparse
 import logging
 import os
+from datetime import date, timedelta
 from typing import Any
 
 import requests
@@ -20,6 +21,7 @@ LOGGER = logging.getLogger("ynab_sync_business_transactions")
 YNAB_BASE_URL = "https://api.ynab.com/v1"
 DEFAULT_CATEGORY_NAME = "Business"
 DEFAULT_SINCE_DATE = "2026-01-01"
+DEFAULT_INCREMENTAL_OVERLAP_DAYS = 14
 DEFAULT_TIMEOUT_SECONDS = 30
 
 
@@ -38,11 +40,22 @@ def main() -> int:
     try:
         token = get_ynab_token()
         plan = resolve_plan(token, args.plan_name)
+        supabase = get_supabase_client() if args.apply or args.incremental else None
+        since_date = args.since_date
+        if args.incremental:
+            since_date = resolve_incremental_since_date(
+                supabase,
+                plan_id=plan["id"],
+                category_name=args.category_name,
+                fallback_since_date=args.since_date,
+                overlap_days=args.incremental_overlap_days,
+            )
+
         transactions = fetch_business_transactions(
             token,
             plan_id=plan["id"],
             category_name=args.category_name,
-            since_date=args.since_date,
+            since_date=since_date,
             include_deleted=args.include_deleted,
         )
         rows = [map_transaction(plan, transaction) for transaction in transactions]
@@ -50,7 +63,7 @@ def main() -> int:
         print_summary(
             plan=plan,
             category_name=args.category_name,
-            since_date=args.since_date,
+            since_date=since_date,
             rows=rows,
             write=args.apply,
         )
@@ -59,7 +72,8 @@ def main() -> int:
             LOGGER.info("Dry run complete. No Supabase writes performed.")
             return 0
 
-        supabase = get_supabase_client()
+        if supabase is None:
+            supabase = get_supabase_client()
         upserted = upsert_rows(supabase, rows)
         LOGGER.info("YNAB Business transactions upserted: %s", upserted)
         return 0
@@ -91,6 +105,17 @@ def parse_args() -> argparse.Namespace:
         "--include-deleted",
         action="store_true",
         help="Keep deleted YNAB transactions in the local copy.",
+    )
+    parser.add_argument(
+        "--incremental",
+        action="store_true",
+        help="Start from the latest stored matching transaction date minus an overlap window.",
+    )
+    parser.add_argument(
+        "--incremental-overlap-days",
+        type=int,
+        default=DEFAULT_INCREMENTAL_OVERLAP_DAYS,
+        help="Days to reread before the latest stored transaction date in incremental mode.",
     )
     parser.add_argument(
         "--apply",
@@ -185,6 +210,41 @@ def fetch_business_transactions(
         if (transaction.get("category_name") or "").strip().lower() == category_key
         and (include_deleted or not transaction.get("deleted"))
     ]
+
+
+def resolve_incremental_since_date(
+    supabase,
+    *,
+    plan_id: str,
+    category_name: str,
+    fallback_since_date: str,
+    overlap_days: int,
+) -> str:
+    if supabase is None:
+        return fallback_since_date
+
+    result = (
+        supabase.table("ynab_business_transactions")
+        .select("transaction_date")
+        .eq("plan_id", plan_id)
+        .eq("category_name", category_name)
+        .order("transaction_date", desc=True)
+        .limit(1)
+        .execute()
+    )
+    latest = (result.data or [{}])[0].get("transaction_date")
+    if not latest:
+        return fallback_since_date
+
+    try:
+        latest_date = date.fromisoformat(str(latest))
+        since = latest_date - timedelta(days=max(overlap_days, 0))
+        fallback = date.fromisoformat(fallback_since_date)
+        if since < fallback:
+            since = fallback
+        return since.isoformat()
+    except ValueError:
+        return fallback_since_date
 
 
 def map_transaction(plan: dict[str, Any], transaction: dict[str, Any]) -> dict[str, Any]:

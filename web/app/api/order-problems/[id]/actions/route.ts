@@ -15,6 +15,7 @@ type ActionBody = {
   notes?: string;
   amount?: number | string | null;
   tracking_number?: string | null;
+  problem_type?: string | null;
 };
 
 type ProblemCase = {
@@ -73,10 +74,14 @@ export async function POST(request: Request, context: RouteContext) {
       tracking_number: result.trackingNumber,
       raw_json: body,
     };
-    const { error: eventError } = await supabase.from("order_problem_events").insert(eventRow);
+    const { data: eventData, error: eventError } = await supabase
+      .from("order_problem_events")
+      .insert(eventRow)
+      .select("problem_event_id,event_type,event_source,event_at,message,amount,currency,tracking_number,created_at")
+      .limit(1);
     if (eventError) throw new Error(`order_problem_events insert: ${eventError.message}`);
 
-    return NextResponse.json({ case: (data ?? [])[0] ?? null });
+    return NextResponse.json({ case: (data ?? [])[0] ?? null, event: (eventData ?? [])[0] ?? null });
   } catch (error) {
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Order problem action failed." },
@@ -104,6 +109,13 @@ function actionUpdate(action: string, body: ActionBody, problemCase: ProblemCase
   if (notes !== problemCase.notes) base.notes = notes;
 
   switch (action) {
+    case "update_problem_type": {
+      const problemType = cleanProblemType(body.problem_type);
+      return result({
+        ...base,
+        problem_type: problemType,
+      }, null, `Updated return type to ${problemType}.`, amount, trackingNumber);
+    }
     case "mark_return_needed":
       return result({
         ...base,
@@ -249,6 +261,24 @@ function actionUpdate(action: string, body: ActionBody, problemCase: ProblemCase
     default:
       throw new Error(`Unsupported action: ${action}`);
   }
+}
+
+function cleanProblemType(value: unknown) {
+  const text = cleanText(value);
+  const allowed = new Set([
+    "not_as_listed",
+    "buyer_choice",
+    "missing_items",
+    "cancelled_refund_followup",
+    "late_delivery_candidate",
+    "carrier_exception_candidate",
+    "stale_tracking_candidate",
+    "return_needed",
+  ]);
+  if (!text || !allowed.has(text)) {
+    throw new Error("Unsupported return type.");
+  }
+  return text;
 }
 
 function result(

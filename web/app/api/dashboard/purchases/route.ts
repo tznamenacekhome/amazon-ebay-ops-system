@@ -622,7 +622,7 @@ async function fetchInventoryVisibility() {
 function buildLocationValueSummary(
   unitsByState: Map<string, number>,
   costByState: Map<string, number>,
-  inventoryLabValuation: InventoryLabValuationSummary
+  _inventoryLabValuation: InventoryLabValuationSummary
 ): InventoryLocationValueRow[] {
   const rows = [
     {
@@ -648,10 +648,7 @@ function buildLocationValueSummary(
     },
   ].map((row) => {
     const units = sumStates(unitsByState, row.states);
-    const totalCost =
-      row.location === "At Amazon FBA" && inventoryLabValuation
-        ? inventoryLabValuation.total_value
-        : sumStates(costByState, row.states);
+    const totalCost = sumStates(costByState, row.states);
 
     return {
       location: row.location,
@@ -672,18 +669,16 @@ function buildLocationValueSummary(
 function buildBusinessInventoryValueSummary(
   costByState: Map<string, number>,
   inventoryValueRows: InventoryPositionValueRow[],
-  inventoryLabValuation: InventoryLabValuationSummary,
+  _inventoryLabValuation: InventoryLabValuationSummary,
   ynabCashBalance: YnabCashBalanceSummary,
   amazonFinanceBalance: AmazonFinanceBalanceSummary
 ): BusinessInventoryValueSummary {
-  const amazonAtFbaValue =
-    inventoryLabValuation?.total_value ??
-    sumStates(costByState, [
-      "amazon_fba_sellable",
-      "amazon_fba_reserved",
-      "amazon_fba_unsellable_damaged",
-      "amazon_fba_stranded",
-    ]);
+  const amazonAtFbaValue = sumStates(costByState, [
+    "amazon_fba_sellable",
+    "amazon_fba_reserved",
+    "amazon_fba_unsellable_damaged",
+    "amazon_fba_stranded",
+  ]);
   const amazonOutboundValue = calculateAmazonOutboundValue(inventoryValueRows);
   const amazonInventoryValue = amazonAtFbaValue + amazonOutboundValue;
   const preAmazonInventoryValue = sumStates(costByState, [

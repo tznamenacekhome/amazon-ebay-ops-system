@@ -44,6 +44,34 @@ type PurchaseListRow = {
   delivered_date: string | null;
 };
 
+type PurchaseProblemCase = {
+  problem_case_id: string;
+  purchase_item_id: string;
+  purchase_id: string | null;
+  supplier_order_id: string | null;
+  problem_type: string | null;
+  workflow_state: string | null;
+  is_open: boolean;
+  next_action: string | null;
+  ebay_return_id: string | null;
+  ebay_inquiry_id: string | null;
+  ebay_case_id: string | null;
+  ebay_return_status: string | null;
+  ebay_current_type: string | null;
+  ebay_action_url: string | null;
+  replacement_tracking_number: string | null;
+};
+
+type CarrierTracking = {
+  tracking_number: string;
+  carrier: string | null;
+  carrier_status: string | null;
+  normalized_status: string | null;
+  shipment_status: string | null;
+  estimated_delivery_date: string | null;
+  delivered_date: string | null;
+};
+
 export async function GET(request: Request) {
   const requestUrl = new URL(request.url);
   const query = parsePurchaseQuery(requestUrl);
@@ -100,7 +128,23 @@ export async function GET(request: Request) {
     itemMeta.map((item) => [item.item_id, item.amazon_title])
   );
 
-  const purchases = await fetchPurchaseMeta(purchaseIds);
+  const [purchases, problemCases] = await Promise.all([
+    fetchPurchaseMeta(purchaseIds),
+    fetchOpenProblemCases(itemIds, viewRows.map((row) => row.supplier_order_id).filter((value): value is string => Boolean(value))),
+  ]);
+  const problemCaseByItemId = new Map(problemCases.map((problemCase) => [problemCase.purchase_item_id, problemCase]));
+  const caseBySupplierOrderId = new Map<string, PurchaseProblemCase>();
+  for (const problemCase of problemCases) {
+    if (problemCase.supplier_order_id && !caseBySupplierOrderId.has(problemCase.supplier_order_id)) {
+      caseBySupplierOrderId.set(problemCase.supplier_order_id, problemCase);
+    }
+  }
+  const carrierTrackingRows = await fetchCarrierTrackingRows(
+    problemCases
+      .map((problemCase) => problemCase.replacement_tracking_number)
+      .filter((value): value is string => Boolean(value))
+  );
+  const carrierTrackingByNumber = new Map(carrierTrackingRows.map((row) => [row.tracking_number, row]));
 
   const purchaseMetaById = new Map(
     (purchases ?? []).map((purchase) => [
@@ -116,18 +160,47 @@ export async function GET(request: Request) {
     ])
   );
 
-  const responseRows = viewRows.map((row) => ({
-    ...row,
-    amazon_title: amazonTitleByItemId.get(row.item_id) ?? null,
-    exclude_from_purchase_reporting: false,
-    order_status: purchaseMetaById.get(row.purchase_id)?.orderStatus ?? null,
-    seller_shipped: purchaseMetaById.get(row.purchase_id)?.sellerShipped ?? false,
-    ebay_cancelled: purchaseMetaById.get(row.purchase_id)?.ebayCancelled ?? false,
-    estimated_delivery_date:
-      row.estimated_delivery_date ??
-      purchaseMetaById.get(row.purchase_id)?.ebayEstimatedDeliveryDate ??
-      null,
-  }));
+  const responseRows = viewRows.map((row) => {
+    const itemProblemCase = problemCaseByItemId.get(row.item_id);
+    const problemCase = itemProblemCase ?? caseBySupplierOrderId.get(row.supplier_order_id ?? "");
+    const replacementTrackingNumber = itemProblemCase?.replacement_tracking_number ?? null;
+    const replacementCarrierTracking = replacementTrackingNumber
+      ? carrierTrackingByNumber.get(replacementTrackingNumber)
+      : undefined;
+
+    return {
+      ...row,
+      tracking_number: replacementTrackingNumber ?? row.tracking_number,
+      original_tracking_number: row.tracking_number,
+      carrier: replacementCarrierTracking?.carrier ?? row.carrier,
+      carrier_status: replacementCarrierTracking?.carrier_status ?? null,
+      normalized_status: replacementCarrierTracking?.normalized_status ?? null,
+      shipment_status: replacementCarrierTracking?.shipment_status ?? null,
+      amazon_title: amazonTitleByItemId.get(row.item_id) ?? null,
+      exclude_from_purchase_reporting: false,
+      order_status: purchaseMetaById.get(row.purchase_id)?.orderStatus ?? null,
+      seller_shipped: purchaseMetaById.get(row.purchase_id)?.sellerShipped ?? false,
+      ebay_cancelled: purchaseMetaById.get(row.purchase_id)?.ebayCancelled ?? false,
+      estimated_delivery_date:
+        replacementCarrierTracking?.estimated_delivery_date ??
+        row.estimated_delivery_date ??
+        purchaseMetaById.get(row.purchase_id)?.ebayEstimatedDeliveryDate ??
+        null,
+      delivered_date: replacementCarrierTracking?.delivered_date ?? row.delivered_date,
+      problem_case_id: problemCase?.problem_case_id ?? null,
+      problem_type: problemCase?.problem_type ?? null,
+      workflow_state: problemCase?.workflow_state ?? null,
+      problem_is_open: problemCase?.is_open ?? null,
+      problem_next_action: problemCase?.next_action ?? null,
+      ebay_return_id: problemCase?.ebay_return_id ?? null,
+      ebay_inquiry_id: problemCase?.ebay_inquiry_id ?? null,
+      ebay_case_id: problemCase?.ebay_case_id ?? null,
+      ebay_return_status: problemCase?.ebay_return_status ?? null,
+      ebay_current_type: problemCase?.ebay_current_type ?? null,
+      ebay_action_url: problemCase?.ebay_action_url ?? null,
+      replacement_tracking_number: replacementTrackingNumber,
+    };
+  });
 
   return NextResponse.json({
     rows: responseRows,
@@ -529,6 +602,105 @@ async function fetchPurchaseMeta(purchaseIds: string[]) {
   }
 
   return rows;
+}
+
+async function fetchOpenProblemCases(itemIds: string[], supplierOrderIds: string[]) {
+  const cases: PurchaseProblemCase[] = [];
+  const seen = new Set<string>();
+
+  for (const chunk of chunks(itemIds, 500)) {
+    const { data, error } = await supabase
+      .from("order_problem_cases")
+      .select([
+        "problem_case_id",
+        "purchase_item_id",
+        "purchase_id",
+        "supplier_order_id",
+        "problem_type",
+        "workflow_state",
+        "is_open",
+        "next_action",
+        "ebay_return_id",
+        "ebay_inquiry_id",
+        "ebay_case_id",
+        "ebay_return_status",
+        "ebay_current_type",
+        "ebay_action_url",
+        "replacement_tracking_number",
+      ].join(","))
+      .in("purchase_item_id", chunk)
+      .eq("is_open", true);
+    if (error) {
+      console.warn("Purchase problem case lookup failed", error.message);
+      continue;
+    }
+    for (const problemCase of (data ?? []) as unknown as PurchaseProblemCase[]) {
+      if (!seen.has(problemCase.problem_case_id)) {
+        cases.push(problemCase);
+        seen.add(problemCase.problem_case_id);
+      }
+    }
+  }
+
+  for (const chunk of chunks(Array.from(new Set(supplierOrderIds)), 500)) {
+    const { data, error } = await supabase
+      .from("order_problem_cases")
+      .select([
+        "problem_case_id",
+        "purchase_item_id",
+        "purchase_id",
+        "supplier_order_id",
+        "problem_type",
+        "workflow_state",
+        "is_open",
+        "next_action",
+        "ebay_return_id",
+        "ebay_inquiry_id",
+        "ebay_case_id",
+        "ebay_return_status",
+        "ebay_current_type",
+        "ebay_action_url",
+        "replacement_tracking_number",
+      ].join(","))
+      .in("supplier_order_id", chunk)
+      .eq("is_open", true);
+    if (error) {
+      console.warn("Purchase order problem case lookup failed", error.message);
+      continue;
+    }
+    for (const problemCase of (data ?? []) as unknown as PurchaseProblemCase[]) {
+      if (!seen.has(problemCase.problem_case_id)) {
+        cases.push(problemCase);
+        seen.add(problemCase.problem_case_id);
+      }
+    }
+  }
+
+  return cases;
+}
+
+async function fetchCarrierTrackingRows(trackingNumbers: string[]) {
+  const rows: CarrierTracking[] = [];
+  for (const chunk of chunks(Array.from(new Set(trackingNumbers)), 500)) {
+    const { data, error } = await supabase
+      .from("inbound_shipments")
+      .select("tracking_number,carrier,carrier_status,normalized_status,shipment_status,estimated_delivery_date,delivered_date")
+      .in("tracking_number", chunk);
+    if (error) {
+      console.warn("Replacement carrier tracking lookup failed", error.message);
+      continue;
+    }
+    rows.push(...((data ?? []) as unknown as CarrierTracking[]));
+  }
+  return rows;
+}
+
+function chunks<T>(values: T[], size: number) {
+  const output: T[][] = [];
+  for (let index = 0; index < values.length; index += size) {
+    output.push(values.slice(index, index + size));
+  }
+  return output;
 }
 
 function hasSellerShipped(rawImportJson: unknown) {

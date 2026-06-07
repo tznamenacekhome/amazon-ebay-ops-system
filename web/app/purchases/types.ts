@@ -13,6 +13,7 @@ export type PurchaseRow = {
   sell_price?: number | null;
   target_price?: number | null;
   tracking_number?: string | null;
+  original_tracking_number?: string | null;
   supplier_sku?: string | null;
   supplier_listing_url?: string | null;
   ebay_listing_url?: string | null;
@@ -56,6 +57,41 @@ export type PurchaseRow = {
   refund_currency?: string | null;
   replacement_tracking_number?: string | null;
   problem_notes?: string | null;
+  problem_return_needed_at?: string | null;
+  problem_ebay_return_opened_at?: string | null;
+  problem_seller_message_last_at?: string | null;
+  problem_operator_responded_at?: string | null;
+  problem_partial_refund_offered_at?: string | null;
+  problem_partial_refund_accepted_at?: string | null;
+  problem_label_available_at?: string | null;
+  problem_return_shipped_at?: string | null;
+  problem_seller_received_return_at?: string | null;
+  problem_refund_due_at?: string | null;
+  problem_refund_received_at?: string | null;
+  problem_replacement_promised_at?: string | null;
+  problem_replacement_shipped_at?: string | null;
+  problem_replacement_estimated_delivery_date?: string | null;
+  problem_replacement_carrier?: string | null;
+  problem_replacement_carrier_status?: string | null;
+  problem_replacement_delivered_date?: string | null;
+  problem_replacement_tracking_url?: string | null;
+  problem_replacement_last_tracking_sync?: string | null;
+  problem_replacement_received_at?: string | null;
+  problem_escalated_at?: string | null;
+  problem_closed_at?: string | null;
+  problem_events?: ProblemEvent[];
+};
+
+export type ProblemEvent = {
+  problem_event_id?: string;
+  event_type?: string | null;
+  event_source?: string | null;
+  event_at?: string | null;
+  message?: string | null;
+  amount?: number | null;
+  currency?: string | null;
+  tracking_number?: string | null;
+  created_at?: string | null;
 };
 
 export type PurchaseStats = {

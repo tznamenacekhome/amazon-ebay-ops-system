@@ -38,15 +38,25 @@ def main() -> int:
 
     try:
         client = AmazonSPAPIClient.from_env()
+        supabase = get_supabase_client()
         import_batch_id = str(uuid.uuid4())
         orders = filter_orders_since_cutoff(fetch_orders(client, args))
         order_rows = [build_order_row(order, import_batch_id) for order in orders]
+        existing_context = fetch_existing_order_context(
+            supabase,
+            [row["amazon_order_id"] for row in order_rows if row.get("amazon_order_id")],
+        )
         item_rows: list[dict[str, Any]] = []
 
         item_fetch_failures: list[str] = []
         for order in orders:
             amazon_order_id = clean_text(order.get("AmazonOrderId"))
             if not amazon_order_id:
+                continue
+            if (
+                args.skip_unchanged_order_items
+                and order_items_are_current(order, existing_context.get(amazon_order_id))
+            ):
                 continue
             try:
                 items = list(client.iter_order_items(amazon_order_id))
@@ -73,7 +83,6 @@ def main() -> int:
             LOGGER.info("Dry run complete. No Supabase writes performed.")
             return 0
 
-        supabase = get_supabase_client()
         upsert_rows(
             supabase,
             "amazon_sales_orders",
@@ -127,6 +136,12 @@ def parse_args() -> argparse.Namespace:
         type=float,
         default=DEFAULT_ORDER_ITEM_DELAY_SECONDS,
         help="Delay between getOrderItems calls to stay under Amazon Orders API quotas.",
+    )
+    parser.add_argument(
+        "--skip-unchanged-order-items",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="Skip getOrderItems when the stored order has the same LastUpdateDate and item rows already exist.",
     )
     parser.add_argument("--apply", action="store_true", help="Write to Supabase.")
     parser.add_argument(
@@ -186,6 +201,64 @@ def get_supabase_client():
     if not supabase_url or not supabase_key:
         raise RuntimeError("Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY.")
     return create_client(supabase_url, supabase_key)
+
+
+def fetch_existing_order_context(
+    supabase,
+    amazon_order_ids: list[str],
+) -> dict[str, dict[str, Any]]:
+    if not amazon_order_ids:
+        return {}
+
+    context: dict[str, dict[str, Any]] = {}
+    for chunk in chunks(amazon_order_ids, 100):
+        orders = (
+            supabase.table("amazon_sales_orders")
+            .select("amazon_order_id,last_update_date")
+            .in_("amazon_order_id", chunk)
+            .execute()
+        )
+        for row in orders.data or []:
+            order_id = row.get("amazon_order_id")
+            if order_id:
+                context[order_id] = {
+                    "last_update_date": clean_text(row.get("last_update_date")),
+                    "item_count": 0,
+                }
+
+        items = (
+            supabase.table("amazon_sales_order_items")
+            .select("amazon_order_id")
+            .in_("amazon_order_id", chunk)
+            .execute()
+        )
+        for row in items.data or []:
+            order_id = row.get("amazon_order_id")
+            if not order_id:
+                continue
+            context.setdefault(order_id, {"last_update_date": None, "item_count": 0})
+            context[order_id]["item_count"] += 1
+
+    return context
+
+
+def order_items_are_current(
+    order: dict[str, Any],
+    existing: dict[str, Any] | None,
+) -> bool:
+    if not existing or int(existing.get("item_count") or 0) <= 0:
+        return False
+
+    return normalize_iso(clean_text(order.get("LastUpdateDate"))) == normalize_iso(
+        existing.get("last_update_date")
+    )
+
+
+def normalize_iso(value: Any) -> str | None:
+    text = clean_text(value)
+    if not text:
+        return None
+    return text.replace("+00:00", "Z")
 
 
 def build_order_row(order: dict[str, Any], import_batch_id: str) -> dict[str, Any]:

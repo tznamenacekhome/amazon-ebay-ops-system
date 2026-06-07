@@ -837,15 +837,22 @@ function BusinessValueHistoryModal({
   onClose: () => void;
 }) {
   const latest = rows[rows.length - 1];
+  const previous = rows[rows.length - 2];
+  const latestChange =
+    latest && previous ? latest.total_business_value - previous.total_business_value : null;
+  const rowsNewestFirst = rows.slice().reverse();
+  const previousByDate = new Map(
+    rows.map((row, index) => [row.snapshot_date, index > 0 ? rows[index - 1] : null])
+  );
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/30 p-4">
-      <div className="w-full max-w-2xl rounded-lg border border-slate-200 bg-white shadow-xl">
+      <div className="max-h-[92vh] w-full max-w-6xl overflow-hidden rounded-lg border border-slate-200 bg-white shadow-xl">
         <div className="flex items-start justify-between gap-4 border-b border-slate-200 px-4 py-3">
           <div>
             <h3 className="text-base font-semibold">Business Value History</h3>
             <p className="text-xs text-slate-500">
-              Daily total business value snapshots
+              Daily total business value snapshots and component changes
             </p>
           </div>
           <button
@@ -856,38 +863,84 @@ function BusinessValueHistoryModal({
             Close
           </button>
         </div>
-        <div className="p-4">
+        <div className="max-h-[calc(92vh-57px)] overflow-auto p-4">
           <BusinessValueLineChart rows={rows} />
-          <div className="mt-3 grid gap-2 text-sm sm:grid-cols-2">
+          <div className="mt-3 grid gap-2 text-sm sm:grid-cols-3">
             <div className="rounded-md bg-slate-50 p-2">
               <div className="text-xs uppercase tracking-wide text-slate-500">Latest</div>
               <div className="font-semibold">{formatMoney(latest?.total_business_value)}</div>
+            </div>
+            <div className="rounded-md bg-slate-50 p-2">
+              <div className="text-xs uppercase tracking-wide text-slate-500">Latest Change</div>
+              <div className={`font-semibold ${moneyChangeClass(latestChange)}`}>
+                {formatMoneyChange(latestChange)}
+              </div>
             </div>
             <div className="rounded-md bg-slate-50 p-2">
               <div className="text-xs uppercase tracking-wide text-slate-500">Snapshots</div>
               <div className="font-semibold">{formatNumber(rows.length)}</div>
             </div>
           </div>
-          <div className="mt-3 max-h-48 overflow-auto rounded-md border border-slate-200">
-            <table className="w-full text-sm">
+          <div className="mt-3 overflow-auto rounded-md border border-slate-200">
+            <table className="min-w-[980px] w-full text-sm">
               <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
                 <tr>
                   <th className="px-3 py-2 text-left">Date</th>
                   <th className="px-3 py-2 text-right">Total</th>
+                  <th className="px-3 py-2 text-right">Change</th>
+                  <th className="px-3 py-2 text-right">Amazon Inventory</th>
+                  <th className="px-3 py-2 text-right">Pre-Amazon Inventory</th>
+                  <th className="px-3 py-2 text-right">Amazon Cash</th>
+                  <th className="px-3 py-2 text-right">Cash In Transit</th>
+                  <th className="px-3 py-2 text-right">Cash On Hand</th>
                 </tr>
               </thead>
               <tbody>
-                {rows
-                  .slice()
-                  .reverse()
-                  .map((row) => (
+                {rowsNewestFirst.map((row) => {
+                  const previousRow = previousByDate.get(row.snapshot_date);
+                  const totalChange = previousRow
+                    ? row.total_business_value - previousRow.total_business_value
+                    : null;
+
+                  return (
                     <tr key={row.snapshot_date} className="border-t border-slate-100">
-                      <td className="px-3 py-2">{row.snapshot_date}</td>
-                      <td className="px-3 py-2 text-right font-medium">
+                      <td className="whitespace-nowrap px-3 py-2">{row.snapshot_date}</td>
+                      <td className="whitespace-nowrap px-3 py-2 text-right font-medium">
                         {formatMoney(row.total_business_value)}
                       </td>
+                      <td className={`whitespace-nowrap px-3 py-2 text-right font-medium ${moneyChangeClass(totalChange)}`}>
+                        {formatMoneyChange(totalChange)}
+                      </td>
+                      <td className="whitespace-nowrap px-3 py-2 text-right">
+                        {formatMoneyWithDelta(
+                          row.amazon_inventory_value,
+                          previousRow?.amazon_inventory_value
+                        )}
+                      </td>
+                      <td className="whitespace-nowrap px-3 py-2 text-right">
+                        {formatMoneyWithDelta(
+                          row.pre_amazon_inventory_value,
+                          previousRow?.pre_amazon_inventory_value
+                        )}
+                      </td>
+                      <td className="whitespace-nowrap px-3 py-2 text-right">
+                        {formatMoneyWithDelta(
+                          row.amazon_cash_balance,
+                          previousRow?.amazon_cash_balance
+                        )}
+                      </td>
+                      <td className="whitespace-nowrap px-3 py-2 text-right">
+                        {formatMoneyWithDelta(
+                          row.amazon_cash_in_transit,
+                          previousRow?.amazon_cash_in_transit
+                        )}
+                      </td>
+                      <td className="whitespace-nowrap px-3 py-2 text-right">
+                        {formatMoneyWithDelta(row.cash_on_hand, previousRow?.cash_on_hand)}
+                      </td>
                     </tr>
-                  ))}
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -1133,6 +1186,47 @@ function formatMoney(value?: number | null) {
     style: "currency",
     currency: "USD",
   });
+}
+
+function formatMoneyChange(value?: number | null) {
+  if (value === null || value === undefined || Number.isNaN(Number(value))) {
+    return "--";
+  }
+
+  const sign = value > 0 ? "+" : "";
+  return `${sign}${formatMoney(value)}`;
+}
+
+function formatMoneyWithDelta(value?: number | null, previous?: number | null) {
+  const formattedValue = formatMoney(value);
+  if (
+    value === null ||
+    value === undefined ||
+    previous === null ||
+    previous === undefined ||
+    Number.isNaN(Number(value)) ||
+    Number.isNaN(Number(previous))
+  ) {
+    return formattedValue;
+  }
+
+  const change = Number(value) - Number(previous);
+  return (
+    <span>
+      <span>{formattedValue}</span>
+      <span className={`ml-2 text-xs ${moneyChangeClass(change)}`}>
+        {formatMoneyChange(change)}
+      </span>
+    </span>
+  );
+}
+
+function moneyChangeClass(value?: number | null) {
+  if (value === null || value === undefined || Number.isNaN(Number(value)) || value === 0) {
+    return "text-slate-500";
+  }
+
+  return value > 0 ? "text-green-700" : "text-red-700";
 }
 
 function formatDays(value?: number | null) {

@@ -206,7 +206,7 @@ export default function PurchasesPage() {
 
   async function runSelectedProblemAction(
     action: string,
-    payload: { notes?: string; amount?: number | null; tracking_number?: string | null } = {},
+    payload: { notes?: string; amount?: number | null; tracking_number?: string | null; problem_type?: string | null } = {},
   ) {
     if (!selectedRow?.problem_case_id) return;
 
@@ -226,6 +226,7 @@ export default function PurchasesPage() {
 
       const result = await response.json();
       const updatedCase = result.case as Record<string, unknown> | null;
+      const event = result.event as NonNullable<PurchaseRow["problem_events"]>[number] | null;
       await loadPurchases({ forceRefresh: true });
 
       if (
@@ -253,6 +254,9 @@ export default function PurchasesPage() {
                   updatedCase.replacement_tracking_number ?? current.replacement_tracking_number ?? "",
                 ),
                 problem_notes: String(updatedCase.notes ?? current.problem_notes ?? ""),
+                problem_events: event
+                  ? [event, ...(current.problem_events ?? [])].slice(0, 12)
+                  : current.problem_events,
               }
             : current,
         );

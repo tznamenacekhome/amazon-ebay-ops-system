@@ -93,7 +93,7 @@ export function PurchaseProblemTable({
             <tr>
               <th className="w-[90px] px-2 py-2">Priority</th>
               <th className="w-[180px] px-2 py-2">Issue</th>
-              <th className="w-[115px] px-2 py-2">Due / Age</th>
+              <th className="w-[115px] px-2 py-2">Dates</th>
               <th className="w-[130px] px-2 py-2">Order ID</th>
               <th className="w-[360px] px-2 py-2">Item</th>
               <th className="w-[90px] px-2 py-2">System</th>
@@ -141,8 +141,8 @@ export function PurchaseProblemTable({
                       <div className="text-xs text-slate-500">{sourceLabel(row.problem_source)}</div>
                     </td>
                     <td className="px-2 py-2">
-                      <div>{formatDate(row.problem_next_action_due_at)}</div>
-                      <div className="text-xs text-slate-500">{formatAge(ageDays(row.problem_first_detected_at))}</div>
+                      <div>{formatPacificDate(problemStatusDate(row)) || "--"}</div>
+                      <div className="text-xs text-slate-500">Order {formatDate(row.order_date) || "--"}</div>
                     </td>
                     <td className="px-2 py-2">
                       {row.supplier_order_id ? (
@@ -198,7 +198,14 @@ export function PurchaseProblemTable({
                     </td>
                     <td className="px-2 py-2">
                       <div className="break-all">{row.replacement_tracking_number || row.tracking_number || "--"}</div>
-                      <div className="text-xs text-slate-500">{formatDate(row.estimated_delivery_date)}</div>
+                      <div className="text-xs text-slate-500">
+                        {formatDate(row.problem_replacement_estimated_delivery_date || row.estimated_delivery_date)}
+                      </div>
+                      {row.problem_replacement_carrier_status && (
+                        <div className="text-xs text-slate-500">
+                          {titleCase(row.problem_replacement_carrier_status)}
+                        </div>
+                      )}
                     </td>
                     <td className="px-2 py-2 text-center">
                       <button
@@ -222,6 +229,10 @@ export function PurchaseProblemTable({
 }
 
 function NextActionDetail({ row }: { row: PurchaseRow }) {
+  if (row.workflow_state === "refund_pending") {
+    return null;
+  }
+
   const escalationDate = formatDate(row.problem_escalation_available_at);
   if (escalationDate) {
     return (
@@ -447,6 +458,34 @@ function estimatedRefund(row: PurchaseRow) {
   return unitCost * quantity;
 }
 
+function problemStatusDate(row: PurchaseRow) {
+  const datesByState: Record<string, string | null | undefined> = {
+    candidate: row.problem_first_detected_at,
+    return_needed: row.problem_return_needed_at,
+    return_opened: row.problem_ebay_return_opened_at,
+    seller_message_needs_response: row.problem_seller_message_last_at,
+    waiting_on_seller: row.problem_operator_responded_at,
+    partial_refund_offered: row.problem_partial_refund_offered_at,
+    partial_refund_accepted: row.problem_partial_refund_accepted_at,
+    label_pending: row.problem_last_detected_at,
+    label_received: row.problem_label_available_at,
+    return_shipped: row.problem_return_shipped_at || row.problem_replacement_shipped_at,
+    seller_received_return: row.problem_seller_received_return_at,
+    refund_pending: row.problem_refund_due_at,
+    replacement_pending: row.problem_replacement_promised_at,
+    replacement_shipped: row.problem_replacement_shipped_at,
+    replacement_received: row.problem_replacement_received_at,
+    escalation_available: row.problem_escalation_available_at,
+    escalated: row.problem_escalated_at,
+    resolved_refunded: row.problem_refund_received_at || row.problem_closed_at,
+    resolved_received_item: row.problem_replacement_received_at || row.problem_closed_at,
+    closed_no_action: row.problem_closed_at,
+    closed_no_refund: row.problem_closed_at,
+  };
+
+  return datesByState[row.workflow_state || ""] || row.problem_last_detected_at || row.problem_first_detected_at;
+}
+
 function ageDays(value?: string | null) {
   const date = parseDate(value);
   if (!date) return null;
@@ -463,6 +502,28 @@ function parseDate(value?: string | null) {
 
 function formatAge(value: number | null) {
   return value === null ? "--" : `${value.toLocaleString("en-US")}d old`;
+}
+
+function formatPacificDate(value?: string | null) {
+  if (!value) return "";
+
+  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    return formatDate(value);
+  }
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: "America/Los_Angeles",
+    month: "2-digit",
+    day: "2-digit",
+    year: "2-digit",
+  }).formatToParts(date);
+  const month = parts.find((part) => part.type === "month")?.value ?? "";
+  const day = parts.find((part) => part.type === "day")?.value ?? "";
+  const year = parts.find((part) => part.type === "year")?.value ?? "";
+  return month && day && year ? `${month}/${day}/${year}` : "";
 }
 
 function titleCase(value: string) {

@@ -65,8 +65,15 @@ Carrier/status syncs must not downgrade workflow-owned statuses.
   opened in eBay.
 - Stale tracking candidates use a 14-day order-age threshold for `no_tracking`,
   `shipped_no_tracking`, and `awaiting_carrier_scan`, with a 90-day lookback.
-  `in_transit` is not stale while carrier ETA is in the future; it becomes a
-  problem only when ETA is past.
+  `in_transit` is not stale while carrier ETA is in the future. After an eBay
+  ETA passes, a shipment with a usable tracking number is still suppressed from
+  Order Problems while carrier activity is current.
+- Late-delivery candidates require either no usable tracking number or no
+  carrier activity for more than 4 days. Current EasyPost/carrier activity
+  overrides an expired eBay ETA for candidate detection.
+- Carrier activity showing exception language, including `return_to_sender`,
+  `Returned to Sender`, or similar event text, creates a
+  `carrier_exception_candidate` even when carrier activity is recent.
 - Derived stale/late/carrier candidates should auto-close when the purchase no
   longer matches a candidate rule.
 - The current eBay returns integration is read-only. MBOP may store eBay return

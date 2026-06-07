@@ -47,6 +47,10 @@ def main() -> int:
 
     try:
         supabase = get_supabase_client()
+        if args.skip_if_unchanged and sources_unchanged_since_last_reconciliation(supabase):
+            LOGGER.info("Inventory reconciliation skipped; source timestamps have not changed.")
+            return 0
+
         purchase_rows = fetch_all(
             supabase,
             "vw_purchases_dashboard",
@@ -113,6 +117,11 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Build projections and reconciliation findings without writing to Supabase.",
     )
+    parser.add_argument(
+        "--skip-if-unchanged",
+        action="store_true",
+        help="Skip reconciliation when source tables have not changed since the last completed run.",
+    )
     return parser.parse_args()
 
 
@@ -126,6 +135,71 @@ def get_supabase_client():
         )
 
     return create_client(supabase_url, supabase_key)
+
+
+def sources_unchanged_since_last_reconciliation(supabase) -> bool:
+    last_completed = latest_timestamp(
+        supabase,
+        "inventory_reconciliation_events",
+        "completed_at",
+        filters={"status": "completed"},
+    )
+    if not last_completed:
+        return False
+
+    source_checks = [
+        ("purchases", "created_at"),
+        ("purchase_items", "updated_at"),
+        ("fba_shipments", "created_at"),
+        ("fba_shipment_items", "created_at"),
+        ("amazon_skus", "updated_at"),
+        ("amazon_fba_inventory_snapshots", "captured_at"),
+        ("amazon_listing_snapshots", "captured_at"),
+        ("inventorylab_active_inventory_backfill", "updated_at"),
+    ]
+    for table, column in source_checks:
+        source_latest = latest_timestamp(supabase, table, column)
+        if source_latest and source_latest > last_completed:
+            LOGGER.info(
+                "Inventory reconciliation source changed: %s.%s=%s > %s",
+                table,
+                column,
+                source_latest.isoformat(),
+                last_completed.isoformat(),
+            )
+            return False
+
+    return True
+
+
+def latest_timestamp(
+    supabase,
+    table: str,
+    column: str,
+    filters: dict[str, Any] | None = None,
+) -> datetime | None:
+    query = supabase.table(table).select(column)
+    for key, value in (filters or {}).items():
+        query = query.eq(key, value)
+    try:
+        response = query.order(column, desc=True).limit(1).execute()
+    except Exception as error:  # noqa: BLE001 - fail open for optional optimizer
+        LOGGER.warning("Skipping source timestamp check for %s.%s: %s", table, column, error)
+        return datetime.now(timezone.utc)
+    value = (response.data or [{}])[0].get(column)
+    return parse_datetime(value)
+
+
+def parse_datetime(value: Any) -> datetime | None:
+    if not value:
+        return None
+    try:
+        parsed = datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    if parsed.tzinfo is None:
+        return parsed.replace(tzinfo=timezone.utc)
+    return parsed.astimezone(timezone.utc)
 
 
 def fetch_all(
@@ -836,12 +910,35 @@ def replace_current_positions(supabase, positions: list[dict[str, Any]]) -> None
     supabase.table("inventory_reconciliation_event_items").update(
         {"resolution_status": "deferred"}
     ).eq("resolution_status", "open").execute()
-    supabase.table("inventory_positions").delete().eq(
-        "derivation_version", DERIVATION_VERSION
-    ).execute()
+    delete_current_positions(supabase)
 
     for chunk in chunks(positions, BATCH_SIZE):
         supabase.table("inventory_positions").insert(chunk).execute()
+
+
+def delete_current_positions(supabase) -> None:
+    while True:
+        response = (
+            supabase.table("inventory_positions")
+            .select("inventory_position_id")
+            .eq("derivation_version", DERIVATION_VERSION)
+            .limit(BATCH_SIZE)
+            .execute()
+        )
+        position_ids = [
+            row["inventory_position_id"]
+            for row in response.data or []
+            if row.get("inventory_position_id")
+        ]
+        if not position_ids:
+            return
+
+        (
+            supabase.table("inventory_positions")
+            .delete()
+            .in_("inventory_position_id", position_ids)
+            .execute()
+        )
 
 
 def write_reconciliation_event(supabase, reconciliation: dict[str, Any]) -> None:

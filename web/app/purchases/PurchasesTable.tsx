@@ -16,6 +16,7 @@ import {
   getDisplayDeliveryDate,
   getDisplayTitleParts,
   getOperationalStatus,
+  getShipmentStatus,
   isDelivered,
   rowKey,
 } from "./utils";
@@ -162,6 +163,13 @@ export function PurchasesTable({
                 getDisplayTitleParts(row);
               const delivered = isDelivered(row);
               const operationalStatus = getOperationalStatus(row);
+              const shipmentStatus = getShipmentStatus(row);
+              const displayStatus =
+                row.replacement_tracking_number && shipmentStatus
+                  ? titleCase(shipmentStatus)
+                  : operationalStatus.label;
+              const displayDelivered =
+                delivered || normalizeStatus(shipmentStatus) === "delivered";
               const deliveryDate = getDisplayDeliveryDate(row);
               const priceValue =
                 priceDrafts[key] ??
@@ -178,14 +186,21 @@ export function PurchasesTable({
 
                   <td className="px-2 py-2">
                     {row.supplier_order_id ? (
-                      <a
-                        href={ebayOrderUrl(row.supplier_order_id)}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="text-blue-700 hover:underline"
-                      >
-                        {row.supplier_order_id}
-                      </a>
+                      <div>
+                        <a
+                          href={ebayOrderUrl(row.supplier_order_id)}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-blue-700 hover:underline"
+                        >
+                          {row.supplier_order_id}
+                        </a>
+                        {hasOpenCase(row) && (
+                          <div className="mt-1 inline-flex rounded border border-amber-300 bg-amber-50 px-1.5 py-0.5 text-[11px] font-medium text-amber-800">
+                            Case Open
+                          </div>
+                        )}
+                      </div>
                     ) : (
                       <span className="text-slate-400">--</span>
                     )}
@@ -242,15 +257,22 @@ export function PurchasesTable({
                     />
                   </td>
 
-                  <td className="px-2 py-2">{row.carrier || ""}</td>
+                  <td className="px-2 py-2">
+                    <div>{row.carrier || ""}</div>
+                    {row.tracking_number && (
+                      <div className="mt-1 break-all text-xs text-slate-500">
+                        {row.tracking_number}
+                      </div>
+                    )}
+                  </td>
                   <td
                     className={`whitespace-nowrap px-2 py-2 font-medium ${
-                      delivered ? "text-green-700" : "text-yellow-600"
+                      displayDelivered ? "text-green-700" : "text-yellow-600"
                     }`}
                   >
                     {formatDate(deliveryDate)}
                   </td>
-                  <td className="px-2 py-2">{operationalStatus.label}</td>
+                  <td className="px-2 py-2">{displayStatus}</td>
 
                   <td className="px-2 py-2 text-center">
                     <button
@@ -269,6 +291,25 @@ export function PurchasesTable({
       </table>
     </div>
   );
+}
+
+function hasOpenCase(row: PurchaseRow) {
+  return Boolean(
+    row.problem_is_open &&
+      (row.ebay_return_id || row.ebay_inquiry_id || row.ebay_case_id || row.workflow_state)
+  );
+}
+
+function normalizeStatus(value?: string | null) {
+  return (value || "").trim().toLowerCase().replace(/[\s-]+/g, "_");
+}
+
+function titleCase(value: string) {
+  return value
+    .split("_")
+    .filter(Boolean)
+    .map((part) => `${part.charAt(0).toUpperCase()}${part.slice(1)}`)
+    .join(" ");
 }
 
 function SortableHeader({

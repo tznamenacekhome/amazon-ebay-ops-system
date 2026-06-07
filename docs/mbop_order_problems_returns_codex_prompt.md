@@ -84,7 +84,10 @@ Think of current Order Problems criteria as the earliest “problem candidate”
 Stale tracking rule:
 - `no_tracking`, `shipped_no_tracking`, and `awaiting_carrier_scan` are stale only after the order is at least 14 days old.
 - The stale-tracking candidate window only looks back 90 days.
-- `in_transit` is not stale while the carrier ETA is still in the future; it becomes a problem only through the past-ETA rule.
+- `in_transit` is not stale while the carrier ETA is still in the future.
+- A past eBay ETA should not create or keep a derived candidate when a usable tracking number has carrier activity within the last 4 days.
+- A past eBay ETA should create or keep a derived candidate when there is no usable tracking number or when carrier activity is older than 4 days.
+- Carrier events or statuses that indicate return to sender or another exception should create a `carrier_exception_candidate`, even when the activity is recent.
 - Derived stale/late/carrier candidates should auto-close when the purchase no longer matches a candidate rule.
 
 ## eBay return types

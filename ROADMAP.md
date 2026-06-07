@@ -238,32 +238,44 @@ Next steps:
 
 ---
 
-## Non-eBay Purchase Entry
+## Supplier-Agnostic Purchase Entry
 
 Future scope:
-Add a dedicated non-eBay purchases screen for supplier purchases that do not
-come from the eBay buyer purchase sync.
+Add supplier-agnostic purchase support for inventory buys that do not come from
+the eBay buyer purchase sync, including self-receive, prep-center,
+Amazon-MFN, and eBay-resale paths.
 
 Direction:
 - treat InventoryLab imports as completed legacy backfill/bridge data
 - use eBay purchase sync as the source of cost for eBay-sourced inventory
 - use MBOP-entered non-eBay purchases as the go-forward source of cost for
   supplier, prep-center, and direct-to-Amazon purchases
+- extend `purchases` and `purchase_items` rather than creating a separate
+  operational purchase workflow table
+- add nullable `purchase_items.fulfillment_path` with `self_receive`,
+  `prep_center`, `amazon_mfn`, and `ebay_resale`
+- keep `supplier` as the acquired-from field and do not add `acquisition_type`
 - support eventual MBOP -> TIM Sheet export/update rather than scheduled TIM
   Sheet -> MBOP sync
 
 Expected screen capabilities:
-- list non-eBay purchases with supplier, order date, order number, ASIN, MSKU,
-  description, quantity, received/prep-center quantity, damaged quantity, unit
-  cost, list price, fulfillment channel, tracking, notes, and shipment context
-- add new non-eBay purchase rows as purchases are made
-- edit/correct cost, quantity, fulfillment channel, and source metadata
+- list non-eBay purchases with supplier, supplier order number, purchase date,
+  item title, Amazon title, ASIN, system, quantity, unit cost, target sell
+  price, marketplace, fulfillment path, prep-center fields, tracking, carrier,
+  notes, and shipment context
+- add/import new supplier purchase rows as purchases are made
+- write manual supplier purchases to `purchases` and `purchase_items`
+- create/link inbound shipments when tracking is supplied and
+  `fulfillment_path = self_receive`
+- keep `fulfillment_path = prep_center` rows out of normal Receiving
+- add a Prep Center workspace with received/sent-to-Amazon actions, Amazon
+  shipment ID capture, and prep-center received/shipped dates
+- edit/correct cost, quantity, fulfillment path, and source metadata
 - preserve FIFO COGS source rows for Amazon sales profitability and current
   Amazon inventory cost layers
 - identify rows assigned to FBA shipments, including in-transit shipments
-- keep this workflow separate from eBay `purchases`/`purchase_items` unless a
-  later design intentionally promotes non-eBay purchases into the same receiving
-  model
+- dashboard/reporting should include manual supplier purchases without double
+  counting inventory already represented in Amazon FBA
 
 ---
 
@@ -326,7 +338,8 @@ Next steps:
 
 Completed:
 - EasyPost dependency added
-- EasyPost sync made date-scoped from 2026-05-01 by default
+- EasyPost sync now prioritizes undelivered inbound shipments and no longer uses
+  the 2026-05-01 backfill date by default
 - EasyPost sync checks all non-delivered shipment rows before filling the remaining run with recent delivered rows
 - 5 requests/second cap added
 - 429 retry/backoff added
@@ -334,6 +347,11 @@ Completed:
 - carrier passed when known
 - May-current shipment backfill completed for 97 of 101 candidate shipment rows
 - missing eBay ETA values restored for 88 shipment rows from 2026-05-01 onward
+- Order Problems no longer treats an expired eBay ETA as a problem by itself
+  when carrier tracking has current activity; missing tracking or more than 4
+  days without carrier activity still qualifies
+- carrier events/statuses such as return-to-sender now seed or relabel derived
+  Order Problems as `carrier_exception_candidate`
 
 Remaining:
 - resolve FedEx credential errors for tracking 381367337613 and 381418656302
@@ -350,6 +368,8 @@ Local scheduler configured; broad integration automation enabled with ongoing ta
 
 Completed:
 - `run_all_syncs.py` now runs eBay buyer purchase sync, EasyPost shipment sync, read-only eBay Order Problems return/inquiry sync, RevSeller enrichment, Amazon FBA inventory, Amazon listing status, Amazon inventory planning, Amazon Finance balances, Informed Repricer reports, YNAB Business cash balance/transactions, guarded Keepa enrichment, and business value snapshots
+- scheduler groups split freshness work into `core`, `daily`, and `catalog`
+  groups so operational refreshes can run without every heavyweight snapshot
 - legacy eBay supplier returns sync is disabled; the new Order Problems return sync owns return/inquiry/case freshness
 - `run_all_syncs.bat` creates the logs directory when missing and appends to `logs/scheduler.log`
 - local Windows scheduled tasks were recreated after the repo moved from OneDrive to `C:\Dev`
@@ -357,10 +377,23 @@ Completed:
 - integration failures are collected and reported while later independent syncs continue running
 - Amazon FBA inventory sync now uses page pacing plus SP-API 429/5xx retry/backoff
 - scheduled Keepa enrichment only refreshes stale active-Amazon ASINs and skips calls when the token pool is below the configured floor
+- eBay buyer purchases now sync a recent window plus targeted no-tracking
+  refresh instead of a broad 90-day daily buyer-order pull
+- Amazon sales orders skip item-detail calls when LastUpdateDate has not changed
+  and order items are already present
+- Amazon listing status supports stale-day filtering so normal runs can skip
+  recently refreshed SKUs
+- YNAB Business transactions run incrementally with an overlap instead of
+  refetching transactions already stored in MBOP
+- inventory reconciliation can skip when source datasets have not changed, with
+  a fail-open fallback when source freshness columns are unavailable
 
 Next steps:
 - confirm both scheduled tasks continue appending successful runs to `logs/scheduler.log`
-- optimize daily scheduled runs so jobs that do not need daily or twice-daily freshness are not doing unnecessary external/API work
+- split the dashboard refresh/value jobs into lighter operational and heavier
+  reporting paths, then optimize the reporting path separately
+- add `purchase_items.updated_at` or an equivalent source-change ledger so
+  inventory reconciliation skip-if-unchanged can avoid fail-open runs
 - when manually triggering tasks, use the root task path, for example `schtasks /Run /TN "\Amazon eBay Ops Sync PM"`
 - monitor scheduler logs for EasyPost FedEx credential errors, eBay token/auth issues, SP-API throttling, and Keepa token skips
 
@@ -474,6 +507,9 @@ Implemented:
 - The detail drawer supports MBOP-local workflow actions, notes, replacement
   tracking, refund confirmation, and Close No Refund for unrecoverable/no-refund
   outcomes.
+- The detail drawer shows the local return type selector, captured eBay/case
+  status fields, refund amounts, relevant workflow dates, identifiers, and the
+  recent `order_problem_events` timeline.
 - `integrations/ebay_sync_order_problem_returns.py` reads eBay Post-Order
   returns, INR inquiries/details, and cases, then stores local case/event
   updates without writing back to eBay.
@@ -481,13 +517,14 @@ Implemented:
   replacement tracking that eBay does not include in inquiry search summaries.
 
 Remaining:
-- add full case/event timeline endpoints and richer drawer history.
 - add first-class scheduled cancellation search import if more cancellation
   refund-follow-up cases appear.
 - define a controlled partial-refund cost adjustment workflow for cases where
   the item is kept and inventory cost should be reduced.
 - preserve manual unit-cost overrides made during reconciliation or refund
   review.
+- add deeper event-history pagination only if the recent drawer timeline is too
+  short for active case review.
 - consider future eBay write actions only after explicit operator workflow,
   permission, and safety design.
 

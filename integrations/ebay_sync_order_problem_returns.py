@@ -13,6 +13,7 @@ import base64
 import datetime as dt
 import logging
 import os
+import xml.etree.ElementTree as ET
 from typing import Any
 
 import requests
@@ -22,6 +23,9 @@ from supabase import create_client
 
 LOGGER = logging.getLogger("ebay_order_problem_returns_sync")
 EBAY_POST_ORDER_BASE_URL = "https://api.ebay.com/post-order/v2"
+EBAY_TRADING_ENDPOINT = "https://api.ebay.com/ws/api.dll"
+EBAY_TRADING_COMPATIBILITY_LEVEL = "1423"
+EBAY_SITE_ID = "0"
 
 
 def main() -> int:
@@ -40,9 +44,11 @@ def main() -> int:
         returns = search_returns(token, lookback_days=args.lookback_days, limit=args.limit)
         inquiries = enrich_inquiries(token, search_inquiries(token, lookback_days=args.lookback_days, limit=args.limit))
         cases = search_cases(token, lookback_days=args.lookback_days, limit=args.limit)
+        trading_refunds = search_trading_buyer_order_refunds(token, lookback_days=args.lookback_days)
         LOGGER.info("eBay returns retrieved: %s", len(returns))
         LOGGER.info("eBay inquiries retrieved: %s", len(inquiries))
         LOGGER.info("eBay cases retrieved: %s", len(cases))
+        LOGGER.info("eBay buyer order refunds retrieved: %s", len(trading_refunds))
 
         inserted = 0
         updated = 0
@@ -50,10 +56,10 @@ def main() -> int:
         mapped_rows = [
             *[map_return(return_row, supabase) for return_row in returns],
             *[
-                map_inquiry(inquiry_row, purchase_line_index)
+                map_inquiry(inquiry_row, purchase_line_index, trading_refunds)
                 for inquiry_row in inquiries
             ],
-            *[map_case(case_row, purchase_line_index) for case_row in cases],
+            *[map_case(case_row, purchase_line_index, trading_refunds) for case_row in cases],
         ]
         for mapped in mapped_rows:
             if not mapped:
@@ -215,6 +221,107 @@ def search_post_order(
     payload = response.json()
     members = payload.get("members") or []
     return [row for row in members if isinstance(row, dict)]
+
+
+def search_trading_buyer_order_refunds(
+    token: str,
+    *,
+    lookback_days: int,
+) -> dict[str, dict[str, Any]]:
+    end_date = dt.datetime.now(dt.timezone.utc)
+    start_date = end_date - dt.timedelta(days=lookback_days)
+    headers = {
+        "Content-Type": "text/xml",
+        "X-EBAY-API-CALL-NAME": "GetOrders",
+        "X-EBAY-API-COMPATIBILITY-LEVEL": EBAY_TRADING_COMPATIBILITY_LEVEL,
+        "X-EBAY-API-SITEID": EBAY_SITE_ID,
+        "X-EBAY-API-IAF-TOKEN": token,
+    }
+    refunds: dict[str, dict[str, Any]] = {}
+    page_number = 1
+    total_pages = 1
+
+    while page_number <= total_pages:
+        xml_body = f"""<?xml version="1.0" encoding="utf-8"?>
+<GetOrdersRequest xmlns="urn:ebay:apis:eBLBaseComponents">
+  <RequesterCredentials>
+    <eBayAuthToken>{token}</eBayAuthToken>
+  </RequesterCredentials>
+  <CreateTimeFrom>{iso_z(start_date)}</CreateTimeFrom>
+  <CreateTimeTo>{iso_z(end_date)}</CreateTimeTo>
+  <OrderRole>Buyer</OrderRole>
+  <OrderStatus>All</OrderStatus>
+  <DetailLevel>ReturnAll</DetailLevel>
+  <Pagination>
+    <EntriesPerPage>100</EntriesPerPage>
+    <PageNumber>{page_number}</PageNumber>
+  </Pagination>
+</GetOrdersRequest>"""
+        response = requests.post(
+            EBAY_TRADING_ENDPOINT,
+            headers=headers,
+            data=xml_body,
+            timeout=120,
+        )
+        response.raise_for_status()
+        root = ET.fromstring(response.text)
+        ack = first_xml_text(root, "Ack")
+        if ack not in {"Success", "Warning"}:
+            for message in all_xml_text(root, "LongMessage"):
+                LOGGER.warning("eBay Trading GetOrders error: %s", message)
+            break
+
+        total_pages_text = first_xml_text(root, "TotalNumberOfPages")
+        try:
+            total_pages = int(total_pages_text or "1")
+        except ValueError:
+            total_pages = 1
+
+        for order in xml_children(root, "Order"):
+            refund = trading_refund_from_order(order)
+            if refund:
+                refunds[refund["supplier_order_id"]] = refund
+
+        page_number += 1
+
+    return refunds
+
+
+def trading_refund_from_order(order: ET.Element) -> dict[str, Any] | None:
+    order_id = clean_text(first_xml_text(order, "OrderID"))
+    if not order_id:
+        return None
+
+    refund_amount = 0.0
+    refund_currency = None
+    refund_times: list[str] = []
+    refund_statuses: list[str] = []
+    for refund in xml_children(order, "Refund"):
+        amount_elem = first_xml_child(refund, "RefundAmount")
+        amount = money_value(amount_elem.text if amount_elem is not None else None)
+        if amount is not None:
+            refund_amount += abs(amount)
+            refund_currency = refund_currency or clean_text(amount_elem.attrib.get("currencyID"))
+        refund_time = clean_text(first_xml_text(refund, "RefundTime"))
+        if refund_time:
+            refund_times.append(refund_time)
+        refund_status = clean_text(first_xml_text(refund, "RefundStatus"))
+        if refund_status:
+            refund_statuses.append(refund_status)
+
+    if refund_amount <= 0:
+        return None
+
+    return {
+        "supplier_order_id": order_id,
+        "actual_refund_amount": round(refund_amount, 2),
+        "refund_currency": refund_currency or "USD",
+        "refund_time": max(refund_times) if refund_times else None,
+        "refund_statuses": refund_statuses,
+        "order_status": clean_text(first_xml_text(order, "OrderStatus")),
+        "amount_paid": money_value(first_xml_text(order, "AmountPaid")),
+        "adjustment_amount": money_value(first_xml_text(order, "AdjustmentAmount")),
+    }
 
 
 def build_purchase_line_index(supabase, lookback_days: int) -> dict[tuple[str, str], dict[str, Any]]:
@@ -417,6 +524,7 @@ def map_return(return_row: dict[str, Any], supabase) -> dict[str, Any] | None:
 def map_inquiry(
     inquiry_row: dict[str, Any],
     purchase_line_index: dict[tuple[str, str], dict[str, Any]],
+    trading_refunds: dict[str, dict[str, Any]],
 ) -> dict[str, Any] | None:
     match = match_purchase_line(inquiry_row, purchase_line_index)
     if not match:
@@ -430,7 +538,8 @@ def map_inquiry(
 
     status = clean_upper(inquiry_row.get("inquiryStatusEnum") or inquiry_row.get("status"))
     replacement_tracking = clean_text(nested(inquiry_row, "inquiryHistoryDetails", "shipmentTrackingDetails", "trackingNumber"))
-    workflow_state = inquiry_workflow_state(status, replacement_tracking)
+    order_refund = trading_refunds.get(clean_text(match.get("supplier_order_id")) or "")
+    workflow_state = "resolved_refunded" if order_refund else inquiry_workflow_state(status, replacement_tracking)
     needs_response = workflow_state == "seller_message_needs_response" or "BUYER_RESPONSE" in status
     claim_amount = money_value(inquiry_row.get("claimAmount"))
     inquiry_id = clean_text(inquiry_row.get("inquiryId"))
@@ -453,7 +562,7 @@ def map_inquiry(
         "problem_type": "missing_items",
         "workflow_state": workflow_state,
         "priority": "urgent" if needs_response else "normal",
-        "is_open": not inquiry_is_closed(status),
+        "is_open": not order_refund and not inquiry_is_closed(status),
         "needs_response": needs_response,
         "next_action": next_action_for_state(workflow_state),
         "next_action_due_at": next_action_due_at,
@@ -467,24 +576,32 @@ def map_inquiry(
         "ebay_current_type": "ITEM_NOT_RECEIVED_INQUIRY",
         "ebay_action_url": f"https://www.ebay.com/ItemNotReceived/{inquiry_id}" if inquiry_id else None,
         "expected_refund_amount": claim_amount,
-        "refund_currency": money_currency(inquiry_row.get("claimAmount")) or "USD",
+        "actual_refund_amount": order_refund.get("actual_refund_amount") if order_refund else None,
+        "refund_currency": (
+            (order_refund.get("refund_currency") if order_refund else None)
+            or money_currency(inquiry_row.get("claimAmount"))
+            or "USD"
+        ),
         "replacement_tracking_number": replacement_tracking,
         "replacement_shipped_at": shipment_tracking_date(match.get("raw_order_line") or {})
         if workflow_state == "replacement_shipped"
         else None,
-        "closed_at": iso_z(dt.datetime.now(dt.timezone.utc)) if inquiry_is_closed(status) else None,
-        "raw_ebay_json": inquiry_row,
+        "refund_received_at": order_refund.get("refund_time") if order_refund else None,
+        "closed_at": (
+            order_refund.get("refund_time")
+            if order_refund
+            else iso_z(dt.datetime.now(dt.timezone.utc)) if inquiry_is_closed(status) else None
+        ),
+        "raw_ebay_json": {**inquiry_row, "_tradingRefund": order_refund} if order_refund else inquiry_row,
     }
 
 
 def map_case(
     case_row: dict[str, Any],
     purchase_line_index: dict[tuple[str, str], dict[str, Any]],
+    trading_refunds: dict[str, dict[str, Any]],
 ) -> dict[str, Any] | None:
     status = clean_upper(case_row.get("caseStatusEnum"))
-    if status == "CLOSED":
-        return None
-
     match = match_purchase_line(case_row, purchase_line_index)
     if not match:
         LOGGER.warning(
@@ -495,7 +612,12 @@ def map_case(
         )
         return None
 
+    order_refund = trading_refunds.get(clean_text(match.get("supplier_order_id")) or "")
+    if status == "CLOSED" and not order_refund:
+        return None
+
     claim_amount = money_value(case_row.get("claimAmount"))
+    workflow_state = "resolved_refunded" if order_refund else "escalated"
     return {
         "purchase_item_id": match["purchase_item_id"],
         "purchase_id": match["purchase_id"],
@@ -503,11 +625,11 @@ def map_case(
         "supplier_order_id": match.get("supplier_order_id"),
         "problem_source": "ebay_inquiry_sync",
         "problem_type": "missing_items",
-        "workflow_state": "escalated",
-        "priority": "high",
-        "is_open": True,
+        "workflow_state": workflow_state,
+        "priority": "normal" if order_refund else "high",
+        "is_open": not order_refund,
         "needs_response": False,
-        "next_action": next_action_for_state("escalated"),
+        "next_action": next_action_for_state(workflow_state),
         "next_action_due_at": unwrap_value(case_row.get("respondByDate")),
         "last_detected_at": iso_z(dt.datetime.now(dt.timezone.utc)),
         "return_needed_at": unwrap_value(case_row.get("creationDate")),
@@ -515,8 +637,15 @@ def map_case(
         "ebay_return_status": status or clean_text(case_row.get("caseStatusEnum")),
         "ebay_current_type": "ITEM_NOT_RECEIVED_CASE",
         "expected_refund_amount": claim_amount,
-        "refund_currency": money_currency(case_row.get("claimAmount")) or "USD",
-        "raw_ebay_json": case_row,
+        "actual_refund_amount": order_refund.get("actual_refund_amount") if order_refund else None,
+        "refund_currency": (
+            (order_refund.get("refund_currency") if order_refund else None)
+            or money_currency(case_row.get("claimAmount"))
+            or "USD"
+        ),
+        "refund_received_at": order_refund.get("refund_time") if order_refund else None,
+        "closed_at": order_refund.get("refund_time") if order_refund else None,
+        "raw_ebay_json": {**case_row, "_tradingRefund": order_refund} if order_refund else case_row,
     }
 
 
@@ -524,6 +653,10 @@ def upsert_order_problem_case(supabase, mapped: dict[str, Any]) -> str:
     existing = find_existing_case(supabase, mapped)
     now = iso_z(dt.datetime.now(dt.timezone.utc))
     if existing:
+        if should_preserve_operator_terminal_state(existing):
+            append_event(supabase, existing["problem_case_id"], "ebay_return_sync_skipped_terminal", mapped)
+            return "skipped"
+
         case_id = existing["problem_case_id"]
         updates = {key: value for key, value in mapped.items() if value is not None}
         if should_preserve_operator_replacement_state(existing, mapped):
@@ -535,10 +668,11 @@ def upsert_order_problem_case(supabase, mapped: dict[str, Any]) -> str:
             updates["is_open"] = True
             updates["next_action"] = "Confirm refund received."
             updates["refund_due_at"] = now
-            updates.pop("closed_at", None)
-            updates.pop("refund_received_at", None)
+            updates["closed_at"] = None
+            updates["refund_received_at"] = None
         updates["updated_at"] = now
         supabase.table("order_problem_cases").update(updates).eq("problem_case_id", case_id).execute()
+        ensure_replacement_tracking_shipment(supabase, mapped)
         close_duplicate_ebay_cases(supabase, case_id, mapped, now)
         append_event(supabase, case_id, "ebay_return_sync_updated", mapped)
         return "updated"
@@ -555,6 +689,7 @@ def upsert_order_problem_case(supabase, mapped: dict[str, Any]) -> str:
     payload["updated_at"] = now
     response = supabase.table("order_problem_cases").insert(payload).execute()
     case_id = response.data[0]["problem_case_id"]
+    ensure_replacement_tracking_shipment(supabase, mapped)
     close_duplicate_ebay_cases(supabase, case_id, mapped, now)
     append_event(supabase, case_id, "ebay_return_sync_inserted", mapped)
     return "inserted"
@@ -603,10 +738,75 @@ def append_event(supabase, case_id: str, event_type: str, mapped: dict[str, Any]
     ).execute()
 
 
+def ensure_replacement_tracking_shipment(supabase, mapped: dict[str, Any]) -> None:
+    tracking_number = clean_text(mapped.get("replacement_tracking_number"))
+    purchase_id = clean_text(mapped.get("purchase_id"))
+    item_id = clean_text(mapped.get("purchase_item_id"))
+    if not tracking_number or not purchase_id or not item_id:
+        return
+
+    carrier = clean_text(
+        nested(
+            mapped.get("raw_ebay_json") or {},
+            "inquiryHistoryDetails",
+            "shipmentTrackingDetails",
+            "carrier",
+        )
+    )
+    now = iso_z(dt.datetime.now(dt.timezone.utc))
+    existing = (
+        supabase.table("inbound_shipments")
+        .select("inbound_shipment_id")
+        .eq("purchase_id", purchase_id)
+        .eq("tracking_number", tracking_number)
+        .limit(1)
+        .execute()
+    )
+
+    if existing.data:
+        shipment_id = existing.data[0]["inbound_shipment_id"]
+        supabase.table("inbound_shipments").update(
+            {
+                "carrier": carrier,
+                "updated_at": now,
+            }
+        ).eq("inbound_shipment_id", shipment_id).execute()
+    else:
+        inserted = supabase.table("inbound_shipments").insert(
+            {
+                "purchase_id": purchase_id,
+                "tracking_number": tracking_number,
+                "carrier": carrier,
+                "shipment_status": "unknown",
+                "normalized_status": "unknown",
+                "updated_at": now,
+            }
+        ).execute()
+        shipment_id = inserted.data[0]["inbound_shipment_id"]
+
+    link = (
+        supabase.table("inbound_shipment_items")
+        .select("inbound_shipment_item_id")
+        .eq("inbound_shipment_id", shipment_id)
+        .eq("item_id", item_id)
+        .limit(1)
+        .execute()
+    )
+    if not link.data:
+        supabase.table("inbound_shipment_items").insert(
+            {
+                "inbound_shipment_id": shipment_id,
+                "item_id": item_id,
+                "quantity_expected_in_package": 1,
+                "notes": "Linked from eBay replacement tracking.",
+            }
+        ).execute()
+
+
 def find_existing_case(supabase, mapped: dict[str, Any]) -> dict[str, Any] | None:
     response = (
         supabase.table("order_problem_cases")
-        .select("problem_case_id,workflow_state,problem_source")
+        .select("problem_case_id,workflow_state,problem_source,is_open,closed_at,refund_received_at")
         .eq("purchase_item_id", mapped["purchase_item_id"])
         .eq("is_open", True)
         .limit(1)
@@ -619,7 +819,7 @@ def find_existing_case(supabase, mapped: dict[str, Any]) -> dict[str, Any] | Non
     if supplier_order_id:
         response = (
             supabase.table("order_problem_cases")
-            .select("problem_case_id,workflow_state,problem_source")
+            .select("problem_case_id,workflow_state,problem_source,is_open,closed_at,refund_received_at")
             .eq("supplier_order_id", supplier_order_id)
             .eq("is_open", True)
             .in_("workflow_state", ["return_opened", "return_needed", "refund_pending"])
@@ -633,7 +833,7 @@ def find_existing_case(supabase, mapped: dict[str, Any]) -> dict[str, Any] | Non
     if return_id:
         response = (
             supabase.table("order_problem_cases")
-            .select("problem_case_id,workflow_state,problem_source")
+            .select("problem_case_id,workflow_state,problem_source,is_open,closed_at,refund_received_at")
             .eq("ebay_return_id", return_id)
             .limit(1)
             .execute()
@@ -645,7 +845,7 @@ def find_existing_case(supabase, mapped: dict[str, Any]) -> dict[str, Any] | Non
     if inquiry_id:
         response = (
             supabase.table("order_problem_cases")
-            .select("problem_case_id,workflow_state,problem_source")
+            .select("problem_case_id,workflow_state,problem_source,is_open,closed_at,refund_received_at")
             .eq("ebay_inquiry_id", inquiry_id)
             .limit(1)
             .execute()
@@ -657,7 +857,7 @@ def find_existing_case(supabase, mapped: dict[str, Any]) -> dict[str, Any] | Non
     if case_id:
         response = (
             supabase.table("order_problem_cases")
-            .select("problem_case_id,workflow_state,problem_source")
+            .select("problem_case_id,workflow_state,problem_source,is_open,closed_at,refund_received_at")
             .eq("ebay_case_id", case_id)
             .limit(1)
             .execute()
@@ -666,6 +866,19 @@ def find_existing_case(supabase, mapped: dict[str, Any]) -> dict[str, Any] | Non
             return response.data[0]
 
     return None
+
+
+def should_preserve_operator_terminal_state(existing: dict[str, Any]) -> bool:
+    workflow_state = existing.get("workflow_state")
+    if workflow_state not in {
+        "resolved_refunded",
+        "resolved_received_item",
+        "closed_no_action",
+        "closed_no_refund",
+    }:
+        return False
+
+    return existing.get("is_open") is False or bool(existing.get("closed_at") or existing.get("refund_received_at"))
 
 
 def should_preserve_operator_replacement_state(
@@ -683,18 +896,13 @@ def should_require_operator_refund_confirmation(
     existing: dict[str, Any],
     mapped: dict[str, Any],
 ) -> bool:
-    if mapped.get("problem_source") != "ebay_return_sync":
-        return False
     if mapped.get("workflow_state") != "resolved_refunded":
         return False
     return existing.get("workflow_state") != "resolved_refunded"
 
 
 def should_insert_as_refund_pending(mapped: dict[str, Any]) -> bool:
-    return (
-        mapped.get("problem_source") == "ebay_return_sync" and
-        mapped.get("workflow_state") == "resolved_refunded"
-    )
+    return mapped.get("workflow_state") == "resolved_refunded"
 
 
 def find_purchase_for_order(supabase, order_id: str | None) -> dict[str, Any] | None:
@@ -898,6 +1106,30 @@ def unwrap_value(value: Any) -> Any:
     if isinstance(value, dict):
         return value.get("value") or value.get("Value")
     return value
+
+
+def strip_xml_namespace(tag: str) -> str:
+    return tag.split("}", 1)[-1] if "}" in tag else tag
+
+
+def xml_children(parent: ET.Element, name: str) -> list[ET.Element]:
+    return [elem for elem in parent.iter() if strip_xml_namespace(elem.tag) == name]
+
+
+def first_xml_child(parent: ET.Element, name: str) -> ET.Element | None:
+    for elem in parent.iter():
+        if strip_xml_namespace(elem.tag) == name:
+            return elem
+    return None
+
+
+def first_xml_text(parent: ET.Element, name: str) -> str | None:
+    elem = first_xml_child(parent, name)
+    return elem.text if elem is not None else None
+
+
+def all_xml_text(parent: ET.Element, name: str) -> list[str]:
+    return [elem.text for elem in xml_children(parent, name) if elem.text]
 
 
 def money_value(value: Any) -> float | None:

@@ -9,6 +9,19 @@ const supabase = createClient(supabaseUrl, supabaseServiceRoleKey);
 const PAGE_SIZE_MAX = 500;
 const STALE_TRACKING_ORDER_AGE_DAYS = 14;
 const STALE_TRACKING_LOOKBACK_DAYS = 90;
+const STALE_CARRIER_ACTIVITY_DAYS = 4;
+const INVALID_TRACKING_VALUES = new Set([
+  "no tracking",
+  "none",
+  "n/a",
+  "na",
+  "not available",
+  "refunded",
+  "cancelled",
+  "canceled",
+  "shipped untracked",
+  "shipped without tracking",
+]);
 
 type ProblemQuery = {
   searchText: string;
@@ -37,6 +50,7 @@ type DashboardRow = {
   delivery_status: string | null;
   estimated_delivery_date: string | null;
   delivered_date: string | null;
+  carrier_tracking?: CarrierTracking | null;
 };
 
 type ProblemCase = {
@@ -55,7 +69,23 @@ type ProblemCase = {
   next_action_due_at: string | null;
   first_detected_at: string | null;
   last_detected_at: string | null;
+  return_needed_at: string | null;
+  ebay_return_opened_at: string | null;
+  seller_message_last_at: string | null;
+  operator_responded_at: string | null;
+  partial_refund_offered_at: string | null;
+  partial_refund_accepted_at: string | null;
+  label_available_at: string | null;
+  return_shipped_at: string | null;
+  seller_received_return_at: string | null;
+  refund_due_at: string | null;
+  refund_received_at: string | null;
+  replacement_promised_at: string | null;
+  replacement_shipped_at: string | null;
+  replacement_received_at: string | null;
   escalation_available_at: string | null;
+  escalated_at: string | null;
+  closed_at: string | null;
   ebay_return_id: string | null;
   ebay_inquiry_id: string | null;
   ebay_case_id: string | null;
@@ -69,6 +99,33 @@ type ProblemCase = {
   refund_currency: string | null;
   replacement_tracking_number: string | null;
   notes: string | null;
+  raw_ebay_json: Record<string, unknown> | null;
+};
+
+type ProblemEvent = {
+  problem_event_id: string;
+  problem_case_id: string;
+  event_type: string | null;
+  event_source: string | null;
+  event_at: string | null;
+  message: string | null;
+  amount: number | null;
+  currency: string | null;
+  tracking_number: string | null;
+  created_at: string | null;
+};
+
+type CarrierTracking = {
+  tracking_number: string;
+  carrier: string | null;
+  normalized_status: string | null;
+  carrier_status: string | null;
+  estimated_delivery_date: string | null;
+  delivered_date: string | null;
+  tracking_url: string | null;
+  last_tracking_sync: string | null;
+  last_checkpoint_time: string | null;
+  tracking_events_json: unknown;
 };
 
 type ProblemSeed = {
@@ -111,15 +168,23 @@ export async function GET(request: Request) {
       await fetchCases(query.stage === "resolved"),
     );
     const itemIds = cases.map((row) => row.purchase_item_id);
-    const [dashboardRows, itemMeta] = await Promise.all([
+    const caseIds = cases.map((row) => row.problem_case_id);
+    const replacementTrackingNumbers = cases
+      .map((row) => row.replacement_tracking_number)
+      .filter((value): value is string => Boolean(value));
+    const [dashboardRows, itemMeta, events, carrierRows] = await Promise.all([
       fetchDashboardRows(itemIds),
       fetchItemMeta(itemIds),
+      fetchProblemEvents(caseIds),
+      fetchCarrierTrackingRows(replacementTrackingNumbers),
     ]);
     const dashboardByItemId = new Map(dashboardRows.map((row) => [row.item_id, row]));
     const itemMetaById = new Map(itemMeta.map((row) => [row.item_id, row]));
+    const eventsByCaseId = groupEventsByCaseId(events);
+    const carrierByTrackingNumber = new Map(carrierRows.map((row) => [row.tracking_number, row]));
 
     const mergedRows = cases
-      .map((problemCase) => mergeProblemCase(problemCase, dashboardByItemId, itemMetaById))
+      .map((problemCase) => mergeProblemCase(problemCase, dashboardByItemId, itemMetaById, eventsByCaseId, carrierByTrackingNumber))
       .filter((row): row is ReturnType<typeof mergeProblemCase> & object => Boolean(row))
       .filter((row) => matchesStage(row, query.stage))
       .filter((row) => matchesSearch(row, query.searchText))
@@ -202,9 +267,17 @@ async function seedDerivedProblemCases() {
   for (const seed of seeds) {
     const existing = existingByItemId.get(seed.item_id);
     if (existing) {
+      const updatePayload: Record<string, unknown> = { last_detected_at: now, updated_at: now };
+      if (existing.problem_source === "derived_order_problem" && existing.workflow_state === "candidate") {
+        updatePayload.problem_source = seed.problem_source;
+        updatePayload.problem_type = seed.problem_type;
+        updatePayload.workflow_state = seed.workflow_state;
+        updatePayload.next_action = seed.next_action;
+      }
+
       const { error } = await supabase
         .from("order_problem_cases")
-        .update({ last_detected_at: now, updated_at: now })
+        .update(updatePayload)
         .eq("problem_case_id", existing.problem_case_id);
       if (error) throw new Error(`order_problem_cases update: ${error.message}`);
       continue;
@@ -332,10 +405,18 @@ async function fetchDerivedCandidateRows() {
     queryDashboard().in("current_status", ["exception", "return_pending", "return_opened", "cancelled"]),
   ]);
 
-  const rows = [...rowsOrThrow(pastEta, "past ETA"), ...rowsOrThrow(stale, "stale tracking"), ...rowsOrThrow(statusRows, "status")];
+  const rows = [...rowsOrThrow(pastEta, "past ETA"), ...rowsOrThrow(stale, "stale tracking"), ...rowsOrThrow(statusRows, "status")] as DashboardRow[];
+  const carrierRows = await fetchCarrierTrackingRows(rows.map((row) => row.tracking_number).filter((value): value is string => Boolean(value)));
+  const carrierByTrackingNumber = new Map(carrierRows.map((row) => [row.tracking_number, row]));
   const byItemId = new Map<string, DashboardRow>();
-  for (const row of rows as DashboardRow[]) {
-    if (row.item_id) byItemId.set(row.item_id, row);
+  for (const row of rows) {
+    const enrichedRow = {
+      ...row,
+      carrier_tracking: row.tracking_number ? carrierByTrackingNumber.get(row.tracking_number) ?? null : null,
+    };
+    if (enrichedRow.item_id && shouldIncludeDerivedCandidate(enrichedRow)) {
+      byItemId.set(enrichedRow.item_id, enrichedRow);
+    }
   }
   return Array.from(byItemId.values());
 }
@@ -386,13 +467,111 @@ function candidateSeedForRow(row: DashboardRow): ProblemSeed | null {
   if (status === "cancelled") {
     return seed(row, "manual", "cancelled_refund_followup", "refund_pending", "Confirm refund received.");
   }
-  if (status === "exception") {
+  if (status === "exception" || carrierIndicatesException(row)) {
     return seed(row, "derived_order_problem", "carrier_exception_candidate", "candidate", "Review carrier exception and contact seller/carrier if needed.");
   }
-  if (["no_tracking", "shipped_no_tracking", "awaiting_carrier_scan"].includes(status)) {
+  if (["no_tracking", "shipped_no_tracking", "awaiting_carrier_scan"].includes(status) || !hasUsableTrackingNumber(row.tracking_number)) {
     return seed(row, "derived_order_problem", "stale_tracking_candidate", "candidate", "Check eBay order details and ask seller for a usable shipment update.");
   }
   return seed(row, "derived_order_problem", "late_delivery_candidate", "candidate", "Delivery estimate has passed; check tracking and seller communication.");
+}
+
+function shouldIncludeDerivedCandidate(row: DashboardRow) {
+  const status = normalizeStatus(row.current_status);
+  if (["return_pending", "return_opened", "cancelled", "exception"].includes(status)) return true;
+  if (carrierIndicatesException(row)) return true;
+  if (!hasUsableTrackingNumber(row.tracking_number)) return true;
+  if (["no_tracking", "shipped_no_tracking", "awaiting_carrier_scan"].includes(status)) {
+    return carrierActivityIsStale(row);
+  }
+  return isPastEta(row) && carrierActivityIsStale(row);
+}
+
+function hasUsableTrackingNumber(value: string | null | undefined) {
+  const trackingNumber = (value ?? "").trim();
+  return Boolean(trackingNumber) && !INVALID_TRACKING_VALUES.has(trackingNumber.toLowerCase());
+}
+
+function isPastEta(row: DashboardRow) {
+  const eta = Date.parse(String(row.estimated_delivery_date || ""));
+  if (Number.isNaN(eta)) return false;
+  return eta < Date.now();
+}
+
+function carrierActivityIsStale(row: DashboardRow) {
+  const activityDate = carrierActivityTime(row);
+  if (!activityDate) return true;
+  return Date.now() - activityDate.getTime() > STALE_CARRIER_ACTIVITY_DAYS * 86_400_000;
+}
+
+function carrierActivityTime(row: DashboardRow) {
+  const carrierTracking = row.carrier_tracking;
+  const candidates = [
+    carrierTracking?.last_checkpoint_time,
+    latestCarrierEventTime(carrierTracking?.tracking_events_json),
+    carrierTracking?.last_tracking_sync,
+  ];
+
+  for (const value of candidates) {
+    if (!value) continue;
+    const time = Date.parse(String(value));
+    if (!Number.isNaN(time)) return new Date(time);
+  }
+  return null;
+}
+
+function carrierIndicatesException(row: DashboardRow) {
+  const carrierTracking = row.carrier_tracking;
+  const statusText = [
+    row.current_status,
+    row.delivery_status,
+    carrierTracking?.normalized_status,
+    carrierTracking?.carrier_status,
+    carrierEventText(carrierTracking?.tracking_events_json),
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase()
+    .replace(/[_-]+/g, " ");
+
+  return (
+    statusText.includes("return to sender") ||
+    statusText.includes("returned to sender") ||
+    statusText.includes("returning to sender") ||
+    statusText.includes("return sender") ||
+    statusText.includes("exception") ||
+    statusText.includes("delivery failed")
+  );
+}
+
+function latestCarrierEventTime(events: unknown) {
+  if (!Array.isArray(events)) return null;
+  let latestTime = 0;
+  for (const event of events) {
+    if (!event || typeof event !== "object") continue;
+    const record = event as Record<string, unknown>;
+    const time = Date.parse(String(record.datetime ?? record.datetime_local ?? ""));
+    if (!Number.isNaN(time) && time > latestTime) latestTime = time;
+  }
+  return latestTime > 0 ? new Date(latestTime).toISOString() : null;
+}
+
+function carrierEventText(events: unknown) {
+  if (!Array.isArray(events)) return "";
+  return events
+    .map((event) => {
+      if (!event || typeof event !== "object") return "";
+      const record = event as Record<string, unknown>;
+      return [
+        record.status,
+        record.status_detail,
+        record.message,
+        record.description,
+      ]
+        .filter(Boolean)
+        .join(" ");
+    })
+    .join(" ");
 }
 
 function seed(row: DashboardRow, problemSource: string, problemType: string, workflowState: string, nextAction: string): ProblemSeed {
@@ -499,15 +678,61 @@ async function fetchItemMeta(itemIds: string[]) {
   return rows;
 }
 
+async function fetchProblemEvents(caseIds: string[]) {
+  const rows: ProblemEvent[] = [];
+  for (const chunk of chunks(caseIds, 500)) {
+    const { data, error } = await supabase
+      .from("order_problem_events")
+      .select("problem_event_id,problem_case_id,event_type,event_source,event_at,message,amount,currency,tracking_number,created_at")
+      .in("problem_case_id", chunk)
+      .order("event_at", { ascending: false })
+      .limit(1000);
+    if (error) throw new Error(`order_problem_events: ${error.message}`);
+    rows.push(...((data ?? []) as ProblemEvent[]));
+  }
+  return rows;
+}
+
+function groupEventsByCaseId(events: ProblemEvent[]) {
+  const byCaseId = new Map<string, ProblemEvent[]>();
+  for (const event of events) {
+    const current = byCaseId.get(event.problem_case_id) ?? [];
+    if (current.length < 12) {
+      current.push(event);
+      byCaseId.set(event.problem_case_id, current);
+    }
+  }
+  return byCaseId;
+}
+
+async function fetchCarrierTrackingRows(trackingNumbers: string[]) {
+  const uniqueTrackingNumbers = Array.from(new Set(trackingNumbers.filter(Boolean)));
+  const rows: CarrierTracking[] = [];
+  for (const chunk of chunks(uniqueTrackingNumbers, 500)) {
+    const { data, error } = await supabase
+      .from("inbound_shipments")
+      .select("tracking_number,carrier,normalized_status,carrier_status,estimated_delivery_date,delivered_date,tracking_url,last_tracking_sync,last_checkpoint_time,tracking_events_json")
+      .in("tracking_number", chunk);
+    if (error) throw new Error(`replacement carrier tracking: ${error.message}`);
+    rows.push(...((data ?? []) as CarrierTracking[]));
+  }
+  return rows;
+}
+
 function mergeProblemCase(
   problemCase: ProblemCase,
   dashboardByItemId: Map<string, DashboardRow>,
   itemMetaById: Map<string, { item_id: string; amazon_title: string | null; exclude_from_purchase_reporting: boolean | null }>,
+  eventsByCaseId: Map<string, ProblemEvent[]>,
+  carrierByTrackingNumber: Map<string, CarrierTracking>,
 ) {
   const row = dashboardByItemId.get(problemCase.purchase_item_id);
   if (!row) return null;
   const meta = itemMetaById.get(problemCase.purchase_item_id);
   if (meta?.exclude_from_purchase_reporting) return null;
+  const replacementCarrierTracking = problemCase.replacement_tracking_number
+    ? carrierByTrackingNumber.get(problemCase.replacement_tracking_number)
+    : undefined;
 
   return {
     ...row,
@@ -525,7 +750,31 @@ function mergeProblemCase(
     problem_next_action_due_at: problemCase.next_action_due_at,
     problem_first_detected_at: problemCase.first_detected_at,
     problem_last_detected_at: problemCase.last_detected_at,
+    problem_return_needed_at: problemCase.return_needed_at,
+    problem_ebay_return_opened_at: problemCase.ebay_return_opened_at,
+    problem_seller_message_last_at: problemCase.seller_message_last_at,
+    problem_operator_responded_at: problemCase.operator_responded_at,
+    problem_partial_refund_offered_at: problemCase.partial_refund_offered_at,
+    problem_partial_refund_accepted_at: problemCase.partial_refund_accepted_at,
+    problem_label_available_at: problemCase.label_available_at,
+    problem_return_shipped_at: problemCase.return_shipped_at,
+    problem_seller_received_return_at: problemCase.seller_received_return_at,
+    problem_refund_due_at: problemCase.refund_due_at,
+    problem_refund_received_at: problemCase.refund_received_at,
+    problem_replacement_promised_at: problemCase.replacement_promised_at,
+    problem_replacement_shipped_at: problemCase.replacement_shipped_at,
+    problem_replacement_estimated_delivery_date:
+      replacementCarrierTracking?.estimated_delivery_date ?? replacementEstimatedDeliveryDate(problemCase),
+    problem_replacement_carrier: replacementCarrierTracking?.carrier ?? null,
+    problem_replacement_carrier_status:
+      replacementCarrierTracking?.normalized_status ?? replacementCarrierTracking?.carrier_status ?? null,
+    problem_replacement_delivered_date: replacementCarrierTracking?.delivered_date ?? null,
+    problem_replacement_tracking_url: replacementCarrierTracking?.tracking_url ?? null,
+    problem_replacement_last_tracking_sync: replacementCarrierTracking?.last_tracking_sync ?? null,
+    problem_replacement_received_at: problemCase.replacement_received_at,
     problem_escalation_available_at: problemCase.escalation_available_at,
+    problem_escalated_at: problemCase.escalated_at,
+    problem_closed_at: problemCase.closed_at,
     ebay_return_id: problemCase.ebay_return_id,
     ebay_inquiry_id: problemCase.ebay_inquiry_id,
     ebay_case_id: problemCase.ebay_case_id,
@@ -539,7 +788,40 @@ function mergeProblemCase(
     refund_currency: problemCase.refund_currency,
     replacement_tracking_number: problemCase.replacement_tracking_number,
     problem_notes: problemCase.notes,
+    problem_events: eventsByCaseId.get(problemCase.problem_case_id) ?? [],
   };
+}
+
+function replacementEstimatedDeliveryDate(problemCase: ProblemCase) {
+  if (!problemCase.replacement_tracking_number) return null;
+  const trackingDetails = nestedRecord(
+    problemCase.raw_ebay_json,
+    "inquiryHistoryDetails",
+    "shipmentTrackingDetails",
+  );
+  return (
+    nestedValue(trackingDetails, "estimateToDate", "value") ||
+    nestedValue(trackingDetails, "estimateFromDate", "value") ||
+    null
+  );
+}
+
+function nestedRecord(value: unknown, ...path: string[]) {
+  const result = nestedValue(value, ...path);
+  return isRecord(result) ? result : null;
+}
+
+function nestedValue(value: unknown, ...path: string[]): unknown {
+  let current = value;
+  for (const key of path) {
+    if (!isRecord(current)) return null;
+    current = current[key];
+  }
+  return current;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
 function matchesStage(row: Record<string, unknown>, stage: string) {
