@@ -8,6 +8,7 @@ import {
   PackageCheck,
   ReceiptText,
   Send,
+  Search,
   ShoppingCart,
   TrendingDown,
 } from "lucide-react";
@@ -27,6 +28,11 @@ const navItems = [
     href: "/receiving",
     label: "Receiving",
     icon: PackageCheck,
+  },
+  {
+    href: "/sourcing",
+    label: "Sourcing",
+    icon: Search,
   },
   {
     href: "/fba",

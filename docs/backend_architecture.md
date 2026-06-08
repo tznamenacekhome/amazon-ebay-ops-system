@@ -13,10 +13,13 @@ Supabase is the operational source of truth. The frontend never talks directly t
 ## Ownership Boundaries
 
 Purchases, receiving, order problems/returns, Amazon FBA shipment prep,
-inventory reconciliation, repricing advice, and external intelligence are
-separate domains.
+inventory reconciliation, sourcing, repricing advice, and external intelligence
+are separate domains.
 
 - `purchases` and `purchase_items` own acquired eBay buyer purchase inventory.
+- Sourcing owns advisory replenishment opportunities, eBay candidate discovery,
+  operator sourcing actions, and links to imported purchases only after the
+  eBay buyer purchase exists in MBOP.
 - Receiving owns physical verification, received quantities, return-pending decisions, marketplace assignment, received dates, and the transition to `received`.
 - Order Problems owns return/refund follow-up, eBay return/case metadata,
   cancelled-refund follow-up, missing-item/replacement follow-up, and local
@@ -139,6 +142,9 @@ Roadmap:
   evidence and resolution paths.
 - Add future eBay seller-order ingestion in separate seller-sales tables without
   writing to `purchases` or `purchase_items`.
+- Mature the Sourcing workspace with UI-run orchestration, AI image/title
+  observations, expired listing detection, ROI snooze reactivation, and API
+  quota/cache cadence for dismissed and snoozed listings.
 
 ## External API Safety
 
@@ -152,6 +158,8 @@ All external API integrations are read-only unless explicitly documented otherwi
 - Keepa token-spending calls are never triggered by frontend page loads.
 - Informed Listings Management upload/write paths are not used.
 - YNAB data is read-only cash/budget and transaction context only.
+- Sourcing marketplace integrations are read-only; MBOP does not purchase,
+  bid, submit Best Offers, or create eBay actions automatically.
 
 ## Backend-Owned Business Logic
 

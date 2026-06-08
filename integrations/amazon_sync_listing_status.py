@@ -55,6 +55,8 @@ def main() -> int:
             marketplace_id,
             active_only=args.active_only,
             stale_days=args.stale_days,
+            seller_sku=args.seller_sku,
+            asin=args.asin,
         )
 
         if args.limit is not None:
@@ -154,6 +156,16 @@ def parse_args() -> argparse.Namespace:
         default=0.25,
         help="Delay between Listings Items calls. Default stays near 4 requests/sec.",
     )
+    parser.add_argument(
+        "--seller-sku",
+        default=None,
+        help="Optional seller SKU to sync directly, regardless of active inventory quantity.",
+    )
+    parser.add_argument(
+        "--asin",
+        default=None,
+        help="Optional ASIN to sync directly, regardless of active inventory quantity.",
+    )
     return parser.parse_args()
 
 
@@ -174,7 +186,24 @@ def fetch_amazon_skus(
     marketplace_id: str,
     active_only: bool,
     stale_days: int | None,
+    seller_sku: str | None = None,
+    asin: str | None = None,
 ) -> list[dict[str, Any]]:
+    seller_sku = clean_text(seller_sku)
+    asin = clean_text(asin)
+    if seller_sku or asin:
+        query = (
+            supabase.table("amazon_skus")
+            .select("amazon_sku_id,seller_sku,marketplace_id,asin,fnsku,product_name,condition,last_listing_sync_at")
+            .eq("marketplace_id", marketplace_id)
+        )
+        if seller_sku:
+            query = query.eq("seller_sku", seller_sku)
+        if asin:
+            query = query.eq("asin", asin)
+        response = query.execute()
+        return filter_stale_skus(response.data or [], stale_days)
+
     if not active_only:
         return filter_stale_skus(fetch_all(
             supabase,

@@ -61,6 +61,30 @@ Amazon seller/FBA data stays in Amazon-specific tables and must not be written i
 
 Keepa and Informed data are advisory intelligence only.
 
+## Sourcing Workspace
+
+- `sourcing_settings`: operator-configurable sourcing thresholds, buyer ZIP,
+  allowed item-location countries, Best Offer threshold, and excluded keywords.
+- `sourcing_runs`: one row per sourcing scan, including mode, counts, status,
+  settings snapshot, API call count, and errors.
+- `sourcing_seed_asins`: ASINs selected for a sourcing run from recent Amazon
+  sales or active listings, including Amazon title/image, target sale context,
+  velocity, inventory need, and warning flags.
+- `sourcing_ebay_candidates`: eBay Browse candidate listings with raw payload,
+  buying options, item location, shipping quote state, price, landed cost,
+  quantity, auction, and Best Offer metadata.
+- `sourcing_opportunities`: scored candidate rows shown to the operator with
+  opportunity type, workflow status, profit/ROI context, offer/bid guidance,
+  flags, and score.
+- `sourcing_actions`: operator action history for dismiss, watch, ROI snooze,
+  and purchased/offer-made workflows.
+- `sourcing_purchase_matches`: links sourced opportunities to imported eBay
+  buyer purchases after the purchase exists in MBOP.
+
+Sourcing remains advisory until a matched eBay buyer purchase is imported.
+Only the purchase matcher may enrich matched `purchase_items` rows with sourced
+ASIN, Amazon title, and target sell price.
+
 ## Inventory Reconciliation And Valuation
 
 - `inventory_positions`: derived current inventory positions with separate physical location, marketplace intent, listing channel, operational status, condition/disposition, and explicit inventory state.

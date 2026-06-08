@@ -1,0 +1,539 @@
+"""Score eBay sourcing candidates against Amazon seed ASINs."""
+
+from __future__ import annotations
+
+import argparse
+import datetime as dt
+import re
+from typing import Any
+
+from sourcing_common import chunked, fetch_settings, get_supabase_client, paginate_table, to_float
+
+
+NEED_POINTS = {"critical": 40, "high": 28, "medium": 14, "low": 4}
+
+
+def main() -> int:
+    args = parse_args()
+    supabase = get_supabase_client()
+    settings = fetch_settings(supabase)
+    seeds = fetch_seeds(supabase, args.run_id)
+    candidates = fetch_candidates(supabase, args.run_id)
+    seed_by_id = {row["seed_id"]: row for row in seeds}
+    keepa_prices_by_asin = fetch_keepa_price_context_by_asin(supabase, [row.get("asin") for row in seeds])
+    historical_status_by_key = fetch_historical_status_by_key(supabase)
+    rows = [
+        score_candidate(
+            candidate,
+            seed_by_id.get(candidate.get("seed_id")),
+            settings,
+            keepa_prices_by_asin,
+            historical_status_by_key,
+        )
+        for candidate in candidates
+    ]
+    rows = [row for row in rows if row]
+    rows.sort(key=lambda row: to_float(row.get("score"), 0), reverse=True)
+
+    print("Sourcing opportunity scoring")
+    print("----------------------------")
+    print(f"Run ID: {args.run_id}")
+    print(f"Candidates scored: {len(rows)}")
+
+    if args.dry_run:
+        for row in rows[:15]:
+            print(f"{row['asin']} | {row['opportunity_type']} | ${row['profit']} | ROI {row['roi_percent']}% | {row['ai_flags']}")
+        return 0
+
+    if args.update_existing:
+        updated, inserted = upsert_opportunities(supabase, args.run_id, rows)
+        supabase.table("sourcing_runs").update(
+            {
+                "status": "completed",
+                "completed_at": dt.datetime.now(dt.UTC).isoformat(),
+                "opportunity_count": len(rows),
+            }
+        ).eq("sourcing_run_id", args.run_id).execute()
+        print(f"Updated: {updated}")
+        print(f"Inserted: {inserted}")
+        return 0
+
+    if args.replace_run:
+        supabase.table("sourcing_opportunities").delete().eq("sourcing_run_id", args.run_id).execute()
+    for batch in chunked(rows, 250):
+        supabase.table("sourcing_opportunities").insert(batch).execute()
+    supabase.table("sourcing_runs").update(
+        {
+            "status": "completed",
+            "completed_at": dt.datetime.now(dt.UTC).isoformat(),
+            "opportunity_count": len(rows),
+        }
+    ).eq("sourcing_run_id", args.run_id).execute()
+    return 0
+
+
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="Score MBOP sourcing opportunities.")
+    parser.add_argument("--run-id", required=True)
+    parser.add_argument("--dry-run", action="store_true")
+    parser.add_argument("--replace-run", action="store_true")
+    parser.add_argument(
+        "--update-existing",
+        action="store_true",
+        help="Update existing opportunities by candidate_id and preserve operator workflow statuses.",
+    )
+    return parser.parse_args()
+
+
+def upsert_opportunities(supabase, run_id: str, scored_rows: list[dict[str, Any]]) -> tuple[int, int]:
+    existing_rows = fetch_existing_opportunities(supabase, run_id)
+    existing_by_candidate_id = {
+        row.get("candidate_id"): row
+        for row in existing_rows
+        if row.get("candidate_id")
+    }
+    update_rows = []
+    insert_rows = []
+    for row in scored_rows:
+        existing = existing_by_candidate_id.get(row.get("candidate_id"))
+        if existing:
+            update_rows.append(merge_existing_opportunity(existing, row))
+        else:
+            insert_rows.append(row)
+
+    updated = 0
+    for batch in chunked(update_rows, 250):
+        supabase.table("sourcing_opportunities").upsert(
+            batch,
+            on_conflict="opportunity_id",
+        ).execute()
+        updated += len(batch)
+
+    inserted = 0
+    for batch in chunked(insert_rows, 250):
+        supabase.table("sourcing_opportunities").insert(batch).execute()
+        inserted += len(batch)
+
+    return updated, inserted
+
+
+def fetch_existing_opportunities(supabase, run_id: str) -> list[dict[str, Any]]:
+    response = (
+        supabase.table("sourcing_opportunities")
+        .select("opportunity_id,candidate_id,status,created_at")
+        .eq("sourcing_run_id", run_id)
+        .execute()
+    )
+    return response.data or []
+
+
+def merge_existing_opportunity(existing: dict[str, Any], scored: dict[str, Any]) -> dict[str, Any]:
+    preserved_statuses = {
+        "dismissed",
+        "watching",
+        "purchased_pending_match",
+        "matched_to_purchase",
+        "roi_snoozed",
+    }
+    status = existing.get("status") if existing.get("status") in preserved_statuses else scored.get("status")
+    return {
+        **scored,
+        "opportunity_id": existing.get("opportunity_id"),
+        "status": status,
+        "created_at": existing.get("created_at") or scored.get("created_at"),
+        "updated_at": dt.datetime.now(dt.UTC).isoformat(),
+    }
+
+
+def fetch_seeds(supabase, run_id: str) -> list[dict[str, Any]]:
+    return fetch_run_rows(supabase, "sourcing_seed_asins", run_id)
+
+
+def fetch_candidates(supabase, run_id: str) -> list[dict[str, Any]]:
+    return fetch_run_rows(supabase, "sourcing_ebay_candidates", run_id)
+
+
+def fetch_run_rows(supabase, table_name: str, run_id: str, page_size: int = 1000) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    start = 0
+    while True:
+        end = start + page_size - 1
+        response = (
+            supabase.table(table_name)
+            .select("*")
+            .eq("sourcing_run_id", run_id)
+            .range(start, end)
+            .execute()
+        )
+        batch = response.data or []
+        rows.extend(batch)
+        if len(batch) < page_size:
+            return rows
+        start += page_size
+
+
+def fetch_historical_status_by_key(supabase) -> dict[tuple[str, str], str]:
+    rows = paginate_table(
+        supabase,
+        "sourcing_actions",
+        "asin,ebay_item_id,action_type,created_at",
+        order_column="created_at",
+        desc=False,
+    )
+    status_by_key: dict[tuple[str, str], str] = {}
+    action_status = {
+        "dismissed": "dismissed",
+        "watching": "watching",
+        "purchased": "purchased_pending_match",
+        "roi_snoozed": "roi_snoozed",
+    }
+    for row in rows:
+        asin = str(row.get("asin") or "").upper()
+        ebay_item_id = str(row.get("ebay_item_id") or "")
+        status = action_status.get(str(row.get("action_type") or ""))
+        if asin and ebay_item_id and status:
+            status_by_key[(asin, ebay_item_id)] = status
+    return status_by_key
+
+
+def fetch_keepa_price_context_by_asin(supabase, asins: list[Any]) -> dict[str, dict[str, float | None]]:
+    unique_asins = sorted({str(asin or "").upper() for asin in asins if asin})
+    by_asin: dict[str, dict[str, float | None]] = {}
+    for batch in chunked(unique_asins, 100):
+        response = (
+            supabase.table("vw_latest_keepa_product_snapshot")
+            .select("asin,buy_box_price_current_cents,buy_box_price_avg90_cents,new_fba_price_current_cents,new_price_current_cents,raw_keepa_json")
+            .in_("asin", batch)
+            .execute()
+        )
+        for row in response.data or []:
+            asin = str(row.get("asin") or "").upper()
+            if not asin:
+                continue
+            buy_box_current = cents_to_dollars(row.get("buy_box_price_current_cents"))
+            low_fba_current = cents_to_dollars(row.get("new_fba_price_current_cents"))
+            new_current = cents_to_dollars(row.get("new_price_current_cents"))
+            buy_box_avg90 = cents_to_dollars(row.get("buy_box_price_avg90_cents"))
+            new_avg90 = keepa_stats_cents_to_dollars(row.get("raw_keepa_json"), "avg90", 1)
+            by_asin[asin] = {
+                "avg90_price": buy_box_avg90 if buy_box_avg90 is not None else new_avg90,
+                "current_price": buy_box_current if buy_box_current is not None else low_fba_current if low_fba_current is not None else new_current,
+            }
+    return by_asin
+
+
+def score_candidate(
+    candidate: dict[str, Any],
+    seed: dict[str, Any] | None,
+    settings,
+    keepa_prices_by_asin: dict[str, dict[str, float | None]] | None = None,
+    historical_status_by_key: dict[tuple[str, str], str] | None = None,
+) -> dict[str, Any] | None:
+    if not seed:
+        return None
+    title = str(candidate.get("ebay_title") or "")
+    flags = advisory_flags(title, candidate, seed, settings)
+    has_excluded_keyword = any(flag.startswith("Excluded keyword") for flag in flags)
+    has_hard_block = any(flag.startswith("Blocked:") for flag in flags)
+
+    sale_price = to_float(seed.get("target_sale_price"), 0)
+    shipping_status = shipping_quote_status(candidate)
+    shipping_unknown = shipping_status.startswith("unknown")
+    landed_cost = to_float(candidate.get("landed_cost"), 0) if not shipping_unknown else None
+    item_price = to_float(candidate.get("price"), 0)
+    raw_context = seed.get("raw_context_json") or {}
+    estimated_fees = to_float(raw_context.get("estimated_fee_cost"), 0) or conservative_fee_estimate(sale_price)
+    max_profitable_landed_cost = profitability_landed_cap(sale_price, estimated_fees, settings)
+    best_offer_sale_price = best_offer_reference_price(seed, keepa_prices_by_asin or {})
+    best_offer_landed_cap = (
+        profitability_landed_cap(best_offer_sale_price, estimated_fees, settings)
+        if best_offer_sale_price is not None
+        else max_profitable_landed_cost
+    )
+    profit = round(sale_price - estimated_fees - landed_cost, 2) if landed_cost is not None else None
+    roi = round((profit / landed_cost) * 100, 1) if profit is not None and landed_cost and landed_cost > 0 else None
+
+    buying_options = candidate.get("buying_options") or []
+    quantity_available = int(to_float(candidate.get("available_quantity"), 1) or 1)
+    passes = (
+        not has_excluded_keyword
+        and not has_hard_block
+        and profit is not None
+        and roi is not None
+        and profit >= settings.min_profit_dollars
+        and roi >= settings.min_roi_percent
+    )
+    best_offer_cap = best_offer_landed_cap if candidate.get("best_offer_enabled") else max_profitable_landed_cost
+    opportunity_type = classify(
+        candidate,
+        buying_options,
+        landed_cost,
+        best_offer_cap,
+        passes,
+        settings,
+        shipping_unknown,
+        has_excluded_keyword or has_hard_block,
+    )
+    potential_without_shipping = shipping_unknown and item_price > 0 and item_price <= max_profitable_landed_cost
+    status = (
+        "open"
+        if not has_excluded_keyword
+        and not has_hard_block
+        and (passes or opportunity_type in {"best_offer", "auction", "multi_unit"} or potential_without_shipping)
+        else "rejected"
+    )
+    historical_status = (historical_status_by_key or {}).get(
+        (str(candidate.get("asin") or "").upper(), str(candidate.get("ebay_item_id") or ""))
+    )
+    if historical_status:
+        status = historical_status
+    score = opportunity_score(seed, profit, roi, quantity_available, opportunity_type)
+    displayed_max_landed_cost = best_offer_cap if opportunity_type == "best_offer" else max_profitable_landed_cost
+    max_offer_price = suggested_offer(candidate, best_offer_cap, settings)
+    required_offer_percent_of_ask = required_offer_percent(candidate, best_offer_cap)
+    score_reason = (
+        f"{seed.get('inventory_need_level')} need, shipping unknown, max landed cost ${displayed_max_landed_cost}"
+        if shipping_unknown
+        else f"{seed.get('inventory_need_level')} need, ${profit} profit, {roi}% ROI"
+    )
+
+    return {
+        "sourcing_run_id": candidate["sourcing_run_id"],
+        "seed_id": candidate["seed_id"],
+        "candidate_id": candidate["candidate_id"],
+        "asin": candidate["asin"],
+        "ebay_item_id": candidate.get("ebay_item_id"),
+        "opportunity_type": opportunity_type,
+        "status": status,
+        "target_sale_price": sale_price,
+        "target_sale_price_source": seed.get("target_sale_price_source"),
+        "landed_cost": landed_cost,
+        "profit": profit,
+        "roi_percent": roi,
+        "max_profitable_landed_cost": displayed_max_landed_cost,
+        "max_offer_price": max_offer_price,
+        "required_offer_percent_of_ask": required_offer_percent_of_ask,
+        "max_bid": max_profitable_landed_cost if "AUCTION" in buying_options and not shipping_unknown else None,
+        "total_profit_opportunity": round(max(profit, 0) * max(quantity_available, 1), 2) if profit is not None else None,
+        "inventory_need_level": seed.get("inventory_need_level"),
+        "months_of_supply": seed.get("months_of_supply"),
+        "monthly_velocity": seed.get("monthly_velocity"),
+        "score": score,
+        "score_reason": score_reason,
+        "warning_flags": seed.get("warning_flags") or [],
+        "ai_flags": flags,
+        "created_at": dt.datetime.now(dt.UTC).isoformat(),
+        "updated_at": dt.datetime.now(dt.UTC).isoformat(),
+    }
+
+
+def best_offer_reference_price(seed: dict[str, Any], keepa_prices_by_asin: dict[str, dict[str, float | None]]) -> float | None:
+    asin = str(seed.get("asin") or "").upper()
+    keepa = keepa_prices_by_asin.get(asin) or {}
+    prices = [
+        price
+        for price in (keepa.get("avg90_price"), keepa.get("current_price"))
+        if isinstance(price, (int, float)) and price > 0
+    ]
+    if prices:
+        return round(min(prices), 2)
+    sale_price = to_float(seed.get("target_sale_price"), 0)
+    return sale_price if sale_price > 0 else None
+
+
+def profitability_landed_cap(sale_price: float, estimated_fees: float, settings) -> float:
+    max_buy_cost = max(sale_price - estimated_fees - settings.min_profit_dollars, 0)
+    max_buy_for_roi = max((sale_price - estimated_fees) / (1 + settings.min_roi_percent / 100), 0)
+    return round(min(max_buy_cost, max_buy_for_roi), 2)
+
+
+def conservative_fee_estimate(sale_price: float) -> float:
+    return round(sale_price * 0.22 + 4.0, 2)
+
+
+def advisory_flags(title: str, candidate: dict[str, Any], seed: dict[str, Any], settings) -> list[str]:
+    flags = []
+    lower_title = title.lower()
+    for keyword in settings.excluded_keywords:
+        if keyword.lower() in lower_title:
+            flags.append(f"Excluded keyword: {keyword}")
+    if "disc only" in lower_title or re.search(r"\bcase only\b", lower_title):
+        flags.append("Possibly incomplete")
+    if is_accessory_not_game(lower_title, candidate):
+        flags.append("Blocked: accessory/not game")
+    if candidate.get("item_location_country") not in settings.item_location_countries:
+        flags.append("Blocked: non-US/Canada item location")
+    shipping_status = shipping_quote_status(candidate)
+    if shipping_status == "unknown_no_options":
+        flags.append("Unknown shipping estimate: no ZIP shipping option returned")
+    elif shipping_status == "unknown_no_cost":
+        flags.append("Unknown shipping estimate: eBay returned option without price")
+    if to_float(seed.get("current_inventory_units"), 0) <= 0 and to_float(seed.get("monthly_velocity"), 0) > 0:
+        flags.append("Out of stock")
+    if seed.get("is_suppressed"):
+        flags.append("Suppressed listing")
+    if seed.get("is_return_heavy"):
+        flags.append("Return-heavy ASIN")
+    return flags
+
+
+def is_accessory_not_game(lower_title: str, candidate: dict[str, Any]) -> bool:
+    accessory_terms = {
+        "bonus content",
+        "bonus code",
+        "booklet only",
+        "car pack dlc",
+        "collectible reservation",
+        "controller performance",
+        "custom playstation",
+        "digital code",
+        "dlc add-on",
+        "element dust",
+        "flak set",
+        "fridge magnet",
+        "giga egg",
+        "instruction manual",
+        "keychain",
+        "key chain",
+        "kibble",
+        "kontrol freek",
+        "manual only",
+        "memory card stickers",
+        "message before purch",
+        "mindwipe tonic",
+        "no game included",
+        "pendant",
+        "pendent",
+        "performance grips",
+        "performance thumbsticks",
+        "plush",
+        "poster",
+        "pre order",
+        "preorder bonus",
+        "promotional sticker",
+        "protector for",
+        "pve official",
+        "pvp official",
+        "req pack code",
+        "steel case only",
+        "steelbook only",
+        "thumbsticks",
+        "will send",
+        "hanger",
+    }
+    if any(term in lower_title for term in accessory_terms):
+        return True
+
+    raw = candidate.get("raw_ebay_json") or {}
+    categories = raw.get("categories") or []
+    for category in categories:
+        if not isinstance(category, dict):
+            continue
+        category_name = str(category.get("categoryName") or "").lower()
+        if "keychain" in category_name or "key chain" in category_name:
+            return True
+    return False
+
+
+def has_shipping_to_buyer(candidate: dict[str, Any]) -> bool:
+    return not shipping_quote_status(candidate).startswith("unknown")
+
+
+def shipping_quote_status(candidate: dict[str, Any]) -> str:
+    raw = candidate.get("raw_ebay_json") or {}
+    options = raw.get("shippingOptions") or []
+    if not options:
+        return "unknown_no_options"
+    has_option_without_cost = False
+    for option in options:
+        cost = option.get("shippingCost") or {}
+        if cost.get("value") is not None:
+            return "known_free" if to_float(cost.get("value"), 0) == 0 else "known_paid"
+        has_option_without_cost = True
+    return "unknown_no_cost" if has_option_without_cost else "unknown_no_options"
+
+
+def classify(
+    candidate,
+    buying_options,
+    landed_cost: float | None,
+    max_profitable_landed_cost: float,
+    passes: bool,
+    settings,
+    shipping_unknown: bool = False,
+    blocked: bool = False,
+) -> str:
+    if blocked:
+        return "no_profitable_source_found"
+    if shipping_unknown:
+        return "watch"
+    if "AUCTION" in buying_options:
+        return "auction" if landed_cost is not None and landed_cost <= max_profitable_landed_cost else "watch"
+    if candidate.get("best_offer_enabled") and suggested_offer(candidate, max_profitable_landed_cost, settings) is not None:
+        return "best_offer"
+    if passes and int(to_float(candidate.get("available_quantity"), 1) or 1) > 1:
+        return "multi_unit"
+    if passes:
+        return "buy_now"
+    return "no_profitable_source_found"
+
+
+def suggested_offer(candidate: dict[str, Any], max_profitable_landed_cost: float, settings) -> float | None:
+    if not candidate.get("best_offer_enabled"):
+        return None
+    if shipping_quote_status(candidate).startswith("unknown"):
+        return None
+    item_price = to_float(candidate.get("price"), 0)
+    shipping_price = to_float(candidate.get("shipping_cost"), 0)
+    max_item_offer = max(max_profitable_landed_cost - shipping_price, 0)
+    if max_item_offer < item_price * (settings.best_offer_min_ask_percent / 100):
+        return None
+    return round(min(max_item_offer, item_price), 2)
+
+
+def required_offer_percent(candidate: dict[str, Any], max_profitable_landed_cost: float) -> float | None:
+    if shipping_quote_status(candidate).startswith("unknown"):
+        return None
+    item_price = to_float(candidate.get("price"), 0)
+    shipping_price = to_float(candidate.get("shipping_cost"), 0)
+    if item_price <= 0:
+        return None
+    return round(max((max_profitable_landed_cost - shipping_price) / item_price, 0) * 100, 1)
+
+
+def cents_to_dollars(value: Any) -> float | None:
+    if value is None or value == "":
+        return None
+    cents = to_float(value, -1)
+    return round(cents / 100, 2) if cents >= 0 else None
+
+
+def keepa_stats_cents_to_dollars(raw_keepa: Any, stats_key: str, index: int) -> float | None:
+    if not isinstance(raw_keepa, dict):
+        return None
+    stats = raw_keepa.get("stats")
+    if not isinstance(stats, dict):
+        return None
+    values = stats.get(stats_key)
+    if not isinstance(values, list) or len(values) <= index:
+        return None
+    return cents_to_dollars(values[index])
+
+
+def opportunity_score(seed: dict[str, Any], profit: float | None, roi: float | None, quantity: int, opportunity_type: str) -> int:
+    score = NEED_POINTS.get(str(seed.get("inventory_need_level")), 0)
+    score += min(int(to_float(seed.get("monthly_velocity"), 0) * 8), 30)
+    score += min(int(max(profit or 0, 0) * 3), 35)
+    score += min(int(max(roi or 0, 0) / 4), 25)
+    score += min(max(quantity - 1, 0) * 4, 20)
+    if opportunity_type == "multi_unit":
+        score += 15
+    elif opportunity_type == "buy_now":
+        score += 10
+    elif opportunity_type in {"best_offer", "auction"}:
+        score += 5
+    return min(score, 100)
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

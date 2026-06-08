@@ -8,6 +8,39 @@ System: Midnight Blue Operations Platform (MBOP)
 
 This document contains the canonical requirements, business rules, architecture decisions, workflow definitions, AI-learning strategy, eBay API findings, and implementation guidance for the MBOP Sourcing Workspace MVP.
 
+## Implementation Status - 2026-06-07 PT
+
+Phase 1 is implemented as an initial usable workspace:
+- Top-level `/sourcing` workspace added to MBOP navigation.
+- Replenishment, Watchlist, Purchased Pending Match, Sourcing History, and Settings tabs are present.
+- Recent Sales seed generation writes `sourcing_seed_asins`.
+- eBay Browse API candidate search writes/upserts `sourcing_ebay_candidates`.
+- Basic opportunity scoring writes `sourcing_opportunities`.
+- Operator actions record rows in `sourcing_actions` and update opportunity workflow status.
+- Settings are editable through `/api/sourcing/settings`.
+- Amazon images are populated from latest Amazon listing snapshots when available.
+- The opportunity detail drawer was removed after operator review; sourcing actions are handled directly from the table and lightweight dismiss modal.
+- Table dismiss opens a lightweight modal for dismiss reason and notes, avoiding the slower drawer path for common triage.
+- Auction opportunity type links to Gixen and copies the eBay item number for paste-in bidding setup.
+- `Digital Item` is available as a dismiss reason.
+- Sourcing search and scoring hard-exclude items not located in the US or Canada.
+- eBay Browse calls use an encoded buyer contextual location header so calculated shipping is returned more reliably.
+- Unknown-shipping candidates are retained as visible watch opportunities when otherwise plausible; MBOP must not treat unknown shipping as free shipping.
+- Purchase matching script exists for exact eBay item ID / legacy item ID matches against imported eBay purchases.
+- Full Listings seed generation has been dry-run validated against active listing and Keepa snapshot data.
+
+Initial data population was run against recent-sales mode with 30 seed ASINs, 15 seed searches, and 47 scored eBay candidates/opportunities. This remains an advisory sourcing queue only; no external marketplace write actions are performed.
+
+Not yet implemented:
+- Full automated orchestration from the UI.
+- Scheduled/automatic execution of purchased pending match after eBay buyer purchase sync.
+- AI image/title observations.
+- Restricted ASIN and return-heavy detection beyond warning placeholders.
+- Full Listings production sourcing run beyond seed dry-run validation.
+- Expired listing detection and status aging.
+- Automatic ROI snooze reactivation.
+- Mature API quota/cache cadence for dismissed and snoozed listings.
+
 ## Purpose
 
 The Sourcing Workspace is MBOP's inventory acquisition engine.
@@ -99,7 +132,8 @@ API:
 - GET /buy/browse/v1/item_summary/search
 
 Buyer location:
-- Use contextualLocation with ZIP 93022 (configurable)
+- Use encoded contextualLocation with ZIP 93022 (configurable)
+- Header format: `X-EBAY-C-ENDUSERCTX: contextualLocation=country%3DUS%2Czip%3D93022`
 
 Condition:
 - New only
@@ -112,9 +146,13 @@ Include:
 
 Item location:
 - US and Canada
+- Items outside US/Canada must never be shown as open opportunities.
 
 Delivery country:
 - US
+- If eBay returns a buyer ZIP shipping price, use it in landed cost.
+- If eBay returns free shipping, display free shipping and use $0 shipping in landed cost.
+- If eBay does not return a buyer ZIP shipping price, keep the candidate visible as a watch opportunity when otherwise plausible, flag it as unknown shipping, and do not compute profit/ROI or offer/bid guidance from a fake $0 shipping assumption.
 
 No seller exclusions.
 
@@ -143,6 +181,15 @@ User-configurable.
 - No Profitable Source Found
 
 ## Best Offer Rules
+
+Best Offer profitability uses the lower of:
+- Keepa 90-day average price
+- current Amazon market price
+
+The suggested offer is:
+- Best Offer landed cap minus eBay shipping cost
+
+The 60% test compares the suggested item offer against the eBay asking price before shipping.
 
 Only show Best Offer opportunities if profitability can be achieved with an offer >= 60% of asking price.
 
@@ -194,6 +241,7 @@ Columns:
 Landed Cost format:
 - $20.00 ($5 ship)
 - $20.00 if free shipping
+- Needs quote / item price shown separately when eBay does not return a shipping estimate
 
 ## AI Visual Analysis
 
@@ -288,7 +336,7 @@ Price too high.
 
 Store:
 - ROI threshold
-- Required max cost
+- MBOP-calculated required/current cost context
 
 Automatically reactivate when profitability meets criteria.
 
@@ -319,10 +367,10 @@ Business:
 - Not Worth Selling
 - Other
 
-## Purchased Workflow
+## Purchased / Offer Made Workflow
 
 Operator can mark:
-- Purchased
+- Purchased / Offer Made
 
 Store:
 - opportunity_id
@@ -332,6 +380,15 @@ Store:
 
 Status:
 - Purchased Pending Match
+
+This status is used for both completed eBay purchases and Best Offers that the operator made and expects may become an order.
+
+Monitoring rule:
+- After eBay buyer purchase sync, MBOP attempts to match Purchased Pending Match opportunities by eBay item ID.
+- If a matching eBay purchase is imported, MBOP links the opportunity to the purchase.
+- When a match is found, MBOP writes the sourced ASIN, Amazon title, and target sell price to the matched purchase item.
+- The matched purchase target sell price uses the highest available value from Last Sold, Keepa 90-day, and current Buy Box price.
+- If no matching purchase is found within 72 hours of the Purchased / Offer Made action, MBOP moves the opportunity back to Watchlist and records an action note.
 
 ## Purchase Matching
 

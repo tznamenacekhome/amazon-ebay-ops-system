@@ -43,6 +43,29 @@ Carrier/status syncs must not downgrade workflow-owned statuses.
   price, cost, status, or workflow state.
 - ASIN is the primary Amazon product identity for MBOP operational inventory. MSKU remains stored for Amazon traceability and InventoryLab/Informed joins.
 
+## Sourcing
+
+- Sourcing opportunities are advisory and must remain separate from Purchases
+  until an eBay buyer purchase has been imported and matched.
+- Sourcing search and scoring must hard-exclude items outside the configured
+  item-location countries, currently US and Canada.
+- Excluded sourcing keywords, such as Steam, message delivery, DLC, promo, VPN,
+  and disc-only signals, must prevent rows from appearing as open opportunities
+  even when Best Offer or auction math would otherwise look profitable.
+- Unknown eBay ZIP shipping estimates may be shown as watch opportunities when
+  otherwise plausible, but MBOP must not calculate profit, ROI, offer, or bid
+  guidance from assumed free shipping.
+- Best Offer guidance subtracts eBay shipping from the landed cap and evaluates
+  the item offer against the eBay asking price before shipping. Best Offer caps
+  use the lower of stored Keepa 90-day price and current Amazon market price.
+- Purchased Pending Match is also used for Best Offers made by the operator. If
+  no matching eBay purchase appears within 72 hours, the sourcing matcher moves
+  the row back to Watchlist.
+- When a sourced opportunity matches an imported eBay purchase, the matcher may
+  write sourced ASIN, Amazon title, and target sell price to the matched
+  `purchase_items` row. The target sell price is the highest available Last
+  Sold, Keepa 90-day, and current Buy Box value.
+
 ## Receiving
 
 - Purchases workflow and receiving workflow are separate.
