@@ -1,6 +1,6 @@
 # CURRENT_STATE.md
 
-Last Updated: 2026-06-04
+Last Updated: 2026-06-07
 
 # Midnight Blue Operations Platform (MBOP)
 
@@ -16,7 +16,7 @@ MBOP is the internal operations platform for Midnight Blue Enterprises, LLC.
 | Receiving workflow | First slice implemented |
 | Shipment enrichment | Functional with remaining FedEx/webhook follow-up |
 | Sync orchestration | Mature |
-| Dashboard analytics | First slice implemented |
+| Dashboard analytics | Split monitoring workspace implemented |
 | Matching engine | Emerging subsystem |
 | Amazon SP-API foundation | Read-only inventory/listing sync working |
 | Keepa catalog intelligence | Token-aware enrichment working |
@@ -43,6 +43,55 @@ The paid plan limits do not by themselves guarantee enough sustained disk IO for
 ---
 
 # Current Backend State
+
+## Dashboard Split
+
+Status: IMPLEMENTED / MVP MONITORING TABS
+
+Implemented:
+- `/dashboard` remains the single top-level monitoring workspace in the compact
+  left navigation.
+- Dashboard tabs are URL-addressable: Overview, Financial, Operations,
+  Inventory, Amazon, Growth, Sourcing, Loss Prevention, and System Health.
+- Focused dashboard APIs now exist for Overview, Financial, Operations,
+  Inventory, Amazon, Growth, Sourcing, Loss Prevention, and System Health.
+- Each implemented tab loads independently and reads backend-owned data only.
+- Dashboard page loads do not trigger external marketplace/API calls, Keepa
+  token spending, sync jobs, or workflow state changes.
+- Financial dashboard summarizes profitability windows, cash position, Amazon
+  payout reconciliation, financial data completeness, and the future Schedule C
+  reporting placeholder from existing backend finance/profitability data.
+- Inventory dashboard summarizes inventory value/location, age buckets,
+  capital at risk, concentration, and reconciliation attention from
+  `inventory_positions` and reconciliation views.
+- Amazon dashboard summarizes sales/profitability, FBA/listing health,
+  repricing advisor rollups, top sellers, stale high-capital inventory,
+  Seller Central account health, lifetime Feedback Manager rating, and 1-3
+  star seller-feedback alert rows.
+- Overview and Financial dashboards display Amazon Funds Available from the
+  latest Amazon finance snapshot's `available_to_withdraw` value and link to
+  Seller Central Payments.
+- Growth dashboard summarizes revenue/profit/business value trends, monthly
+  inventory spend, and basic efficiency metrics.
+- Sourcing dashboard provides a manual replenishment research queue from
+  existing sales/profit/inventory data with transparent scoring.
+- Loss Prevention dashboard summarizes open problem cases, estimated value at
+  risk, refund/return buckets, urgent cases, and monthly problem trends.
+- System Health dashboard adapts existing health signals plus local sync-run
+  logs into freshness, recent-run, and guardrail summaries.
+
+Known MVP limitations:
+- Some drill-down links intentionally fall back to base workflow routes when the
+  target screen does not yet support the specific filter.
+- System Health capacity and external-limit panels show safe placeholders unless
+  values are already available from local sync health; they do not run heavy
+  diagnostics.
+- Seller Central account-health score and lifetime feedback summary are manual
+  snapshots until a broader approved read-only source exists. The SP-API
+  `GET_SELLER_FEEDBACK_DATA` report is wired as an alert source for 1-3 star
+  feedback only; Amazon cancelled the first dry-run report request.
+
+---
 
 ## Amazon Sales Orders
 
@@ -184,8 +233,13 @@ Implemented:
 - `run_all_syncs.py` also stores YNAB Business-category transaction history
   daily for future P&L, Schedule C, and cash reconciliation features
 - `run_all_syncs.bat` targets the repo at `C:\Dev\amazon-ebay-ops-system`
-- scheduler output is appended to `logs/scheduler.log`
-- local AM/PM Windows scheduled tasks were recreated after the repo moved out of OneDrive
+- scheduler output is appended to `logs/scheduler.log` through a per-run temp
+  log with append retries so transient Windows file locks do not block a run
+- local Windows scheduled tasks exist for AM core, PM core, Daily, and Catalog
+  groups after the repo moved out of OneDrive
+- all MBOP scheduled tasks use `StartWhenAvailable = False` and
+  `MultipleInstances = IgnoreNew`, so missed laptop-sleep runs are skipped
+  instead of replayed together when the laptop wakes
 - individual script failures are collected and reported without preventing later independent syncs from running
 - scheduled missing-title Keepa repair fills blank `purchase_items.amazon_title`
   for ASIN-bearing purchase rows from stored Keepa snapshots first, and only
@@ -221,7 +275,8 @@ Recent validation:
 - business value snapshot upserted the 2026-05-27 daily value
 
 Remaining validation:
-- confirm both Windows scheduled tasks append successful runs to `logs/scheduler.log`
+- monitor the next scheduled AM/PM/Daily/Catalog runs after disabling
+  Task Scheduler catch-up behavior
 - manually trigger scheduled tasks with the root task path, for example `schtasks /Run /TN "\Amazon eBay Ops Sync PM"`
 
 ---

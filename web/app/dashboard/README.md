@@ -5,30 +5,89 @@ The Dashboard workspace is the MBOP operational value and backlog view.
 ## Routes
 
 - UI: `/dashboard`
-- API: `/api/dashboard/purchases`
+- Dashboard APIs:
+  - `/api/dashboard/overview`
+  - `/api/dashboard/operations`
+  - `/api/dashboard/financial`
+  - `/api/dashboard/inventory`
+  - `/api/dashboard/amazon`
+  - `/api/dashboard/growth`
+  - `/api/dashboard/sourcing`
+  - `/api/dashboard/loss-prevention`
+  - `/api/dashboard/system-health`
+- Legacy purchase dashboard API retained temporarily: `/api/dashboard/purchases`
 - Reconciliation work queue UI: `/inventory-reconciliation`
 
 ## Current Reports
 
-The dashboard puts Inventory Visibility first and shows inventory/cash value before purchase-history reporting. The top-level total-units, total-cost, and months cards were removed because those totals are already represented in the lower monthly/pivot sections.
+The Dashboard workspace is now split into URL-addressable monitoring tabs under
+one top-level left navigation item:
 
-The dashboard shows purchase units and purchase cost by year/month, excluding purchase items with `current_status = return_opened`, `current_status = cancelled`, or `exclude_from_purchase_reporting = true`.
+- `/dashboard?view=overview`
+- `/dashboard?view=financial`
+- `/dashboard?view=operations`
+- `/dashboard?view=inventory`
+- `/dashboard?view=amazon`
+- `/dashboard?view=growth`
+- `/dashboard?view=sourcing`
+- `/dashboard?view=loss-prevention`
+- `/dashboard?view=system-health`
 
-The API reads `vw_purchases_dashboard` and aggregates:
+Overview, Financial, Operations, Inventory, Amazon, Growth, Sourcing, Loss
+Prevention, and System Health fetch focused dashboard summaries.
 
-- units: sum of `quantity`
-- cost: sum of `unit_cost * quantity`
-- status breakdown: sum of `quantity` by `purchase_items.current_status`
+The Overview tab shows:
+
+- latest backend-owned business value snapshot totals
+- compact business value trend from `business_value_snapshots`
+- current attention summary with drill-down links to Receiving, FBA, Purchases,
+  Repricing, and Reconciliation
+
+The Operations tab shows:
+
+- receiving backlog and arriving-today/this-week counts
+- FBA prep ready/blocked counts
+- purchase cleanup counts for missing ASIN, sell price, Amazon title, and system
+- order problem buckets from `order_problem_cases`
+- compact workflow aging buckets
+- short top attention list
+
+The Financial tab shows:
+
+- profitability windows for 7-day, 30-day, 90-day, month-to-date, and
+  year-to-date sales
+- latest YNAB Business cash and Amazon cash buckets
+- Amazon payout reconciliation status from finance balance snapshots
+- financial data completeness counts for recent sales rows
+- placeholder area for future Schedule C category export
+
+The remaining tabs show:
+
+- Inventory: value by location, age buckets, capital at risk, concentration,
+  and reconciliation attention.
+- Amazon: sales/profitability summary, FBA/listing health, repricing advisor
+  rollup, top sellers, stale high-capital inventory, Seller Central account
+  health, Feedback Manager summary, and 1-3 star feedback alerts.
+- Growth: monthly sales/profit/inventory spend trends, business value movement,
+  and basic efficiency metrics.
+- Sourcing: manual replenishment research candidates from existing
+  sales/profit/inventory data with transparent scoring.
+- Loss Prevention: problem-case risk, estimated value at risk, urgent cases,
+  and loss/recovery trend.
+- System Health: integration freshness, recent sync runs, and safe guardrail
+  placeholders.
+
+The focused dashboard APIs read backend-owned views/tables and aggregate:
+
 - purchase completeness gaps: missing ASIN, sell price, system, and Amazon title
 - receiving backlog: Delivered and Shipped (No Tracking) rows waiting to be received
 - shipment prep backlog: Received Amazon-bound rows waiting for FBA shipment preparation
 - workflow aging buckets for receiving and FBA prep
-- exception visibility: past-ETA rows, stale/no-tracking rows, exception rows, and return-pending rows
-- stale/no-tracking visibility ignores rows more than 90 days old because those historical tracking gaps are not actionable
-- order problem counts:
-  - Past ETA: supplier delivery estimate has passed and the item is not delivered/received/listed/cancelled/return-opened
-  - Tracking stale/no tracking: no usable carrier movement after a week, excluding rows older than 90 days
-  - Exceptions: carrier exception or return-pending statuses requiring operator follow-up
+- order problem counts from persistent workflow cases
+
+The old `/api/dashboard/purchases` route still contains historical purchase
+month/status/inventory reporting logic while the remaining dashboard tabs are
+split into smaller APIs.
 
 `unit_cost` is the authoritative backend landed-cost value. Dashboard React components should render API-provided aggregates and should not introduce their own landed-cost calculations.
 
@@ -42,9 +101,17 @@ Inventory value semantics:
 - YNAB cash data is read-only budget context and must not be written into inventory or purchase workflow tables
 - Amazon cash uses the latest `vw_latest_amazon_finance_balance_snapshot` row
 - Amazon cash-in-transit uses Finance financial event groups with `FundTransferStatus = Processing`
+- Amazon account health and seller feedback values are Seller Central
+  observations stored in Amazon-specific dashboard tables. Use
+  `integrations/amazon_record_seller_account_health.py` to record future score
+  changes and feedback rating/count changes.
+- `integrations/amazon_sync_seller_feedback.py` can request Amazon's
+  `GET_SELLER_FEEDBACK_DATA` report, but Amazon documents that report as
+  neutral/negative seller feedback only (1-3 stars). The Amazon dashboard uses
+  imported rows from that report as alert rows.
 - the business inventory/cash value total is API-provided and sums Amazon inventory value, pre-Amazon purchased inventory value, Amazon cash, Amazon-to-bank in-transit cash, and YNAB cash on hand
 - total business value is snapshotted once per day in `business_value_snapshots`
-- clicking the total value opens a modal graph backed by API-provided snapshot history
+- total business value trend is backed by API-provided snapshot history
 
 Inventory reconciliation:
 - open reconciliation findings are not shown on the main dashboard

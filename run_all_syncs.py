@@ -505,12 +505,11 @@ def record_job(
     records = read_health_records()
     records[job.name] = record
     records[command_text] = record
-    HEALTH_LOG_PATH.write_text(
+    write_text_with_retry(
+        HEALTH_LOG_PATH,
         json.dumps(records, indent=2, sort_keys=True) + "\n",
-        encoding="utf-8",
     )
-    with RUN_HISTORY_PATH.open("a", encoding="utf-8") as file:
-        file.write(json.dumps(record, sort_keys=True) + "\n")
+    append_text_with_retry(RUN_HISTORY_PATH, json.dumps(record, sort_keys=True) + "\n")
 
 
 def read_health_records() -> dict[str, dict[str, object]]:
@@ -519,6 +518,29 @@ def read_health_records() -> dict[str, dict[str, object]]:
         return records if isinstance(records, dict) else {}
     except (FileNotFoundError, json.JSONDecodeError):
         return {}
+
+
+def write_text_with_retry(path: Path, text: str, *, attempts: int = 5) -> None:
+    for attempt in range(1, attempts + 1):
+        try:
+            path.write_text(text, encoding="utf-8")
+            return
+        except OSError:
+            if attempt == attempts:
+                raise
+            time.sleep(0.25 * attempt)
+
+
+def append_text_with_retry(path: Path, text: str, *, attempts: int = 5) -> None:
+    for attempt in range(1, attempts + 1):
+        try:
+            with path.open("a", encoding="utf-8") as file:
+                file.write(text)
+            return
+        except OSError:
+            if attempt == attempts:
+                raise
+            time.sleep(0.25 * attempt)
 
 
 def probe_supabase() -> None:

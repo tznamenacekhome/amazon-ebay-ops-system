@@ -57,7 +57,7 @@ Implementation:
 ## Dashboard Aggregations Are Backend-Owned
 
 Decision:
-Dashboard totals are produced by API routes, not recalculated in React components.
+Dashboard totals and monitoring summaries are produced by API routes, not recalculated in React components.
 
 Reason:
 The dashboard is intended to validate completeness and accuracy against legacy spreadsheet reporting. Cost totals must use the same authoritative backend landed-cost values as the purchases table.
@@ -69,9 +69,21 @@ Implementation:
 - rows with `current_status = return_opened` or `cancelled` are excluded
 - rows with `purchase_items.exclude_from_purchase_reporting = true` are excluded
 - `/dashboard` renders the returned aggregates only
+- split dashboard tabs use focused API routes such as
+  `/api/dashboard/inventory`, `/api/dashboard/amazon`,
+  `/api/dashboard/growth`, `/api/dashboard/sourcing`,
+  `/api/dashboard/loss-prevention`, and `/api/dashboard/system-health`
+- `/dashboard` remains one top-level monitoring workspace; Financial,
+  Operations, Inventory, Amazon, Growth, Sourcing, Loss Prevention, and System
+  Health are tabs inside Dashboard, not separate left-nav entries
 
 Rule:
 Do not add frontend-only cost math or alternate landed-cost formulas to dashboard components.
+
+Do not let dashboard page loads trigger external API calls, sync jobs, workflow
+state changes, Amazon price changes, Informed rule changes, or Keepa token
+spending. Dashboards summarize and link to owning workflows; they do not become
+work queues.
 
 ---
 
@@ -815,11 +827,32 @@ Implementation:
 - Amazon-to-bank in-transit cash is calculated from financial event groups with `ProcessingStatus = Closed` and `FundTransferStatus = Processing`.
 - dashboard Inventory Visibility reads `vw_latest_amazon_finance_balance_snapshot`.
 
-Known caveat:
-Amazon's API Open financial event group total currently differs from Seller Central's displayed "available to withdraw" amount. MBOP stores the API open amount as `available_to_withdraw` with notes until the UI-only adjustment/reserve source is identified.
+Current dashboard use:
+MBOP stores Amazon's open/available finance balance as `available_to_withdraw` and displays it as Seller Central Funds Available. The dashboard links that value to Seller Central Payments so the operator can request transfer manually.
 
 Rule:
 Amazon Finance data must stay in Amazon-specific finance snapshot tables. Do not write it into purchases, purchase_items, inventory_positions, Amazon inventory snapshots, or workflow tables.
+
+---
+
+## Seller Central Account Health And Feedback Are Amazon Dashboard Signals
+
+Decision:
+Display Seller Central account-health and feedback signals on the Amazon dashboard, not System Health.
+
+Reason:
+System Health is for MBOP job/database/API freshness. Seller Central Account Health and Feedback Manager values are marketplace trust/risk signals for the Amazon selling channel.
+
+Implementation:
+- `amazon_account_health_snapshots` stores manual account-health score snapshots.
+- `amazon_seller_feedback_snapshots` stores manual Feedback Manager lifetime star-rating and rating-count snapshots.
+- `amazon_seller_feedback_items` stores seller feedback rows.
+- `integrations/amazon_record_seller_account_health.py` records manual account-health and feedback observations.
+- `integrations/amazon_sync_seller_feedback.py` requests the read-only Amazon Reports API `GET_SELLER_FEEDBACK_DATA` report when available.
+- Amazon documents `GET_SELLER_FEEDBACK_DATA` as neutral/negative seller feedback only, so the dashboard treats imported 1-3 star rows as alerts instead of trying to show all recent positive feedback.
+
+Rule:
+Seller Central account-health and feedback data must stay in Amazon-specific dashboard/snapshot tables. Do not write it into purchases, purchase_items, inventory positions, or workflow-owned tables.
 
 ---
 

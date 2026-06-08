@@ -149,6 +149,10 @@ Carrier/status syncs must not downgrade workflow-owned statuses.
 - Amazon receiving shortages, lost units, warehouse damage, and customer returns
   that do not come back to the business belong in a future Amazon Inventory
   Discrepancy workflow.
+- Seller Central Account Health and Feedback Manager values are Amazon
+  channel-risk signals, not MBOP technical health. Account-health score and
+  lifetime feedback rating are manual dashboard snapshots. SP-API
+  `GET_SELLER_FEEDBACK_DATA` rows are used only as 1-3 star feedback alerts.
 
 ## Repricing Advisor
 

@@ -43,6 +43,9 @@ history remains queryable through closed case rows and the event timeline.
 - `amazon_report_runs`: audit metadata for Amazon report requests/imports.
 - `amazon_inventory_planning_snapshots`: `GET_FBA_INVENTORY_PLANNING_DATA` rows for Amazon-native age buckets and inventory-health context.
 - `amazon_finance_balance_snapshots`: Amazon-held cash, available/open balance, deferred/reserved cash, and Amazon-to-bank in-transit cash.
+- `amazon_account_health_snapshots`: manual Seller Central Account Health Rating snapshots for dashboard history.
+- `amazon_seller_feedback_snapshots`: manual Seller Central Feedback Manager star-rating/count snapshots.
+- `amazon_seller_feedback_items`: Seller Central / SP-API seller feedback rows with date, rating, order ID, and comment; dashboard alerts focus on 1-3 star feedback.
 
 Amazon seller/FBA data stays in Amazon-specific tables and must not be written into purchases or purchase_items.
 

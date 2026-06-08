@@ -2,13 +2,41 @@
 
 This file tracks active issues, monitor items, and deferred decisions for Midnight Blue Operations Platform (MBOP).
 
-Last reviewed: 2026-06-04
+Last reviewed: 2026-06-07
 
 # Active Issues
 
+## Dashboard Remaining MVP Gaps
+
+Status: ACTIVE / MONITORING
+
+Problem:
+The dashboard split now has live monitoring tabs for Overview, Financial,
+Operations, Inventory, Amazon, Growth, Sourcing, Loss Prevention, and System
+Health, but a few pieces are intentionally MVP-level.
+
+Current gaps:
+- Some dashboard drill-downs open the owning workflow base route because the
+  target page does not yet support the exact requested filter.
+- System Health does not automatically query Supabase capacity/disk IO metrics;
+  this avoids heavy diagnostics and secret exposure, but means capacity fields
+  remain guarded placeholders until a safe source exists.
+- Sourcing uses transparent local scoring from existing sales/profit/inventory
+  data. It is a manual research queue, not a full sourcing engine.
+- Loss Prevention estimated value at risk is approximate where expected refund
+  amount is unavailable and falls back to purchase item cost.
+
+Recommended next mitigation:
+- Add filter support to owning workflow pages before deep-linking to specific
+  dashboard slices.
+- Add a safe lightweight capacity source or operator-entered capacity status if
+  Supabase exposes plan/IO data without heavy queries.
+
+---
+
 ## Scheduled Sync Scope Needs Optimization
 
-Status: ACTIVE / CAPACITY
+Status: MITIGATED / MONITOR
 
 Problem:
 The local scheduled runs have grown organically and now sync more domains than
@@ -18,22 +46,29 @@ consumes external API quota, increases Supabase IO/load, lengthens scheduler
 runs, and can make troubleshooting harder when an unrelated sync fails.
 
 Current mitigation:
-- `run_all_syncs.py` already supports grouped runs and disabled jobs.
+- `run_all_syncs.py` supports grouped core/daily runs, disabled jobs, and
+  per-job runtime logging.
+- eBay buyer purchases, EasyPost tracking, order-problem return sync,
+  RevSeller enrichment, YNAB business transactions, and Amazon sales finance
+  syncs have been narrowed toward incremental or missing-data work where the
+  integration supports it.
+- Windows scheduled MBOP tasks have `MultipleInstances=IgnoreNew` and
+  `StartWhenAvailable=False` so laptop wake-up does not stack missed scheduled
+  runs.
+- scheduler output writes through a per-run temp log and appends to
+  `logs/scheduler.log` with retry handling to avoid file-lock collisions.
 - screen refresh buttons can run screen-specific scheduled-style refreshes
   without historical backfill.
 - legacy supplier returns sync remains disabled while the new Order Problems
   return sync is validated.
 
 Recommended next mitigation:
-- Review each scheduled job against the MBOP feature it serves and its required
-  freshness window.
-- Split high-frequency operational jobs from daily value/cash/reporting jobs
-  and lower-frequency catalog/intelligence jobs.
 - Keep jobs that feed the same calculation, such as Business Inventory And Cash
   Value, on the same cadence so freshness indicators stay meaningful.
 - Avoid scheduling exploratory/backfill-style syncs; keep those manual and
   resumable.
-- Revisit Windows Task Scheduler tasks after the job groups are tightened.
+- Continue moving long-polling tracking updates toward EasyPost webhooks once a
+  public HTTPS endpoint exists.
 
 ---
 
@@ -343,14 +378,22 @@ The repo moved from a OneDrive path to `C:\Dev\amazon-ebay-ops-system`, so the l
 
 Current mitigation:
 - `run_all_syncs.bat` runs successfully when launched directly from the repo.
+- `run_all_syncs.bat` writes to a per-run temp log and then appends to
+  `logs/scheduler.log` with retries to avoid transient Windows file-lock
+  failures.
 - `run_all_syncs.py` now includes eBay buyer purchase sync, EasyPost shipment sync, RevSeller enrichment, Amazon FBA inventory, Amazon listing status, Amazon inventory planning, Amazon Finance, Informed reports, YNAB cash balance, guarded Keepa refresh, and business value snapshot.
 - legacy supplier returns sync remains disabled while the new Order Problems
   return sync is validated.
 - direct full-orchestrator validation completed with exit code 0.
-- the stale OneDrive working-directory problem has been replaced by AM/PM scheduled tasks that target the `C:\Dev` path.
+- the stale OneDrive working-directory problem has been replaced by AM, PM,
+  Daily, and Catalog scheduled tasks that target the `C:\Dev` path.
+- all MBOP scheduled tasks have Task Scheduler catch-up disabled
+  (`StartWhenAvailable = False`) and overlap handling set to
+  `MultipleInstances = IgnoreNew`.
 
 Recommended guardrail:
-- confirm both scheduled tasks append successful runs to `logs/scheduler.log`.
+- monitor the next scheduled runs to confirm laptop sleep no longer causes
+  missed runs to replay together on wake.
 - use the root scheduled-task path when manually triggering, for example `schtasks /Run /TN "\Amazon eBay Ops Sync PM"`.
 - keep public EasyPost webhooks on the roadmap so the scheduler is not the only long-term carrier-update mechanism.
 

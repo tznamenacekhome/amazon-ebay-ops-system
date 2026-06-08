@@ -214,30 +214,16 @@ async function hydrateReportingExclusions(rows: DashboardPurchaseRow[]) {
     return rows;
   }
 
-  const itemMetaById = new Map<
-    string,
-    {
-      exclude_from_purchase_reporting?: boolean | null;
-      amazon_title?: string | null;
-      marketplace?: "Amazon" | "eBay" | null;
-      received_date?: string | null;
-    }
-  >();
-  const chunkSize = 100;
+  const itemMetaById = new Map<string, PurchaseItemMetadata>();
+  const metadataRows = await fetchPurchaseItemMetadata();
 
-  for (let index = 0; index < itemIds.length; index += chunkSize) {
-    const chunk = itemIds.slice(index, index + chunkSize);
-    const { data, error } = await supabase
-      .from("purchase_items")
-      .select("item_id,exclude_from_purchase_reporting,amazon_title,marketplace,received_date")
-      .in("item_id", chunk);
+  if (!metadataRows) {
+    return rows;
+  }
 
-    if (error) {
-      console.warn("Dashboard reporting exclusion lookup failed", error.message);
-      return rows;
-    }
-
-    for (const item of data ?? []) {
+  const wantedItemIds = new Set(itemIds);
+  for (const item of metadataRows) {
+    if (wantedItemIds.has(item.item_id)) {
       itemMetaById.set(item.item_id, item);
     }
   }
@@ -261,6 +247,57 @@ async function hydrateReportingExclusions(rows: DashboardPurchaseRow[]) {
         ? !!itemMetaById.get(row.item_id)?.exclude_from_purchase_reporting
         : !!row.exclude_from_purchase_reporting,
   }));
+}
+
+type PurchaseItemMetadata = {
+  item_id: string;
+  exclude_from_purchase_reporting?: boolean | null;
+  amazon_title?: string | null;
+  marketplace?: "Amazon" | "eBay" | null;
+  received_date?: string | null;
+};
+
+async function fetchPurchaseItemMetadata() {
+  const rows: PurchaseItemMetadata[] = [];
+  const pageSize = 1000;
+  let offset = 0;
+
+  while (true) {
+    const result = await retrySupabaseQuery(() =>
+      supabase
+        .from("purchase_items")
+        .select("item_id,exclude_from_purchase_reporting,amazon_title,marketplace,received_date")
+        .range(offset, offset + pageSize - 1),
+    );
+
+    if (result.error) {
+      console.warn("Dashboard reporting exclusion lookup failed", result.error.message);
+      return null;
+    }
+
+    rows.push(...((result.data ?? []) as PurchaseItemMetadata[]));
+    if ((result.data ?? []).length < pageSize) {
+      return rows;
+    }
+
+    offset += pageSize;
+  }
+}
+
+async function retrySupabaseQuery<T>(query: () => PromiseLike<{ data: T[] | null; error: { message: string } | null }>) {
+  const maxAttempts = 3;
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+    const result = await query();
+    if (!result.error || attempt === maxAttempts) return result;
+    await sleep(200 * attempt);
+  }
+
+  return query();
+}
+
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 function aggregateByMonth(rows: DashboardPurchaseRow[]) {

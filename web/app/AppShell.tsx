@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  Activity,
   AlertTriangle,
   BarChart3,
   PackageCheck,
@@ -48,11 +47,6 @@ const navItems = [
     href: "/inventory-reconciliation",
     label: "Reconciliation",
     icon: AlertTriangle,
-  },
-  {
-    href: "/system-health",
-    label: "System Health",
-    icon: Activity,
   },
 ];
 

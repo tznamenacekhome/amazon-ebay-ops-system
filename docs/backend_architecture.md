@@ -146,6 +146,9 @@ All external API integrations are read-only unless explicitly documented otherwi
 
 - Amazon SP-API uses LWA auth and an explicit read-only path allow-list.
 - Amazon write endpoints, restricted PII flows, and seller order/customer PII are not used.
+- Amazon Seller Central account-health and feedback observations stay in
+  Amazon-specific dashboard tables. `GET_SELLER_FEEDBACK_DATA` is allowed only
+  as a read-only Reports API source for 1-3 star feedback alerts.
 - Keepa token-spending calls are never triggered by frontend page loads.
 - Informed Listings Management upload/write paths are not used.
 - YNAB data is read-only cash/budget and transaction context only.

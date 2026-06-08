@@ -88,49 +88,40 @@ Recent UI cleanup:
 ## Dashboard Analytics
 
 Status:
-Operational reconciliation first pass implemented.
+Split monitoring workspace implemented / drill-down refinement remaining.
 
 Completed:
-- added Dashboard menu item to the MBOP left navigation
-- added /dashboard workspace
-- added /api/dashboard/purchases aggregation route
-- added monthly units and total cost chart
-- added year/month pivot-style table with grand total
-- added purchase completeness summary
-- added receiving backlog summary
-- added shipment prep backlog summary
-- added workflow aging buckets
-- added missing/exception attention table
-- excluded Return Opened rows from dashboard totals
-- added migration-backed reporting exclusions for personal purchases and business supplies
-- recognized 2026-05-16+ purchases as MBOP-canonical because the legacy spreadsheet was no longer maintained for new purchases
-- restored 13 post-2026-05-15 resale rows that had been excluded only because they were absent from the legacy spreadsheet
-- normalized 2026 MBOP-active rows found on the reference Returns tab to Return Opened or Cancelled
-- excluded Cancelled rows from dashboard purchase totals
-- reconciled active unit count to the legacy pivot at 4,806 units
-- reduced active cost variance to $4.05 MBOP-over-spreadsheet after one-time cleanup and net-cost corrections
-- kept landed-cost math backend-owned through vw_purchases_dashboard.unit_cost
-- confirmed 2024 and 2025 dashboard totals match the legacy Excel pivot exactly
-- added Inventory Visibility as the first dashboard section
-- added Inventory Value By Location table for At Amazon FBA, On the way to Amazon FBA, Received, Ordered and not received yet, and Total
-- added Business Inventory And Cash Value summary with Amazon inventory, pre-Amazon purchased inventory, Amazon cash, Amazon-to-bank in-transit cash, YNAB Business cash, and total business value
-- added daily business value snapshots and a history graph from the total row
-- moved open inventory reconciliation findings to the dedicated Reconciliation page
-- moved purchase order problems to a dedicated Purchases tab while keeping Missing Data in the editable purchases view
+- `/dashboard` is now a compact tabbed monitoring workspace with URL-addressed
+  Overview, Financial, Operations, Inventory, Amazon, Growth, Sourcing, Loss
+  Prevention, and System Health views.
+- focused `/api/dashboard/*` routes provide backend-owned aggregates for each
+  tab without triggering external syncs, token spending, or workflow writes.
+- Overview shows business value KPIs, attention rows, and a scaled business
+  value trend with axes, dates, point markers, and value summary.
+- Financial shows profitability windows, cash position, Amazon Funds Available,
+  payout reconciliation, data completeness, and a Schedule C placeholder.
+- Operations shows receiving/FBA prep queues, purchase cleanup, order-problem
+  counts, workflow aging, and attention rows.
+- Inventory shows value by location/state/age, capital at risk, concentration,
+  and reconciliation attention.
+- Amazon shows sales/profitability, FBA/listing health, repricing rollups, top
+  sellers, stale high-capital inventory, Seller Central account-health score,
+  Feedback Manager lifetime rating, and 1-3 star feedback alerts.
+- Growth, Sourcing, Loss Prevention, and System Health tabs are implemented
+  from existing backend data and local sync health signals.
+- dashboard metadata hydration now pages through `purchase_items` instead of
+  giant Supabase `IN` filters, preventing transient metadata lookup failures
+  from reviving excluded purchase rows in cleanup counts.
+- landed-cost math remains backend-owned through `vw_purchases_dashboard.unit_cost`.
 
 Next steps:
-- build a repeatable dashboard reconciliation report using the shared reference spreadsheet and Supabase
-- classify discrepancies into MBOP-only, spreadsheet-only, Returns-tab/status mismatch, and same-order quantity/cost mismatch
-- keep known partial-refund, CAD, duplicate-row, and split-row orders as reconciliation regression examples
-- add drill-down from a dashboard month into the matching filtered purchases list
 - add drill-down links from operational dashboard counts into Purchases, Receiving, and FBA filtered views
-- add reconciliation indicators once expected monthly spreadsheet totals are stored or imported
-- add a UI control for marking purchase items excluded from reporting with a reason
-- add filters for status, marketplace, received date, and system after the first chart proves useful
-- keep 2026-05-16+ MBOP-only purchases reportable unless explicitly confirmed as non-resale, return/cancelled, or otherwise excluded
-- refine Amazon Finance cash mapping if Seller Central exposes an additional UI-only reserve/available-balance adjustment source
 - monitor Dashboard freshness against the oldest required cash/value input so
   stale Amazon cash, YNAB cash, or business value snapshots are visible
+- add a safe capacity/IO source for System Health instead of placeholders
+- decide whether account health can be captured from an approved Amazon source;
+  for now account-health score and lifetime feedback summary are manual
+  snapshots and SP-API feedback imports are limited to 1-3 star alert rows
 
 ---
 
@@ -371,8 +362,12 @@ Completed:
 - scheduler groups split freshness work into `core`, `daily`, and `catalog`
   groups so operational refreshes can run without every heavyweight snapshot
 - legacy eBay supplier returns sync is disabled; the new Order Problems return sync owns return/inquiry/case freshness
-- `run_all_syncs.bat` creates the logs directory when missing and appends to `logs/scheduler.log`
+- `run_all_syncs.bat` creates the logs directory when missing and appends to
+  `logs/scheduler.log` through a per-run temp log with retries
 - local Windows scheduled tasks were recreated after the repo moved from OneDrive to `C:\Dev`
+- AM, PM, Daily, and Catalog scheduled tasks have Task Scheduler catch-up
+  disabled with `StartWhenAvailable = False`; overlapping instances are ignored
+  with `MultipleInstances = IgnoreNew`
 - direct batch execution completed successfully with exit code 0
 - integration failures are collected and reported while later independent syncs continue running
 - Amazon FBA inventory sync now uses page pacing plus SP-API 429/5xx retry/backoff
@@ -389,13 +384,62 @@ Completed:
   a fail-open fallback when source freshness columns are unavailable
 
 Next steps:
-- confirm both scheduled tasks continue appending successful runs to `logs/scheduler.log`
+- monitor the next scheduled AM/PM/Daily/Catalog runs after disabling missed-run
+  catch-up
 - split the dashboard refresh/value jobs into lighter operational and heavier
   reporting paths, then optimize the reporting path separately
 - add `purchase_items.updated_at` or an equivalent source-change ledger so
   inventory reconciliation skip-if-unchanged can avoid fail-open runs
 - when manually triggering tasks, use the root task path, for example `schtasks /Run /TN "\Amazon eBay Ops Sync PM"`
 - monitor scheduler logs for EasyPost FedEx credential errors, eBay token/auth issues, SP-API throttling, and Keepa token skips
+
+---
+
+## Dashboard Split
+
+Phase 1 implemented:
+- `/dashboard` now uses compact URL-addressable tabs:
+  Overview, Financial, Operations, Inventory, Amazon, Growth, and System Health
+- only Overview and Operations fetch live data in this phase
+- `/api/dashboard/overview` returns business value snapshot metrics, attention
+  summary rows, and a compact business value trend
+- `/api/dashboard/operations` returns receiving, FBA prep, purchase cleanup,
+  order-problem, workflow-aging, and top-attention summaries
+- the left navigation keeps Dashboard as the single monitoring entry point; the
+  separate System Health nav item was removed from the compact left nav
+- dashboard React components render API-provided values and do not calculate
+  landed cost, inventory value, workflow status, repricing tiers, or profit
+
+Remaining:
+- Phase 2: Financial and Inventory tabs with dedicated backend summaries
+- Phase 3: Amazon, Growth, and System Health tabs with scheduler/API health
+  rollups
+- replace remaining legacy `/api/dashboard/purchases` use once historical
+  purchase/month reporting has a focused destination
+
+Remaining phases MVP implemented:
+- Inventory, Amazon, Growth, Sourcing, Loss Prevention, and System Health tabs
+  now have focused read-only API routes under `/api/dashboard/*`
+- dashboard tab list now includes Sourcing and Loss Prevention while preserving
+  one top-level Dashboard left-nav entry
+- routes load independently and do not run external syncs, marketplace writes,
+  Keepa token-spending calls, or workflow mutations
+- Sourcing is an explainable manual research queue derived from existing
+  sales/profit/inventory data, not an automated buy engine
+- Loss Prevention summarizes risk from order-problem cases and reconciliation
+  signals without replacing the Order Problems workflow
+
+Still open:
+- add exact filter support to destination workflow pages for dashboard
+  drill-downs that currently degrade to base routes
+- add safe Supabase capacity and disk IO signal sourcing for System Health
+
+Financial implemented:
+- `/api/dashboard/financial` summarizes existing Amazon sales profitability,
+  YNAB Business cash, Amazon cash balances, payout reconciliation, financial
+  data completeness, and the future Schedule C reporting placeholder
+- `/dashboard?view=financial` renders those API-provided values without
+  frontend landed-cost or profit recalculation
 
 ---
 
