@@ -18,6 +18,9 @@ export type SourcingOpportunity = {
   itemPrice: number | null;
   shippingPrice: number | null;
   landedCost: number | null;
+  originalCurrency: string | null;
+  originalItemPrice: number | null;
+  originalShippingPrice: number | null;
   shippingQuoteStatus: "known_paid" | "known_free" | "unknown_no_cost" | "unknown_no_options";
   shippingQuoteLabel: string;
   quantityAvailable: number | null;

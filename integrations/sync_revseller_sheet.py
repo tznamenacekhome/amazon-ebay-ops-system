@@ -169,6 +169,54 @@ def parse_money(value) -> Decimal | None:
         return None
 
 
+def clean_text(value) -> str | None:
+    if value is None:
+        return None
+    text = normalize_spaces(str(value))
+    return text or None
+
+
+def normalize_asin(value) -> str | None:
+    text = clean_text(value)
+    return text.upper() if text else None
+
+
+def cents_to_money(value) -> Decimal | None:
+    if value is None:
+        return None
+    try:
+        cents = Decimal(str(value))
+    except InvalidOperation:
+        return None
+    if cents <= 0:
+        return None
+    return (cents / Decimal("100")).quantize(Decimal("0.01"))
+
+
+def first_money(*values) -> Decimal | None:
+    for value in values:
+        money = parse_money(value)
+        if money is not None and money > 0:
+            return money.quantize(Decimal("0.01"))
+    return None
+
+
+def highest_money(*values) -> Decimal | None:
+    valid_values = [
+        money
+        for value in values
+        if (money := parse_money(value)) is not None and money > 0
+    ]
+    if not valid_values:
+        return None
+    return max(valid_values).quantize(Decimal("0.01"))
+
+
+def chunked(values, size):
+    for index in range(0, len(values), size):
+        yield values[index:index + size]
+
+
 def parse_revseller_date(value) -> date:
     if not value:
         return date.min
@@ -243,10 +291,12 @@ def load_revseller_rows():
             {
                 "asin": asin,
                 "raw_title": raw_title,
+                "amazon_title": raw_title,
                 "normalized_title": norm_title,
                 "system": rev_system,
                 "target_price": target_price,
                 "row_date": row_date,
+                "source": "revseller",
             }
         )
 
@@ -277,14 +327,14 @@ def load_manual_match_rows(supabase):
         if not asin or not normalized_title or not system:
             continue
 
-        raw_title = normalize_spaces(
-            str(row.get("amazon_title") or row.get("source_title") or normalized_title)
-        )
+        amazon_title = clean_text(row.get("amazon_title"))
+        raw_title = normalize_spaces(str(row.get("source_title") or amazon_title or normalized_title))
 
         rows.append(
             {
                 "asin": asin,
                 "raw_title": raw_title,
+                "amazon_title": amazon_title,
                 "normalized_title": normalized_title,
                 "system": system,
                 "target_price": parse_money(row.get("target_price")),
@@ -423,11 +473,161 @@ def fetch_purchase_items(supabase):
     return all_items
 
 
+def fill_existing_asin_metadata(supabase, match_rows):
+    """Fill missing title/target price for rows that already have a reviewed ASIN."""
+    candidates = fetch_existing_asin_metadata_candidates(supabase)
+    if not candidates:
+        return {"candidates": 0, "updated": 0}
+
+    asins = sorted({normalize_asin(row.get("asin")) for row in candidates if normalize_asin(row.get("asin"))})
+    revseller_by_asin = latest_revseller_metadata_by_asin(match_rows)
+    keepa_by_asin = fetch_keepa_metadata_by_asin(supabase, asins)
+    listing_title_by_asin = fetch_listing_titles_by_asin(supabase, asins)
+
+    updated = 0
+    for item in candidates:
+        asin = normalize_asin(item.get("asin"))
+        if not asin:
+            continue
+
+        revseller = revseller_by_asin.get(asin, {})
+        keepa = keepa_by_asin.get(asin, {})
+        updates = {}
+
+        if should_repair_amazon_title(item):
+            title = (
+                clean_text(revseller.get("amazon_title"))
+                or clean_text(keepa.get("amazon_title"))
+                or clean_text(listing_title_by_asin.get(asin))
+            )
+            if title:
+                updates["amazon_title"] = title
+
+        if item.get("target_price") is None:
+            target_price = first_money(
+                revseller.get("target_price"),
+                highest_money(
+                    keepa.get("buy_box_price_avg90"),
+                    keepa.get("buy_box_price_current"),
+                    keepa.get("new_fba_price_current"),
+                    keepa.get("new_price_current"),
+                ),
+            )
+            if target_price is not None:
+                updates["target_price"] = str(target_price)
+
+        if updates:
+            supabase.table("purchase_items").update(updates).eq("item_id", item["item_id"]).execute()
+            updated += 1
+
+    return {"candidates": len(candidates), "updated": updated}
+
+
+def fetch_existing_asin_metadata_candidates(supabase):
+    rows = []
+    offset = 0
+
+    while True:
+        response = (
+            supabase.table("purchase_items")
+            .select(
+                "item_id,asin,amazon_title,target_price,current_status,"
+                "exclude_from_purchase_reporting,title"
+            )
+            .not_.is_("asin", "null")
+            .neq("asin", "N/A")
+            .range(offset, offset + PURCHASE_ITEMS_PAGE_SIZE - 1)
+            .execute()
+        )
+        data = response.data or []
+        rows.extend(
+            row
+            for row in data
+            if clean_status(row.get("current_status"))
+            not in OPEN_PURCHASE_WORK_EXCLUDED_STATUSES
+            and not row.get("exclude_from_purchase_reporting")
+            and (should_repair_amazon_title(row) or row.get("target_price") is None)
+        )
+        if len(data) < PURCHASE_ITEMS_PAGE_SIZE:
+            return rows
+        offset += PURCHASE_ITEMS_PAGE_SIZE
+
+
+def latest_revseller_metadata_by_asin(match_rows):
+    by_asin = {}
+    for row in match_rows:
+        asin = normalize_asin(row.get("asin"))
+        if not asin:
+            continue
+        existing = by_asin.get(asin)
+        if existing and row.get("row_date") < existing.get("row_date"):
+            continue
+        by_asin[asin] = {
+            "amazon_title": row.get("amazon_title"),
+            "target_price": row.get("target_price"),
+            "row_date": row.get("row_date"),
+        }
+    return by_asin
+
+
+def fetch_keepa_metadata_by_asin(supabase, asins):
+    by_asin = {}
+    for batch in chunked(asins, 200):
+        response = (
+            supabase.table("vw_latest_keepa_product_snapshot")
+            .select(
+                "asin,title,buy_box_price_avg90_cents,buy_box_price_current_cents,"
+                "new_fba_price_current_cents,new_price_current_cents"
+            )
+            .in_("asin", batch)
+            .execute()
+        )
+        for row in response.data or []:
+            asin = normalize_asin(row.get("asin"))
+            if not asin:
+                continue
+            by_asin[asin] = {
+                "amazon_title": clean_text(row.get("title")),
+                "buy_box_price_avg90": cents_to_money(row.get("buy_box_price_avg90_cents")),
+                "buy_box_price_current": cents_to_money(row.get("buy_box_price_current_cents")),
+                "new_fba_price_current": cents_to_money(row.get("new_fba_price_current_cents")),
+                "new_price_current": cents_to_money(row.get("new_price_current_cents")),
+            }
+    return by_asin
+
+
+def fetch_listing_titles_by_asin(supabase, asins):
+    by_asin = {}
+    for batch in chunked(asins, 200):
+        response = (
+            supabase.table("vw_latest_amazon_listing_snapshot")
+            .select("asin,product_name")
+            .in_("asin", batch)
+            .execute()
+        )
+        for row in response.data or []:
+            asin = normalize_asin(row.get("asin"))
+            title = clean_text(row.get("product_name"))
+            if asin and title:
+                by_asin[asin] = title
+    return by_asin
+
+
+def should_repair_amazon_title(item) -> bool:
+    amazon_title = clean_text(item.get("amazon_title"))
+    if not amazon_title:
+        return True
+    supplier_title = clean_text(item.get("title"))
+    return bool(supplier_title and amazon_title.casefold() == supplier_title.casefold())
+
+
 def update_purchase_item(supabase, item_id, asin, amazon_title, target_price):
     payload = {
         "asin": asin,
-        "amazon_title": amazon_title,
     }
+
+    if amazon_title:
+        payload["amazon_title"] = amazon_title
 
     if target_price is not None:
         payload["target_price"] = str(target_price)
@@ -792,6 +992,12 @@ def main():
     manual_match_rows = load_manual_match_rows(supabase)
     print(f"Manual match rows loaded: {len(manual_match_rows)}")
     match_rows = revseller_rows + manual_match_rows
+    existing_asin_metadata = fill_existing_asin_metadata(supabase, match_rows)
+    print(
+        "Existing ASIN metadata repair: "
+        f"{existing_asin_metadata['updated']} updated from "
+        f"{existing_asin_metadata['candidates']} candidate rows"
+    )
 
     (
         by_title_system,
@@ -925,7 +1131,7 @@ def main():
                 supabase=supabase,
                 item_id=item["item_id"],
                 asin=matched_row["asin"],
-                amazon_title=matched_row["raw_title"],
+                amazon_title=matched_row.get("amazon_title"),
                 target_price=matched_row["target_price"],
             )
             counts["updated"] += 1

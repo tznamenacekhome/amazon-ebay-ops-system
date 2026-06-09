@@ -112,6 +112,12 @@ Inventory value semantics:
 - the business inventory/cash value total is API-provided and sums Amazon inventory value, pre-Amazon purchased inventory value, Amazon cash, Amazon-to-bank in-transit cash, and YNAB cash on hand
 - total business value is snapshotted once per day in `business_value_snapshots`
 - total business value trend is backed by API-provided snapshot history
+- dashboard date-only values, including business value snapshot dates, display as
+  Pacific Time business dates and must not shift backward because JavaScript
+  parsed a `YYYY-MM-DD` value as UTC midnight
+- the total business value trend uses explicit hover/focus targets and an
+  in-chart tooltip for each data point instead of relying on native SVG title
+  behavior
 
 Inventory reconciliation:
 - open reconciliation findings are not shown on the main dashboard

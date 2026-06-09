@@ -357,6 +357,8 @@ def advisory_flags(title: str, candidate: dict[str, Any], seed: dict[str, Any], 
     for keyword in settings.excluded_keywords:
         if keyword.lower() in lower_title:
             flags.append(f"Excluded keyword: {keyword}")
+    if has_no_meaningful_title_overlap(seed.get("amazon_title"), title):
+        flags.append("Blocked: no meaningful title token overlap")
     if "disc only" in lower_title or re.search(r"\bcase only\b", lower_title):
         flags.append("Possibly incomplete")
     if is_accessory_not_game(lower_title, candidate):
@@ -375,6 +377,68 @@ def advisory_flags(title: str, candidate: dict[str, Any], seed: dict[str, Any], 
     if seed.get("is_return_heavy"):
         flags.append("Return-heavy ASIN")
     return flags
+
+
+TITLE_OVERLAP_STOP_WORDS = {
+    "3ds",
+    "360",
+    "and",
+    "brand",
+    "compatible",
+    "edition",
+    "esrb",
+    "fast",
+    "for",
+    "game",
+    "games",
+    "mac",
+    "microsoft",
+    "new",
+    "nintendo",
+    "one",
+    "pc",
+    "playstation",
+    "ps",
+    "ps2",
+    "ps3",
+    "ps4",
+    "ps5",
+    "psp",
+    "sealed",
+    "series",
+    "shipping",
+    "sony",
+    "standard",
+    "switch",
+    "the",
+    "video",
+    "wii",
+    "windows",
+    "xbox",
+}
+
+
+def has_no_meaningful_title_overlap(source_title: Any, candidate_title: Any) -> bool:
+    source_tokens = meaningful_title_tokens(source_title)
+    candidate_tokens = meaningful_title_tokens(candidate_title)
+    return bool(source_tokens and candidate_tokens and source_tokens.isdisjoint(candidate_tokens))
+
+
+def meaningful_title_tokens(value: Any) -> set[str]:
+    tokens = set()
+    for token in re.findall(r"[a-z0-9]+", str(value or "").lower()):
+        if len(token) <= 1 or token in TITLE_OVERLAP_STOP_WORDS:
+            continue
+        if re.fullmatch(r"(?:19|20)\d{2}", token):
+            continue
+        tokens.add(singular_token(token))
+    return tokens
+
+
+def singular_token(token: str) -> str:
+    if len(token) > 4 and token.endswith("s"):
+        return token[:-1]
+    return token
 
 
 def is_accessory_not_game(lower_title: str, candidate: dict[str, Any]) -> bool:

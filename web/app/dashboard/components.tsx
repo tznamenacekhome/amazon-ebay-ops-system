@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useState } from "react";
 import type { ReactNode } from "react";
 
 export type DashboardView =
@@ -183,6 +184,8 @@ export function CompactStatusTable({
 }
 
 export function TrendSparkline({ points }: { points: Array<{ date: string; value: number }> }) {
+  const [activePointKey, setActivePointKey] = useState<string | null>(null);
+
   if (points.length < 2) {
     return <div className="py-8 text-center text-sm text-slate-500">Not enough history yet.</div>;
   }
@@ -222,6 +225,8 @@ export function TrendSparkline({ points }: { points: Array<{ date: string; value
   const xTickIndexes = Array.from(new Set([0, Math.floor((points.length - 1) / 2), points.length - 1]));
   const first = coordinates[0];
   const last = coordinates[coordinates.length - 1];
+  const activePoint = coordinates.find((point) => pointKey(point) === activePointKey) ?? null;
+  const tooltip = activePoint ? tooltipPosition(activePoint.x, activePoint.y, width, height) : null;
   const change = last.value - first.value;
   const changePercent = first.value ? change / first.value : 0;
 
@@ -245,7 +250,13 @@ export function TrendSparkline({ points }: { points: Array<{ date: string; value
           </div>
         </div>
       </div>
-      <svg viewBox={`0 0 ${width} ${height}`} className="h-56 w-full" role="img" aria-label="Total business value trend">
+      <svg
+        viewBox={`0 0 ${width} ${height}`}
+        className="h-56 w-full"
+        role="img"
+        aria-label="Total business value trend"
+        onMouseLeave={() => setActivePointKey(null)}
+      >
         {yTicks.map((tick) => (
           <g key={tick.value}>
             <line x1={margin.left} x2={width - margin.right} y1={tick.y} y2={tick.y} stroke="#e2e8f0" />
@@ -267,15 +278,63 @@ export function TrendSparkline({ points }: { points: Array<{ date: string; value
             </g>
           );
         })}
-        <path d={path} fill="none" stroke="#0f172a" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+        <path d={path} fill="none" stroke="#0f172a" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" pointerEvents="none" />
         {coordinates.map((point) => (
-          <circle key={`${point.date}-${point.value}`} cx={point.x} cy={point.y} r="4" fill="#ffffff" stroke="#0f172a" strokeWidth="2">
-            <title>{`${formatChartDate(point.date)}: ${formatCompactMoney(point.value)}`}</title>
-          </circle>
+          <g key={pointKey(point)}>
+            <circle
+              cx={point.x}
+              cy={point.y}
+              r={activePointKey === pointKey(point) ? 6 : 4}
+              fill="#ffffff"
+              stroke={activePointKey === pointKey(point) ? "#2563eb" : "#0f172a"}
+              strokeWidth="2"
+              pointerEvents="none"
+            />
+            <circle
+              cx={point.x}
+              cy={point.y}
+              r="14"
+              fill="transparent"
+              className="cursor-pointer"
+              tabIndex={0}
+              role="button"
+              aria-label={`${formatChartDate(point.date)}: ${formatCompactMoney(point.value)}`}
+              onMouseEnter={() => setActivePointKey(pointKey(point))}
+              onFocus={() => setActivePointKey(pointKey(point))}
+              onBlur={() => setActivePointKey(null)}
+            />
+          </g>
         ))}
+        {activePoint && tooltip ? (
+          <g pointerEvents="none">
+            <line x1={activePoint.x} x2={activePoint.x} y1={margin.top} y2={height - margin.bottom} stroke="#93c5fd" strokeDasharray="4 4" />
+            <rect x={tooltip.x} y={tooltip.y} width={150} height={46} rx={6} fill="#0f172a" opacity="0.96" />
+            <text x={tooltip.x + 10} y={tooltip.y + 18} className="fill-white text-[12px] font-semibold">
+              {formatChartDate(activePoint.date)}
+            </text>
+            <text x={tooltip.x + 10} y={tooltip.y + 35} className="fill-slate-200 text-[12px]">
+              {formatCompactMoney(activePoint.value)}
+            </text>
+          </g>
+        ) : null}
       </svg>
     </div>
   );
+}
+
+function pointKey(point: { date: string; value: number }) {
+  return `${point.date}-${point.value}`;
+}
+
+function tooltipPosition(x: number, y: number, width: number, height: number) {
+  const tooltipWidth = 150;
+  const tooltipHeight = 46;
+  const xOffset = x > width - tooltipWidth - 24 ? -tooltipWidth - 12 : 12;
+  const yOffset = y > height - tooltipHeight - 24 ? -tooltipHeight - 12 : 12;
+  return {
+    x: x + xOffset,
+    y: y + yOffset,
+  };
 }
 
 export function FreshnessBadge({ refreshedAt }: { refreshedAt: string | null | undefined }) {
@@ -311,16 +370,26 @@ function formatDateTime(value: string | null | undefined) {
     day: "numeric",
     hour: "numeric",
     minute: "2-digit",
+    timeZone: "America/Los_Angeles",
   }).format(date);
 }
 
 function formatChartDate(value: string | null | undefined) {
   if (!value) return "--";
+  const dateOnlyMatch = value.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (dateOnlyMatch) {
+    const [, year, month, day] = dateOnlyMatch;
+    return new Intl.DateTimeFormat("en-US", {
+      month: "short",
+      day: "numeric",
+    }).format(new Date(Number(year), Number(month) - 1, Number(day)));
+  }
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
   return new Intl.DateTimeFormat("en-US", {
     month: "short",
     day: "numeric",
+    timeZone: "America/Los_Angeles",
   }).format(date);
 }
 

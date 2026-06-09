@@ -49,7 +49,7 @@ export default function SourcingPage() {
       : activeTab === "Purchased Pending Match"
         ? "purchased_pending_match"
         : status;
-  const { rows, summary, loading, error, reload, setError } = useSourcingOpportunities(
+  const { rows, summary, loading, error, reload, removeRows, setError } = useSourcingOpportunities(
     effectiveStatus,
     type,
     searchText,
@@ -81,7 +81,7 @@ export default function SourcingPage() {
       });
       const result = await response.json();
       if (!response.ok) throw new Error(result.error ?? "Action failed.");
-      await reload();
+      removeRows([row.opportunityId]);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Action failed.");
       } finally {
@@ -104,7 +104,7 @@ export default function SourcingPage() {
         if (!response.ok) throw new Error(result.error ?? "Action failed.");
       }
       setSelectedIds(new Set());
-      await reload();
+      removeRows(rowsToUpdate.map((row) => row.opportunityId));
     } catch (err) {
       setError(err instanceof Error ? err.message : "Bulk action failed.");
     } finally {
@@ -532,11 +532,13 @@ function ReplenishmentTable({
 }
 
 function CostCell({ row }: { row: SourcingOpportunity }) {
+  const originalCostLabel = originalCurrencyCostLabel(row);
   if (row.shippingQuoteStatus === "unknown_no_cost" || row.shippingQuoteStatus === "unknown_no_options") {
     return (
       <div>
         <div className="font-medium text-slate-500">Needs quote</div>
         <div className="text-xs text-slate-500">Item {money(row.itemPrice)}</div>
+        {originalCostLabel ? <div className="text-xs text-slate-500">{originalCostLabel}</div> : null}
         <div className="text-xs font-medium text-amber-700">{row.shippingQuoteLabel}</div>
       </div>
     );
@@ -548,6 +550,7 @@ function CostCell({ row }: { row: SourcingOpportunity }) {
       <div className="text-xs text-slate-500">
         {row.shippingQuoteStatus === "known_free" ? "Free shipping" : `Shipping ${money(row.shippingPrice)}`}
       </div>
+      {originalCostLabel ? <div className="text-xs text-slate-500">{originalCostLabel}</div> : null}
     </div>
   );
 }
@@ -855,6 +858,23 @@ function label(value: string) {
 
 function money(value: number | null | undefined) {
   return typeof value === "number" ? `$${value.toFixed(2)}` : "--";
+}
+
+function originalCurrencyCostLabel(row: SourcingOpportunity) {
+  if (!row.originalCurrency || row.originalItemPrice === null) return null;
+  const parts = [`Orig ${formatCurrency(row.originalItemPrice, row.originalCurrency)}`];
+  if (row.originalShippingPrice !== null) {
+    parts.push(`ship ${formatCurrency(row.originalShippingPrice, row.originalCurrency)}`);
+  }
+  return parts.join(" + ");
+}
+
+function formatCurrency(value: number, currency: string) {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency,
+    currencyDisplay: "narrowSymbol",
+  }).format(value);
 }
 
 function percent(value: number | null | undefined) {

@@ -33,5 +33,24 @@ export function useSourcingOpportunities(status: string, type: string, searchTex
     void load();
   }, [load]);
 
-  return { rows, summary, loading, error, reload: load, setError };
+  const removeRows = useCallback((opportunityIds: string[]) => {
+    const ids = new Set(opportunityIds);
+    setRows((currentRows) => {
+      const nextRows = currentRows.filter((row) => !ids.has(row.opportunityId));
+      setSummary(summarizeRows(nextRows));
+      return nextRows;
+    });
+  }, []);
+
+  return { rows, summary, loading, error, reload: load, removeRows, setError };
+}
+
+function summarizeRows(rows: SourcingOpportunity[]) {
+  return {
+    total: rows.length,
+    buyNow: rows.filter((row) => row.opportunityType === "buy_now").length,
+    bestOffer: rows.filter((row) => row.opportunityType === "best_offer").length,
+    auction: rows.filter((row) => row.opportunityType === "auction").length,
+    multiUnit: rows.filter((row) => row.opportunityType === "multi_unit").length,
+  };
 }

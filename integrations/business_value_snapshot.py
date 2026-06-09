@@ -12,11 +12,13 @@ import datetime as dt
 import logging
 import os
 from typing import Any
+from zoneinfo import ZoneInfo
 
 from dotenv import load_dotenv
 from supabase import create_client
 
 LOGGER = logging.getLogger("business_value_snapshot")
+BUSINESS_TIME_ZONE = ZoneInfo("America/Los_Angeles")
 
 AMAZON_FBA_STATES = [
     "amazon_fba_sellable",
@@ -76,7 +78,7 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--snapshot-date",
-        default=dt.date.today().isoformat(),
+        default=dt.datetime.now(BUSINESS_TIME_ZONE).date().isoformat(),
         help="Snapshot date in YYYY-MM-DD format. Defaults to today.",
     )
     parser.add_argument(

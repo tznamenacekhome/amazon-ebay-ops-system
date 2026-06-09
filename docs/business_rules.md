@@ -37,10 +37,11 @@ Carrier/status syncs must not downgrade workflow-owned statuses.
   or override platform boundaries, and low-confidence responses must remain
   unmatched for manual review. Scheduled AI review should focus on open
   purchase-work rows and write an auditable diagnostics row for each AI match.
-- If a row already has a reviewed ASIN but no Amazon title, MBOP may fill only
-  `purchase_items.amazon_title` from stored Keepa catalog snapshots or a
-  guarded no-history Keepa product lookup. This must not change ASIN, system,
-  price, cost, status, or workflow state.
+- If a row already has a reviewed ASIN but is missing Amazon metadata, MBOP may
+  fill only `purchase_items.amazon_title` and/or `purchase_items.target_price`
+  from manual match memory, RevSeller, Amazon listing snapshots, or stored Keepa
+  catalog snapshots. This must not change ASIN, system, cost, status, or
+  workflow state.
 - ASIN is the primary Amazon product identity for MBOP operational inventory. MSKU remains stored for Amazon traceability and InventoryLab/Informed joins.
 
 ## Sourcing
@@ -52,6 +53,10 @@ Carrier/status syncs must not downgrade workflow-owned statuses.
 - Excluded sourcing keywords, such as Steam, message delivery, DLC, promo, VPN,
   and disc-only signals, must prevent rows from appearing as open opportunities
   even when Best Offer or auction math would otherwise look profitable.
+- Sourcing must hard-block eBay results whose meaningful title words have no
+  overlap with the Amazon title after removing platform and generic words. A
+  shared platform alone, such as Nintendo Wii, is not enough to keep an
+  opportunity open.
 - Unknown eBay ZIP shipping estimates may be shown as watch opportunities when
   otherwise plausible, but MBOP must not calculate profit, ROI, offer, or bid
   guidance from assumed free shipping.
@@ -160,6 +165,9 @@ Carrier/status syncs must not downgrade workflow-owned statuses.
   bank/cash transaction is present, without double-counting deposits that YNAB
   already captured.
 - Business value snapshots are reporting snapshots only.
+- Business value snapshot dates and MBOP dashboard date-only displays are
+  Pacific Time business dates. Date-only strings must not be parsed as UTC
+  timestamps for display.
 - Dashboard cash/value freshness is limited by the oldest required cash/value
   input: business value snapshot, Amazon Finance balance snapshot, or YNAB cash
   snapshot.

@@ -961,17 +961,29 @@ function formatDateShort(value: string | null | undefined) {
     day: "numeric",
     hour: "numeric",
     minute: "2-digit",
+    timeZone: "America/Los_Angeles",
   }).format(date);
 }
 
 function formatDateOnly(value: unknown) {
   if (!value) return "--";
-  const date = new Date(String(value));
+  const textValue = String(value);
+  const dateOnlyMatch = textValue.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (dateOnlyMatch) {
+    const [, year, month, day] = dateOnlyMatch;
+    return new Intl.DateTimeFormat("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    }).format(new Date(Number(year), Number(month) - 1, Number(day)));
+  }
+  const date = new Date(textValue);
   if (Number.isNaN(date.getTime())) return String(value);
   return new Intl.DateTimeFormat("en-US", {
     month: "short",
     day: "numeric",
     year: "numeric",
+    timeZone: "America/Los_Angeles",
   }).format(date);
 }
 

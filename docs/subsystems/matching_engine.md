@@ -170,6 +170,14 @@ The script:
 - updates missing ASIN, amazon_title, and target sell price
 - skips ambiguous or missing order matches
 
+## Existing ASIN Metadata Repair
+
+RevSeller enrichment also repairs rows that already have a reviewed ASIN but are
+missing Amazon metadata. It may fill a blank Amazon title or target sell price
+from manual match memory, RevSeller, Amazon listing snapshots, or stored Keepa
+catalog snapshots. It must not change ASIN, system, cost, status, or workflow
+state for these rows.
+
 Latest run:
 - filled 340 ASINs
 - filled 2,141 target sell prices

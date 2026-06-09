@@ -222,6 +222,22 @@ Sort priority:
 
 ROI is configurable but not primary sort order.
 
+After priority sorting, the Replenishment list groups rows by ASIN while
+preserving the highest-priority row's ASIN group position. This lets the
+operator review all opportunities for the same product together.
+
+## Title Match Guardrails
+
+eBay may return unrelated games when the platform matches. MBOP must hard-block
+an opportunity when the Amazon title and eBay result title have no meaningful
+title-token overlap after removing platform and generic tokens such as Nintendo,
+Wii, Xbox, PlayStation, Switch, game, games, edition, new, and sealed.
+
+Example:
+- Amazon title: Carnival Games - Nintendo Wii
+- eBay result title: Go Play Circus Star (Nintendo Wii, 2009)
+- Result: blocked because only the platform overlaps.
+
 ## Opportunity Grid
 
 Columns:
@@ -242,6 +258,17 @@ Landed Cost format:
 - $20.00 ($5 ship)
 - $20.00 if free shipping
 - Needs quote / item price shown separately when eBay does not return a shipping estimate
+- When eBay returns converted pricing, the grid shows MBOP's USD landed-cost
+  values and a secondary original-currency line, such as CAD item and shipping
+  amounts, so Seller Central/eBay page comparisons are understandable.
+
+Row action behavior:
+- Single-row actions such as Dismiss, Watch, and Purchased/Offer Made update the
+  current grid locally and remove the acted-on row without reloading or
+  resorting the remaining rows.
+- Bulk actions also remove affected rows locally without re-sorting.
+- The Replenishment list may re-sort only after explicit Refresh, tab changes,
+  search/filter changes, settings re-apply, or a new sourcing run.
 
 ## AI Visual Analysis
 
