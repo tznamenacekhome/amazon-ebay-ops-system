@@ -213,7 +213,9 @@ Implemented:
 
 Safety:
 - MBOP does not create eBay returns, send messages, accept offers, escalate cases, issue refunds, or upload files
-- the old `integrations/ebay_sync_supplier_returns.py` remains disabled in `run_all_syncs.py`
+- the old `integrations/ebay_sync_supplier_returns.py` has been removed from
+  active orchestration and System Health; Order Problems owns the active
+  return/inquiry/case sync
 - current eBay return actions are performed manually on ebay.com, with MBOP storing local workflow state and links
 
 Known follow-up:
@@ -261,7 +263,8 @@ Recent validation:
   scheduled group and reads eBay Post-Order returns, INR inquiries/details, and
   cases without performing marketplace writes
 - EasyPost sync processed/reused 103 shipment trackers with 2 FedEx credential errors remaining
-- legacy eBay supplier returns sync remains disabled because the new Order Problems return/inquiry sync owns the active workflow
+- legacy eBay supplier returns sync has been removed from orchestration because
+  the new Order Problems return/inquiry sync owns the active workflow
 - RevSeller sync completed and wrote diagnostics
 - Amazon FBA inventory sync fetched 6,292 summaries, upserted 6,292 SKUs, and inserted 6,292 snapshots
 - Amazon listing-status sync inserted 296 active listing snapshots

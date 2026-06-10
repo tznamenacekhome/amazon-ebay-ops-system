@@ -8,6 +8,7 @@ import re
 from typing import Any
 
 from sourcing_common import chunked, fetch_settings, get_supabase_client, paginate_table, to_float
+from system_detection import detect_system_from_title
 
 
 NEED_POINTS = {"critical": 40, "high": 28, "medium": 14, "low": 4}
@@ -130,10 +131,8 @@ def fetch_existing_opportunities(supabase, run_id: str) -> list[dict[str, Any]]:
 def merge_existing_opportunity(existing: dict[str, Any], scored: dict[str, Any]) -> dict[str, Any]:
     preserved_statuses = {
         "dismissed",
-        "watching",
         "purchased_pending_match",
         "matched_to_purchase",
-        "roi_snoozed",
     }
     status = existing.get("status") if existing.get("status") in preserved_statuses else scored.get("status")
     return {
@@ -172,15 +171,15 @@ def fetch_run_rows(supabase, table_name: str, run_id: str, page_size: int = 1000
         start += page_size
 
 
-def fetch_historical_status_by_key(supabase) -> dict[tuple[str, str], str]:
+def fetch_historical_status_by_key(supabase) -> dict[tuple[str, str], dict[str, Any]]:
     rows = paginate_table(
         supabase,
         "sourcing_actions",
-        "asin,ebay_item_id,action_type,created_at",
+        "asin,ebay_item_id,action_type,created_at,expected_purchase_cost,required_max_landed_cost,required_roi_percent",
         order_column="created_at",
         desc=False,
     )
-    status_by_key: dict[tuple[str, str], str] = {}
+    status_by_key: dict[tuple[str, str], dict[str, Any]] = {}
     action_status = {
         "dismissed": "dismissed",
         "watching": "watching",
@@ -192,7 +191,7 @@ def fetch_historical_status_by_key(supabase) -> dict[tuple[str, str], str]:
         ebay_item_id = str(row.get("ebay_item_id") or "")
         status = action_status.get(str(row.get("action_type") or ""))
         if asin and ebay_item_id and status:
-            status_by_key[(asin, ebay_item_id)] = status
+            status_by_key[(asin, ebay_item_id)] = {**row, "status": status}
     return status_by_key
 
 
@@ -227,7 +226,7 @@ def score_candidate(
     seed: dict[str, Any] | None,
     settings,
     keepa_prices_by_asin: dict[str, dict[str, float | None]] | None = None,
-    historical_status_by_key: dict[tuple[str, str], str] | None = None,
+    historical_status_by_key: dict[tuple[str, str], dict[str, Any]] | None = None,
 ) -> dict[str, Any] | None:
     if not seed:
         return None
@@ -282,15 +281,23 @@ def score_candidate(
         and (passes or opportunity_type in {"best_offer", "auction", "multi_unit"} or potential_without_shipping)
         else "rejected"
     )
-    historical_status = (historical_status_by_key or {}).get(
-        (str(candidate.get("asin") or "").upper(), str(candidate.get("ebay_item_id") or ""))
-    )
-    if historical_status:
-        status = historical_status
     score = opportunity_score(seed, profit, roi, quantity_available, opportunity_type)
     displayed_max_landed_cost = best_offer_cap if opportunity_type == "best_offer" else max_profitable_landed_cost
     max_offer_price = suggested_offer(candidate, best_offer_cap, settings)
     required_offer_percent_of_ask = required_offer_percent(candidate, best_offer_cap)
+    historical_status = (historical_status_by_key or {}).get(
+        (str(candidate.get("asin") or "").upper(), str(candidate.get("ebay_item_id") or ""))
+    )
+    if historical_status:
+        status = apply_historical_status(
+            historical_status,
+            status,
+            opportunity_type,
+            landed_cost,
+            item_price,
+            max_offer_price,
+            displayed_max_landed_cost,
+        )
     score_reason = (
         f"{seed.get('inventory_need_level')} need, shipping unknown, max landed cost ${displayed_max_landed_cost}"
         if shipping_unknown
@@ -327,6 +334,79 @@ def score_candidate(
     }
 
 
+def apply_historical_status(
+    historical_status: dict[str, Any],
+    scored_status: str,
+    opportunity_type: str,
+    landed_cost: float | None,
+    item_price: float,
+    max_offer_price: float | None,
+    max_landed_cost: float,
+) -> str:
+    status = str(historical_status.get("status") or "")
+    if status in {"watching", "roi_snoozed"}:
+        if should_reactivate_watched_opportunity(
+            historical_status,
+            scored_status,
+            opportunity_type,
+            landed_cost,
+            item_price,
+            max_offer_price,
+            max_landed_cost,
+        ):
+            return scored_status
+        return status
+    return status or scored_status
+
+
+def should_reactivate_watched_opportunity(
+    historical_status: dict[str, Any],
+    scored_status: str,
+    opportunity_type: str,
+    landed_cost: float | None,
+    item_price: float,
+    max_offer_price: float | None,
+    max_landed_cost: float,
+) -> bool:
+    if scored_status != "open":
+        return False
+
+    current_purchase_cost = watch_reference_purchase_cost(opportunity_type, landed_cost, item_price, max_offer_price)
+    watched_purchase_cost = nullable_float(historical_status.get("expected_purchase_cost"))
+    watched_max_landed_cost = nullable_float(historical_status.get("required_max_landed_cost"))
+
+    price_improved = (
+        watched_purchase_cost is not None
+        and current_purchase_cost is not None
+        and current_purchase_cost < watched_purchase_cost - 0.009
+    )
+    sell_price_cap_improved = (
+        watched_max_landed_cost is not None
+        and max_landed_cost > watched_max_landed_cost + 0.009
+    )
+    return price_improved or sell_price_cap_improved
+
+
+def watch_reference_purchase_cost(
+    opportunity_type: str,
+    landed_cost: float | None,
+    item_price: float,
+    max_offer_price: float | None,
+) -> float | None:
+    if opportunity_type == "best_offer" and max_offer_price is not None:
+        return max_offer_price
+    if landed_cost is not None:
+        return landed_cost
+    return item_price if item_price > 0 else None
+
+
+def nullable_float(value: Any) -> float | None:
+    if value is None or value == "":
+        return None
+    number = to_float(value, 0)
+    return number if number > 0 else None
+
+
 def best_offer_reference_price(seed: dict[str, Any], keepa_prices_by_asin: dict[str, dict[str, float | None]]) -> float | None:
     asin = str(seed.get("asin") or "").upper()
     keepa = keepa_prices_by_asin.get(asin) or {}
@@ -359,6 +439,8 @@ def advisory_flags(title: str, candidate: dict[str, Any], seed: dict[str, Any], 
             flags.append(f"Excluded keyword: {keyword}")
     if has_no_meaningful_title_overlap(seed.get("amazon_title"), title):
         flags.append("Blocked: no meaningful title token overlap")
+    if is_wii_seed_with_wii_u_result(seed, title):
+        flags.append("Blocked: Wii U result for Wii seed")
     if "disc only" in lower_title or re.search(r"\bcase only\b", lower_title):
         flags.append("Possibly incomplete")
     if is_accessory_not_game(lower_title, candidate):
@@ -413,8 +495,11 @@ TITLE_OVERLAP_STOP_WORDS = {
     "the",
     "video",
     "wii",
+    "wiiu",
     "windows",
     "xbox",
+    "xb1",
+    "xbone",
 }
 
 
@@ -422,6 +507,12 @@ def has_no_meaningful_title_overlap(source_title: Any, candidate_title: Any) -> 
     source_tokens = meaningful_title_tokens(source_title)
     candidate_tokens = meaningful_title_tokens(candidate_title)
     return bool(source_tokens and candidate_tokens and source_tokens.isdisjoint(candidate_tokens))
+
+
+def is_wii_seed_with_wii_u_result(seed: dict[str, Any], candidate_title: str) -> bool:
+    seed_system = detect_system_from_title(str(seed.get("amazon_title") or ""))
+    candidate_system = detect_system_from_title(candidate_title)
+    return seed_system == "Wii" and candidate_system == "Wii U"
 
 
 def meaningful_title_tokens(value: Any) -> set[str]:

@@ -16,7 +16,7 @@ type JobConfig = {
   id: string;
   name: string;
   command: string;
-  group: "core" | "daily" | "catalog" | "disabled";
+  group: "core" | "daily" | "catalog" | "monthly" | "disabled";
   blocking: boolean;
   enabled?: boolean;
   disabledReason?: string;
@@ -110,16 +110,24 @@ const JOBS: JobConfig[] = [
     signal: async () => latestTimestampSignal("inbound_shipments", "last_tracking_sync", "Shipments"),
   },
   {
-    id: "supplier-returns",
-    name: "eBay supplier returns",
-    command: "integrations/ebay_sync_supplier_returns.py",
-    group: "disabled",
+    id: "order-problem-returns",
+    name: "eBay order problem returns/inquiries",
+    command: "integrations/ebay_sync_order_problem_returns.py --lookback-days 60 --limit 100 --apply",
+    group: "core",
+    blocking: false,
+    expectedEveryHours: 12,
+    criticalAfterHours: 24,
+    signal: async () => latestTimestampSignal("order_problem_events", "created_at", "Events"),
+  },
+  {
+    id: "sourcing-purchase-matching",
+    name: "Sourcing purchase matching",
+    command: "integrations/match_sourcing_purchases.py",
+    group: "core",
     blocking: true,
-    enabled: false,
-    disabledReason: "Disabled pending returns feature redesign.",
-    expectedEveryHours: 24,
-    criticalAfterHours: 48,
-    signal: async () => latestTimestampSignal("supplier_returns", "updated_at", "Returns"),
+    expectedEveryHours: 12,
+    criticalAfterHours: 24,
+    signal: async () => latestTimestampSignal("sourcing_purchase_matches", "matched_at", "Matches"),
   },
   {
     id: "revseller-enrichment",
@@ -237,9 +245,19 @@ const JOBS: JobConfig[] = [
     signal: async () => latestTimestampSignal("veeqo_sales_orders", "updated_at", "Veeqo orders"),
   },
   {
-    id: "amazon-sales-finances",
-    name: "Amazon sales finances",
-    command: "integrations/amazon_sync_sales_finances.py",
+    id: "recent-amazon-sales-finances",
+    name: "Recent Amazon sales finances",
+    command: "integrations/amazon_sync_sales_finances.py --order-finance-delay-seconds 1.5 --apply",
+    group: "core",
+    blocking: false,
+    expectedEveryHours: 12,
+    criticalAfterHours: 24,
+    signal: async () => latestTimestampSignal("amazon_sales_financial_events", "created_at", "Financial rows"),
+  },
+  {
+    id: "amazon-missing-fee-sales-finances",
+    name: "Amazon missing-fee sales finances",
+    command: "integrations/amazon_sync_sales_finances.py --order-finance-delay-seconds 1.5 --missing-fees-only --apply",
     group: "daily",
     blocking: false,
     expectedEveryHours: 24,
@@ -247,13 +265,23 @@ const JOBS: JobConfig[] = [
     signal: async () => latestTimestampSignal("amazon_sales_financial_events", "created_at", "Financial rows"),
   },
   {
-    id: "amazon-sales-profitability",
-    name: "Amazon sales profitability",
-    command: "integrations/amazon_sales_profitability.py",
+    id: "recent-sales-profitability",
+    name: "Recent sales profitability",
+    command: "integrations/amazon_sales_profitability.py --apply",
     group: "core",
     blocking: false,
     expectedEveryHours: 12,
     criticalAfterHours: 24,
+    signal: async () => latestTimestampSignal("amazon_sales_profitability", "updated_at", "Profit rows"),
+  },
+  {
+    id: "daily-missing-fee-sales-profitability",
+    name: "Daily missing-fee sales profitability",
+    command: "integrations/amazon_sales_profitability.py --missing-fees-only --apply",
+    group: "daily",
+    blocking: false,
+    expectedEveryHours: 24,
+    criticalAfterHours: 36,
     signal: async () => latestTimestampSignal("amazon_sales_profitability", "updated_at", "Profit rows"),
   },
   {
@@ -345,7 +373,7 @@ const JOBS: JobConfig[] = [
   },
   {
     id: "keepa-products",
-    name: "Keepa products",
+    name: "Keepa active products",
     command: "integrations/keepa_sync_products.py",
     group: "catalog",
     blocking: true,
@@ -422,6 +450,16 @@ const JOBS: JobConfig[] = [
       };
     },
   },
+  {
+    id: "inventory-source-balance-audit",
+    name: "Inventory source balance audit",
+    command: "inventory_source_balance_audit.bat",
+    group: "monthly",
+    blocking: true,
+    expectedEveryHours: 31 * 24,
+    criticalAfterHours: 45 * 24,
+    signal: async () => inventorySourceBalanceAuditSignal(),
+  },
 ];
 
 export async function GET() {
@@ -442,6 +480,7 @@ export async function GET() {
             hoursSinceLastRun: null,
             expectedEveryHours: job.expectedEveryHours,
             criticalAfterHours: job.criticalAfterHours,
+            schedule: scheduleForGroup(job.group),
             source: "run_all_syncs.py",
             stats: [],
             message: job.disabledReason || null,
@@ -488,6 +527,7 @@ export async function GET() {
           hoursSinceLastRun,
           expectedEveryHours: job.expectedEveryHours,
           criticalAfterHours: job.criticalAfterHours,
+          schedule: scheduleForGroup(job.group),
           source,
           stats: signal.stats,
           message,
@@ -535,6 +575,14 @@ function statusForSignal(signal: JobSignal, hoursSinceLastRun: number | null, jo
   if (hoursSinceLastRun >= job.criticalAfterHours) return "failed";
   if (hoursSinceLastRun >= job.expectedEveryHours) return "delayed";
   return "ok";
+}
+
+function scheduleForGroup(group: JobConfig["group"]) {
+  if (group === "core") return "Daily at 6:00 AM and 4:00 PM PT";
+  if (group === "daily") return "Daily at 8:00 PM PT";
+  if (group === "catalog") return "Daily at 9:30 PM PT";
+  if (group === "monthly") return "Monthly on the 1st at 6:30 AM PT";
+  return "Not scheduled";
 }
 
 async function latestTimestampSignal(table: string, column: string, countLabel: string): Promise<JobSignal> {
@@ -633,6 +681,29 @@ async function latestRevsellerDiagnosticsSignal(): Promise<JobSignal> {
     source: latest.fileName,
     stats: [{ label: "Unmatched diagnostics", value: formatCount(rows) }],
   };
+}
+
+async function inventorySourceBalanceAuditSignal(): Promise<JobSignal> {
+  const filePath = path.resolve(process.cwd(), "..", "logs", "inventory_source_balance_audit_latest.json");
+  try {
+    const [stat, text] = await Promise.all([fs.stat(filePath), fs.readFile(filePath, "utf8")]);
+    const parsed = JSON.parse(text) as Record<string, unknown>;
+    return {
+      lastRunAt: stringValue(parsed.captured_at) || stat.mtime.toISOString(),
+      source: "logs/inventory_source_balance_audit_latest.json",
+      stats: [
+        { label: "ASINs", value: formatCount(parsed.asin_count) },
+        { label: "Missing COGS units", value: formatCount(parsed.missing_cogs_units) },
+      ],
+    };
+  } catch {
+    return {
+      lastRunAt: null,
+      source: "logs/inventory_source_balance_audit_latest.json",
+      stats: [],
+      message: "No inventory source balance audit output found.",
+    };
+  }
 }
 
 async function missingPurchaseTitleSignal(): Promise<JobSignal> {

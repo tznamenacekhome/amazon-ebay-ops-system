@@ -163,7 +163,9 @@ A previous process imported legacy returns from a spreadsheet and from eBay. We 
 - If existing supplier return tables contain legacy completed/refunded rows, create a safe cleanup SQL script that deletes only old return workflow rows and does not delete or downgrade purchase_items.
 - Existing `Return Pending` items should seed new problem cases.
 
-The current eBay supplier returns sync should remain disabled until the redesigned workflow is implemented.
+The legacy eBay supplier returns sync was only to remain disabled during
+redesign. The implemented Order Problems workflow replaces it with
+`integrations/ebay_sync_order_problem_returns.py`.
 
 ## Schema requirement
 

@@ -1,6 +1,6 @@
 # Business Rules
 
-Last updated: 2026-06-04
+Last updated: 2026-06-08
 
 ## Cost And Reporting
 
@@ -57,12 +57,20 @@ Carrier/status syncs must not downgrade workflow-owned statuses.
   overlap with the Amazon title after removing platform and generic words. A
   shared platform alone, such as Nintendo Wii, is not enough to keep an
   opportunity open.
+- eBay sourcing search must include common seller platform abbreviations, such
+  as xb1, ps2, ps3, ps4, ps5, Switch, Wii, Wii U, and wiiu. Wii and Wii U are
+  separate platforms; a Wii seed must not accept a Wii U eBay result.
 - Unknown eBay ZIP shipping estimates may be shown as watch opportunities when
   otherwise plausible, but MBOP must not calculate profit, ROI, offer, or bid
   guidance from assumed free shipping.
 - Best Offer guidance subtracts eBay shipping from the landed cap and evaluates
   the item offer against the eBay asking price before shipping. Best Offer caps
   use the lower of stored Keepa 90-day price and current Amazon market price.
+- Watch replaces ROI Snoozed in the sourcing operator workflow. A watched row
+  can return to open Replenishment only when normal scoring passes and either
+  the eBay purchase-cost reference falls below the watched baseline or the
+  Amazon sale-price/profitability context raises the profitable landed-cost cap.
+  Best Offer watch baselines use the suggested item offer before shipping.
 - Purchased Pending Match is also used for Best Offers made by the operator. If
   no matching eBay purchase appears within 72 hours, the sourcing matcher moves
   the row back to Watchlist.

@@ -12,11 +12,22 @@ from urllib.parse import quote
 import requests
 
 from sourcing_common import chunked, fetch_settings, get_supabase_client, required_env, to_float
+from system_detection import detect_system_from_title, normalize_spaces, remove_system_terms
 from title_cleaning import clean_marketplace_title_for_search
 
 
 EBAY_BROWSE_SEARCH_URL = "https://api.ebay.com/buy/browse/v1/item_summary/search"
 EBAY_BROWSE_ITEM_URL = "https://api.ebay.com/buy/browse/v1/item"
+SEARCH_SYSTEM_ALIASES = {
+    "Xbox One": ["Xbox One", "xb1"],
+    "PS 2": ["PlayStation 2", "ps2"],
+    "PS 3": ["PlayStation 3", "ps3"],
+    "PS 4": ["PlayStation 4", "ps4"],
+    "PS 5": ["PlayStation 5", "ps5"],
+    "Switch": ["Nintendo Switch", "Switch"],
+    "Wii": ["Nintendo Wii", "Wii"],
+    "Wii U": ["Nintendo Wii U", "Wii U", "wiiu"],
+}
 
 
 def main() -> int:
@@ -26,22 +37,23 @@ def main() -> int:
     token = get_access_token()
     seeds = fetch_seeds(supabase, args.run_id, args.limit)
     rows_by_item_id: dict[str, dict[str, Any]] = {}
+    api_call_count = 0
 
     for index, seed in enumerate(seeds, start=1):
-        query = clean_marketplace_title_for_search(seed.get("amazon_title"))
-        if not query:
-            continue
-        print(f"[{index}/{len(seeds)}] {seed['asin']} search: {query}")
-        items = search_ebay(token, query, settings, args.max_results_per_asin)
-        for item in items:
-            item = enrich_item_if_shipping_missing(token, item, settings)
-            row = map_item(seed, item)
-            if not is_allowed_candidate(row, item, settings):
-                continue
-            ebay_item_id = str(row.get("ebay_item_id") or "")
-            if ebay_item_id and ebay_item_id not in rows_by_item_id:
-                rows_by_item_id[ebay_item_id] = row
-        time.sleep(args.pause_seconds)
+        queries = search_queries_for_seed(seed)
+        for query_index, query in enumerate(queries, start=1):
+            print(f"[{index}/{len(seeds)}:{query_index}/{len(queries)}] {seed['asin']} search: {query}")
+            items = search_ebay(token, query, settings, args.max_results_per_asin)
+            api_call_count += 1
+            for item in items:
+                item = enrich_item_if_shipping_missing(token, item, settings)
+                row = map_item(seed, item)
+                if not is_allowed_candidate(row, item, settings, seed):
+                    continue
+                ebay_item_id = str(row.get("ebay_item_id") or "")
+                if ebay_item_id and ebay_item_id not in rows_by_item_id:
+                    rows_by_item_id[ebay_item_id] = row
+            time.sleep(args.pause_seconds)
     rows = list(rows_by_item_id.values())
 
     print("eBay sourcing search")
@@ -62,7 +74,7 @@ def main() -> int:
             "status": "running",
             "search_count": len(seeds),
             "candidate_count": len(rows),
-            "api_call_count": len(seeds),
+            "api_call_count": api_call_count,
             "settings_snapshot": settings.__dict__,
         }
     ).eq("sourcing_run_id", args.run_id).execute()
@@ -89,6 +101,36 @@ def fetch_seeds(supabase, run_id: str, limit: int) -> list[dict[str, Any]]:
         .execute()
     )
     return response.data or []
+
+
+def search_queries_for_seed(seed: dict[str, Any]) -> list[str]:
+    amazon_title = str(seed.get("amazon_title") or "")
+    base_query = clean_marketplace_title_for_search(amazon_title)
+    if not base_query:
+        return []
+
+    system = detect_system_from_title(amazon_title)
+    aliases = SEARCH_SYSTEM_ALIASES.get(system or "", [])
+    title_without_system = normalize_spaces(remove_system_terms(base_query.lower()))
+    queries = [base_query]
+
+    if title_without_system and aliases:
+        for alias in aliases:
+            queries.append(normalize_spaces(f"{title_without_system} {alias}"))
+
+    return unique_queries(queries)
+
+
+def unique_queries(queries: list[str]) -> list[str]:
+    seen = set()
+    output = []
+    for query in queries:
+        normalized_key = normalize_spaces(query).casefold()
+        if not normalized_key or normalized_key in seen:
+            continue
+        seen.add(normalized_key)
+        output.append(normalize_spaces(query))
+    return output
 
 
 def get_access_token() -> str:
@@ -223,8 +265,14 @@ def item_price(item: dict[str, Any]) -> float:
     return to_float((item.get("currentBidPrice") or {}).get("value"), 0)
 
 
-def is_allowed_candidate(row: dict[str, Any], item: dict[str, Any], settings) -> bool:
-    return row.get("item_location_country") in settings.item_location_countries
+def is_allowed_candidate(row: dict[str, Any], item: dict[str, Any], settings, seed: dict[str, Any]) -> bool:
+    if row.get("item_location_country") not in settings.item_location_countries:
+        return False
+    seed_system = detect_system_from_title(str(seed.get("amazon_title") or ""))
+    candidate_system = detect_system_from_title(str(row.get("ebay_title") or ""))
+    if seed_system == "Wii" and candidate_system == "Wii U":
+        return False
+    return True
 
 
 def has_shipping_to_buyer(item: dict[str, Any]) -> bool:

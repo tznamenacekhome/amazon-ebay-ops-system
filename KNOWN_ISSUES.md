@@ -59,9 +59,6 @@ Current mitigation:
   `logs/scheduler.log` with retry handling to avoid file-lock collisions.
 - screen refresh buttons can run screen-specific scheduled-style refreshes
   without historical backfill.
-- legacy supplier returns sync remains disabled while the new Order Problems
-  return sync is validated.
-
 Recommended next mitigation:
 - Keep jobs that feed the same calculation, such as Business Inventory And Cash
   Value, on the same cadence so freshness indicators stay meaningful.
@@ -381,9 +378,9 @@ Current mitigation:
 - `run_all_syncs.bat` writes to a per-run temp log and then appends to
   `logs/scheduler.log` with retries to avoid transient Windows file-lock
   failures.
-- `run_all_syncs.py` now includes eBay buyer purchase sync, EasyPost shipment sync, RevSeller enrichment, Amazon FBA inventory, Amazon listing status, Amazon inventory planning, Amazon Finance, Informed reports, YNAB cash balance, guarded Keepa refresh, and business value snapshot.
-- legacy supplier returns sync remains disabled while the new Order Problems
-  return sync is validated.
+- `run_all_syncs.py` now includes eBay buyer purchase sync, sourcing purchase matching, EasyPost shipment sync, Order Problems return/inquiry sync, RevSeller enrichment, Amazon FBA inventory, Amazon listing status, Amazon inventory planning, Amazon Finance, Informed reports, YNAB cash balance, guarded Keepa refresh, and business value snapshot.
+- legacy supplier returns sync has been removed from active orchestration and
+  System Health because Order Problems owns return/inquiry/case freshness.
 - direct full-orchestrator validation completed with exit code 0.
 - the stale OneDrive working-directory problem has been replaced by AM, PM,
   Daily, and Catalog scheduled tasks that target the `C:\Dev` path.
@@ -404,26 +401,26 @@ Recommended guardrail:
 Status: ACTIVE / NEW WORKFLOW
 
 Problem:
-The new Order Problems workflow has a read-only eBay Post-Order return sync, but
-it has not yet been validated against live eBay return/case data or scheduled.
+The new Order Problems workflow has a read-only eBay Post-Order return sync that
+is now scheduled, but less-common eBay return/case states still need continued
+live validation as they appear.
 
 Risk:
 Operator-entered local workflow state is available now, but eBay status/deadline
-automation may be incomplete until live return payloads confirm buyer-side
-Post-Order API fields and scopes.
+automation may be incomplete for uncommon buyer-side Post-Order API payloads.
 
 Current mitigation:
-- old supplier returns data was cleared and the legacy supplier returns sync is
-  disabled.
+- old supplier returns data was cleared and the legacy supplier returns sync was
+  removed from active orchestration and System Health.
 - `integrations/ebay_sync_order_problem_returns.py` is read-only and writes only
   to `order_problem_cases` and `order_problem_events`.
+- `integrations/ebay_sync_order_problem_returns.py` is part of the scheduled
+  `core` group.
 - marketplace actions still happen manually on ebay.com.
 
 Recommended next mitigation:
-- run the new sync in dry-run mode against known open eBay returns.
-- inspect mapped return IDs, statuses, due dates, action URLs, refund amounts,
-  and raw JSON.
-- only add the new sync to scheduled groups after mapping is validated.
+- continue inspecting mapped return IDs, statuses, due dates, action URLs,
+  refund amounts, and raw JSON when new return/case states appear.
 
 ---
 
@@ -438,7 +435,7 @@ Current mitigation:
 - Amazon FBA inventory, Amazon listing status, Amazon inventory planning, Informed repricing reports, and YNAB cash balance updated correctly from Supabase signal tables.
 - eBay buyer purchases now uses `import_batches.imported_at`.
 - RevSeller enrichment now uses the latest local `data/revseller_enrichment_diagnostics_*.csv` file as its run signal.
-- EasyPost shipments and eBay supplier returns ignore null timestamp rows when selecting their latest signal.
+- EasyPost shipments ignore null timestamp rows when selecting their latest signal.
 - Keepa products can remain on the previous snapshot timestamp when the guarded scheduled run selects 0 ASINs and writes no new snapshot rows.
 - `run_all_syncs.py` now writes `logs/sync_health.json`, so direct orchestrator runs can overlay a newer success/failure when a domain table does not write a fresh row.
 - Business value snapshot upserts now refresh `captured_at`.

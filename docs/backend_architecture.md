@@ -39,7 +39,8 @@ are separate domains.
 Scheduler can keep operational data fresh without running heavyweight snapshots
 twice per day.
 
-- `core`: eBay buyer purchases, EasyPost tracking, RevSeller enrichment with
+- `core`: eBay buyer purchases, sourcing purchase matching for opportunities
+  marked Purchased / Offer Made, EasyPost tracking, RevSeller enrichment with
   optional AI same-system review, guarded Keepa missing-purchase-title repair,
   recent Amazon sales orders, new MF Veeqo label costs, recent sales
   profitability, and inventory reconciliation. This group is intended for
@@ -51,16 +52,21 @@ twice per day.
   is intended for 1x/day runs.
 - `catalog`: guarded Keepa active-Amazon stale refresh. This group is
   token-aware and can run daily or less often.
+- Windows Task Scheduler currently runs `core` daily at 6:00 AM and 4:00 PM PT,
+  `daily` daily at 8:00 PM PT, `catalog` daily at 9:30 PM PT, and the Inventory
+  Source Balance Audit monthly on the 1st at 6:30 AM PT. System Health displays
+  these schedules beside each job.
 
-The legacy eBay supplier returns sync is intentionally disabled. The new Order
-Problems return workflow uses `integrations/ebay_sync_order_problem_returns.py`
-as a scheduled, read-only eBay Post-Order importer for returns, INR inquiries,
-inquiry detail records, and open cases. It writes only to `order_problem_cases`
-and `order_problem_events`. Inquiry detail enrichment is required because
-seller make-it-right/escalation dates and replacement tracking are not present
-in the inquiry search summary. Cancellation/refund exceptions can be represented
-locally as `ebay_cancellation_sync` rows while first-class cancellation search
-automation is evaluated.
+The legacy eBay supplier returns sync has been removed from active
+orchestration and System Health. The Order Problems return workflow uses
+`integrations/ebay_sync_order_problem_returns.py` as a scheduled, read-only eBay
+Post-Order importer for returns, INR inquiries, inquiry detail records, and
+open cases. It writes only to `order_problem_cases` and `order_problem_events`.
+Inquiry detail enrichment is required because seller make-it-right/escalation
+dates and replacement tracking are not present in the inquiry search summary.
+Cancellation/refund exceptions can be represented locally as
+`ebay_cancellation_sync` rows while first-class cancellation search automation
+is evaluated.
 
 `integrations/inventory_source_balance_audit.py` is a secondary control, not a
 freshness sync. It should run after FIFO allocator runs, after large purchase or

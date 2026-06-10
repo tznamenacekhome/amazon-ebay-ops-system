@@ -107,7 +107,7 @@ EasyPost sync must:
 Long-term tracking updates should come from EasyPost webhooks once the app has a public HTTPS endpoint.
 
 Local sync orchestration:
-- `run_all_syncs.py` runs eBay buyer purchase sync, EasyPost shipment sync, supplier returns sync, and RevSeller enrichment
+- `run_all_syncs.py` runs eBay buyer purchase sync, sourcing purchase matching, EasyPost shipment sync, Order Problems return/inquiry sync, and RevSeller enrichment
 - `run_all_syncs.bat` is the Windows scheduler entry point and should target `C:\Dev\amazon-ebay-ops-system`
 - scheduler output belongs in `logs/scheduler.log`
 

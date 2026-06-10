@@ -214,7 +214,7 @@ export default function SourcingPage() {
             selectedIds={selectedIds}
             selectedCount={selectedRows.length}
             onAction={act}
-            onBulkWatch={() => void bulkAct(selectedRows, () => ({ actionType: "watch" }))}
+            onBulkWatch={() => void bulkAct(selectedRows, watchPayload)}
             onBulkPurchased={() => void bulkAct(selectedRows, (row) => ({ actionType: "purchased", expectedPurchaseCost: row.landedCost ?? undefined }))}
             onBulkDismiss={() => setBulkDismissOpen(true)}
             onToggleSelected={(row) => {
@@ -455,7 +455,7 @@ function ReplenishmentTable({
                       ) : null}
                       {!purchasedMode ? (
                         <>
-                          <button disabled={actionBusyId === row.opportunityId} onClick={() => void onAction(row, { actionType: "watch" })} className="icon-button" title="Watch">
+                          <button disabled={actionBusyId === row.opportunityId} onClick={() => void onAction(row, watchPayload(row))} className="icon-button" title="Watch">
                             <Eye className="h-4 w-4" />
                           </button>
                           <button disabled={actionBusyId === row.opportunityId} onClick={() => void onAction(row, { actionType: "purchased", expectedPurchaseCost: row.landedCost ?? undefined })} className="icon-button" title="Purchased / offer made">
@@ -883,6 +883,21 @@ function percent(value: number | null | undefined) {
 
 function number(value: number | null | undefined) {
   return typeof value === "number" ? value.toFixed(1) : "--";
+}
+
+function watchReferencePurchaseCost(row: SourcingOpportunity) {
+  if (row.opportunityType === "best_offer" && row.suggestedOfferPrice !== null) return row.suggestedOfferPrice;
+  if (row.landedCost !== null) return row.landedCost;
+  return row.itemPrice;
+}
+
+function watchPayload(row: SourcingOpportunity): SourcingActionPayload {
+  return {
+    actionType: "watch",
+    expectedPurchaseCost: watchReferencePurchaseCost(row) ?? undefined,
+    requiredMaxLandedCost: row.maxProfitableLandedCost ?? undefined,
+    requiredRoiPercent: row.estimatedRoiPercent ?? undefined,
+  };
 }
 
 function parseCommaList(value: string) {

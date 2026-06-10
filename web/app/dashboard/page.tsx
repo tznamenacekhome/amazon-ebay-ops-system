@@ -782,7 +782,7 @@ function SystemHealthPanel({ data, loading }: { data: DashboardPayload | null; l
         <MetricCard label="Stale Domains" value={loading ? "--" : formatNumber(data?.summary?.staleDomains)} tone={toneFor(data?.summary?.staleDomains ?? 0, 0, 3)} />
       </MetricGrid>
       <DashboardSection title="Domain Freshness" eyebrow="Integrations">
-        <CompactStatusTable columns={["Domain", "Status", "Last Success", "Cadence", "Age", "Message"]} rows={asRows(data?.domains).map((row) => ({ id: text(row.domain), cells: [text(row.label), text(row.status), formatDateShort(text(row.lastSuccessAt)), text(row.expectedCadence), row.ageHours === null ? "--" : `${Math.round(Number(row.ageHours))}h`, text(row.message) || "--"] }))} />
+        <CompactStatusTable columns={["Domain", "Status", "Last Success", "Schedule", "Cadence", "Age", "Message"]} rows={asRows(data?.domains).map((row) => ({ id: text(row.domain), cells: [text(row.label), text(row.status), formatDateShort(text(row.lastSuccessAt)), text(row.schedule), text(row.expectedCadence), row.ageHours === null ? "--" : `${Math.round(Number(row.ageHours))}h`, text(row.message) || "--"] }))} />
       </DashboardSection>
       <div className="grid gap-4 xl:grid-cols-2">
         <DashboardSection title="Recent Runs" eyebrow="Orchestrator">

@@ -66,6 +66,12 @@ JOBS: tuple[SyncJob, ...] = (
         timeout_seconds=60 * 60,
     ),
     SyncJob(
+        name="Sourcing purchase matching",
+        command=static_command("integrations/match_sourcing_purchases.py", "--limit", "300"),
+        groups=("core", "purchases", "dashboard"),
+        timeout_seconds=20 * 60,
+    ),
+    SyncJob(
         name="EasyPost shipments",
         command=static_command("integrations/easypost_sync_shipments.py", "--limit", "150"),
         groups=("core", "purchases", "dashboard"),
@@ -84,13 +90,6 @@ JOBS: tuple[SyncJob, ...] = (
         groups=("core", "purchases", "dashboard"),
         blocking=False,
         timeout_seconds=30 * 60,
-    ),
-    SyncJob(
-        name="eBay supplier returns",
-        command=static_command("integrations/ebay_sync_supplier_returns.py"),
-        groups=(),
-        enabled=False,
-        disabled_reason="Disabled pending returns feature redesign.",
     ),
     SyncJob(
         name="RevSeller enrichment",

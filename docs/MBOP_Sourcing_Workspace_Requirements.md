@@ -238,6 +238,25 @@ Example:
 - eBay result title: Go Play Circus Star (Nintendo Wii, 2009)
 - Result: blocked because only the platform overlaps.
 
+## eBay Search Platform Aliases
+
+Sourcing search must account for common seller platform abbreviations in eBay
+titles. In addition to the system text in the Amazon title, MBOP searches title
+variants with these platform aliases:
+
+- Xbox One: xb1
+- PlayStation 2: ps2
+- PlayStation 3: ps3
+- PlayStation 4: ps4
+- PlayStation 5: ps5
+- Nintendo Switch: Switch
+- Nintendo Wii: Wii
+- Nintendo Wii U: Wii U, wiiu
+
+Wii and Wii U must remain distinct. When the seed ASIN is a Wii game, eBay
+results detected as Wii U games must be excluded even when eBay's search result
+ranking returns them.
+
 ## Opportunity Grid
 
 Columns:
@@ -369,7 +388,21 @@ Automatically reactivate when profitability meets criteria.
 
 ### Watch
 
-Manual monitoring.
+Watch replaces ROI Snoozed in the current operator workflow.
+
+When an operator marks a row Watch, MBOP stores the current purchase-cost
+baseline and current profitable landed-cost cap. A watched opportunity should
+return to the open Replenishment list when all normal opportunity tests pass and
+either:
+- the eBay purchase-cost reference falls below the watched baseline
+- the Amazon sale-price/profitability context raises the profitable landed-cost cap
+
+For Buy It Now and auction rows, the purchase-cost reference is landed cost when
+known, otherwise item price. For Best Offer rows, the purchase-cost reference is
+the suggested item offer before shipping.
+
+Watched rows with no stored baseline remain in the Watchlist until acted on
+again or otherwise refreshed into a row with baseline context.
 
 ## Dismiss Reasons
 

@@ -954,6 +954,13 @@ ROI snoozed:
 
 Watching:
 - visible in Watchlist
+- Watch is the current replacement for ROI Snoozed. Watch actions store the
+  current purchase-cost reference and profitable landed-cost cap.
+- A watched opportunity can return to open Replenishment when normal scoring
+  says it is open and either the eBay purchase-cost reference improves or the
+  Amazon sale-price/profitability context raises the profitable landed-cost cap.
+- Best Offer watch baselines use the suggested item offer before shipping as
+  the purchase-cost reference.
 
 Purchased pending match:
 - visible until eBay buyer purchase sync imports and match script links purchase

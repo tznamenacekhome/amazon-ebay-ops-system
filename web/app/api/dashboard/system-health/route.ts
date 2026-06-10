@@ -8,6 +8,7 @@ type HealthJob = {
   lastRunAt: string | null;
   hoursSinceLastRun: number | null;
   expectedEveryHours: number | null;
+  schedule: string | null;
   message: string | null;
 };
 
@@ -36,6 +37,7 @@ export async function GET(request: NextRequest) {
       lastSuccessAt: job.status === "ok" || job.status === "delayed" ? job.lastRunAt : null,
       lastAttemptAt: job.lastRunAt,
       expectedCadence: job.expectedEveryHours ? `${job.expectedEveryHours}h` : "--",
+      schedule: job.schedule ?? "--",
       ageHours: job.hoursSinceLastRun,
       message: job.message,
     })),

@@ -361,7 +361,9 @@ Completed:
 - `run_all_syncs.py` now runs eBay buyer purchase sync, EasyPost shipment sync, read-only eBay Order Problems return/inquiry sync, RevSeller enrichment, Amazon FBA inventory, Amazon listing status, Amazon inventory planning, Amazon Finance balances, Informed Repricer reports, YNAB Business cash balance/transactions, guarded Keepa enrichment, and business value snapshots
 - scheduler groups split freshness work into `core`, `daily`, and `catalog`
   groups so operational refreshes can run without every heavyweight snapshot
-- legacy eBay supplier returns sync is disabled; the new Order Problems return sync owns return/inquiry/case freshness
+- legacy eBay supplier returns sync has been removed from active orchestration
+  and System Health; the Order Problems return sync owns return/inquiry/case
+  freshness
 - `run_all_syncs.bat` creates the logs directory when missing and appends to
   `logs/scheduler.log` through a per-run temp log with retries
 - local Windows scheduled tasks were recreated after the repo moved from OneDrive to `C:\Dev`
