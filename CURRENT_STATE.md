@@ -232,6 +232,9 @@ Status: LOCAL SCHEDULER CONFIGURED / BROAD INTEGRATION AUTOMATION ENABLED
 
 Implemented:
 - `run_all_syncs.py` runs eBay buyer purchase sync, EasyPost shipment sync, RevSeller enrichment with optional AI same-system review, guarded missing-title Keepa repair, Amazon FBA inventory, Amazon listing status, Amazon inventory planning, Amazon Finance, Informed Repricer reports, YNAB Business cash balance, guarded Keepa enrichment, and the daily business value snapshot
+- `run_all_syncs.py` writes `running`, `ok`, `failed`, and lock-collision
+  `blocked` records to `logs/sync_health.json`, allowing System Health refreshes
+  during active runs to show the current job state.
 - `run_all_syncs.py` also stores YNAB Business-category transaction history
   daily for future P&L, Schedule C, and cash reconciliation features
 - `run_all_syncs.bat` targets the repo at `C:\Dev\amazon-ebay-ops-system`
@@ -795,7 +798,10 @@ Primary remaining UI opportunity:
 iterate on ASIN review and operational throughput without merging receiving workflow concerns.
 
 Recent backend update:
-- eBay buyer purchase sync now populates purchase_items.system from recognized eBay title platform terms
+- eBay buyer purchase sync now populates purchase_items.system from recognized
+  eBay title platform terms and can fall back to eBay Browse item
+  `localizedAspects.Platform` when the Trading API order title omits the
+  platform.
 - eBay buyer purchase sync preserves workflow-owned statuses: Cancelled, Listed, Received, Return Opened, and Return Pending
 - eBay buyer purchase sync writes canonical non-locked statuses such as No Tracking, Shipped (No Tracking), Awaiting Carrier Scan, and Delivered
 - EasyPost sync/webhook updates linked purchase_items.current_status from carrier state while preserving workflow-locked statuses
@@ -818,6 +824,9 @@ Recent backend update:
 - RevSeller enrichment now safely handles leading `New` as condition text only as a same-system fallback, which corrected order `20-14670-25041` to ASIN `B08MG5FYS6`
 - RevSeller enrichment now handles unique same-system token-set matches, which corrected order `20-14670-25040` to ASIN `B001TOQ8LG`
 - RevSeller enrichment now handles trailing condition `new`, publisher noise, common `survior` typo correction, and safe trailing `for` catalog variants, which corrected orders `20-14670-25046` and `20-14670-25045`
+- RevSeller enrichment normalizes the common `Nintedo` catalog typo to
+  `Nintendo`, which allowed order `09-14753-23886` to enrich as Wii / ASIN
+  `B004NB1BV4`.
 
 Recent one-time status backfill:
 - source: reference Google Sheet "status" tab

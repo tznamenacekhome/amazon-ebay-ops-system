@@ -45,8 +45,10 @@ supabase = create_client(
 )
 
 TRADING_ENDPOINT = "https://api.ebay.com/ws/api.dll"
+BUY_BROWSE_LEGACY_ITEM_ENDPOINT = "https://api.ebay.com/buy/browse/v1/item/get_item_by_legacy_id"
 COMPATIBILITY_LEVEL = "1423"
 SITE_ID = "0"
+ITEM_ASPECT_CACHE = {}
 
 
 def iso(dt):
@@ -165,6 +167,48 @@ def get_access_token():
 
     response.raise_for_status()
     return response.json()["access_token"]
+
+
+def get_browse_item_details(access_token, legacy_item_id):
+    item_id = str(legacy_item_id or "").strip()
+    if not item_id:
+        return {}
+
+    if item_id in ITEM_ASPECT_CACHE:
+        return ITEM_ASPECT_CACHE[item_id]
+
+    try:
+        response = requests.get(
+            BUY_BROWSE_LEGACY_ITEM_ENDPOINT,
+            headers={
+                "Authorization": f"Bearer {access_token}",
+                "X-EBAY-C-MARKETPLACE-ID": "EBAY_US",
+            },
+            params={"legacy_item_id": item_id},
+            timeout=30,
+        )
+        if not response.ok:
+            print(f"eBay Browse item detail skipped for {item_id}: HTTP {response.status_code}")
+            ITEM_ASPECT_CACHE[item_id] = {}
+            return {}
+        detail = response.json()
+    except requests.RequestException as exc:
+        print(f"eBay Browse item detail skipped for {item_id}: {exc}")
+        detail = {}
+
+    ITEM_ASPECT_CACHE[item_id] = detail
+    return detail
+
+
+def system_from_browse_item_details(detail):
+    for aspect in detail.get("localizedAspects") or []:
+        name = str(aspect.get("name") or "").strip().casefold()
+        if name != "platform":
+            continue
+        system = normalize_system(aspect.get("value"))
+        if system:
+            return system
+    return None
 
 
 def parse_args():
@@ -835,6 +879,7 @@ def build_item_payload(
     tracking,
     dates,
     import_batch_id,
+    access_token,
     existing_item=None,
     calculated_unit_cost=None,
     seller_shipped=False,
@@ -858,6 +903,11 @@ def build_item_payload(
     )
     existing_system = normalize_system(existing_item.get("system")) if existing_item else None
     detected_system = detect_system_from_title(ebay_title)
+    browse_system = None
+    if not existing_system and not detected_system:
+        browse_system = system_from_browse_item_details(
+            get_browse_item_details(access_token, transaction_item_id(transaction))
+        )
     existing_status = (
         (existing_item.get("current_status") or "").strip().lower()
         if existing_item
@@ -869,7 +919,7 @@ def build_item_payload(
         "asin": existing_item.get("asin") if existing_item else None,
         "supplier_sku": transaction_line_id(transaction),
         "title": title,
-        "system": existing_system or detected_system,
+        "system": existing_system or detected_system or browse_system,
         "quantity": quantity,
         "unit_cost": unit_cost,
         "target_price": existing_item.get("target_price") if existing_item else None,
@@ -921,6 +971,7 @@ def upsert_purchase_item(
     tracking,
     dates,
     import_batch_id,
+    access_token,
     existing_items,
     used_item_ids,
     calculated_unit_cost=None,
@@ -938,6 +989,7 @@ def upsert_purchase_item(
         tracking=tracking,
         dates=dates,
         import_batch_id=import_batch_id,
+        access_token=access_token,
         existing_item=matched_item,
         calculated_unit_cost=calculated_unit_cost,
         seller_shipped=seller_shipped,
@@ -1046,7 +1098,7 @@ def build_unknown_item_payload(
     }
 
 
-def upsert_purchase(order, import_batch_id):
+def upsert_purchase(order, import_batch_id, access_token):
     order_id = child_text(order, "OrderID")
 
     if not order_id:
@@ -1149,6 +1201,7 @@ def upsert_purchase(order, import_batch_id):
             tracking=tracking,
             dates=dates,
             import_batch_id=import_batch_id,
+            access_token=access_token,
             existing_items=existing_items,
             used_item_ids=used_item_ids,
             calculated_unit_cost=calculated_unit_costs[index],
@@ -1203,7 +1256,7 @@ def main():
     skipped_other = 0
 
     for index, order in enumerate(orders, start=1):
-        result = upsert_purchase(order, import_batch_id)
+        result = upsert_purchase(order, import_batch_id, access_token)
 
         if result == "inserted":
             inserted += 1

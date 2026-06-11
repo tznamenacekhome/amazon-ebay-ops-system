@@ -4,7 +4,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 type HealthJob = {
   name: string;
-  status: "ok" | "delayed" | "failed" | "unknown" | "skipped";
+  status: "ok" | "delayed" | "failed" | "unknown" | "skipped" | "running" | "blocked";
   lastRunAt: string | null;
   hoursSinceLastRun: number | null;
   expectedEveryHours: number | null;
@@ -18,12 +18,21 @@ export async function GET(request: NextRequest) {
   const summary = health?.summary ?? {};
   const recentRuns = readRecentRuns();
   const failedJobs = Number(summary.failed ?? 0);
+  const blockedJobs = Number(summary.blocked ?? 0);
+  const runningJobs = Number(summary.running ?? 0);
   const staleDomains = Number(summary.delayed ?? 0);
 
   return NextResponse.json({
     refreshedAt: health?.generatedAt ?? new Date().toISOString(),
     summary: {
-      overallStatus: failedJobs > 0 ? "error" : staleDomains > 0 ? "warning" : jobs.length ? "healthy" : "unknown",
+      overallStatus:
+        failedJobs > 0 || blockedJobs > 0
+          ? "error"
+          : staleDomains > 0 || runningJobs > 0
+            ? "warning"
+            : jobs.length
+              ? "healthy"
+              : "unknown",
       staleDomains,
       failedJobsLastRun: failedJobs,
       lastOrchestratorRunAt: recentRuns[0]?.finishedAt ?? null,
@@ -33,7 +42,14 @@ export async function GET(request: NextRequest) {
     domains: jobs.map((job) => ({
       domain: job.name,
       label: job.name,
-      status: job.status === "ok" ? "fresh" : job.status === "delayed" ? "stale" : job.status,
+      status:
+        job.status === "ok"
+          ? "fresh"
+          : job.status === "delayed"
+            ? "stale"
+            : job.status === "blocked"
+              ? "failed"
+              : job.status,
       lastSuccessAt: job.status === "ok" || job.status === "delayed" ? job.lastRunAt : null,
       lastAttemptAt: job.lastRunAt,
       expectedCadence: job.expectedEveryHours ? `${job.expectedEveryHours}h` : "--",
@@ -80,7 +96,7 @@ function readRecentRuns() {
       current.startedAt = minDate(current.startedAt, row.started_at);
       current.finishedAt = maxDate(current.finishedAt, row.finished_at);
       current.totalJobs += 1;
-      if (row.status === "failed") current.failedJobs += 1;
+      if (row.status === "failed" || row.status === "blocked") current.failedJobs += 1;
       current.status = current.failedJobs > 0 ? "partial" : "success";
       current.summary = `${current.totalJobs} job(s), ${current.failedJobs} failed`;
       byRun.set(runId, current);

@@ -1,6 +1,6 @@
 # Business Rules
 
-Last updated: 2026-06-08
+Last updated: 2026-06-10
 
 ## Cost And Reporting
 
@@ -30,6 +30,10 @@ Carrier/status syncs must not downgrade workflow-owned statuses.
 
 - Video games are platform-specific.
 - Never auto-match across systems.
+- eBay buyer purchase sync may use eBay Browse item `localizedAspects.Platform`
+  to populate `purchase_items.system` when the Trading API order title does not
+  include a recognizable platform. This is backend enrichment only; it must not
+  override an existing/manual system value.
 - ASIN corrections may propagate only to matching normalized title + system rows and must not overwrite a different existing ASIN.
 - `purchase_items.amazon_title` stores the matched Amazon/RevSeller title separately from the supplier/eBay title.
 - AI-assisted RevSeller matching is allowed only as a same-system, candidate

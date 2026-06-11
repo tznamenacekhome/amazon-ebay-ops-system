@@ -438,6 +438,9 @@ Current mitigation:
 - EasyPost shipments ignore null timestamp rows when selecting their latest signal.
 - Keepa products can remain on the previous snapshot timestamp when the guarded scheduled run selects 0 ASINs and writes no new snapshot rows.
 - `run_all_syncs.py` now writes `logs/sync_health.json`, so direct orchestrator runs can overlay a newer success/failure when a domain table does not write a fresh row.
+- `run_all_syncs.py` now writes `running` records as each job starts and
+  `blocked` records when a scheduled wake-up collision loses the local lock, so
+  System Health can show active progress and missed groups during/after a run.
 - Business value snapshot upserts now refresh `captured_at`.
 - Inventory reconciliation is now included in `run_all_syncs.py` so its health expectation matches the orchestrator.
 
@@ -445,7 +448,9 @@ Impact:
 The health page is less likely to make completed syncs look stale or unknown when the underlying integration ran successfully.
 
 Recommended next mitigation:
-- monitor the next scheduled/direct all-sync to confirm Keepa and business value use `logs/sync_health.json` when no newer product snapshot is written.
+- continue monitoring scheduled wake-up behavior. Windows can still launch
+  multiple missed tasks at once, but lock losers are now visible in System
+  Health instead of disappearing.
 - consider a future Supabase sync-run ledger if local-only health records become insufficient.
 
 ---

@@ -23,6 +23,12 @@ Examples:
 - Minecraft PS4 != Minecraft Switch
 - Madden Xbox != Madden PS5
 
+When an eBay buyer order title does not contain a recognizable platform, the
+eBay buyer purchase sync may read the eBay Browse item detail for the legacy
+item ID and use `localizedAspects.Platform` as the backend-owned system source.
+This is a platform-detection fallback only and must not override an
+existing/manual system correction.
+
 ---
 
 # Current Matching Rules
@@ -212,3 +218,5 @@ Examples:
   -> `Destiny The Collection PlayStation 4`
 
 RevSeller enrichment uses the Python cleaner before normalized title matching.
+It also normalizes known catalog typos that affect platform/title matching, such
+as `Nintedo` -> `Nintendo`, before storing the matched Amazon title.

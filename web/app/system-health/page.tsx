@@ -7,13 +7,14 @@ import {
   HelpCircle,
   PauseCircle,
   RefreshCw,
+  RotateCw,
   ShieldAlert,
   XCircle,
 } from "lucide-react";
 import { DataFreshness } from "../DataFreshness";
 
-type HealthStatus = "ok" | "delayed" | "failed" | "unknown" | "skipped";
-type HealthGroup = "core" | "daily" | "catalog" | "disabled";
+type HealthStatus = "ok" | "delayed" | "failed" | "unknown" | "skipped" | "running" | "blocked";
+type HealthGroup = "core" | "daily" | "catalog" | "monthly" | "disabled";
 
 type HealthJob = {
   id: string;
@@ -39,6 +40,8 @@ type HealthData = {
     ok: number;
     delayed: number;
     failed: number;
+    running: number;
+    blocked: number;
     unknown: number;
     skipped: number;
   };
@@ -47,16 +50,19 @@ type HealthData = {
 
 const STATUS_RANK: Record<HealthStatus, number> = {
   failed: 0,
-  delayed: 1,
-  unknown: 2,
-  skipped: 3,
-  ok: 4,
+  blocked: 1,
+  running: 2,
+  delayed: 3,
+  unknown: 4,
+  skipped: 5,
+  ok: 6,
 };
 
 const GROUP_LABEL: Record<HealthGroup, string> = {
   core: "Core 2x/day",
   daily: "Daily",
   catalog: "Catalog",
+  monthly: "Monthly",
   disabled: "Disabled",
 };
 
@@ -125,11 +131,13 @@ export default function SystemHealthPage() {
         </div>
       )}
 
-      <section className="mb-4 grid gap-3 md:grid-cols-6">
+      <section className="mb-4 grid gap-3 md:grid-cols-8">
         <Summary label="Jobs" value={formatNumber(data?.summary.total)} tone="neutral" />
         <Summary label="Healthy" value={formatNumber(data?.summary.ok)} tone="ok" />
+        <Summary label="Running" value={formatNumber(data?.summary.running)} tone="running" />
         <Summary label="Delayed" value={formatNumber(data?.summary.delayed)} tone="delayed" />
         <Summary label="Failed" value={formatNumber(data?.summary.failed)} tone="failed" />
+        <Summary label="Blocked" value={formatNumber(data?.summary.blocked)} tone="blocked" />
         <Summary label="Unknown" value={formatNumber(data?.summary.unknown)} tone="unknown" />
         <Summary label="Skipped" value={formatNumber(data?.summary.skipped)} tone="skipped" />
       </section>
@@ -251,13 +259,15 @@ function Summary({
 }: {
   label: string;
   value: string;
-  tone: "neutral" | "ok" | "delayed" | "failed" | "unknown" | "skipped";
+  tone: "neutral" | "ok" | "delayed" | "failed" | "unknown" | "skipped" | "running" | "blocked";
 }) {
   const toneClass = {
     neutral: "border-slate-200 bg-white text-slate-900",
     ok: "border-emerald-200 bg-emerald-50 text-emerald-900",
+    running: "border-blue-200 bg-blue-50 text-blue-900",
     delayed: "border-amber-200 bg-amber-50 text-amber-900",
     failed: "border-red-200 bg-red-50 text-red-900",
+    blocked: "border-orange-200 bg-orange-50 text-orange-900",
     unknown: "border-slate-200 bg-slate-50 text-slate-700",
     skipped: "border-slate-200 bg-white text-slate-500",
   }[tone];
@@ -282,6 +292,8 @@ function GroupPanel({
   jobs: HealthJob[];
 }) {
   const failed = jobs.filter((job) => job.status === "failed").length;
+  const blocked = jobs.filter((job) => job.status === "blocked").length;
+  const running = jobs.filter((job) => job.status === "running").length;
   const delayed = jobs.filter((job) => job.status === "delayed").length;
   const ok = jobs.filter((job) => job.status === "ok").length;
   return (
@@ -293,7 +305,9 @@ function GroupPanel({
         </div>
         <div className="flex gap-1 text-xs">
           <span className="rounded-md bg-emerald-50 px-2 py-1 text-emerald-800">{ok} ok</span>
+          <span className="rounded-md bg-blue-50 px-2 py-1 text-blue-800">{running} run</span>
           <span className="rounded-md bg-amber-50 px-2 py-1 text-amber-800">{delayed} late</span>
+          <span className="rounded-md bg-orange-50 px-2 py-1 text-orange-800">{blocked} blocked</span>
           <span className="rounded-md bg-red-50 px-2 py-1 text-red-800">{failed} fail</span>
         </div>
       </div>
@@ -318,6 +332,16 @@ function StatusBadge({ status }: { status: HealthStatus }) {
       label: "Failed",
       icon: XCircle,
       className: "border-red-200 bg-red-50 text-red-800",
+    },
+    blocked: {
+      label: "Blocked",
+      icon: ShieldAlert,
+      className: "border-orange-200 bg-orange-50 text-orange-800",
+    },
+    running: {
+      label: "Running",
+      icon: RotateCw,
+      className: "border-blue-200 bg-blue-50 text-blue-800",
     },
     unknown: {
       label: "Unknown",
@@ -365,7 +389,7 @@ function ModeBadge({ blocking, enabled }: { blocking: boolean; enabled: boolean 
 }
 
 function groupRank(group: HealthGroup) {
-  return { core: 0, daily: 1, catalog: 2, disabled: 3 }[group];
+  return { core: 0, daily: 1, catalog: 2, monthly: 3, disabled: 4 }[group];
 }
 
 function formatPacificDateTime(value?: string | null) {

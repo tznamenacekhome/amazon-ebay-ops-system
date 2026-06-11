@@ -116,6 +116,7 @@ def normalize_title(title: str | None) -> str:
         return ""
 
     text = clean_marketplace_title_for_search(title).lower()
+    text = re.sub(r"\bnintedo\b", "nintendo", text)
     text = re.sub(r"\bsurvior\b", "survivor", text)
     text = re.sub(r"\([^)]*\)", " ", text)
     text = re.sub(r"\[[^]]*\]", " ", text)
@@ -129,6 +130,11 @@ def normalize_title(title: str | None) -> str:
     ]
 
     return normalize_spaces(" ".join(words))
+
+
+def clean_catalog_title(title: str | None) -> str:
+    text = normalize_spaces(str(title or ""))
+    return re.sub(r"\bNintedo\b", "Nintendo", text, flags=re.IGNORECASE)
 
 
 def clean_status(value) -> str:
@@ -274,7 +280,7 @@ def load_revseller_rows():
 
     for row in rows:
         asin = normalize_spaces(str(row.get("ASIN", "")))
-        raw_title = normalize_spaces(str(row.get("Title", "")))
+        raw_title = clean_catalog_title(row.get("Title"))
         target_price = parse_money(row.get("BuyBox Price"))
         row_date = parse_revseller_date(row.get("Today's Date"))
 

@@ -352,8 +352,25 @@ def main() -> int:
     print(f"Starting sync group={args.group} run_id={run_id}")
     print(started_at)
 
+    lock_acquired = False
     if not args.no_lock:
-        acquire_lock(args.group, run_id)
+        try:
+            acquire_lock(args.group, run_id)
+            lock_acquired = True
+        except RuntimeError as error:
+            message = str(error)
+            for job in selected_jobs:
+                record_job(
+                    job=job,
+                    command=job.command(),
+                    group=args.group,
+                    run_id=run_id,
+                    status="blocked",
+                    started_at=started_at,
+                    message=message,
+                )
+            print(f"ERROR: {message}")
+            return 1
 
     failures: list[str] = []
     nonblocking_failures: list[str] = []
@@ -405,7 +422,7 @@ def main() -> int:
         print(now_iso())
         return 0
     finally:
-        if not args.no_lock:
+        if lock_acquired:
             release_lock(run_id)
 
 
@@ -438,6 +455,17 @@ def run_job(job: SyncJob, *, group: str, run_id: str) -> None:
     command = job.command()
     started_at = now_iso()
     print(f"\n--- Running [{job.name}] {' '.join(command)} ---")
+    record_job(
+        job=job,
+        command=command,
+        group=group,
+        run_id=run_id,
+        status="running",
+        started_at=started_at,
+        finished_at=None,
+        message="Job is currently running.",
+        append_history=False,
+    )
 
     try:
         result = subprocess.run(
@@ -483,10 +511,13 @@ def record_job(
     run_id: str,
     status: str,
     started_at: str,
+    finished_at: str | None = None,
     message: str | None = None,
+    append_history: bool = True,
 ) -> None:
     command_text = " ".join(command)
-    finished_at = now_iso()
+    if finished_at is None and status != "running":
+        finished_at = now_iso()
     record = {
         "run_id": run_id,
         "group": group,
@@ -508,7 +539,8 @@ def record_job(
         HEALTH_LOG_PATH,
         json.dumps(records, indent=2, sort_keys=True) + "\n",
     )
-    append_text_with_retry(RUN_HISTORY_PATH, json.dumps(record, sort_keys=True) + "\n")
+    if append_history:
+        append_text_with_retry(RUN_HISTORY_PATH, json.dumps(record, sort_keys=True) + "\n")
 
 
 def read_health_records() -> dict[str, dict[str, object]]:

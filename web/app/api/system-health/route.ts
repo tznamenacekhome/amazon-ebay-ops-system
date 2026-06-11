@@ -10,7 +10,7 @@ const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
 const supabase = createClient(supabaseUrl, supabaseServiceRoleKey);
 
-type HealthStatus = "ok" | "delayed" | "failed" | "unknown" | "skipped";
+type HealthStatus = "ok" | "delayed" | "failed" | "unknown" | "skipped" | "running" | "blocked";
 
 type JobConfig = {
   id: string;
@@ -45,7 +45,7 @@ type LocalRunRecord = {
   group?: string | null;
   blocking?: boolean | null;
   enabled?: boolean | null;
-  status: "ok" | "failed" | "skipped";
+  status: "ok" | "failed" | "skipped" | "running" | "blocked";
   started_at?: string | null;
   finished_at?: string | null;
   message?: string | null;
@@ -489,7 +489,7 @@ export async function GET() {
         const signal = await safeSignal(job);
         const failure = latestFailureForCommand(failures, job.command);
         const localRun = latestLocalRunForJob(localRuns, job);
-        const localRunAt = stringValue(localRun?.finished_at);
+        const localRunAt = stringValue(localRun?.finished_at) || stringValue(localRun?.started_at);
         const hasNewerLocalRun = localRunAt && isTimestampNewer(localRunAt, signal.lastRunAt);
         const lastRunAt = hasNewerLocalRun ? localRunAt : signal.lastRunAt;
         const hoursSinceLastRun = lastRunAt ? hoursSince(lastRunAt) : null;
@@ -502,6 +502,12 @@ export async function GET() {
           if (localRun?.status === "skipped") {
             status = "skipped";
             message = localRun.message || message;
+          } else if (localRun?.status === "running") {
+            status = "running";
+            message = localRun.message || "Job is currently running.";
+          } else if (localRun?.status === "blocked") {
+            status = "blocked";
+            message = localRun.message || "Run was blocked by another active sync.";
           } else if (localRun?.status === "failed") {
             status = "failed";
             message = localRun.message || `${job.command} failed in the latest local orchestrator run.`;
@@ -543,6 +549,8 @@ export async function GET() {
         ok: jobs.filter((job) => job.status === "ok").length,
         delayed: jobs.filter((job) => job.status === "delayed").length,
         failed: jobs.filter((job) => job.status === "failed").length,
+        running: jobs.filter((job) => job.status === "running").length,
+        blocked: jobs.filter((job) => job.status === "blocked").length,
         unknown: jobs.filter((job) => job.status === "unknown").length,
         skipped: jobs.filter((job) => job.status === "skipped").length,
       },
@@ -835,7 +843,11 @@ function latestFailureForCommand(failures: SchedulerFailure[], command: string) 
 function latestLocalRunForJob(records: LocalRunRecord[], job: JobConfig) {
   return records
     .filter((record) => record.job_name === job.name || record.command.includes(job.command))
-    .sort((a, b) => (Date.parse(b.finished_at || "") || 0) - (Date.parse(a.finished_at || "") || 0))[0];
+    .sort((a, b) => localRunTimestamp(b) - localRunTimestamp(a))[0];
+}
+
+function localRunTimestamp(record: LocalRunRecord) {
+  return Date.parse(record.finished_at || record.started_at || "") || 0;
 }
 
 function isFailureNewerThanSignal(failure: SchedulerFailure, signalAt: string | null) {
@@ -865,7 +877,13 @@ function isLocalRunRecord(value: unknown): value is LocalRunRecord {
   const record = value as Record<string, unknown>;
   return (
     typeof record.command === "string" &&
-    (record.status === "ok" || record.status === "failed" || record.status === "skipped") &&
+    (
+      record.status === "ok" ||
+      record.status === "failed" ||
+      record.status === "skipped" ||
+      record.status === "running" ||
+      record.status === "blocked"
+    ) &&
     (record.finished_at === undefined || record.finished_at === null || typeof record.finished_at === "string")
   );
 }

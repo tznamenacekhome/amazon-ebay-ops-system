@@ -1,6 +1,6 @@
 # Backend Architecture
 
-Last updated: 2026-06-04
+Last updated: 2026-06-10
 
 ## Core Flow
 
@@ -82,7 +82,10 @@ Independent integration failures are collected and reported while later syncs co
 The orchestrator writes the latest per-job state to `logs/sync_health.json`,
 appends run history to `logs/sync_runs.jsonl`, uses a local lock file to prevent
 overlapping scheduled runs, and performs a tiny Supabase read before launching
-work.
+work. Each job writes a `running` health record when it starts and replaces it
+with `ok` or `failed` at completion. If a scheduled wake-up causes multiple
+groups to start at once, lock losers write `blocked` health records so System
+Health shows the missed work instead of appearing stale or silently successful.
 
 ## UI Data Freshness
 
