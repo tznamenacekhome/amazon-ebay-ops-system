@@ -36,7 +36,7 @@ const navItems = [
   },
   {
     href: "/fba",
-    label: "Amazon FBA",
+    label: "Send to Amazon",
     icon: Send,
   },
   {

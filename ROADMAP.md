@@ -358,7 +358,7 @@ Status:
 Local scheduler configured; broad integration automation enabled with ongoing task-run validation and optimization follow-up.
 
 Completed:
-- `run_all_syncs.py` now runs eBay buyer purchase sync, sourcing purchase matching, EasyPost shipment sync, read-only eBay Order Problems return/inquiry sync, RevSeller enrichment, Amazon FBA inventory, Amazon listing status, Amazon inventory planning, Amazon Finance balances, Informed Repricer reports, YNAB Business cash balance/transactions, sourcing listing availability cleanup, guarded Keepa enrichment, and business value snapshots
+- `run_all_syncs.py` now runs eBay buyer purchase sync, sourcing purchase matching, EasyPost shipment sync, read-only eBay Order Problems return/inquiry sync, RevSeller enrichment, Amazon FBA inventory, Amazon FBA shipment sync, Amazon listing status, Amazon inventory planning, Amazon Finance balances, Informed Repricer reports, YNAB Business cash balance/transactions, sourcing listing availability cleanup, guarded Keepa enrichment, and business value snapshots
 - scheduler groups split freshness work into `core`, `daily`, and `catalog`
   groups so operational refreshes can run without every heavyweight snapshot
 - legacy eBay supplier returns sync has been removed from active orchestration
@@ -373,6 +373,9 @@ Completed:
 - direct batch execution completed successfully with exit code 0
 - integration failures are collected and reported while later independent syncs continue running
 - Amazon FBA inventory sync now uses page pacing plus SP-API 429/5xx retry/backoff
+- Amazon FBA shipment sync now refreshes MBOP shipment status, shipment item
+  receiving quantities, FBA availability, fulfillment center, milestones, and
+  outbound-to-Amazon remaining value
 - scheduled Keepa enrichment only refreshes stale active-Amazon ASINs and skips calls when the token pool is below the configured floor
 - scheduled sourcing listing availability cleanup checks open, Watch, and ROI-snoozed opportunities and automatically dismisses ended/sold-out/missing eBay listings with `no_longer_available`; Purchased / Offer Made rows remain for purchase matching/enrichment
 - eBay buyer purchases now sync a recent window plus targeted no-tracking
@@ -478,6 +481,84 @@ surface Keepa price/rank/sales-rank-drop and competition signals where useful wi
 
 Operational caution:
 Run `integrations/keepa_sync_products.py --plan-only` before broad Keepa syncs, then sync in staged batches based on available token balance.
+
+---
+
+## Seller Intelligence Subsystem
+
+Future scope:
+Build seller-level learning that helps MBOP decide which eBay sellers are worth
+watching, buying from, or avoiding.
+
+Planned capabilities:
+- seller trust scoring based on purchase outcomes, delivery reliability,
+  cancellation/refund history, return rates, and listing quality signals
+- seller ROI history based on realized MBOP purchase cost, Amazon sale value,
+  fees, returns, and final profit outcomes
+- offer acceptance history by seller, including offer amount, asking price,
+  discount percentage, accepted/declined/expired result, and time to response
+- seller inventory expansion search that can discover other listings from a
+  promising seller after one listing qualifies
+- seller opportunity conversion rate from surfaced opportunity to purchased,
+  received, listed, sold, returned, or dismissed
+
+Constraints:
+- seller intelligence must remain advisory unless a future workflow explicitly
+  approves automated action
+- seller scoring must not overwrite purchase, receiving, return, or sourcing
+  workflow state
+- seller matching should use stable seller identifiers from eBay when available
+  and preserve raw evidence for auditability
+
+---
+
+## Return Intelligence Subsystem
+
+Future scope:
+Use receiving, return, and listing evidence to learn which sourcing listings
+are likely to cause bad outcomes.
+
+Planned capabilities:
+- listing snapshot preservation for purchased opportunities so MBOP keeps the
+  title, photos, description clues, condition text, seller terms, price,
+  shipping, and listing metadata that existed at purchase time
+- receiving outcome learning based on missing items, wrong items, damage,
+  partial receipts, unexpected condition, and marketplace reassignment
+- return outcome learning based on return reason, refund timing, seller
+  response, carrier exception, no-refund closure, and final cost recovery
+- AI clue extraction from return-causing listings to identify phrases, photos,
+  category mismatches, condition wording, seller behavior, or title patterns
+  that should affect future sourcing decisions
+
+Constraints:
+- preserved listing snapshots should support audit and learning without
+  becoming the editable operational source of truth
+- AI-extracted clues must be explainable and reviewable before they influence
+  matching, seller scoring, or sourcing filters
+- return intelligence must remain separate from the Order Problems workflow;
+  Order Problems owns active refund/case execution
+
+---
+
+## eBay -> Amazon Sourcing Engine
+
+Future scope:
+Add a sourcing mode that starts from eBay market supply and evaluates whether
+listings can profitably map to Amazon resale opportunities.
+
+Dependencies:
+- Matching Intelligence Layer completion, including title/platform matching,
+  ambiguity handling, negative-match learning, diagnostics, and review queues
+- Amazon -> eBay sourcing validation, proving that the current Amazon-inventory
+  driven workflow produces reliable matches, ROI estimates, seller outcomes,
+  and return-risk signals before reversing the search direction
+
+Planned direction:
+- use the completed matching layer to prevent cross-platform video game matches
+- evaluate landed cost, Amazon sell price, fees, velocity, competition, and
+  return-risk signals before surfacing opportunities
+- preserve the operator-review-first model until match quality and outcome
+  learning are strong enough to justify deeper automation
 
 ---
 

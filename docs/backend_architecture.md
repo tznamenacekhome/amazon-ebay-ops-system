@@ -25,7 +25,8 @@ are separate domains.
   cancelled-refund follow-up, missing-item/replacement follow-up, and local
   operator action history in `order_problem_cases` and `order_problem_events`.
 - Amazon FBA shipment prep owns grouping received Amazon-bound items for export, shipment ID assignment, and moving included units to `listed`.
-- Non-historical FBA shipment item links remain workflow-owned by FBA prep and are projected into inventory value as outbound to Amazon.
+- Non-historical FBA shipment item links remain workflow-owned by FBA prep and are projected into inventory value as outbound to Amazon only for quantities Amazon has not yet received or made available.
+- Amazon FBA shipment sync reads Amazon inbound shipment status and shipment-item quantities, stores fulfillment center, carrier ETA/tracking context, FBA availability metrics, and milestone timestamps on FBA shipment workflow tables.
 - Amazon SP-API snapshot tables own read-only Amazon inventory, listing, planning, and finance data.
 - Keepa tables own read-only catalog, offer, price-history, sales-rank, and competition intelligence.
 - Informed tables own read-only repricer report snapshots and advisory rule/price context.
@@ -47,11 +48,12 @@ twice per day.
   recent Amazon sales orders, new MF Veeqo label costs, recent sales
   profitability, and inventory reconciliation. This group is intended for
   2x/day runs.
-- `daily`: Amazon FBA inventory, Amazon listing status, Amazon inventory
-  planning, Amazon finance balances, 60-day Amazon sales finance refresh,
-  daily sales profitability, Informed Repricer reports, YNAB Business cash,
-  YNAB Business transactions, sourcing listing availability cleanup, and the
-  daily business value snapshot. This group is intended for 1x/day runs.
+- `daily`: Amazon FBA inventory, Amazon FBA shipments, Amazon listing status,
+  Amazon inventory planning, Amazon finance balances, 60-day Amazon sales
+  finance refresh, daily sales profitability, Informed Repricer reports, YNAB
+  Business cash, YNAB Business transactions, sourcing listing availability
+  cleanup, and the daily business value snapshot. This group is intended for
+  1x/day runs.
 - `catalog`: sourcing listing availability cleanup and guarded Keepa
   active-Amazon stale refresh. Keepa work is token-aware and can run daily or
   less often.
@@ -189,7 +191,7 @@ Backend/API layers own:
 - repricing recommendation tiers, buckets, target prices, and reasons
 - business value snapshots
 
-Inventory value rollups treat saved current FBA shipment links as MBOP outbound-to-Amazon cost, while Amazon SP-API and InventoryLab snapshots represent inventory already in Amazon's inventory layers. The rollup avoids double-counting Amazon inbound rows for ASINs already covered by a saved MBOP outbound shipment.
+Inventory value rollups treat saved current FBA shipment links as MBOP outbound-to-Amazon cost only while the shipment item has remaining outbound quantity. Once Amazon shipment sync shows units received or available, the received quantity is no longer projected as MBOP outbound inventory. InventoryLab snapshots remain audit context only and do not replace MBOP/Amazon source-of-truth tables.
 
 Frontend components render API-provided values and manage UI workflow state only.
 

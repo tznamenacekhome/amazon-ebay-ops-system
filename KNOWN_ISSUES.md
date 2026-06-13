@@ -381,7 +381,7 @@ Current mitigation:
 - `run_all_syncs.bat` writes to a per-run temp log and then appends to
   `logs/scheduler.log` with retries to avoid transient Windows file-lock
   failures.
-- `run_all_syncs.py` now includes eBay buyer purchase sync, sourcing purchase matching, EasyPost shipment sync, Order Problems return/inquiry sync, RevSeller enrichment, Amazon FBA inventory, Amazon listing status, Amazon inventory planning, Amazon Finance, Informed reports, YNAB cash balance, sourcing listing availability cleanup, guarded Keepa refresh, and business value snapshot.
+- `run_all_syncs.py` now includes eBay buyer purchase sync, sourcing purchase matching, EasyPost shipment sync, Order Problems return/inquiry sync, RevSeller enrichment, Amazon FBA inventory, Amazon FBA shipment sync, Amazon listing status, Amazon inventory planning, Amazon Finance, Informed reports, YNAB cash balance, sourcing listing availability cleanup, guarded Keepa refresh, and business value snapshot.
 - legacy supplier returns sync has been removed from active orchestration and
   System Health because Order Problems owns return/inquiry/case freshness.
 - direct full-orchestrator validation completed with exit code 0.
@@ -396,6 +396,43 @@ Recommended guardrail:
   missed runs to replay together on wake.
 - use the root scheduled-task path when manually triggering, for example `schtasks /Run /TN "\Amazon eBay Ops Sync PM"`.
 - keep public EasyPost webhooks on the roadmap so the scheduler is not the only long-term carrier-update mechanism.
+
+---
+
+## Amazon FBA Shipment Carrier Details Limited By SP-API
+
+Status: ACTIVE / MONITOR
+
+Problem:
+MBOP can refresh known Amazon FBA shipment status, item quantities, receiving
+counts, FBA availability, fulfillment center, and remaining outbound value, but
+Amazon did not expose carrier tracking, pickup date, carrier ETA, or delivered
+date for the current shipment through the tested SP-API read endpoints.
+
+Observed behavior:
+- v0 `getShipments` by known shipment ID returned shipment status and FC.
+- v0 shipment items returned expected and received item quantities.
+- v0 `getTransportDetails` returned an Amazon deprecation error.
+- v0 date-range shipment discovery returned no recent shipments across tested
+  windows.
+- v2024 `listInboundPlans` was accessible but returned only a small set of old
+  inbound plans and no shipment transport details for the current June 2026
+  shipment.
+
+Current mitigation:
+- MBOP stores carrier/tracking fields when Amazon or a future carrier source
+  exposes them.
+- The Shipments tab treats null pickup/delivery/tracking as unavailable source
+  data, not as evidence that UPS tracking does not exist in Seller Central.
+- Shipment status, FC, received quantities, and FBA availability still refresh
+  from Amazon by known shipment ID.
+
+Recommended next mitigation:
+- Recheck Fulfillment Inbound v2024 shipment/transport endpoints when Amazon
+  exposes current Send to Amazon shipment IDs with inbound plan IDs.
+- If SP-API remains incomplete, evaluate a UPS/EasyPost outbound-to-Amazon
+  tracking path after shipment tracking numbers can be captured from Seller
+  Central or operator input.
 
 ---
 

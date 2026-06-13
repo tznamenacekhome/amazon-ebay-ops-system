@@ -75,8 +75,9 @@ const SCREEN_SOURCES: Record<ScreenKey, FreshnessSource[]> = {
     { label: "tracking", table: "inbound_shipments", column: "last_tracking_sync" },
   ],
   fba: [
-    { label: "FBA shipments", table: "fba_shipments", column: "created_at" },
-    { label: "FBA shipment items", table: "fba_shipment_items", column: "created_at" },
+    { label: "FBA shipments", table: "fba_shipments", column: "updated_at" },
+    { label: "FBA shipment items", table: "fba_shipment_items", column: "updated_at" },
+    { label: "Amazon FBA inventory", table: "amazon_fba_inventory_snapshots", column: "captured_at" },
   ],
   repricing: [
     { label: "Informed reports", table: "informed_report_runs", column: "imported_at" },

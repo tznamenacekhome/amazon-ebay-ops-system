@@ -164,19 +164,25 @@ JOBS: tuple[SyncJob, ...] = (
         timeout_seconds=45 * 60,
     ),
     SyncJob(
-        name="Inventory reconciliation",
-        command=static_command("integrations/inventory_reconcile.py", "--skip-if-unchanged"),
-        groups=("core", "dashboard", "reconciliation"),
-        timeout_seconds=45 * 60,
-    ),
-    SyncJob(
         name="Amazon FBA inventory",
         command=static_command(
             "integrations/amazon_sync_fba_inventory.py",
             "--page-delay-seconds",
             "0.25",
         ),
-        groups=("daily", "dashboard", "reconciliation", "repricing"),
+        groups=("daily", "dashboard", "reconciliation", "repricing", "fba"),
+        timeout_seconds=45 * 60,
+    ),
+    SyncJob(
+        name="Amazon FBA shipments",
+        command=static_command("integrations/amazon_sync_fba_shipments.py"),
+        groups=("daily", "dashboard", "reconciliation", "fba"),
+        timeout_seconds=30 * 60,
+    ),
+    SyncJob(
+        name="Inventory reconciliation",
+        command=static_command("integrations/inventory_reconcile.py", "--skip-if-unchanged"),
+        groups=("core", "dashboard", "reconciliation", "fba"),
         timeout_seconds=45 * 60,
     ),
     SyncJob(
@@ -293,7 +299,7 @@ JOBS: tuple[SyncJob, ...] = (
     SyncJob(
         name="Business value snapshot",
         command=static_command("integrations/business_value_snapshot.py", "--apply"),
-        groups=("daily", "dashboard"),
+        groups=("daily", "dashboard", "fba"),
         timeout_seconds=30 * 60,
     ),
     SyncJob(
@@ -345,6 +351,7 @@ GROUPS = (
     "dashboard",
     "reconciliation",
     "repricing",
+    "fba",
     "all",
 )
 

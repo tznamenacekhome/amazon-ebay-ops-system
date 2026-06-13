@@ -15,8 +15,9 @@ Authoritative cost for dashboards and purchase reporting comes through `vw_purch
 
 ## Receiving And FBA Workflow
 
-- `fba_shipments`: operator-entered Amazon/InventoryLab shipment batches.
-- `fba_shipment_items`: item-level links between purchase items and FBA shipments.
+- `fba_shipments`: operator-entered Amazon shipment batches, enriched with Amazon inbound status, fulfillment center, carrier/tracking fields, milestone timestamps, FBA availability metrics, and outbound remaining value.
+- `fba_shipment_items`: item-level links between purchase items and FBA shipments, enriched with Amazon expected/received/available quantities and remaining outbound cost.
+- `fba_shipment_events`: milestone history for FBA shipment pickup, delivery, check-in, receiving, closure, and all-units-available events.
 
 Receiving state is stored on `purchase_items`; shipment prep links included quantities to FBA shipment rows and moves those included quantities to `listed`.
 

@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
 const supabaseUrl = process.env.SUPABASE_URL!;
@@ -38,7 +38,73 @@ type SaveItem = {
   quantity_to_send: number;
 };
 
-export async function GET() {
+type ShipmentRow = {
+  fba_shipment_id: string;
+  shipment_code: string;
+  workflow_status: string | null;
+  amazon_status_raw: string | null;
+  amazon_status_normalized: string | null;
+  fulfillment_center_id: string | null;
+  destination_fulfillment_center_id: string | null;
+  carrier_name: string | null;
+  tracking_number: string | null;
+  carrier_tracking_url: string | null;
+  carrier_pickup_at: string | null;
+  carrier_delivery_eta: string | null;
+  carrier_delivered_at: string | null;
+  amazon_checked_in_at: string | null;
+  amazon_receiving_started_at: string | null;
+  amazon_closed_at: string | null;
+  all_units_available_at: string | null;
+  units_sent: number | null;
+  units_expected: number | null;
+  units_received: number | null;
+  units_available: number | null;
+  units_reserved: number | null;
+  units_unfulfillable: number | null;
+  units_missing: number | null;
+  fba_availability_pct: number | null;
+  cost_sent: number | null;
+  outbound_remaining_cost: number | null;
+  amazon_received_cost: number | null;
+  amazon_available_cost: number | null;
+  attention_flags: string[] | null;
+  finalized_at: string | null;
+  last_amazon_sync_at: string | null;
+  updated_at: string | null;
+};
+
+type ShipmentItemRow = {
+  fba_shipment_item_id: string;
+  fba_shipment_id: string;
+  item_id: string;
+  quantity: number | null;
+  asin: string | null;
+  amazon_title: string | null;
+  system: string | null;
+  unit_cost: number | null;
+  target_price: number | null;
+  seller_sku: string | null;
+  fnsku: string | null;
+  expected_quantity: number | null;
+  received_quantity: number | null;
+  available_quantity: number | null;
+  reserved_quantity: number | null;
+  unfulfillable_quantity: number | null;
+  missing_quantity: number | null;
+  outbound_remaining_quantity: number | null;
+  cost_sent: number | null;
+  outbound_remaining_cost: number | null;
+  amazon_received_cost: number | null;
+  amazon_available_cost: number | null;
+};
+
+export async function GET(request: NextRequest) {
+  const mode = request.nextUrl.searchParams.get("mode");
+  if (mode === "shipments") {
+    return getShipments();
+  }
+
   try {
     const rows = await fetchReceivedRows();
     const itemIds = rows.map((row) => row.item_id).filter(Boolean);
@@ -90,6 +156,187 @@ export async function GET() {
       { status: 500 }
     );
   }
+}
+
+async function getShipments() {
+  try {
+    const { data, error } = await supabase
+      .from("fba_shipments")
+      .select("*")
+      .neq("shipment_code", "legacy_listed_no_shipment_id")
+      .order("finalized_at", { ascending: false, nullsFirst: false })
+      .limit(100);
+
+    if (error) throw new Error(error.message);
+
+    const shipments = (data ?? []) as ShipmentRow[];
+    const shipmentIds = shipments.map((row) => row.fba_shipment_id).filter(Boolean);
+    const items = await fetchShipmentItems(shipmentIds);
+    const itemsByShipment = new Map<string, ShipmentItemRow[]>();
+    for (const item of items) {
+      const rows = itemsByShipment.get(item.fba_shipment_id) ?? [];
+      rows.push(item);
+      itemsByShipment.set(item.fba_shipment_id, rows);
+    }
+
+    const rows = shipments.map((shipment) => {
+      const detailRows = itemsByShipment.get(shipment.fba_shipment_id) ?? [];
+      const computed = summarizeShipmentFromItems(detailRows);
+      return {
+        id: shipment.fba_shipment_id,
+        shipment_code: shipment.shipment_code,
+        workflow_status: shipment.workflow_status,
+        amazon_status_raw: shipment.amazon_status_raw,
+        amazon_status_normalized: shipment.amazon_status_normalized,
+        fulfillment_center_id:
+          shipment.fulfillment_center_id || shipment.destination_fulfillment_center_id,
+        carrier_name: shipment.carrier_name,
+        tracking_number: shipment.tracking_number,
+        carrier_tracking_url: shipment.carrier_tracking_url,
+        carrier_pickup_at: shipment.carrier_pickup_at,
+        carrier_delivery_eta: shipment.carrier_delivery_eta,
+        carrier_delivered_at: shipment.carrier_delivered_at,
+        amazon_checked_in_at: shipment.amazon_checked_in_at,
+        amazon_receiving_started_at: shipment.amazon_receiving_started_at,
+        amazon_closed_at: shipment.amazon_closed_at,
+        all_units_available_at: shipment.all_units_available_at,
+        units_sent: toNumber(shipment.units_sent) ?? computed.units_sent,
+        units_expected: toNumber(shipment.units_expected) ?? computed.units_expected,
+        units_received: toNumber(shipment.units_received) ?? computed.units_received,
+        units_available: toNumber(shipment.units_available) ?? computed.units_available,
+        units_reserved: toNumber(shipment.units_reserved) ?? computed.units_reserved,
+        units_unfulfillable:
+          toNumber(shipment.units_unfulfillable) ?? computed.units_unfulfillable,
+        units_missing: toNumber(shipment.units_missing) ?? computed.units_missing,
+        fba_availability_pct:
+          toNumber(shipment.fba_availability_pct) ??
+          percent(computed.units_available, computed.units_sent),
+        cost_sent: toNumber(shipment.cost_sent) ?? computed.cost_sent,
+        outbound_remaining_cost:
+          toNumber(shipment.outbound_remaining_cost) ?? computed.outbound_remaining_cost,
+        amazon_received_cost:
+          toNumber(shipment.amazon_received_cost) ?? computed.amazon_received_cost,
+        amazon_available_cost:
+          toNumber(shipment.amazon_available_cost) ?? computed.amazon_available_cost,
+        attention_flags: Array.isArray(shipment.attention_flags)
+          ? shipment.attention_flags
+          : [],
+        finalized_at: shipment.finalized_at,
+        last_amazon_sync_at: shipment.last_amazon_sync_at,
+        updated_at: shipment.updated_at,
+        details: detailRows
+          .map((item) => ({
+            id: item.fba_shipment_item_id,
+            item_id: item.item_id,
+            asin: item.asin,
+            amazon_title: item.amazon_title,
+            system: item.system,
+            seller_sku: item.seller_sku,
+            fnsku: item.fnsku,
+            quantity_sent: toNumber(item.quantity) ?? 0,
+            expected_quantity: toNumber(item.expected_quantity),
+            received_quantity: toNumber(item.received_quantity),
+            available_quantity: toNumber(item.available_quantity),
+            reserved_quantity: toNumber(item.reserved_quantity),
+            unfulfillable_quantity: toNumber(item.unfulfillable_quantity),
+            missing_quantity: toNumber(item.missing_quantity),
+            outbound_remaining_quantity: toNumber(item.outbound_remaining_quantity),
+            unit_cost: toNumber(item.unit_cost),
+            target_price: toNumber(item.target_price),
+            cost_sent: toNumber(item.cost_sent),
+            outbound_remaining_cost: toNumber(item.outbound_remaining_cost),
+            amazon_received_cost: toNumber(item.amazon_received_cost),
+            amazon_available_cost: toNumber(item.amazon_available_cost),
+          }))
+          .sort((left, right) => compareStrings(left.asin, right.asin)),
+      };
+    });
+
+    const totals = rows.reduce(
+      (sum, row) => ({
+        shipments: sum.shipments + 1,
+        units_sent: sum.units_sent + Number(row.units_sent ?? 0),
+        units_received: sum.units_received + Number(row.units_received ?? 0),
+        units_available: sum.units_available + Number(row.units_available ?? 0),
+        outbound_remaining_cost:
+          sum.outbound_remaining_cost + Number(row.outbound_remaining_cost ?? 0),
+      }),
+      {
+        shipments: 0,
+        units_sent: 0,
+        units_received: 0,
+        units_available: 0,
+        outbound_remaining_cost: 0,
+      }
+    );
+
+    return NextResponse.json({ totals, rows });
+  } catch (error) {
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : "Failed to load FBA shipments" },
+      { status: 500 }
+    );
+  }
+}
+
+async function fetchShipmentItems(shipmentIds: string[]) {
+  const rows: ShipmentItemRow[] = [];
+  const chunkSize = 250;
+  for (let index = 0; index < shipmentIds.length; index += chunkSize) {
+    const chunk = shipmentIds.slice(index, index + chunkSize);
+    const { data, error } = await supabase
+      .from("fba_shipment_items")
+      .select("*")
+      .in("fba_shipment_id", chunk)
+      .eq("included", true);
+
+    if (error) throw new Error(error.message);
+    rows.push(...((data ?? []) as ShipmentItemRow[]));
+  }
+  return rows;
+}
+
+function summarizeShipmentFromItems(items: ShipmentItemRow[]) {
+  return items.reduce(
+    (sum, item) => {
+      const quantity = toNumber(item.quantity) ?? 0;
+      const unitCost = toNumber(item.unit_cost) ?? 0;
+      const costSent = toNumber(item.cost_sent) ?? quantity * unitCost;
+      const outboundCost =
+        toNumber(item.outbound_remaining_cost) ??
+        (toNumber(item.outbound_remaining_quantity) ?? quantity) * unitCost;
+
+      return {
+        units_sent: sum.units_sent + quantity,
+        units_expected: sum.units_expected + (toNumber(item.expected_quantity) ?? quantity),
+        units_received: sum.units_received + (toNumber(item.received_quantity) ?? 0),
+        units_available: sum.units_available + (toNumber(item.available_quantity) ?? 0),
+        units_reserved: sum.units_reserved + (toNumber(item.reserved_quantity) ?? 0),
+        units_unfulfillable:
+          sum.units_unfulfillable + (toNumber(item.unfulfillable_quantity) ?? 0),
+        units_missing: sum.units_missing + (toNumber(item.missing_quantity) ?? 0),
+        cost_sent: sum.cost_sent + costSent,
+        outbound_remaining_cost: sum.outbound_remaining_cost + outboundCost,
+        amazon_received_cost:
+          sum.amazon_received_cost + (toNumber(item.amazon_received_cost) ?? 0),
+        amazon_available_cost:
+          sum.amazon_available_cost + (toNumber(item.amazon_available_cost) ?? 0),
+      };
+    },
+    {
+      units_sent: 0,
+      units_expected: 0,
+      units_received: 0,
+      units_available: 0,
+      units_reserved: 0,
+      units_unfulfillable: 0,
+      units_missing: 0,
+      cost_sent: 0,
+      outbound_remaining_cost: 0,
+      amazon_received_cost: 0,
+      amazon_available_cost: 0,
+    }
+  );
 }
 
 export async function POST(request: Request) {
@@ -532,6 +779,11 @@ function toNumber(value?: number | string | null) {
   if (value === null || value === undefined || value === "") return null;
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : null;
+}
+
+function percent(numerator: number, denominator: number) {
+  if (!denominator) return null;
+  return Math.round((numerator / denominator) * 1000) / 10;
 }
 
 function compareStrings(left?: string | null, right?: string | null) {

@@ -157,7 +157,8 @@ Carrier/status syncs must not downgrade workflow-owned statuses.
 - Grouped cost is backend-owned and quantity-weighted.
 - Operator-entered shipment ID links included items to FBA shipment rows.
 - Included quantities move to `listed`; excluded quantities remain `received`.
-- Current non-historical FBA shipment links are valued as `outbound_to_amazon` until Amazon/InventoryLab inventory takes over.
+- Current non-historical FBA shipment links are valued as `outbound_to_amazon` only for remaining units Amazon has not yet received or made available.
+- Amazon FBA shipment sync stores Amazon inbound status, fulfillment center, carrier ETA when available, received quantity, FBA available quantity, and remaining outbound value on shipment workflow rows.
 - The historical marker `legacy_listed_no_shipment_id` must not create outbound-to-Amazon value.
 - Explicitly `listed` legacy purchase-item lots with ASIN, quantity, and cost
   may participate in Amazon sales FIFO COGS allocation even when the original
@@ -177,7 +178,8 @@ Carrier/status syncs must not downgrade workflow-owned statuses.
   sold units plus active inventory, opening-history boundary units, and explicit
   adjustments. It is a control process for close/tax confidence, not a scheduled
   external-data freshness sync.
-- Business value snapshots use MBOP outbound shipment cost for saved FBA shipments and avoid double-counting overlapping Amazon inbound rows for the same ASINs.
+- Business value snapshots use MBOP outbound shipment cost only for shipment quantities still unresolved by Amazon receiving/availability data, and avoid double-counting Amazon-received shipment value.
+- InventoryLab valuation files are audit-only and must not overwrite MBOP inventory, costs, shipment rows, or purchase items.
 - YNAB Business category balance is cash-on-hand context only.
 - Amazon Finance cash is value that has moved from inventory into Amazon-held cash or Amazon-to-bank in-transit cash.
 - Amazon-to-bank in-transit cash includes transfers Amazon still marks

@@ -149,9 +149,11 @@ def sources_unchanged_since_last_reconciliation(supabase) -> bool:
 
     source_checks = [
         ("purchases", "created_at"),
-        ("purchase_items", "updated_at"),
+        ("purchase_items", "created_at"),
         ("fba_shipments", "created_at"),
+        ("fba_shipments", "updated_at"),
         ("fba_shipment_items", "created_at"),
+        ("fba_shipment_items", "updated_at"),
         ("amazon_skus", "updated_at"),
         ("amazon_fba_inventory_snapshots", "captured_at"),
         ("amazon_listing_snapshots", "captured_at"),
@@ -265,7 +267,8 @@ def fetch_fba_item_links(supabase) -> dict[str, list[dict[str, Any]]]:
     rows = fetch_all(
         supabase,
         "fba_shipment_items",
-        "fba_shipment_item_id,fba_shipment_id,item_id,quantity,included",
+        "fba_shipment_item_id,fba_shipment_id,item_id,quantity,included,"
+        "outbound_remaining_quantity,outbound_remaining_cost",
     )
 
     for row in rows:
@@ -363,7 +366,17 @@ def build_mbop_positions(
                     continue
                 projected_fba_shipment_item_ids.add(fba_shipment_item_id)
 
-            link_quantity = to_int(link.get("quantity"), default=quantity)
+            if projection.inventory_state == "outbound_to_amazon":
+                link_quantity = to_int(
+                    link.get("outbound_remaining_quantity"),
+                    default=to_int(link.get("quantity"), default=quantity),
+                )
+                link_total_cost = to_float(link.get("outbound_remaining_cost"))
+            else:
+                link_quantity = to_int(link.get("quantity"), default=quantity)
+                link_total_cost = None
+            if projection.inventory_state == "outbound_to_amazon" and link_quantity <= 0:
+                continue
             link_quantity = min(max(link_quantity, 1), quantity)
             positions.append(
                 {
@@ -380,7 +393,13 @@ def build_mbop_positions(
                     "system": clean_text(row.get("system")),
                     "quantity": link_quantity,
                     "unit_cost": unit_cost,
-                    "total_cost": unit_cost * link_quantity if unit_cost is not None else None,
+                    "total_cost": (
+                        link_total_cost
+                        if link_total_cost is not None
+                        else unit_cost * link_quantity
+                        if unit_cost is not None
+                        else None
+                    ),
                     "currency": "USD",
                     "inventory_state": projection.inventory_state,
                     "physical_location": projection.physical_location,

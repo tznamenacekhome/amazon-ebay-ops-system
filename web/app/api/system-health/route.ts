@@ -161,6 +161,34 @@ const JOBS: JobConfig[] = [
     signal: async () => snapshotSignal("amazon_fba_inventory_snapshots", "captured_at", "Snapshot rows"),
   },
   {
+    id: "amazon-fba-shipments",
+    name: "Amazon FBA shipments",
+    command: "integrations/amazon_sync_fba_shipments.py",
+    group: "daily",
+    blocking: true,
+    expectedEveryHours: 24,
+    criticalAfterHours: 36,
+    signal: async () => {
+      const row = await latestRow(
+        "fba_shipments",
+        "last_amazon_sync_at",
+        "last_amazon_sync_at,shipment_code,amazon_status_normalized,units_sent,units_received,units_available,outbound_remaining_cost",
+      );
+      return {
+        lastRunAt: stringValue(row?.last_amazon_sync_at),
+        source: "fba_shipments",
+        stats: [
+          { label: "Shipment", value: stringValue(row?.shipment_code) || "--" },
+          { label: "Status", value: stringValue(row?.amazon_status_normalized) || "--" },
+          { label: "Sent", value: formatCount(row?.units_sent) },
+          { label: "Received", value: formatCount(row?.units_received) },
+          { label: "Available", value: formatCount(row?.units_available) },
+          { label: "Outbound", value: formatCurrency(row?.outbound_remaining_cost) },
+        ],
+      };
+    },
+  },
+  {
     id: "amazon-listing-status",
     name: "Amazon listing status",
     command: "integrations/amazon_sync_listing_status.py",

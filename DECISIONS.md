@@ -48,7 +48,7 @@ Purchases and Receiving are separate workflows, but operators need fast switchin
 
 Implementation:
 - `web/app/AppShell.tsx`
-- current entries are Dashboard, Purchases, Receiving, Amazon FBA, Repricing, and Reconciliation
+- current entries are Dashboard, Purchases, Receiving, Send to Amazon, Repricing, Sales Orders, Sourcing, and Reconciliation
 - active mode is highlighted
 - the shell remains narrow so dense operational tables keep most of the viewport
 
@@ -472,13 +472,13 @@ Blank values in the reference `status` tab are not a new status. They leave the 
 ## Amazon FBA Shipment Workflow Is Separate
 
 Decision:
-Use a separate Amazon FBA workflow for preparing Received Amazon-bound inventory for InventoryLab shipment creation.
+Use a separate Amazon FBA workflow for preparing Received Amazon-bound inventory for Amazon shipment creation and tracking Amazon receiving/availability after the shipment is saved.
 
 Reason:
 FBA shipment preparation happens after receiving and before/while listing. It should not be mixed into purchase review or receiving verification.
 
 Implementation:
-- `/fba` displays the shipment preparation workspace
+- `/fba` displays the Send to Amazon workspace with prep and shipment tabs
 - `/api/fba-shipments` owns Supabase reads/writes
 - Received Amazon-bound purchase items are grouped by ASIN
 - grouped cost per unit is quantity-weighted from `vw_purchases_dashboard.unit_cost`
@@ -493,7 +493,9 @@ Save behavior:
 - included quantities move from `received` to `listed`
 - excluded quantities remain `received`
 - partial included quantities split the purchase item so only the included quantity becomes `listed`
-- non-historical saved shipment links are projected into `inventory_positions` as `outbound_to_amazon` for inventory value until Amazon/InventoryLab inventory takes over
+- non-historical saved shipment links are projected into `inventory_positions` as `outbound_to_amazon` only for quantities Amazon has not yet received or made available
+- `integrations/amazon_sync_fba_shipments.py` reads Amazon inbound shipment status and item quantities, then updates fulfillment center, receiving counts, FBA availability, milestone timestamps, and remaining outbound value on FBA shipment workflow rows
+- SP-API carrier/tracking fields are stored when Amazon exposes them, but legacy v0 transport details currently return an Amazon deprecation error for the current shipment and v2024 inbound-plan discovery did not expose useful carrier details in June 2026 testing
 
 Historical marker:
 Use `legacy_listed_no_shipment_id` for already Listed items that predate MBOP shipment ID tracking. This value is not a real Amazon shipment ID.
@@ -506,7 +508,7 @@ Do not mark excluded or damaged units Listed during FBA save. They must remain R
 ## Amazon SP-API Foundation Is Read-Only And Separate
 
 Decision:
-Add Amazon SP-API support as a Python integration foundation for inventory, listing, and pricing reads only.
+Add Amazon SP-API support as a Python integration foundation for approved read-only Amazon inventory, listing, pricing, shipment, finance, reports, and non-PII order reads.
 
 Reason:
 MBOP needs Amazon seller/FBA visibility for inventory confidence and future Keepa/Amazon matching work, but Amazon seller sales/orders and customer data are separate operational domains and must not contaminate purchase history.
@@ -517,10 +519,11 @@ Implementation:
 - `integrations/amazon_test_connection.py` smoke-tests LWA auth and a safe FBA inventory summary read.
 - `integrations/amazon_sync_fba_inventory.py` paginates FBA inventory summaries, upserts `amazon_skus`, and inserts point-in-time `amazon_fba_inventory_snapshots`.
 - `integrations/amazon_sync_listing_status.py` reads Listings Items status/issues for Amazon SKUs and inserts point-in-time `amazon_listing_snapshots`.
-- the client allow-list is limited to FBA inventory, Listings Items, and Product Pricing read paths.
+- `integrations/amazon_sync_fba_shipments.py` reads Fulfillment Inbound shipment status and item quantities for saved Amazon shipment IDs.
+- the client allow-list is limited to approved read-only Amazon paths, including FBA inventory, Fulfillment Inbound, Listings Items, Product Pricing, Orders, Finance, and Reports.
 - no restricted-data-token flow is implemented.
-- no Amazon Orders API, buyer, address, or other PII-oriented endpoint is called.
-- Amazon seller/FBA/listing data belongs in `amazon_skus`, `amazon_fba_inventory_snapshots`, and `amazon_listing_snapshots`.
+- buyer, address, and other PII-oriented endpoint usage is not allowed.
+- Amazon seller/FBA/listing/shipment data belongs in Amazon-specific or FBA workflow tables, not purchases or purchase_items.
 
 Rule:
 Do not write Amazon seller sales/orders into `purchases` or `purchase_items`. Purchase history remains supplier-purchase data; Amazon seller inventory/listing/pricing data gets its own tables and later API/UI surfaces.

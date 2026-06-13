@@ -42,6 +42,10 @@ REGION_ENDPOINTS = {
 
 READ_ONLY_OPERATION_PREFIXES = (
     "/fba/inventory/",
+    "/fba/inbound/v0/shipments",
+    "/fba/inbound/v0/shipments/",
+    "/fba/inbound/v0/shipmentItems",
+    "/inbound/fba/2024-03-20/",
     "/orders/v0/orders",
     "/orders/v0/orders/",
     "/finances/v0/financialEventGroups",
@@ -218,6 +222,179 @@ class AmazonSPAPIClient:
             params["nextToken"] = next_token
 
         return self.request("GET", "/fba/inventory/v1/summaries", params=params)
+
+    def get_inbound_shipments(
+        self,
+        shipment_ids: list[str],
+        *,
+        next_token: str | None = None,
+    ) -> dict[str, Any]:
+        params: dict[str, Any]
+        if next_token:
+            params = {"NextToken": next_token}
+        else:
+            params = {
+                "QueryType": "SHIPMENT",
+                "ShipmentIdList": shipment_ids,
+                "MarketplaceId": self.config.marketplace_id,
+            }
+        return self.request("GET", "/fba/inbound/v0/shipments", params=params)
+
+    def get_inbound_shipments_by_date_range(
+        self,
+        *,
+        last_updated_after: str,
+        last_updated_before: str | None = None,
+        next_token: str | None = None,
+    ) -> dict[str, Any]:
+        params: dict[str, Any]
+        if next_token:
+            params = {"NextToken": next_token}
+        else:
+            params = {
+                "QueryType": "DATE_RANGE",
+                "LastUpdatedAfter": last_updated_after,
+                "MarketplaceId": self.config.marketplace_id,
+                "ShipmentStatusList": [
+                    "WORKING",
+                    "SHIPPED",
+                    "IN_TRANSIT",
+                    "DELIVERED",
+                    "CHECKED_IN",
+                    "RECEIVING",
+                    "CLOSED",
+                    "CANCELLED",
+                    "DELETED",
+                    "ERROR",
+                ],
+            }
+            params["LastUpdatedBefore"] = last_updated_before or utc_now().replace(
+                microsecond=0
+            ).isoformat().replace("+00:00", "Z")
+        return self.request("GET", "/fba/inbound/v0/shipments", params=params)
+
+    def iter_inbound_shipments_by_date_range(
+        self,
+        *,
+        last_updated_after: str,
+        last_updated_before: str | None = None,
+        max_pages: int = 200,
+    ):
+        next_token: str | None = None
+        pages_seen = 0
+        seen_tokens: set[str] = set()
+        while True:
+            payload = self.get_inbound_shipments_by_date_range(
+                last_updated_after=last_updated_after,
+                last_updated_before=last_updated_before,
+                next_token=next_token,
+            )
+            pages_seen += 1
+            container = payload.get("payload") or payload
+            for shipment in container.get("ShipmentData") or []:
+                yield shipment
+            next_token = container.get("NextToken")
+            if not next_token or pages_seen >= max_pages or next_token in seen_tokens:
+                return
+            seen_tokens.add(next_token)
+
+    def iter_inbound_shipments(self, shipment_ids: list[str], *, max_pages: int = 200):
+        next_token: str | None = None
+        pages_seen = 0
+        seen_tokens: set[str] = set()
+        while True:
+            payload = self.get_inbound_shipments(shipment_ids, next_token=next_token)
+            pages_seen += 1
+            container = payload.get("payload") or payload
+            for shipment in container.get("ShipmentData") or []:
+                yield shipment
+            next_token = container.get("NextToken")
+            if not next_token or pages_seen >= max_pages or next_token in seen_tokens:
+                return
+            seen_tokens.add(next_token)
+
+    def get_inbound_transport_details(self, shipment_id: str) -> dict[str, Any]:
+        path = f"/fba/inbound/v0/shipments/{quote(shipment_id, safe='')}/transport"
+        return self.request("GET", path)
+
+    def list_inbound_plans(
+        self,
+        *,
+        page_size: int = 10,
+        pagination_token: str | None = None,
+        status: str | None = None,
+        sort_by: str = "LAST_UPDATED_TIME",
+        sort_order: str = "DESC",
+    ) -> dict[str, Any]:
+        params: dict[str, Any] = {
+            "pageSize": min(max(page_size, 1), 30),
+            "sortBy": sort_by,
+            "sortOrder": sort_order,
+        }
+        if pagination_token:
+            params["paginationToken"] = pagination_token
+        if status:
+            params["status"] = status
+        return self.request("GET", "/inbound/fba/2024-03-20/inboundPlans", params=params)
+
+    def iter_inbound_plans(self, *, page_size: int = 10, max_pages: int = 5):
+        pagination_token: str | None = None
+        pages_seen = 0
+        while True:
+            payload = self.list_inbound_plans(
+                page_size=page_size,
+                pagination_token=pagination_token,
+            )
+            pages_seen += 1
+            for plan in payload.get("inboundPlans") or []:
+                yield plan
+            pagination_token = (payload.get("pagination") or {}).get("nextToken")
+            if not pagination_token or pages_seen >= max_pages:
+                return
+
+    def get_inbound_plan(self, inbound_plan_id: str) -> dict[str, Any]:
+        path = f"/inbound/fba/2024-03-20/inboundPlans/{quote(inbound_plan_id, safe='')}"
+        return self.request("GET", path)
+
+    def get_inbound_plan_shipment(
+        self,
+        inbound_plan_id: str,
+        shipment_id: str,
+    ) -> dict[str, Any]:
+        path = (
+            "/inbound/fba/2024-03-20/inboundPlans/"
+            f"{quote(inbound_plan_id, safe='')}/shipments/{quote(shipment_id, safe='')}"
+        )
+        return self.request("GET", path)
+
+    def get_inbound_shipment_items(
+        self,
+        shipment_id: str,
+        *,
+        next_token: str | None = None,
+    ) -> dict[str, Any]:
+        params: dict[str, Any]
+        if next_token:
+            params = {"NextToken": next_token}
+        else:
+            params = {}
+        path = f"/fba/inbound/v0/shipments/{quote(shipment_id, safe='')}/items"
+        return self.request("GET", path, params=params)
+
+    def iter_inbound_shipment_items(self, shipment_id: str, *, max_pages: int = 200):
+        next_token: str | None = None
+        pages_seen = 0
+        seen_tokens: set[str] = set()
+        while True:
+            payload = self.get_inbound_shipment_items(shipment_id, next_token=next_token)
+            pages_seen += 1
+            container = payload.get("payload") or payload
+            for item in container.get("ItemData") or []:
+                yield item
+            next_token = container.get("NextToken")
+            if not next_token or pages_seen >= max_pages or next_token in seen_tokens:
+                return
+            seen_tokens.add(next_token)
 
     def iter_inventory_summaries(
         self,

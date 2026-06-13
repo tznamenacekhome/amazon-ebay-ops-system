@@ -22,7 +22,7 @@ MBOP is the internal operations platform for Midnight Blue Enterprises, LLC.
 | Keepa catalog intelligence | Token-aware enrichment working |
 | Informed Repricer intelligence | Read-only report snapshot import working |
 | Unified inventory state / reconciliation | First slice implemented |
-| Amazon FBA workflow | First slice implemented |
+| Amazon FBA workflow | Prep and shipment tracking first slice implemented |
 | Aged Amazon Inventory Repricing Advisor | First slice implemented |
 | Amazon Sales Orders | First slice implemented / 2025-forward backfill complete |
 | Non-eBay purchase COGS sources | Manual import bridge implemented |
@@ -233,7 +233,7 @@ Known follow-up:
 Status: LOCAL SCHEDULER CONFIGURED / BROAD INTEGRATION AUTOMATION ENABLED
 
 Implemented:
-- `run_all_syncs.py` runs eBay buyer purchase sync, sourcing purchase matching, EasyPost shipment sync, RevSeller enrichment with optional AI same-system review, guarded missing-title Keepa repair, Amazon FBA inventory, Amazon listing status, Amazon inventory planning, Amazon Finance, Informed Repricer reports, YNAB Business cash balance, guarded sourcing listing availability cleanup, guarded Keepa enrichment, and the daily business value snapshot
+- `run_all_syncs.py` runs eBay buyer purchase sync, sourcing purchase matching, EasyPost shipment sync, RevSeller enrichment with optional AI same-system review, guarded missing-title Keepa repair, Amazon FBA inventory, Amazon FBA shipment sync, Amazon listing status, Amazon inventory planning, Amazon Finance, Informed Repricer reports, YNAB Business cash balance, guarded sourcing listing availability cleanup, guarded Keepa enrichment, and the daily business value snapshot
 - `run_all_syncs.py` writes `running`, `ok`, `failed`, and lock-collision
   `blocked` records to `logs/sync_health.json`, allowing System Health refreshes
   during active runs to show the current job state.
@@ -273,6 +273,7 @@ Recent validation:
   the new Order Problems return/inquiry sync owns the active workflow
 - RevSeller sync completed and wrote diagnostics
 - Amazon FBA inventory sync fetched 6,292 summaries, upserted 6,292 SKUs, and inserted 6,292 snapshots
+- Amazon FBA shipment sync refreshed shipment `FBA19F8YW7CV` with Amazon status `RECEIVING`, 277 sent, 277 received, 45 currently available, 276 reserved, 1 unfulfillable, and zero remaining outbound-to-Amazon value
 - Amazon listing-status sync inserted 296 active listing snapshots
 - Amazon inventory planning sync inserted 295 planning rows
 - Amazon Finance sync inserted a balance snapshot
@@ -637,7 +638,7 @@ Current behavior:
 - canonical current inventory is defined as current Amazon FBA inventory plus MBOP purchase inventory that has not yet reached the Listed workflow state, plus current non-historical FBA shipment links on the way to Amazon
 - Amazon-bound purchase inventory with `current_status = listed` and no current FBA shipment link is treated as historical/sold-through in the derived purchase projection; current FBA shipment links are projected as `outbound_to_amazon`
 - dashboard Amazon FBA value prefers the latest InventoryLab valuation snapshot when available, while MBOP remains authoritative for received, ordered, and outbound inventory
-- business value snapshots use MBOP outbound shipment cost for saved FBA shipments and avoid double-counting overlapping Amazon inbound rows for the same ASINs
+- business value snapshots use MBOP outbound shipment cost only for quantities still unresolved by Amazon receiving/availability data and avoid double-counting Amazon-received shipment value
 - reconciliation currently compares MBOP Amazon-intended inventory to latest Amazon FBA inventory at ASIN level and surfaces Amazon listing issue/suppression signals
 - reconciliation ignores Amazon listing/catalog issue signals when Amazon still
   reports sellable FBA units for the ASIN; buyable inventory with catalog
@@ -649,7 +650,7 @@ Latest validation:
 - InventoryLab valuation import read 297 rows, found 0 missing MSKUs, 0 missing total values, 0 duplicate MSKUs, and upserted a $13,453.87 / 761-unit legacy Amazon FBA opening-balance valuation
 - inventory reconciliation loaded 298 InventoryLab cost/date overlay rows
 - latest write run projected 2,943 MBOP positions, 451 Amazon positions, and 392 open findings after adding current FBA shipment outbound projection
-- current Amazon shipment `FBA19F8YW7CV` projects 216 linked shipment rows, 277 units, and $5,634.77 as `outbound_to_amazon`
+- current Amazon shipment `FBA19F8YW7CV` now has 216 linked shipment rows and 277 units, but projects $0 as `outbound_to_amazon` because Amazon reports all 277 units received
 - latest reconciliation includes 55 Amazon stranded/suppressed listing findings from the read-only Listings Items snapshots
 - 310 Amazon inventory positions currently carry InventoryLab legacy cost/date context
 - Next.js production build passed after dashboard API/UI updates
@@ -893,13 +894,14 @@ Pending:
 
 ---
 
-## Amazon FBA UI
+## Send To Amazon UI
 
-Status: FIRST SLICE IMPLEMENTED
+Status: PREP AND SHIPMENT TRACKING FIRST SLICE IMPLEMENTED
 
 Implemented:
-- separate Amazon FBA workspace at /fba
+- separate Send to Amazon workspace at /fba
 - FBA API route at /api/fba-shipments
+- Prep Queue and Shipments tabs
 - received Amazon-bound purchase items are grouped into one row per ASIN
 - grouped rows show ASIN, Amazon title, system, weighted cost per unit, sell price, quantity, oldest purchase date, and supplier
 - rows are sorted by system and Amazon title
@@ -914,7 +916,12 @@ Implemented:
 - partial included quantities split the remaining quantity into a Received split child row
 - same-ASIN Amazon title fallback fills FBA display titles when a Received row has ASIN but blank amazon_title
 - rows with no stored Amazon title display an explicit Missing Amazon title indicator instead of silently using the eBay title
+- Shipments tab lists saved Amazon shipment IDs, MBOP status, FBA status, fulfillment center, delivery/ETA, milestone dates, sent/received/missing units, FBA availability, cost, attention flags, and last sync
+- shipment delivery display shows delivered date with a small `delivered` label when carrier delivery is known, otherwise carrier ETA when available
+- status lines are prefixed with `MBOP:` and `FBA:` so local workflow state and Amazon state are visually distinct
+- the current SP-API shipment sync can refresh shipment/item status and availability by known shipment ID, but Amazon did not expose tracking, pickup, or delivery dates for `FBA19F8YW7CV` through the tested read endpoints
 
 Schema:
 - sql/2026-05-24_add_fba_shipments.sql adds fba_shipments and fba_shipment_items
+- sql/2026-06-13_add_fba_shipment_tracking_workflow.sql adds shipment status, carrier/tracking, milestone, availability, cost, attention-flag, raw payload, and event-history fields
 - historical Listed items should be linked to legacy_listed_no_shipment_id when no real shipment ID will be backfilled
