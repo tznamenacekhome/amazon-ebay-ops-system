@@ -1,6 +1,6 @@
 # Business Rules
 
-Last updated: 2026-06-10
+Last updated: 2026-06-13
 
 ## Cost And Reporting
 
@@ -82,6 +82,11 @@ Carrier/status syncs must not downgrade workflow-owned statuses.
   write sourced ASIN, Amazon title, and target sell price to the matched
   `purchase_items` row. The target sell price is the highest available Last
   Sold, Keepa 90-day, and current Buy Box value.
+- Daily sourcing availability cleanup may dismiss open, Watch, and ROI-snoozed
+  opportunities as `no_longer_available` when eBay Browse shows the listing is
+  ended, sold out, or missing. It must not dismiss Purchased Pending Match rows,
+  because those often become unavailable after the operator buys or offers and
+  must remain available for purchase matching/enrichment.
 
 ## Receiving
 
@@ -125,6 +130,11 @@ Carrier/status syncs must not downgrade workflow-owned statuses.
   details to capture seller make-it-right dates and seller-provided replacement
   tracking. Those dates display as escalation/action availability in the Order
   Problems Next Action column.
+- For missing-item INR inquiries with seller-provided replacement tracking,
+  carrier/eBay tracking progress should move the case to replacement-shipped
+  follow-up. Delivered replacement tracking should close the case as
+  `resolved_received_item` and return the purchase item to `delivered`, leaving
+  physical verification to the Receiving workflow.
 - `Close` means the problem is resolved with no further refund or inventory
   consequence. `Close No Refund` means the problem is closed but value was lost
   or unrecoverable and no refund will be received; it must not move the item

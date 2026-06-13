@@ -297,6 +297,18 @@ JOBS: tuple[SyncJob, ...] = (
         timeout_seconds=30 * 60,
     ),
     SyncJob(
+        name="Sourcing listing availability",
+        command=static_command(
+            "integrations/refresh_sourcing_listing_availability.py",
+            "--apply",
+            "--limit",
+            "250",
+        ),
+        groups=("daily", "catalog"),
+        blocking=False,
+        timeout_seconds=30 * 60,
+    ),
+    SyncJob(
         name="Keepa active products",
         command=static_command(
             "integrations/keepa_sync_products.py",

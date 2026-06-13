@@ -25,6 +25,7 @@ const dismissReasons = [
   ["packaging_condition_issue", "Packaging / Condition Issue"],
   ["incomplete_product", "Incomplete Product"],
   ["digital_item", "Digital Item"],
+  ["no_longer_available", "No Longer Available"],
   ["not_worth_selling", "Not Worth Selling"],
   ["other", "Other"],
 ] as const;
@@ -59,6 +60,8 @@ export default function SourcingPage() {
   const [dismissRow, setDismissRow] = useState<SourcingOpportunity | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkDismissOpen, setBulkDismissOpen] = useState(false);
+  const [sourcingRefreshRunning, setSourcingRefreshRunning] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
 
   const visibleRows = useMemo(() => {
     if (activeTab === "Purchased Pending Match") return rows.filter((row) => row.status === "purchased_pending_match");
@@ -112,6 +115,33 @@ export default function SourcingPage() {
     }
   }
 
+  async function refreshSourcingWorkflow() {
+    setSourcingRefreshRunning(true);
+    setError(null);
+    setNotice("Starting sourcing workflow...");
+    try {
+      const runTypes = sourceMode === "all" ? ["recent_sales", "full_listings"] : [sourceMode];
+      for (const runType of runTypes) {
+        setNotice(`Running ${runType === "full_listings" ? "all listings" : "recently sold"} sourcing workflow...`);
+        const response = await fetch("/api/sourcing/runs", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ runType, execute: true }),
+        });
+        const payload = await response.json();
+        if (!response.ok) throw new Error(payload.error ?? "Sourcing workflow failed.");
+      }
+      setSelectedIds(new Set());
+      await reload();
+      setNotice("Sourcing workflow complete. Loaded fresh opportunities.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Sourcing workflow failed.");
+      setNotice(null);
+    } finally {
+      setSourcingRefreshRunning(false);
+    }
+  }
+
   return (
     <main className="min-h-screen bg-slate-100 p-5 text-slate-950">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
@@ -122,11 +152,12 @@ export default function SourcingPage() {
           </p>
         </div>
         <button
-          onClick={() => void reload()}
-          className="inline-flex h-9 items-center gap-2 rounded-md border border-slate-300 bg-white px-3 text-sm font-medium text-slate-700 hover:bg-slate-50"
+          onClick={() => void refreshSourcingWorkflow()}
+          disabled={sourcingRefreshRunning}
+          className="inline-flex h-9 items-center gap-2 rounded-md border border-slate-300 bg-white px-3 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
         >
-          <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
-          Refresh
+          <RefreshCw className={`h-4 w-4 ${loading || sourcingRefreshRunning ? "animate-spin" : ""}`} />
+          {sourcingRefreshRunning ? "Running Sourcing" : "Run Sourcing"}
         </button>
       </div>
 
@@ -146,6 +177,7 @@ export default function SourcingPage() {
         ))}
       </div>
 
+      {notice ? <div className="mb-3 rounded-md border border-sky-200 bg-sky-50 px-3 py-2 text-sm text-sky-800">{notice}</div> : null}
       {error ? <div className="mb-3 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div> : null}
 
       {activeTab === "Sourcing History" ? (

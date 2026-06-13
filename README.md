@@ -12,6 +12,7 @@ The system automates and supports:
 - Amazon inventory, listing, planning, finance, and valuation visibility
 - Keepa and Informed read-only repricing intelligence
 - inventory reconciliation and business value dashboarding
+- sourcing opportunity discovery, matching, and availability cleanup
 
 ## Architecture
 
@@ -34,7 +35,7 @@ Capacity guardrails for Supabase billing limits, Disk IO Budget, and recovery ar
 
 ## Local Sync
 
-`run_all_syncs.py` is the local integration orchestrator. It runs eBay, EasyPost, RevSeller, Amazon, Informed, YNAB, guarded Keepa refresh, and daily business value snapshot jobs.
+`run_all_syncs.py` is the local integration orchestrator. It runs eBay, sourcing purchase matching and availability cleanup, EasyPost, RevSeller, Amazon, Informed, YNAB, guarded Keepa refresh, and daily business value snapshot jobs.
 
 `run_all_syncs.bat` appends scheduler output to `logs/scheduler.log`.
 

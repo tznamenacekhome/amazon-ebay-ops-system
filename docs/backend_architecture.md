@@ -1,6 +1,6 @@
 # Backend Architecture
 
-Last updated: 2026-06-10
+Last updated: 2026-06-13
 
 ## Core Flow
 
@@ -31,6 +31,8 @@ are separate domains.
 - Informed tables own read-only repricer report snapshots and advisory rule/price context.
 - YNAB tables own read-only category balance snapshots and Business-category
   transaction history.
+- eBay draft pricing sheet support is a spreadsheet utility, not a marketplace
+  write workflow. See `docs/subsystems/ebay_draft_pricing.md`.
 - `inventory_positions` and reconciliation tables are derived and rebuildable; they do not replace workflow ownership.
 
 ## Integration Orchestration
@@ -48,10 +50,11 @@ twice per day.
 - `daily`: Amazon FBA inventory, Amazon listing status, Amazon inventory
   planning, Amazon finance balances, 60-day Amazon sales finance refresh,
   daily sales profitability, Informed Repricer reports, YNAB Business cash,
-  YNAB Business transactions, and the daily business value snapshot. This group
-  is intended for 1x/day runs.
-- `catalog`: guarded Keepa active-Amazon stale refresh. This group is
-  token-aware and can run daily or less often.
+  YNAB Business transactions, sourcing listing availability cleanup, and the
+  daily business value snapshot. This group is intended for 1x/day runs.
+- `catalog`: sourcing listing availability cleanup and guarded Keepa
+  active-Amazon stale refresh. Keepa work is token-aware and can run daily or
+  less often.
 - Windows Task Scheduler currently runs `core` daily at 6:00 AM and 4:00 PM PT,
   `daily` daily at 8:00 PM PT, `catalog` daily at 9:30 PM PT, and the Inventory
   Source Balance Audit monthly on the 1st at 6:30 AM PT. System Health displays
@@ -64,6 +67,10 @@ Post-Order importer for returns, INR inquiries, inquiry detail records, and
 open cases. It writes only to `order_problem_cases` and `order_problem_events`.
 Inquiry detail enrichment is required because seller make-it-right/escalation
 dates and replacement tracking are not present in the inquiry search summary.
+When replacement tracking for an item-not-received inquiry shows progress, MBOP
+keeps the case in replacement follow-up; when the replacement tracking is
+delivered, MBOP closes the case as `resolved_received_item` and moves the
+purchase item back to `delivered` for Receiving verification.
 Cancellation/refund exceptions can be represented locally as
 `ebay_cancellation_sync` rows while first-class cancellation search automation
 is evaluated.

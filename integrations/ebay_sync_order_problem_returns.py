@@ -41,6 +41,7 @@ def main() -> int:
         supabase = get_supabase_client()
         token = get_access_token()
         purchase_line_index = build_purchase_line_index(supabase, args.lookback_days)
+        tracking_status_index = build_tracking_status_index(supabase)
         returns = search_returns(token, lookback_days=args.lookback_days, limit=args.limit)
         inquiries = enrich_inquiries(token, search_inquiries(token, lookback_days=args.lookback_days, limit=args.limit))
         cases = search_cases(token, lookback_days=args.lookback_days, limit=args.limit)
@@ -56,7 +57,7 @@ def main() -> int:
         mapped_rows = [
             *[map_return(return_row, supabase) for return_row in returns],
             *[
-                map_inquiry(inquiry_row, purchase_line_index, trading_refunds)
+                map_inquiry(inquiry_row, purchase_line_index, trading_refunds, tracking_status_index)
                 for inquiry_row in inquiries
             ],
             *[map_case(case_row, purchase_line_index, trading_refunds) for case_row in cases],
@@ -390,6 +391,35 @@ def fetch_items_by_purchase_id(
     return items_by_purchase_id
 
 
+def build_tracking_status_index(supabase) -> dict[str, dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    offset = 0
+    page_size = 1000
+    while True:
+        response = (
+            supabase.table("inbound_shipments")
+            .select(
+                "tracking_number,normalized_status,carrier_status,shipment_status,"
+                "delivered_date,last_checkpoint_time,last_tracking_sync"
+            )
+            .not_.is_("tracking_number", "null")
+            .range(offset, offset + page_size - 1)
+            .execute()
+        )
+        data = response.data or []
+        rows.extend(data)
+        if len(data) < page_size:
+            break
+        offset += page_size
+
+    index: dict[str, dict[str, Any]] = {}
+    for row in rows:
+        tracking_number = clean_text(row.get("tracking_number"))
+        if tracking_number:
+            index[tracking_number] = row
+    return index
+
+
 def select_problem_item(items: list[dict[str, Any]]) -> dict[str, Any] | None:
     if not items:
         return None
@@ -525,6 +555,7 @@ def map_inquiry(
     inquiry_row: dict[str, Any],
     purchase_line_index: dict[tuple[str, str], dict[str, Any]],
     trading_refunds: dict[str, dict[str, Any]],
+    tracking_status_index: dict[str, dict[str, Any]],
 ) -> dict[str, Any] | None:
     match = match_purchase_line(inquiry_row, purchase_line_index)
     if not match:
@@ -538,8 +569,18 @@ def map_inquiry(
 
     status = clean_upper(inquiry_row.get("inquiryStatusEnum") or inquiry_row.get("status"))
     replacement_tracking = clean_text(nested(inquiry_row, "inquiryHistoryDetails", "shipmentTrackingDetails", "trackingNumber"))
+    tracking_status = tracking_status_index.get(replacement_tracking or "", {})
+    replacement_delivered_at = replacement_tracking_delivered_at(inquiry_row, tracking_status)
+    replacement_has_progress = replacement_tracking_has_progress(inquiry_row, tracking_status)
     order_refund = trading_refunds.get(clean_text(match.get("supplier_order_id")) or "")
-    workflow_state = "resolved_refunded" if order_refund else inquiry_workflow_state(status, replacement_tracking)
+    if order_refund:
+        workflow_state = "resolved_refunded"
+    elif replacement_delivered_at:
+        workflow_state = "resolved_received_item"
+    elif replacement_tracking and replacement_has_progress:
+        workflow_state = "replacement_shipped"
+    else:
+        workflow_state = inquiry_workflow_state(status, replacement_tracking)
     needs_response = workflow_state == "seller_message_needs_response" or "BUYER_RESPONSE" in status
     claim_amount = money_value(inquiry_row.get("claimAmount"))
     inquiry_id = clean_text(inquiry_row.get("inquiryId"))
@@ -562,7 +603,7 @@ def map_inquiry(
         "problem_type": "missing_items",
         "workflow_state": workflow_state,
         "priority": "urgent" if needs_response else "normal",
-        "is_open": not order_refund and not inquiry_is_closed(status),
+        "is_open": workflow_state not in {"resolved_refunded", "resolved_received_item"},
         "needs_response": needs_response,
         "next_action": next_action_for_state(workflow_state),
         "next_action_due_at": next_action_due_at,
@@ -583,14 +624,20 @@ def map_inquiry(
             or "USD"
         ),
         "replacement_tracking_number": replacement_tracking,
-        "replacement_shipped_at": shipment_tracking_date(match.get("raw_order_line") or {})
-        if workflow_state == "replacement_shipped"
+        "replacement_shipped_at": replacement_shipped_at(match.get("raw_order_line") or {}, tracking_status)
+        if workflow_state in {"replacement_shipped", "resolved_received_item"}
         else None,
+        "replacement_received_at": replacement_delivered_at if workflow_state == "resolved_received_item" else None,
+        "purchase_item_status": replacement_purchase_item_status(workflow_state, inquiry_row, tracking_status),
         "refund_received_at": order_refund.get("refund_time") if order_refund else None,
         "closed_at": (
             order_refund.get("refund_time")
             if order_refund
-            else iso_z(dt.datetime.now(dt.timezone.utc)) if inquiry_is_closed(status) else None
+            else replacement_delivered_at
+            if workflow_state == "resolved_received_item"
+            else iso_z(dt.datetime.now(dt.timezone.utc))
+            if inquiry_is_closed(status) and workflow_state != "replacement_shipped"
+            else None
         ),
         "raw_ebay_json": {**inquiry_row, "_tradingRefund": order_refund} if order_refund else inquiry_row,
     }
@@ -658,7 +705,7 @@ def upsert_order_problem_case(supabase, mapped: dict[str, Any]) -> str:
             return "skipped"
 
         case_id = existing["problem_case_id"]
-        updates = {key: value for key, value in mapped.items() if value is not None}
+        updates = {key: value for key, value in mapped.items() if value is not None and key != "purchase_item_status"}
         if should_preserve_operator_replacement_state(existing, mapped):
             updates.pop("workflow_state", None)
             updates.pop("next_action", None)
@@ -670,14 +717,21 @@ def upsert_order_problem_case(supabase, mapped: dict[str, Any]) -> str:
             updates["refund_due_at"] = now
             updates["closed_at"] = None
             updates["refund_received_at"] = None
+        if mapped.get("workflow_state") == "resolved_received_item":
+            updates["is_open"] = False
+            updates["needs_response"] = False
+            updates["next_action"] = None
+            updates["next_action_due_at"] = None
+            updates["refund_due_at"] = None
         updates["updated_at"] = now
         supabase.table("order_problem_cases").update(updates).eq("problem_case_id", case_id).execute()
         ensure_replacement_tracking_shipment(supabase, mapped)
+        update_purchase_item_status_from_problem(supabase, mapped)
         close_duplicate_ebay_cases(supabase, case_id, mapped, now)
         append_event(supabase, case_id, "ebay_return_sync_updated", mapped)
         return "updated"
 
-    payload = dict(mapped)
+    payload = {key: value for key, value in mapped.items() if key != "purchase_item_status"}
     if should_insert_as_refund_pending(payload):
         payload["workflow_state"] = "refund_pending"
         payload["is_open"] = True
@@ -690,6 +744,7 @@ def upsert_order_problem_case(supabase, mapped: dict[str, Any]) -> str:
     response = supabase.table("order_problem_cases").insert(payload).execute()
     case_id = response.data[0]["problem_case_id"]
     ensure_replacement_tracking_shipment(supabase, mapped)
+    update_purchase_item_status_from_problem(supabase, mapped)
     close_duplicate_ebay_cases(supabase, case_id, mapped, now)
     append_event(supabase, case_id, "ebay_return_sync_inserted", mapped)
     return "inserted"
@@ -801,6 +856,26 @@ def ensure_replacement_tracking_shipment(supabase, mapped: dict[str, Any]) -> No
                 "notes": "Linked from eBay replacement tracking.",
             }
         ).execute()
+
+
+def update_purchase_item_status_from_problem(supabase, mapped: dict[str, Any]) -> None:
+    item_id = clean_text(mapped.get("purchase_item_id"))
+    purchase_status = clean_text(mapped.get("purchase_item_status"))
+    if not item_id or not purchase_status:
+        return
+
+    response = (
+        supabase.table("purchase_items")
+        .select("current_status")
+        .eq("item_id", item_id)
+        .limit(1)
+        .execute()
+    )
+    current_status = clean_lower((response.data or [{}])[0].get("current_status"))
+    if current_status in {"received", "listed", "cancelled"}:
+        return
+
+    supabase.table("purchase_items").update({"current_status": purchase_status}).eq("item_id", item_id).execute()
 
 
 def find_existing_case(supabase, mapped: dict[str, Any]) -> dict[str, Any] | None:
@@ -999,6 +1074,146 @@ def inquiry_workflow_state(status: str, replacement_tracking: str | None) -> str
     if status in {"OPEN", "WAITING_SELLER_RESPONSE", "PENDING_SELLER_RESPONSE"}:
         return "waiting_on_seller"
     return "waiting_on_seller"
+
+
+def replacement_tracking_delivered_at(
+    inquiry_row: dict[str, Any],
+    tracking_status: dict[str, Any],
+) -> str | None:
+    local_delivered_at = clean_text(tracking_status.get("delivered_date"))
+    if local_delivered_at:
+        return local_delivered_at
+
+    if tracking_status_is_delivered(inquiry_tracking_status(inquiry_row)):
+        return (
+            inquiry_history_time_for_text(inquiry_row, "DELIVER")
+            or clean_text(tracking_status.get("last_checkpoint_time"))
+            or clean_text(tracking_status.get("last_tracking_sync"))
+            or iso_z(dt.datetime.now(dt.timezone.utc))
+        )
+
+    return None
+
+
+def replacement_tracking_has_progress(
+    inquiry_row: dict[str, Any],
+    tracking_status: dict[str, Any],
+) -> bool:
+    if replacement_tracking_delivered_at(inquiry_row, tracking_status):
+        return True
+
+    local_statuses = [
+        normalize_status_text(tracking_status.get("normalized_status")),
+        normalize_status_text(tracking_status.get("carrier_status")),
+        normalize_status_text(tracking_status.get("shipment_status")),
+    ]
+    if any(status in PROGRESS_TRACKING_STATUSES for status in local_statuses):
+        return True
+
+    ebay_status = normalize_status_text(inquiry_tracking_status(inquiry_row))
+    if ebay_status in PROGRESS_TRACKING_STATUSES:
+        return True
+
+    return bool(clean_text(tracking_status.get("last_checkpoint_time")))
+
+
+def replacement_purchase_item_status(
+    workflow_state: str,
+    inquiry_row: dict[str, Any],
+    tracking_status: dict[str, Any],
+) -> str | None:
+    if workflow_state == "resolved_received_item":
+        return "delivered"
+    if workflow_state != "replacement_shipped":
+        return None
+
+    statuses = [
+        normalize_status_text(tracking_status.get("normalized_status")),
+        normalize_status_text(tracking_status.get("carrier_status")),
+        normalize_status_text(tracking_status.get("shipment_status")),
+        normalize_status_text(inquiry_tracking_status(inquiry_row)),
+    ]
+    if any(status in {"exception", "failure", "return_to_sender", "returned_to_sender"} for status in statuses):
+        return "exception"
+    if "out_for_delivery" in statuses:
+        return "out_for_delivery"
+    if "available_for_pickup" in statuses:
+        return "available_for_pickup"
+    if any(status in PROGRESS_TRACKING_STATUSES for status in statuses):
+        return "in_transit"
+    return "awaiting_carrier_scan"
+
+
+def replacement_shipped_at(raw_line: dict[str, Any], tracking_status: dict[str, Any]) -> str | None:
+    return (
+        shipment_tracking_date(raw_line)
+        or clean_text(tracking_status.get("last_checkpoint_time"))
+        or clean_text(tracking_status.get("last_tracking_sync"))
+    )
+
+
+def inquiry_tracking_status(inquiry_row: dict[str, Any]) -> str | None:
+    return clean_text(nested(inquiry_row, "inquiryHistoryDetails", "shipmentTrackingDetails", "currentStatus"))
+
+
+def tracking_status_is_delivered(value: Any) -> bool:
+    return normalize_status_text(value) == "delivered"
+
+
+PROGRESS_TRACKING_STATUSES = {
+    "accepted",
+    "available_for_pickup",
+    "delivered",
+    "in_transit",
+    "out_for_delivery",
+    "return_to_sender",
+    "returned_to_sender",
+    "transit",
+}
+
+
+def normalize_status_text(value: Any) -> str:
+    text = str(value or "").strip()
+    if not text:
+        return ""
+    normalized_chars: list[str] = []
+    previous_was_lower = False
+    for char in text:
+        if char.isupper() and previous_was_lower:
+            normalized_chars.append("_")
+        if char.isalnum():
+            normalized_chars.append(char.lower())
+            previous_was_lower = char.islower() or char.isdigit()
+        else:
+            if normalized_chars and normalized_chars[-1] != "_":
+                normalized_chars.append("_")
+            previous_was_lower = False
+    return "".join(normalized_chars).strip("_")
+
+
+def inquiry_history_time_for_text(inquiry_row: dict[str, Any], text_fragment: str) -> str | None:
+    fragment = text_fragment.upper()
+    history = nested(inquiry_row, "inquiryHistoryDetails", "history")
+    if isinstance(history, dict):
+        history = [history]
+    if not isinstance(history, list):
+        return None
+
+    matches: list[str] = []
+    for event in history:
+        if not isinstance(event, dict):
+            continue
+        event_text = " ".join(str(value or "") for value in event.values()).upper()
+        if fragment not in event_text:
+            continue
+        timestamp = clean_text(
+            unwrap_value(event.get("creationDate"))
+            or unwrap_value(event.get("date"))
+            or unwrap_value(event.get("activityDate"))
+        )
+        if timestamp:
+            matches.append(timestamp)
+    return max(matches) if matches else None
 
 
 def inquiry_is_closed(status: str) -> bool:

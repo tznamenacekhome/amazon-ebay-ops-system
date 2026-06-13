@@ -2,7 +2,7 @@
 
 This file tracks active issues, monitor items, and deferred decisions for Midnight Blue Operations Platform (MBOP).
 
-Last reviewed: 2026-06-07
+Last reviewed: 2026-06-13
 
 # Active Issues
 
@@ -59,6 +59,9 @@ Current mitigation:
   `logs/scheduler.log` with retry handling to avoid file-lock collisions.
 - screen refresh buttons can run screen-specific scheduled-style refreshes
   without historical backfill.
+- sourcing availability cleanup is now a daily scheduled job and only checks
+  open, Watch, and ROI-snoozed opportunities; Purchased / Offer Made rows stay
+  available for purchase matching/enrichment.
 Recommended next mitigation:
 - Keep jobs that feed the same calculation, such as Business Inventory And Cash
   Value, on the same cadence so freshness indicators stay meaningful.
@@ -378,7 +381,7 @@ Current mitigation:
 - `run_all_syncs.bat` writes to a per-run temp log and then appends to
   `logs/scheduler.log` with retries to avoid transient Windows file-lock
   failures.
-- `run_all_syncs.py` now includes eBay buyer purchase sync, sourcing purchase matching, EasyPost shipment sync, Order Problems return/inquiry sync, RevSeller enrichment, Amazon FBA inventory, Amazon listing status, Amazon inventory planning, Amazon Finance, Informed reports, YNAB cash balance, guarded Keepa refresh, and business value snapshot.
+- `run_all_syncs.py` now includes eBay buyer purchase sync, sourcing purchase matching, EasyPost shipment sync, Order Problems return/inquiry sync, RevSeller enrichment, Amazon FBA inventory, Amazon listing status, Amazon inventory planning, Amazon Finance, Informed reports, YNAB cash balance, sourcing listing availability cleanup, guarded Keepa refresh, and business value snapshot.
 - legacy supplier returns sync has been removed from active orchestration and
   System Health because Order Problems owns return/inquiry/case freshness.
 - direct full-orchestrator validation completed with exit code 0.
@@ -416,6 +419,9 @@ Current mitigation:
   to `order_problem_cases` and `order_problem_events`.
 - `integrations/ebay_sync_order_problem_returns.py` is part of the scheduled
   `core` group.
+- replacement tracking is now considered when eBay closes item-not-received
+  inquiries: delivered replacement tracking resolves the case as item received
+  and returns the purchase item to `delivered` for Receiving verification.
 - marketplace actions still happen manually on ebay.com.
 
 Recommended next mitigation:

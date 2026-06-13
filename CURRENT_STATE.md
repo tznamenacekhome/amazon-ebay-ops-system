@@ -1,6 +1,6 @@
 # CURRENT_STATE.md
 
-Last Updated: 2026-06-07
+Last Updated: 2026-06-13
 
 # Midnight Blue Operations Platform (MBOP)
 
@@ -28,6 +28,7 @@ MBOP is the internal operations platform for Midnight Blue Enterprises, LLC.
 | Non-eBay purchase COGS sources | Manual import bridge implemented |
 | Legacy spreadsheet backfill | Recently used / repeatable script available |
 | Order Problems / eBay Returns | Operational first slice / eBay read-only |
+| Sourcing Workspace | Operational first slice / daily availability cleanup |
 
 ---
 
@@ -205,6 +206,7 @@ Implemented:
 - the purchase detail drawer shows the order-problem workflow panel, eBay status/action link when available, refund fields, replacement tracking, notes, and local action buttons
 - `integrations/ebay_sync_order_problem_returns.py` is a scheduled, read-only eBay Post-Order importer for returns, INR inquiries, inquiry details, and cases that writes only to `order_problem_cases` and `order_problem_events`
 - inquiry detail enrichment captures seller make-it-right/escalation dates and replacement tracking that are not present in the inquiry search summary
+- missing-item inquiries with replacement tracking now use local carrier/eBay tracking state: tracking progress moves the case to `replacement_shipped`, delivered replacement tracking closes the case as `resolved_received_item`, and the linked purchase item moves back to `delivered` for Receiving verification
 - eBay return/case/inquiry/cancellation links are surfaced from the Order column; duplicate action links are intentionally not repeated in Next Action
 - cancellation/refund exceptions can be represented as `ebay_cancellation_sync` / `refund_pending` while waiting for the refund to post
 - cancellation/refund follow-up actions keep the linked purchase item in
@@ -231,7 +233,7 @@ Known follow-up:
 Status: LOCAL SCHEDULER CONFIGURED / BROAD INTEGRATION AUTOMATION ENABLED
 
 Implemented:
-- `run_all_syncs.py` runs eBay buyer purchase sync, EasyPost shipment sync, RevSeller enrichment with optional AI same-system review, guarded missing-title Keepa repair, Amazon FBA inventory, Amazon listing status, Amazon inventory planning, Amazon Finance, Informed Repricer reports, YNAB Business cash balance, guarded Keepa enrichment, and the daily business value snapshot
+- `run_all_syncs.py` runs eBay buyer purchase sync, sourcing purchase matching, EasyPost shipment sync, RevSeller enrichment with optional AI same-system review, guarded missing-title Keepa repair, Amazon FBA inventory, Amazon listing status, Amazon inventory planning, Amazon Finance, Informed Repricer reports, YNAB Business cash balance, guarded sourcing listing availability cleanup, guarded Keepa enrichment, and the daily business value snapshot
 - `run_all_syncs.py` writes `running`, `ok`, `failed`, and lock-collision
   `blocked` records to `logs/sync_health.json`, allowing System Health refreshes
   during active runs to show the current job state.
@@ -251,6 +253,7 @@ Implemented:
   calls Keepa for up to 25 remaining candidates when at least 25 tokens are
   available
 - scheduled Keepa enrichment is capped to 10 stale active-Amazon ASINs, uses stock/offers without history, and skips calls unless at least 100 Keepa tokens are available
+- scheduled sourcing listing availability checks open, Watch, and ROI-snoozed sourcing opportunities once per day and dismisses ended/sold-out/missing eBay listings with `no_longer_available`; Purchased / Offer Made rows are intentionally skipped so purchase matching/enrichment can still run
 - MBOP screens show a screen-specific `Last updated` timestamp near refresh
   controls using `/api/screen-data-freshness`
 - Dashboard freshness uses the oldest required cash/value input so stale Amazon
@@ -278,6 +281,7 @@ Recent validation:
 - YNAB Business transaction sync backfilled 1,225 Business-category
   transactions from 2026-01-01 forward
 - scheduled Keepa run selected 1 stale active-Amazon ASIN, inserted 1 snapshot, and spent 5 tokens
+- sourcing listing availability refresh checked 89 opportunities / 73 unique eBay item IDs and dismissed 12 unavailable listings with no API errors
 - business value snapshot upserted the 2026-05-27 daily value
 
 Remaining validation:

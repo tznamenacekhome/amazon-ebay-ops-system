@@ -358,7 +358,7 @@ Status:
 Local scheduler configured; broad integration automation enabled with ongoing task-run validation and optimization follow-up.
 
 Completed:
-- `run_all_syncs.py` now runs eBay buyer purchase sync, EasyPost shipment sync, read-only eBay Order Problems return/inquiry sync, RevSeller enrichment, Amazon FBA inventory, Amazon listing status, Amazon inventory planning, Amazon Finance balances, Informed Repricer reports, YNAB Business cash balance/transactions, guarded Keepa enrichment, and business value snapshots
+- `run_all_syncs.py` now runs eBay buyer purchase sync, sourcing purchase matching, EasyPost shipment sync, read-only eBay Order Problems return/inquiry sync, RevSeller enrichment, Amazon FBA inventory, Amazon listing status, Amazon inventory planning, Amazon Finance balances, Informed Repricer reports, YNAB Business cash balance/transactions, sourcing listing availability cleanup, guarded Keepa enrichment, and business value snapshots
 - scheduler groups split freshness work into `core`, `daily`, and `catalog`
   groups so operational refreshes can run without every heavyweight snapshot
 - legacy eBay supplier returns sync has been removed from active orchestration
@@ -374,6 +374,7 @@ Completed:
 - integration failures are collected and reported while later independent syncs continue running
 - Amazon FBA inventory sync now uses page pacing plus SP-API 429/5xx retry/backoff
 - scheduled Keepa enrichment only refreshes stale active-Amazon ASINs and skips calls when the token pool is below the configured floor
+- scheduled sourcing listing availability cleanup checks open, Watch, and ROI-snoozed opportunities and automatically dismisses ended/sold-out/missing eBay listings with `no_longer_available`; Purchased / Offer Made rows remain for purchase matching/enrichment
 - eBay buyer purchases now sync a recent window plus targeted no-tracking
   refresh instead of a broad 90-day daily buyer-order pull
 - Amazon sales orders skip item-detail calls when LastUpdateDate has not changed

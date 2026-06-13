@@ -11,7 +11,7 @@ Related requirements document:
 
 ---
 
-# Implementation Status - 2026-06-07 PT
+# Implementation Status - 2026-06-13 PT
 
 Implemented entry points:
 - `web/app/sourcing/page.tsx`
@@ -25,6 +25,7 @@ Implemented entry points:
 - `integrations/ebay_sourcing_search.py`
 - `integrations/score_sourcing_opportunities.py`
 - `integrations/match_sourcing_purchases.py`
+- `integrations/refresh_sourcing_listing_availability.py`
 - `integrations/sourcing_common.py`
 
 Manual population sequence:
@@ -42,6 +43,7 @@ Current implementation notes:
 - Fee context used by scoring is stored under `sourcing_seed_asins.raw_context_json.estimated_fee_cost`.
 - eBay candidates are upserted by the table's unique `ebay_item_id`; duplicate eBay listings returned for multiple seeds are deduped per search run.
 - UI actions are operator-only: `watching`, `dismissed`, `roi_snoozed`, and `purchased_pending_match`.
+- `/api/sourcing/runs` can execute the full sourcing workflow from the UI for Recent Sales, Full Listings, or both depending on source-mode selection.
 - The opportunity detail drawer was removed after operator review.
 - Table actions handle watch, purchased/offer made, and dismiss directly; table dismiss uses a modal for dismiss reason and notes.
 - Auction type cells link to Gixen and copy the eBay item number to the clipboard.
@@ -49,6 +51,7 @@ Current implementation notes:
 - `purchased_pending_match` also represents Best Offers made by the operator. The matcher moves rows back to `watching` when no matching eBay purchase appears within 72 hours of the purchased/offer-made action.
 - When the matcher finds the imported eBay purchase, it writes sourced ASIN, Amazon title, and `purchase_items.target_price` using the highest of Last Sold, Keepa 90-day, and current Buy Box price.
 - Amazon images come from `vw_latest_amazon_listing_snapshot.raw_listing_json.summaries[0].mainImage.link` when available.
+- `refresh_sourcing_listing_availability.py` checks open/watch/ROI-snoozed sourcing eBay item IDs through eBay Browse once per daily scheduler run. Ended, sold-out, or missing listings are moved to `dismissed` and recorded in `sourcing_actions` with dismiss reason `no_longer_available`. Purchased-pending rows are left for `match_sourcing_purchases.py` so accepted offers can still match imported eBay orders.
 
 ---
 

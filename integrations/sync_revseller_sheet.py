@@ -72,6 +72,7 @@ GENERIC_TITLE_WORDS = {
     "case",
     "manual",
     "game",
+    "games",
     "only",
     "video",
     "edition",
@@ -79,6 +80,23 @@ GENERIC_TITLE_WORDS = {
     "studio",
     "wildcard",
 }
+
+SYSTEM_COMPATIBLE_RESELLER_INDEXES = {
+    "Xbox One": ["xbox one", "xbone", "xb1"],
+    "Xbox Series X": ["xbox series x", "series x"],
+    "Xbox Series S": ["xbox series s", "series s"],
+    "PS 4": ["playstation 4", "ps4", "ps 4"],
+    "PS 5": ["playstation 5", "ps5", "ps 5"],
+}
+
+EDITION_EQUIVALENCE_PHRASES = (
+    "greatest hits",
+    "platinum hits",
+    "playstation hits",
+    "player s choice",
+    "players choice",
+    "nintendo selects",
+)
 
 
 def compact_title_key(title: str | None) -> str:
@@ -116,6 +134,12 @@ def normalize_title(title: str | None) -> str:
         return ""
 
     text = clean_marketplace_title_for_search(title).lower()
+    text = re.sub(r"\bxbox\s+one\s*/\s*series\s+s\s*/\s*x\b", " ", text)
+    text = re.sub(r"\bxbox\s+one\s+series\s+s\s+x\b", " ", text)
+    text = re.sub(r"\bseries\s+s\s*/\s*x\b", " ", text)
+    text = re.sub(r"\bseries\s+s\s+x\b", " ", text)
+    text = re.sub(r"\bseries\s+x\s*/\s*s\b", " ", text)
+    text = re.sub(r"\bseries\s+x\s+s\b", " ", text)
     text = re.sub(r"\bnintedo\b", "nintendo", text)
     text = re.sub(r"\bsurvior\b", "survivor", text)
     text = re.sub(r"\([^)]*\)", " ", text)
@@ -156,7 +180,37 @@ def normalized_title_variants(normalized_title: str) -> list[str]:
     if normalized_title.endswith(" for"):
         variants.append(normalize_spaces(normalized_title[:-4]))
 
+    edition_stripped = normalized_title
+    for phrase in EDITION_EQUIVALENCE_PHRASES:
+        edition_stripped = re.sub(rf"\b{re.escape(phrase)}\b", " ", edition_stripped)
+    edition_stripped = normalize_spaces(edition_stripped)
+    if edition_stripped and edition_stripped != normalized_title:
+        variants.append(edition_stripped)
+
     return list(dict.fromkeys(variant for variant in variants if variant))
+
+
+def detected_systems_from_title(title: str | None) -> list[str]:
+    if not title:
+        return []
+
+    text = title.lower()
+    systems = []
+    for system in SYSTEM_COMPATIBLE_RESELLER_INDEXES:
+        aliases = SYSTEM_COMPATIBLE_RESELLER_INDEXES[system]
+        if any(
+            re.search(rf"(?<![a-z0-9]){re.escape(alias)}(?![a-z0-9])", text)
+            for alias in aliases
+        ):
+            systems.append(system)
+    if re.search(r"\bxbox\s+one\s*/\s*series\s+s\s*/\s*x\b", text) or re.search(
+        r"\bseries\s+s\s*/\s*x\b",
+        text,
+    ):
+        systems.extend(["Xbox One", "Xbox Series X", "Xbox Series S"])
+    if "xbox one" in text and "xbox series x" in text:
+        systems.extend(["Xbox One", "Xbox Series X", "Xbox Series S"])
+    return list(dict.fromkeys(systems))
 
 
 def parse_money(value) -> Decimal | None:
@@ -288,23 +342,31 @@ def load_revseller_rows():
             continue
 
         rev_system = detect_system_from_title(raw_title)
+        index_systems = list(
+            dict.fromkeys(
+                system
+                for system in [rev_system, *detected_systems_from_title(raw_title)]
+                if system
+            )
+        )
         norm_title = normalize_title(raw_title)
 
         if not norm_title:
             continue
 
-        cleaned_rows.append(
-            {
-                "asin": asin,
-                "raw_title": raw_title,
-                "amazon_title": raw_title,
-                "normalized_title": norm_title,
-                "system": rev_system,
-                "target_price": target_price,
-                "row_date": row_date,
-                "source": "revseller",
-            }
-        )
+        for rev_system in index_systems or [None]:
+            cleaned_rows.append(
+                {
+                    "asin": asin,
+                    "raw_title": raw_title,
+                    "amazon_title": raw_title,
+                    "normalized_title": norm_title,
+                    "system": rev_system,
+                    "target_price": target_price,
+                    "row_date": row_date,
+                    "source": "revseller",
+                }
+            )
 
     return cleaned_rows
 
@@ -851,6 +913,7 @@ class AiMatchClient:
                 "Return match only when the purchase is clearly the same game/product as one candidate.",
                 "Never match across video-game systems or platforms.",
                 "Do not treat lot quantity, sealed/new, CIB, standard edition, or game-only wording as a different product unless it changes the actual game/product.",
+                "Do not reject same-platform matches only because one title says Greatest Hits, Platinum Hits, PlayStation Hits, Player's Choice, or Nintendo Selects and the other title omits that reprint label.",
                 "Reject bundles, collections, sequels, remasters, DLC, accessories, or ambiguous titles unless the candidate clearly describes the same product.",
                 "Choose no_match when uncertain.",
             ],

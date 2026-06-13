@@ -8,7 +8,7 @@ System: Midnight Blue Operations Platform (MBOP)
 
 This document contains the canonical requirements, business rules, architecture decisions, workflow definitions, AI-learning strategy, eBay API findings, and implementation guidance for the MBOP Sourcing Workspace MVP.
 
-## Implementation Status - 2026-06-07 PT
+## Implementation Status - 2026-06-13 PT
 
 Phase 1 is implemented as an initial usable workspace:
 - Top-level `/sourcing` workspace added to MBOP navigation.
@@ -23,21 +23,22 @@ Phase 1 is implemented as an initial usable workspace:
 - Table dismiss opens a lightweight modal for dismiss reason and notes, avoiding the slower drawer path for common triage.
 - Auction opportunity type links to Gixen and copies the eBay item number for paste-in bidding setup.
 - `Digital Item` is available as a dismiss reason.
+- `No Longer Available` is available as a dismiss reason.
+- A daily sourcing listing availability job refreshes open/watch/ROI-snoozed opportunity eBay listings and automatically dismisses ended, sold-out, or missing listings with `no_longer_available`.
 - Sourcing search and scoring hard-exclude items not located in the US or Canada.
 - eBay Browse calls use an encoded buyer contextual location header so calculated shipping is returned more reliably.
 - Unknown-shipping candidates are retained as visible watch opportunities when otherwise plausible; MBOP must not treat unknown shipping as free shipping.
 - Purchase matching script exists for exact eBay item ID / legacy item ID matches against imported eBay purchases.
+- The Sourcing page `Run Sourcing` button can execute the sourcing workflow for Recent Sales, Full Listings, or both depending on the selected source mode.
 - Full Listings seed generation has been dry-run validated against active listing and Keepa snapshot data.
 
 Initial data population was run against recent-sales mode with 30 seed ASINs, 15 seed searches, and 47 scored eBay candidates/opportunities. This remains an advisory sourcing queue only; no external marketplace write actions are performed.
 
 Not yet implemented:
-- Full automated orchestration from the UI.
 - Scheduled/automatic execution of purchased pending match after eBay buyer purchase sync.
 - AI image/title observations.
 - Restricted ASIN and return-heavy detection beyond warning placeholders.
 - Full Listings production sourcing run beyond seed dry-run validation.
-- Expired listing detection and status aging.
 - Automatic ROI snooze reactivation.
 - Mature API quota/cache cadence for dismissed and snoozed listings.
 
