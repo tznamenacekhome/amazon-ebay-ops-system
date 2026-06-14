@@ -23,6 +23,12 @@ Examples:
 - Minecraft PS4 != Minecraft Switch
 - Madden Xbox != Madden PS5
 
+When an eBay buyer order title does not contain a recognizable platform, the
+eBay buyer purchase sync may read the eBay Browse item detail for the legacy
+item ID and use `localizedAspects.Platform` as the backend-owned system source.
+This is a platform-detection fallback only and must not override an
+existing/manual system correction.
+
 ---
 
 # Current Matching Rules
@@ -112,6 +118,31 @@ Example:
 - system: `Wii`
 - result: ASIN `B001TOQ8LG`
 
+## AI Same-System Review
+
+After deterministic matching fails, RevSeller enrichment can optionally call
+OpenAI with `--ai-review`.
+
+This is a conservative second-pass reviewer, not a free-form matcher:
+- AI only sees RevSeller candidates already filtered to the same detected system.
+- Candidates are pre-ranked locally by normalized title, compact title, and
+  token-set similarity.
+- AI must return structured JSON with `match` or `no_match`.
+- MBOP accepts the match only when the selected candidate index is one of the
+  supplied candidates and confidence is at or above the configured threshold
+  (`0.86` by default).
+- AI is never allowed to invent an ASIN, change system, change price/cost, or
+  match across platforms.
+- If `OPENAI_API_KEY` is missing, the enrichment safely skips AI review and
+  falls back to deterministic matching only.
+
+Scheduled sync runs AI review with a small per-run cap so it can improve fuzzy
+coverage without turning the daily purchase sync into a broad AI batch job. AI
+review calls are limited to open purchase-work rows; deterministic matching may
+still enrich older workflow rows without spending AI calls. AI matches are
+written into the diagnostics CSV with selected ASIN/title, confidence, and
+reason for auditability.
+
 ## Manual Match Memory
 
 When an operator manually adds an ASIN or target sell price in the purchases UI,
@@ -123,7 +154,11 @@ Manual corrections are stored in:
 
 The RevSeller enrichment script loads these manual rows together with Google
 Sheet rows, so future purchases of the same title/system can be enriched even
-when the game is missing from the RevSeller sheet.
+when the game is missing from the RevSeller sheet. The scheduled RevSeller pass
+only scans Open Purchase Work rows: Listed, Cancelled, Return Opened, and Return
+Pending rows are excluded from deterministic and AI matching, and rows marked
+`exclude_from_purchase_reporting` are skipped the same way they are skipped by
+the default Purchases list.
 
 ## Legacy Purchases Sheet Backfill
 
@@ -140,6 +175,14 @@ The script:
 - disambiguates multi-row orders with normalized title and system
 - updates missing ASIN, amazon_title, and target sell price
 - skips ambiguous or missing order matches
+
+## Existing ASIN Metadata Repair
+
+RevSeller enrichment also repairs rows that already have a reviewed ASIN but are
+missing Amazon metadata. It may fill a blank Amazon title or target sell price
+from manual match memory, RevSeller, Amazon listing snapshots, or stored Keepa
+catalog snapshots. It must not change ASIN, system, cost, status, or workflow
+state for these rows.
 
 Latest run:
 - filled 340 ASINs
@@ -175,3 +218,5 @@ Examples:
   -> `Destiny The Collection PlayStation 4`
 
 RevSeller enrichment uses the Python cleaner before normalized title matching.
+It also normalizes known catalog typos that affect platform/title matching, such
+as `Nintedo` -> `Nintendo`, before storing the matched Amazon title.

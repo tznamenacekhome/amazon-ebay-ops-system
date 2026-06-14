@@ -6,6 +6,10 @@ const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
 const supabase = createClient(supabaseUrl, supabaseServiceRoleKey);
 
+const STALE_TRACKING_ORDER_AGE_DAYS = 14;
+const STALE_TRACKING_LOOKBACK_DAYS = 90;
+const BUSINESS_VALUE_HISTORY_START_DATE = "2026-05-30";
+
 type DashboardPurchaseRow = {
   item_id: string | null;
   purchase_id?: string | null;
@@ -67,6 +71,12 @@ type InventoryPositionSummaryRow = {
   needs_reconciliation: boolean;
   position_count: number | null;
   unit_count: number | null;
+  total_cost: number | null;
+};
+
+type InventoryPositionValueRow = {
+  inventory_state: string | null;
+  asin: string | null;
   total_cost: number | null;
 };
 
@@ -205,30 +215,16 @@ async function hydrateReportingExclusions(rows: DashboardPurchaseRow[]) {
     return rows;
   }
 
-  const itemMetaById = new Map<
-    string,
-    {
-      exclude_from_purchase_reporting?: boolean | null;
-      amazon_title?: string | null;
-      marketplace?: "Amazon" | "eBay" | null;
-      received_date?: string | null;
-    }
-  >();
-  const chunkSize = 100;
+  const itemMetaById = new Map<string, PurchaseItemMetadata>();
+  const metadataRows = await fetchPurchaseItemMetadata();
 
-  for (let index = 0; index < itemIds.length; index += chunkSize) {
-    const chunk = itemIds.slice(index, index + chunkSize);
-    const { data, error } = await supabase
-      .from("purchase_items")
-      .select("item_id,exclude_from_purchase_reporting,amazon_title,marketplace,received_date")
-      .in("item_id", chunk);
+  if (!metadataRows) {
+    return rows;
+  }
 
-    if (error) {
-      console.warn("Dashboard reporting exclusion lookup failed", error.message);
-      return rows;
-    }
-
-    for (const item of data ?? []) {
+  const wantedItemIds = new Set(itemIds);
+  for (const item of metadataRows) {
+    if (wantedItemIds.has(item.item_id)) {
       itemMetaById.set(item.item_id, item);
     }
   }
@@ -252,6 +248,57 @@ async function hydrateReportingExclusions(rows: DashboardPurchaseRow[]) {
         ? !!itemMetaById.get(row.item_id)?.exclude_from_purchase_reporting
         : !!row.exclude_from_purchase_reporting,
   }));
+}
+
+type PurchaseItemMetadata = {
+  item_id: string;
+  exclude_from_purchase_reporting?: boolean | null;
+  amazon_title?: string | null;
+  marketplace?: "Amazon" | "eBay" | null;
+  received_date?: string | null;
+};
+
+async function fetchPurchaseItemMetadata() {
+  const rows: PurchaseItemMetadata[] = [];
+  const pageSize = 1000;
+  let offset = 0;
+
+  while (true) {
+    const result = await retrySupabaseQuery(() =>
+      supabase
+        .from("purchase_items")
+        .select("item_id,exclude_from_purchase_reporting,amazon_title,marketplace,received_date")
+        .range(offset, offset + pageSize - 1),
+    );
+
+    if (result.error) {
+      console.warn("Dashboard reporting exclusion lookup failed", result.error.message);
+      return null;
+    }
+
+    rows.push(...((result.data ?? []) as PurchaseItemMetadata[]));
+    if ((result.data ?? []).length < pageSize) {
+      return rows;
+    }
+
+    offset += pageSize;
+  }
+}
+
+async function retrySupabaseQuery<T>(query: () => PromiseLike<{ data: T[] | null; error: { message: string } | null }>) {
+  const maxAttempts = 3;
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+    const result = await query();
+    if (!result.error || attempt === maxAttempts) return result;
+    await sleep(200 * attempt);
+  }
+
+  return query();
+}
+
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 function aggregateByMonth(rows: DashboardPurchaseRow[]) {
@@ -375,8 +422,8 @@ function aggregateOperations(rows: DashboardPurchaseRow[]) {
     return (
       ["no_tracking", "shipped_no_tracking", "awaiting_carrier_scan"].includes(status) &&
       orderAgeDays !== null &&
-      orderAgeDays >= 7 &&
-      orderAgeDays <= 90
+      orderAgeDays >= STALE_TRACKING_ORDER_AGE_DAYS &&
+      orderAgeDays <= STALE_TRACKING_LOOKBACK_DAYS
     );
   });
   const exceptionRows = reportableRows.filter((row) =>
@@ -474,6 +521,7 @@ async function fetchInventoryVisibility() {
     ynabCashBalance,
     amazonFinanceBalance,
     businessValueHistory,
+    inventoryValueRows,
   ] =
     await Promise.all([
     fetchInventoryPositionSummary(),
@@ -483,6 +531,7 @@ async function fetchInventoryVisibility() {
     fetchYnabCashBalanceSummary(),
     fetchAmazonFinanceBalanceSummary(),
     fetchBusinessValueHistory(),
+    fetchInventoryPositionValueRows(),
   ]);
 
   const unitsByState = new Map<string, number>();
@@ -573,6 +622,7 @@ async function fetchInventoryVisibility() {
     ),
     businessInventoryValue: buildBusinessInventoryValueSummary(
       costByState,
+      inventoryValueRows,
       inventoryLabValuation,
       ynabCashBalance,
       amazonFinanceBalance
@@ -610,7 +660,7 @@ async function fetchInventoryVisibility() {
 function buildLocationValueSummary(
   unitsByState: Map<string, number>,
   costByState: Map<string, number>,
-  inventoryLabValuation: InventoryLabValuationSummary
+  _inventoryLabValuation: InventoryLabValuationSummary
 ): InventoryLocationValueRow[] {
   const rows = [
     {
@@ -636,10 +686,7 @@ function buildLocationValueSummary(
     },
   ].map((row) => {
     const units = sumStates(unitsByState, row.states);
-    const totalCost =
-      row.location === "At Amazon FBA" && inventoryLabValuation
-        ? inventoryLabValuation.total_value
-        : sumStates(costByState, row.states);
+    const totalCost = sumStates(costByState, row.states);
 
     return {
       location: row.location,
@@ -659,22 +706,18 @@ function buildLocationValueSummary(
 
 function buildBusinessInventoryValueSummary(
   costByState: Map<string, number>,
-  inventoryLabValuation: InventoryLabValuationSummary,
+  inventoryValueRows: InventoryPositionValueRow[],
+  _inventoryLabValuation: InventoryLabValuationSummary,
   ynabCashBalance: YnabCashBalanceSummary,
   amazonFinanceBalance: AmazonFinanceBalanceSummary
 ): BusinessInventoryValueSummary {
-  const amazonAtFbaValue =
-    inventoryLabValuation?.total_value ??
-    sumStates(costByState, [
-      "amazon_fba_sellable",
-      "amazon_fba_reserved",
-      "amazon_fba_unsellable_damaged",
-      "amazon_fba_stranded",
-    ]);
-  const amazonOutboundValue = sumStates(costByState, [
-    "outbound_to_amazon",
-    "amazon_fba_inbound_receiving",
+  const amazonAtFbaValue = sumStates(costByState, [
+    "amazon_fba_sellable",
+    "amazon_fba_reserved",
+    "amazon_fba_unsellable_damaged",
+    "amazon_fba_stranded",
   ]);
+  const amazonOutboundValue = calculateAmazonOutboundValue(inventoryValueRows);
   const amazonInventoryValue = amazonAtFbaValue + amazonOutboundValue;
   const preAmazonInventoryValue = sumStates(costByState, [
     "purchased_not_shipped",
@@ -706,10 +749,38 @@ function buildBusinessInventoryValueSummary(
         )}; deferred ${formatCurrencyNumber(amazonFinanceBalance.deferred_or_reserved_cash)}`
       : "Amazon Finance snapshot missing",
     amazon_cash_in_transit_source: amazonFinanceBalance
-      ? "Amazon Finance financial event groups with FundTransferStatus = Processing"
+      ? "Amazon Finance Processing transfers plus completed payouts not yet matched to YNAB Business deposits"
       : "Amazon Finance snapshot missing",
     cash_on_hand_source: ynabCashBalance?.source ?? "YNAB Business category snapshot missing",
   };
+}
+
+function calculateAmazonOutboundValue(rows: InventoryPositionValueRow[]) {
+  let outboundCost = 0;
+  const outboundAsins = new Set<string>();
+  const amazonInboundByAsin = new Map<string, number>();
+
+  for (const row of rows) {
+    const state = row.inventory_state || "";
+    const asin = (row.asin || "").trim().toUpperCase();
+    const cost = Number(row.total_cost ?? 0);
+
+    if (state === "outbound_to_amazon") {
+      outboundCost += cost;
+      if (asin) outboundAsins.add(asin);
+    } else if (state === "amazon_fba_inbound_receiving" && asin) {
+      amazonInboundByAsin.set(asin, (amazonInboundByAsin.get(asin) ?? 0) + cost);
+    }
+  }
+
+  let uncoveredAmazonInboundCost = 0;
+  for (const [asin, cost] of amazonInboundByAsin.entries()) {
+    if (!outboundAsins.has(asin)) {
+      uncoveredAmazonInboundCost += cost;
+    }
+  }
+
+  return outboundCost + uncoveredAmazonInboundCost;
 }
 
 async function fetchInventoryLabValuationSummary(): Promise<InventoryLabValuationSummary> {
@@ -819,6 +890,7 @@ async function fetchBusinessValueHistory(): Promise<BusinessValueHistoryRow[]> {
       "snapshot_date,total_business_value,amazon_inventory_value,pre_amazon_inventory_value," +
         "amazon_cash_balance,amazon_cash_in_transit,cash_on_hand"
     )
+    .gte("snapshot_date", BUSINESS_VALUE_HISTORY_START_DATE)
     .order("snapshot_date", { ascending: true })
     .limit(365);
 
@@ -870,6 +942,28 @@ async function fetchInventoryPositionSummary() {
   }
 
   return (data ?? []) as InventoryPositionSummaryRow[];
+}
+
+async function fetchInventoryPositionValueRows() {
+  const rows: InventoryPositionValueRow[] = [];
+  const pageSize = 1000;
+  let offset = 0;
+
+  while (true) {
+    const { data, error } = await supabase
+      .from("inventory_positions")
+      .select("inventory_state,asin,total_cost")
+      .range(offset, offset + pageSize - 1);
+
+    if (error) {
+      console.warn("Inventory position value lookup failed", error.message);
+      return [] as InventoryPositionValueRow[];
+    }
+
+    rows.push(...((data ?? []) as InventoryPositionValueRow[]));
+    if ((data ?? []).length < pageSize) return rows;
+    offset += pageSize;
+  }
 }
 
 async function fetchOpenReconciliationItems() {

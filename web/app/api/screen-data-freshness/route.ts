@@ -60,20 +60,24 @@ const SCREEN_SOURCES: Record<ScreenKey, FreshnessSource[]> = {
       equals: { source_name: "eBay Trading API Buyer Purchase Sync" },
     },
     { label: "tracking", table: "inbound_shipments", column: "last_tracking_sync" },
+    { label: "order problems", table: "order_problem_cases", column: "updated_at" },
+    { label: "order problem events", table: "order_problem_events", column: "created_at" },
     { label: "RevSeller", filePattern: /^revseller_enrichment_diagnostics_\d{8}_\d{6}\.csv$/ },
   ],
   dashboard: [
     { label: "business value snapshot", table: "business_value_snapshots", column: "captured_at" },
     { label: "Amazon cash", table: "amazon_finance_balance_snapshots", column: "captured_at" },
     { label: "YNAB cash", table: "ynab_category_balance_snapshots", column: "captured_at" },
+    { label: "YNAB Business transactions", table: "ynab_business_transactions", column: "synced_at" },
   ],
   receiving: [
     { label: "eBay purchases", table: "import_batches", column: "imported_at", equals: { source_name: "eBay Trading API Buyer Purchase Sync" } },
     { label: "tracking", table: "inbound_shipments", column: "last_tracking_sync" },
   ],
   fba: [
-    { label: "FBA shipments", table: "fba_shipments", column: "created_at" },
-    { label: "FBA shipment items", table: "fba_shipment_items", column: "created_at" },
+    { label: "FBA shipments", table: "fba_shipments", column: "updated_at" },
+    { label: "FBA shipment items", table: "fba_shipment_items", column: "updated_at" },
+    { label: "Amazon FBA inventory", table: "amazon_fba_inventory_snapshots", column: "captured_at" },
   ],
   repricing: [
     { label: "Informed reports", table: "informed_report_runs", column: "imported_at" },
@@ -174,7 +178,8 @@ async function latestTableRow(source: FreshnessSource): Promise<Record<string, u
 }
 
 async function latestFileTimestamp(source: FreshnessSource): Promise<{ lastUpdatedAt: string | null; source: string }> {
-  const directories = [path.resolve(process.cwd(), "..", "data"), path.resolve(process.cwd(), "..", "logs")];
+  const workspaceRoot = path.resolve(/* turbopackIgnore: true */ process.cwd(), "..");
+  const directories = [path.join(workspaceRoot, "data"), path.join(workspaceRoot, "logs")];
 
   for (const directory of directories) {
     try {

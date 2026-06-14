@@ -53,28 +53,69 @@ def days_ago_iso(days: int) -> str:
 JOBS: tuple[SyncJob, ...] = (
     SyncJob(
         name="eBay buyer purchases",
-        command=static_command("integrations/ebay_sync_buyer_purchases.py"),
+        command=static_command(
+            "integrations/ebay_sync_buyer_purchases.py",
+            "--days-back",
+            "7",
+            "--missing-tracking-lookback-days",
+            "90",
+            "--missing-tracking-limit",
+            "250",
+        ),
         groups=("core", "purchases", "dashboard"),
         timeout_seconds=60 * 60,
     ),
     SyncJob(
+        name="Sourcing purchase matching",
+        command=static_command("integrations/match_sourcing_purchases.py", "--limit", "300"),
+        groups=("core", "purchases", "dashboard"),
+        timeout_seconds=20 * 60,
+    ),
+    SyncJob(
         name="EasyPost shipments",
-        command=static_command("integrations/easypost_sync_shipments.py", "--limit", "500"),
+        command=static_command("integrations/easypost_sync_shipments.py", "--limit", "150"),
         groups=("core", "purchases", "dashboard"),
         timeout_seconds=45 * 60,
     ),
     SyncJob(
-        name="eBay supplier returns",
-        command=static_command("integrations/ebay_sync_supplier_returns.py"),
-        groups=(),
-        enabled=False,
-        disabled_reason="Disabled pending returns feature redesign.",
+        name="eBay order problem returns/inquiries",
+        command=static_command(
+            "integrations/ebay_sync_order_problem_returns.py",
+            "--lookback-days",
+            "60",
+            "--limit",
+            "100",
+            "--apply",
+        ),
+        groups=("core", "purchases", "dashboard"),
+        blocking=False,
+        timeout_seconds=30 * 60,
     ),
     SyncJob(
         name="RevSeller enrichment",
-        command=static_command("integrations/sync_revseller_sheet.py"),
+        command=static_command(
+            "integrations/sync_revseller_sheet.py",
+            "--ai-review",
+            "--ai-review-limit",
+            "25",
+        ),
         groups=("core", "purchases", "dashboard"),
         timeout_seconds=45 * 60,
+    ),
+    SyncJob(
+        name="Keepa missing purchase titles",
+        command=static_command(
+            "integrations/backfill_amazon_titles_from_keepa.py",
+            "--limit",
+            "25",
+            "--fetch-missing",
+            "--min-tokens",
+            "25",
+            "--apply",
+        ),
+        groups=("core", "purchases", "dashboard"),
+        blocking=False,
+        timeout_seconds=20 * 60,
     ),
     SyncJob(
         name="Amazon sales orders",
@@ -82,6 +123,20 @@ JOBS: tuple[SyncJob, ...] = (
         groups=("core", "sales-orders"),
         blocking=False,
         timeout_seconds=90 * 60,
+    ),
+    SyncJob(
+        name="Recent Amazon sales finances",
+        command=lambda: [
+            "integrations/amazon_sync_sales_finances.py",
+            "--purchase-date-start",
+            days_ago_iso(14),
+            "--order-finance-delay-seconds",
+            "1.5",
+            "--apply",
+        ],
+        groups=("core", "sales-orders"),
+        blocking=False,
+        timeout_seconds=45 * 60,
     ),
     SyncJob(
         name="Veeqo MF label costs",
@@ -109,20 +164,47 @@ JOBS: tuple[SyncJob, ...] = (
         timeout_seconds=45 * 60,
     ),
     SyncJob(
-        name="Inventory reconciliation",
-        command=static_command("integrations/inventory_reconcile.py"),
-        groups=("core", "dashboard", "reconciliation"),
+        name="Amazon FBA inventory",
+        command=static_command(
+            "integrations/amazon_sync_fba_inventory.py",
+            "--page-delay-seconds",
+            "0.25",
+        ),
+        groups=("daily", "dashboard", "reconciliation", "repricing", "fba"),
         timeout_seconds=45 * 60,
     ),
     SyncJob(
-        name="Amazon FBA inventory",
-        command=static_command("integrations/amazon_sync_fba_inventory.py"),
-        groups=("daily", "dashboard", "reconciliation", "repricing"),
+        name="Amazon FBA shipments",
+        command=static_command("integrations/amazon_sync_fba_shipments.py"),
+        groups=("daily", "dashboard", "reconciliation", "fba"),
+        timeout_seconds=30 * 60,
+    ),
+    SyncJob(
+        name="FBA EasyPost carrier tracking",
+        command=static_command(
+            "integrations/easypost_sync_fba_shipments.py",
+            "--limit",
+            "25",
+            "--max-new-trackers",
+            "10",
+        ),
+        groups=("daily", "dashboard", "reconciliation", "fba"),
+        timeout_seconds=30 * 60,
+    ),
+    SyncJob(
+        name="Inventory reconciliation",
+        command=static_command("integrations/inventory_reconcile.py", "--skip-if-unchanged"),
+        groups=("core", "dashboard", "reconciliation", "fba"),
         timeout_seconds=45 * 60,
     ),
     SyncJob(
         name="Amazon listing status",
-        command=static_command("integrations/amazon_sync_listing_status.py", "--active-only"),
+        command=static_command(
+            "integrations/amazon_sync_listing_status.py",
+            "--active-only",
+            "--stale-days",
+            "3",
+        ),
         groups=("daily", "dashboard", "repricing"),
         timeout_seconds=60 * 60,
     ),
@@ -139,7 +221,35 @@ JOBS: tuple[SyncJob, ...] = (
         timeout_seconds=30 * 60,
     ),
     SyncJob(
-        name="Amazon sales finances",
+        name="Amazon missing-fee sales finances",
+        command=lambda: [
+            "integrations/amazon_sync_sales_finances.py",
+            "--purchase-date-start",
+            days_ago_iso(60),
+            "--order-finance-delay-seconds",
+            "1.5",
+            "--missing-fees-only",
+            "--apply",
+        ],
+        groups=("daily", "sales-orders", "dashboard"),
+        blocking=False,
+        timeout_seconds=2 * 60 * 60,
+    ),
+    SyncJob(
+        name="Daily missing-fee sales profitability",
+        command=lambda: [
+            "integrations/amazon_sales_profitability.py",
+            "--purchase-date-start",
+            days_ago_iso(60),
+            "--missing-fees-only",
+            "--apply",
+        ],
+        groups=("daily", "sales-orders", "dashboard"),
+        blocking=False,
+        timeout_seconds=60 * 60,
+    ),
+    SyncJob(
+        name="Amazon sales finances audit",
         command=lambda: [
             "integrations/amazon_sync_sales_finances.py",
             "--purchase-date-start",
@@ -148,21 +258,33 @@ JOBS: tuple[SyncJob, ...] = (
             "1.5",
             "--apply",
         ],
-        groups=("daily", "sales-orders", "dashboard"),
+        groups=("finance-audit",),
         blocking=False,
         timeout_seconds=2 * 60 * 60,
     ),
     SyncJob(
-        name="Daily sales profitability",
+        name="Sales profitability audit",
         command=lambda: [
             "integrations/amazon_sales_profitability.py",
             "--purchase-date-start",
             days_ago_iso(60),
             "--apply",
         ],
-        groups=("daily", "sales-orders", "dashboard"),
+        groups=("finance-audit",),
         blocking=False,
         timeout_seconds=60 * 60,
+    ),
+    SyncJob(
+        name="Amazon listing status audit",
+        command=static_command("integrations/amazon_sync_listing_status.py", "--active-only"),
+        groups=("listing-audit",),
+        timeout_seconds=60 * 60,
+    ),
+    SyncJob(
+        name="Inventory reconciliation audit",
+        command=static_command("integrations/inventory_reconcile.py"),
+        groups=("inventory-audit",),
+        timeout_seconds=45 * 60,
     ),
     SyncJob(
         name="Informed repricing reports",
@@ -177,9 +299,41 @@ JOBS: tuple[SyncJob, ...] = (
         timeout_seconds=20 * 60,
     ),
     SyncJob(
+        name="YNAB Business transactions",
+        command=static_command(
+            "integrations/ynab_sync_business_transactions.py",
+            "--incremental",
+            "--apply",
+        ),
+        groups=("daily", "dashboard"),
+        timeout_seconds=30 * 60,
+    ),
+    SyncJob(
         name="Business value snapshot",
         command=static_command("integrations/business_value_snapshot.py", "--apply"),
-        groups=("daily", "dashboard"),
+        groups=("daily", "dashboard", "fba"),
+        timeout_seconds=30 * 60,
+    ),
+    SyncJob(
+        name="Sourcing listing availability",
+        command=static_command(
+            "integrations/refresh_sourcing_listing_availability.py",
+            "--apply",
+            "--limit",
+            "250",
+        ),
+        groups=("daily", "catalog"),
+        blocking=False,
+        timeout_seconds=30 * 60,
+    ),
+    SyncJob(
+        name="Matching intelligence refresh",
+        command=static_command(
+            "integrations/refresh_matching_intelligence.py",
+            "--runs-per-mode",
+            "1",
+        ),
+        groups=("core", "daily", "catalog", "purchases"),
         timeout_seconds=30 * 60,
     ),
     SyncJob(
@@ -213,9 +367,13 @@ GROUPS = (
     "catalog",
     "purchases",
     "sales-orders",
+    "finance-audit",
+    "listing-audit",
+    "inventory-audit",
     "dashboard",
     "reconciliation",
     "repricing",
+    "fba",
     "all",
 )
 
@@ -235,8 +393,25 @@ def main() -> int:
     print(f"Starting sync group={args.group} run_id={run_id}")
     print(started_at)
 
+    lock_acquired = False
     if not args.no_lock:
-        acquire_lock(args.group, run_id)
+        try:
+            acquire_lock(args.group, run_id)
+            lock_acquired = True
+        except RuntimeError as error:
+            message = str(error)
+            for job in selected_jobs:
+                record_job(
+                    job=job,
+                    command=job.command(),
+                    group=args.group,
+                    run_id=run_id,
+                    status="blocked",
+                    started_at=started_at,
+                    message=message,
+                )
+            print(f"ERROR: {message}")
+            return 1
 
     failures: list[str] = []
     nonblocking_failures: list[str] = []
@@ -288,7 +463,7 @@ def main() -> int:
         print(now_iso())
         return 0
     finally:
-        if not args.no_lock:
+        if lock_acquired:
             release_lock(run_id)
 
 
@@ -321,6 +496,17 @@ def run_job(job: SyncJob, *, group: str, run_id: str) -> None:
     command = job.command()
     started_at = now_iso()
     print(f"\n--- Running [{job.name}] {' '.join(command)} ---")
+    record_job(
+        job=job,
+        command=command,
+        group=group,
+        run_id=run_id,
+        status="running",
+        started_at=started_at,
+        finished_at=None,
+        message="Job is currently running.",
+        append_history=False,
+    )
 
     try:
         result = subprocess.run(
@@ -366,10 +552,13 @@ def record_job(
     run_id: str,
     status: str,
     started_at: str,
+    finished_at: str | None = None,
     message: str | None = None,
+    append_history: bool = True,
 ) -> None:
     command_text = " ".join(command)
-    finished_at = now_iso()
+    if finished_at is None and status != "running":
+        finished_at = now_iso()
     record = {
         "run_id": run_id,
         "group": group,
@@ -387,12 +576,12 @@ def record_job(
     records = read_health_records()
     records[job.name] = record
     records[command_text] = record
-    HEALTH_LOG_PATH.write_text(
+    write_text_with_retry(
+        HEALTH_LOG_PATH,
         json.dumps(records, indent=2, sort_keys=True) + "\n",
-        encoding="utf-8",
     )
-    with RUN_HISTORY_PATH.open("a", encoding="utf-8") as file:
-        file.write(json.dumps(record, sort_keys=True) + "\n")
+    if append_history:
+        append_text_with_retry(RUN_HISTORY_PATH, json.dumps(record, sort_keys=True) + "\n")
 
 
 def read_health_records() -> dict[str, dict[str, object]]:
@@ -401,6 +590,29 @@ def read_health_records() -> dict[str, dict[str, object]]:
         return records if isinstance(records, dict) else {}
     except (FileNotFoundError, json.JSONDecodeError):
         return {}
+
+
+def write_text_with_retry(path: Path, text: str, *, attempts: int = 5) -> None:
+    for attempt in range(1, attempts + 1):
+        try:
+            path.write_text(text, encoding="utf-8")
+            return
+        except OSError:
+            if attempt == attempts:
+                raise
+            time.sleep(0.25 * attempt)
+
+
+def append_text_with_retry(path: Path, text: str, *, attempts: int = 5) -> None:
+    for attempt in range(1, attempts + 1):
+        try:
+            with path.open("a", encoding="utf-8") as file:
+                file.write(text)
+            return
+        except OSError:
+            if attempt == attempts:
+                raise
+            time.sleep(0.25 * attempt)
 
 
 def probe_supabase() -> None:

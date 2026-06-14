@@ -1,6 +1,6 @@
 # CURRENT_STATE.md
 
-Last Updated: 2026-06-02
+Last Updated: 2026-06-13
 
 # Midnight Blue Operations Platform (MBOP)
 
@@ -16,17 +16,19 @@ MBOP is the internal operations platform for Midnight Blue Enterprises, LLC.
 | Receiving workflow | First slice implemented |
 | Shipment enrichment | Functional with remaining FedEx/webhook follow-up |
 | Sync orchestration | Mature |
-| Dashboard analytics | First slice implemented |
+| Dashboard analytics | Split monitoring workspace implemented |
 | Matching engine | Emerging subsystem |
 | Amazon SP-API foundation | Read-only inventory/listing sync working |
 | Keepa catalog intelligence | Token-aware enrichment working |
 | Informed Repricer intelligence | Read-only report snapshot import working |
 | Unified inventory state / reconciliation | First slice implemented |
-| Amazon FBA workflow | First slice implemented |
+| Amazon FBA workflow | Prep and shipment tracking first slice implemented |
 | Aged Amazon Inventory Repricing Advisor | First slice implemented |
 | Amazon Sales Orders | First slice implemented / 2025-forward backfill complete |
 | Non-eBay purchase COGS sources | Manual import bridge implemented |
 | Legacy spreadsheet backfill | Recently used / repeatable script available |
+| Order Problems / eBay Returns | Operational first slice / eBay read-only |
+| Sourcing Workspace | Operational first slice / daily availability cleanup |
 
 ---
 
@@ -42,6 +44,55 @@ The paid plan limits do not by themselves guarantee enough sustained disk IO for
 ---
 
 # Current Backend State
+
+## Dashboard Split
+
+Status: IMPLEMENTED / MVP MONITORING TABS
+
+Implemented:
+- `/dashboard` remains the single top-level monitoring workspace in the compact
+  left navigation.
+- Dashboard tabs are URL-addressable: Overview, Financial, Operations,
+  Inventory, Amazon, Growth, Sourcing, Loss Prevention, and System Health.
+- Focused dashboard APIs now exist for Overview, Financial, Operations,
+  Inventory, Amazon, Growth, Sourcing, Loss Prevention, and System Health.
+- Each implemented tab loads independently and reads backend-owned data only.
+- Dashboard page loads do not trigger external marketplace/API calls, Keepa
+  token spending, sync jobs, or workflow state changes.
+- Financial dashboard summarizes profitability windows, cash position, Amazon
+  payout reconciliation, financial data completeness, and the future Schedule C
+  reporting placeholder from existing backend finance/profitability data.
+- Inventory dashboard summarizes inventory value/location, age buckets,
+  capital at risk, concentration, and reconciliation attention from
+  `inventory_positions` and reconciliation views.
+- Amazon dashboard summarizes sales/profitability, FBA/listing health,
+  repricing advisor rollups, top sellers, stale high-capital inventory,
+  Seller Central account health, lifetime Feedback Manager rating, and 1-3
+  star seller-feedback alert rows.
+- Overview and Financial dashboards display Amazon Funds Available from the
+  latest Amazon finance snapshot's `available_to_withdraw` value and link to
+  Seller Central Payments.
+- Growth dashboard summarizes revenue/profit/business value trends, monthly
+  inventory spend, and basic efficiency metrics.
+- Sourcing dashboard provides a manual replenishment research queue from
+  existing sales/profit/inventory data with transparent scoring.
+- Loss Prevention dashboard summarizes open problem cases, estimated value at
+  risk, refund/return buckets, urgent cases, and monthly problem trends.
+- System Health dashboard adapts existing health signals plus local sync-run
+  logs into freshness, recent-run, and guardrail summaries.
+
+Known MVP limitations:
+- Some drill-down links intentionally fall back to base workflow routes when the
+  target screen does not yet support the specific filter.
+- System Health capacity and external-limit panels show safe placeholders unless
+  values are already available from local sync health; they do not run heavy
+  diagnostics.
+- Seller Central account-health score and lifetime feedback summary are manual
+  snapshots until a broader approved read-only source exists. The SP-API
+  `GET_SELLER_FEEDBACK_DATA` report is wired as an alert source for 1-3 star
+  feedback only; Amazon cancelled the first dry-run report request.
+
+---
 
 ## Amazon Sales Orders
 
@@ -70,6 +121,10 @@ Implemented:
 - pre-2025 Amazon sales orders imported by recent Amazon LastUpdated activity are excluded from the UI/API and have cleanup SQL in `sql/2026-05-31_remove_pre_2025_amazon_sales_orders.sql`
 - `integrations/apply_ebay_purchase_fifo_cogs.py` allocates costed eBay
   `purchase_items` into `amazon_sales_cogs_consumption` by ASIN and FIFO order
+- eBay purchase FIFO allocation also accepts explicitly `listed` legacy
+  purchase-item lots from non-eBay suppliers, so older resale lots such as
+  PayPal/direct legacy purchase records can support Amazon COGS without
+  re-entering Purchases open work
 - `integrations/apply_non_ebay_fifo_cogs.py` allocates and can rebalance TIM,
   prep-center, Merchant Fulfilled, and other non-eBay source rows into Amazon
   sales/current inventory COGS layers
@@ -87,6 +142,8 @@ COGS state:
   109 additional sales rows
 - eBay purchase FIFO COGS allocation was run after the 2025 backfill and
   applied 2,123 additional sales rows / 2,127 consumption rows
+- targeted legacy-listed FIFO cleanup on 2026-06-04 marked three old source
+  orders as `listed` and applied 25 additional sales COGS rows
 - Amazon sales profitability currently has 3,873 complete rows and 159
   remaining `missing_cogs` rows
 - Amazon sales profitability currently has 32 stored `missing_fees` rows and 0
@@ -135,39 +192,102 @@ Recent cleanup:
 
 ---
 
+## Order Problems And eBay Returns
+
+Status: OPERATIONAL FIRST SLICE / READ-ONLY EBAY
+
+Implemented:
+- legacy supplier return workflow rows were cleared through `sql/2026-06-02_add_order_problem_return_workflow.sql` without downgrading `purchase_items.current_status`
+- `order_problem_cases` stores one open workflow case per purchase item for late/stale shipment candidates, return-needed items, eBay return/case follow-up, cancelled/refund follow-up, missing-item/replacement follow-up, and manual resolution
+- `order_problem_events` stores an append-only timeline for system, operator, eBay API, and tracking events
+- `/api/order-problems` owns candidate detection, open/resolved stage filtering, pagination, sorting, and summary counts
+- `/api/order-problems/[id]/actions` supports MBOP-local workflow actions such as Mark Return Needed, Mark Return Opened, Mark Label Available, Mark Return Shipped, Mark Refund Received, Mark Missing Item Received, Mark Replacement Shipped, Mark Escalated, Close / Resolve, and Close No Refund
+- Purchases -> Order Problems is now the unified queue for delivery candidates and return/refund follow-up, with dense stage chips, top-of-table operational stats, and consolidated issue/status columns
+- the purchase detail drawer shows the order-problem workflow panel, eBay status/action link when available, refund fields, replacement tracking, notes, and local action buttons
+- `integrations/ebay_sync_order_problem_returns.py` is a scheduled, read-only eBay Post-Order importer for returns, INR inquiries, inquiry details, and cases that writes only to `order_problem_cases` and `order_problem_events`
+- inquiry detail enrichment captures seller make-it-right/escalation dates and replacement tracking that are not present in the inquiry search summary
+- missing-item inquiries with replacement tracking now use local carrier/eBay tracking state: tracking progress moves the case to `replacement_shipped`, delivered replacement tracking closes the case as `resolved_received_item`, and the linked purchase item moves back to `delivered` for Receiving verification
+- eBay return/case/inquiry/cancellation links are surfaced from the Order column; duplicate action links are intentionally not repeated in Next Action
+- cancellation/refund exceptions can be represented as `ebay_cancellation_sync` / `refund_pending` while waiting for the refund to post
+- cancellation/refund follow-up actions keep the linked purchase item in
+  `cancelled` status so those rows stay out of Purchases Open Purchase Work
+- `/api/screen-data-freshness` includes order-problem case/event timestamps in the Purchases freshness signal
+
+Safety:
+- MBOP does not create eBay returns, send messages, accept offers, escalate cases, issue refunds, or upload files
+- the old `integrations/ebay_sync_supplier_returns.py` has been removed from
+  active orchestration and System Health; Order Problems owns the active
+  return/inquiry/case sync
+- current eBay return actions are performed manually on ebay.com, with MBOP storing local workflow state and links
+
+Known follow-up:
+- add dedicated case/event detail API routes if the drawer needs full timelines beyond the current row fields
+- continue validating less-common eBay Post-Order states as they appear in live return/inquiry/case/cancellation data
+- add first-class scheduled cancellation search/import support if additional cancellation-driven refund follow-up cases appear
+- decide how accepted partial refunds should adjust purchase cost when the item is kept
+
+---
+
 ## Sync Orchestration
 
 Status: LOCAL SCHEDULER CONFIGURED / BROAD INTEGRATION AUTOMATION ENABLED
 
 Implemented:
-- `run_all_syncs.py` runs eBay buyer purchase sync, EasyPost shipment sync, eBay supplier returns sync, RevSeller enrichment, Amazon FBA inventory, Amazon listing status, Amazon inventory planning, Amazon Finance, Informed Repricer reports, YNAB Business cash balance, guarded Keepa enrichment, and the daily business value snapshot
+- `run_all_syncs.py` runs eBay buyer purchase sync, sourcing purchase matching, EasyPost shipment sync, RevSeller enrichment with optional AI same-system review, guarded missing-title Keepa repair, Amazon FBA inventory, Amazon FBA shipment sync, Amazon listing status, Amazon inventory planning, Amazon Finance, Informed Repricer reports, YNAB Business cash balance, guarded sourcing listing availability cleanup, guarded Keepa enrichment, and the daily business value snapshot
+- `run_all_syncs.py` writes `running`, `ok`, `failed`, and lock-collision
+  `blocked` records to `logs/sync_health.json`, allowing System Health refreshes
+  during active runs to show the current job state.
+- `run_all_syncs.py` also stores YNAB Business-category transaction history
+  daily for future P&L, Schedule C, and cash reconciliation features
 - `run_all_syncs.bat` targets the repo at `C:\Dev\amazon-ebay-ops-system`
-- scheduler output is appended to `logs/scheduler.log`
-- local AM/PM Windows scheduled tasks were recreated after the repo moved out of OneDrive
+- scheduler output is appended to `logs/scheduler.log` through a per-run temp
+  log with append retries so transient Windows file locks do not block a run
+- local Windows scheduled tasks exist for AM core, PM core, Daily, and Catalog
+  groups after the repo moved out of OneDrive
+- all MBOP scheduled tasks use `StartWhenAvailable = False` and
+  `MultipleInstances = IgnoreNew`, so missed laptop-sleep runs are skipped
+  instead of replayed together when the laptop wakes
 - individual script failures are collected and reported without preventing later independent syncs from running
+- scheduled missing-title Keepa repair fills blank `purchase_items.amazon_title`
+  for ASIN-bearing purchase rows from stored Keepa snapshots first, and only
+  calls Keepa for up to 25 remaining candidates when at least 25 tokens are
+  available
 - scheduled Keepa enrichment is capped to 10 stale active-Amazon ASINs, uses stock/offers without history, and skips calls unless at least 100 Keepa tokens are available
+- scheduled sourcing listing availability checks open, Watch, and ROI-snoozed sourcing opportunities once per day and dismisses ended/sold-out/missing eBay listings with `no_longer_available`; Purchased / Offer Made rows are intentionally skipped so purchase matching/enrichment can still run
 - MBOP screens show a screen-specific `Last updated` timestamp near refresh
   controls using `/api/screen-data-freshness`
 - Dashboard freshness uses the oldest required cash/value input so stale Amazon
   Finance, YNAB, or business value snapshots are visible
+- Amazon Finance balance snapshots now use YNAB Business transaction matching
+  for completed/succeeded payouts: completed Amazon transfers stay in
+  `in_transit_to_bank` only until a matching YNAB Business deposit is present
 
 Recent validation:
 - direct all-sync execution completed successfully with exit code 0 after adding Amazon FBA inventory throttling safeguards
 - eBay buyer purchase sync retrieved 652 orders and updated 31
+- eBay order problem returns/inquiries sync is now part of the `core`
+  scheduled group and reads eBay Post-Order returns, INR inquiries/details, and
+  cases without performing marketplace writes
 - EasyPost sync processed/reused 103 shipment trackers with 2 FedEx credential errors remaining
-- eBay supplier returns sync updated 7 returns
+- legacy eBay supplier returns sync has been removed from orchestration because
+  the new Order Problems return/inquiry sync owns the active workflow
 - RevSeller sync completed and wrote diagnostics
 - Amazon FBA inventory sync fetched 6,292 summaries, upserted 6,292 SKUs, and inserted 6,292 snapshots
+- Amazon FBA shipment sync refreshed shipment `FBA19F8YW7CV` with Amazon status `RECEIVING`, 277 sent, 277 received, 45 currently available, 276 reserved, 1 unfulfillable, and zero remaining outbound-to-Amazon value
 - Amazon listing-status sync inserted 296 active listing snapshots
 - Amazon inventory planning sync inserted 295 planning rows
 - Amazon Finance sync inserted a balance snapshot
 - Informed report sync inserted 968 listing snapshots
 - YNAB Business balance sync inserted a $3,231.24 snapshot
+- YNAB Business transaction sync backfilled 1,225 Business-category
+  transactions from 2026-01-01 forward
 - scheduled Keepa run selected 1 stale active-Amazon ASIN, inserted 1 snapshot, and spent 5 tokens
+- sourcing listing availability refresh checked 89 opportunities / 73 unique eBay item IDs and dismissed 12 unavailable listings with no API errors
 - business value snapshot upserted the 2026-05-27 daily value
 
 Remaining validation:
-- confirm both Windows scheduled tasks append successful runs to `logs/scheduler.log`
+- monitor the next scheduled AM/PM/Daily/Catalog runs after disabling
+  Task Scheduler catch-up behavior
 - manually trigger scheduled tasks with the root task path, for example `schtasks /Run /TN "\Amazon eBay Ops Sync PM"`
 
 ---
@@ -518,7 +638,7 @@ Current behavior:
 - canonical current inventory is defined as current Amazon FBA inventory plus MBOP purchase inventory that has not yet reached the Listed workflow state, plus current non-historical FBA shipment links on the way to Amazon
 - Amazon-bound purchase inventory with `current_status = listed` and no current FBA shipment link is treated as historical/sold-through in the derived purchase projection; current FBA shipment links are projected as `outbound_to_amazon`
 - dashboard Amazon FBA value prefers the latest InventoryLab valuation snapshot when available, while MBOP remains authoritative for received, ordered, and outbound inventory
-- business value snapshots use MBOP outbound shipment cost for saved FBA shipments and avoid double-counting overlapping Amazon inbound rows for the same ASINs
+- business value snapshots use MBOP outbound shipment cost only for quantities still unresolved by Amazon receiving/availability data and avoid double-counting Amazon-received shipment value
 - reconciliation currently compares MBOP Amazon-intended inventory to latest Amazon FBA inventory at ASIN level and surfaces Amazon listing issue/suppression signals
 - reconciliation ignores Amazon listing/catalog issue signals when Amazon still
   reports sellable FBA units for the ASIN; buyable inventory with catalog
@@ -530,7 +650,7 @@ Latest validation:
 - InventoryLab valuation import read 297 rows, found 0 missing MSKUs, 0 missing total values, 0 duplicate MSKUs, and upserted a $13,453.87 / 761-unit legacy Amazon FBA opening-balance valuation
 - inventory reconciliation loaded 298 InventoryLab cost/date overlay rows
 - latest write run projected 2,943 MBOP positions, 451 Amazon positions, and 392 open findings after adding current FBA shipment outbound projection
-- current Amazon shipment `FBA19F8YW7CV` projects 216 linked shipment rows, 277 units, and $5,634.77 as `outbound_to_amazon`
+- current Amazon shipment `FBA19F8YW7CV` now has 216 linked shipment rows and 277 units, but projects $0 as `outbound_to_amazon` because Amazon reports all 277 units received
 - latest reconciliation includes 55 Amazon stranded/suppressed listing findings from the read-only Listings Items snapshots
 - 310 Amazon inventory positions currently carry InventoryLab legacy cost/date context
 - Next.js production build passed after dashboard API/UI updates
@@ -609,7 +729,7 @@ Implemented:
 - clicking the Total row in the Business Inventory And Cash Value dashboard panel opens a modal with a business value history graph
 - Purchases workspace now has separate tabs for the normal editable purchases table and an Order Problems table
 - Purchases `Missing Data` filter keeps ASIN/sell-price/system/Amazon-title cleanup in the normal editable view
-- Purchases Order Problems tab shows past-ETA, stale/no-tracking, carrier exception, and return-pending rows with issue/age-focused columns
+- Purchases Order Problems tab shows delivery candidates, return/refund follow-up, missing-item/replacement follow-up, and cancellation refund confirmation with consolidated issue/status columns and current-filter stats
 
 Current purpose:
 Help identify purchase data completeness, receiving backlog, shipment prep backlog, workflow aging, and exception/missing-data visibility from one operational screen.
@@ -669,7 +789,7 @@ Implemented:
 - purchases and receiving APIs hide purchase items marked exclude_from_purchase_reporting
 - purchases API excludes reporting-excluded rows before database pagination so pages are full usable pages
 - purchases client also filters reportable-excluded rows before storing fetched or cached rows
-- default purchases status filter is All Except Listed, with All Status available for full history
+- default purchases status filter is Open Purchase Work, with All Status available for full history
 - purchases UI browser caching is temporarily disabled for server-side performance testing
 - purchases cache key was bumped after reporting-exclusion fixes so stale non-resale rows are not reused
 - purchases cache key was bumped again after backend status normalization so stale derived-status filter results are not reused
@@ -683,20 +803,35 @@ Primary remaining UI opportunity:
 iterate on ASIN review and operational throughput without merging receiving workflow concerns.
 
 Recent backend update:
-- eBay buyer purchase sync now populates purchase_items.system from recognized eBay title platform terms
+- eBay buyer purchase sync now populates purchase_items.system from recognized
+  eBay title platform terms and can fall back to eBay Browse item
+  `localizedAspects.Platform` when the Trading API order title omits the
+  platform.
 - eBay buyer purchase sync preserves workflow-owned statuses: Cancelled, Listed, Received, Return Opened, and Return Pending
 - eBay buyer purchase sync writes canonical non-locked statuses such as No Tracking, Shipped (No Tracking), Awaiting Carrier Scan, and Delivered
 - EasyPost sync/webhook updates linked purchase_items.current_status from carrier state while preserving workflow-locked statuses
 - one-time backend status backfill normalized 83 purchase item statuses from older ordered/in-transit/delivered placeholders
 - existing empty systems were backfilled where recognized
 - RevSeller enrichment no longer applies unique-title matches without a recognized system
+- RevSeller enrichment can use optional OpenAI structured-output review for
+  deterministic misses. AI sees only same-system RevSeller candidates, cannot
+  invent ASINs, and is accepted only above a high confidence threshold.
+- RevSeller enrichment now scans only Open Purchase Work rows and skips
+  reporting-excluded rows, aligning its candidate set with the default
+  Purchases list.
 - system names were normalized to operator-facing display values
 - purchase_items.amazon_title was added and backfilled from RevSeller where ASIN/title data was available
+- `integrations/backfill_amazon_titles_from_keepa.py` fills missing
+  Amazon-title display values for rows that already have an ASIN, without
+  changing ASIN, system, price, cost, status, or workflow state
 - Amazon search links and RevSeller matching now share marketplace-title cleaning semantics
 - marketplace-title cleaning was refined from the 100-row missing-ASIN training sheet
 - RevSeller enrichment now safely handles leading `New` as condition text only as a same-system fallback, which corrected order `20-14670-25041` to ASIN `B08MG5FYS6`
 - RevSeller enrichment now handles unique same-system token-set matches, which corrected order `20-14670-25040` to ASIN `B001TOQ8LG`
 - RevSeller enrichment now handles trailing condition `new`, publisher noise, common `survior` typo correction, and safe trailing `for` catalog variants, which corrected orders `20-14670-25046` and `20-14670-25045`
+- RevSeller enrichment normalizes the common `Nintedo` catalog typo to
+  `Nintendo`, which allowed order `09-14753-23886` to enrich as Wii / ASIN
+  `B004NB1BV4`.
 
 Recent one-time status backfill:
 - source: reference Google Sheet "status" tab
@@ -759,13 +894,14 @@ Pending:
 
 ---
 
-## Amazon FBA UI
+## Send To Amazon UI
 
-Status: FIRST SLICE IMPLEMENTED
+Status: PREP AND SHIPMENT TRACKING FIRST SLICE IMPLEMENTED
 
 Implemented:
-- separate Amazon FBA workspace at /fba
+- separate Send to Amazon workspace at /fba
 - FBA API route at /api/fba-shipments
+- Prep Queue and Shipments tabs
 - received Amazon-bound purchase items are grouped into one row per ASIN
 - grouped rows show ASIN, Amazon title, system, weighted cost per unit, sell price, quantity, oldest purchase date, and supplier
 - rows are sorted by system and Amazon title
@@ -780,7 +916,12 @@ Implemented:
 - partial included quantities split the remaining quantity into a Received split child row
 - same-ASIN Amazon title fallback fills FBA display titles when a Received row has ASIN but blank amazon_title
 - rows with no stored Amazon title display an explicit Missing Amazon title indicator instead of silently using the eBay title
+- Shipments tab lists saved Amazon shipment IDs, MBOP status, FBA status, fulfillment center, delivery/ETA, milestone dates, sent/received/missing units, FBA availability, cost, attention flags, and last sync
+- shipment delivery display shows delivered date with a small `delivered` label when carrier delivery is known, otherwise carrier ETA when available
+- status lines are prefixed with `MBOP:` and `FBA:` so local workflow state and Amazon state are visually distinct
+- the current SP-API shipment sync can refresh shipment/item status and availability by known shipment ID, but Amazon did not expose tracking, pickup, or delivery dates for `FBA19F8YW7CV` through the tested read endpoints
 
 Schema:
 - sql/2026-05-24_add_fba_shipments.sql adds fba_shipments and fba_shipment_items
+- sql/2026-06-13_add_fba_shipment_tracking_workflow.sql adds shipment status, carrier/tracking, milestone, availability, cost, attention-flag, raw payload, and event-history fields
 - historical Listed items should be linked to legacy_listed_no_shipment_id when no real shipment ID will be backfilled

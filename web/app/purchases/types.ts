@@ -13,6 +13,7 @@ export type PurchaseRow = {
   sell_price?: number | null;
   target_price?: number | null;
   tracking_number?: string | null;
+  original_tracking_number?: string | null;
   supplier_sku?: string | null;
   supplier_listing_url?: string | null;
   ebay_listing_url?: string | null;
@@ -31,6 +32,66 @@ export type PurchaseRow = {
   marketplace?: "Amazon" | "eBay" | null;
   exclude_from_purchase_reporting?: boolean | null;
   exclusion_reason?: string | null;
+  problem_case_id?: string | null;
+  problem_type?: string | null;
+  problem_source?: string | null;
+  workflow_state?: string | null;
+  problem_priority?: string | null;
+  problem_is_open?: boolean | null;
+  problem_needs_response?: boolean | null;
+  problem_next_action?: string | null;
+  problem_next_action_due_at?: string | null;
+  problem_escalation_available_at?: string | null;
+  problem_first_detected_at?: string | null;
+  problem_last_detected_at?: string | null;
+  ebay_return_id?: string | null;
+  ebay_inquiry_id?: string | null;
+  ebay_case_id?: string | null;
+  ebay_return_state?: string | null;
+  ebay_return_status?: string | null;
+  ebay_current_type?: string | null;
+  ebay_action_url?: string | null;
+  expected_refund_amount?: number | null;
+  actual_refund_amount?: number | null;
+  partial_refund_amount?: number | null;
+  refund_currency?: string | null;
+  replacement_tracking_number?: string | null;
+  problem_notes?: string | null;
+  problem_return_needed_at?: string | null;
+  problem_ebay_return_opened_at?: string | null;
+  problem_seller_message_last_at?: string | null;
+  problem_operator_responded_at?: string | null;
+  problem_partial_refund_offered_at?: string | null;
+  problem_partial_refund_accepted_at?: string | null;
+  problem_label_available_at?: string | null;
+  problem_return_shipped_at?: string | null;
+  problem_seller_received_return_at?: string | null;
+  problem_refund_due_at?: string | null;
+  problem_refund_received_at?: string | null;
+  problem_replacement_promised_at?: string | null;
+  problem_replacement_shipped_at?: string | null;
+  problem_replacement_estimated_delivery_date?: string | null;
+  problem_replacement_carrier?: string | null;
+  problem_replacement_carrier_status?: string | null;
+  problem_replacement_delivered_date?: string | null;
+  problem_replacement_tracking_url?: string | null;
+  problem_replacement_last_tracking_sync?: string | null;
+  problem_replacement_received_at?: string | null;
+  problem_escalated_at?: string | null;
+  problem_closed_at?: string | null;
+  problem_events?: ProblemEvent[];
+};
+
+export type ProblemEvent = {
+  problem_event_id?: string;
+  event_type?: string | null;
+  event_source?: string | null;
+  event_at?: string | null;
+  message?: string | null;
+  amount?: number | null;
+  currency?: string | null;
+  tracking_number?: string | null;
+  created_at?: string | null;
 };
 
 export type PurchaseStats = {
@@ -64,6 +125,7 @@ export type PurchaseQuery = {
   sortDirection: PurchaseSortDirection;
   page: number;
   pageSize: number;
+  problemStage?: string;
 };
 
 export type PurchasesApiResponse = {

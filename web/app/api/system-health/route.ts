@@ -10,13 +10,13 @@ const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
 const supabase = createClient(supabaseUrl, supabaseServiceRoleKey);
 
-type HealthStatus = "ok" | "delayed" | "failed" | "unknown" | "skipped";
+type HealthStatus = "ok" | "delayed" | "failed" | "unknown" | "skipped" | "running" | "blocked";
 
 type JobConfig = {
   id: string;
   name: string;
   command: string;
-  group: "core" | "daily" | "catalog" | "disabled";
+  group: "core" | "daily" | "catalog" | "monthly" | "disabled";
   blocking: boolean;
   enabled?: boolean;
   disabledReason?: string;
@@ -45,7 +45,7 @@ type LocalRunRecord = {
   group?: string | null;
   blocking?: boolean | null;
   enabled?: boolean | null;
-  status: "ok" | "failed" | "skipped";
+  status: "ok" | "failed" | "skipped" | "running" | "blocked";
   started_at?: string | null;
   finished_at?: string | null;
   message?: string | null;
@@ -61,8 +61,10 @@ type DynamicQuery = PromiseLike<DynamicQueryResult> & {
   select: (columns: string, options?: { count?: "exact"; head?: boolean }) => DynamicQuery;
   order: (column: string, options?: { ascending?: boolean; nullsFirst?: boolean }) => DynamicQuery;
   limit: (count: number) => DynamicQuery;
-  eq: (column: string, value: string) => DynamicQuery;
-  gte: (column: string, value: string) => DynamicQuery;
+  eq: (column: string, value: unknown) => DynamicQuery;
+  neq: (column: string, value: unknown) => DynamicQuery;
+  gte: (column: string, value: unknown) => DynamicQuery;
+  is: (column: string, value: unknown) => DynamicQuery;
   not: (column: string, operator: string, value: string) => DynamicQuery;
 };
 
@@ -108,26 +110,45 @@ const JOBS: JobConfig[] = [
     signal: async () => latestTimestampSignal("inbound_shipments", "last_tracking_sync", "Shipments"),
   },
   {
-    id: "supplier-returns",
-    name: "eBay supplier returns",
-    command: "integrations/ebay_sync_supplier_returns.py",
-    group: "disabled",
+    id: "order-problem-returns",
+    name: "eBay order problem returns/inquiries",
+    command: "integrations/ebay_sync_order_problem_returns.py --lookback-days 60 --limit 100 --apply",
+    group: "core",
+    blocking: false,
+    expectedEveryHours: 12,
+    criticalAfterHours: 24,
+    signal: async () => latestTimestampSignal("order_problem_events", "created_at", "Events"),
+  },
+  {
+    id: "sourcing-purchase-matching",
+    name: "Sourcing purchase matching",
+    command: "integrations/match_sourcing_purchases.py",
+    group: "core",
     blocking: true,
-    enabled: false,
-    disabledReason: "Disabled pending returns feature redesign.",
-    expectedEveryHours: 24,
-    criticalAfterHours: 48,
-    signal: async () => latestTimestampSignal("supplier_returns", "updated_at", "Returns"),
+    expectedEveryHours: 12,
+    criticalAfterHours: 24,
+    signal: async () => latestTimestampSignal("sourcing_purchase_matches", "matched_at", "Matches"),
   },
   {
     id: "revseller-enrichment",
     name: "RevSeller enrichment",
-    command: "integrations/sync_revseller_sheet.py",
+    command: "integrations/sync_revseller_sheet.py --ai-review --ai-review-limit 25",
     group: "core",
     blocking: true,
     expectedEveryHours: 12,
     criticalAfterHours: 24,
     signal: async () => latestRevsellerDiagnosticsSignal(),
+  },
+  {
+    id: "keepa-missing-purchase-titles",
+    name: "Keepa missing purchase titles",
+    command:
+      "integrations/backfill_amazon_titles_from_keepa.py --limit 25 --fetch-missing --min-tokens 25 --apply",
+    group: "core",
+    blocking: false,
+    expectedEveryHours: 12,
+    criticalAfterHours: 24,
+    signal: async () => missingPurchaseTitleSignal(),
   },
   {
     id: "amazon-fba-inventory",
@@ -138,6 +159,66 @@ const JOBS: JobConfig[] = [
     expectedEveryHours: 24,
     criticalAfterHours: 36,
     signal: async () => snapshotSignal("amazon_fba_inventory_snapshots", "captured_at", "Snapshot rows"),
+  },
+  {
+    id: "amazon-fba-shipments",
+    name: "Amazon FBA shipments",
+    command: "integrations/amazon_sync_fba_shipments.py",
+    group: "daily",
+    blocking: true,
+    expectedEveryHours: 24,
+    criticalAfterHours: 36,
+    signal: async () => {
+      const row = await latestRow(
+        "fba_shipments",
+        "last_amazon_sync_at",
+        "last_amazon_sync_at,shipment_code,amazon_status_normalized,units_sent,units_received,units_available,outbound_remaining_cost",
+      );
+      return {
+        lastRunAt: stringValue(row?.last_amazon_sync_at),
+        source: "fba_shipments",
+        stats: [
+          { label: "Shipment", value: stringValue(row?.shipment_code) || "--" },
+          { label: "Status", value: stringValue(row?.amazon_status_normalized) || "--" },
+          { label: "Sent", value: formatCount(row?.units_sent) },
+          { label: "Received", value: formatCount(row?.units_received) },
+          { label: "Available", value: formatCount(row?.units_available) },
+          { label: "Outbound", value: formatCurrency(row?.outbound_remaining_cost) },
+        ],
+      };
+    },
+  },
+  {
+    id: "fba-easypost-carrier-tracking",
+    name: "FBA EasyPost carrier tracking",
+    command: "integrations/easypost_sync_fba_shipments.py",
+    group: "daily",
+    blocking: true,
+    expectedEveryHours: 24,
+    criticalAfterHours: 36,
+    signal: async () => {
+      const event = await latestRow(
+        "fba_shipment_events",
+        "created_at",
+        "created_at,event_at,event_type",
+        { event_source: "easypost" },
+      );
+      const shipment = await latestRow(
+        "fba_shipments",
+        "updated_at",
+        "updated_at,shipment_code,tracking_number,carrier_pickup_at,carrier_delivered_at,carrier_delivery_eta",
+      );
+      return {
+        lastRunAt: stringValue(event?.created_at) || stringValue(shipment?.updated_at),
+        source: "fba_shipment_events",
+        stats: [
+          { label: "Shipment", value: stringValue(shipment?.shipment_code) || "--" },
+          { label: "Tracking", value: stringValue(shipment?.tracking_number) || "--" },
+          { label: "Latest event", value: stringValue(event?.event_type) || "--" },
+          { label: "ETA", value: stringValue(shipment?.carrier_delivery_eta) || "--" },
+        ],
+      };
+    },
   },
   {
     id: "amazon-listing-status",
@@ -224,9 +305,19 @@ const JOBS: JobConfig[] = [
     signal: async () => latestTimestampSignal("veeqo_sales_orders", "updated_at", "Veeqo orders"),
   },
   {
-    id: "amazon-sales-finances",
-    name: "Amazon sales finances",
-    command: "integrations/amazon_sync_sales_finances.py",
+    id: "recent-amazon-sales-finances",
+    name: "Recent Amazon sales finances",
+    command: "integrations/amazon_sync_sales_finances.py --order-finance-delay-seconds 1.5 --apply",
+    group: "core",
+    blocking: false,
+    expectedEveryHours: 12,
+    criticalAfterHours: 24,
+    signal: async () => latestTimestampSignal("amazon_sales_financial_events", "created_at", "Financial rows"),
+  },
+  {
+    id: "amazon-missing-fee-sales-finances",
+    name: "Amazon missing-fee sales finances",
+    command: "integrations/amazon_sync_sales_finances.py --order-finance-delay-seconds 1.5 --missing-fees-only --apply",
     group: "daily",
     blocking: false,
     expectedEveryHours: 24,
@@ -234,13 +325,23 @@ const JOBS: JobConfig[] = [
     signal: async () => latestTimestampSignal("amazon_sales_financial_events", "created_at", "Financial rows"),
   },
   {
-    id: "amazon-sales-profitability",
-    name: "Amazon sales profitability",
-    command: "integrations/amazon_sales_profitability.py",
+    id: "recent-sales-profitability",
+    name: "Recent sales profitability",
+    command: "integrations/amazon_sales_profitability.py --apply",
     group: "core",
     blocking: false,
     expectedEveryHours: 12,
     criticalAfterHours: 24,
+    signal: async () => latestTimestampSignal("amazon_sales_profitability", "updated_at", "Profit rows"),
+  },
+  {
+    id: "daily-missing-fee-sales-profitability",
+    name: "Daily missing-fee sales profitability",
+    command: "integrations/amazon_sales_profitability.py --missing-fees-only --apply",
+    group: "daily",
+    blocking: false,
+    expectedEveryHours: 24,
+    criticalAfterHours: 36,
     signal: async () => latestTimestampSignal("amazon_sales_profitability", "updated_at", "Profit rows"),
   },
   {
@@ -297,8 +398,42 @@ const JOBS: JobConfig[] = [
     },
   },
   {
+    id: "ynab-business-transactions",
+    name: "YNAB Business transactions",
+    command: "integrations/ynab_sync_business_transactions.py",
+    group: "daily",
+    blocking: true,
+    expectedEveryHours: 24,
+    criticalAfterHours: 36,
+    signal: async () => {
+      const [latestSynced, latestTransaction, countRow] = await Promise.all([
+        latestRow(
+          "ynab_business_transactions",
+          "synced_at",
+          "synced_at",
+        ),
+        latestRow(
+          "ynab_business_transactions",
+          "transaction_date",
+          "transaction_date,amount_currency,payee_name",
+        ),
+        exactCount("ynab_business_transactions", {}),
+      ]);
+
+      return {
+        lastRunAt: stringValue(latestSynced?.synced_at),
+        source: "ynab_business_transactions",
+        stats: [
+          { label: "Rows", value: formatCount(countRow) },
+          { label: "Latest txn", value: stringValue(latestTransaction?.transaction_date) || "--" },
+          { label: "Latest amount", value: formatCurrency(latestTransaction?.amount_currency) },
+        ],
+      };
+    },
+  },
+  {
     id: "keepa-products",
-    name: "Keepa products",
+    name: "Keepa active products",
     command: "integrations/keepa_sync_products.py",
     group: "catalog",
     blocking: true,
@@ -375,6 +510,16 @@ const JOBS: JobConfig[] = [
       };
     },
   },
+  {
+    id: "inventory-source-balance-audit",
+    name: "Inventory source balance audit",
+    command: "inventory_source_balance_audit.bat",
+    group: "monthly",
+    blocking: true,
+    expectedEveryHours: 31 * 24,
+    criticalAfterHours: 45 * 24,
+    signal: async () => inventorySourceBalanceAuditSignal(),
+  },
 ];
 
 export async function GET() {
@@ -395,6 +540,7 @@ export async function GET() {
             hoursSinceLastRun: null,
             expectedEveryHours: job.expectedEveryHours,
             criticalAfterHours: job.criticalAfterHours,
+            schedule: scheduleForGroup(job.group),
             source: "run_all_syncs.py",
             stats: [],
             message: job.disabledReason || null,
@@ -403,7 +549,7 @@ export async function GET() {
         const signal = await safeSignal(job);
         const failure = latestFailureForCommand(failures, job.command);
         const localRun = latestLocalRunForJob(localRuns, job);
-        const localRunAt = stringValue(localRun?.finished_at);
+        const localRunAt = stringValue(localRun?.finished_at) || stringValue(localRun?.started_at);
         const hasNewerLocalRun = localRunAt && isTimestampNewer(localRunAt, signal.lastRunAt);
         const lastRunAt = hasNewerLocalRun ? localRunAt : signal.lastRunAt;
         const hoursSinceLastRun = lastRunAt ? hoursSince(lastRunAt) : null;
@@ -416,6 +562,12 @@ export async function GET() {
           if (localRun?.status === "skipped") {
             status = "skipped";
             message = localRun.message || message;
+          } else if (localRun?.status === "running") {
+            status = "running";
+            message = localRun.message || "Job is currently running.";
+          } else if (localRun?.status === "blocked") {
+            status = "blocked";
+            message = localRun.message || "Run was blocked by another active sync.";
           } else if (localRun?.status === "failed") {
             status = "failed";
             message = localRun.message || `${job.command} failed in the latest local orchestrator run.`;
@@ -441,6 +593,7 @@ export async function GET() {
           hoursSinceLastRun,
           expectedEveryHours: job.expectedEveryHours,
           criticalAfterHours: job.criticalAfterHours,
+          schedule: scheduleForGroup(job.group),
           source,
           stats: signal.stats,
           message,
@@ -456,6 +609,8 @@ export async function GET() {
         ok: jobs.filter((job) => job.status === "ok").length,
         delayed: jobs.filter((job) => job.status === "delayed").length,
         failed: jobs.filter((job) => job.status === "failed").length,
+        running: jobs.filter((job) => job.status === "running").length,
+        blocked: jobs.filter((job) => job.status === "blocked").length,
         unknown: jobs.filter((job) => job.status === "unknown").length,
         skipped: jobs.filter((job) => job.status === "skipped").length,
       },
@@ -488,6 +643,14 @@ function statusForSignal(signal: JobSignal, hoursSinceLastRun: number | null, jo
   if (hoursSinceLastRun >= job.criticalAfterHours) return "failed";
   if (hoursSinceLastRun >= job.expectedEveryHours) return "delayed";
   return "ok";
+}
+
+function scheduleForGroup(group: JobConfig["group"]) {
+  if (group === "core") return "Daily at 6:00 AM and 4:00 PM PT";
+  if (group === "daily") return "Daily at 8:00 PM PT";
+  if (group === "catalog") return "Daily at 9:30 PM PT";
+  if (group === "monthly") return "Monthly on the 1st at 6:30 AM PT";
+  return "Not scheduled";
 }
 
 async function latestTimestampSignal(table: string, column: string, countLabel: string): Promise<JobSignal> {
@@ -588,6 +751,62 @@ async function latestRevsellerDiagnosticsSignal(): Promise<JobSignal> {
   };
 }
 
+async function inventorySourceBalanceAuditSignal(): Promise<JobSignal> {
+  const filePath = path.resolve(process.cwd(), "..", "logs", "inventory_source_balance_audit_latest.json");
+  try {
+    const [stat, text] = await Promise.all([fs.stat(filePath), fs.readFile(filePath, "utf8")]);
+    const parsed = JSON.parse(text) as Record<string, unknown>;
+    return {
+      lastRunAt: stringValue(parsed.captured_at) || stat.mtime.toISOString(),
+      source: "logs/inventory_source_balance_audit_latest.json",
+      stats: [
+        { label: "ASINs", value: formatCount(parsed.asin_count) },
+        { label: "Missing COGS units", value: formatCount(parsed.missing_cogs_units) },
+      ],
+    };
+  } catch {
+    return {
+      lastRunAt: null,
+      source: "logs/inventory_source_balance_audit_latest.json",
+      stats: [],
+      message: "No inventory source balance audit output found.",
+    };
+  }
+}
+
+async function missingPurchaseTitleSignal(): Promise<JobSignal> {
+  let query = dynamicFrom("purchase_items")
+    .select("*", { count: "exact", head: true })
+    .not("asin", "is", "null")
+    .neq("asin", "N/A")
+    .not("current_status", "in", "(listed,cancelled,return_opened,return_pending)")
+    .eq("exclude_from_purchase_reporting", false)
+    .not("amazon_title", "is", "null");
+
+  const { count: titledCount } = await query;
+
+  query = dynamicFrom("purchase_items")
+    .select("*", { count: "exact", head: true })
+    .not("asin", "is", "null")
+    .neq("asin", "N/A")
+    .not("current_status", "in", "(listed,cancelled,return_opened,return_pending)")
+    .eq("exclude_from_purchase_reporting", false)
+    .is("amazon_title", null);
+
+  const { count, error } = await query;
+  if (error) throw new Error(`purchase_items: ${error.message}`);
+
+  return {
+    lastRunAt: null,
+    source: "purchase_items",
+    stats: [
+      { label: "Missing active titles", value: formatCount(count) },
+      { label: "Active titled ASINs", value: formatCount(titledCount) },
+    ],
+    statusOverride: count && count > 0 ? "delayed" : undefined,
+  };
+}
+
 async function exactCount(table: string, equals: Record<string, string>): Promise<number | null> {
   let query = dynamicFrom(table).select("*", { count: "exact", head: true });
   for (const [column, value] of Object.entries(equals)) {
@@ -684,7 +903,11 @@ function latestFailureForCommand(failures: SchedulerFailure[], command: string) 
 function latestLocalRunForJob(records: LocalRunRecord[], job: JobConfig) {
   return records
     .filter((record) => record.job_name === job.name || record.command.includes(job.command))
-    .sort((a, b) => (Date.parse(b.finished_at || "") || 0) - (Date.parse(a.finished_at || "") || 0))[0];
+    .sort((a, b) => localRunTimestamp(b) - localRunTimestamp(a))[0];
+}
+
+function localRunTimestamp(record: LocalRunRecord) {
+  return Date.parse(record.finished_at || record.started_at || "") || 0;
 }
 
 function isFailureNewerThanSignal(failure: SchedulerFailure, signalAt: string | null) {
@@ -714,7 +937,13 @@ function isLocalRunRecord(value: unknown): value is LocalRunRecord {
   const record = value as Record<string, unknown>;
   return (
     typeof record.command === "string" &&
-    (record.status === "ok" || record.status === "failed" || record.status === "skipped") &&
+    (
+      record.status === "ok" ||
+      record.status === "failed" ||
+      record.status === "skipped" ||
+      record.status === "running" ||
+      record.status === "blocked"
+    ) &&
     (record.finished_at === undefined || record.finished_at === null || typeof record.finished_at === "string")
   );
 }

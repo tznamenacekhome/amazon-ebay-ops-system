@@ -3,12 +3,12 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  Activity,
   AlertTriangle,
   BarChart3,
   PackageCheck,
   ReceiptText,
   Send,
+  Search,
   ShoppingCart,
   TrendingDown,
 } from "lucide-react";
@@ -30,8 +30,13 @@ const navItems = [
     icon: PackageCheck,
   },
   {
+    href: "/sourcing",
+    label: "Sourcing",
+    icon: Search,
+  },
+  {
     href: "/fba",
-    label: "Amazon FBA",
+    label: "Send to Amazon",
     icon: Send,
   },
   {
@@ -48,11 +53,6 @@ const navItems = [
     href: "/inventory-reconciliation",
     label: "Reconciliation",
     icon: AlertTriangle,
-  },
-  {
-    href: "/system-health",
-    label: "System Health",
-    icon: Activity,
   },
 ];
 

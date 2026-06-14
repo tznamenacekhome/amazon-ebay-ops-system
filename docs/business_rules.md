@@ -1,6 +1,6 @@
 # Business Rules
 
-Last updated: 2026-06-02
+Last updated: 2026-06-13
 
 ## Cost And Reporting
 
@@ -30,9 +30,65 @@ Carrier/status syncs must not downgrade workflow-owned statuses.
 
 - Video games are platform-specific.
 - Never auto-match across systems.
+- eBay buyer purchase sync may use eBay Browse item `localizedAspects.Platform`
+  to populate `purchase_items.system` when the Trading API order title does not
+  include a recognizable platform. This is backend enrichment only; it must not
+  override an existing/manual system value.
 - ASIN corrections may propagate only to matching normalized title + system rows and must not overwrite a different existing ASIN.
 - `purchase_items.amazon_title` stores the matched Amazon/RevSeller title separately from the supplier/eBay title.
+- AI-assisted RevSeller matching is allowed only as a same-system, candidate
+  selection review over locally ranked RevSeller rows. It must not invent ASINs
+  or override platform boundaries, and low-confidence responses must remain
+  unmatched for manual review. Scheduled AI review should focus on open
+  purchase-work rows and write an auditable diagnostics row for each AI match.
+- If a row already has a reviewed ASIN but is missing Amazon metadata, MBOP may
+  fill only `purchase_items.amazon_title` and/or `purchase_items.target_price`
+  from manual match memory, RevSeller, Amazon listing snapshots, or stored Keepa
+  catalog snapshots. This must not change ASIN, system, cost, status, or
+  workflow state.
 - ASIN is the primary Amazon product identity for MBOP operational inventory. MSKU remains stored for Amazon traceability and InventoryLab/Informed joins.
+
+## Sourcing
+
+- Sourcing opportunities are advisory and must remain separate from Purchases
+  until an eBay buyer purchase has been imported and matched.
+- Sourcing search and scoring must hard-exclude items outside the configured
+  item-location countries, currently US and Canada.
+- Excluded sourcing keywords, such as Steam, message delivery, DLC, promo, VPN,
+  and disc-only signals, must prevent rows from appearing as open opportunities
+  even when Best Offer or auction math would otherwise look profitable.
+- Sourcing must hard-block eBay results whose meaningful title words have no
+  overlap with the Amazon title after removing platform and generic words. A
+  shared platform alone, such as Nintendo Wii, is not enough to keep an
+  opportunity open.
+- Sourcing must hard-block eBay results when known category evidence shows the
+  listing is not in the Video Games category.
+- eBay sourcing search must include common seller platform abbreviations, such
+  as xb1, ps2, ps3, ps4, ps5, Switch, Wii, Wii U, and wiiu. Wii and Wii U are
+  separate platforms; a Wii seed must not accept a Wii U eBay result.
+- Unknown eBay ZIP shipping estimates may be shown as watch opportunities when
+  otherwise plausible, but MBOP must not calculate profit, ROI, offer, or bid
+  guidance from assumed free shipping.
+- Best Offer guidance subtracts eBay shipping from the landed cap and evaluates
+  the item offer against the eBay asking price before shipping. Best Offer caps
+  use the lower of stored Keepa 90-day price and current Amazon market price.
+- Watch replaces ROI Snoozed in the sourcing operator workflow. A watched row
+  can return to open Replenishment only when normal scoring passes and either
+  the eBay purchase-cost reference falls below the watched baseline or the
+  Amazon sale-price/profitability context raises the profitable landed-cost cap.
+  Best Offer watch baselines use the suggested item offer before shipping.
+- Purchased Pending Match is also used for Best Offers made by the operator. If
+  no matching eBay purchase appears within 72 hours, the sourcing matcher moves
+  the row back to Watchlist.
+- When a sourced opportunity matches an imported eBay purchase, the matcher may
+  write sourced ASIN, Amazon title, and target sell price to the matched
+  `purchase_items` row. The target sell price is the highest available Last
+  Sold, Keepa 90-day, and current Buy Box value.
+- Daily sourcing availability cleanup may dismiss open, Watch, and ROI-snoozed
+  opportunities as `no_longer_available` when eBay Browse shows the listing is
+  ended, sold out, or missing. It must not dismiss Purchased Pending Match rows,
+  because those often become unavailable after the operator buys or offers and
+  must remain available for purchase matching/enrichment.
 
 ## Receiving
 
@@ -43,6 +99,59 @@ Carrier/status syncs must not downgrade workflow-owned statuses.
 - Return Pending is separate from Return Opened.
 - Cancelled items require future refund follow-up.
 
+## Order Problems And Returns
+
+- Order Problems is the unified queue for delivery problem candidates,
+  return-needed items, eBay return/case follow-up, missing-item/replacement
+  follow-up, and cancelled/refund confirmation.
+- `order_problem_cases` owns the persistent workflow case; `order_problem_events`
+  owns the append-only timeline.
+- `Return Pending` means MBOP identified a return need before an eBay return/case
+  necessarily exists.
+- `Return Opened` means an eBay return/case exists or the operator has marked it
+  opened in eBay.
+- Stale tracking candidates use a 14-day order-age threshold for `no_tracking`,
+  `shipped_no_tracking`, and `awaiting_carrier_scan`, with a 90-day lookback.
+  `in_transit` is not stale while carrier ETA is in the future. After an eBay
+  ETA passes, a shipment with a usable tracking number is still suppressed from
+  Order Problems while carrier activity is current.
+- Late-delivery candidates require either no usable tracking number or no
+  carrier activity for more than 4 days. Current EasyPost/carrier activity
+  overrides an expired eBay ETA for candidate detection.
+- Carrier activity showing exception language, including `return_to_sender`,
+  `Returned to Sender`, or similar event text, creates a
+  `carrier_exception_candidate` even when carrier activity is recent.
+- Derived stale/late/carrier candidates should auto-close when the purchase no
+  longer matches a candidate rule.
+- The current eBay returns integration is read-only. MBOP may store eBay return
+  IDs, inquiry IDs, cancellation IDs, statuses, deadlines, escalation dates,
+  refund amounts, action URLs, replacement tracking, and raw payloads, but must
+  not create returns, send messages, accept offers, escalate cases, issue
+  refunds, or upload files.
+- For INR inquiries, eBay search results are not enough. MBOP must read inquiry
+  details to capture seller make-it-right dates and seller-provided replacement
+  tracking. Those dates display as escalation/action availability in the Order
+  Problems Next Action column.
+- For missing-item INR inquiries with seller-provided replacement tracking,
+  carrier/eBay tracking progress should move the case to replacement-shipped
+  follow-up. Delivered replacement tracking should close the case as
+  `resolved_received_item` and return the purchase item to `delivered`, leaving
+  physical verification to the Receiving workflow.
+- `Close` means the problem is resolved with no further refund or inventory
+  consequence. `Close No Refund` means the problem is closed but value was lost
+  or unrecoverable and no refund will be received; it must not move the item
+  back into Received, Listed, or Amazon-bound inventory.
+- Operator actions in the drawer update MBOP workflow state only. The operator
+  performs marketplace actions on ebay.com.
+- Partial refunds where the item is kept must not automatically change item cost
+  until a controlled cost-adjustment workflow exists.
+- The Purchases default list is for open purchase work. It excludes Listed,
+  Cancelled, Return Opened, and Return Pending rows; those rows remain available
+  through explicit status filters, All Status, and the Order Problems workflow.
+- Cancelled/refund-follow-up order-problem actions must preserve
+  `purchase_items.current_status = cancelled` so cancelled rows do not reappear
+  in Purchases Open Purchase Work.
+
 ## Amazon FBA Shipment Prep
 
 - The FBA workflow starts from Received Amazon-bound purchase items.
@@ -50,8 +159,13 @@ Carrier/status syncs must not downgrade workflow-owned statuses.
 - Grouped cost is backend-owned and quantity-weighted.
 - Operator-entered shipment ID links included items to FBA shipment rows.
 - Included quantities move to `listed`; excluded quantities remain `received`.
-- Current non-historical FBA shipment links are valued as `outbound_to_amazon` until Amazon/InventoryLab inventory takes over.
+- Current non-historical FBA shipment links are valued as `outbound_to_amazon` only for remaining units Amazon has not yet received or made available.
+- Amazon FBA shipment sync stores Amazon inbound status, fulfillment center, carrier ETA when available, received quantity, FBA available quantity, and remaining outbound value on shipment workflow rows.
 - The historical marker `legacy_listed_no_shipment_id` must not create outbound-to-Amazon value.
+- Explicitly `listed` legacy purchase-item lots with ASIN, quantity, and cost
+  may participate in Amazon sales FIFO COGS allocation even when the original
+  supplier was not stored as eBay. This is for old resale inventory sources that
+  should not re-enter receiving or open purchase work.
 
 ## Inventory And Valuation
 
@@ -66,10 +180,20 @@ Carrier/status syncs must not downgrade workflow-owned statuses.
   sold units plus active inventory, opening-history boundary units, and explicit
   adjustments. It is a control process for close/tax confidence, not a scheduled
   external-data freshness sync.
-- Business value snapshots use MBOP outbound shipment cost for saved FBA shipments and avoid double-counting overlapping Amazon inbound rows for the same ASINs.
+- Business value snapshots use MBOP outbound shipment cost only for shipment quantities still unresolved by Amazon receiving/availability data, and avoid double-counting Amazon-received shipment value.
+- InventoryLab valuation files are audit-only and must not overwrite MBOP inventory, costs, shipment rows, or purchase items.
 - YNAB Business category balance is cash-on-hand context only.
 - Amazon Finance cash is value that has moved from inventory into Amazon-held cash or Amazon-to-bank in-transit cash.
+- Amazon-to-bank in-transit cash includes transfers Amazon still marks
+  `Processing` plus completed/succeeded payout groups that do not yet have a
+  matching YNAB Business deposit transaction. This prevents business value from
+  dropping during the gap after Amazon completes a payout but before the YNAB
+  bank/cash transaction is present, without double-counting deposits that YNAB
+  already captured.
 - Business value snapshots are reporting snapshots only.
+- Business value snapshot dates and MBOP dashboard date-only displays are
+  Pacific Time business dates. Date-only strings must not be parsed as UTC
+  timestamps for display.
 - Dashboard cash/value freshness is limited by the oldest required cash/value
   input: business value snapshot, Amazon Finance balance snapshot, or YNAB cash
   snapshot.
@@ -82,6 +206,10 @@ Carrier/status syncs must not downgrade workflow-owned statuses.
 - Amazon receiving shortages, lost units, warehouse damage, and customer returns
   that do not come back to the business belong in a future Amazon Inventory
   Discrepancy workflow.
+- Seller Central Account Health and Feedback Manager values are Amazon
+  channel-risk signals, not MBOP technical health. Account-health score and
+  lifetime feedback rating are manual dashboard snapshots. SP-API
+  `GET_SELLER_FEEDBACK_DATA` rows are used only as 1-3 star feedback alerts.
 
 ## Repricing Advisor
 

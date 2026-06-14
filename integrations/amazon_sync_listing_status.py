@@ -14,7 +14,7 @@ import argparse
 import logging
 import os
 import time
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from typing import Any
 
 from dotenv import load_dotenv
@@ -50,7 +50,14 @@ def main() -> int:
         supabase = get_supabase_client()
         marketplace_id = client.config.marketplace_id
         captured_at = utc_now_iso()
-        sku_rows = fetch_amazon_skus(supabase, marketplace_id, active_only=args.active_only)
+        sku_rows = fetch_amazon_skus(
+            supabase,
+            marketplace_id,
+            active_only=args.active_only,
+            stale_days=args.stale_days,
+            seller_sku=args.seller_sku,
+            asin=args.asin,
+        )
 
         if args.limit is not None:
             sku_rows = sku_rows[: args.limit]
@@ -138,10 +145,26 @@ def parse_args() -> argparse.Namespace:
         help="Only sync SKUs with positive current FBA inventory snapshot quantity.",
     )
     parser.add_argument(
+        "--stale-days",
+        type=int,
+        default=None,
+        help="Only sync SKUs whose last real Listings API sync is missing or older than this many days.",
+    )
+    parser.add_argument(
         "--request-delay-seconds",
         type=float,
         default=0.25,
         help="Delay between Listings Items calls. Default stays near 4 requests/sec.",
+    )
+    parser.add_argument(
+        "--seller-sku",
+        default=None,
+        help="Optional seller SKU to sync directly, regardless of active inventory quantity.",
+    )
+    parser.add_argument(
+        "--asin",
+        default=None,
+        help="Optional ASIN to sync directly, regardless of active inventory quantity.",
     )
     return parser.parse_args()
 
@@ -162,14 +185,32 @@ def fetch_amazon_skus(
     supabase,
     marketplace_id: str,
     active_only: bool,
+    stale_days: int | None,
+    seller_sku: str | None = None,
+    asin: str | None = None,
 ) -> list[dict[str, Any]]:
+    seller_sku = clean_text(seller_sku)
+    asin = clean_text(asin)
+    if seller_sku or asin:
+        query = (
+            supabase.table("amazon_skus")
+            .select("amazon_sku_id,seller_sku,marketplace_id,asin,fnsku,product_name,condition,last_listing_sync_at")
+            .eq("marketplace_id", marketplace_id)
+        )
+        if seller_sku:
+            query = query.eq("seller_sku", seller_sku)
+        if asin:
+            query = query.eq("asin", asin)
+        response = query.execute()
+        return filter_stale_skus(response.data or [], stale_days)
+
     if not active_only:
-        return fetch_all(
+        return filter_stale_skus(fetch_all(
             supabase,
             "amazon_skus",
-            "amazon_sku_id,seller_sku,marketplace_id,asin,fnsku,product_name,condition",
+            "amazon_sku_id,seller_sku,marketplace_id,asin,fnsku,product_name,condition,last_listing_sync_at",
             marketplace_id=marketplace_id,
-        )
+        ), stale_days)
 
     snapshots = fetch_all(
         supabase,
@@ -191,13 +232,35 @@ def fetch_amazon_skus(
     for chunk in chunks(sorted(active_skus), 100):
         response = (
             supabase.table("amazon_skus")
-            .select("amazon_sku_id,seller_sku,marketplace_id,asin,fnsku,product_name,condition")
+            .select("amazon_sku_id,seller_sku,marketplace_id,asin,fnsku,product_name,condition,last_listing_sync_at")
             .eq("marketplace_id", marketplace_id)
             .in_("seller_sku", chunk)
             .execute()
         )
         rows.extend(response.data or [])
-    return rows
+    return filter_stale_skus(rows, stale_days)
+
+
+def filter_stale_skus(rows: list[dict[str, Any]], stale_days: int | None) -> list[dict[str, Any]]:
+    if stale_days is None:
+        return rows
+
+    cutoff = datetime.now(timezone.utc) - timedelta(days=max(stale_days, 0))
+    filtered = []
+    for row in rows:
+        synced_at = parse_datetime(row.get("last_listing_sync_at"))
+        if synced_at is None or synced_at < cutoff:
+            filtered.append(row)
+    return filtered
+
+
+def parse_datetime(value: Any) -> datetime | None:
+    if not value:
+        return None
+    try:
+        return datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+    except ValueError:
+        return None
 
 
 def fetch_all(

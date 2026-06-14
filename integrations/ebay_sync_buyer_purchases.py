@@ -2,6 +2,7 @@ import os
 import base64
 import requests
 import xml.etree.ElementTree as ET
+import argparse
 from decimal import Decimal, ROUND_HALF_UP
 from datetime import datetime, timezone, timedelta
 from zoneinfo import ZoneInfo
@@ -14,12 +15,14 @@ except ImportError:
     from integrations.system_detection import detect_system_from_title, normalize_system
 
 try:
-    from status_logic import derive_purchase_item_status
+    from status_logic import derive_purchase_item_status, has_usable_tracking_number
 except ImportError:
-    from integrations.status_logic import derive_purchase_item_status
+    from integrations.status_logic import derive_purchase_item_status, has_usable_tracking_number
 
 
-DAYS_BACK = 90
+DEFAULT_DAYS_BACK = 7
+DEFAULT_MISSING_TRACKING_LOOKBACK_DAYS = 90
+DEFAULT_MISSING_TRACKING_LIMIT = 250
 LOCAL_TIMEZONE = "America/Los_Angeles"
 SKIP_EXISTING_ORDERS_WITH_TRACKING = True
 WORKFLOW_LOCKED_STATUSES = {
@@ -42,8 +45,10 @@ supabase = create_client(
 )
 
 TRADING_ENDPOINT = "https://api.ebay.com/ws/api.dll"
+BUY_BROWSE_LEGACY_ITEM_ENDPOINT = "https://api.ebay.com/buy/browse/v1/item/get_item_by_legacy_id"
 COMPATIBILITY_LEVEL = "1423"
 SITE_ID = "0"
+ITEM_ASPECT_CACHE = {}
 
 
 def iso(dt):
@@ -164,7 +169,72 @@ def get_access_token():
     return response.json()["access_token"]
 
 
-def get_buyer_orders(access_token, days_back=DAYS_BACK):
+def get_browse_item_details(access_token, legacy_item_id):
+    item_id = str(legacy_item_id or "").strip()
+    if not item_id:
+        return {}
+
+    if item_id in ITEM_ASPECT_CACHE:
+        return ITEM_ASPECT_CACHE[item_id]
+
+    try:
+        response = requests.get(
+            BUY_BROWSE_LEGACY_ITEM_ENDPOINT,
+            headers={
+                "Authorization": f"Bearer {access_token}",
+                "X-EBAY-C-MARKETPLACE-ID": "EBAY_US",
+            },
+            params={"legacy_item_id": item_id},
+            timeout=30,
+        )
+        if not response.ok:
+            print(f"eBay Browse item detail skipped for {item_id}: HTTP {response.status_code}")
+            ITEM_ASPECT_CACHE[item_id] = {}
+            return {}
+        detail = response.json()
+    except requests.RequestException as exc:
+        print(f"eBay Browse item detail skipped for {item_id}: {exc}")
+        detail = {}
+
+    ITEM_ASPECT_CACHE[item_id] = detail
+    return detail
+
+
+def system_from_browse_item_details(detail):
+    for aspect in detail.get("localizedAspects") or []:
+        name = str(aspect.get("name") or "").strip().casefold()
+        if name != "platform":
+            continue
+        system = normalize_system(aspect.get("value"))
+        if system:
+            return system
+    return None
+
+
+def parse_args():
+    parser = argparse.ArgumentParser(description="Sync eBay buyer purchases into MBOP.")
+    parser.add_argument(
+        "--days-back",
+        type=int,
+        default=DEFAULT_DAYS_BACK,
+        help="Create-time window for new/recent eBay buyer orders.",
+    )
+    parser.add_argument(
+        "--missing-tracking-lookback-days",
+        type=int,
+        default=DEFAULT_MISSING_TRACKING_LOOKBACK_DAYS,
+        help="Local order-date window for existing orders that still need tracking refresh.",
+    )
+    parser.add_argument(
+        "--missing-tracking-limit",
+        type=int,
+        default=DEFAULT_MISSING_TRACKING_LIMIT,
+        help="Maximum existing no-tracking order IDs to refresh by eBay order id.",
+    )
+    return parser.parse_args()
+
+
+def get_buyer_orders(access_token, days_back=DEFAULT_DAYS_BACK):
     end = datetime.now(timezone.utc)
     start = end - timedelta(days=days_back)
 
@@ -248,6 +318,71 @@ def get_buyer_orders(access_token, days_back=DAYS_BACK):
     return all_orders
 
 
+def get_buyer_orders_by_order_ids(access_token, order_ids):
+    cleaned_order_ids = [str(order_id).strip() for order_id in order_ids if str(order_id or "").strip()]
+    if not cleaned_order_ids:
+        return []
+
+    headers = {
+        "Content-Type": "text/xml",
+        "X-EBAY-API-CALL-NAME": "GetOrders",
+        "X-EBAY-API-COMPATIBILITY-LEVEL": COMPATIBILITY_LEVEL,
+        "X-EBAY-API-SITEID": SITE_ID,
+        "X-EBAY-API-IAF-TOKEN": access_token,
+    }
+
+    all_orders = []
+    for chunk_start in range(0, len(cleaned_order_ids), 20):
+        chunk = cleaned_order_ids[chunk_start:chunk_start + 20]
+        order_id_xml = "\n".join(f"    <OrderID>{order_id}</OrderID>" for order_id in chunk)
+        print(f"Fetching eBay no-tracking order IDs {chunk_start + 1}-{chunk_start + len(chunk)}...")
+
+        xml_body = f"""<?xml version="1.0" encoding="utf-8"?>
+<GetOrdersRequest xmlns="urn:ebay:apis:eBLBaseComponents">
+  <RequesterCredentials>
+    <eBayAuthToken>{access_token}</eBayAuthToken>
+  </RequesterCredentials>
+  <OrderIDArray>
+{order_id_xml}
+  </OrderIDArray>
+  <OrderRole>Buyer</OrderRole>
+  <OrderStatus>All</OrderStatus>
+  <DetailLevel>ReturnAll</DetailLevel>
+</GetOrdersRequest>"""
+
+        response = requests.post(
+            TRADING_ENDPOINT,
+            headers=headers,
+            data=xml_body,
+            timeout=120,
+        )
+        response.raise_for_status()
+        root = ET.fromstring(response.text)
+
+        ack = None
+        for elem in root.iter():
+            if strip_namespace(elem.tag) == "Ack":
+                ack = elem.text
+                break
+
+        if ack not in ["Success", "Warning"]:
+            print("Trading API Ack:", ack)
+            for elem in root.iter():
+                if strip_namespace(elem.tag) == "LongMessage":
+                    print("Error:", elem.text)
+            continue
+
+        page_orders = [
+            elem
+            for elem in root.iter()
+            if strip_namespace(elem.tag) == "Order"
+        ]
+        all_orders.extend(page_orders)
+
+    print(f"No-tracking orders retrieved by ID: {len(all_orders)}")
+    return all_orders
+
+
 def get_existing_purchase(order_id):
     result = (
         supabase.table("purchases")
@@ -266,26 +401,62 @@ def get_existing_purchase(order_id):
 def purchase_has_tracking(purchase_id):
     shipment_result = (
         supabase.table("inbound_shipments")
-        .select("inbound_shipment_id")
+        .select("inbound_shipment_id,tracking_number")
         .eq("purchase_id", purchase_id)
-        .not_.is_("tracking_number", "null")
-        .limit(1)
+        .limit(20)
         .execute()
     )
 
-    if shipment_result.data:
+    if any(has_usable_tracking_number(row.get("tracking_number")) for row in shipment_result.data or []):
         return True
 
     item_result = (
         supabase.table("purchase_items")
-        .select("item_id")
+        .select("item_id,tracking_number")
         .eq("purchase_id", purchase_id)
-        .not_.is_("tracking_number", "null")
-        .limit(1)
+        .limit(50)
         .execute()
     )
 
-    return bool(item_result.data)
+    return any(has_usable_tracking_number(row.get("tracking_number")) for row in item_result.data or [])
+
+
+def fetch_no_tracking_order_ids(days_back, limit):
+    cutoff = (
+        datetime.now(ZoneInfo(LOCAL_TIMEZONE)) - timedelta(days=max(days_back, 1))
+    ).date().isoformat()
+
+    result = (
+        supabase.table("purchases")
+        .select("purchase_id,supplier_order_id,order_date,purchase_items(item_id,tracking_number,current_status)")
+        .eq("supplier", "eBay")
+        .gte("order_date", cutoff)
+        .order("order_date", desc=True)
+        .limit(max(limit, 1))
+        .execute()
+    )
+
+    order_ids = []
+    for purchase in result.data or []:
+        supplier_order_id = str(purchase.get("supplier_order_id") or "").strip()
+        if not supplier_order_id:
+            continue
+
+        items = purchase.get("purchase_items") or []
+        active_items = [
+            item for item in items
+            if (item.get("current_status") or "").strip().lower()
+            not in WORKFLOW_LOCKED_STATUSES
+        ]
+        if not active_items:
+            continue
+
+        if any(has_usable_tracking_number(item.get("tracking_number")) for item in active_items):
+            continue
+
+        order_ids.append(supplier_order_id)
+
+    return order_ids
 
 
 def get_existing_purchase_items(purchase_id):
@@ -305,12 +476,12 @@ def get_existing_purchase_items(purchase_id):
     return result.data or []
 
 
-def create_import_batch():
+def create_import_batch(days_back):
     result = (
         supabase.table("import_batches")
         .insert({
             "source_name": "eBay Trading API Buyer Purchase Sync",
-            "notes": f"Buyer purchase import/update for last {DAYS_BACK} days",
+            "notes": f"Buyer purchase import/update for last {days_back} days plus no-tracking refresh",
         })
         .execute()
     )
@@ -708,6 +879,7 @@ def build_item_payload(
     tracking,
     dates,
     import_batch_id,
+    access_token,
     existing_item=None,
     calculated_unit_cost=None,
     seller_shipped=False,
@@ -731,6 +903,11 @@ def build_item_payload(
     )
     existing_system = normalize_system(existing_item.get("system")) if existing_item else None
     detected_system = detect_system_from_title(ebay_title)
+    browse_system = None
+    if not existing_system and not detected_system:
+        browse_system = system_from_browse_item_details(
+            get_browse_item_details(access_token, transaction_item_id(transaction))
+        )
     existing_status = (
         (existing_item.get("current_status") or "").strip().lower()
         if existing_item
@@ -742,7 +919,7 @@ def build_item_payload(
         "asin": existing_item.get("asin") if existing_item else None,
         "supplier_sku": transaction_line_id(transaction),
         "title": title,
-        "system": existing_system or detected_system,
+        "system": existing_system or detected_system or browse_system,
         "quantity": quantity,
         "unit_cost": unit_cost,
         "target_price": existing_item.get("target_price") if existing_item else None,
@@ -794,6 +971,7 @@ def upsert_purchase_item(
     tracking,
     dates,
     import_batch_id,
+    access_token,
     existing_items,
     used_item_ids,
     calculated_unit_cost=None,
@@ -811,6 +989,7 @@ def upsert_purchase_item(
         tracking=tracking,
         dates=dates,
         import_batch_id=import_batch_id,
+        access_token=access_token,
         existing_item=matched_item,
         calculated_unit_cost=calculated_unit_cost,
         seller_shipped=seller_shipped,
@@ -919,7 +1098,7 @@ def build_unknown_item_payload(
     }
 
 
-def upsert_purchase(order, import_batch_id):
+def upsert_purchase(order, import_batch_id, access_token):
     order_id = child_text(order, "OrderID")
 
     if not order_id:
@@ -1022,6 +1201,7 @@ def upsert_purchase(order, import_batch_id):
             tracking=tracking,
             dates=dates,
             import_batch_id=import_batch_id,
+            access_token=access_token,
             existing_items=existing_items,
             used_item_ids=used_item_ids,
             calculated_unit_cost=calculated_unit_costs[index],
@@ -1038,15 +1218,36 @@ def upsert_purchase(order, import_batch_id):
 
 
 def main():
+    args = parse_args()
     print("Starting eBay buyer purchase sync...")
+    print(f"Recent order lookback days: {args.days_back}")
+    print(f"No-tracking refresh lookback days: {args.missing_tracking_lookback_days}")
     print(f"SKIP_EXISTING_ORDERS_WITH_TRACKING: {SKIP_EXISTING_ORDERS_WITH_TRACKING}")
 
     access_token = get_access_token()
-    orders = get_buyer_orders(access_token)
+    recent_orders = get_buyer_orders(access_token, days_back=args.days_back)
+    no_tracking_order_ids = fetch_no_tracking_order_ids(
+        days_back=args.missing_tracking_lookback_days,
+        limit=args.missing_tracking_limit,
+    )
+    recent_order_ids = {
+        child_text(order, "OrderID")
+        for order in recent_orders
+        if child_text(order, "OrderID")
+    }
+    no_tracking_order_ids = [
+        order_id
+        for order_id in no_tracking_order_ids
+        if order_id not in recent_order_ids
+    ]
+    no_tracking_orders = get_buyer_orders_by_order_ids(access_token, no_tracking_order_ids)
+    orders = recent_orders + no_tracking_orders
 
     print(f"Buyer orders retrieved: {len(orders)}")
+    print(f"Recent orders retrieved: {len(recent_orders)}")
+    print(f"No-tracking order IDs checked: {len(no_tracking_order_ids)}")
 
-    import_batch_id = create_import_batch()
+    import_batch_id = create_import_batch(args.days_back)
 
     inserted = 0
     updated = 0
@@ -1055,7 +1256,7 @@ def main():
     skipped_other = 0
 
     for index, order in enumerate(orders, start=1):
-        result = upsert_purchase(order, import_batch_id)
+        result = upsert_purchase(order, import_batch_id, access_token)
 
         if result == "inserted":
             inserted += 1

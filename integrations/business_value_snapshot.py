@@ -12,11 +12,13 @@ import datetime as dt
 import logging
 import os
 from typing import Any
+from zoneinfo import ZoneInfo
 
 from dotenv import load_dotenv
 from supabase import create_client
 
 LOGGER = logging.getLogger("business_value_snapshot")
+BUSINESS_TIME_ZONE = ZoneInfo("America/Los_Angeles")
 
 AMAZON_FBA_STATES = [
     "amazon_fba_sellable",
@@ -76,7 +78,7 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--snapshot-date",
-        default=dt.date.today().isoformat(),
+        default=dt.datetime.now(BUSINESS_TIME_ZONE).date().isoformat(),
         help="Snapshot date in YYYY-MM-DD format. Defaults to today.",
     )
     parser.add_argument(
@@ -110,7 +112,7 @@ def build_snapshot(supabase, snapshot_date: str) -> dict[str, Any]:
     finance = fetch_latest_row(supabase, "vw_latest_amazon_finance_balance_snapshot")
     ynab = fetch_latest_business_ynab_row(supabase)
 
-    amazon_at_fba_value = inventorylab_value or sum_states(cost_by_state, AMAZON_FBA_STATES)
+    amazon_at_fba_value = sum_states(cost_by_state, AMAZON_FBA_STATES)
     amazon_outbound_value = calculate_amazon_outbound_value(position_rows)
     amazon_inventory_value = amazon_at_fba_value + amazon_outbound_value
     pre_amazon_inventory_value = sum_states(cost_by_state, PRE_AMAZON_STATES)
@@ -126,11 +128,16 @@ def build_snapshot(supabase, snapshot_date: str) -> dict[str, Any]:
     )
 
     rollup = {
-        "inventorylab_valuation_used": inventorylab_value is not None,
+        "amazon_at_fba_source": "inventory_positions",
+        "inventorylab_valuation_reference_value": inventorylab_value,
         "amazon_at_fba_value": round(amazon_at_fba_value, 2),
         "amazon_outbound_value": round(amazon_outbound_value, 2),
         "amazon_finance_snapshot_id": (finance or {}).get(
             "amazon_finance_balance_snapshot_id"
+        ),
+        "amazon_finance_in_transit_breakdown": (
+            ((finance or {}).get("raw_financial_event_groups_json") or {})
+            .get("inTransitBreakdown")
         ),
         "ynab_category_balance_snapshot_id": (ynab or {}).get(
             "ynab_category_balance_snapshot_id"

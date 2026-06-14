@@ -1,4 +1,5 @@
-import { Plus, RotateCcw, Save, X } from "lucide-react";
+import { ExternalLink, Plus, RotateCcw, Save, X } from "lucide-react";
+import { useState } from "react";
 
 import { SYSTEM_OPTIONS } from "./systemOptions";
 import type { PurchaseRow } from "./types";
@@ -29,6 +30,7 @@ type PurchaseDetailDrawerProps = {
   onSystemChange: (value: string) => void;
   onAddSplitItem: () => void;
   onMarkReturnPending: () => void;
+  onProblemAction?: (action: string, payload?: { notes?: string; amount?: number | null; tracking_number?: string | null; problem_type?: string | null }) => void;
   onSave: () => void;
   onClose: () => void;
 };
@@ -50,13 +52,30 @@ export function PurchaseDetailDrawer({
   onSystemChange,
   onAddSplitItem,
   onMarkReturnPending,
+  onProblemAction,
   onSave,
   onClose,
 }: PurchaseDetailDrawerProps) {
+  const [problemNotes, setProblemNotes] = useState("");
+  const [problemAmount, setProblemAmount] = useState("");
+  const [problemTracking, setProblemTracking] = useState("");
   const operationalStatus = getOperationalStatus(row);
   const displayAmazonTitle = row.asin ? drawerAmazonTitle || row.amazon_title || "--" : "--";
   const isSaving = savingKey === rowKey(row);
   const isReturnPending = operationalStatus.value === "return_pending";
+  const hasProblemCase = Boolean(row.problem_case_id);
+
+  function runProblemAction(action: string) {
+    const amount = problemAmount.trim() === "" ? null : Number(problemAmount);
+    onProblemAction?.(action, {
+      notes: problemNotes,
+      amount: Number.isFinite(amount) ? amount : null,
+      tracking_number: problemTracking,
+    });
+    setProblemNotes("");
+    setProblemAmount("");
+    setProblemTracking("");
+  }
 
   return (
     <div className="fixed inset-0 z-40">
@@ -103,6 +122,160 @@ export function PurchaseDetailDrawer({
               </>
             )}
           </section>
+
+          {hasProblemCase && (
+            <section className="rounded-xl border border-amber-200 bg-amber-50/50 p-4">
+              <div className="mb-3">
+                <div className="text-xs uppercase tracking-wide text-amber-700">
+                  Order Problem Workflow
+                </div>
+                <div className="mt-1 text-sm text-slate-700">
+                  {workflowStateLabel(row.workflow_state)} / {problemTypeLabel(row.problem_type)}
+                </div>
+                {row.problem_next_action && (
+                  <div className="mt-1 text-sm font-medium text-slate-900">
+                    {row.problem_next_action}
+                  </div>
+                )}
+                {row.ebay_action_url && (
+                  <a
+                    href={row.ebay_action_url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="mt-2 inline-flex items-center gap-1 text-sm font-medium text-blue-700 hover:underline"
+                  >
+                    <ExternalLink className="h-4 w-4" />
+                    Open eBay action
+                  </a>
+                )}
+              </div>
+
+              <div className="mb-3 grid gap-2">
+                <label className="grid gap-1 text-xs font-medium uppercase tracking-wide text-amber-700">
+                  Return Type
+                  <select
+                    value={row.problem_type || ""}
+                    onChange={(event) =>
+                      onProblemAction?.("update_problem_type", {
+                        problem_type: event.target.value,
+                      })
+                    }
+                    className="rounded-lg border border-amber-200 bg-white px-3 py-2 text-sm font-normal normal-case tracking-normal text-slate-900"
+                  >
+                    {PROBLEM_TYPE_OPTIONS.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+
+                <div className="grid grid-cols-2 gap-2 text-sm">
+                  <Detail label="eBay Status" value={row.ebay_return_status || row.ebay_return_state || ""} />
+                  <Detail label="eBay Type" value={titleCase(row.ebay_current_type || "")} />
+                  <Detail label="Expected Refund" value={formatMoney(row.expected_refund_amount)} />
+                  <Detail label="Refund Received" value={formatMoney(row.actual_refund_amount)} />
+                  <Detail label="Partial Refund" value={formatMoney(row.partial_refund_amount)} />
+                  <Detail label="Currency" value={row.refund_currency || ""} />
+                  <Detail label="Replacement Carrier" value={row.problem_replacement_carrier || ""} />
+                  <Detail label="Replacement Status" value={titleCase(row.problem_replacement_carrier_status || "")} />
+                </div>
+
+                <div className="grid grid-cols-2 gap-2 text-sm">
+                  {problemDateDetails(row).map((detail) => (
+                    <Detail key={detail.label} label={detail.label} value={formatDate(detail.value)} />
+                  ))}
+                </div>
+
+                <div className="grid gap-1 text-xs text-slate-600">
+                  <Identifier label="Return ID" value={row.ebay_return_id} />
+                  <Identifier label="Inquiry ID" value={row.ebay_inquiry_id} />
+                  <Identifier label="Case ID" value={row.ebay_case_id} />
+                </div>
+              </div>
+
+              <div className="grid gap-2">
+                <textarea
+                  value={problemNotes}
+                  onChange={(event) => setProblemNotes(event.target.value)}
+                  className="min-h-16 rounded-lg border border-amber-200 bg-white px-3 py-2 text-sm"
+                  placeholder="Optional workflow note"
+                />
+                <div className="grid grid-cols-2 gap-2">
+                  <CurrencyInput value={problemAmount} onChange={setProblemAmount} />
+                  <input
+                    value={problemTracking}
+                    onChange={(event) => setProblemTracking(event.target.value)}
+                    className="rounded-lg border border-amber-200 bg-white px-3 py-2 text-sm"
+                    placeholder="Return/replacement tracking"
+                  />
+                </div>
+              </div>
+
+              <div className="mt-3 grid grid-cols-2 gap-2">
+                <WorkflowButton label="Return Needed" onClick={() => runProblemAction("mark_return_needed")} />
+                <WorkflowButton label="Return Opened" onClick={() => runProblemAction("mark_return_opened")} />
+                <WorkflowButton label="Seller Messaged" onClick={() => runProblemAction("mark_seller_messaged")} />
+                <WorkflowButton label="I Responded" onClick={() => runProblemAction("mark_operator_responded")} />
+                <WorkflowButton label="Partial Offered" onClick={() => runProblemAction("mark_partial_refund_offered")} />
+                <WorkflowButton label="Partial Accepted" onClick={() => runProblemAction("mark_partial_refund_accepted")} />
+                <WorkflowButton label="Label Available" onClick={() => runProblemAction("mark_label_available")} />
+                <WorkflowButton label="Return Shipped" onClick={() => runProblemAction("mark_return_shipped")} />
+                <WorkflowButton label="Seller Received" onClick={() => runProblemAction("mark_seller_received_return")} />
+                <WorkflowButton label="Refund Pending" onClick={() => runProblemAction("mark_refund_pending")} />
+                <WorkflowButton label="Refund Received" onClick={() => runProblemAction("mark_refund_received")} />
+                <WorkflowButton label="Missing Pending" onClick={() => runProblemAction("mark_missing_item_pending")} />
+                <WorkflowButton label="Replacement Shipped" onClick={() => runProblemAction("mark_replacement_shipped")} />
+                <WorkflowButton label="Missing Received" onClick={() => runProblemAction("mark_missing_item_received")} />
+                <WorkflowButton label="Escalation Available" onClick={() => runProblemAction("mark_escalation_available")} />
+                <WorkflowButton label="Escalated" onClick={() => runProblemAction("mark_escalated")} />
+                <WorkflowButton label="Close No Refund" onClick={() => runProblemAction("close_no_refund")} />
+                <WorkflowButton label="Close" onClick={() => runProblemAction("close_resolve")} />
+              </div>
+
+              {row.problem_notes && (
+                <div className="mt-3 whitespace-pre-wrap rounded-lg bg-white p-3 text-sm text-slate-700">
+                  {row.problem_notes}
+                </div>
+              )}
+
+              <div className="mt-4">
+                <div className="text-xs uppercase tracking-wide text-amber-700">
+                  Timeline
+                </div>
+                <div className="mt-2 space-y-2">
+                  {(row.problem_events ?? []).length > 0 ? (
+                    (row.problem_events ?? []).map((event, index) => (
+                      <div
+                        key={event.problem_event_id || `${event.event_at}-${index}`}
+                        className="rounded-lg bg-white p-3 text-sm"
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="font-medium text-slate-800">
+                            {event.message || titleCase(event.event_type || "Event")}
+                          </div>
+                          <div className="shrink-0 text-xs text-slate-500">
+                            {formatDateTime(event.event_at || event.created_at)}
+                          </div>
+                        </div>
+                        <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-xs text-slate-500">
+                          {event.event_source && <span>{titleCase(event.event_source)}</span>}
+                          {event.amount !== null && event.amount !== undefined && (
+                            <span>{formatMoney(event.amount)}</span>
+                          )}
+                          {event.tracking_number && <span>{event.tracking_number}</span>}
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="rounded-lg bg-white p-3 text-sm text-slate-500">
+                      No timeline events captured yet.
+                    </div>
+                  )}
+                </div>
+              </div>
+            </section>
+          )}
 
           <section className="rounded-xl border border-slate-200 p-4">
             <div className="grid gap-3">
@@ -229,6 +402,35 @@ export function PurchaseDetailDrawer({
   );
 }
 
+const PROBLEM_TYPE_OPTIONS = [
+  { value: "not_as_listed", label: "Wrong Item / Not as Listed" },
+  { value: "buyer_choice", label: "Changed Plan / Return Anyway" },
+  { value: "missing_items", label: "Missing Item / Incomplete Order" },
+  { value: "cancelled_refund_followup", label: "Cancelled / Refund Follow-Up" },
+  { value: "return_needed", label: "Return Needed" },
+  { value: "late_delivery_candidate", label: "Late Delivery Candidate" },
+  { value: "carrier_exception_candidate", label: "Carrier Exception Candidate" },
+  { value: "stale_tracking_candidate", label: "Stale Tracking Candidate" },
+] as const;
+
+function WorkflowButton({
+  label,
+  onClick,
+}: {
+  label: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="rounded-lg border border-amber-300 bg-white px-2 py-2 text-xs font-medium text-slate-700 hover:bg-amber-100"
+    >
+      {label}
+    </button>
+  );
+}
+
 function CurrencyInput({
   value,
   onChange,
@@ -268,4 +470,79 @@ function Detail({
       <div className="mt-1 font-medium text-slate-800">{value || "--"}</div>
     </div>
   );
+}
+
+function Identifier({ label, value }: { label: string; value?: string | null }) {
+  if (!value) return null;
+  return (
+    <div className="break-all">
+      <span className="font-medium text-slate-700">{label}: </span>
+      {value}
+    </div>
+  );
+}
+
+function problemDateDetails(row: PurchaseRow) {
+  return [
+    { label: "First Detected", value: row.problem_first_detected_at },
+    { label: "Last Detected", value: row.problem_last_detected_at },
+    { label: "Return Needed", value: row.problem_return_needed_at },
+    { label: "Return Opened", value: row.problem_ebay_return_opened_at },
+    { label: "Seller Message", value: row.problem_seller_message_last_at },
+    { label: "I Responded", value: row.problem_operator_responded_at },
+    { label: "Partial Offered", value: row.problem_partial_refund_offered_at },
+    { label: "Partial Accepted", value: row.problem_partial_refund_accepted_at },
+    { label: "Label Available", value: row.problem_label_available_at },
+    { label: "Return Shipped", value: row.problem_return_shipped_at },
+    { label: "Seller Received", value: row.problem_seller_received_return_at },
+    { label: "Refund Due", value: row.problem_refund_due_at },
+    { label: "Refund Received", value: row.problem_refund_received_at },
+    { label: "Replacement Promised", value: row.problem_replacement_promised_at },
+    { label: "Replacement Shipped", value: row.problem_replacement_shipped_at },
+    { label: "Replacement ETA", value: row.problem_replacement_estimated_delivery_date },
+    { label: "Replacement Delivered", value: row.problem_replacement_delivered_date },
+    { label: "Carrier Sync", value: row.problem_replacement_last_tracking_sync },
+    { label: "Missing Received", value: row.problem_replacement_received_at },
+    { label: "Escalation Available", value: row.problem_escalation_available_at },
+    { label: "Escalated", value: row.problem_escalated_at },
+    { label: "Closed", value: row.problem_closed_at },
+  ].filter((detail) => detail.value);
+}
+
+function formatDateTime(value?: string | null) {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return formatDate(value);
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  const year = String(date.getFullYear()).slice(2);
+  const hours = String(date.getHours()).padStart(2, "0");
+  const minutes = String(date.getMinutes()).padStart(2, "0");
+  return `${month}/${day}/${year} ${hours}:${minutes}`;
+}
+
+function workflowStateLabel(value?: string | null) {
+  return titleCase(value || "unknown");
+}
+
+function problemTypeLabel(value?: string | null) {
+  const labels: Record<string, string> = {
+    late_delivery_candidate: "Late Delivery Candidate",
+    stale_tracking_candidate: "Stale Tracking Candidate",
+    carrier_exception_candidate: "Carrier Exception Candidate",
+    return_needed: "Return Needed",
+    not_as_listed: "Wrong Item / Not as Listed",
+    buyer_choice: "Changed Plan / Return Anyway",
+    missing_items: "Missing Item / Incomplete Order",
+    cancelled_refund_followup: "Cancelled / Refund Follow-Up",
+  };
+  return labels[value || ""] || titleCase(value || "Unknown");
+}
+
+function titleCase(value: string) {
+  return value
+    .split("_")
+    .filter(Boolean)
+    .map((part) => `${part.charAt(0).toUpperCase()}${part.slice(1)}`)
+    .join(" ");
 }

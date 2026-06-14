@@ -48,7 +48,7 @@ Purchases and Receiving are separate workflows, but operators need fast switchin
 
 Implementation:
 - `web/app/AppShell.tsx`
-- current entries are Dashboard, Purchases, Receiving, Amazon FBA, Repricing, and Reconciliation
+- current entries are Dashboard, Purchases, Receiving, Send to Amazon, Repricing, Sales Orders, Sourcing, and Reconciliation
 - active mode is highlighted
 - the shell remains narrow so dense operational tables keep most of the viewport
 
@@ -57,7 +57,7 @@ Implementation:
 ## Dashboard Aggregations Are Backend-Owned
 
 Decision:
-Dashboard totals are produced by API routes, not recalculated in React components.
+Dashboard totals and monitoring summaries are produced by API routes, not recalculated in React components.
 
 Reason:
 The dashboard is intended to validate completeness and accuracy against legacy spreadsheet reporting. Cost totals must use the same authoritative backend landed-cost values as the purchases table.
@@ -69,9 +69,21 @@ Implementation:
 - rows with `current_status = return_opened` or `cancelled` are excluded
 - rows with `purchase_items.exclude_from_purchase_reporting = true` are excluded
 - `/dashboard` renders the returned aggregates only
+- split dashboard tabs use focused API routes such as
+  `/api/dashboard/inventory`, `/api/dashboard/amazon`,
+  `/api/dashboard/growth`, `/api/dashboard/sourcing`,
+  `/api/dashboard/loss-prevention`, and `/api/dashboard/system-health`
+- `/dashboard` remains one top-level monitoring workspace; Financial,
+  Operations, Inventory, Amazon, Growth, Sourcing, Loss Prevention, and System
+  Health are tabs inside Dashboard, not separate left-nav entries
 
 Rule:
 Do not add frontend-only cost math or alternate landed-cost formulas to dashboard components.
+
+Do not let dashboard page loads trigger external API calls, sync jobs, workflow
+state changes, Amazon price changes, Informed rule changes, or Keepa token
+spending. Dashboards summarize and link to owning workflows; they do not become
+work queues.
 
 ---
 
@@ -213,7 +225,7 @@ Status writers:
 - EasyPost sync and webhook update linked purchase items from carrier state.
 - Receiving owns `received` and `return_pending`.
 - FBA/listing workflow owns `listed`.
-- Return/refund workflow will own `return_opened` and cancellation/refund follow-up.
+- Order Problems / return-refund workflow owns `return_opened` and cancellation/refund follow-up.
 
 Workflow-locked statuses:
 - `cancelled`
@@ -460,13 +472,13 @@ Blank values in the reference `status` tab are not a new status. They leave the 
 ## Amazon FBA Shipment Workflow Is Separate
 
 Decision:
-Use a separate Amazon FBA workflow for preparing Received Amazon-bound inventory for InventoryLab shipment creation.
+Use a separate Amazon FBA workflow for preparing Received Amazon-bound inventory for Amazon shipment creation and tracking Amazon receiving/availability after the shipment is saved.
 
 Reason:
 FBA shipment preparation happens after receiving and before/while listing. It should not be mixed into purchase review or receiving verification.
 
 Implementation:
-- `/fba` displays the shipment preparation workspace
+- `/fba` displays the Send to Amazon workspace with prep and shipment tabs
 - `/api/fba-shipments` owns Supabase reads/writes
 - Received Amazon-bound purchase items are grouped by ASIN
 - grouped cost per unit is quantity-weighted from `vw_purchases_dashboard.unit_cost`
@@ -481,7 +493,9 @@ Save behavior:
 - included quantities move from `received` to `listed`
 - excluded quantities remain `received`
 - partial included quantities split the purchase item so only the included quantity becomes `listed`
-- non-historical saved shipment links are projected into `inventory_positions` as `outbound_to_amazon` for inventory value until Amazon/InventoryLab inventory takes over
+- non-historical saved shipment links are projected into `inventory_positions` as `outbound_to_amazon` only for quantities Amazon has not yet received or made available
+- `integrations/amazon_sync_fba_shipments.py` reads Amazon inbound shipment status and item quantities, then updates fulfillment center, receiving counts, FBA availability, milestone timestamps, and remaining outbound value on FBA shipment workflow rows
+- SP-API carrier/tracking fields are stored when Amazon exposes them, but legacy v0 transport details currently return an Amazon deprecation error for the current shipment and v2024 inbound-plan discovery did not expose useful carrier details in June 2026 testing
 
 Historical marker:
 Use `legacy_listed_no_shipment_id` for already Listed items that predate MBOP shipment ID tracking. This value is not a real Amazon shipment ID.
@@ -494,7 +508,7 @@ Do not mark excluded or damaged units Listed during FBA save. They must remain R
 ## Amazon SP-API Foundation Is Read-Only And Separate
 
 Decision:
-Add Amazon SP-API support as a Python integration foundation for inventory, listing, and pricing reads only.
+Add Amazon SP-API support as a Python integration foundation for approved read-only Amazon inventory, listing, pricing, shipment, finance, reports, and non-PII order reads.
 
 Reason:
 MBOP needs Amazon seller/FBA visibility for inventory confidence and future Keepa/Amazon matching work, but Amazon seller sales/orders and customer data are separate operational domains and must not contaminate purchase history.
@@ -505,10 +519,11 @@ Implementation:
 - `integrations/amazon_test_connection.py` smoke-tests LWA auth and a safe FBA inventory summary read.
 - `integrations/amazon_sync_fba_inventory.py` paginates FBA inventory summaries, upserts `amazon_skus`, and inserts point-in-time `amazon_fba_inventory_snapshots`.
 - `integrations/amazon_sync_listing_status.py` reads Listings Items status/issues for Amazon SKUs and inserts point-in-time `amazon_listing_snapshots`.
-- the client allow-list is limited to FBA inventory, Listings Items, and Product Pricing read paths.
+- `integrations/amazon_sync_fba_shipments.py` reads Fulfillment Inbound shipment status and item quantities for saved Amazon shipment IDs.
+- the client allow-list is limited to approved read-only Amazon paths, including FBA inventory, Fulfillment Inbound, Listings Items, Product Pricing, Orders, Finance, and Reports.
 - no restricted-data-token flow is implemented.
-- no Amazon Orders API, buyer, address, or other PII-oriented endpoint is called.
-- Amazon seller/FBA/listing data belongs in `amazon_skus`, `amazon_fba_inventory_snapshots`, and `amazon_listing_snapshots`.
+- buyer, address, and other PII-oriented endpoint usage is not allowed.
+- Amazon seller/FBA/listing/shipment data belongs in Amazon-specific or FBA workflow tables, not purchases or purchase_items.
 
 Rule:
 Do not write Amazon seller sales/orders into `purchases` or `purchase_items`. Purchase history remains supplier-purchase data; Amazon seller inventory/listing/pricing data gets its own tables and later API/UI surfaces.
@@ -815,11 +830,32 @@ Implementation:
 - Amazon-to-bank in-transit cash is calculated from financial event groups with `ProcessingStatus = Closed` and `FundTransferStatus = Processing`.
 - dashboard Inventory Visibility reads `vw_latest_amazon_finance_balance_snapshot`.
 
-Known caveat:
-Amazon's API Open financial event group total currently differs from Seller Central's displayed "available to withdraw" amount. MBOP stores the API open amount as `available_to_withdraw` with notes until the UI-only adjustment/reserve source is identified.
+Current dashboard use:
+MBOP stores Amazon's open/available finance balance as `available_to_withdraw` and displays it as Seller Central Funds Available. The dashboard links that value to Seller Central Payments so the operator can request transfer manually.
 
 Rule:
 Amazon Finance data must stay in Amazon-specific finance snapshot tables. Do not write it into purchases, purchase_items, inventory_positions, Amazon inventory snapshots, or workflow tables.
+
+---
+
+## Seller Central Account Health And Feedback Are Amazon Dashboard Signals
+
+Decision:
+Display Seller Central account-health and feedback signals on the Amazon dashboard, not System Health.
+
+Reason:
+System Health is for MBOP job/database/API freshness. Seller Central Account Health and Feedback Manager values are marketplace trust/risk signals for the Amazon selling channel.
+
+Implementation:
+- `amazon_account_health_snapshots` stores manual account-health score snapshots.
+- `amazon_seller_feedback_snapshots` stores manual Feedback Manager lifetime star-rating and rating-count snapshots.
+- `amazon_seller_feedback_items` stores seller feedback rows.
+- `integrations/amazon_record_seller_account_health.py` records manual account-health and feedback observations.
+- `integrations/amazon_sync_seller_feedback.py` requests the read-only Amazon Reports API `GET_SELLER_FEEDBACK_DATA` report when available.
+- Amazon documents `GET_SELLER_FEEDBACK_DATA` as neutral/negative seller feedback only, so the dashboard treats imported 1-3 star rows as alerts instead of trying to show all recent positive feedback.
+
+Rule:
+Seller Central account-health and feedback data must stay in Amazon-specific dashboard/snapshot tables. Do not write it into purchases, purchase_items, inventory positions, or workflow-owned tables.
 
 ---
 
@@ -949,8 +985,40 @@ Implementation:
 - eBay buyer sync preserves Cancelled instead of downgrading it to shipment-derived statuses
 - status normalization scripts must preserve Cancelled
 
-Future workflow:
-The return/refund workflow must include Cancelled items and track refund received / refund missing outcomes.
+Implementation:
+Order Problems seeds cancelled rows as `cancelled_refund_followup` cases and
+keeps them visible until the operator confirms refund receipt or closes the
+case.
+
+---
+
+## Order Problems Is The Return/Refund Workflow Surface
+
+Decision:
+Do not create a separate Returns left-nav item for the MVP. Purchases -> Order
+Problems is the unified queue for delivery problem candidates, return-needed
+items, eBay return/case follow-up, missing-item/replacement follow-up, and
+cancelled/refund confirmation.
+
+Reason:
+Late deliveries, stale tracking, receiving return decisions, eBay returns, and
+refund follow-up are all purchase-item exceptions. Keeping them in one queue
+preserves operator context and avoids splitting related work across screens.
+
+Implementation:
+- `order_problem_cases` stores one persistent open workflow row per purchase
+  item, plus closed/resolved history.
+- `order_problem_events` stores the append-only timeline.
+- `/api/order-problems` owns candidate detection, stage filtering, sorting,
+  pagination, and summary counts.
+- `/api/order-problems/[id]/actions` supports MBOP-local workflow actions.
+- `integrations/ebay_sync_order_problem_returns.py` is read-only and writes only
+  local case/event records.
+
+Safety:
+MBOP does not create eBay returns, send messages, accept offers, escalate cases,
+issue refunds, or upload files in this MVP. Marketplace actions happen manually
+on ebay.com.
 
 ---
 

@@ -14,7 +14,7 @@ except ImportError:
 
 MAX_NEW_TRACKERS_PER_RUN = 10
 LOOKBACK_DAYS = 30
-DEFAULT_START_DATE = "2026-05-01"
+DEFAULT_START_DATE = None
 MAX_EASYPOST_REQUESTS_PER_SECOND = 5
 MAX_EASYPOST_RETRIES = 4
 INVALID_TRACKING_VALUES = {
@@ -61,7 +61,7 @@ def parse_args():
     parser.add_argument(
         "--start-date",
         default=DEFAULT_START_DATE,
-        help="Only sync shipments for purchases on or after this date.",
+        help="Optional backfill mode: only sync shipments for purchases on or after this date.",
     )
     parser.add_argument(
         "--limit",
@@ -74,6 +74,10 @@ def parse_args():
         type=int,
         default=MAX_NEW_TRACKERS_PER_RUN,
         help="Maximum new EasyPost trackers to create in this run.",
+    )
+    parser.add_argument(
+        "--tracking-number",
+        help="Only sync one inbound shipment tracking number.",
     )
     return parser.parse_args()
 
@@ -95,7 +99,7 @@ def fetch_recent_purchase_ids(start_date):
     ]
 
 
-def fetch_shipments(start_date=None, limit=100):
+def fetch_shipments(start_date=None, limit=100, max_new_trackers=MAX_NEW_TRACKERS_PER_RUN):
     if start_date:
         purchase_ids = fetch_recent_purchase_ids(start_date)
 
@@ -135,24 +139,33 @@ def fetch_shipments(start_date=None, limit=100):
 
         return shipments
 
-    cutoff = (
-        datetime.now(timezone.utc) - timedelta(days=LOOKBACK_DAYS)
-    ).date().isoformat()
-
     result = (
         supabase.table("inbound_shipments")
         .select("*")
-        .or_(
-            f"delivered_date.is.null,"
-            f"estimated_delivery_date.gte.{cutoff},"
-            f"normalized_status.neq.delivered"
-        )
+        .or_("delivered_date.is.null,normalized_status.neq.delivered")
+        .not_.is_("easypost_tracker_id", "null")
         .order("updated_at", desc=True)
-        .limit(100)
+        .limit(limit)
         .execute()
     )
 
-    return result.data or []
+    shipments = result.data or []
+    remaining = max(limit - len(shipments), 0)
+    new_tracker_slots = min(max(max_new_trackers, 0), remaining)
+    if new_tracker_slots <= 0:
+        return shipments
+
+    untracked_result = (
+        supabase.table("inbound_shipments")
+        .select("*")
+        .or_("delivered_date.is.null,normalized_status.neq.delivered")
+        .is_("easypost_tracker_id", "null")
+        .order("updated_at", desc=True)
+        .limit(new_tracker_slots)
+        .execute()
+    )
+
+    return shipments + (untracked_result.data or [])
 
 
 def fetch_undelivered_shipments(purchase_ids):
@@ -215,8 +228,10 @@ def normalize_carrier(value):
         "united states postal service": "USPS",
         "usps": "USPS",
         "ups": "UPS",
-        "fedex": "FedEx",
-        "fed ex": "FedEx",
+        "fedex": "FedExDefault",
+        "fed ex": "FedExDefault",
+        "fedexdefault": "FedExDefault",
+        "fedex default": "FedExDefault",
     }
 
     return mapping.get(carrier.lower(), carrier)
@@ -575,6 +590,21 @@ def total_units(items):
     return total
 
 
+def fetch_shipments_for_tracking_number(tracking_number):
+    cleaned = clean_tracking_number(tracking_number)
+    if not cleaned:
+        return []
+
+    result = (
+        supabase.table("inbound_shipments")
+        .select("*")
+        .eq("tracking_number", cleaned)
+        .limit(10)
+        .execute()
+    )
+    return result.data or []
+
+
 def ensure_inbound_shipment(purchase_id, candidate):
     existing = (
         supabase.table("inbound_shipments")
@@ -709,16 +739,20 @@ def resolve_alternate_tracking_if_needed(shipment, tracker, remaining_new_tracke
 def main():
     args = parse_args()
     print("Starting EasyPost shipment sync...")
-    print(f"Purchase start date: {args.start_date}")
+    print(f"Purchase start date: {args.start_date or 'none; undelivered shipments only'}")
     print(
         "EasyPost request rate cap: "
         f"{MAX_EASYPOST_REQUESTS_PER_SECOND}/second"
     )
 
-    shipments = fetch_shipments(
-        start_date=args.start_date,
-        limit=args.limit,
-    )
+    if args.tracking_number:
+        shipments = fetch_shipments_for_tracking_number(args.tracking_number)
+    else:
+        shipments = fetch_shipments(
+            start_date=args.start_date,
+            limit=args.limit,
+            max_new_trackers=args.max_new_trackers,
+        )
 
     print(f"Candidate shipments: {len(shipments)}")
 

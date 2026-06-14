@@ -72,6 +72,22 @@ export function ebayOrderUrl(orderId?: string | null) {
   return `https://order.ebay.com/ord/show?orderId=${orderId}#/`;
 }
 
+export function ebayProblemDetailUrl(
+  row: Pick<
+    PurchaseRow,
+    "ebay_action_url" | "ebay_inquiry_id" | "ebay_return_id"
+  >
+) {
+  if (row.ebay_action_url) return row.ebay_action_url;
+  if (row.ebay_inquiry_id) {
+    return `https://www.ebay.com/ItemNotReceived/${row.ebay_inquiry_id}`;
+  }
+  if (row.ebay_return_id) {
+    return `https://www.ebay.com/rtn/Return/ReturnsDetail?returnId=${row.ebay_return_id}`;
+  }
+  return "";
+}
+
 export function getPrimaryTitle(row: PurchaseRow) {
   return row.amazon_title || row.ebay_title || row.title || "Untitled item";
 }

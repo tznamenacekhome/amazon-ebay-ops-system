@@ -88,49 +88,62 @@ Recent UI cleanup:
 ## Dashboard Analytics
 
 Status:
-Operational reconciliation first pass implemented.
+Split monitoring workspace implemented / drill-down refinement remaining.
 
 Completed:
-- added Dashboard menu item to the MBOP left navigation
-- added /dashboard workspace
-- added /api/dashboard/purchases aggregation route
-- added monthly units and total cost chart
-- added year/month pivot-style table with grand total
-- added purchase completeness summary
-- added receiving backlog summary
-- added shipment prep backlog summary
-- added workflow aging buckets
-- added missing/exception attention table
-- excluded Return Opened rows from dashboard totals
-- added migration-backed reporting exclusions for personal purchases and business supplies
-- recognized 2026-05-16+ purchases as MBOP-canonical because the legacy spreadsheet was no longer maintained for new purchases
-- restored 13 post-2026-05-15 resale rows that had been excluded only because they were absent from the legacy spreadsheet
-- normalized 2026 MBOP-active rows found on the reference Returns tab to Return Opened or Cancelled
-- excluded Cancelled rows from dashboard purchase totals
-- reconciled active unit count to the legacy pivot at 4,806 units
-- reduced active cost variance to $4.05 MBOP-over-spreadsheet after one-time cleanup and net-cost corrections
-- kept landed-cost math backend-owned through vw_purchases_dashboard.unit_cost
-- confirmed 2024 and 2025 dashboard totals match the legacy Excel pivot exactly
-- added Inventory Visibility as the first dashboard section
-- added Inventory Value By Location table for At Amazon FBA, On the way to Amazon FBA, Received, Ordered and not received yet, and Total
-- added Business Inventory And Cash Value summary with Amazon inventory, pre-Amazon purchased inventory, Amazon cash, Amazon-to-bank in-transit cash, YNAB Business cash, and total business value
-- added daily business value snapshots and a history graph from the total row
-- moved open inventory reconciliation findings to the dedicated Reconciliation page
-- moved purchase order problems to a dedicated Purchases tab while keeping Missing Data in the editable purchases view
+- `/dashboard` is now a compact tabbed monitoring workspace with URL-addressed
+  Overview, Financial, Operations, Inventory, Amazon, Growth, Sourcing, Loss
+  Prevention, and System Health views.
+- focused `/api/dashboard/*` routes provide backend-owned aggregates for each
+  tab without triggering external syncs, token spending, or workflow writes.
+- Overview shows business value KPIs, attention rows, and a scaled business
+  value trend with axes, dates, point markers, and value summary.
+- Financial shows profitability windows, cash position, Amazon Funds Available,
+  payout reconciliation, data completeness, and a Schedule C placeholder.
+- Operations shows receiving/FBA prep queues, purchase cleanup, order-problem
+  counts, workflow aging, and attention rows.
+- Inventory shows value by location/state/age, capital at risk, concentration,
+  and reconciliation attention.
+- Amazon shows sales/profitability, FBA/listing health, repricing rollups, top
+  sellers, stale high-capital inventory, Seller Central account-health score,
+  Feedback Manager lifetime rating, and 1-3 star feedback alerts.
+- Growth, Sourcing, Loss Prevention, and System Health tabs are implemented
+  from existing backend data and local sync health signals.
+- dashboard metadata hydration now pages through `purchase_items` instead of
+  giant Supabase `IN` filters, preventing transient metadata lookup failures
+  from reviving excluded purchase rows in cleanup counts.
+- landed-cost math remains backend-owned through `vw_purchases_dashboard.unit_cost`.
 
 Next steps:
-- build a repeatable dashboard reconciliation report using the shared reference spreadsheet and Supabase
-- classify discrepancies into MBOP-only, spreadsheet-only, Returns-tab/status mismatch, and same-order quantity/cost mismatch
-- keep known partial-refund, CAD, duplicate-row, and split-row orders as reconciliation regression examples
-- add drill-down from a dashboard month into the matching filtered purchases list
 - add drill-down links from operational dashboard counts into Purchases, Receiving, and FBA filtered views
-- add reconciliation indicators once expected monthly spreadsheet totals are stored or imported
-- add a UI control for marking purchase items excluded from reporting with a reason
-- add filters for status, marketplace, received date, and system after the first chart proves useful
-- keep 2026-05-16+ MBOP-only purchases reportable unless explicitly confirmed as non-resale, return/cancelled, or otherwise excluded
-- refine Amazon Finance cash mapping if Seller Central exposes an additional UI-only reserve/available-balance adjustment source
 - monitor Dashboard freshness against the oldest required cash/value input so
   stale Amazon cash, YNAB cash, or business value snapshots are visible
+- add a safe capacity/IO source for System Health instead of placeholders
+- decide whether account health can be captured from an approved Amazon source;
+  for now account-health score and lifetime feedback summary are manual
+  snapshots and SP-API feedback imports are limited to 1-3 star alert rows
+
+---
+
+## Business Financial Reporting
+
+Goal:
+Build MBOP-owned reporting for business P&L, Schedule C support, and cash
+reconciliation using YNAB Business transactions plus Amazon/eBay financial data.
+
+Foundation:
+- `ynab_business_transactions` stores YNAB transactions categorized as Business.
+- The initial backfill starts at 2026-01-01.
+- The daily scheduler refreshes the YNAB Business transaction copy once per day.
+- Amazon Finance balance snapshots now reconcile completed Amazon payouts
+  against YNAB Business deposit transactions before counting them as in transit.
+
+Next steps:
+- classify YNAB Business transactions into tax/reporting categories.
+- add payout reconciliation review/reporting so unmatched Amazon payouts and
+  unmatched Amazon-looking YNAB deposits are easy to inspect.
+- combine YNAB expense/cash records with Amazon and eBay sales/fee data for P&L.
+- design Schedule C reporting views after category mapping is reviewed.
 
 ---
 
@@ -216,32 +229,44 @@ Next steps:
 
 ---
 
-## Non-eBay Purchase Entry
+## Supplier-Agnostic Purchase Entry
 
 Future scope:
-Add a dedicated non-eBay purchases screen for supplier purchases that do not
-come from the eBay buyer purchase sync.
+Add supplier-agnostic purchase support for inventory buys that do not come from
+the eBay buyer purchase sync, including self-receive, prep-center,
+Amazon-MFN, and eBay-resale paths.
 
 Direction:
 - treat InventoryLab imports as completed legacy backfill/bridge data
 - use eBay purchase sync as the source of cost for eBay-sourced inventory
 - use MBOP-entered non-eBay purchases as the go-forward source of cost for
   supplier, prep-center, and direct-to-Amazon purchases
+- extend `purchases` and `purchase_items` rather than creating a separate
+  operational purchase workflow table
+- add nullable `purchase_items.fulfillment_path` with `self_receive`,
+  `prep_center`, `amazon_mfn`, and `ebay_resale`
+- keep `supplier` as the acquired-from field and do not add `acquisition_type`
 - support eventual MBOP -> TIM Sheet export/update rather than scheduled TIM
   Sheet -> MBOP sync
 
 Expected screen capabilities:
-- list non-eBay purchases with supplier, order date, order number, ASIN, MSKU,
-  description, quantity, received/prep-center quantity, damaged quantity, unit
-  cost, list price, fulfillment channel, tracking, notes, and shipment context
-- add new non-eBay purchase rows as purchases are made
-- edit/correct cost, quantity, fulfillment channel, and source metadata
+- list non-eBay purchases with supplier, supplier order number, purchase date,
+  item title, Amazon title, ASIN, system, quantity, unit cost, target sell
+  price, marketplace, fulfillment path, prep-center fields, tracking, carrier,
+  notes, and shipment context
+- add/import new supplier purchase rows as purchases are made
+- write manual supplier purchases to `purchases` and `purchase_items`
+- create/link inbound shipments when tracking is supplied and
+  `fulfillment_path = self_receive`
+- keep `fulfillment_path = prep_center` rows out of normal Receiving
+- add a Prep Center workspace with received/sent-to-Amazon actions, Amazon
+  shipment ID capture, and prep-center received/shipped dates
+- edit/correct cost, quantity, fulfillment path, and source metadata
 - preserve FIFO COGS source rows for Amazon sales profitability and current
   Amazon inventory cost layers
 - identify rows assigned to FBA shipments, including in-transit shipments
-- keep this workflow separate from eBay `purchases`/`purchase_items` unless a
-  later design intentionally promotes non-eBay purchases into the same receiving
-  model
+- dashboard/reporting should include manual supplier purchases without double
+  counting inventory already represented in Amazon FBA
 
 ---
 
@@ -304,7 +329,8 @@ Next steps:
 
 Completed:
 - EasyPost dependency added
-- EasyPost sync made date-scoped from 2026-05-01 by default
+- EasyPost sync now prioritizes undelivered inbound shipments and no longer uses
+  the 2026-05-01 backfill date by default
 - EasyPost sync checks all non-delivered shipment rows before filling the remaining run with recent delivered rows
 - 5 requests/second cap added
 - 429 retry/backoff added
@@ -312,6 +338,11 @@ Completed:
 - carrier passed when known
 - May-current shipment backfill completed for 97 of 101 candidate shipment rows
 - missing eBay ETA values restored for 88 shipment rows from 2026-05-01 onward
+- Order Problems no longer treats an expired eBay ETA as a problem by itself
+  when carrier tracking has current activity; missing tracking or more than 4
+  days without carrier activity still qualifies
+- carrier events/statuses such as return-to-sender now seed or relabel derived
+  Order Problems as `carrier_exception_candidate`
 
 Remaining:
 - resolve FedEx credential errors for tracking 381367337613 and 381418656302
@@ -324,21 +355,97 @@ Remaining:
 ## Local Sync Scheduler
 
 Status:
-Local scheduler configured; broad integration automation enabled with ongoing task-run validation.
+Local scheduler configured; broad integration automation enabled with ongoing task-run validation and optimization follow-up.
 
 Completed:
-- `run_all_syncs.py` now runs eBay buyer purchase sync, EasyPost shipment sync, eBay supplier returns sync, RevSeller enrichment, Amazon FBA inventory, Amazon listing status, Amazon inventory planning, Amazon Finance balances, Informed Repricer reports, YNAB Business cash balance, guarded Keepa enrichment, and business value snapshots
-- `run_all_syncs.bat` creates the logs directory when missing and appends to `logs/scheduler.log`
+- `run_all_syncs.py` now runs eBay buyer purchase sync, sourcing purchase matching, EasyPost shipment sync, read-only eBay Order Problems return/inquiry sync, RevSeller enrichment, Amazon FBA inventory, Amazon FBA shipment sync, Amazon listing status, Amazon inventory planning, Amazon Finance balances, Informed Repricer reports, YNAB Business cash balance/transactions, sourcing listing availability cleanup, guarded Keepa enrichment, and business value snapshots
+- scheduler groups split freshness work into `core`, `daily`, and `catalog`
+  groups so operational refreshes can run without every heavyweight snapshot
+- legacy eBay supplier returns sync has been removed from active orchestration
+  and System Health; the Order Problems return sync owns return/inquiry/case
+  freshness
+- `run_all_syncs.bat` creates the logs directory when missing and appends to
+  `logs/scheduler.log` through a per-run temp log with retries
 - local Windows scheduled tasks were recreated after the repo moved from OneDrive to `C:\Dev`
+- AM, PM, Daily, and Catalog scheduled tasks have Task Scheduler catch-up
+  disabled with `StartWhenAvailable = False`; overlapping instances are ignored
+  with `MultipleInstances = IgnoreNew`
 - direct batch execution completed successfully with exit code 0
 - integration failures are collected and reported while later independent syncs continue running
 - Amazon FBA inventory sync now uses page pacing plus SP-API 429/5xx retry/backoff
+- Amazon FBA shipment sync now refreshes MBOP shipment status, shipment item
+  receiving quantities, FBA availability, fulfillment center, milestones, and
+  outbound-to-Amazon remaining value
 - scheduled Keepa enrichment only refreshes stale active-Amazon ASINs and skips calls when the token pool is below the configured floor
+- scheduled sourcing listing availability cleanup checks open, Watch, and ROI-snoozed opportunities and automatically dismisses ended/sold-out/missing eBay listings with `no_longer_available`; Purchased / Offer Made rows remain for purchase matching/enrichment
+- eBay buyer purchases now sync a recent window plus targeted no-tracking
+  refresh instead of a broad 90-day daily buyer-order pull
+- Amazon sales orders skip item-detail calls when LastUpdateDate has not changed
+  and order items are already present
+- Amazon listing status supports stale-day filtering so normal runs can skip
+  recently refreshed SKUs
+- YNAB Business transactions run incrementally with an overlap instead of
+  refetching transactions already stored in MBOP
+- inventory reconciliation can skip when source datasets have not changed, with
+  a fail-open fallback when source freshness columns are unavailable
 
 Next steps:
-- confirm both scheduled tasks continue appending successful runs to `logs/scheduler.log`
+- monitor the next scheduled AM/PM/Daily/Catalog runs after disabling missed-run
+  catch-up
+- split the dashboard refresh/value jobs into lighter operational and heavier
+  reporting paths, then optimize the reporting path separately
+- add `purchase_items.updated_at` or an equivalent source-change ledger so
+  inventory reconciliation skip-if-unchanged can avoid fail-open runs
 - when manually triggering tasks, use the root task path, for example `schtasks /Run /TN "\Amazon eBay Ops Sync PM"`
 - monitor scheduler logs for EasyPost FedEx credential errors, eBay token/auth issues, SP-API throttling, and Keepa token skips
+
+---
+
+## Dashboard Split
+
+Phase 1 implemented:
+- `/dashboard` now uses compact URL-addressable tabs:
+  Overview, Financial, Operations, Inventory, Amazon, Growth, and System Health
+- only Overview and Operations fetch live data in this phase
+- `/api/dashboard/overview` returns business value snapshot metrics, attention
+  summary rows, and a compact business value trend
+- `/api/dashboard/operations` returns receiving, FBA prep, purchase cleanup,
+  order-problem, workflow-aging, and top-attention summaries
+- the left navigation keeps Dashboard as the single monitoring entry point; the
+  separate System Health nav item was removed from the compact left nav
+- dashboard React components render API-provided values and do not calculate
+  landed cost, inventory value, workflow status, repricing tiers, or profit
+
+Remaining:
+- Phase 2: Financial and Inventory tabs with dedicated backend summaries
+- Phase 3: Amazon, Growth, and System Health tabs with scheduler/API health
+  rollups
+- replace remaining legacy `/api/dashboard/purchases` use once historical
+  purchase/month reporting has a focused destination
+
+Remaining phases MVP implemented:
+- Inventory, Amazon, Growth, Sourcing, Loss Prevention, and System Health tabs
+  now have focused read-only API routes under `/api/dashboard/*`
+- dashboard tab list now includes Sourcing and Loss Prevention while preserving
+  one top-level Dashboard left-nav entry
+- routes load independently and do not run external syncs, marketplace writes,
+  Keepa token-spending calls, or workflow mutations
+- Sourcing is an explainable manual research queue derived from existing
+  sales/profit/inventory data, not an automated buy engine
+- Loss Prevention summarizes risk from order-problem cases and reconciliation
+  signals without replacing the Order Problems workflow
+
+Still open:
+- add exact filter support to destination workflow pages for dashboard
+  drill-downs that currently degrade to base routes
+- add safe Supabase capacity and disk IO signal sourcing for System Health
+
+Financial implemented:
+- `/api/dashboard/financial` summarizes existing Amazon sales profitability,
+  YNAB Business cash, Amazon cash balances, payout reconciliation, financial
+  data completeness, and the future Schedule C reporting placeholder
+- `/dashboard?view=financial` renders those API-provided values without
+  frontend landed-cost or profit recalculation
 
 ---
 
@@ -374,6 +481,148 @@ surface Keepa price/rank/sales-rank-drop and competition signals where useful wi
 
 Operational caution:
 Run `integrations/keepa_sync_products.py --plan-only` before broad Keepa syncs, then sync in staged batches based on available token balance.
+
+---
+
+## Seller Intelligence Subsystem
+
+Future scope:
+Build seller-level learning that helps MBOP decide which eBay sellers are worth
+watching, buying from, or avoiding.
+
+Planned capabilities:
+- seller trust scoring based on purchase outcomes, delivery reliability,
+  cancellation/refund history, return rates, and listing quality signals
+- seller ROI history based on realized MBOP purchase cost, Amazon sale value,
+  fees, returns, and final profit outcomes
+- offer acceptance history by seller, including offer amount, asking price,
+  discount percentage, accepted/declined/expired result, and time to response
+- seller inventory expansion search that can discover other listings from a
+  promising seller after one listing qualifies
+- seller opportunity conversion rate from surfaced opportunity to purchased,
+  received, listed, sold, returned, or dismissed
+- richer seller reliability metrics separated from product/condition return
+  strikes, including item-not-received, refund-delay, and seller-cancelled
+  history
+- trusted-seller rules and diagnostics after warning/penalty behavior is proven
+
+Constraints:
+- seller intelligence must remain advisory unless a future workflow explicitly
+  approves automated action
+- seller scoring must not overwrite purchase, receiving, return, or sourcing
+  workflow state
+- seller matching should use stable seller identifiers from eBay when available
+  and preserve raw evidence for auditability
+- avoid sellers should warn and penalize first; hide-by-default is intentionally
+  deferred until diagnostics are proven
+
+---
+
+## Matching Intelligence Remaining Work
+
+Future scope:
+Finish wiring the Matching Intelligence evidence set into live sourcing
+diagnostics before any AI-driven matching or eBay-to-Amazon sourcing.
+
+Implemented foundation:
+- matching examples are rebuilt from sourcing actions, manual match memory,
+  purchase history, sourcing purchase matches, receiving outcomes, and order
+  problem cases
+- historical/manual purchase evidence is treated as verified positive match
+  evidence
+- listing snapshots are preserved for opportunities, actions, and best-effort
+  historical/manual purchases
+- live Amazon-to-eBay sourcing consumes exact positive/negative examples,
+  seller warnings, hard platform rules, and non-video-game category blocks
+- Matching Intelligence refresh runs through sync orchestration after purchase,
+  dismissal, return, and catalog updates, then rescoring refreshes recent
+  sourcing runs
+
+Remaining capabilities:
+- full per-opportunity diagnostics UI showing hard-rule pass/fail, title
+  overlap, system/platform checks, positive and negative historical examples,
+  seller warnings, score adjustments, and final recommendation
+- dedicated uncertain-match review workflow for current opportunities that need
+  operator review instead of normal opportunity handling
+- sample-driven fuzzy matching that uses the labeled examples after the sample
+  set is large enough; target at least 5,000 strong examples before AI-assisted
+  opportunity review
+- AI review against live opportunities using title, photos, item specifics,
+  description, condition, seller evidence, and historical examples
+- normalized image/listing clue scoring that can use structured clues such as
+  PEGI, Greatest Hits, disc only, missing shrink wrap, reseal, and damaged case
+  instead of only storing them as evidence
+- formal configurable matching weights by evidence source, outcome, confidence,
+  and recency
+- richer example/detail browser for snapshots and examples, including raw
+  evidence drill-down where available
+- automated reason discovery from repeated notes and reviewed near misses, with
+  operator approval before adding new structured reasons
+
+Not planned:
+- strong or required note prompts for specific dismissal reasons. Notes remain
+  optional and are stored whenever entered.
+
+---
+
+## Return Intelligence Subsystem
+
+Future scope:
+Use receiving, return, and listing evidence to learn which sourcing listings
+are likely to cause bad outcomes.
+
+Planned capabilities:
+- return outcome learning based on return reason, refund timing, seller
+  response, carrier exception, no-refund closure, and final cost recovery
+- AI clue extraction from return-causing listings to identify phrases, photos,
+  category mismatches, condition wording, seller behavior, or title patterns
+  that should affect future sourcing decisions
+- dedicated return intelligence report that separates identity/condition
+  strikes from reliability/refund/cancellation issues
+- consistent linking between return cases, receiving outcomes, listing
+  snapshots, seller identity, purchase item, and eBay item evidence when all
+  identifiers are available
+
+Implemented foundation:
+- listing snapshot preservation now includes historical/manual purchase
+  backfill evidence for Matching Intelligence
+- receiving outcome learning now captures correct item, wrong item, wrong
+  condition, packaging issue, incomplete item, listed successfully, structured
+  image clues, and receiving notes
+- Matching Intelligence exposes a near-miss review queue for title-similar
+  dismissed/condition examples
+
+Constraints:
+- preserved listing snapshots should support audit and learning without
+  becoming the editable operational source of truth
+- AI-extracted clues must be explainable and reviewable before they influence
+  matching, seller scoring, or sourcing filters
+- return intelligence must remain separate from the Order Problems workflow;
+  Order Problems owns active refund/case execution
+
+---
+
+## eBay -> Amazon Sourcing Engine
+
+Future scope:
+Add a sourcing mode that starts from eBay market supply and evaluates whether
+listings can profitably map to Amazon resale opportunities.
+
+Dependencies:
+- Matching Intelligence Layer completion, including title/platform matching,
+  ambiguity handling, negative-match learning, diagnostics, and review queues
+- Amazon -> eBay sourcing validation, proving that the current Amazon-inventory
+  driven workflow produces reliable matches, ROI estimates, seller outcomes,
+  and return-risk signals before reversing the search direction
+- sufficient labeled evidence to support AI or fuzzy matching without creating
+  cross-platform or wrong-title matches
+
+Planned direction:
+- use the completed matching layer to prevent cross-platform video game matches
+- evaluate landed cost, Amazon sell price, fees, velocity, competition, and
+  return-risk signals before surfacing opportunities
+- preserve the operator-review-first model until match quality and outcome
+  learning are strong enough to justify deeper automation
 
 ---
 
@@ -433,25 +682,43 @@ Next steps:
 Goal:
 Track return/cancellation outcomes through refund confirmation.
 
-Required scope:
-- Return Pending items from receiving
-- Return Opened items from eBay return/case state
-- Cancelled items from eBay/seller cancellation or reconciliation
+Status:
+Operational first slice implemented in Purchases -> Order Problems.
 
-Key requirement:
-Cancelled items must remain visible to this workflow until refund receipt is confirmed.
+Implemented:
+- `order_problem_cases` and `order_problem_events` provide the separate workflow
+  tables for return/refund/cancellation follow-up.
+- Return Pending items from receiving seed Return Needed cases.
+- Return Opened and Cancelled items remain visible until operator resolution.
+- Order Problems stage chips cover candidates, return needed, return opened,
+  needs response, waiting on seller, ready to ship back, return shipped, refund
+  pending, missing item pending, escalation available, and resolved/closed.
+- The dense table has consolidated issue/status columns, top-of-table current
+  filter stats, order/detail links, next action, refund amounts, tracking/ETA,
+  and a drawer button.
+- The detail drawer supports MBOP-local workflow actions, notes, replacement
+  tracking, refund confirmation, and Close No Refund for unrecoverable/no-refund
+  outcomes.
+- The detail drawer shows the local return type selector, captured eBay/case
+  status fields, refund amounts, relevant workflow dates, identifiers, and the
+  recent `order_problem_events` timeline.
+- `integrations/ebay_sync_order_problem_returns.py` reads eBay Post-Order
+  returns, INR inquiries/details, and cases, then stores local case/event
+  updates without writing back to eBay.
+- Inquiry detail enrichment captures seller make-it-right/escalation dates and
+  replacement tracking that eBay does not include in inquiry search summaries.
 
-Future cost requirements:
-- store refund amount, refund date, source, and affected purchase item or quantity
-- support partial refunds where the item is kept and inventory cost should be reduced
-- avoid automatically spreading a multi-item partial refund across unrelated items unless the operator assigns it
-- preserve manual unit-cost overrides made during reconciliation or refund review
-
-Next steps:
-- define refund fields, such as refund_expected, refund_received, refund_received_date, refund_amount, and refund_notes
-- decide whether refund state belongs directly on purchase_items or in a separate return/refund workflow table
-- add filters/views for refund missing and refund received
-- integrate future eBay return/case/refund APIs where available
+Remaining:
+- add first-class scheduled cancellation search import if more cancellation
+  refund-follow-up cases appear.
+- define a controlled partial-refund cost adjustment workflow for cases where
+  the item is kept and inventory cost should be reduced.
+- preserve manual unit-cost overrides made during reconciliation or refund
+  review.
+- add deeper event-history pagination only if the recent drawer timeline is too
+  short for active case review.
+- consider future eBay write actions only after explicit operator workflow,
+  permission, and safety design.
 
 ---
 

@@ -1,6 +1,6 @@
 # Backend Architecture
 
-Last updated: 2026-06-02
+Last updated: 2026-06-13
 
 ## Core Flow
 
@@ -12,16 +12,37 @@ Supabase is the operational source of truth. The frontend never talks directly t
 
 ## Ownership Boundaries
 
-Purchases, receiving, Amazon FBA shipment prep, inventory reconciliation, repricing advice, and external intelligence are separate domains.
+Purchases, receiving, order problems/returns, Amazon FBA shipment prep,
+inventory reconciliation, sourcing, repricing advice, and external intelligence
+are separate domains.
 
 - `purchases` and `purchase_items` own acquired eBay buyer purchase inventory.
+- Sourcing owns advisory replenishment opportunities, eBay candidate discovery,
+  operator sourcing actions, and links to imported purchases only after the
+  eBay buyer purchase exists in MBOP.
+- Matching Intelligence owns reusable sourcing evidence, listing snapshots,
+  labeled match/non-match examples, and advisory seller intelligence. It is a
+  foundation for improving Amazon-to-eBay replenishment matching and must not
+  launch eBay-to-Amazon sourcing by itself.
 - Receiving owns physical verification, received quantities, return-pending decisions, marketplace assignment, received dates, and the transition to `received`.
+- Order Problems owns return/refund follow-up, eBay return/case metadata,
+  cancelled-refund follow-up, missing-item/replacement follow-up, and local
+  operator action history in `order_problem_cases` and `order_problem_events`.
 - Amazon FBA shipment prep owns grouping received Amazon-bound items for export, shipment ID assignment, and moving included units to `listed`.
-- Non-historical FBA shipment item links remain workflow-owned by FBA prep and are projected into inventory value as outbound to Amazon.
+- Non-historical FBA shipment item links remain workflow-owned by FBA prep and are projected into inventory value as outbound to Amazon only for quantities Amazon has not yet received or made available.
+- Amazon FBA shipment sync reads Amazon inbound shipment status and shipment-item quantities, stores fulfillment center, carrier ETA/tracking context, FBA availability metrics, and milestone timestamps on FBA shipment workflow tables.
+- Amazon FBA shipment sync also attempts a cached Fulfillment Inbound v2024
+  identity bridge from Amazon shipment confirmation ID to inbound plan/internal
+  shipment IDs. The bridge stores raw payload context and any tracking details
+  returned, but missing v2024 identity/tracking does not fail status or item
+  quantity refreshes.
 - Amazon SP-API snapshot tables own read-only Amazon inventory, listing, planning, and finance data.
 - Keepa tables own read-only catalog, offer, price-history, sales-rank, and competition intelligence.
 - Informed tables own read-only repricer report snapshots and advisory rule/price context.
-- YNAB tables own read-only category balance snapshots.
+- YNAB tables own read-only category balance snapshots and Business-category
+  transaction history.
+- eBay draft pricing sheet support is a spreadsheet utility, not a marketplace
+  write workflow. See `docs/subsystems/ebay_draft_pricing.md`.
 - `inventory_positions` and reconciliation tables are derived and rebuildable; they do not replace workflow ownership.
 
 ## Integration Orchestration
@@ -30,18 +51,40 @@ Purchases, receiving, Amazon FBA shipment prep, inventory reconciliation, repric
 Scheduler can keep operational data fresh without running heavyweight snapshots
 twice per day.
 
-- `core`: eBay buyer purchases, EasyPost tracking, RevSeller enrichment, recent
-  Amazon sales orders, new MF Veeqo label costs, recent sales profitability, and
-  inventory reconciliation. This group is intended for 2x/day runs.
-- `daily`: Amazon FBA inventory, Amazon listing status, Amazon inventory
-  planning, Amazon finance balances, 60-day Amazon sales finance refresh,
-  daily sales profitability, Informed Repricer reports, YNAB Business cash, and
-  the daily business value snapshot. This group is intended for 1x/day runs.
-- `catalog`: guarded Keepa active-Amazon stale refresh. This group is
+- `core`: eBay buyer purchases, sourcing purchase matching for opportunities
+  marked Purchased / Offer Made, EasyPost tracking, RevSeller enrichment with
+  optional AI same-system review, guarded Keepa missing-purchase-title repair,
+  recent Amazon sales orders, new MF Veeqo label costs, recent sales
+  profitability, and inventory reconciliation. This group is intended for
+  2x/day runs.
+- `daily`: Amazon FBA inventory, Amazon FBA shipments, Amazon listing status,
+  Amazon inventory planning, Amazon finance balances, 60-day Amazon sales
+  finance refresh, daily sales profitability, Informed Repricer reports, YNAB
+  Business cash, YNAB Business transactions, sourcing listing availability
+  cleanup, Matching Intelligence refresh, and the daily business value
+  snapshot. This group is intended for 1x/day runs.
+- `catalog`: sourcing listing availability cleanup and guarded Keepa
+  active-Amazon stale refresh plus Matching Intelligence refresh. Keepa work is
   token-aware and can run daily or less often.
+- Windows Task Scheduler currently runs `core` daily at 6:00 AM and 4:00 PM PT,
+  `daily` daily at 8:00 PM PT, `catalog` daily at 9:30 PM PT, and the Inventory
+  Source Balance Audit monthly on the 1st at 6:30 AM PT. System Health displays
+  these schedules beside each job.
 
-The eBay supplier returns sync is intentionally disabled while the returns
-feature is redesigned.
+The legacy eBay supplier returns sync has been removed from active
+orchestration and System Health. The Order Problems return workflow uses
+`integrations/ebay_sync_order_problem_returns.py` as a scheduled, read-only eBay
+Post-Order importer for returns, INR inquiries, inquiry detail records, and
+open cases. It writes only to `order_problem_cases` and `order_problem_events`.
+Inquiry detail enrichment is required because seller make-it-right/escalation
+dates and replacement tracking are not present in the inquiry search summary.
+When replacement tracking for an item-not-received inquiry shows progress, MBOP
+keeps the case in replacement follow-up; when the replacement tracking is
+delivered, MBOP closes the case as `resolved_received_item` and moves the
+purchase item back to `delivered` for Receiving verification.
+Cancellation/refund exceptions can be represented locally as
+`ebay_cancellation_sync` rows while first-class cancellation search automation
+is evaluated.
 
 `integrations/inventory_source_balance_audit.py` is a secondary control, not a
 freshness sync. It should run after FIFO allocator runs, after large purchase or
@@ -57,7 +100,10 @@ Independent integration failures are collected and reported while later syncs co
 The orchestrator writes the latest per-job state to `logs/sync_health.json`,
 appends run history to `logs/sync_runs.jsonl`, uses a local lock file to prevent
 overlapping scheduled runs, and performs a tiny Supabase read before launching
-work.
+work. Each job writes a `running` health record when it starts and replaces it
+with `ok` or `failed` at completion. If a scheduled wake-up causes multiple
+groups to start at once, lock losers write `blocked` health records so System
+Health shows the missed work instead of appearing stale or silently successful.
 
 ## UI Data Freshness
 
@@ -68,6 +114,11 @@ timestamp for that screen. Dashboard is stricter: because Business Inventory And
 Cash Value depends on multiple cash/value inputs, its freshness indicator shows
 the oldest of the required business value, Amazon cash, and YNAB cash snapshots
 so a fresh reconciliation run cannot hide stale cash data.
+
+Purchases freshness includes eBay purchase import batches, tracking updates,
+Order Problems case/event updates, and RevSeller enrichment diagnostics because
+the Purchases workspace now contains both the editable purchases table and the
+Order Problems queue.
 
 Roadmap:
 
@@ -83,7 +134,9 @@ Roadmap:
 - Complete Sales Orders COGS handling:
   - eBay purchase FIFO allocation has been implemented in
     `integrations/apply_ebay_purchase_fifo_cogs.py` and run after the 2025
-    Amazon sales-order backfill.
+    Amazon sales-order backfill. It can include explicitly Listed legacy
+    purchase-item lots from non-eBay suppliers when those lots have ASIN,
+    quantity, and cost.
   - non-eBay FIFO allocation and targeted rebalancing have been implemented in
     `integrations/apply_non_ebay_fifo_cogs.py`.
   - rerun the missing COGS review export and manually review only the remaining
@@ -102,6 +155,9 @@ Roadmap:
 - Continue Amazon order and inventory missing-data cleanup until remaining
   Sales Orders COGS/fee exceptions and open inventory reconciliation findings
   are either resolved or explicitly classified.
+- Extend Order Problems return handling with full case/event drawer timelines,
+  scheduled cancellation search import if more refund-follow-up cancellations
+  appear, and controlled partial refund cost adjustment when the item is kept.
 - Add an Amazon FBA removals workflow for damaged/unsellable units that Amazon
   automatically returns. The workflow should track removal orders, receiving
   returned units, deciding whether they are still new/sellable, and routing good
@@ -113,6 +169,9 @@ Roadmap:
   evidence and resolution paths.
 - Add future eBay seller-order ingestion in separate seller-sales tables without
   writing to `purchases` or `purchase_items`.
+- Mature the Sourcing workspace with UI-run orchestration, AI image/title
+  observations, expired listing detection, ROI snooze reactivation, and API
+  quota/cache cadence for dismissed and snoozed listings.
 
 ## External API Safety
 
@@ -120,9 +179,14 @@ All external API integrations are read-only unless explicitly documented otherwi
 
 - Amazon SP-API uses LWA auth and an explicit read-only path allow-list.
 - Amazon write endpoints, restricted PII flows, and seller order/customer PII are not used.
+- Amazon Seller Central account-health and feedback observations stay in
+  Amazon-specific dashboard tables. `GET_SELLER_FEEDBACK_DATA` is allowed only
+  as a read-only Reports API source for 1-3 star feedback alerts.
 - Keepa token-spending calls are never triggered by frontend page loads.
 - Informed Listings Management upload/write paths are not used.
-- YNAB data is cash/budget context only.
+- YNAB data is read-only cash/budget and transaction context only.
+- Sourcing marketplace integrations are read-only; MBOP does not purchase,
+  bid, submit Best Offers, or create eBay actions automatically.
 
 ## Backend-Owned Business Logic
 
@@ -136,7 +200,7 @@ Backend/API layers own:
 - repricing recommendation tiers, buckets, target prices, and reasons
 - business value snapshots
 
-Inventory value rollups treat saved current FBA shipment links as MBOP outbound-to-Amazon cost, while Amazon SP-API and InventoryLab snapshots represent inventory already in Amazon's inventory layers. The rollup avoids double-counting Amazon inbound rows for ASINs already covered by a saved MBOP outbound shipment.
+Inventory value rollups treat saved current FBA shipment links as MBOP outbound-to-Amazon cost only while the shipment item has remaining outbound quantity. Once Amazon shipment sync shows units received or available, the received quantity is no longer projected as MBOP outbound inventory. InventoryLab snapshots remain audit context only and do not replace MBOP/Amazon source-of-truth tables.
 
 Frontend components render API-provided values and manage UI workflow state only.
 
@@ -166,3 +230,20 @@ shipping-label adjustment events when Veeqo is missing. Sales Orders displays
 no-charge Amazon replacements as
 `Replacement`, while fully refunded rows are classified as `refunded` from
 refund principal events even if the Amazon order status still says `Shipped`.
+
+## Business Cash Value
+
+Amazon cash valuation uses two Amazon Finance concepts:
+
+- Amazon-held cash: deferred transactions plus open financial event groups.
+- Amazon-to-bank in-transit cash: fund transfers still marked `Processing` plus
+  completed/succeeded fund transfers that do not yet have a matching YNAB
+  Business deposit transaction.
+
+Completed payout matching uses the local `ynab_business_transactions` history,
+matching Amazon fund transfers to positive Business-category YNAB transactions
+by amount, date window, and Amazon payee/import text. Completed payouts remain
+in `in_transit_to_bank` only while no matching YNAB deposit is present. The
+unmatched-completed-payout review window defaults to 14 days and can be
+overridden with `AMAZON_UNMATCHED_COMPLETED_TRANSFER_LOOKBACK_DAYS` or
+`amazon_sync_finance_balances.py --unmatched-completed-transfer-lookback-days`.

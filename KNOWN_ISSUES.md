@@ -2,9 +2,75 @@
 
 This file tracks active issues, monitor items, and deferred decisions for Midnight Blue Operations Platform (MBOP).
 
-Last reviewed: 2026-06-02
+Last reviewed: 2026-06-13
 
 # Active Issues
+
+## Dashboard Remaining MVP Gaps
+
+Status: ACTIVE / MONITORING
+
+Problem:
+The dashboard split now has live monitoring tabs for Overview, Financial,
+Operations, Inventory, Amazon, Growth, Sourcing, Loss Prevention, and System
+Health, but a few pieces are intentionally MVP-level.
+
+Current gaps:
+- Some dashboard drill-downs open the owning workflow base route because the
+  target page does not yet support the exact requested filter.
+- System Health does not automatically query Supabase capacity/disk IO metrics;
+  this avoids heavy diagnostics and secret exposure, but means capacity fields
+  remain guarded placeholders until a safe source exists.
+- Sourcing uses transparent local scoring from existing sales/profit/inventory
+  data. It is a manual research queue, not a full sourcing engine.
+- Loss Prevention estimated value at risk is approximate where expected refund
+  amount is unavailable and falls back to purchase item cost.
+
+Recommended next mitigation:
+- Add filter support to owning workflow pages before deep-linking to specific
+  dashboard slices.
+- Add a safe lightweight capacity source or operator-entered capacity status if
+  Supabase exposes plan/IO data without heavy queries.
+
+---
+
+## Scheduled Sync Scope Needs Optimization
+
+Status: MITIGATED / MONITOR
+
+Problem:
+The local scheduled runs have grown organically and now sync more domains than
+need the same cadence. Some jobs are valuable once or twice per day, while other
+data can be refreshed less often or only on demand. Running unnecessary jobs
+consumes external API quota, increases Supabase IO/load, lengthens scheduler
+runs, and can make troubleshooting harder when an unrelated sync fails.
+
+Current mitigation:
+- `run_all_syncs.py` supports grouped core/daily runs, disabled jobs, and
+  per-job runtime logging.
+- eBay buyer purchases, EasyPost tracking, order-problem return sync,
+  RevSeller enrichment, YNAB business transactions, and Amazon sales finance
+  syncs have been narrowed toward incremental or missing-data work where the
+  integration supports it.
+- Windows scheduled MBOP tasks have `MultipleInstances=IgnoreNew` and
+  `StartWhenAvailable=False` so laptop wake-up does not stack missed scheduled
+  runs.
+- scheduler output writes through a per-run temp log and appends to
+  `logs/scheduler.log` with retry handling to avoid file-lock collisions.
+- screen refresh buttons can run screen-specific scheduled-style refreshes
+  without historical backfill.
+- sourcing availability cleanup is now a daily scheduled job and only checks
+  open, Watch, and ROI-snoozed opportunities; Purchased / Offer Made rows stay
+  available for purchase matching/enrichment.
+Recommended next mitigation:
+- Keep jobs that feed the same calculation, such as Business Inventory And Cash
+  Value, on the same cadence so freshness indicators stay meaningful.
+- Avoid scheduling exploratory/backfill-style syncs; keep those manual and
+  resumable.
+- Continue moving long-polling tracking updates toward EasyPost webhooks once a
+  public HTTPS endpoint exists.
+
+---
 
 ## Amazon Orders And Inventory Missing Data
 
@@ -98,7 +164,8 @@ The purchases page became slow as the table grew and the frontend loaded, filter
 
 Current mitigation:
 - `/api/purchases` owns server-side filtering, sorting, pagination, and summary counts.
-- default purchases filter is all statuses except Listed.
+- default purchases filter is Open Purchase Work: Listed, Cancelled, Return
+  Opened, and Return Pending rows are excluded.
 - reporting-excluded rows are excluded before database pagination.
 - query-aware browser cache support exists but is temporarily disabled while server-side performance is validated.
 - Refresh clears any purchases cache entries and reloads from `/api/purchases`.
@@ -126,6 +193,11 @@ Current mitigation:
 - backend system detection has been centralized.
 - eBay import/sync populates `purchase_items.system` from recognized title terms.
 - RevSeller enrichment requires system-aware matching before ASIN assignment.
+- RevSeller enrichment now scans only Open Purchase Work rows and skips
+  reporting-excluded rows, matching the default Purchases list boundary.
+- optional OpenAI structured-output review can handle deterministic misses by
+  choosing from same-system RevSeller candidates only; it cannot invent ASINs
+  and writes AI match diagnostics for audit.
 - matched Amazon/RevSeller title is stored separately from the eBay supplier title.
 - shared marketplace-title cleaning runs before RevSeller normalized matching.
 - legacy Purchases sheet backfill and ASIN validation resolved most historical gaps.
@@ -306,14 +378,96 @@ The repo moved from a OneDrive path to `C:\Dev\amazon-ebay-ops-system`, so the l
 
 Current mitigation:
 - `run_all_syncs.bat` runs successfully when launched directly from the repo.
-- `run_all_syncs.py` now includes eBay buyer purchase sync, EasyPost shipment sync, supplier returns sync, RevSeller enrichment, Amazon FBA inventory, Amazon listing status, Amazon inventory planning, Amazon Finance, Informed reports, YNAB cash balance, guarded Keepa refresh, and business value snapshot.
+- `run_all_syncs.bat` writes to a per-run temp log and then appends to
+  `logs/scheduler.log` with retries to avoid transient Windows file-lock
+  failures.
+- `run_all_syncs.py` now includes eBay buyer purchase sync, sourcing purchase matching, EasyPost shipment sync, Order Problems return/inquiry sync, RevSeller enrichment, Amazon FBA inventory, Amazon FBA shipment sync, Amazon listing status, Amazon inventory planning, Amazon Finance, Informed reports, YNAB cash balance, sourcing listing availability cleanup, guarded Keepa refresh, and business value snapshot.
+- legacy supplier returns sync has been removed from active orchestration and
+  System Health because Order Problems owns return/inquiry/case freshness.
 - direct full-orchestrator validation completed with exit code 0.
-- the stale OneDrive working-directory problem has been replaced by AM/PM scheduled tasks that target the `C:\Dev` path.
+- the stale OneDrive working-directory problem has been replaced by AM, PM,
+  Daily, and Catalog scheduled tasks that target the `C:\Dev` path.
+- all MBOP scheduled tasks have Task Scheduler catch-up disabled
+  (`StartWhenAvailable = False`) and overlap handling set to
+  `MultipleInstances = IgnoreNew`.
 
 Recommended guardrail:
-- confirm both scheduled tasks append successful runs to `logs/scheduler.log`.
+- monitor the next scheduled runs to confirm laptop sleep no longer causes
+  missed runs to replay together on wake.
 - use the root scheduled-task path when manually triggering, for example `schtasks /Run /TN "\Amazon eBay Ops Sync PM"`.
 - keep public EasyPost webhooks on the roadmap so the scheduler is not the only long-term carrier-update mechanism.
+
+---
+
+## Amazon FBA Shipment Carrier Details Limited By SP-API
+
+Status: ACTIVE / MONITOR
+
+Problem:
+MBOP can refresh known Amazon FBA shipment status, item quantities, receiving
+counts, FBA availability, fulfillment center, and remaining outbound value, but
+Amazon did not expose carrier tracking, pickup date, carrier ETA, or delivered
+date for the current shipment through the tested SP-API read endpoints.
+
+Observed behavior:
+- v0 `getShipments` by known shipment ID returned shipment status and FC.
+- v0 shipment items returned expected and received item quantities.
+- v0 `getTransportDetails` returned an Amazon deprecation error.
+- MBOP no longer calls deprecated v0 `getTransportDetails`.
+- v0 date-range shipment discovery returned no recent shipments across tested
+  windows.
+- v2024 `listInboundPlans` was accessible, but some plans return a 400 because
+  Amazon says they were converted from v0 shipments, and the current June 2026
+  shipment was not discoverable by confirmation ID in the tested pages.
+
+Current mitigation:
+- MBOP stores carrier/tracking fields when Amazon or a future carrier source
+  exposes them.
+- MBOP stores best-effort v2024 bridge attempts in `fba_shipments.raw_tracking_json`,
+  including any discovered `inboundPlanId`, internal v2024 `shipmentId`,
+  transportation option IDs, raw v2024 payloads, and tracking details.
+- The Shipments tab treats null pickup/delivery/tracking as unavailable source
+  data, not as evidence that UPS tracking does not exist in Seller Central.
+- Shipment status, FC, received quantities, and FBA availability still refresh
+  from Amazon by known shipment ID.
+
+Recommended next mitigation:
+- Recheck Fulfillment Inbound v2024 shipment/transport endpoints when Amazon
+  exposes current Send to Amazon shipment IDs with inbound plan IDs.
+- If SP-API remains incomplete, evaluate a UPS/EasyPost outbound-to-Amazon
+  tracking path after shipment tracking numbers can be captured from Seller
+  Central or operator input.
+
+---
+
+## Order Problems eBay Return Sync Needs Live Validation
+
+Status: ACTIVE / NEW WORKFLOW
+
+Problem:
+The new Order Problems workflow has a read-only eBay Post-Order return sync that
+is now scheduled, but less-common eBay return/case states still need continued
+live validation as they appear.
+
+Risk:
+Operator-entered local workflow state is available now, but eBay status/deadline
+automation may be incomplete for uncommon buyer-side Post-Order API payloads.
+
+Current mitigation:
+- old supplier returns data was cleared and the legacy supplier returns sync was
+  removed from active orchestration and System Health.
+- `integrations/ebay_sync_order_problem_returns.py` is read-only and writes only
+  to `order_problem_cases` and `order_problem_events`.
+- `integrations/ebay_sync_order_problem_returns.py` is part of the scheduled
+  `core` group.
+- replacement tracking is now considered when eBay closes item-not-received
+  inquiries: delivered replacement tracking resolves the case as item received
+  and returns the purchase item to `delivered` for Receiving verification.
+- marketplace actions still happen manually on ebay.com.
+
+Recommended next mitigation:
+- continue inspecting mapped return IDs, statuses, due dates, action URLs,
+  refund amounts, and raw JSON when new return/case states appear.
 
 ---
 
@@ -328,9 +482,12 @@ Current mitigation:
 - Amazon FBA inventory, Amazon listing status, Amazon inventory planning, Informed repricing reports, and YNAB cash balance updated correctly from Supabase signal tables.
 - eBay buyer purchases now uses `import_batches.imported_at`.
 - RevSeller enrichment now uses the latest local `data/revseller_enrichment_diagnostics_*.csv` file as its run signal.
-- EasyPost shipments and eBay supplier returns ignore null timestamp rows when selecting their latest signal.
+- EasyPost shipments ignore null timestamp rows when selecting their latest signal.
 - Keepa products can remain on the previous snapshot timestamp when the guarded scheduled run selects 0 ASINs and writes no new snapshot rows.
 - `run_all_syncs.py` now writes `logs/sync_health.json`, so direct orchestrator runs can overlay a newer success/failure when a domain table does not write a fresh row.
+- `run_all_syncs.py` now writes `running` records as each job starts and
+  `blocked` records when a scheduled wake-up collision loses the local lock, so
+  System Health can show active progress and missed groups during/after a run.
 - Business value snapshot upserts now refresh `captured_at`.
 - Inventory reconciliation is now included in `run_all_syncs.py` so its health expectation matches the orchestrator.
 
@@ -338,7 +495,9 @@ Impact:
 The health page is less likely to make completed syncs look stale or unknown when the underlying integration ran successfully.
 
 Recommended next mitigation:
-- monitor the next scheduled/direct all-sync to confirm Keepa and business value use `logs/sync_health.json` when no newer product snapshot is written.
+- continue monitoring scheduled wake-up behavior. Windows can still launch
+  multiple missed tasks at once, but lock losers are now visible in System
+  Health instead of disappearing.
 - consider a future Supabase sync-run ledger if local-only health records become insufficient.
 
 ---
@@ -386,29 +545,31 @@ Options:
 
 # Monitor Items
 
-## Amazon Sales Missing COGS Needs eBay FIFO Allocation
+## Amazon Sales Missing COGS Needs Ongoing Source Cleanup
 
-Status: ACTIVE / WAITING FOR 2025 SALES BACKFILL COMPLETION
+Status: ACTIVE / POST-FIFO CLEANUP
 
 Problem:
-The Sales Orders page shows many Amazon sales rows with missing COGS even though
-the matching eBay purchase rows already exist in MBOP with ASIN, quantity, and
-unit cost.
+The Sales Orders page still has a smaller set of Amazon sales rows with missing
+COGS after the 2025-forward Amazon order backfill and broad FIFO allocation.
+Remaining exceptions generally need missing purchase-source rows, corrected
+ASIN/quantity/cost, or explicit classification.
 
 Current analysis:
 - current review export: `exports/missing_amazon_cogs_review.csv`
-- most missing COGS rows are in the `purchase_data_available_needs_fifo` bucket
-- these should not be fixed manually one by one
-- the correct fix is to allocate eBay `purchase_items` into
-  `amazon_sales_cogs_consumption` using FIFO by ASIN
+- broad eBay and non-eBay FIFO allocators have already been run after the 2025
+  sales-order backfill.
+- targeted legacy-listed FIFO cleanup on 2026-06-04 marked three old source
+  orders as Listed and applied 25 additional Amazon sales COGS rows.
+- the eBay FIFO allocator can now include explicitly Listed legacy
+  purchase-item lots from non-eBay suppliers, which keeps old resale source
+  records out of Purchases open work while still allowing them to support COGS.
 
 Current blocker:
-- wait for the 2025 Amazon sales-order backfill to finish before applying broad
-  FIFO allocation, so the allocator sees the full 2025-forward sales set
+- remaining rows need source-data cleanup or classification, not another broad
+  historical order backfill.
 
 Recommended next step:
-- implement and run an eBay purchase FIFO allocator after the 2025 backfill
-  completes
 - rerun the missing COGS review export
 - manually review only the remaining exception buckets:
   - no purchase ASIN match

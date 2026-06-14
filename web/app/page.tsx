@@ -28,6 +28,7 @@ export default function PurchasesPage() {
   const [searchText, setSearchText] = useState("");
   const [asinFilter, setAsinFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("active");
+  const [problemStage, setProblemStage] = useState("open");
   const [sortColumn, setSortColumn] = useState<PurchaseSortColumn>("order_date");
   const [sortDirection, setSortDirection] =
     useState<PurchaseSortDirection>("desc");
@@ -49,6 +50,7 @@ export default function PurchasesPage() {
       sortDirection: effectiveSortDirection,
       page,
       pageSize: PAGE_SIZE,
+      problemStage: viewMode === "order_problems" ? problemStage : undefined,
     }),
     [
       effectiveAsinFilter,
@@ -56,7 +58,9 @@ export default function PurchasesPage() {
       effectiveSortDirection,
       effectiveStatusFilter,
       page,
+      problemStage,
       searchText,
+      viewMode,
     ]
   );
 
@@ -200,6 +204,70 @@ export default function PurchasesPage() {
     }
   }
 
+  async function runSelectedProblemAction(
+    action: string,
+    payload: { notes?: string; amount?: number | null; tracking_number?: string | null; problem_type?: string | null } = {},
+  ) {
+    if (!selectedRow?.problem_case_id) return;
+
+    setError(null);
+
+    try {
+      const response = await fetch(`/api/order-problems/${selectedRow.problem_case_id}/actions`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action, ...payload }),
+      });
+
+      if (!response.ok) {
+        const message = await response.text();
+        throw new Error(message || `Workflow action failed: ${response.status}`);
+      }
+
+      const result = await response.json();
+      const updatedCase = result.case as Record<string, unknown> | null;
+      const event = result.event as NonNullable<PurchaseRow["problem_events"]>[number] | null;
+      await loadPurchases({ forceRefresh: true });
+
+      if (
+        updatedCase &&
+        updatedCase.is_open !== false &&
+        !String(updatedCase.workflow_state ?? "").startsWith("resolved_") &&
+        !String(updatedCase.workflow_state ?? "").startsWith("closed_")
+      ) {
+        setSelectedRow((current) =>
+          current
+            ? {
+                ...current,
+                problem_type: String(updatedCase.problem_type ?? current.problem_type ?? ""),
+                workflow_state: String(updatedCase.workflow_state ?? current.workflow_state ?? ""),
+                problem_priority: String(updatedCase.priority ?? current.problem_priority ?? ""),
+                problem_is_open: Boolean(updatedCase.is_open),
+                problem_needs_response: Boolean(updatedCase.needs_response),
+                problem_next_action: String(updatedCase.next_action ?? ""),
+                problem_next_action_due_at: String(updatedCase.next_action_due_at ?? ""),
+                ebay_return_status: String(updatedCase.ebay_return_status ?? current.ebay_return_status ?? ""),
+                expected_refund_amount: numberOrNull(updatedCase.expected_refund_amount),
+                actual_refund_amount: numberOrNull(updatedCase.actual_refund_amount),
+                partial_refund_amount: numberOrNull(updatedCase.partial_refund_amount),
+                replacement_tracking_number: String(
+                  updatedCase.replacement_tracking_number ?? current.replacement_tracking_number ?? "",
+                ),
+                problem_notes: String(updatedCase.notes ?? current.problem_notes ?? ""),
+                problem_events: event
+                  ? [event, ...(current.problem_events ?? [])].slice(0, 12)
+                  : current.problem_events,
+              }
+            : current,
+        );
+      } else {
+        setSelectedRow(null);
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Workflow action failed.");
+    }
+  }
+
   function updatePriceDraft(key: string, value: string) {
     setPriceDrafts((current) => ({
       ...current,
@@ -336,6 +404,11 @@ export default function PurchasesPage() {
         <PurchaseProblemTable
           rows={rows}
           loading={loading}
+          stage={problemStage}
+          onStageChange={(value) => {
+            setProblemStage(value);
+            setPage(1);
+          }}
           onSelectRow={openDetails}
         />
       )}
@@ -382,6 +455,7 @@ export default function PurchasesPage() {
           onSystemChange={setDrawerSystem}
           onAddSplitItem={addSplitItem}
           onMarkReturnPending={markSelectedReturnPending}
+          onProblemAction={runSelectedProblemAction}
           onSave={saveDrawerMatch}
           onClose={() => setSelectedRow(null)}
         />
@@ -420,6 +494,12 @@ function formatPriceDraft(value?: number | null) {
   }
 
   return Number(value).toFixed(2);
+}
+
+function numberOrNull(value: unknown) {
+  if (value === null || value === undefined || value === "") return null;
+  const numberValue = Number(value);
+  return Number.isFinite(numberValue) ? numberValue : null;
 }
 
 function noticeClass(tone: RefreshNotice["tone"]) {

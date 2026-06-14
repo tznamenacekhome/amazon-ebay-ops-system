@@ -42,7 +42,7 @@ export function EditablePriceCell({
       <button
         type="button"
         onClick={startEditing}
-        className="inline-flex min-h-8 cursor-pointer items-center gap-1.5 rounded-md px-1.5 py-1 text-left text-sm hover:bg-slate-100"
+        className="inline-flex h-5 cursor-pointer items-center gap-1.5 rounded-md text-left text-sm leading-5 hover:bg-slate-100"
         title={displayValue ? "Edit sell price" : "Update sell price"}
       >
         {displayValue ? (

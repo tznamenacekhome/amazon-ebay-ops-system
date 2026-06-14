@@ -96,7 +96,8 @@ export function usePurchases(query: PurchaseQuery) {
         }
       }
 
-      const response = await fetch(`/api/purchases?${buildQueryString(query)}`, {
+      const endpoint = query.asinFilter === "order_problems" ? "/api/order-problems" : "/api/purchases";
+      const response = await fetch(`${endpoint}?${buildQueryString(query)}`, {
         cache: "no-store",
       });
 
@@ -319,6 +320,10 @@ function buildQueryString(query: PurchaseQuery) {
     page: String(query.page),
     pageSize: String(query.pageSize),
   });
+
+  if (query.problemStage) {
+    params.set("stage", query.problemStage);
+  }
 
   return params.toString();
 }

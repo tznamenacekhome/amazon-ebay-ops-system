@@ -13,6 +13,10 @@ type ReceivingUpdate = {
   marketplace: "Amazon" | "eBay" | null;
   asin?: string | null;
   sell_price?: number | null;
+  receiving_outcome?: string | null;
+  condition_issue?: string | null;
+  image_clues?: string[] | null;
+  receiving_notes?: string | null;
 };
 
 export async function GET() {
@@ -222,7 +226,7 @@ async function receiveItem(update: ReceivingUpdate, receivedDate: string) {
     .select(
       "item_id,purchase_id,title,amazon_title,quantity,unit_cost,asin,target_price," +
         "system,condition,supplier_listing_url,import_batch_id,raw_import_json," +
-        "manual_title_override,manual_unit_cost_override"
+        "manual_title_override,manual_unit_cost_override,purchases(supplier_order_id)"
     )
     .eq("item_id", update.item_id)
     .single();
@@ -247,6 +251,7 @@ async function receiveItem(update: ReceivingUpdate, receivedDate: string) {
     raw_import_json: unknown;
     manual_title_override: boolean | null;
     manual_unit_cost_override: boolean | null;
+    purchases?: { supplier_order_id?: string | null } | null;
   };
 
   const expectedQuantity = Number(source.quantity ?? 1);
@@ -279,6 +284,7 @@ async function receiveItem(update: ReceivingUpdate, receivedDate: string) {
       .single();
 
     if (error) throw new Error(error.message);
+    await recordReceivingOutcome(source, update, quantityReceived, marketplace, asin, sellPrice);
     return data;
   }
 
@@ -296,6 +302,7 @@ async function receiveItem(update: ReceivingUpdate, receivedDate: string) {
       .single();
 
     if (error) throw new Error(error.message);
+    await recordReceivingOutcome(source, update, quantityReceived, marketplace, asin, sellPrice);
     return data;
   }
 
@@ -328,7 +335,115 @@ async function receiveItem(update: ReceivingUpdate, receivedDate: string) {
     );
   }
 
+  await recordReceivingOutcome(source, update, quantityReceived, marketplace, asin, sellPrice);
   return data;
+}
+
+async function recordReceivingOutcome(
+  source: {
+    item_id: string;
+    purchase_id: string;
+    title: string | null;
+    amazon_title: string | null;
+    quantity: number | null;
+    asin: string | null;
+    target_price: number | null;
+    system: string | null;
+    supplier_listing_url: string | null;
+    raw_import_json: unknown;
+    purchases?: { supplier_order_id?: string | null } | null;
+  },
+  update: ReceivingUpdate,
+  quantityReceived: number,
+  marketplace: "Amazon" | "eBay",
+  asin: string | null,
+  sellPrice: number | null
+) {
+  const outcome = normalizeReceivingOutcome(update.receiving_outcome, update.return_pending);
+  const conditionIssue = normalizeConditionIssue(update.condition_issue);
+  const imageClues = Array.isArray(update.image_clues)
+    ? update.image_clues.map((value) => String(value)).filter(Boolean)
+    : [];
+  const notes =
+    typeof update.receiving_notes === "string" && update.receiving_notes.trim()
+      ? update.receiving_notes.trim()
+      : null;
+
+  const { error } = await supabase
+    .from("matching_intelligence_receiving_outcomes")
+    .upsert(
+      {
+        purchase_item_id: source.item_id,
+        purchase_id: source.purchase_id,
+        outcome,
+        condition_issue: conditionIssue,
+        image_clues: imageClues,
+        notes,
+        quantity_expected: Number(source.quantity ?? 1),
+        quantity_received: quantityReceived,
+        marketplace,
+        asin: asin ?? source.asin,
+        amazon_title: source.amazon_title,
+        ebay_title: source.title,
+        system: source.system,
+        supplier_order_id: source.purchases?.supplier_order_id ?? null,
+        ebay_item_id: ebayItemIdFromSource(source),
+        ebay_listing_url: source.supplier_listing_url ?? getEbayListingUrl({
+          supplier_listing_url: source.supplier_listing_url,
+          raw_import_json: source.raw_import_json,
+        }),
+        raw_context_json: {
+          targetPrice: sellPrice ?? source.target_price,
+          returnPending: update.return_pending,
+          rawImportJson: source.raw_import_json,
+        },
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "purchase_item_id" },
+    );
+
+  if (error) {
+    console.warn("Failed to record receiving outcome", error.message);
+  }
+}
+
+function normalizeReceivingOutcome(value: unknown, returnPending: boolean) {
+  const normalized = String(value || "").trim();
+  if (
+    [
+      "correct_item",
+      "wrong_item",
+      "wrong_condition",
+      "packaging_issue",
+      "incomplete_item",
+      "listed_successfully",
+    ].includes(normalized)
+  ) {
+    return normalized;
+  }
+  return returnPending ? "wrong_condition" : "correct_item";
+}
+
+function normalizeConditionIssue(value: unknown) {
+  const normalized = String(value || "").trim();
+  return [
+    "wrong_product",
+    "wrong_platform",
+    "wrong_edition_version",
+    "non_north_american_version",
+    "incomplete_product",
+    "missing_shrink_wrap",
+    "suspected_reseal",
+    "packaging_damage",
+    "other",
+  ].includes(normalized)
+    ? normalized
+    : null;
+}
+
+function ebayItemIdFromSource(source: { supplier_listing_url?: string | null; raw_import_json?: unknown }) {
+  const urlId = source.supplier_listing_url?.match(/\/itm\/(\d{9,15})/)?.[1];
+  return urlId || findNestedString(source.raw_import_json, "ItemID");
 }
 
 async function createMissingQuantitySplit(
