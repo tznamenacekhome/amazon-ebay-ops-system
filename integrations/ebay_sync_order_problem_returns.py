@@ -547,6 +547,7 @@ def map_return(return_row: dict[str, Any], supabase) -> dict[str, Any] | None:
         "actual_refund_amount": actual_refund,
         "partial_refund_amount": estimated_refund if workflow_state == "partial_refund_offered" else None,
         "refund_currency": currency,
+        "purchase_item_status": "return_opened" if workflow_state not in {"resolved_refunded"} else "return_opened",
         "raw_ebay_json": return_row,
     }
 
@@ -700,16 +701,29 @@ def upsert_order_problem_case(supabase, mapped: dict[str, Any]) -> str:
     existing = find_existing_case(supabase, mapped)
     now = iso_z(dt.datetime.now(dt.timezone.utc))
     if existing:
-        if should_preserve_operator_terminal_state(existing):
+        if should_preserve_operator_terminal_state(existing, mapped):
             append_event(supabase, existing["problem_case_id"], "ebay_return_sync_skipped_terminal", mapped)
             return "skipped"
 
         case_id = existing["problem_case_id"]
         updates = {key: value for key, value in mapped.items() if value is not None and key != "purchase_item_status"}
+        preserve_active_return = should_preserve_active_return_state(existing, mapped)
         if should_preserve_operator_replacement_state(existing, mapped):
             updates.pop("workflow_state", None)
             updates.pop("next_action", None)
             updates.pop("needs_response", None)
+        if preserve_active_return:
+            updates.pop("workflow_state", None)
+            updates.pop("is_open", None)
+            updates.pop("needs_response", None)
+            updates.pop("next_action", None)
+            updates.pop("next_action_due_at", None)
+            updates.pop("closed_at", None)
+            updates.pop("refund_received_at", None)
+            updates.pop("problem_source", None)
+            updates.pop("problem_type", None)
+            updates.pop("ebay_current_type", None)
+            updates.pop("ebay_return_status", None)
         if should_require_operator_refund_confirmation(existing, mapped):
             updates["workflow_state"] = "refund_pending"
             updates["is_open"] = True
@@ -717,16 +731,22 @@ def upsert_order_problem_case(supabase, mapped: dict[str, Any]) -> str:
             updates["refund_due_at"] = now
             updates["closed_at"] = None
             updates["refund_received_at"] = None
-        if mapped.get("workflow_state") == "resolved_received_item":
+        if mapped.get("workflow_state") == "resolved_received_item" and not preserve_active_return:
             updates["is_open"] = False
             updates["needs_response"] = False
             updates["next_action"] = None
             updates["next_action_due_at"] = None
             updates["refund_due_at"] = None
+        if is_active_return_mapping(mapped):
+            updates["is_open"] = True
+            updates["closed_at"] = None
+            updates["refund_received_at"] = None
+            updates["next_action"] = mapped.get("next_action") or next_action_for_state(mapped.get("workflow_state") or "")
         updates["updated_at"] = now
         supabase.table("order_problem_cases").update(updates).eq("problem_case_id", case_id).execute()
         ensure_replacement_tracking_shipment(supabase, mapped)
-        update_purchase_item_status_from_problem(supabase, mapped)
+        if not preserve_active_return:
+            update_purchase_item_status_from_problem(supabase, mapped)
         close_duplicate_ebay_cases(supabase, case_id, mapped, now)
         append_event(supabase, case_id, "ebay_return_sync_updated", mapped)
         return "updated"
@@ -872,7 +892,9 @@ def update_purchase_item_status_from_problem(supabase, mapped: dict[str, Any]) -
         .execute()
     )
     current_status = clean_lower((response.data or [{}])[0].get("current_status"))
-    if current_status in {"received", "listed", "cancelled"}:
+    if current_status in {"listed", "cancelled"}:
+        return
+    if current_status == "received" and purchase_status != "return_opened":
         return
 
     supabase.table("purchase_items").update({"current_status": purchase_status}).eq("item_id", item_id).execute()
@@ -881,7 +903,7 @@ def update_purchase_item_status_from_problem(supabase, mapped: dict[str, Any]) -
 def find_existing_case(supabase, mapped: dict[str, Any]) -> dict[str, Any] | None:
     response = (
         supabase.table("order_problem_cases")
-        .select("problem_case_id,workflow_state,problem_source,is_open,closed_at,refund_received_at")
+        .select("problem_case_id,workflow_state,problem_source,is_open,closed_at,refund_received_at,ebay_return_id,ebay_case_id")
         .eq("purchase_item_id", mapped["purchase_item_id"])
         .eq("is_open", True)
         .limit(1)
@@ -894,7 +916,7 @@ def find_existing_case(supabase, mapped: dict[str, Any]) -> dict[str, Any] | Non
     if supplier_order_id:
         response = (
             supabase.table("order_problem_cases")
-            .select("problem_case_id,workflow_state,problem_source,is_open,closed_at,refund_received_at")
+            .select("problem_case_id,workflow_state,problem_source,is_open,closed_at,refund_received_at,ebay_return_id,ebay_case_id")
             .eq("supplier_order_id", supplier_order_id)
             .eq("is_open", True)
             .in_("workflow_state", ["return_opened", "return_needed", "refund_pending"])
@@ -908,7 +930,7 @@ def find_existing_case(supabase, mapped: dict[str, Any]) -> dict[str, Any] | Non
     if return_id:
         response = (
             supabase.table("order_problem_cases")
-            .select("problem_case_id,workflow_state,problem_source,is_open,closed_at,refund_received_at")
+            .select("problem_case_id,workflow_state,problem_source,is_open,closed_at,refund_received_at,ebay_return_id,ebay_case_id")
             .eq("ebay_return_id", return_id)
             .limit(1)
             .execute()
@@ -920,7 +942,7 @@ def find_existing_case(supabase, mapped: dict[str, Any]) -> dict[str, Any] | Non
     if inquiry_id:
         response = (
             supabase.table("order_problem_cases")
-            .select("problem_case_id,workflow_state,problem_source,is_open,closed_at,refund_received_at")
+            .select("problem_case_id,workflow_state,problem_source,is_open,closed_at,refund_received_at,ebay_return_id,ebay_case_id")
             .eq("ebay_inquiry_id", inquiry_id)
             .limit(1)
             .execute()
@@ -932,7 +954,7 @@ def find_existing_case(supabase, mapped: dict[str, Any]) -> dict[str, Any] | Non
     if case_id:
         response = (
             supabase.table("order_problem_cases")
-            .select("problem_case_id,workflow_state,problem_source,is_open,closed_at,refund_received_at")
+            .select("problem_case_id,workflow_state,problem_source,is_open,closed_at,refund_received_at,ebay_return_id,ebay_case_id")
             .eq("ebay_case_id", case_id)
             .limit(1)
             .execute()
@@ -943,7 +965,18 @@ def find_existing_case(supabase, mapped: dict[str, Any]) -> dict[str, Any] | Non
     return None
 
 
-def should_preserve_operator_terminal_state(existing: dict[str, Any]) -> bool:
+def should_preserve_operator_terminal_state(existing: dict[str, Any], mapped: dict[str, Any]) -> bool:
+    if mapped.get("problem_source") == "ebay_return_sync" and mapped.get("workflow_state") not in {
+        "resolved_refunded",
+        "closed_no_action",
+        "closed_no_refund",
+    }:
+        return False
+    if existing.get("problem_source") == "ebay_return_sync":
+        return False
+    if existing.get("ebay_return_id") and existing.get("ebay_return_id") == existing.get("ebay_case_id"):
+        return False
+
     workflow_state = existing.get("workflow_state")
     if workflow_state not in {
         "resolved_refunded",
@@ -965,6 +998,39 @@ def should_preserve_operator_replacement_state(
     if mapped.get("is_open") is False:
         return False
     return existing.get("workflow_state") in {"replacement_pending", "replacement_shipped"}
+
+
+def should_preserve_active_return_state(
+    existing: dict[str, Any],
+    mapped: dict[str, Any],
+) -> bool:
+    if mapped.get("problem_source") != "ebay_inquiry_sync":
+        return False
+    if existing.get("problem_source") != "ebay_return_sync":
+        return False
+    if existing.get("workflow_state") not in {
+        "return_opened",
+        "seller_message_needs_response",
+        "waiting_on_seller",
+        "partial_refund_offered",
+        "label_pending",
+        "label_received",
+        "return_shipped",
+        "seller_received_return",
+        "refund_pending",
+        "escalation_available",
+        "escalated",
+    }:
+        return False
+    return mapped.get("workflow_state") in {"resolved_received_item", "closed_no_action"}
+
+
+def is_active_return_mapping(mapped: dict[str, Any]) -> bool:
+    return mapped.get("problem_source") == "ebay_return_sync" and mapped.get("workflow_state") not in {
+        "resolved_refunded",
+        "closed_no_action",
+        "closed_no_refund",
+    }
 
 
 def should_require_operator_refund_confirmation(
@@ -1235,7 +1301,7 @@ def buyer_response_due(return_row: dict[str, Any]) -> bool:
 
 def next_action_for_state(state: str) -> str | None:
     return {
-        "return_opened": "Review eBay return/case status.",
+        "return_opened": "Wait for seller response.",
         "seller_message_needs_response": "Respond to seller in eBay.",
         "waiting_on_seller": "Wait for seller response.",
         "partial_refund_offered": "Review partial refund offer.",
