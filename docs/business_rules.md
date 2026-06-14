@@ -1,6 +1,6 @@
 # Business Rules
 
-Last updated: 2026-06-13
+Last updated: 2026-06-14
 
 ## Cost And Reporting
 
@@ -97,6 +97,10 @@ Carrier/status syncs must not downgrade workflow-owned statuses.
 - Amazon-bound received items require ASIN and sell price.
 - eBay-bound received items do not require Amazon title, ASIN, or sell price.
 - Return Pending is separate from Return Opened.
+- When Receiving discovers a damaged, wrong-condition, wrong-item, packaging,
+  or incomplete-item issue, it sets `purchase_items.current_status =
+  return_pending` and opens or updates the active Order Problems episode as a
+  receiving exception.
 - Cancelled items require future refund follow-up.
 
 ## Order Problems And Returns
@@ -106,6 +110,14 @@ Carrier/status syncs must not downgrade workflow-owned statuses.
   follow-up, and cancelled/refund confirmation.
 - `order_problem_cases` owns the persistent workflow case; `order_problem_events`
   owns the append-only timeline.
+- A purchase item may have multiple Order Problems episodes over its lifetime.
+  MBOP allows one open episode per purchase item, while closed episodes remain
+  as history and must not suppress a later stale-tracking, INR, damaged-item, or
+  incomplete-item episode.
+- Episodes store `episode_kind`, `episode_sequence`, `opened_reason`,
+  `resolved_reason`, `source_artifact_type`, and optional supersession links so
+  delivery problems, eBay INR cases, damaged-item returns, and incomplete-item
+  returns can be distinguished even when they happen on the same eBay order.
 - `Return Pending` means MBOP identified a return need before an eBay return/case
   necessarily exists.
 - `Return Opened` means an eBay return/case exists or the operator has marked it
@@ -122,7 +134,9 @@ Carrier/status syncs must not downgrade workflow-owned statuses.
   `Returned to Sender`, or similar event text, creates a
   `carrier_exception_candidate` even when carrier activity is recent.
 - Derived stale/late/carrier candidates should auto-close when the purchase no
-  longer matches a candidate rule.
+  longer matches a candidate rule. If the item later matches a candidate rule
+  again, MBOP should create a new episode rather than treating the old resolved
+  case as a permanent suppressor.
 - The current eBay returns integration is read-only. MBOP may store eBay return
   IDs, inquiry IDs, cancellation IDs, statuses, deadlines, escalation dates,
   refund amounts, action URLs, replacement tracking, and raw payloads, but must
@@ -137,6 +151,12 @@ Carrier/status syncs must not downgrade workflow-owned statuses.
   follow-up. Delivered replacement tracking should close the case as
   `resolved_received_item` and return the purchase item to `delivered`, leaving
   physical verification to the Receiving workflow.
+- If Receiving later finds the delivered item damaged or incomplete and the
+  operator opens an eBay return, that return is a new episode. The old closed
+  INR inquiry must not close, downgrade, or overwrite the active return episode.
+- For multi-item eBay orders, eBay return/inquiry sync should attach order-level
+  return data to an already open receiving/return episode for that purchase
+  before falling back to generic item selection.
 - `Close` means the problem is resolved with no further refund or inventory
   consequence. `Close No Refund` means the problem is closed but value was lost
   or unrecoverable and no refund will be received; it must not move the item

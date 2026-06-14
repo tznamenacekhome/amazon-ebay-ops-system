@@ -29,12 +29,16 @@ Current non-historical `fba_shipment_items` links are projected into `inventory_
   including late/stale shipment candidates, return-needed items, eBay return/case
   metadata, cancelled/refund follow-up, missing-item/replacement follow-up, local
   workflow state, refund amounts, escalation/action dates, replacement tracking,
-  notes, and raw eBay JSON.
+  episode metadata, supersession links, notes, and raw eBay JSON.
 - `order_problem_events`: append-only timeline for system, operator, eBay API,
   and tracking events tied to an order problem case.
 
 There is at most one open `order_problem_cases` row per purchase item. Resolved
 history remains queryable through closed case rows and the event timeline.
+Episode fields (`episode_kind`, `episode_sequence`, `opened_reason`,
+`resolved_reason`, `source_artifact_type`, `superseded_by_case_id`) let the same
+purchase item move through separate delivery-delay, INR, damaged-item,
+incomplete-item, cancellation, and refund-follow-up episodes over time.
 
 ## Amazon Snapshot Tables
 

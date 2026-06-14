@@ -285,6 +285,7 @@ async function receiveItem(update: ReceivingUpdate, receivedDate: string) {
 
     if (error) throw new Error(error.message);
     await recordReceivingOutcome(source, update, quantityReceived, marketplace, asin, sellPrice);
+    await openReceivingProblemEpisode(source, update, quantityReceived);
     return data;
   }
 
@@ -405,6 +406,154 @@ async function recordReceivingOutcome(
   if (error) {
     console.warn("Failed to record receiving outcome", error.message);
   }
+}
+
+async function openReceivingProblemEpisode(
+  source: {
+    item_id: string;
+    purchase_id: string;
+    title: string | null;
+    quantity: number | null;
+    purchases?: { supplier_order_id?: string | null } | null;
+  },
+  update: ReceivingUpdate,
+  quantityReceived: number,
+) {
+  const now = new Date().toISOString();
+  const expectedQuantity = Number(source.quantity ?? 1);
+  const problemType = receivingProblemType(update);
+  const episodeKind = receivingEpisodeKind(update, quantityReceived, expectedQuantity);
+  const nextAction = "Open or continue return/refund follow-up.";
+  const notes =
+    typeof update.receiving_notes === "string" && update.receiving_notes.trim()
+      ? update.receiving_notes.trim()
+      : null;
+
+  const { data: existingRows, error: existingError } = await supabase
+    .from("order_problem_cases")
+    .select("problem_case_id,notes")
+    .eq("purchase_item_id", source.item_id)
+    .eq("is_open", true)
+    .limit(1);
+  if (existingError) {
+    console.warn("Receiving order problem lookup failed", existingError.message);
+    return;
+  }
+
+  const existing = (existingRows ?? [])[0] as { problem_case_id: string; notes: string | null } | undefined;
+  if (existing) {
+    const { error } = await supabase
+      .from("order_problem_cases")
+      .update({
+        problem_source: "receiving_return_pending",
+        problem_type: problemType,
+        workflow_state: "return_needed",
+        priority: "normal",
+        is_open: true,
+        needs_response: false,
+        next_action: nextAction,
+        return_needed_at: now,
+        last_detected_at: now,
+        updated_at: now,
+        episode_kind: episodeKind,
+        opened_reason: "receiving_exception",
+        source_artifact_type: "receiving_exception",
+        notes: appendCaseNotes(existing.notes, notes),
+      })
+      .eq("problem_case_id", existing.problem_case_id);
+    if (error) console.warn("Receiving order problem update failed", error.message);
+    await insertOrderProblemEvent(existing.problem_case_id, "receiving_return_pending", "Receiving marked item return pending.", update);
+    return;
+  }
+
+  const episodeSequence = await nextOrderProblemEpisodeSequence(source.item_id);
+  const { data, error } = await supabase
+    .from("order_problem_cases")
+    .insert({
+      purchase_item_id: source.item_id,
+      purchase_id: source.purchase_id,
+      supplier: "eBay",
+      supplier_order_id: source.purchases?.supplier_order_id ?? null,
+      problem_source: "receiving_return_pending",
+      problem_type: problemType,
+      workflow_state: "return_needed",
+      priority: "normal",
+      is_open: true,
+      needs_response: false,
+      next_action: nextAction,
+      first_detected_at: now,
+      last_detected_at: now,
+      return_needed_at: now,
+      episode_sequence: episodeSequence,
+      episode_kind: episodeKind,
+      opened_reason: "receiving_exception",
+      source_artifact_type: "receiving_exception",
+      notes,
+    })
+    .select("problem_case_id")
+    .limit(1);
+  if (error) {
+    console.warn("Receiving order problem insert failed", error.message);
+    return;
+  }
+
+  const caseId = (data ?? [])[0]?.problem_case_id as string | undefined;
+  if (caseId) {
+    await insertOrderProblemEvent(caseId, "receiving_return_pending", "Receiving marked item return pending.", update);
+  }
+}
+
+function receivingProblemType(update: ReceivingUpdate) {
+  const outcome = normalizeReceivingOutcome(update.receiving_outcome, update.return_pending);
+  const issue = normalizeConditionIssue(update.condition_issue);
+  if (outcome === "incomplete_item" || issue === "incomplete_product") return "missing_items";
+  return "not_as_listed";
+}
+
+function receivingEpisodeKind(update: ReceivingUpdate, quantityReceived: number, expectedQuantity: number) {
+  const outcome = normalizeReceivingOutcome(update.receiving_outcome, update.return_pending);
+  const issue = normalizeConditionIssue(update.condition_issue);
+  if (outcome === "incomplete_item" || issue === "incomplete_product" || quantityReceived < expectedQuantity) {
+    return "incomplete_item";
+  }
+  return "damaged_item";
+}
+
+async function nextOrderProblemEpisodeSequence(itemId: string) {
+  const { data, error } = await supabase
+    .from("order_problem_cases")
+    .select("episode_sequence")
+    .eq("purchase_item_id", itemId)
+    .order("episode_sequence", { ascending: false, nullsFirst: false })
+    .limit(1);
+  if (error) {
+    console.warn("Receiving episode sequence lookup failed", error.message);
+    return 1;
+  }
+  const current = Number((data ?? [])[0]?.episode_sequence ?? 0);
+  return Number.isFinite(current) ? current + 1 : 1;
+}
+
+async function insertOrderProblemEvent(
+  problemCaseId: string,
+  eventType: string,
+  message: string,
+  rawJson: unknown,
+) {
+  const { error } = await supabase.from("order_problem_events").insert({
+    problem_case_id: problemCaseId,
+    event_type: eventType,
+    event_source: "operator",
+    message,
+    raw_json: rawJson,
+  });
+  if (error) console.warn("Receiving order problem event insert failed", error.message);
+}
+
+function appendCaseNotes(existing: string | null, next: string | null) {
+  if (!next) return existing;
+  if (!existing) return next;
+  return `${existing}\n${next}`;
 }
 
 function normalizeReceivingOutcome(value: unknown, returnPending: boolean) {

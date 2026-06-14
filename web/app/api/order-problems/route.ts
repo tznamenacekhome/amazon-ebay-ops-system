@@ -100,6 +100,12 @@ type ProblemCase = {
   replacement_tracking_number: string | null;
   notes: string | null;
   raw_ebay_json: Record<string, unknown> | null;
+  episode_kind: string | null;
+  episode_sequence: number | null;
+  opened_reason: string | null;
+  resolved_reason: string | null;
+  superseded_by_case_id: string | null;
+  source_artifact_type: string | null;
 };
 
 type ProblemEvent = {
@@ -252,9 +258,8 @@ function parseProblemQuery(url: URL): ProblemQuery {
 async function seedDerivedProblemCases() {
   const candidateRows = await fetchDerivedCandidateRows();
   const initialSeeds = dedupeSeeds(candidateRows.map(candidateSeedForRow).filter(Boolean) as ProblemSeed[]);
-  const resolvedKeys = await fetchResolvedProblemKeys();
-  const seeds = initialSeeds.filter((seed) => !isAlreadyResolved(seed, resolvedKeys));
-  await closeResolvedDerivedCandidates(seeds);
+  const seeds = initialSeeds;
+  await closeResolvedDerivedCandidates(seeds, candidateRows);
   if (seeds.length === 0) return;
 
   const itemIds = seeds.map((seed) => seed.item_id);
@@ -273,6 +278,9 @@ async function seedDerivedProblemCases() {
         updatePayload.problem_type = seed.problem_type;
         updatePayload.workflow_state = seed.workflow_state;
         updatePayload.next_action = seed.next_action;
+        updatePayload.episode_kind = episodeKindForSeed(seed);
+        updatePayload.opened_reason = openedReasonForSeed(seed);
+        updatePayload.source_artifact_type = "derived_candidate";
       }
 
       const { error } = await supabase
@@ -297,6 +305,10 @@ async function seedDerivedProblemCases() {
       next_action: seed.next_action,
       first_detected_at: now,
       last_detected_at: now,
+      episode_sequence: await nextEpisodeSequence(seed.item_id),
+      episode_kind: episodeKindForSeed(seed),
+      opened_reason: openedReasonForSeed(seed),
+      source_artifact_type: "derived_candidate",
     });
   }
 
@@ -321,64 +333,15 @@ async function seedDerivedProblemCases() {
   }
 }
 
-type ResolvedProblemKeys = {
-  itemIds: Set<string>;
-  supplierOrderIds: Set<string>;
-  detailByItemId: Map<string, ResolvedProblemDetail>;
-  detailBySupplierOrderId: Map<string, ResolvedProblemDetail>;
-};
-
-type ResolvedProblemDetail = {
-  ebay_return_id: string | null;
-  ebay_inquiry_id: string | null;
-  ebay_case_id: string | null;
-  ebay_action_url: string | null;
-};
-
-async function fetchResolvedProblemKeys(): Promise<ResolvedProblemKeys> {
-  const { data, error } = await supabase
-    .from("order_problem_cases")
-    .select("purchase_item_id,supplier_order_id,ebay_return_id,ebay_inquiry_id,ebay_case_id,ebay_action_url")
-    .eq("is_open", false)
-    .in("workflow_state", ["resolved_refunded", "resolved_received_item"]);
-  if (error) throw new Error(`order_problem_cases resolved lookup: ${error.message}`);
-
-  const detailByItemId = new Map<string, ResolvedProblemDetail>();
-  const detailBySupplierOrderId = new Map<string, ResolvedProblemDetail>();
-  for (const row of data ?? []) {
-    const detail = {
-      ebay_return_id: row.ebay_return_id,
-      ebay_inquiry_id: row.ebay_inquiry_id,
-      ebay_case_id: row.ebay_case_id,
-      ebay_action_url: row.ebay_action_url,
-    };
-    if (row.purchase_item_id && !detailByItemId.has(row.purchase_item_id)) {
-      detailByItemId.set(row.purchase_item_id, detail);
-    }
-    if (row.supplier_order_id && !detailBySupplierOrderId.has(row.supplier_order_id)) {
-      detailBySupplierOrderId.set(row.supplier_order_id, detail);
-    }
-  }
-
-  return {
-    itemIds: new Set((data ?? []).map((row) => row.purchase_item_id).filter(Boolean)),
-    supplierOrderIds: new Set((data ?? []).map((row) => row.supplier_order_id).filter(Boolean)),
-    detailByItemId,
-    detailBySupplierOrderId,
-  };
-}
-
-function isAlreadyResolved(seed: ProblemSeed, resolvedKeys: ResolvedProblemKeys) {
-  return resolvedKeys.itemIds.has(seed.item_id);
-}
-
-async function closeResolvedDerivedCandidates(seeds: ProblemSeed[]) {
+async function closeResolvedDerivedCandidates(seeds: ProblemSeed[], candidateRows: DashboardRow[]) {
   const activeSeedItemIds = new Set(seeds.map((seed) => seed.item_id));
+  const candidateByItemId = new Map(candidateRows.map((row) => [row.item_id, row]));
   const existingDerivedCases = await fetchOpenDerivedCandidateCases();
   const now = new Date().toISOString();
   const resolvedCases = existingDerivedCases.filter((row) => !activeSeedItemIds.has(row.purchase_item_id));
 
   for (const problemCase of resolvedCases) {
+    const candidateRow = candidateByItemId.get(problemCase.purchase_item_id);
     const { error } = await supabase
       .from("order_problem_cases")
       .update({
@@ -386,6 +349,7 @@ async function closeResolvedDerivedCandidates(seeds: ProblemSeed[]) {
         workflow_state: "closed_no_action",
         closed_at: now,
         updated_at: now,
+        resolved_reason: derivedResolvedReason(candidateRow),
         notes: "Closed automatically because the purchase no longer matches an order-problem candidate rule.",
       })
       .eq("problem_case_id", problemCase.problem_case_id);
@@ -616,6 +580,49 @@ async function fetchOpenDerivedCandidateCases() {
   return (data ?? []) as Array<{ problem_case_id: string; purchase_item_id: string }>;
 }
 
+async function nextEpisodeSequence(itemId: string) {
+  const { data, error } = await supabase
+    .from("order_problem_cases")
+    .select("episode_sequence")
+    .eq("purchase_item_id", itemId)
+    .order("episode_sequence", { ascending: false, nullsFirst: false })
+    .limit(1);
+  if (error) throw new Error(`order_problem_cases episode lookup: ${error.message}`);
+  const current = Number((data ?? [])[0]?.episode_sequence ?? 0);
+  return Number.isFinite(current) ? current + 1 : 1;
+}
+
+function episodeKindForSeed(seed: ProblemSeed) {
+  switch (seed.problem_type) {
+    case "late_delivery_candidate":
+      return "delivery_delay";
+    case "stale_tracking_candidate":
+      return "carrier_stall";
+    case "carrier_exception_candidate":
+      return "carrier_exception";
+    case "cancelled_refund_followup":
+      return "cancelled_refund";
+    case "return_needed":
+      return "return_request";
+    default:
+      return "delivery_delay";
+  }
+}
+
+function openedReasonForSeed(seed: ProblemSeed) {
+  if (seed.problem_type === "stale_tracking_candidate") return "carrier_stale";
+  if (seed.problem_type === "carrier_exception_candidate") return "carrier_exception";
+  if (seed.problem_source === "receiving_return_pending") return "receiving_exception";
+  if (seed.problem_source === "manual") return "manual";
+  return "system_candidate";
+}
+
+function derivedResolvedReason(row: DashboardRow | undefined) {
+  const status = normalizeStatus(row?.current_status);
+  if (status === "delivered" || row?.delivered_date) return "delivered";
+  return "tracking_resumed";
+}
+
 async function fetchCases(includeClosed: boolean) {
   let query = supabase
     .from("order_problem_cases")
@@ -788,6 +795,12 @@ function mergeProblemCase(
     refund_currency: problemCase.refund_currency,
     replacement_tracking_number: problemCase.replacement_tracking_number,
     problem_notes: problemCase.notes,
+    problem_episode_kind: problemCase.episode_kind,
+    problem_episode_sequence: problemCase.episode_sequence,
+    problem_opened_reason: problemCase.opened_reason,
+    problem_resolved_reason: problemCase.resolved_reason,
+    problem_superseded_by_case_id: problemCase.superseded_by_case_id,
+    problem_source_artifact_type: problemCase.source_artifact_type,
     problem_events: eventsByCaseId.get(problemCase.problem_case_id) ?? [],
   };
 }

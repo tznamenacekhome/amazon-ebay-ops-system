@@ -82,6 +82,12 @@ When replacement tracking for an item-not-received inquiry shows progress, MBOP
 keeps the case in replacement follow-up; when the replacement tracking is
 delivered, MBOP closes the case as `resolved_received_item` and moves the
 purchase item back to `delivered` for Receiving verification.
+Order Problems is episode-based: a single purchase item can have multiple
+closed historical episodes and at most one open episode. Closed late-delivery or
+INR episodes do not suppress future episodes for the same item. Receiving
+exceptions can open a new return-needed episode, and later eBay return syncs
+enrich that active episode instead of being treated as a continuation of an old
+closed inquiry.
 Cancellation/refund exceptions can be represented locally as
 `ebay_cancellation_sync` rows while first-class cancellation search automation
 is evaluated.

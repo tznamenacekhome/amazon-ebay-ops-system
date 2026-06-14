@@ -474,7 +474,7 @@ def map_return(return_row: dict[str, Any], supabase) -> dict[str, Any] | None:
         LOGGER.warning("Skipping eBay return %s; no purchase matched order %s", return_id, order_id)
         return None
 
-    item = find_purchase_item_for_purchase(supabase, purchase["purchase_id"])
+    item = find_purchase_item_for_return(supabase, purchase["purchase_id"], return_row)
     if not item:
         LOGGER.warning("Skipping eBay return %s; no purchase item matched order %s", return_id, order_id)
         return None
@@ -507,6 +507,9 @@ def map_return(return_row: dict[str, Any], supabase) -> dict[str, Any] | None:
         "problem_source": "ebay_return_sync",
         "problem_type": problem_type,
         "workflow_state": workflow_state,
+        "episode_kind": episode_kind_for_return(problem_type, return_row),
+        "opened_reason": "ebay_return",
+        "source_artifact_type": "ebay_return",
         "priority": "urgent" if needs_response else "normal",
         "is_open": not is_confidently_closed(return_row),
         "needs_response": needs_response,
@@ -603,6 +606,9 @@ def map_inquiry(
         "problem_source": "ebay_inquiry_sync",
         "problem_type": "missing_items",
         "workflow_state": workflow_state,
+        "episode_kind": "item_not_received",
+        "opened_reason": "ebay_inquiry",
+        "source_artifact_type": "ebay_inquiry",
         "priority": "urgent" if needs_response else "normal",
         "is_open": workflow_state not in {"resolved_refunded", "resolved_received_item"},
         "needs_response": needs_response,
@@ -674,6 +680,9 @@ def map_case(
         "problem_source": "ebay_inquiry_sync",
         "problem_type": "missing_items",
         "workflow_state": workflow_state,
+        "episode_kind": "item_not_received",
+        "opened_reason": "ebay_case",
+        "source_artifact_type": "ebay_case",
         "priority": "normal" if order_refund else "high",
         "is_open": not order_refund,
         "needs_response": False,
@@ -724,6 +733,10 @@ def upsert_order_problem_case(supabase, mapped: dict[str, Any]) -> str:
             updates.pop("problem_type", None)
             updates.pop("ebay_current_type", None)
             updates.pop("ebay_return_status", None)
+            updates.pop("episode_kind", None)
+            updates.pop("opened_reason", None)
+            updates.pop("source_artifact_type", None)
+            updates.pop("resolved_reason", None)
         if should_require_operator_refund_confirmation(existing, mapped):
             updates["workflow_state"] = "refund_pending"
             updates["is_open"] = True
@@ -731,16 +744,19 @@ def upsert_order_problem_case(supabase, mapped: dict[str, Any]) -> str:
             updates["refund_due_at"] = now
             updates["closed_at"] = None
             updates["refund_received_at"] = None
+            updates["resolved_reason"] = None
         if mapped.get("workflow_state") == "resolved_received_item" and not preserve_active_return:
             updates["is_open"] = False
             updates["needs_response"] = False
             updates["next_action"] = None
             updates["next_action_due_at"] = None
             updates["refund_due_at"] = None
+            updates["resolved_reason"] = "replacement_received"
         if is_active_return_mapping(mapped):
             updates["is_open"] = True
             updates["closed_at"] = None
             updates["refund_received_at"] = None
+            updates["resolved_reason"] = None
             updates["next_action"] = mapped.get("next_action") or next_action_for_state(mapped.get("workflow_state") or "")
         updates["updated_at"] = now
         supabase.table("order_problem_cases").update(updates).eq("problem_case_id", case_id).execute()
@@ -759,6 +775,8 @@ def upsert_order_problem_case(supabase, mapped: dict[str, Any]) -> str:
         payload["refund_due_at"] = now
         payload.pop("closed_at", None)
         payload.pop("refund_received_at", None)
+        payload.pop("resolved_reason", None)
+    payload["episode_sequence"] = next_episode_sequence(supabase, mapped["purchase_item_id"])
     payload["created_at"] = now
     payload["updated_at"] = now
     response = supabase.table("order_problem_cases").insert(payload).execute()
@@ -790,9 +808,27 @@ def close_duplicate_ebay_cases(
                 "workflow_state": "closed_no_action",
                 "closed_at": now,
                 "updated_at": now,
+                "resolved_reason": "superseded",
+                "superseded_by_case_id": keep_case_id,
                 "notes": "Closed automatically because this eBay artifact was remapped to the active split/problem item.",
             }
         ).eq(column, value).neq("problem_case_id", keep_case_id).eq("is_open", True).execute()
+
+
+def next_episode_sequence(supabase, item_id: str) -> int:
+    response = (
+        supabase.table("order_problem_cases")
+        .select("episode_sequence")
+        .eq("purchase_item_id", item_id)
+        .order("episode_sequence", desc=True)
+        .limit(1)
+        .execute()
+    )
+    current = (response.data or [{}])[0].get("episode_sequence")
+    try:
+        return int(current or 0) + 1
+    except (TypeError, ValueError):
+        return 1
 
 
 def append_event(supabase, case_id: str, event_type: str, mapped: dict[str, Any]) -> None:
@@ -1070,6 +1106,41 @@ def find_purchase_item_for_purchase(supabase, purchase_id: str) -> dict[str, Any
     return (response.data or [None])[0]
 
 
+def find_purchase_item_for_return(
+    supabase,
+    purchase_id: str,
+    return_row: dict[str, Any],
+) -> dict[str, Any] | None:
+    rows = (
+        supabase.table("purchase_items")
+        .select("item_id,current_status,received_date,manual_split_child")
+        .eq("purchase_id", purchase_id)
+        .execute()
+    ).data or []
+    if not rows:
+        return None
+
+    active_problem_items = fetch_open_problem_item_ids(supabase, purchase_id)
+    if active_problem_items:
+        for row in rows:
+            if row.get("item_id") in active_problem_items:
+                return row
+
+    return select_problem_item(rows)
+
+
+def fetch_open_problem_item_ids(supabase, purchase_id: str) -> set[str]:
+    rows = (
+        supabase.table("order_problem_cases")
+        .select("purchase_item_id,workflow_state,problem_source")
+        .eq("purchase_id", purchase_id)
+        .eq("is_open", True)
+        .in_("workflow_state", ["return_needed", "return_opened", "waiting_on_seller", "label_pending", "label_received", "return_shipped", "refund_pending"])
+        .execute()
+    ).data or []
+    return {clean_text(row.get("purchase_item_id")) for row in rows if clean_text(row.get("purchase_item_id"))}
+
+
 def map_workflow_state(return_row: dict[str, Any]) -> str:
     status = clean_upper(return_row.get("status"))
     state = clean_upper(return_row.get("state"))
@@ -1104,6 +1175,23 @@ def map_problem_type(reason: Any, current_type: Any) -> str:
     if "CHANGED" in text or "BUYER" in text:
         return "buyer_choice"
     return "not_as_listed"
+
+
+def episode_kind_for_return(problem_type: str, return_row: dict[str, Any]) -> str:
+    reason_text = " ".join(
+        clean_upper(value)
+        for value in (
+            nested(return_row, "creationInfo", "reason"),
+            return_row.get("currentType"),
+            return_row.get("state"),
+            return_row.get("status"),
+        )
+    )
+    if problem_type == "missing_items" or "MISSING" in reason_text or "INCOMPLETE" in reason_text:
+        return "incomplete_item"
+    if "DAMAGED" in reason_text or "NOT_AS_DESCRIBED" in reason_text or "SIGNIFICANTLY_NOT_AS_DESCRIBED" in reason_text:
+        return "damaged_item"
+    return "return_request"
 
 
 def return_action_url(return_row: dict[str, Any], return_id: str | None) -> str | None:

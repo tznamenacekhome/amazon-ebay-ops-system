@@ -123,13 +123,19 @@ function actionUpdate(action: string, body: ActionBody, problemCase: ProblemCase
         workflow_state: "return_needed",
         return_needed_at: now,
         next_action: "Open or continue return/refund follow-up.",
+        episode_kind: "return_request",
+        opened_reason: "manual",
+        source_artifact_type: "manual",
       }, "return_pending", "Marked return needed.", amount, trackingNumber);
     case "mark_return_opened":
       return result({
         ...base,
         workflow_state: "return_opened",
         ebay_return_opened_at: now,
-        next_action: "Review eBay return/case status.",
+        next_action: "Wait for seller response.",
+        episode_kind: "return_request",
+        opened_reason: "manual",
+        source_artifact_type: "manual",
       }, "return_opened", "Marked return opened in eBay.", amount, trackingNumber);
     case "mark_seller_messaged":
       return result({
@@ -200,6 +206,7 @@ function actionUpdate(action: string, body: ActionBody, problemCase: ProblemCase
         actual_refund_amount: amount,
         refund_received_at: now,
         closed_at: now,
+        resolved_reason: "refund_received",
         next_action: null,
       }, cancellationPurchaseStatus(problemCase), "Marked refund received and resolved.", amount, trackingNumber);
     case "mark_missing_item_pending":
@@ -209,6 +216,9 @@ function actionUpdate(action: string, body: ActionBody, problemCase: ProblemCase
         workflow_state: "replacement_pending",
         replacement_promised_at: now,
         next_action: "Wait for missing/replacement item.",
+        episode_kind: "item_not_received",
+        opened_reason: "manual",
+        source_artifact_type: "manual",
       }, null, "Marked missing item / replacement pending.", amount, trackingNumber);
     case "mark_replacement_shipped":
       return result({
@@ -226,6 +236,7 @@ function actionUpdate(action: string, body: ActionBody, problemCase: ProblemCase
         is_open: false,
         replacement_received_at: now,
         closed_at: now,
+        resolved_reason: "replacement_received",
         next_action: null,
       }, "delivered", "Marked missing item delivered and returned to receiving flow.", amount, trackingNumber);
     case "mark_escalation_available":
@@ -248,6 +259,7 @@ function actionUpdate(action: string, body: ActionBody, problemCase: ProblemCase
         workflow_state: "closed_no_refund",
         is_open: false,
         closed_at: now,
+        resolved_reason: "no_refund",
         next_action: null,
       }, null, "Closed order problem with no refund.", amount, trackingNumber);
     case "close_resolve":
@@ -256,6 +268,7 @@ function actionUpdate(action: string, body: ActionBody, problemCase: ProblemCase
         workflow_state: "closed_no_action",
         is_open: false,
         closed_at: now,
+        resolved_reason: "operator_closed",
         next_action: null,
       }, null, "Closed order problem case.", amount, trackingNumber);
     default:
