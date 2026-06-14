@@ -20,6 +20,11 @@ const navItems = [
     icon: BarChart3,
   },
   {
+    href: "/sourcing",
+    label: "Sourcing",
+    icon: Search,
+  },
+  {
     href: "/",
     label: "Purchases",
     icon: ShoppingCart,
@@ -28,11 +33,6 @@ const navItems = [
     href: "/receiving",
     label: "Receiving",
     icon: PackageCheck,
-  },
-  {
-    href: "/sourcing",
-    label: "Sourcing",
-    icon: Search,
   },
   {
     href: "/fba",
