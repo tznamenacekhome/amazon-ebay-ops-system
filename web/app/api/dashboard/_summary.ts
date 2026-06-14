@@ -7,6 +7,7 @@ export const supabase = createClient(supabaseUrl, supabaseServiceRoleKey);
 
 export const STALE_TRACKING_ORDER_AGE_DAYS = 14;
 export const STALE_TRACKING_LOOKBACK_DAYS = 90;
+export const BUSINESS_VALUE_HISTORY_START_DATE = "2026-05-30";
 
 export type DashboardPurchaseRow = {
   item_id: string | null;
@@ -144,6 +145,7 @@ export async function fetchBusinessValueHistory(limit = 30): Promise<BusinessVal
       "snapshot_date,total_business_value,amazon_inventory_value,pre_amazon_inventory_value," +
         "amazon_cash_balance,amazon_cash_in_transit,cash_on_hand",
     )
+    .gte("snapshot_date", BUSINESS_VALUE_HISTORY_START_DATE)
     .order("snapshot_date", { ascending: false })
     .limit(limit);
 

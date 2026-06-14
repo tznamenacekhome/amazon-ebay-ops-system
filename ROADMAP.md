@@ -501,6 +501,10 @@ Planned capabilities:
   promising seller after one listing qualifies
 - seller opportunity conversion rate from surfaced opportunity to purchased,
   received, listed, sold, returned, or dismissed
+- richer seller reliability metrics separated from product/condition return
+  strikes, including item-not-received, refund-delay, and seller-cancelled
+  history
+- trusted-seller rules and diagnostics after warning/penalty behavior is proven
 
 Constraints:
 - seller intelligence must remain advisory unless a future workflow explicitly
@@ -509,6 +513,55 @@ Constraints:
   workflow state
 - seller matching should use stable seller identifiers from eBay when available
   and preserve raw evidence for auditability
+- avoid sellers should warn and penalize first; hide-by-default is intentionally
+  deferred until diagnostics are proven
+
+---
+
+## Matching Intelligence Remaining Work
+
+Future scope:
+Finish wiring the Matching Intelligence evidence set into live sourcing
+diagnostics before any AI-driven matching or eBay-to-Amazon sourcing.
+
+Implemented foundation:
+- matching examples are rebuilt from sourcing actions, manual match memory,
+  purchase history, sourcing purchase matches, receiving outcomes, and order
+  problem cases
+- historical/manual purchase evidence is treated as verified positive match
+  evidence
+- listing snapshots are preserved for opportunities, actions, and best-effort
+  historical/manual purchases
+- live Amazon-to-eBay sourcing consumes exact positive/negative examples,
+  seller warnings, hard platform rules, and non-video-game category blocks
+- Matching Intelligence refresh runs through sync orchestration after purchase,
+  dismissal, return, and catalog updates, then rescoring refreshes recent
+  sourcing runs
+
+Remaining capabilities:
+- full per-opportunity diagnostics UI showing hard-rule pass/fail, title
+  overlap, system/platform checks, positive and negative historical examples,
+  seller warnings, score adjustments, and final recommendation
+- dedicated uncertain-match review workflow for current opportunities that need
+  operator review instead of normal opportunity handling
+- sample-driven fuzzy matching that uses the labeled examples after the sample
+  set is large enough; target at least 5,000 strong examples before AI-assisted
+  opportunity review
+- AI review against live opportunities using title, photos, item specifics,
+  description, condition, seller evidence, and historical examples
+- normalized image/listing clue scoring that can use structured clues such as
+  PEGI, Greatest Hits, disc only, missing shrink wrap, reseal, and damaged case
+  instead of only storing them as evidence
+- formal configurable matching weights by evidence source, outcome, confidence,
+  and recency
+- richer example/detail browser for snapshots and examples, including raw
+  evidence drill-down where available
+- automated reason discovery from repeated notes and reviewed near misses, with
+  operator approval before adding new structured reasons
+
+Not planned:
+- strong or required note prompts for specific dismissal reasons. Notes remain
+  optional and are stored whenever entered.
 
 ---
 
@@ -519,16 +572,25 @@ Use receiving, return, and listing evidence to learn which sourcing listings
 are likely to cause bad outcomes.
 
 Planned capabilities:
-- listing snapshot preservation for purchased opportunities so MBOP keeps the
-  title, photos, description clues, condition text, seller terms, price,
-  shipping, and listing metadata that existed at purchase time
-- receiving outcome learning based on missing items, wrong items, damage,
-  partial receipts, unexpected condition, and marketplace reassignment
 - return outcome learning based on return reason, refund timing, seller
   response, carrier exception, no-refund closure, and final cost recovery
 - AI clue extraction from return-causing listings to identify phrases, photos,
   category mismatches, condition wording, seller behavior, or title patterns
   that should affect future sourcing decisions
+- dedicated return intelligence report that separates identity/condition
+  strikes from reliability/refund/cancellation issues
+- consistent linking between return cases, receiving outcomes, listing
+  snapshots, seller identity, purchase item, and eBay item evidence when all
+  identifiers are available
+
+Implemented foundation:
+- listing snapshot preservation now includes historical/manual purchase
+  backfill evidence for Matching Intelligence
+- receiving outcome learning now captures correct item, wrong item, wrong
+  condition, packaging issue, incomplete item, listed successfully, structured
+  image clues, and receiving notes
+- Matching Intelligence exposes a near-miss review queue for title-similar
+  dismissed/condition examples
 
 Constraints:
 - preserved listing snapshots should support audit and learning without
@@ -552,6 +614,8 @@ Dependencies:
 - Amazon -> eBay sourcing validation, proving that the current Amazon-inventory
   driven workflow produces reliable matches, ROI estimates, seller outcomes,
   and return-risk signals before reversing the search direction
+- sufficient labeled evidence to support AI or fuzzy matching without creating
+  cross-platform or wrong-title matches
 
 Planned direction:
 - use the completed matching layer to prevent cross-platform video game matches

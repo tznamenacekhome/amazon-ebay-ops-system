@@ -24,7 +24,19 @@ type ReceivingDraft = {
   marketplace: "Amazon" | "eBay";
   asin: string;
   sellPrice: string;
+  receivingOutcome: ReceivingOutcome;
+  conditionIssue: string;
+  imageClues: string[];
+  receivingNotes: string;
 };
+
+type ReceivingOutcome =
+  | "correct_item"
+  | "wrong_item"
+  | "wrong_condition"
+  | "packaging_issue"
+  | "incomplete_item"
+  | "listed_successfully";
 
 type SortColumn =
   | "date"
@@ -168,6 +180,10 @@ export default function ReceivingPage() {
           marketplace: "Amazon",
           asin: groupRow.asin || "",
           sellPrice: formatPriceDraft(groupRow.sell_price ?? groupRow.target_price),
+          receivingOutcome: "correct_item",
+          conditionIssue: "",
+          imageClues: [],
+          receivingNotes: "",
         };
       }
 
@@ -249,6 +265,10 @@ export default function ReceivingPage() {
         asin: draft?.asin.trim().toUpperCase() || null,
         sell_price:
           draft?.sellPrice.trim() === "" ? null : Number(draft?.sellPrice),
+        receiving_outcome: draft?.receivingOutcome ?? "correct_item",
+        condition_issue: draft?.conditionIssue || null,
+        image_clues: draft?.imageClues ?? [],
+        receiving_notes: draft?.receivingNotes || null,
       };
     });
 
@@ -342,6 +362,10 @@ export default function ReceivingPage() {
       marketplace: "Amazon",
       asin: row.asin || "",
       sellPrice: formatPriceDraft(row.sell_price ?? row.target_price),
+      receivingOutcome: "correct_item",
+      conditionIssue: "",
+      imageClues: [],
+      receivingNotes: "",
     };
 
     setDrafts((current) => ({
@@ -628,6 +652,10 @@ export default function ReceivingPage() {
                     marketplace: "Amazon" as const,
                     asin: row.asin || "",
                     sellPrice: formatPriceDraft(row.sell_price ?? row.target_price),
+                    receivingOutcome: "correct_item" as const,
+                    conditionIssue: "",
+                    imageClues: [],
+                    receivingNotes: "",
                   };
 
                   return (
@@ -725,6 +753,50 @@ export default function ReceivingPage() {
                         </label>
 
                         <label className="grid min-w-0 content-start gap-2 text-sm font-medium uppercase tracking-wide text-slate-500 sm:col-span-1">
+                          Outcome
+                          <select
+                            value={draft.receivingOutcome}
+                            onChange={(event) =>
+                              updateDraft(row, {
+                                receivingOutcome: event.target.value as ReceivingOutcome,
+                              })
+                            }
+                            className="h-12 w-full rounded-lg border border-slate-300 px-3 text-base font-medium normal-case tracking-normal text-slate-900"
+                          >
+                            <option value="correct_item">Correct Item</option>
+                            <option value="wrong_item">Wrong Item</option>
+                            <option value="wrong_condition">Wrong Condition</option>
+                            <option value="packaging_issue">Packaging Issue</option>
+                            <option value="incomplete_item">Incomplete Item</option>
+                            <option value="listed_successfully">Listed Successfully</option>
+                          </select>
+                        </label>
+
+                        <label className="grid min-w-0 content-start gap-2 text-sm font-medium uppercase tracking-wide text-slate-500">
+                          Issue
+                          <select
+                            value={draft.conditionIssue}
+                            onChange={(event) =>
+                              updateDraft(row, {
+                                conditionIssue: event.target.value,
+                              })
+                            }
+                            className="h-12 w-full rounded-lg border border-slate-300 px-3 text-base font-medium normal-case tracking-normal text-slate-900"
+                          >
+                            <option value="">None</option>
+                            <option value="wrong_product">Wrong Product</option>
+                            <option value="wrong_platform">Wrong Platform</option>
+                            <option value="wrong_edition_version">Wrong Edition / Version</option>
+                            <option value="non_north_american_version">Non-North-American Version</option>
+                            <option value="incomplete_product">Incomplete Product</option>
+                            <option value="missing_shrink_wrap">Missing Shrink Wrap</option>
+                            <option value="suspected_reseal">Suspected Reseal</option>
+                            <option value="packaging_damage">Packaging Damage</option>
+                            <option value="other">Other</option>
+                          </select>
+                        </label>
+
+                        <label className="grid min-w-0 content-start gap-2 text-sm font-medium uppercase tracking-wide text-slate-500 sm:col-span-1">
                           ASIN
                           <input
                             value={draft.asin}
@@ -758,6 +830,23 @@ export default function ReceivingPage() {
                               placeholder="0.00"
                             />
                           </div>
+                        </label>
+
+                        <div className="sm:col-span-3">
+                          <div className="mb-2 text-sm font-medium uppercase tracking-wide text-slate-500">Image Clues</div>
+                          <ImageClueButtons
+                            selected={draft.imageClues}
+                            onChange={(imageClues) => updateDraft(row, { imageClues })}
+                          />
+                        </div>
+
+                        <label className="grid min-w-0 content-start gap-2 text-sm font-medium uppercase tracking-wide text-slate-500 sm:col-span-3">
+                          Notes
+                          <textarea
+                            value={draft.receivingNotes}
+                            onChange={(event) => updateDraft(row, { receivingNotes: event.target.value })}
+                            className="min-h-20 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm font-normal normal-case tracking-normal text-slate-900"
+                          />
                         </label>
                       </div>
                     </div>
@@ -981,5 +1070,44 @@ function trackingMatchesScan(
       [...trackingCandidates].some((candidate) =>
         candidate.includes(normalizedTracking)
       ))
+  );
+}
+
+const imageClueOptions = [
+  ["pegi", "PEGI"],
+  ["greatest_hits", "Greatest Hits"],
+  ["disc_only", "Disc Only"],
+  ["missing_shrink_wrap", "Missing Shrink Wrap"],
+  ["reseal", "Reseal"],
+  ["damaged_case", "Damaged Case"],
+] as const;
+
+function ImageClueButtons({
+  selected,
+  onChange,
+}: {
+  selected: string[];
+  onChange: (values: string[]) => void;
+}) {
+  return (
+    <div className="flex flex-wrap gap-2">
+      {imageClueOptions.map(([value, label]) => {
+        const active = selected.includes(value);
+        return (
+          <button
+            key={value}
+            type="button"
+            onClick={() => onChange(active ? selected.filter((item) => item !== value) : [...selected, value])}
+            className={`rounded-md border px-3 py-2 text-sm font-medium ${
+              active
+                ? "border-blue-300 bg-blue-50 text-blue-700"
+                : "border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
+            }`}
+          >
+            {label}
+          </button>
+        );
+      })}
+    </div>
   );
 }

@@ -313,10 +313,6 @@ class AmazonSPAPIClient:
                 return
             seen_tokens.add(next_token)
 
-    def get_inbound_transport_details(self, shipment_id: str) -> dict[str, Any]:
-        path = f"/fba/inbound/v0/shipments/{quote(shipment_id, safe='')}/transport"
-        return self.request("GET", path)
-
     def list_inbound_plans(
         self,
         *,
@@ -366,6 +362,91 @@ class AmazonSPAPIClient:
             f"{quote(inbound_plan_id, safe='')}/shipments/{quote(shipment_id, safe='')}"
         )
         return self.request("GET", path)
+
+    def list_inbound_plan_shipment_boxes(
+        self,
+        inbound_plan_id: str,
+        shipment_id: str,
+        *,
+        page_size: int = 1000,
+        pagination_token: str | None = None,
+    ) -> dict[str, Any]:
+        params: dict[str, Any] = {"pageSize": min(max(page_size, 1), 1000)}
+        if pagination_token:
+            params["paginationToken"] = pagination_token
+        path = (
+            "/inbound/fba/2024-03-20/inboundPlans/"
+            f"{quote(inbound_plan_id, safe='')}/shipments/{quote(shipment_id, safe='')}/boxes"
+        )
+        return self.request("GET", path, params=params)
+
+    def iter_inbound_plan_shipment_boxes(
+        self,
+        inbound_plan_id: str,
+        shipment_id: str,
+        *,
+        max_pages: int = 10,
+    ):
+        pagination_token: str | None = None
+        pages_seen = 0
+        while True:
+            payload = self.list_inbound_plan_shipment_boxes(
+                inbound_plan_id,
+                shipment_id,
+                pagination_token=pagination_token,
+            )
+            pages_seen += 1
+            for box in payload.get("boxes") or []:
+                yield box
+            pagination_token = (payload.get("pagination") or {}).get("nextToken")
+            if not pagination_token or pages_seen >= max_pages:
+                return
+
+    def list_inbound_transportation_options(
+        self,
+        inbound_plan_id: str,
+        *,
+        shipment_id: str | None = None,
+        placement_option_id: str | None = None,
+        page_size: int = 20,
+        pagination_token: str | None = None,
+    ) -> dict[str, Any]:
+        params: dict[str, Any] = {"pageSize": min(max(page_size, 1), 20)}
+        if shipment_id:
+            params["shipmentId"] = shipment_id
+        if placement_option_id:
+            params["placementOptionId"] = placement_option_id
+        if pagination_token:
+            params["paginationToken"] = pagination_token
+        path = (
+            "/inbound/fba/2024-03-20/inboundPlans/"
+            f"{quote(inbound_plan_id, safe='')}/transportationOptions"
+        )
+        return self.request("GET", path, params=params)
+
+    def iter_inbound_transportation_options(
+        self,
+        inbound_plan_id: str,
+        *,
+        shipment_id: str | None = None,
+        placement_option_id: str | None = None,
+        max_pages: int = 10,
+    ):
+        pagination_token: str | None = None
+        pages_seen = 0
+        while True:
+            payload = self.list_inbound_transportation_options(
+                inbound_plan_id,
+                shipment_id=shipment_id,
+                placement_option_id=placement_option_id,
+                pagination_token=pagination_token,
+            )
+            pages_seen += 1
+            for option in payload.get("transportationOptions") or []:
+                yield option
+            pagination_token = (payload.get("pagination") or {}).get("nextToken")
+            if not pagination_token or pages_seen >= max_pages:
+                return
 
     def get_inbound_shipment_items(
         self,

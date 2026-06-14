@@ -8,6 +8,7 @@ export type SourcingOpportunity = {
   sourceMode: string | null;
   amazonUrl: string;
   ebayItemId: string | null;
+  ebayLegacyItemId: string | null;
   ebayUrl: string | null;
   ebayTitle: string;
   ebayImageUrl: string | null;

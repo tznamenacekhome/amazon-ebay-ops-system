@@ -69,6 +69,7 @@ type ShipmentRow = {
   amazon_received_cost: number | null;
   amazon_available_cost: number | null;
   attention_flags: string[] | null;
+  raw_tracking_json: unknown;
   finalized_at: string | null;
   last_amazon_sync_at: string | null;
   updated_at: string | null;
@@ -97,6 +98,31 @@ type ShipmentItemRow = {
   outbound_remaining_cost: number | null;
   amazon_received_cost: number | null;
   amazon_available_cost: number | null;
+};
+
+type ShipmentDetailApiRow = {
+  id: string;
+  item_id: string | null;
+  asin: string | null;
+  amazon_title: string | null;
+  system: string | null;
+  seller_sku: string | null;
+  fnsku: string | null;
+  quantity_sent: number;
+  expected_quantity: number | null;
+  received_quantity: number | null;
+  available_quantity: number | null;
+  reserved_quantity: number | null;
+  unfulfillable_quantity: number | null;
+  missing_quantity: number | null;
+  outbound_remaining_quantity: number | null;
+  unit_cost: number | null;
+  target_price: number | null;
+  cost_sent: number | null;
+  outbound_remaining_cost: number | null;
+  amazon_received_cost: number | null;
+  amazon_available_cost: number | null;
+  source: "mbop" | "amazon_v2024_box";
 };
 
 export async function GET(request: NextRequest) {
@@ -178,10 +204,54 @@ async function getShipments() {
       rows.push(item);
       itemsByShipment.set(item.fba_shipment_id, rows);
     }
+    const syntheticDetailRows = shipments.flatMap((shipment) =>
+      buildV2024BoxDetails(shipment)
+    );
+    const titleFallbacks = await fetchAmazonTitleFallbacks(
+      Array.from(
+        new Set(
+          syntheticDetailRows
+            .map((detail) => normalizeAsin(detail.asin))
+            .filter((asin): asin is string => Boolean(asin))
+        )
+      )
+    );
 
     const rows = shipments.map((shipment) => {
       const detailRows = itemsByShipment.get(shipment.fba_shipment_id) ?? [];
+      const hasTrackedItemRows = detailRows.length > 0;
       const computed = summarizeShipmentFromItems(detailRows);
+      const details: ShipmentDetailApiRow[] = hasTrackedItemRows
+        ? detailRows
+            .map((item) => ({
+              id: item.fba_shipment_item_id,
+              item_id: item.item_id,
+              asin: item.asin,
+              amazon_title: item.amazon_title,
+              system: item.system,
+              seller_sku: item.seller_sku,
+              fnsku: item.fnsku,
+              quantity_sent: toNumber(item.quantity) ?? 0,
+              expected_quantity: toNumber(item.expected_quantity),
+              received_quantity: toNumber(item.received_quantity),
+              available_quantity: toNumber(item.available_quantity),
+              reserved_quantity: toNumber(item.reserved_quantity),
+              unfulfillable_quantity: toNumber(item.unfulfillable_quantity),
+              missing_quantity: toNumber(item.missing_quantity),
+              outbound_remaining_quantity: toNumber(item.outbound_remaining_quantity),
+              unit_cost: toNumber(item.unit_cost),
+              target_price: toNumber(item.target_price),
+              cost_sent: toNumber(item.cost_sent),
+              outbound_remaining_cost: toNumber(item.outbound_remaining_cost),
+              amazon_received_cost: toNumber(item.amazon_received_cost),
+              amazon_available_cost: toNumber(item.amazon_available_cost),
+              source: "mbop" as const,
+            }))
+            .sort((left, right) => compareStrings(left.asin, right.asin))
+        : buildV2024BoxDetails(shipment, titleFallbacks);
+      const unitsAvailable = hasTrackedItemRows
+        ? toNumber(shipment.units_available) ?? computed.units_available
+        : null;
       return {
         id: shipment.fba_shipment_id,
         shipment_code: shipment.shipment_code,
@@ -203,14 +273,19 @@ async function getShipments() {
         units_sent: toNumber(shipment.units_sent) ?? computed.units_sent,
         units_expected: toNumber(shipment.units_expected) ?? computed.units_expected,
         units_received: toNumber(shipment.units_received) ?? computed.units_received,
-        units_available: toNumber(shipment.units_available) ?? computed.units_available,
-        units_reserved: toNumber(shipment.units_reserved) ?? computed.units_reserved,
-        units_unfulfillable:
-          toNumber(shipment.units_unfulfillable) ?? computed.units_unfulfillable,
+        units_available: unitsAvailable,
+        units_reserved: hasTrackedItemRows
+          ? toNumber(shipment.units_reserved) ?? computed.units_reserved
+          : null,
+        units_unfulfillable: hasTrackedItemRows
+          ? toNumber(shipment.units_unfulfillable) ?? computed.units_unfulfillable
+          : null,
         units_missing: toNumber(shipment.units_missing) ?? computed.units_missing,
         fba_availability_pct:
-          toNumber(shipment.fba_availability_pct) ??
-          percent(computed.units_available, computed.units_sent),
+          hasTrackedItemRows
+            ? toNumber(shipment.fba_availability_pct) ??
+              percent(computed.units_available, computed.units_sent)
+            : null,
         cost_sent: toNumber(shipment.cost_sent) ?? computed.cost_sent,
         outbound_remaining_cost:
           toNumber(shipment.outbound_remaining_cost) ?? computed.outbound_remaining_cost,
@@ -224,31 +299,9 @@ async function getShipments() {
         finalized_at: shipment.finalized_at,
         last_amazon_sync_at: shipment.last_amazon_sync_at,
         updated_at: shipment.updated_at,
-        details: detailRows
-          .map((item) => ({
-            id: item.fba_shipment_item_id,
-            item_id: item.item_id,
-            asin: item.asin,
-            amazon_title: item.amazon_title,
-            system: item.system,
-            seller_sku: item.seller_sku,
-            fnsku: item.fnsku,
-            quantity_sent: toNumber(item.quantity) ?? 0,
-            expected_quantity: toNumber(item.expected_quantity),
-            received_quantity: toNumber(item.received_quantity),
-            available_quantity: toNumber(item.available_quantity),
-            reserved_quantity: toNumber(item.reserved_quantity),
-            unfulfillable_quantity: toNumber(item.unfulfillable_quantity),
-            missing_quantity: toNumber(item.missing_quantity),
-            outbound_remaining_quantity: toNumber(item.outbound_remaining_quantity),
-            unit_cost: toNumber(item.unit_cost),
-            target_price: toNumber(item.target_price),
-            cost_sent: toNumber(item.cost_sent),
-            outbound_remaining_cost: toNumber(item.outbound_remaining_cost),
-            amazon_received_cost: toNumber(item.amazon_received_cost),
-            amazon_available_cost: toNumber(item.amazon_available_cost),
-          }))
-          .sort((left, right) => compareStrings(left.asin, right.asin)),
+        detail_source: hasTrackedItemRows ? "mbop" : "amazon_v2024_box",
+        fba_availability_tracked: hasTrackedItemRows,
+        details,
       };
     });
 
@@ -299,7 +352,7 @@ async function fetchShipmentItems(shipmentIds: string[]) {
 function summarizeShipmentFromItems(items: ShipmentItemRow[]) {
   return items.reduce(
     (sum, item) => {
-      const quantity = toNumber(item.quantity) ?? 0;
+      const quantity = toNumberFromUnknown(item.quantity) ?? 0;
       const unitCost = toNumber(item.unit_cost) ?? 0;
       const costSent = toNumber(item.cost_sent) ?? quantity * unitCost;
       const outboundCost =
@@ -337,6 +390,87 @@ function summarizeShipmentFromItems(items: ShipmentItemRow[]) {
       amazon_available_cost: 0,
     }
   );
+}
+
+function buildV2024BoxDetails(
+  shipment: ShipmentRow,
+  titleFallbacks = new Map<string, string>()
+): ShipmentDetailApiRow[] {
+  const boxes = getV2024Boxes(shipment.raw_tracking_json);
+  const byKey = new Map<string, ShipmentDetailApiRow>();
+
+  for (const box of boxes) {
+    const items = Array.isArray(box.items) ? box.items : [];
+    for (const item of items) {
+      if (!isRecord(item)) continue;
+      const asin = normalizeAsin(cleanString(item.asin));
+      const sellerSku = cleanString(item.msku ?? item.sellerSku ?? item.seller_sku);
+      const fnsku = cleanString(item.fnsku);
+      const quantity = toNumberFromUnknown(item.quantity) ?? 0;
+      if (!asin || quantity <= 0) continue;
+
+      const key = `${asin}|${sellerSku ?? ""}|${fnsku ?? ""}`;
+      const existing = byKey.get(key);
+      if (existing) {
+        existing.quantity_sent += quantity;
+        existing.expected_quantity = (existing.expected_quantity ?? 0) + quantity;
+        continue;
+      }
+
+      byKey.set(key, {
+        id: `${shipment.fba_shipment_id}-${key}`,
+        item_id: null,
+        asin,
+        amazon_title: titleFallbacks.get(asin) ?? null,
+        system: null,
+        seller_sku: sellerSku,
+        fnsku,
+        quantity_sent: quantity,
+        expected_quantity: quantity,
+        received_quantity: null,
+        available_quantity: null,
+        reserved_quantity: null,
+        unfulfillable_quantity: null,
+        missing_quantity: null,
+        outbound_remaining_quantity: null,
+        unit_cost: null,
+        target_price: null,
+        cost_sent: null,
+        outbound_remaining_cost: null,
+        amazon_received_cost: null,
+        amazon_available_cost: null,
+        source: "amazon_v2024_box",
+      });
+    }
+  }
+
+  return Array.from(byKey.values()).sort((left, right) =>
+    compareStrings(left.asin, right.asin)
+  );
+}
+
+function getV2024Boxes(rawTrackingJson: unknown): Array<Record<string, unknown>> {
+  if (!isRecord(rawTrackingJson)) return [];
+  const raw = rawTrackingJson.raw;
+  if (!isRecord(raw)) return [];
+  return Array.isArray(raw.boxes)
+    ? raw.boxes.filter((box): box is Record<string, unknown> => isRecord(box))
+    : [];
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function cleanString(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  return trimmed ? trimmed : null;
+}
+
+function toNumberFromUnknown(value: unknown): number | null {
+  if (typeof value !== "number" && typeof value !== "string") return null;
+  return toNumber(value);
 }
 
 export async function POST(request: Request) {
@@ -486,6 +620,27 @@ async function fetchAmazonTitleFallbacks(asins: string[]) {
       const asin = normalizeAsin(item.asin);
       if (asin && item.amazon_title && !titleByAsin.has(asin)) {
         titleByAsin.set(asin, item.amazon_title);
+      }
+    }
+  }
+
+  for (let index = 0; index < asins.length; index += chunkSize) {
+    const chunk = asins.slice(index, index + chunkSize);
+    const { data, error } = await supabase
+      .from("amazon_skus")
+      .select("asin,product_name")
+      .in("asin", chunk)
+      .not("product_name", "is", null);
+
+    if (error) {
+      console.warn("FBA Amazon SKU title fallback lookup failed", error.message);
+      continue;
+    }
+
+    for (const item of data ?? []) {
+      const asin = normalizeAsin(item.asin);
+      if (asin && item.product_name && !titleByAsin.has(asin)) {
+        titleByAsin.set(asin, item.product_name);
       }
     }
   }

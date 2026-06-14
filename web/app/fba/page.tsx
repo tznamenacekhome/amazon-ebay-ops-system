@@ -51,6 +51,7 @@ type FbaData = {
 
 type ShipmentDetail = {
   id: string;
+  item_id: string | null;
   asin: string | null;
   amazon_title: string | null;
   system: string | null;
@@ -69,6 +70,7 @@ type ShipmentDetail = {
   outbound_remaining_cost: number | null;
   amazon_received_cost: number | null;
   amazon_available_cost: number | null;
+  source: "mbop" | "amazon_v2024_box";
 };
 
 type ShipmentRow = {
@@ -103,6 +105,8 @@ type ShipmentRow = {
   attention_flags: string[];
   finalized_at: string | null;
   last_amazon_sync_at: string | null;
+  detail_source: "mbop" | "amazon_v2024_box";
+  fba_availability_tracked: boolean;
   details: ShipmentDetail[];
 };
 
@@ -582,7 +586,7 @@ function ShipmentView({
               <th className="px-3 py-2">Shipment</th>
               <th className="px-3 py-2">Status</th>
               <th className="px-3 py-2">FC</th>
-              <th className="px-3 py-2">Delivery</th>
+              <th className="px-3 py-2">Delivered</th>
               <th className="px-3 py-2">Milestones</th>
               <th className="px-3 py-2 text-right">Units</th>
               <th className="px-3 py-2 text-right">FBA Avail</th>
@@ -648,34 +652,29 @@ function ShipmentView({
                           <div className="text-xs text-slate-500">delivered</div>
                         </>
                       ) : row.carrier_delivery_eta ? (
-                        <>
-                          <div>{formatDate(row.carrier_delivery_eta)}</div>
-                          <div className="text-xs text-slate-500">ETA</div>
-                        </>
+                        <div>ETA: {formatDate(row.carrier_delivery_eta)}</div>
                       ) : (
-                        <span className="text-slate-500">--</span>
+                        <div className="text-slate-500">No ETA</div>
                       )}
                       {row.tracking_number ? (
-                        row.carrier_tracking_url ? (
-                          <a
-                            className="block text-xs text-blue-700 hover:underline"
-                            href={row.carrier_tracking_url}
-                            target="_blank"
-                            rel="noreferrer"
-                          >
-                            {row.tracking_number}
-                          </a>
-                        ) : (
-                          <div className="text-xs text-slate-500">{row.tracking_number}</div>
-                        )
+                        <a
+                          className="block text-xs text-blue-700 hover:underline"
+                          href={trackingUrl(row)}
+                          target="_blank"
+                          rel="noreferrer"
+                        >
+                          {row.tracking_number}
+                        </a>
                       ) : null}
                     </td>
                     <td className="whitespace-nowrap px-3 py-2 text-xs text-slate-600">
-                      <div>Pickup: {formatDate(row.carrier_pickup_at)}</div>
-                      <div>Delivered: {formatDate(row.carrier_delivered_at)}</div>
-                      <div>Check-in: {formatDate(row.amazon_checked_in_at)}</div>
-                      <div>Receiving: {formatDate(row.amazon_receiving_started_at)}</div>
-                      <div>Available: {formatDate(row.all_units_available_at)}</div>
+                      <div>Carrier picked up: {formatMilestoneDate(row.carrier_pickup_at)}</div>
+                      <div>
+                        Carrier delivered: {formatMilestoneDate(row.carrier_delivered_at)}
+                      </div>
+                      <div>Amazon checked-in: {formatMilestoneDate(row.amazon_checked_in_at)}</div>
+                      <div>Amazon received: {formatMilestoneDate(row.amazon_receiving_started_at)}</div>
+                      <div>Amazon available: {formatMilestoneDate(row.all_units_available_at)}</div>
                     </td>
                     <td className="whitespace-nowrap px-3 py-2 text-right">
                       <div className="font-semibold">{formatNumber(row.units_sent)}</div>
@@ -684,10 +683,19 @@ function ShipmentView({
                       </div>
                     </td>
                     <td className="whitespace-nowrap px-3 py-2 text-right">
-                      <div className="font-semibold">{formatPercent(row.fba_availability_pct)}</div>
-                      <div className="text-xs text-slate-500">
-                        {formatNumber(row.units_available)} avail / {formatNumber(row.units_reserved)} res
-                      </div>
+                      {row.fba_availability_tracked ? (
+                        <>
+                          <div className="font-semibold">{formatPercent(row.fba_availability_pct)}</div>
+                          <div className="text-xs text-slate-500">
+                            {formatNumber(row.units_available)} avail / {formatNumber(row.units_reserved)} res
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <div className="font-semibold text-slate-500">--</div>
+                          <div className="text-xs text-slate-500">not tracked</div>
+                        </>
+                      )}
                     </td>
                     <td className="whitespace-nowrap px-3 py-2 text-right">
                       <div>{formatMoney(row.cost_sent)}</div>
@@ -733,11 +741,17 @@ function ShipmentView({
 }
 
 function ShipmentDetailTable({ details }: { details: ShipmentDetail[] }) {
+  const detailSource = details[0]?.source;
   return (
     <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
-      <div className="flex items-center gap-2 border-b border-slate-200 px-3 py-2 text-sm font-medium text-slate-700">
-        <Truck className="h-4 w-4" />
-        Amazon Shipment Detail
+      <div className="flex items-center justify-between gap-2 border-b border-slate-200 px-3 py-2 text-sm font-medium text-slate-700">
+        <div className="flex items-center gap-2">
+          <Truck className="h-4 w-4" />
+          Amazon Shipment Detail
+        </div>
+        {detailSource === "amazon_v2024_box" ? (
+          <span className="text-xs font-normal text-slate-500">from Amazon box contents</span>
+        ) : null}
       </div>
       <table className="w-full text-left text-sm">
         <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
@@ -755,23 +769,31 @@ function ShipmentDetailTable({ details }: { details: ShipmentDetail[] }) {
           </tr>
         </thead>
         <tbody>
-          {details.map((detail) => (
-            <tr key={detail.id} className="border-t border-slate-100 align-top">
-              <td className="whitespace-nowrap px-3 py-2">
-                <div className="font-medium text-blue-700">{detail.asin || "--"}</div>
-                <div className="text-xs text-slate-500">{detail.seller_sku || detail.fnsku || "--"}</div>
+          {details.length ? (
+            details.map((detail) => (
+              <tr key={detail.id} className="border-t border-slate-100 align-top">
+                <td className="whitespace-nowrap px-3 py-2">
+                  <div className="font-medium text-blue-700">{detail.asin || "--"}</div>
+                  <div className="text-xs text-slate-500">{detail.seller_sku || detail.fnsku || "--"}</div>
+                </td>
+                <td className="px-3 py-2">{detail.amazon_title || "--"}</td>
+                <td className="px-3 py-2">{detail.system || "--"}</td>
+                <td className="px-3 py-2 text-right">{formatNumber(detail.quantity_sent)}</td>
+                <td className="px-3 py-2 text-right">{formatNumber(detail.expected_quantity)}</td>
+                <td className="px-3 py-2 text-right">{formatNumber(detail.received_quantity)}</td>
+                <td className="px-3 py-2 text-right">{formatNumber(detail.available_quantity)}</td>
+                <td className="px-3 py-2 text-right">{formatNumber(detail.reserved_quantity)}</td>
+                <td className="px-3 py-2 text-right">{formatNumber(detail.missing_quantity)}</td>
+                <td className="px-3 py-2 text-right">{formatMoney(detail.outbound_remaining_cost)}</td>
+              </tr>
+            ))
+          ) : (
+            <tr className="border-t border-slate-100">
+              <td className="px-3 py-6 text-center text-slate-500" colSpan={10}>
+                No item detail captured for this shipment.
               </td>
-              <td className="px-3 py-2">{detail.amazon_title || "--"}</td>
-              <td className="px-3 py-2">{detail.system || "--"}</td>
-              <td className="px-3 py-2 text-right">{formatNumber(detail.quantity_sent)}</td>
-              <td className="px-3 py-2 text-right">{formatNumber(detail.expected_quantity)}</td>
-              <td className="px-3 py-2 text-right">{formatNumber(detail.received_quantity)}</td>
-              <td className="px-3 py-2 text-right">{formatNumber(detail.available_quantity)}</td>
-              <td className="px-3 py-2 text-right">{formatNumber(detail.reserved_quantity)}</td>
-              <td className="px-3 py-2 text-right">{formatNumber(detail.missing_quantity)}</td>
-              <td className="px-3 py-2 text-right">{formatMoney(detail.outbound_remaining_cost)}</td>
             </tr>
-          ))}
+          )}
         </tbody>
       </table>
     </div>
@@ -964,6 +986,15 @@ function statusLabel(value?: string | null) {
     .filter(Boolean)
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
     .join(" ");
+}
+
+function formatMilestoneDate(value?: string | null) {
+  return value ? formatDate(value) : "not captured";
+}
+
+function trackingUrl(row: ShipmentRow) {
+  if (row.carrier_tracking_url) return row.carrier_tracking_url;
+  return `https://www.ups.com/track?tracknum=${encodeURIComponent(row.tracking_number || "")}`;
 }
 
 function noticeClass(tone: RefreshNotice["tone"]) {

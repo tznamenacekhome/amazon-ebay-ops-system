@@ -1,6 +1,6 @@
 # Database Schema Overview
 
-Last updated: 2026-06-04
+Last updated: 2026-06-14
 
 This document is a high-level map of MBOP's schema. SQL migrations remain the source of exact column definitions.
 
@@ -81,6 +81,16 @@ Keepa and Informed data are advisory intelligence only.
   and purchased/offer-made workflows.
 - `sourcing_purchase_matches`: links sourced opportunities to imported eBay
   buyer purchases after the purchase exists in MBOP.
+- `sourcing_listing_snapshots`: point-in-time eBay/Amazon evidence snapshots
+  for opportunities, sourcing actions, and best-effort historical/manual
+  purchase backfill.
+- `matching_intelligence_examples`: rebuildable labeled examples for match,
+  non-match, condition, business, availability, and review evidence.
+- `matching_intelligence_receiving_outcomes`: receiving-owned verification
+  outcomes for correct item, wrong item, wrong condition, packaging issue,
+  incomplete item, listed successfully, structured image clues, and notes.
+- `sourcing_seller_intelligence`: derived advisory seller metrics and seller
+  status used by sourcing diagnostics.
 
 Sourcing remains advisory until a matched eBay buyer purchase is imported.
 Only the purchase matcher may enrich matched `purchase_items` rows with sourced

@@ -61,6 +61,8 @@ Carrier/status syncs must not downgrade workflow-owned statuses.
   overlap with the Amazon title after removing platform and generic words. A
   shared platform alone, such as Nintendo Wii, is not enough to keep an
   opportunity open.
+- Sourcing must hard-block eBay results when known category evidence shows the
+  listing is not in the Video Games category.
 - eBay sourcing search must include common seller platform abbreviations, such
   as xb1, ps2, ps3, ps4, ps5, Switch, Wii, Wii U, and wiiu. Wii and Wii U are
   separate platforms; a Wii seed must not accept a Wii U eBay result.

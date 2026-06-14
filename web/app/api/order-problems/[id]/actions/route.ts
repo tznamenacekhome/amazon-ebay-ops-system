@@ -227,7 +227,7 @@ function actionUpdate(action: string, body: ActionBody, problemCase: ProblemCase
         replacement_received_at: now,
         closed_at: now,
         next_action: null,
-      }, "received", "Marked missing item received and returned to receiving flow.", amount, trackingNumber);
+      }, "delivered", "Marked missing item delivered and returned to receiving flow.", amount, trackingNumber);
     case "mark_escalation_available":
       return result({
         ...base,

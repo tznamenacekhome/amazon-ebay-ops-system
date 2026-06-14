@@ -180,6 +180,18 @@ JOBS: tuple[SyncJob, ...] = (
         timeout_seconds=30 * 60,
     ),
     SyncJob(
+        name="FBA EasyPost carrier tracking",
+        command=static_command(
+            "integrations/easypost_sync_fba_shipments.py",
+            "--limit",
+            "25",
+            "--max-new-trackers",
+            "10",
+        ),
+        groups=("daily", "dashboard", "reconciliation", "fba"),
+        timeout_seconds=30 * 60,
+    ),
+    SyncJob(
         name="Inventory reconciliation",
         command=static_command("integrations/inventory_reconcile.py", "--skip-if-unchanged"),
         groups=("core", "dashboard", "reconciliation", "fba"),
@@ -312,6 +324,16 @@ JOBS: tuple[SyncJob, ...] = (
         ),
         groups=("daily", "catalog"),
         blocking=False,
+        timeout_seconds=30 * 60,
+    ),
+    SyncJob(
+        name="Matching intelligence refresh",
+        command=static_command(
+            "integrations/refresh_matching_intelligence.py",
+            "--runs-per-mode",
+            "1",
+        ),
+        groups=("core", "daily", "catalog", "purchases"),
         timeout_seconds=30 * 60,
     ),
     SyncJob(

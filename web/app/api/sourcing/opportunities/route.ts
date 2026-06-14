@@ -31,6 +31,7 @@ type OpportunityRow = {
   } | null;
   sourcing_ebay_candidates?: {
     ebay_item_id: string | null;
+    ebay_legacy_item_id: string | null;
     ebay_item_web_url: string | null;
     ebay_title: string | null;
     ebay_image_url: string | null;
@@ -96,6 +97,7 @@ export async function GET(request: NextRequest) {
       ),
       sourcing_ebay_candidates (
         ebay_item_id,
+        ebay_legacy_item_id,
         ebay_item_web_url,
         ebay_title,
         ebay_image_url,
@@ -127,76 +129,79 @@ export async function GET(request: NextRequest) {
   const rows = (data ?? []) as OpportunityRow[];
   const keepaByAsin = await fetchKeepaPriceContextByAsin(rows.map((row) => row.asin));
 
-  const opportunities = groupByAsinPriority(
-    rows
-      .map((row) => {
-        const rawEbay = row.sourcing_ebay_candidates?.raw_ebay_json;
-        const shippingQuoteStatus = getShippingQuoteStatus(rawEbay);
-        const originalCurrency = getOriginalCurrency(rawEbay);
-        return {
-          opportunityId: row.opportunity_id,
-          runId: row.sourcing_run_id,
-          asin: row.asin,
-          amazonTitle: row.sourcing_seed_asins?.amazon_title ?? "",
-          amazonImageUrl: row.sourcing_seed_asins?.amazon_image_url ?? null,
-          sellerSku: row.sourcing_seed_asins?.seller_sku ?? null,
-          sourceMode: row.sourcing_seed_asins?.source_mode ?? null,
-          amazonUrl: `https://www.amazon.com/dp/${row.asin}`,
-          ebayItemId: row.sourcing_ebay_candidates?.ebay_item_id ?? null,
-          ebayUrl: row.sourcing_ebay_candidates?.ebay_item_web_url ?? null,
-          ebayTitle: row.sourcing_ebay_candidates?.ebay_title ?? "",
-          ebayImageUrl: row.sourcing_ebay_candidates?.ebay_image_url ?? null,
-          sellerUsername: row.sourcing_ebay_candidates?.seller_username ?? null,
-          itemLocationCountry: row.sourcing_ebay_candidates?.item_location_country ?? null,
-          conditionName: row.sourcing_ebay_candidates?.condition ?? null,
-          buyingOptions: row.sourcing_ebay_candidates?.buying_options ?? [],
-          itemPrice: row.sourcing_ebay_candidates?.price ?? null,
-          shippingPrice: row.sourcing_ebay_candidates?.shipping_cost ?? null,
-          landedCost: row.sourcing_ebay_candidates?.landed_cost ?? null,
-          originalCurrency,
-          originalItemPrice: getOriginalItemPrice(rawEbay),
-          originalShippingPrice: getOriginalShippingPrice(rawEbay),
-          shippingQuoteStatus,
-          shippingQuoteLabel: getShippingQuoteLabel(shippingQuoteStatus),
-          quantityAvailable: row.sourcing_ebay_candidates?.available_quantity ?? null,
-          auctionEndAt: row.sourcing_ebay_candidates?.auction_end_time ?? null,
-          bidCount: row.sourcing_ebay_candidates?.bid_count ?? null,
-          bestOfferEnabled: row.sourcing_ebay_candidates?.best_offer_enabled ?? false,
-          targetSalePrice: row.sourcing_seed_asins?.target_sale_price ?? null,
-          lastSalePrice: row.sourcing_seed_asins?.last_sold_at
-            ? row.sourcing_seed_asins?.target_sale_price ?? null
-            : null,
-          keepaAvg90Price: keepaByAsin.get(row.asin)?.avg90Price ?? null,
-          keepaAvg90Label: keepaByAsin.get(row.asin)?.avg90Label ?? null,
-          keepaCurrentPrice: keepaByAsin.get(row.asin)?.currentPrice ?? null,
-          keepaCurrentPriceLabel: keepaByAsin.get(row.asin)?.currentPriceLabel ?? null,
-          currentInventoryUnits: row.sourcing_seed_asins?.current_inventory_units ?? null,
-          monthlyVelocity: row.sourcing_seed_asins?.monthly_velocity ?? null,
-          monthsOfSupply: row.sourcing_seed_asins?.months_of_supply ?? null,
-          inventoryNeedLevel: row.sourcing_seed_asins?.inventory_need_level ?? null,
-          lastSoldAt: row.sourcing_seed_asins?.last_sold_at ?? null,
-          opportunityType: row.opportunity_type,
-          status: row.status,
-          estimatedProfit: row.profit,
-          estimatedRoiPercent: row.roi_percent,
-          maxProfitableLandedCost: row.max_profitable_landed_cost,
-          suggestedOfferPrice: row.max_offer_price,
-          requiredOfferPercentOfAsk: row.required_offer_percent_of_ask,
-          suggestedMaxBid: row.max_bid,
-          quantityMultiplier: row.sourcing_ebay_candidates?.available_quantity ?? null,
-          totalProfitOpportunity: row.total_profit_opportunity,
-          score: row.score,
-          aiFlags: row.ai_flags ?? [],
-          createdAt: row.created_at,
-        };
-      })
-      .filter((row) => {
-        if (sourceMode !== "all" && row.sourceMode !== sourceMode) return false;
-        if (!queryText) return true;
-        const haystack = `${row.asin} ${row.amazonTitle} ${row.ebayTitle}`.toLowerCase();
-        return haystack.includes(queryText.toLowerCase());
-      }),
-  ).slice(0, limit);
+  const mappedRows = rows
+    .map((row) => {
+      const rawEbay = row.sourcing_ebay_candidates?.raw_ebay_json;
+      const shippingQuoteStatus = getShippingQuoteStatus(rawEbay);
+      const originalCurrency = getOriginalCurrency(rawEbay);
+      return {
+        opportunityId: row.opportunity_id,
+        runId: row.sourcing_run_id,
+        asin: row.asin,
+        amazonTitle: row.sourcing_seed_asins?.amazon_title ?? "",
+        amazonImageUrl: row.sourcing_seed_asins?.amazon_image_url ?? null,
+        sellerSku: row.sourcing_seed_asins?.seller_sku ?? null,
+        sourceMode: row.sourcing_seed_asins?.source_mode ?? null,
+        amazonUrl: `https://www.amazon.com/dp/${row.asin}`,
+        ebayItemId: row.sourcing_ebay_candidates?.ebay_item_id ?? null,
+        ebayLegacyItemId:
+          row.sourcing_ebay_candidates?.ebay_legacy_item_id ??
+          legacyEbayItemId(row.sourcing_ebay_candidates?.ebay_item_id),
+        ebayUrl: row.sourcing_ebay_candidates?.ebay_item_web_url ?? null,
+        ebayTitle: row.sourcing_ebay_candidates?.ebay_title ?? "",
+        ebayImageUrl: row.sourcing_ebay_candidates?.ebay_image_url ?? null,
+        sellerUsername: row.sourcing_ebay_candidates?.seller_username ?? null,
+        itemLocationCountry: row.sourcing_ebay_candidates?.item_location_country ?? null,
+        conditionName: row.sourcing_ebay_candidates?.condition ?? null,
+        buyingOptions: row.sourcing_ebay_candidates?.buying_options ?? [],
+        itemPrice: row.sourcing_ebay_candidates?.price ?? null,
+        shippingPrice: row.sourcing_ebay_candidates?.shipping_cost ?? null,
+        landedCost: row.sourcing_ebay_candidates?.landed_cost ?? null,
+        originalCurrency,
+        originalItemPrice: getOriginalItemPrice(rawEbay),
+        originalShippingPrice: getOriginalShippingPrice(rawEbay),
+        shippingQuoteStatus,
+        shippingQuoteLabel: getShippingQuoteLabel(shippingQuoteStatus),
+        quantityAvailable: row.sourcing_ebay_candidates?.available_quantity ?? null,
+        auctionEndAt: row.sourcing_ebay_candidates?.auction_end_time ?? null,
+        bidCount: row.sourcing_ebay_candidates?.bid_count ?? null,
+        bestOfferEnabled: row.sourcing_ebay_candidates?.best_offer_enabled ?? false,
+        targetSalePrice: row.sourcing_seed_asins?.target_sale_price ?? null,
+        lastSalePrice: row.sourcing_seed_asins?.last_sold_at
+          ? row.sourcing_seed_asins?.target_sale_price ?? null
+          : null,
+        keepaAvg90Price: keepaByAsin.get(row.asin)?.avg90Price ?? null,
+        keepaAvg90Label: keepaByAsin.get(row.asin)?.avg90Label ?? null,
+        keepaCurrentPrice: keepaByAsin.get(row.asin)?.currentPrice ?? null,
+        keepaCurrentPriceLabel: keepaByAsin.get(row.asin)?.currentPriceLabel ?? null,
+        currentInventoryUnits: row.sourcing_seed_asins?.current_inventory_units ?? null,
+        monthlyVelocity: row.sourcing_seed_asins?.monthly_velocity ?? null,
+        monthsOfSupply: row.sourcing_seed_asins?.months_of_supply ?? null,
+        inventoryNeedLevel: row.sourcing_seed_asins?.inventory_need_level ?? null,
+        lastSoldAt: row.sourcing_seed_asins?.last_sold_at ?? null,
+        opportunityType: row.opportunity_type,
+        status: row.status,
+        estimatedProfit: row.profit,
+        estimatedRoiPercent: row.roi_percent,
+        maxProfitableLandedCost: row.max_profitable_landed_cost,
+        suggestedOfferPrice: row.max_offer_price,
+        requiredOfferPercentOfAsk: row.required_offer_percent_of_ask,
+        suggestedMaxBid: row.max_bid,
+        quantityMultiplier: row.sourcing_ebay_candidates?.available_quantity ?? null,
+        totalProfitOpportunity: row.total_profit_opportunity,
+        score: row.score,
+        aiFlags: row.ai_flags ?? [],
+        createdAt: row.created_at,
+      };
+    })
+    .filter((row) => {
+      if (sourceMode !== "all" && row.sourceMode !== sourceMode) return false;
+      if (!queryText) return true;
+      const haystack = `${row.asin} ${row.amazonTitle} ${row.ebayTitle}`.toLowerCase();
+      return haystack.includes(queryText.toLowerCase());
+    });
+
+  const opportunities = groupByAsinPriority(dedupeExactEbayListings(mappedRows)).slice(0, limit);
 
   return NextResponse.json({
     refreshedAt: new Date().toISOString(),
@@ -223,6 +228,96 @@ function groupByAsinPriority<T extends { asin: string }>(rows: T[]) {
     grouped.get(key)?.push(row);
   }
   return asinOrder.flatMap((asin) => grouped.get(asin) ?? []);
+}
+
+function dedupeExactEbayListings<
+  T extends {
+    ebayItemId: string | null;
+    ebayLegacyItemId: string | null;
+    ebayUrl: string | null;
+    score: number | null;
+    status: string | null;
+    createdAt: string | null;
+  },
+>(rows: T[]) {
+  const keyedRows = new Map<string, T>();
+  const unkeyedRows: T[] = [];
+
+  for (const row of rows) {
+    const key = ebayListingDedupeKey(row);
+    if (!key) {
+      unkeyedRows.push(row);
+      continue;
+    }
+
+    const current = keyedRows.get(key);
+    if (!current || isBetterOpportunityRow(row, current)) {
+      keyedRows.set(key, row);
+    }
+  }
+
+  return [...keyedRows.values(), ...unkeyedRows].sort(compareOpportunityRows);
+}
+
+function ebayListingDedupeKey(row: {
+  ebayItemId: string | null;
+  ebayLegacyItemId: string | null;
+  ebayUrl: string | null;
+}) {
+  const legacyId = row.ebayLegacyItemId ?? legacyEbayItemId(row.ebayItemId);
+  if (legacyId) return `legacy:${legacyId}`;
+
+  const itemId = normalizeKeyPart(row.ebayItemId);
+  if (itemId) return `item:${itemId}`;
+
+  const url = normalizeEbayUrl(row.ebayUrl);
+  return url ? `url:${url}` : null;
+}
+
+function legacyEbayItemId(value: string | null | undefined) {
+  const trimmed = normalizeKeyPart(value);
+  if (!trimmed) return null;
+  if (/^\d+$/.test(trimmed)) return trimmed;
+  if (trimmed.startsWith("v1|")) return trimmed.split("|")[1] || null;
+  return null;
+}
+
+function normalizeEbayUrl(value: string | null | undefined) {
+  const trimmed = normalizeKeyPart(value);
+  return trimmed ? trimmed.replace(/[?#].*$/, "") : null;
+}
+
+function normalizeKeyPart(value: string | null | undefined) {
+  const trimmed = value?.trim();
+  return trimmed ? trimmed.toLowerCase() : null;
+}
+
+function isBetterOpportunityRow<T extends { score: number | null; status: string | null; createdAt: string | null }>(
+  candidate: T,
+  current: T,
+) {
+  return compareOpportunityRows(candidate, current) < 0;
+}
+
+function compareOpportunityRows<T extends { score: number | null; status: string | null; createdAt: string | null }>(
+  left: T,
+  right: T,
+) {
+  const statusDelta = statusRank(right.status) - statusRank(left.status);
+  if (statusDelta !== 0) return statusDelta;
+
+  const scoreDelta = (right.score ?? Number.NEGATIVE_INFINITY) - (left.score ?? Number.NEGATIVE_INFINITY);
+  if (scoreDelta !== 0) return scoreDelta;
+
+  return (right.createdAt ?? "").localeCompare(left.createdAt ?? "");
+}
+
+function statusRank(status: string | null) {
+  if (status === "open") return 4;
+  if (status === "watching") return 3;
+  if (status === "purchased_pending_match") return 2;
+  if (status === "roi_snoozed") return 1;
+  return 0;
 }
 
 function getShippingQuoteStatus(rawEbay: unknown): ShippingQuoteStatus {

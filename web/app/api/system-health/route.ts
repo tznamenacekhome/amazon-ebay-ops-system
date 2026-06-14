@@ -189,6 +189,38 @@ const JOBS: JobConfig[] = [
     },
   },
   {
+    id: "fba-easypost-carrier-tracking",
+    name: "FBA EasyPost carrier tracking",
+    command: "integrations/easypost_sync_fba_shipments.py",
+    group: "daily",
+    blocking: true,
+    expectedEveryHours: 24,
+    criticalAfterHours: 36,
+    signal: async () => {
+      const event = await latestRow(
+        "fba_shipment_events",
+        "created_at",
+        "created_at,event_at,event_type",
+        { event_source: "easypost" },
+      );
+      const shipment = await latestRow(
+        "fba_shipments",
+        "updated_at",
+        "updated_at,shipment_code,tracking_number,carrier_pickup_at,carrier_delivered_at,carrier_delivery_eta",
+      );
+      return {
+        lastRunAt: stringValue(event?.created_at) || stringValue(shipment?.updated_at),
+        source: "fba_shipment_events",
+        stats: [
+          { label: "Shipment", value: stringValue(shipment?.shipment_code) || "--" },
+          { label: "Tracking", value: stringValue(shipment?.tracking_number) || "--" },
+          { label: "Latest event", value: stringValue(event?.event_type) || "--" },
+          { label: "ETA", value: stringValue(shipment?.carrier_delivery_eta) || "--" },
+        ],
+      };
+    },
+  },
+  {
     id: "amazon-listing-status",
     name: "Amazon listing status",
     command: "integrations/amazon_sync_listing_status.py",

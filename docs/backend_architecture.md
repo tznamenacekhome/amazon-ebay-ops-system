@@ -20,6 +20,10 @@ are separate domains.
 - Sourcing owns advisory replenishment opportunities, eBay candidate discovery,
   operator sourcing actions, and links to imported purchases only after the
   eBay buyer purchase exists in MBOP.
+- Matching Intelligence owns reusable sourcing evidence, listing snapshots,
+  labeled match/non-match examples, and advisory seller intelligence. It is a
+  foundation for improving Amazon-to-eBay replenishment matching and must not
+  launch eBay-to-Amazon sourcing by itself.
 - Receiving owns physical verification, received quantities, return-pending decisions, marketplace assignment, received dates, and the transition to `received`.
 - Order Problems owns return/refund follow-up, eBay return/case metadata,
   cancelled-refund follow-up, missing-item/replacement follow-up, and local
@@ -27,6 +31,11 @@ are separate domains.
 - Amazon FBA shipment prep owns grouping received Amazon-bound items for export, shipment ID assignment, and moving included units to `listed`.
 - Non-historical FBA shipment item links remain workflow-owned by FBA prep and are projected into inventory value as outbound to Amazon only for quantities Amazon has not yet received or made available.
 - Amazon FBA shipment sync reads Amazon inbound shipment status and shipment-item quantities, stores fulfillment center, carrier ETA/tracking context, FBA availability metrics, and milestone timestamps on FBA shipment workflow tables.
+- Amazon FBA shipment sync also attempts a cached Fulfillment Inbound v2024
+  identity bridge from Amazon shipment confirmation ID to inbound plan/internal
+  shipment IDs. The bridge stores raw payload context and any tracking details
+  returned, but missing v2024 identity/tracking does not fail status or item
+  quantity refreshes.
 - Amazon SP-API snapshot tables own read-only Amazon inventory, listing, planning, and finance data.
 - Keepa tables own read-only catalog, offer, price-history, sales-rank, and competition intelligence.
 - Informed tables own read-only repricer report snapshots and advisory rule/price context.
@@ -52,11 +61,11 @@ twice per day.
   Amazon inventory planning, Amazon finance balances, 60-day Amazon sales
   finance refresh, daily sales profitability, Informed Repricer reports, YNAB
   Business cash, YNAB Business transactions, sourcing listing availability
-  cleanup, and the daily business value snapshot. This group is intended for
-  1x/day runs.
+  cleanup, Matching Intelligence refresh, and the daily business value
+  snapshot. This group is intended for 1x/day runs.
 - `catalog`: sourcing listing availability cleanup and guarded Keepa
-  active-Amazon stale refresh. Keepa work is token-aware and can run daily or
-  less often.
+  active-Amazon stale refresh plus Matching Intelligence refresh. Keepa work is
+  token-aware and can run daily or less often.
 - Windows Task Scheduler currently runs `core` daily at 6:00 AM and 4:00 PM PT,
   `daily` daily at 8:00 PM PT, `catalog` daily at 9:30 PM PT, and the Inventory
   Source Balance Audit monthly on the 1st at 6:30 AM PT. System Health displays

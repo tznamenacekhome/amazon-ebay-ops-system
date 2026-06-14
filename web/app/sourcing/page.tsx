@@ -13,26 +13,16 @@ import {
 } from "lucide-react";
 import type { SourcingOpportunity, SourcingRun, SourcingSettings } from "./types";
 import { useSourcingOpportunities } from "./useSourcingOpportunities";
+import { dismissReasonGroups } from "./matchingTaxonomy";
 
-const tabs = ["Replenishment", "Watchlist", "Purchased Pending Match", "Sourcing History", "Settings"] as const;
+const tabs = ["Replenishment", "Watchlist", "Purchased Pending Match", "Sourcing History", "Matching Intelligence", "Settings"] as const;
 const opportunityTypes = ["all", "buy_now", "multi_unit", "best_offer", "auction", "watch"] as const;
 const GIXEN_URL = "https://www.gixen.com/main/index.php";
-const dismissReasons = [
-  ["wrong_product", "Wrong Product"],
-  ["wrong_platform", "Wrong Platform"],
-  ["wrong_edition_version", "Wrong Edition / Version"],
-  ["non_north_american_version", "Non-North-American Version"],
-  ["packaging_condition_issue", "Packaging / Condition Issue"],
-  ["incomplete_product", "Incomplete Product"],
-  ["digital_item", "Digital Item"],
-  ["no_longer_available", "No Longer Available"],
-  ["not_worth_selling", "Not Worth Selling"],
-  ["other", "Other"],
-] as const;
 type SourcingActionPayload = {
   actionType: string;
   reason?: string;
   notes?: string;
+  imageClues?: string[];
   requiredMaxLandedCost?: number;
   requiredRoiPercent?: number;
   expectedPurchaseCost?: number;
@@ -182,6 +172,8 @@ export default function SourcingPage() {
 
       {activeTab === "Sourcing History" ? (
         <SourcingHistory />
+      ) : activeTab === "Matching Intelligence" ? (
+        <MatchingIntelligencePanel />
       ) : activeTab === "Settings" ? (
         <SourcingSettingsPanel onApplied={reload} />
       ) : (
@@ -272,8 +264,8 @@ export default function SourcingPage() {
               row={dismissRow}
               actionBusyId={actionBusyId}
               onClose={() => setDismissRow(null)}
-              onDismiss={async (reason, notes) => {
-                await act(dismissRow, { actionType: "dismiss", reason, notes });
+              onDismiss={async (reason, notes, imageClues) => {
+                await act(dismissRow, { actionType: "dismiss", reason, notes, imageClues });
                 setDismissRow(null);
               }}
             />
@@ -283,8 +275,8 @@ export default function SourcingPage() {
               rows={selectedRows}
               busy={actionBusyId === "bulk"}
               onClose={() => setBulkDismissOpen(false)}
-              onDismiss={async (reason, notes) => {
-                await bulkAct(selectedRows, () => ({ actionType: "dismiss", reason, notes }));
+              onDismiss={async (reason, notes, imageClues) => {
+                await bulkAct(selectedRows, () => ({ actionType: "dismiss", reason, notes, imageClues }));
                 setBulkDismissOpen(false);
               }}
             />
@@ -628,9 +620,10 @@ function DismissOpportunityDialog({
   row: SourcingOpportunity;
   actionBusyId: string | null;
   onClose: () => void;
-  onDismiss: (reason: string, notes: string) => Promise<void>;
+  onDismiss: (reason: string, notes: string, imageClues: string[]) => Promise<void>;
 }) {
   const [notes, setNotes] = useState("");
+  const [imageClues, setImageClues] = useState<string[]>([]);
   const busy = actionBusyId === row.opportunityId;
 
   return (
@@ -645,9 +638,10 @@ function DismissOpportunityDialog({
             Notes
             <textarea value={notes} onChange={(event) => setNotes(event.target.value)} className="mt-1 min-h-24 w-full rounded-md border border-slate-300 p-2 text-sm" />
           </label>
+          <ImageClueButtons selected={imageClues} onChange={setImageClues} />
           <DismissReasonButtons
             busy={busy}
-            onChoose={(reason) => void onDismiss(reason, notes)}
+            onChoose={(reason) => void onDismiss(reason, notes, imageClues)}
           />
         </div>
         <div className="flex justify-end gap-2 border-t border-slate-200 px-4 py-3">
@@ -669,9 +663,10 @@ function BulkDismissOpportunityDialog({
   rows: SourcingOpportunity[];
   busy: boolean;
   onClose: () => void;
-  onDismiss: (reason: string, notes: string) => Promise<void>;
+  onDismiss: (reason: string, notes: string, imageClues: string[]) => Promise<void>;
 }) {
   const [notes, setNotes] = useState("");
+  const [imageClues, setImageClues] = useState<string[]>([]);
 
   return (
     <div className="fixed inset-0 z-40 flex items-center justify-center bg-slate-950/20 p-4">
@@ -685,9 +680,10 @@ function BulkDismissOpportunityDialog({
             Notes
             <textarea value={notes} onChange={(event) => setNotes(event.target.value)} className="mt-1 min-h-24 w-full rounded-md border border-slate-300 p-2 text-sm" />
           </label>
+          <ImageClueButtons selected={imageClues} onChange={setImageClues} />
           <DismissReasonButtons
             busy={busy || rows.length === 0}
-            onChoose={(reason) => void onDismiss(reason, notes)}
+            onChoose={(reason) => void onDismiss(reason, notes, imageClues)}
           />
         </div>
         <div className="flex justify-end gap-2 border-t border-slate-200 px-4 py-3">
@@ -710,17 +706,66 @@ function DismissReasonButtons({
   return (
     <div>
       <div className="mb-2 text-sm font-medium text-slate-700">Choose reason to dismiss</div>
-      <div className="grid gap-2 sm:grid-cols-2">
-        {dismissReasons.map(([value, reasonLabel]) => (
-          <button
-            key={value}
-            disabled={busy}
-            onClick={() => onChoose(value)}
-            className="rounded-md border border-slate-300 bg-white px-3 py-2 text-left text-sm font-medium text-slate-700 hover:border-red-200 hover:bg-red-50 hover:text-red-700 disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            {reasonLabel}
-          </button>
+      <div className="space-y-3">
+        {dismissReasonGroups.map((group) => (
+          <div key={group.label}>
+            <div className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-500">{group.label}</div>
+            <div className="grid gap-2 sm:grid-cols-2">
+              {group.reasons.map(([value, reasonLabel]) => (
+                <button
+                  key={value}
+                  disabled={busy}
+                  onClick={() => onChoose(value)}
+                  className="rounded-md border border-slate-300 bg-white px-3 py-2 text-left text-sm font-medium text-slate-700 hover:border-red-200 hover:bg-red-50 hover:text-red-700 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {reasonLabel}
+                </button>
+              ))}
+            </div>
+          </div>
         ))}
+      </div>
+    </div>
+  );
+}
+
+const imageClueOptions = [
+  ["pegi", "PEGI"],
+  ["greatest_hits", "Greatest Hits"],
+  ["disc_only", "Disc Only"],
+  ["missing_shrink_wrap", "Missing Shrink Wrap"],
+  ["reseal", "Reseal"],
+  ["damaged_case", "Damaged Case"],
+] as const;
+
+function ImageClueButtons({
+  selected,
+  onChange,
+}: {
+  selected: string[];
+  onChange: (values: string[]) => void;
+}) {
+  return (
+    <div>
+      <div className="mb-2 text-sm font-medium text-slate-700">Image clues</div>
+      <div className="flex flex-wrap gap-2">
+        {imageClueOptions.map(([value, clueLabel]) => {
+          const active = selected.includes(value);
+          return (
+            <button
+              key={value}
+              type="button"
+              onClick={() => onChange(active ? selected.filter((item) => item !== value) : [...selected, value])}
+              className={`rounded-md border px-3 py-2 text-sm font-medium ${
+                active
+                  ? "border-blue-300 bg-blue-50 text-blue-700"
+                  : "border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
+              }`}
+            >
+              {clueLabel}
+            </button>
+          );
+        })}
       </div>
     </div>
   );
@@ -777,6 +822,181 @@ function SourcingHistory() {
     </div>
   );
 }
+
+function MatchingIntelligencePanel() {
+  const [data, setData] = useState<MatchingIntelligenceData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetch("/api/sourcing/matching-intelligence", { cache: "no-store" })
+      .then(async (response) => {
+        const payload = await response.json();
+        if (!response.ok) throw new Error(payload.error ?? "Failed to load matching intelligence.");
+        setData(payload);
+        setError(null);
+      })
+      .catch((err) => setError(err instanceof Error ? err.message : "Failed to load matching intelligence."))
+      .finally(() => setLoading(false));
+  }, []);
+
+  if (loading) return <div className="rounded-md border border-slate-200 bg-white p-6 text-sm text-slate-500">Loading matching intelligence...</div>;
+  if (error) return <div className="rounded-md border border-red-200 bg-red-50 p-4 text-sm text-red-700">{error}</div>;
+  if (!data) return null;
+
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+        <Metric label="Examples" value={data.summary.exampleCount} />
+        <Metric label="Snapshots" value={data.summary.snapshotCount} />
+        <Metric label="Reviewed Opps" value={data.summary.reviewedOpportunityCount} />
+        <Metric label="Action Records" value={data.summary.actionCount} />
+        <Metric label="Examples w/ Notes" value={data.summary.examplesWithNotes} />
+        <Metric label="Examples w/ Snapshots" value={data.summary.examplesWithSnapshots} />
+        <Metric label="Purchased/Offered" value={data.summary.purchasedOrOfferedCount} />
+        <Metric label="Matched Later" value={data.summary.purchasedOrOfferedMatchedCount} />
+      </div>
+      <div className="grid gap-4 xl:grid-cols-2">
+        <CountPanel title="Labels" rows={data.countsByLabel} />
+        <DismissalStatsPanel rows={data.dismissalReasonStats} />
+        <CountPanel title="Sourcing Actions" rows={data.countsBySourcingAction} />
+        <CountPanel title="Image Clues" rows={data.countsByImageClue} />
+        <CountPanel title="Sources" rows={data.countsBySource} />
+        <CountPanel title="Seller Status" rows={data.countsBySellerStatus} />
+      </div>
+      <NearMissPanel rows={data.nearMisses} />
+      <div className="grid gap-4 xl:grid-cols-2">
+        <div className="rounded-md border border-slate-200 bg-white shadow-sm">
+          <div className="border-b border-slate-200 px-3 py-2 text-sm font-semibold">Recent Dismissal Notes</div>
+          <div className="divide-y divide-slate-100">
+            {data.recentNotes.length ? data.recentNotes.map((row, index) => (
+              <div key={`${row.reason}-${index}`} className="px-3 py-2 text-sm">
+                <div className="font-medium text-slate-800">{label(row.reason)}</div>
+                <div className="text-slate-600">{row.note}</div>
+                <div className="text-xs text-slate-400">{row.label} · {dateOnly(row.createdAt)}</div>
+              </div>
+            )) : <div className="px-3 py-6 text-sm text-slate-500">No dismissal notes captured yet.</div>}
+          </div>
+        </div>
+        <div className="rounded-md border border-slate-200 bg-white shadow-sm">
+          <div className="border-b border-slate-200 px-3 py-2 text-sm font-semibold">Seller Warnings</div>
+          <div className="divide-y divide-slate-100">
+            {data.sellersToWatch.length ? data.sellersToWatch.map((row) => (
+              <div key={row.sellerUsername ?? ""} className="grid grid-cols-4 gap-2 px-3 py-2 text-sm">
+                <div className="col-span-2 font-medium text-slate-800">{row.sellerUsername}</div>
+                <div>{row.status}</div>
+                <div className="text-right">{number(row.trustScore)}</div>
+                <div className="col-span-4 text-xs text-slate-500">
+                  {row.productConditionReturns ?? 0} product/condition strikes · {row.purchases ?? 0}/{row.opportunities ?? 0} conversions
+                </div>
+              </div>
+            )) : <div className="px-3 py-6 text-sm text-slate-500">No watch/avoid sellers yet.</div>}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function CountPanel({ title, rows }: { title: string; rows: Array<{ key: string; count: number }> }) {
+  return (
+    <div className="rounded-md border border-slate-200 bg-white shadow-sm">
+      <div className="border-b border-slate-200 px-3 py-2 text-sm font-semibold">{title}</div>
+      <div className="divide-y divide-slate-100">
+        {rows.length ? rows.map((row) => (
+          <div key={row.key} className="flex items-center justify-between px-3 py-2 text-sm">
+            <span>{label(row.key)}</span>
+            <span className="font-semibold">{row.count}</span>
+          </div>
+        )) : <div className="px-3 py-6 text-sm text-slate-500">No data yet.</div>}
+      </div>
+    </div>
+  );
+}
+
+function DismissalStatsPanel({ rows }: { rows: MatchingIntelligenceData["dismissalReasonStats"] }) {
+  return (
+    <div className="rounded-md border border-slate-200 bg-white shadow-sm">
+      <div className="border-b border-slate-200 px-3 py-2 text-sm font-semibold">Dismiss Reasons</div>
+      <div className="divide-y divide-slate-100">
+        {rows.length ? rows.map((row) => (
+          <div key={row.key} className="grid grid-cols-12 items-center gap-2 px-3 py-2 text-sm">
+            <span className="col-span-5">{label(row.key)}</span>
+            <span className="col-span-2 text-right font-semibold">{row.count}</span>
+            <span className="col-span-3 text-right text-slate-600">{row.withNotes} notes</span>
+            <span className="col-span-2 text-right text-xs text-slate-500">{number(row.noteRate)}%</span>
+          </div>
+        )) : <div className="px-3 py-6 text-sm text-slate-500">No dismissals yet.</div>}
+      </div>
+    </div>
+  );
+}
+
+function NearMissPanel({ rows }: { rows: MatchingIntelligenceData["nearMisses"] }) {
+  return (
+    <div className="rounded-md border border-slate-200 bg-white shadow-sm">
+      <div className="border-b border-slate-200 px-3 py-2 text-sm font-semibold">Near Miss Review Queue</div>
+      <div className="divide-y divide-slate-100">
+        {rows.length ? rows.map((row, index) => (
+          <div key={`${row.asin}-${index}`} className="grid gap-1 px-3 py-2 text-sm lg:grid-cols-[120px_minmax(0,1fr)_110px]">
+            <div className="font-mono text-xs text-slate-500">{row.asin}</div>
+            <div className="min-w-0">
+              <div className="font-medium text-slate-800">{row.rejectedTitle}</div>
+              <div className="text-xs text-slate-500">Positive: {row.positiveTitle ?? "--"}</div>
+              {row.note ? <div className="text-xs text-slate-500">Note: {row.note}</div> : null}
+            </div>
+            <div className="text-right text-xs text-slate-500">
+              <div>{number(row.similarity)}%</div>
+              <div>{label(row.reason ?? row.label ?? "")}</div>
+            </div>
+          </div>
+        )) : <div className="px-3 py-6 text-sm text-slate-500">No near misses detected yet.</div>}
+      </div>
+    </div>
+  );
+}
+
+type MatchingIntelligenceData = {
+  summary: {
+    exampleCount: number;
+    snapshotCount: number;
+    sellerCount: number;
+    examplesWithNotes: number;
+    examplesWithSnapshots: number;
+    reviewedOpportunityCount: number;
+    actionCount: number;
+    missingDismissalNotes: number;
+    purchasedOrOfferedCount: number;
+    purchasedOrOfferedMatchedCount: number;
+  };
+  countsByLabel: Array<{ key: string; count: number }>;
+  countsByDismissReason: Array<{ key: string; count: number }>;
+  dismissalReasonStats: Array<{ key: string; count: number; withNotes: number; withoutNotes: number; noteRate: number }>;
+  countsByImageClue: Array<{ key: string; count: number }>;
+  countsBySourcingAction: Array<{ key: string; count: number }>;
+  countsBySource: Array<{ key: string; count: number }>;
+  countsBySellerStatus: Array<{ key: string; count: number }>;
+  recentNotes: Array<{ reason: string; note: string; label: string; source: string; createdAt: string | null }>;
+  nearMisses: Array<{
+    asin: string | null;
+    amazonTitle: string | null;
+    rejectedTitle: string | null;
+    positiveTitle: string | null;
+    reason: string | null;
+    label: string | null;
+    similarity: number;
+    note: string | null;
+    createdAt: string | null;
+  }>;
+  sellersToWatch: Array<{
+    sellerUsername: string | null;
+    status: string | null;
+    trustScore: number | null;
+    productConditionReturns: number | null;
+    opportunities: number | null;
+    purchases: number | null;
+  }>;
+};
 
 function SourcingSettingsPanel({ onApplied }: { onApplied: () => Promise<void> }) {
   const [settings, setSettings] = useState<SourcingSettings | null>(null);

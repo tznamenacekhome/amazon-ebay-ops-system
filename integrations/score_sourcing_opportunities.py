@@ -8,7 +8,9 @@ import re
 from typing import Any
 
 from sourcing_common import chunked, fetch_settings, get_supabase_client, paginate_table, to_float
-from system_detection import detect_system_from_title
+from matching_intelligence import build_listing_snapshot
+from system_detection import detect_system_from_title, normalize_system
+from title_cleaning import clean_marketplace_title_for_search
 
 
 NEED_POINTS = {"critical": 40, "high": 28, "medium": 14, "low": 4}
@@ -23,6 +25,7 @@ def main() -> int:
     seed_by_id = {row["seed_id"]: row for row in seeds}
     keepa_prices_by_asin = fetch_keepa_price_context_by_asin(supabase, [row.get("asin") for row in seeds])
     historical_status_by_key = fetch_historical_status_by_key(supabase)
+    matching_context = fetch_matching_context(supabase)
     rows = [
         score_candidate(
             candidate,
@@ -30,6 +33,7 @@ def main() -> int:
             settings,
             keepa_prices_by_asin,
             historical_status_by_key,
+            matching_context,
         )
         for candidate in candidates
     ]
@@ -48,6 +52,7 @@ def main() -> int:
 
     if args.update_existing:
         updated, inserted = upsert_opportunities(supabase, args.run_id, rows)
+        snapshots = snapshot_new_opportunities(supabase, args.run_id)
         supabase.table("sourcing_runs").update(
             {
                 "status": "completed",
@@ -57,12 +62,14 @@ def main() -> int:
         ).eq("sourcing_run_id", args.run_id).execute()
         print(f"Updated: {updated}")
         print(f"Inserted: {inserted}")
+        print(f"Initial listing snapshots created: {snapshots}")
         return 0
 
     if args.replace_run:
         supabase.table("sourcing_opportunities").delete().eq("sourcing_run_id", args.run_id).execute()
     for batch in chunked(rows, 250):
         supabase.table("sourcing_opportunities").insert(batch).execute()
+    snapshots = snapshot_new_opportunities(supabase, args.run_id)
     supabase.table("sourcing_runs").update(
         {
             "status": "completed",
@@ -70,6 +77,7 @@ def main() -> int:
             "opportunity_count": len(rows),
         }
     ).eq("sourcing_run_id", args.run_id).execute()
+    print(f"Initial listing snapshots created: {snapshots}")
     return 0
 
 
@@ -123,6 +131,55 @@ def fetch_existing_opportunities(supabase, run_id: str) -> list[dict[str, Any]]:
         supabase.table("sourcing_opportunities")
         .select("opportunity_id,candidate_id,status,created_at")
         .eq("sourcing_run_id", run_id)
+        .execute()
+    )
+    return response.data or []
+
+
+def snapshot_new_opportunities(supabase, run_id: str) -> int:
+    opportunities = fetch_opportunities_for_snapshot(supabase, run_id)
+    created = 0
+    for opportunity in opportunities:
+        candidate = opportunity.get("sourcing_ebay_candidates") or {}
+        seed = opportunity.get("sourcing_seed_asins") or {}
+        snapshot = build_listing_snapshot(
+            opportunity=opportunity,
+            candidate=candidate,
+            seed=seed,
+            event="opportunity_created",
+            source="score_sourcing_opportunities",
+            raw_context={
+                "score": opportunity.get("score"),
+                "score_reason": opportunity.get("score_reason"),
+                "opportunity_type": opportunity.get("opportunity_type"),
+            },
+        )
+        response = supabase.table("sourcing_listing_snapshots").insert(snapshot).execute()
+        snapshot_id = (response.data or [{}])[0].get("listing_snapshot_id")
+        if snapshot_id:
+            supabase.table("sourcing_opportunities").update(
+                {
+                    "initial_listing_snapshot_id": snapshot_id,
+                    "latest_listing_snapshot_id": snapshot_id,
+                }
+            ).eq("opportunity_id", opportunity["opportunity_id"]).execute()
+            created += 1
+    return created
+
+
+def fetch_opportunities_for_snapshot(supabase, run_id: str) -> list[dict[str, Any]]:
+    response = (
+        supabase.table("sourcing_opportunities")
+        .select(
+            """
+            *,
+            sourcing_ebay_candidates (*),
+            sourcing_seed_asins (*)
+            """
+        )
+        .eq("sourcing_run_id", run_id)
+        .is_("initial_listing_snapshot_id", "null")
+        .neq("status", "rejected")
         .execute()
     )
     return response.data or []
@@ -195,6 +252,36 @@ def fetch_historical_status_by_key(supabase) -> dict[tuple[str, str], dict[str, 
     return status_by_key
 
 
+def fetch_matching_context(supabase) -> dict[str, Any]:
+    examples = paginate_table(
+        supabase,
+        "matching_intelligence_examples",
+        "asin,amazon_system,detected_system,ebay_item_id,ebay_legacy_item_id,ebay_title,match_label,label_type,dismiss_reason,source_weight,evidence_strength,created_at",
+        order_column="created_at",
+        desc=True,
+    )
+    seller_rows = paginate_table(
+        supabase,
+        "sourcing_seller_intelligence",
+        "seller_username,seller_status,seller_trust_score,status_reason,product_condition_return_count,purchase_conversion_rate",
+    )
+    examples_by_key: dict[tuple[str, str], list[dict[str, Any]]] = {}
+    examples_by_asin: dict[str, list[dict[str, Any]]] = {}
+    for example in examples:
+        asin = clean_asin(example.get("asin"))
+        if asin:
+            examples_by_asin.setdefault(asin, []).append(example)
+        for ebay_id in ebay_identity_values(example):
+            if asin and ebay_id:
+                examples_by_key.setdefault((asin, ebay_id), []).append(example)
+    sellers = {
+        str(row.get("seller_username") or "").casefold(): row
+        for row in seller_rows
+        if row.get("seller_username")
+    }
+    return {"examples_by_key": examples_by_key, "examples_by_asin": examples_by_asin, "sellers": sellers}
+
+
 def fetch_keepa_price_context_by_asin(supabase, asins: list[Any]) -> dict[str, dict[str, float | None]]:
     unique_asins = sorted({str(asin or "").upper() for asin in asins if asin})
     by_asin: dict[str, dict[str, float | None]] = {}
@@ -227,11 +314,13 @@ def score_candidate(
     settings,
     keepa_prices_by_asin: dict[str, dict[str, float | None]] | None = None,
     historical_status_by_key: dict[tuple[str, str], dict[str, Any]] | None = None,
+    matching_context: dict[str, Any] | None = None,
 ) -> dict[str, Any] | None:
     if not seed:
         return None
     title = str(candidate.get("ebay_title") or "")
-    flags = advisory_flags(title, candidate, seed, settings)
+    matching_diagnostics = matching_diagnostics_for_candidate(candidate, seed, matching_context or {})
+    flags = advisory_flags(title, candidate, seed, settings) + matching_diagnostics["flags"]
     has_excluded_keyword = any(flag.startswith("Excluded keyword") for flag in flags)
     has_hard_block = any(flag.startswith("Blocked:") for flag in flags)
 
@@ -282,6 +371,7 @@ def score_candidate(
         else "rejected"
     )
     score = opportunity_score(seed, profit, roi, quantity_available, opportunity_type)
+    score = max(0, min(100, score + matching_diagnostics["score_adjustment"]))
     displayed_max_landed_cost = best_offer_cap if opportunity_type == "best_offer" else max_profitable_landed_cost
     max_offer_price = suggested_offer(candidate, best_offer_cap, settings)
     required_offer_percent_of_ask = required_offer_percent(candidate, best_offer_cap)
@@ -329,6 +419,9 @@ def score_candidate(
         "score_reason": score_reason,
         "warning_flags": seed.get("warning_flags") or [],
         "ai_flags": flags,
+        "seller_trust_status": matching_diagnostics.get("seller_status"),
+        "seller_trust_score": matching_diagnostics.get("seller_score"),
+        "matching_diagnostics_json": matching_diagnostics,
         "created_at": dt.datetime.now(dt.UTC).isoformat(),
         "updated_at": dt.datetime.now(dt.UTC).isoformat(),
     }
@@ -445,6 +538,8 @@ def advisory_flags(title: str, candidate: dict[str, Any], seed: dict[str, Any], 
         flags.append("Possibly incomplete")
     if is_accessory_not_game(lower_title, candidate):
         flags.append("Blocked: accessory/not game")
+    if is_known_non_video_game_category(candidate):
+        flags.append("Blocked: eBay category is not Video Games")
     if candidate.get("item_location_country") not in settings.item_location_countries:
         flags.append("Blocked: non-US/Canada item location")
     shipping_status = shipping_quote_status(candidate)
@@ -459,6 +554,173 @@ def advisory_flags(title: str, candidate: dict[str, Any], seed: dict[str, Any], 
     if seed.get("is_return_heavy"):
         flags.append("Return-heavy ASIN")
     return flags
+
+
+def matching_diagnostics_for_candidate(
+    candidate: dict[str, Any],
+    seed: dict[str, Any],
+    matching_context: dict[str, Any],
+) -> dict[str, Any]:
+    asin = clean_asin(seed.get("asin") or candidate.get("asin"))
+    examples_by_key = matching_context.get("examples_by_key") or {}
+    examples = []
+    for ebay_id in ebay_identity_values(candidate):
+        examples.extend(examples_by_key.get((asin, ebay_id), []))
+    exact_example_count = len(examples)
+    if not examples:
+        examples.extend(title_memory_examples(candidate, seed, matching_context, asin))
+    examples = dedupe_examples(examples)
+
+    positive_examples = [row for row in examples if row.get("match_label") == "match"]
+    negative_examples = [
+        row
+        for row in examples
+        if row.get("match_label") in {"non_match", "condition_problem"}
+    ]
+    business_examples = [
+        row
+        for row in examples
+        if row.get("match_label") == "valid_match_poor_opportunity"
+    ]
+    availability_examples = [
+        row
+        for row in examples
+        if row.get("match_label") == "availability_system"
+    ]
+
+    flags: list[str] = []
+    score_adjustment = 0
+    recommendation = "Review"
+    if negative_examples:
+        label = negative_examples[0].get("match_label")
+        reason = negative_examples[0].get("dismiss_reason") or label
+        flags.append(f"Blocked: historical {label} ({reason})")
+        score_adjustment -= 40
+        recommendation = "Blocked"
+    elif positive_examples:
+        flags.append("Historical positive match" if exact_example_count else "Historical positive title/system match")
+        score_adjustment += 15
+        recommendation = "Strong Match"
+    elif business_examples:
+        flags.append("Historical poor opportunity")
+        score_adjustment -= 8
+        recommendation = "Probable Match"
+    elif availability_examples:
+        flags.append("Historical availability issue")
+        score_adjustment -= 4
+        recommendation = "Review"
+
+    seller = seller_context(candidate, matching_context)
+    seller_status = seller.get("seller_status")
+    seller_score = nullable_float(seller.get("seller_trust_score"))
+    if seller_status == "avoid":
+        flags.append(f"Seller warning: avoid ({seller.get('status_reason') or 'seller intelligence'})")
+        score_adjustment -= 25
+    elif seller_status == "watch":
+        flags.append(f"Seller warning: watch ({seller.get('status_reason') or 'seller intelligence'})")
+        score_adjustment -= 10
+
+    return {
+        "hard_rule_pass": not negative_examples,
+        "historical_positive_count": len(positive_examples),
+        "historical_negative_count": len(negative_examples),
+        "historical_business_count": len(business_examples),
+        "historical_availability_count": len(availability_examples),
+        "historical_exact_example_count": exact_example_count,
+        "historical_title_memory_count": 0 if exact_example_count else len(examples),
+        "seller_status": seller_status,
+        "seller_score": seller_score,
+        "seller_reason": seller.get("status_reason"),
+        "score_adjustment": score_adjustment,
+        "recommendation": recommendation,
+        "flags": flags,
+    }
+
+
+def title_memory_examples(
+    candidate: dict[str, Any],
+    seed: dict[str, Any],
+    matching_context: dict[str, Any],
+    asin: str | None,
+) -> list[dict[str, Any]]:
+    if not asin:
+        return []
+
+    candidate_key = title_memory_key(candidate.get("ebay_title"))
+    if not candidate_key:
+        return []
+
+    seed_system = normalize_system(str(seed.get("system") or "")) or detect_system_from_title(str(seed.get("amazon_title") or ""))
+    candidate_system = detect_system_from_title(str(candidate.get("ebay_title") or ""))
+    examples = []
+    for example in (matching_context.get("examples_by_asin") or {}).get(asin, []):
+        example_key = title_memory_key(example.get("ebay_title"))
+        if not example_key or example_key != candidate_key:
+            continue
+
+        example_system = normalize_system(str(example.get("amazon_system") or example.get("detected_system") or ""))
+        if not systems_compatible(seed_system, candidate_system, example_system):
+            continue
+
+        examples.append(example)
+    return examples
+
+
+def systems_compatible(*systems: str | None) -> bool:
+    known = {system for system in systems if system}
+    return len(known) <= 1
+
+
+def title_memory_key(value: Any) -> str | None:
+    cleaned = clean_marketplace_title_for_search(str(value or ""))
+    tokens = meaningful_title_tokens(cleaned)
+    if not tokens:
+        return None
+    return " ".join(sorted(tokens))
+
+
+def seller_context(candidate: dict[str, Any], matching_context: dict[str, Any]) -> dict[str, Any]:
+    seller = str(candidate.get("seller_username") or "").casefold()
+    if not seller:
+        return {}
+    return (matching_context.get("sellers") or {}).get(seller) or {}
+
+
+def dedupe_examples(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    seen = set()
+    deduped = []
+    for row in rows:
+        key = (row.get("match_label"), row.get("dismiss_reason"), row.get("created_at"))
+        if key in seen:
+            continue
+        seen.add(key)
+        deduped.append(row)
+    return deduped
+
+
+def ebay_identity_values(row: dict[str, Any]) -> list[str]:
+    values = [
+        row.get("ebay_item_id"),
+        row.get("ebay_legacy_item_id"),
+        legacy_item_id(row.get("ebay_item_id")),
+    ]
+    return [value for value in dict.fromkeys(clean_ebay_id(value) for value in values) if value]
+
+
+def clean_asin(value: Any) -> str:
+    return str(value or "").strip().upper()
+
+
+def clean_ebay_id(value: Any) -> str:
+    return str(value or "").strip()
+
+
+def legacy_item_id(value: Any) -> str:
+    text = clean_ebay_id(value)
+    if text.startswith("v1|"):
+        parts = text.split("|")
+        return parts[1] if len(parts) > 1 else text
+    return text
 
 
 TITLE_OVERLAP_STOP_WORDS = {
@@ -588,6 +850,35 @@ def is_accessory_not_game(lower_title: str, candidate: dict[str, Any]) -> bool:
         if "keychain" in category_name or "key chain" in category_name:
             return True
     return False
+
+
+def is_known_non_video_game_category(candidate: dict[str, Any]) -> bool:
+    raw = candidate.get("raw_ebay_json") or {}
+    category_texts: list[str] = []
+    category_ids: list[str] = []
+    for key in ("categoryPath", "categoryIdPath"):
+        value = raw.get(key)
+        if value:
+            category_texts.append(str(value).lower())
+    category_id = raw.get("categoryId")
+    if category_id:
+        category_ids.append(str(category_id))
+    for category in raw.get("categories") or []:
+        if not isinstance(category, dict):
+            continue
+        if category.get("categoryName"):
+            category_texts.append(str(category.get("categoryName")).lower())
+        if category.get("categoryId"):
+            category_ids.append(str(category.get("categoryId")))
+
+    has_category_evidence = bool(category_texts or category_ids)
+    if not has_category_evidence:
+        return False
+    if "139973" in category_ids:
+        return False
+    if any("video games" in text for text in category_texts):
+        return False
+    return True
 
 
 def has_shipping_to_buyer(candidate: dict[str, Any]) -> bool:

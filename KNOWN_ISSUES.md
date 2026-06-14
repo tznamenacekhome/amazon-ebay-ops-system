@@ -413,15 +413,19 @@ Observed behavior:
 - v0 `getShipments` by known shipment ID returned shipment status and FC.
 - v0 shipment items returned expected and received item quantities.
 - v0 `getTransportDetails` returned an Amazon deprecation error.
+- MBOP no longer calls deprecated v0 `getTransportDetails`.
 - v0 date-range shipment discovery returned no recent shipments across tested
   windows.
-- v2024 `listInboundPlans` was accessible but returned only a small set of old
-  inbound plans and no shipment transport details for the current June 2026
-  shipment.
+- v2024 `listInboundPlans` was accessible, but some plans return a 400 because
+  Amazon says they were converted from v0 shipments, and the current June 2026
+  shipment was not discoverable by confirmation ID in the tested pages.
 
 Current mitigation:
 - MBOP stores carrier/tracking fields when Amazon or a future carrier source
   exposes them.
+- MBOP stores best-effort v2024 bridge attempts in `fba_shipments.raw_tracking_json`,
+  including any discovered `inboundPlanId`, internal v2024 `shipmentId`,
+  transportation option IDs, raw v2024 payloads, and tracking details.
 - The Shipments tab treats null pickup/delivery/tracking as unavailable source
   data, not as evidence that UPS tracking does not exist in Seller Central.
 - Shipment status, FC, received quantities, and FBA availability still refresh

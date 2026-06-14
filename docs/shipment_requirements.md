@@ -40,7 +40,17 @@ The shipment list must support dense, large-monitor review. Each row should show
 - Cost received or available at Amazon.
 - Attention flags for stale, discrepant, delayed, or closed-with-shortage shipments.
 
-Carrier ETA should be shown as a date-only value when only date-level confidence is available, to avoid timezone day-shift confusion. Once a carrier delivered date is available, the delivery column should show the delivered date with a small `delivered` label. The shipment list should label the two status lines as `MBOP:` and `FBA:` so the workflow state and Amazon state are easy to distinguish. Carrier name is not required in the list because current operations use UPS consistently.
+The shipment list should label the two status lines as `MBOP:` and `FBA:` so the workflow state and Amazon state are easy to distinguish. Carrier name is not required in the list because current operations use UPS consistently.
+
+Delivered column behavior:
+
+- The column title should be `Delivered`.
+- If carrier tracking has a delivered timestamp, show the delivered date with the tracking number underneath.
+- If tracking has not delivered and an ETA is available, show `ETA: MM/DD/YY` with the tracking number underneath.
+- If tracking has not delivered and no ETA is available, show `No ETA`.
+- If a tracking number exists, show it underneath as a UPS tracking-history link.
+- Do not use Amazon inbound shipment status as a carrier-delivered proxy; Amazon `DELIVERED`, `RECEIVING`, or `CLOSED` is separate from carrier delivery unless the carrier event timestamp is captured.
+- Carrier ETA should be shown as a date-only value when only date-level confidence is available, to avoid timezone day-shift confusion.
 
 ## Shipment Detail
 
@@ -74,7 +84,13 @@ Primary shipment source:
 - Fulfillment Inbound API.
 - Legacy `getShipments` can be used where useful for shipment status values and shipment lookup.
 - Current Fulfillment Inbound v2024-03-20 should be preferred for new calls when it can read Send to Amazon shipment details.
-- As of June 13, 2026, legacy v0 `getTransportDetails` returns an Amazon deprecation error for the current shipment. v2024 `listInboundPlans` is accessible but did not expose the current June 2026 shipment or useful shipment transport details in testing. MBOP should continue storing carrier fields, but null carrier pickup/delivery/tracking can mean Amazon did not expose them through the available read endpoints, not that the shipment lacks UPS tracking in Seller Central.
+- As of June 13, 2026, legacy v0 `getTransportDetails` returns an Amazon deprecation error for the current shipment and should not be used.
+- MBOP should run a best-effort v2024 identity bridge from the saved Amazon shipment confirmation ID, such as `FBA19F8YW7CV`, to any discoverable `inboundPlanId` and internal v2024 `shipmentId`.
+- If the v2024 bridge finds that identity pair, MBOP may call allowed v2024 `getShipment`, `listShipmentBoxes`, and `listTransportationOptions` reads, storing discovered IDs, transportation option IDs, raw payloads, and tracking details in the shipment tracking payload.
+- Missing v2024 identity or missing tracking details is not a sync error when legacy v0 shipment status and item quantities are still available.
+- Current testing found that v2024 `listInboundPlans`, `getShipment`, and `listShipmentBoxes` can provide recent Send to Amazon shipment identity, destination FC, delivery-window dates, tracking IDs, and box contents. MBOP should synthesize read-only historical shipment detail from v2024 box contents when local `fba_shipment_items` rows do not exist.
+- Null carrier pickup/delivery/check-in milestone timestamps can mean Amazon did not expose those event timestamps through the available read endpoints, not that the shipment lacks carrier progress in Seller Central.
+- For older v2024-discovered shipments without local MBOP shipment items, FBA availability and shipment cost should display as not tracked instead of zero because current FBA inventory snapshots cannot reconstruct historical per-shipment availability.
 
 Primary inventory availability source:
 
@@ -84,6 +100,14 @@ Primary inventory availability source:
 Supplemental audit sources:
 
 - FBA inbound discrepancy/noncompliance reports may be added later if Amazon shipment detail does not provide enough received/expected discrepancy detail.
+
+Primary carrier tracking source:
+
+- EasyPost should enrich FBA shipment carrier tracking once Amazon/SP-API has provided a tracking number.
+- EasyPost owns carrier pickup, carrier delivery, carrier ETA, public tracking URL, carrier status, and carrier tracking events for FBA shipments.
+- Amazon inbound shipment status must remain separate from carrier status. Amazon `DELIVERED`, `RECEIVING`, or `CLOSED` does not mean the carrier delivered timestamp is known.
+- EasyPost tracker IDs and raw carrier payloads may be stored inside `fba_shipments.raw_tracking_json.easypost` unless a future reporting need justifies dedicated columns.
+- The daily dashboard sync should run Amazon FBA shipment sync first, then FBA EasyPost carrier tracking, then inventory reconciliation/business value jobs.
 
 ## Status Model
 
@@ -114,12 +138,12 @@ MBOP should store milestone timestamps by shipment and fulfillment center so a f
 
 Milestones to capture:
 
-- Carrier pickup.
-- Carrier delivery.
-- Amazon check-in.
-- Amazon receiving start.
+- Carrier picked up.
+- Carrier delivered.
+- Amazon checked-in.
+- Amazon received / receiving started.
 - Amazon closed.
-- All units FBA available.
+- Amazon available, meaning all units are FBA available when that can be observed.
 
 Derived durations:
 
@@ -167,6 +191,9 @@ Add a shipment sync job that:
 - Looks up open/current MBOP FBA shipments by Amazon shipment ID.
 - Pulls Amazon shipment status and shipment item quantities.
 - Can discover recent shipment headers from Amazon when Amazon exposes them through Fulfillment Inbound discovery APIs.
+- Runs a cached best-effort v2024 identity bridge so normal scheduled syncs do
+  not repeatedly scan inbound plans when Amazon did not expose a matching
+  v2024 shipment identity.
 - Captures fulfillment center and milestone timestamps when available.
 - Captures carrier/tracking metadata and carrier delivery ETA when available from Amazon or carrier data.
 - Refreshes current FBA inventory availability before computing shipment availability when needed.
