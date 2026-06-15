@@ -120,6 +120,16 @@ const JOBS: JobConfig[] = [
     signal: async () => latestTimestampSignal("order_problem_events", "created_at", "Events"),
   },
   {
+    id: "easypost-order-problem-returns",
+    name: "EasyPost order problem returns",
+    command: "integrations/easypost_sync_order_problem_returns.py --limit 100",
+    group: "core",
+    blocking: false,
+    expectedEveryHours: 12,
+    criticalAfterHours: 24,
+    signal: async () => latestTimestampSignal("order_problem_cases", "return_tracking_last_sync_at", "Return tracking"),
+  },
+  {
     id: "sourcing-purchase-matching",
     name: "Sourcing purchase matching",
     command: "integrations/match_sourcing_purchases.py",

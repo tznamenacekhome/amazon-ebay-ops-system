@@ -17,6 +17,7 @@ const TARGET_GROUPS: Record<string, string | null> = {
   "inventory-reconciliation": "reconciliation",
   repricing: "repricing",
   fba: "fba",
+  "fba-pricing": "fba-pricing",
 };
 
 export async function GET() {

@@ -199,10 +199,11 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--source",
-        choices=["canonical", "amazon_active", "purchase_pre_listed", "explicit"],
+        choices=["canonical", "amazon_active", "purchase_pre_listed", "received_fba_prep", "explicit"],
         default="canonical",
         help=(
             "ASIN source. canonical = current Amazon FBA plus pre-Listed MBOP purchase inventory. "
+            "received_fba_prep = received Amazon-bound purchase items waiting for FBA shipment. "
             "explicit = only ASINs passed with --asin."
         ),
     )
@@ -283,6 +284,23 @@ def collect_source_asins(supabase, *, source: str) -> list[str]:
             if asin and current_quantity(row) > 0:
                 asins.add(asin)
 
+    if source == "received_fba_prep":
+        for row in fetch_all(
+            supabase,
+            "purchase_items",
+            "item_id,asin,current_status,marketplace,exclude_from_purchase_reporting",
+        ):
+            asin = clean_asin(row.get("asin"))
+            status = clean_text(row.get("current_status"))
+            marketplace = clean_text(row.get("marketplace"))
+            if (
+                asin
+                and status == "received"
+                and marketplace != "ebay"
+                and row.get("exclude_from_purchase_reporting") is not True
+            ):
+                asins.add(asin)
+
     if source in {"canonical", "purchase_pre_listed"}:
         purchase_rows = fetch_all(
             supabase,
@@ -293,11 +311,9 @@ def collect_source_asins(supabase, *, source: str) -> list[str]:
         for row in purchase_rows:
             asin = clean_asin(row.get("asin"))
             status = clean_text(row.get("current_status"))
-            if (
-                asin
-                and status not in {"listed", "cancelled", "return_opened", "return_pending"}
-                and row.get("item_id") not in excluded_item_ids
-            ):
+            should_include = status not in {"listed", "cancelled", "return_opened", "return_pending"}
+
+            if asin and should_include and row.get("item_id") not in excluded_item_ids:
                 asins.add(asin)
 
     return sorted(asins)

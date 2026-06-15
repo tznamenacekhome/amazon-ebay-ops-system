@@ -52,6 +52,9 @@ Current implementation notes:
 - When the matcher finds the imported eBay purchase, it writes sourced ASIN, Amazon title, and `purchase_items.target_price` using the highest of Last Sold, Keepa 90-day, and current Buy Box price.
 - Amazon images come from `vw_latest_amazon_listing_snapshot.raw_listing_json.summaries[0].mainImage.link` when available.
 - `refresh_sourcing_listing_availability.py` checks open/watch/ROI-snoozed sourcing eBay item IDs through eBay Browse once per daily scheduler run. Ended, sold-out, or missing listings are moved to `dismissed` and recorded in `sourcing_actions` with dismiss reason `no_longer_available`. Purchased-pending rows are left for `match_sourcing_purchases.py` so accepted offers can still match imported eBay orders.
+- `refresh_sourcing_listing_availability.py` sends the same buyer contextual ZIP
+  header used by sourcing search and preserves an existing stored shipping
+  option/cost when eBay item-detail responses omit `shippingOptions`.
 
 ---
 
@@ -247,6 +250,12 @@ Shipping estimate states:
 - `known_free`: eBay returned a zero buyer-ZIP shipping price.
 - `unknown_no_cost`: eBay returned a shipping option without a price.
 - `unknown_no_options`: eBay returned no buyer-ZIP shipping option.
+
+When `sourcing_ebay_candidates.shipping_cost` is already populated, MBOP treats
+that stored value as the buyer-ZIP quote even if `raw_ebay_json.shippingOptions`
+is absent from a later detail/availability refresh. This prevents display and
+scoring from regressing to `unknown_no_options` after eBay omits shipping from a
+detail payload.
 
 Unknown shipping candidates must remain visible when otherwise plausible, but MBOP must not calculate profit, ROI, max offer, or max bid from an assumed $0 shipping cost.
 

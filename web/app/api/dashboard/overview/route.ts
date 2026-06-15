@@ -71,7 +71,7 @@ export async function GET() {
       {
         label: "Open Order Problems",
         value: problemCases.length,
-        detail: "Open derived/manual/eBay return problem cases",
+        detail: "Open MBOP episodes and active eBay returns",
         severity: severityFor(problemCases.length, 0, 8),
         href: "/?tab=order-problems",
       },

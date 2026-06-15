@@ -69,6 +69,10 @@ Carrier/status syncs must not downgrade workflow-owned statuses.
 - Unknown eBay ZIP shipping estimates may be shown as watch opportunities when
   otherwise plausible, but MBOP must not calculate profit, ROI, offer, or bid
   guidance from assumed free shipping.
+- Sourcing display and scoring should trust stored `sourcing_ebay_candidates.shipping_cost`
+  as the buyer-ZIP shipping quote even if a later eBay detail/availability
+  refresh payload omits `shippingOptions`. Only rows with no stored shipping
+  cost and no raw eBay shipping option should be treated as unknown shipping.
 - Best Offer guidance subtracts eBay shipping from the landed cap and evaluates
   the item offer against the eBay asking price before shipping. Best Offer caps
   use the lower of stored Keepa 90-day price and current Amazon market price.
@@ -142,6 +146,11 @@ Carrier/status syncs must not downgrade workflow-owned statuses.
   refund amounts, action URLs, replacement tracking, and raw payloads, but must
   not create returns, send messages, accept offers, escalate cases, issue
   refunds, or upload files.
+- When eBay provides a buyer return label/tracking number, MBOP should track it
+  separately from inbound supplier shipments. EasyPost owns return-label carrier
+  enrichment. Delivered return tracking should advance the episode to waiting
+  for seller/eBay refund, and eBay refund-issued status should advance it to
+  refund verification.
 - For INR inquiries, eBay search results are not enough. MBOP must read inquiry
   details to capture seller make-it-right dates and seller-provided replacement
   tracking. Those dates display as escalation/action availability in the Order
@@ -181,6 +190,15 @@ Carrier/status syncs must not downgrade workflow-owned statuses.
 - Included quantities move to `listed`; excluded quantities remain `received`.
 - Current non-historical FBA shipment links are valued as `outbound_to_amazon` only for remaining units Amazon has not yet received or made available.
 - Amazon FBA shipment sync stores Amazon inbound status, fulfillment center, carrier ETA when available, received quantity, FBA available quantity, and remaining outbound value on shipment workflow rows.
+- FBA prep pricing uses explicit operator refreshes, not page-load marketplace
+  calls. The prep table shows Total Cost, Total Sell Value, Total Profit, and
+  Total ROI from backend/API values.
+- FBA prep Profit/ROI deducts cached Amazon Product Fees. When the operator
+  edits a sell price, MBOP reuses cached non-referral fee components and
+  recalculates only the referral fee from the cached referral percentage so the
+  row updates immediately after save without calling Amazon.
+- FBA prep should warn when the saved sell price is below Last Sold, current
+  Buy Box, and Keepa 90-day Buy Box average.
 - The historical marker `legacy_listed_no_shipment_id` must not create outbound-to-Amazon value.
 - Explicitly `listed` legacy purchase-item lots with ASIN, quantity, and cost
   may participate in Amazon sales FIFO COGS allocation even when the original

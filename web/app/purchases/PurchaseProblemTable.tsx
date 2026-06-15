@@ -51,7 +51,7 @@ export function PurchaseProblemTable({
           <div>
             <div className="text-sm font-semibold">Order Problems</div>
             <div className="text-xs text-slate-500">
-              Unified queue for delivery problems, return follow-up, seller responses, refunds, and missing items.
+              Episode queue for delivery problems, return follow-up, seller responses, refunds, and missing items.
             </div>
           </div>
           <div className="text-xs text-slate-500">
@@ -60,7 +60,7 @@ export function PurchaseProblemTable({
         </div>
 
         <div className="mt-3 grid grid-cols-2 gap-2 md:grid-cols-4 xl:grid-cols-7">
-          <ProblemStat label="Total" value={stats.total} />
+          <ProblemStat label="Episodes" value={stats.total} />
           <ProblemStat label="Urgent" value={stats.urgent} tone={stats.urgent > 0 ? "red" : "slate"} />
           <ProblemStat label="Refund Pending" value={stats.refundPending} tone={stats.refundPending > 0 ? "amber" : "slate"} />
           <ProblemStat label="Returns Open" value={stats.returnsOpen} />
@@ -92,7 +92,7 @@ export function PurchaseProblemTable({
           <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
             <tr>
               <th className="w-[90px] px-2 py-2">Priority</th>
-              <th className="w-[180px] px-2 py-2">Issue</th>
+              <th className="w-[190px] px-2 py-2">Episode</th>
               <th className="w-[115px] px-2 py-2">Dates</th>
               <th className="w-[130px] px-2 py-2">Order ID</th>
               <th className="w-[360px] px-2 py-2">Item</th>
@@ -138,7 +138,10 @@ export function PurchaseProblemTable({
                     </td>
                     <td className="px-2 py-2">
                       <div>{problemTypeLabel(row.problem_type)}</div>
-                      <div className="text-xs text-slate-500">{sourceLabel(row.problem_source)}</div>
+                      <div className="text-xs text-slate-500">{episodeLabel(row)}</div>
+                      <span className={`mt-1 inline-flex rounded border px-1.5 py-0.5 text-[11px] font-medium ${artifactBadgeClass(row)}`}>
+                        {artifactLabel(row)}
+                      </span>
                     </td>
                     <td className="px-2 py-2">
                       <div>{formatPacificDate(problemStatusDate(row)) || "--"}</div>
@@ -184,11 +187,13 @@ export function PurchaseProblemTable({
                     <td className="px-2 py-2">{row.system || "--"}</td>
                     <td className="px-2 py-2">
                       <div className="font-medium text-slate-900">{workflowStateLabel(row.workflow_state)}</div>
-                      <div className="text-xs text-slate-500">{statusDetail(row, ebayStatus)}</div>
+                      <div className="text-xs text-slate-500">{statusDateDetail(row)}</div>
+                      {ebayStatus ? <div className="text-xs text-slate-500">eBay {titleCase(ebayStatus)}</div> : null}
                     </td>
                     <td className="px-2 py-2">
                       <div>{row.problem_next_action || "--"}</div>
                       <NextActionDetail row={row} />
+                      <ReturnTrackingDetail row={row} />
                     </td>
                     <td className="px-2 py-2 text-right">
                       <RefundAmount value={row.expected_refund_amount} fallback={estimatedRefund(row)} />
@@ -197,10 +202,15 @@ export function PurchaseProblemTable({
                       <RefundAmount value={row.actual_refund_amount} />
                     </td>
                     <td className="px-2 py-2">
-                      <div className="break-all">{row.replacement_tracking_number || row.tracking_number || "--"}</div>
+                      <div className="break-all">{row.return_tracking_number || row.replacement_tracking_number || row.tracking_number || "--"}</div>
                       <div className="text-xs text-slate-500">
-                        {formatDate(row.problem_replacement_estimated_delivery_date || row.estimated_delivery_date)}
+                        {formatDate(row.problem_return_tracking_delivered_at || row.problem_replacement_estimated_delivery_date || row.estimated_delivery_date)}
                       </div>
+                      {row.problem_return_tracking_status && (
+                        <div className="text-xs text-slate-500">
+                          Return {titleCase(row.problem_return_tracking_status)}
+                        </div>
+                      )}
                       {row.problem_replacement_carrier_status && (
                         <div className="text-xs text-slate-500">
                           {titleCase(row.problem_replacement_carrier_status)}
@@ -245,14 +255,35 @@ function NextActionDetail({ row }: { row: PurchaseRow }) {
   return null;
 }
 
+function ReturnTrackingDetail({ row }: { row: PurchaseRow }) {
+  if (!row.return_tracking_number) return null;
+  const status = row.problem_return_tracking_status ? titleCase(row.problem_return_tracking_status) : "Tracking";
+  const delivered = formatDate(row.problem_return_tracking_delivered_at);
+  const label = delivered ? `Return delivered ${delivered}` : `Return ${status}`;
+  const content = row.problem_return_tracking_url ? (
+    <a href={row.problem_return_tracking_url} target="_blank" rel="noreferrer" className="text-blue-700 hover:underline">
+      {label}
+    </a>
+  ) : (
+    label
+  );
+  return <div className="mt-1 text-xs text-slate-500">{content}</div>;
+}
+
 function problemDetailLabel(row: PurchaseRow) {
   if (row.ebay_current_type === "ORDER_CANCELLATION" || row.problem_source === "ebay_cancellation_sync") {
     return "Cancellation Details";
   }
+  if (row.ebay_return_id) {
+    return "Return Details";
+  }
   if (row.ebay_inquiry_id) {
     return "Inquiry Details";
   }
-  return "Return Details";
+  if (row.ebay_case_id) {
+    return "eBay Case Details";
+  }
+  return "Episode Details";
 }
 
 type ProblemStats = {
@@ -420,15 +451,52 @@ function sourceLabel(value?: string | null) {
   return labels[value || ""] || titleCase(value || "");
 }
 
-function statusDetail(row: PurchaseRow, ebayStatus: string) {
-  const ebayIds = [row.ebay_return_id, row.ebay_case_id, row.ebay_inquiry_id].filter(Boolean).join(" / ");
-  if (ebayStatus && ebayIds) {
-    return `eBay: ${ebayStatus} · ${ebayIds}`;
+function episodeLabel(row: PurchaseRow) {
+  const sequence = row.problem_episode_sequence ? `Episode ${row.problem_episode_sequence}` : "Episode";
+  const kind = episodeKindLabel(row.problem_episode_kind);
+  return kind ? `${sequence} - ${kind}` : sequence;
+}
+
+function episodeKindLabel(value?: string | null) {
+  const labels: Record<string, string> = {
+    delivery_delay: "Delivery Delay",
+    carrier_stall: "Carrier Stall",
+    carrier_exception: "Carrier Exception",
+    item_not_received: "Item Not Received",
+    replacement_tracking: "Replacement Tracking",
+    damaged_item: "Damaged Item",
+    incomplete_item: "Incomplete Item",
+    cancelled_refund: "Cancelled Refund",
+    return_request: "Return Request",
+    refund_followup: "Refund Follow-Up",
+  };
+  return labels[value || ""] || (value ? titleCase(value) : "");
+}
+
+function artifactLabel(row: PurchaseRow) {
+  const labels: Record<string, string> = {
+    derived_candidate: "MBOP episode",
+    ebay_inquiry: "eBay inquiry case",
+    ebay_return: "eBay return case",
+    ebay_case: "eBay case",
+    receiving_exception: "Receiving episode",
+    manual: "Manual episode",
+  };
+  return labels[row.problem_source_artifact_type || ""] || sourceLabel(row.problem_source);
+}
+
+function artifactBadgeClass(row: PurchaseRow) {
+  const source = row.problem_source_artifact_type || "";
+  if (source === "ebay_return" || source === "ebay_inquiry" || source === "ebay_case") {
+    return "border-blue-200 bg-blue-50 text-blue-800";
   }
-  if (ebayStatus) {
-    return `eBay: ${ebayStatus}`;
+  if (source === "derived_candidate") {
+    return "border-slate-200 bg-slate-50 text-slate-700";
   }
-  return sourceLabel(row.problem_source);
+  if (source === "receiving_exception") {
+    return "border-amber-200 bg-amber-50 text-amber-800";
+  }
+  return "border-slate-200 bg-white text-slate-600";
 }
 
 function RefundAmount({
@@ -483,6 +551,63 @@ function problemStatusDate(row: PurchaseRow) {
     closed_no_refund: row.problem_closed_at,
   };
 
+  return datesByState[row.workflow_state || ""] || row.problem_last_detected_at || row.problem_first_detected_at;
+}
+
+function statusDateDetail(row: PurchaseRow) {
+  const workflowState = row.workflow_state || "";
+  const labels: Record<string, string> = {
+    candidate: "Detected",
+    return_needed: "Return needed",
+    return_opened: "Opened",
+    seller_message_needs_response: "Seller message",
+    waiting_on_seller: "Waiting since",
+    partial_refund_offered: "Offered",
+    partial_refund_accepted: "Accepted",
+    label_pending: "Waiting since",
+    label_received: "Label provided",
+    return_shipped: "Shipped",
+    seller_received_return: "Delivered to seller",
+    refund_pending: "Refund issued",
+    replacement_pending: "Replacement promised",
+    replacement_shipped: "Replacement shipped",
+    replacement_received: "Replacement received",
+    escalation_available: "Available",
+    escalated: "Escalated",
+    resolved_refunded: "Refund confirmed",
+    resolved_received_item: "Received",
+    closed_no_action: "Closed",
+    closed_no_refund: "Closed",
+  };
+  const date = statusEnteredDate(row);
+  const label = labels[workflowState] || "Updated";
+  return date ? `${label} ${formatPacificDate(date)}` : sourceLabel(row.problem_source);
+}
+
+function statusEnteredDate(row: PurchaseRow) {
+  const datesByState: Record<string, string | null | undefined> = {
+    candidate: row.problem_first_detected_at,
+    return_needed: row.problem_return_needed_at,
+    return_opened: row.problem_ebay_return_opened_at,
+    seller_message_needs_response: row.problem_seller_message_last_at,
+    waiting_on_seller: row.problem_operator_responded_at || row.problem_last_detected_at,
+    partial_refund_offered: row.problem_partial_refund_offered_at,
+    partial_refund_accepted: row.problem_partial_refund_accepted_at,
+    label_pending: row.problem_last_detected_at,
+    label_received: row.problem_label_available_at || row.problem_return_label_printed_at,
+    return_shipped: row.problem_return_shipped_at || row.problem_replacement_shipped_at,
+    seller_received_return: row.problem_return_tracking_delivered_at || row.problem_seller_received_return_at,
+    refund_pending: row.problem_refund_due_at,
+    replacement_pending: row.problem_replacement_promised_at,
+    replacement_shipped: row.problem_replacement_shipped_at,
+    replacement_received: row.problem_replacement_received_at,
+    escalation_available: row.problem_escalation_available_at,
+    escalated: row.problem_escalated_at,
+    resolved_refunded: row.problem_refund_received_at || row.problem_closed_at,
+    resolved_received_item: row.problem_replacement_received_at || row.problem_closed_at,
+    closed_no_action: row.problem_closed_at,
+    closed_no_refund: row.problem_closed_at,
+  };
   return datesByState[row.workflow_state || ""] || row.problem_last_detected_at || row.problem_first_detected_at;
 }
 

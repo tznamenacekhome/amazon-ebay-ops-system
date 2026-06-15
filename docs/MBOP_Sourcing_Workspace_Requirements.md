@@ -28,6 +28,11 @@ Phase 1 is implemented as an initial usable workspace:
 - Sourcing search and scoring hard-exclude items not located in the US or Canada.
 - eBay Browse calls use an encoded buyer contextual location header so calculated shipping is returned more reliably.
 - Unknown-shipping candidates are retained as visible watch opportunities when otherwise plausible; MBOP must not treat unknown shipping as free shipping.
+- If a later availability/detail refresh omits `shippingOptions` but MBOP already
+  has `sourcing_ebay_candidates.shipping_cost`, the stored shipping cost remains
+  the authoritative buyer-ZIP quote for display and scoring. This avoids false
+  `No ZIP quote` labels after eBay returns an item-detail payload without
+  shipping options.
 - Purchase matching script exists for exact eBay item ID / legacy item ID matches against imported eBay purchases.
 - The Sourcing page `Run Sourcing` button can execute the sourcing workflow for Recent Sales, Full Listings, or both depending on the selected source mode.
 - Full Listings seed generation has been dry-run validated against active listing and Keepa snapshot data.

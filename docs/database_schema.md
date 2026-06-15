@@ -29,7 +29,8 @@ Current non-historical `fba_shipment_items` links are projected into `inventory_
   including late/stale shipment candidates, return-needed items, eBay return/case
   metadata, cancelled/refund follow-up, missing-item/replacement follow-up, local
   workflow state, refund amounts, escalation/action dates, replacement tracking,
-  episode metadata, supersession links, notes, and raw eBay JSON.
+  buyer return-label tracking, return EasyPost tracker enrichment, episode
+  metadata, supersession links, notes, and raw eBay JSON.
 - `order_problem_events`: append-only timeline for system, operator, eBay API,
   and tracking events tied to an order problem case.
 
@@ -51,6 +52,7 @@ incomplete-item, cancellation, and refund-follow-up episodes over time.
 - `amazon_account_health_snapshots`: manual Seller Central Account Health Rating snapshots for dashboard history.
 - `amazon_seller_feedback_snapshots`: manual Seller Central Feedback Manager star-rating/count snapshots.
 - `amazon_seller_feedback_items`: Seller Central / SP-API seller feedback rows with date, rating, order ID, and comment; dashboard alerts focus on 1-3 star feedback.
+- `amazon_fee_estimates`: cached read-only SP-API Product Fees estimates keyed by ASIN, marketplace, fulfillment channel, listing price, shipping price, and currency. MBOP stores total, referral, FBA, variable closing, raw breakdown, and status fields for FBA prep pricing/ROI review.
 
 Amazon seller/FBA data stays in Amazon-specific tables and must not be written into purchases or purchase_items.
 

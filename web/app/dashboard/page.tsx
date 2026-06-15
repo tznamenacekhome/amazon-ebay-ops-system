@@ -749,7 +749,7 @@ function LossPreventionPanel({ data, loading }: { data: DashboardPayload | null;
   return (
     <div className="space-y-4">
       <MetricGrid>
-        <MetricCard label="Open Problem Cases" value={loading ? "--" : formatNumber(data?.summary?.openProblemCases)} href="/?tab=order-problems" />
+        <MetricCard label="Open Problem Episodes" value={loading ? "--" : formatNumber(data?.summary?.openProblemCases)} href="/?tab=order-problems" />
         <MetricCard label="Estimated Value At Risk" value={loading ? "--" : formatMoney(data?.summary?.estimatedValueAtRisk)} />
         <MetricCard label="Refund Pending" value={loading ? "--" : formatMoney(data?.summary?.refundPendingValue)} href="/?tab=order-problems&stage=refund_pending" />
         <MetricCard label="Return Pending" value={loading ? "--" : formatNumber(data?.summary?.returnPendingCount)} href="/?tab=order-problems&stage=return_needed" />
@@ -760,12 +760,12 @@ function LossPreventionPanel({ data, loading }: { data: DashboardPayload | null;
         <DashboardSection title="Risk Type Summary" eyebrow="Value at risk">
           <CompactStatusTable columns={["Risk Type", "Count", "Value", "Oldest", "Action"]} rows={asRows(data?.byRiskType).map((row) => ({ id: text(row.riskType), href: href(row.drilldownUrl), cells: [text(row.riskType), formatNumber(row.count), formatMoney(row.valueAtRisk), formatDays(row.oldestAgeDays), "Open"] }))} />
         </DashboardSection>
-        <DashboardSection title="Urgent Cases" eyebrow="Top 10">
+        <DashboardSection title="Urgent Episodes" eyebrow="Top 10">
           <CompactStatusTable columns={["Severity", "Order", "Item", "Stage", "Age", "Value", "Next Action"]} rows={asRows(data?.urgentCases).map((row) => ({ id: text(row.caseId), href: href(row.drilldownUrl), cells: [text(row.severity), text(row.orderNumber) || "--", <span key="title" className="block max-w-[220px] truncate">{text(row.title)}</span>, text(row.stage), formatDays(row.ageDays), formatMoney(row.valueAtRisk), text(row.nextAction) || "--"] }))} />
         </DashboardSection>
       </div>
       <DashboardSection title="Loss / Recovery Trend" eyebrow="Monthly">
-        <CompactStatusTable columns={["Month", "Refunds Received", "Closed No Refund", "Returns", "Cancelled", "Cases"]} rows={asRows(data?.lossTrend).map((row) => ({ id: text(row.yearMonth), cells: [text(row.yearMonth), formatMoney(row.refundsReceived), formatMoney(row.closedNoRefundValue), formatNumber(row.returnCount), formatNumber(row.cancelledCount), formatNumber(row.problemCaseCount)] }))} />
+        <CompactStatusTable columns={["Month", "Refunds Received", "Closed No Refund", "Returns", "Cancelled", "Episodes"]} rows={asRows(data?.lossTrend).map((row) => ({ id: text(row.yearMonth), cells: [text(row.yearMonth), formatMoney(row.refundsReceived), formatMoney(row.closedNoRefundValue), formatNumber(row.returnCount), formatNumber(row.cancelledCount), formatNumber(row.problemCaseCount)] }))} />
       </DashboardSection>
     </div>
   );

@@ -33,7 +33,7 @@ This folder contains the Midnight Blue Operations Platform receiving workflow UI
 - ASIN and sell price are editable per item.
 - Amazon-bound received items require ASIN and sell price before save is enabled.
 - eBay marketplace items do not require Amazon title, ASIN, or sell price.
-- Keyboard shortcuts while detail is open: `Enter` receives the order when validation passes, and `Escape` closes the detail view without receiving.
+- Keyboard shortcuts while detail is open: `Ctrl+Enter` / `Cmd+Enter` receives the order when validation passes, except while focus is in a form field or immediately after a scanner-opened detail view; `Escape` closes the detail view without receiving. Plain `Enter` is ignored so barcode scanner suffixes cannot receive an item.
 
 ## Save Behavior
 

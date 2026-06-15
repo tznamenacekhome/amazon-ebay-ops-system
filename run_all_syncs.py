@@ -92,6 +92,13 @@ JOBS: tuple[SyncJob, ...] = (
         timeout_seconds=30 * 60,
     ),
     SyncJob(
+        name="EasyPost order problem returns",
+        command=static_command("integrations/easypost_sync_order_problem_returns.py", "--limit", "100"),
+        groups=("core", "purchases", "dashboard"),
+        blocking=False,
+        timeout_seconds=20 * 60,
+    ),
+    SyncJob(
         name="RevSeller enrichment",
         command=static_command(
             "integrations/sync_revseller_sheet.py",
@@ -359,6 +366,31 @@ JOBS: tuple[SyncJob, ...] = (
         groups=("catalog", "repricing"),
         timeout_seconds=45 * 60,
     ),
+    SyncJob(
+        name="Keepa FBA prep pricing",
+        command=static_command(
+            "integrations/keepa_sync_products.py",
+            "--source",
+            "received_fba_prep",
+            "--batch-size",
+            "20",
+            "--min-tokens",
+            "25",
+            "--offers",
+            "20",
+            "--stock",
+            "--no-history",
+            "--write",
+        ),
+        groups=("fba-pricing",),
+        timeout_seconds=30 * 60,
+    ),
+    SyncJob(
+        name="Amazon Product Fees estimates",
+        command=static_command("integrations/amazon_sync_fee_estimates.py"),
+        groups=("fba-pricing",),
+        timeout_seconds=45 * 60,
+    ),
 )
 
 GROUPS = (
@@ -374,6 +406,7 @@ GROUPS = (
     "reconciliation",
     "repricing",
     "fba",
+    "fba-pricing",
     "all",
 )
 

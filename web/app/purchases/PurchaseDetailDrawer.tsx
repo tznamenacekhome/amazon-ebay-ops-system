@@ -63,7 +63,7 @@ export function PurchaseDetailDrawer({
   const displayAmazonTitle = row.asin ? drawerAmazonTitle || row.amazon_title || "--" : "--";
   const isSaving = savingKey === rowKey(row);
   const isReturnPending = operationalStatus.value === "return_pending";
-  const hasProblemCase = Boolean(row.problem_case_id);
+  const hasProblemEpisode = Boolean(row.problem_case_id);
 
   function runProblemAction(action: string) {
     const amount = problemAmount.trim() === "" ? null : Number(problemAmount);
@@ -123,14 +123,14 @@ export function PurchaseDetailDrawer({
             )}
           </section>
 
-          {hasProblemCase && (
+          {hasProblemEpisode && (
             <section className="rounded-xl border border-amber-200 bg-amber-50/50 p-4">
               <div className="mb-3">
                 <div className="text-xs uppercase tracking-wide text-amber-700">
-                  Order Problem Workflow
+                  Order Problem Episode
                 </div>
                 <div className="mt-1 text-sm text-slate-700">
-                  {workflowStateLabel(row.workflow_state)} / {problemTypeLabel(row.problem_type)}
+                  {episodeLabel(row)} / {workflowStateLabel(row.workflow_state)} / {problemTypeLabel(row.problem_type)}
                 </div>
                 {row.problem_next_action && (
                   <div className="mt-1 text-sm font-medium text-slate-900">
@@ -152,7 +152,7 @@ export function PurchaseDetailDrawer({
 
               <div className="mb-3 grid gap-2">
                 <label className="grid gap-1 text-xs font-medium uppercase tracking-wide text-amber-700">
-                  Return Type
+                  Episode Type
                   <select
                     value={row.problem_type || ""}
                     onChange={(event) =>
@@ -179,6 +179,8 @@ export function PurchaseDetailDrawer({
                   <Detail label="Currency" value={row.refund_currency || ""} />
                   <Detail label="Replacement Carrier" value={row.problem_replacement_carrier || ""} />
                   <Detail label="Replacement Status" value={titleCase(row.problem_replacement_carrier_status || "")} />
+                  <Detail label="Return Carrier" value={row.problem_return_tracking_carrier || ""} />
+                  <Detail label="Return Status" value={titleCase(row.problem_return_tracking_status || "")} />
                 </div>
 
                 <div className="grid grid-cols-2 gap-2 text-sm">
@@ -190,7 +192,8 @@ export function PurchaseDetailDrawer({
                 <div className="grid gap-1 text-xs text-slate-600">
                   <Identifier label="Return ID" value={row.ebay_return_id} />
                   <Identifier label="Inquiry ID" value={row.ebay_inquiry_id} />
-                  <Identifier label="Case ID" value={row.ebay_case_id} />
+                  <Identifier label="eBay Case ID" value={row.ebay_case_id} />
+                  <Identifier label="Return Tracking" value={row.return_tracking_number} href={row.problem_return_tracking_url} />
                 </div>
               </div>
 
@@ -472,12 +475,18 @@ function Detail({
   );
 }
 
-function Identifier({ label, value }: { label: string; value?: string | null }) {
+function Identifier({ label, value, href }: { label: string; value?: string | null; href?: string | null }) {
   if (!value) return null;
   return (
     <div className="break-all">
       <span className="font-medium text-slate-700">{label}: </span>
-      {value}
+      {href ? (
+        <a href={href} target="_blank" rel="noreferrer" className="text-blue-700 hover:underline">
+          {value}
+        </a>
+      ) : (
+        value
+      )}
     </div>
   );
 }
@@ -493,7 +502,9 @@ function problemDateDetails(row: PurchaseRow) {
     { label: "Partial Offered", value: row.problem_partial_refund_offered_at },
     { label: "Partial Accepted", value: row.problem_partial_refund_accepted_at },
     { label: "Label Available", value: row.problem_label_available_at },
+    { label: "Label Printed", value: row.problem_return_label_printed_at },
     { label: "Return Shipped", value: row.problem_return_shipped_at },
+    { label: "Return Delivered", value: row.problem_return_tracking_delivered_at },
     { label: "Seller Received", value: row.problem_seller_received_return_at },
     { label: "Refund Due", value: row.problem_refund_due_at },
     { label: "Refund Received", value: row.problem_refund_received_at },
@@ -519,6 +530,28 @@ function formatDateTime(value?: string | null) {
   const hours = String(date.getHours()).padStart(2, "0");
   const minutes = String(date.getMinutes()).padStart(2, "0");
   return `${month}/${day}/${year} ${hours}:${minutes}`;
+}
+
+function episodeLabel(row: PurchaseRow) {
+  const sequence = row.problem_episode_sequence ? `Episode ${row.problem_episode_sequence}` : "Episode";
+  const kind = episodeKindLabel(row.problem_episode_kind);
+  return kind ? `${sequence} - ${kind}` : sequence;
+}
+
+function episodeKindLabel(value?: string | null) {
+  const labels: Record<string, string> = {
+    delivery_delay: "Delivery Delay",
+    carrier_stall: "Carrier Stall",
+    carrier_exception: "Carrier Exception",
+    item_not_received: "Item Not Received",
+    replacement_tracking: "Replacement Tracking",
+    damaged_item: "Damaged Item",
+    incomplete_item: "Incomplete Item",
+    cancelled_refund: "Cancelled Refund",
+    return_request: "Return Request",
+    refund_followup: "Refund Follow-Up",
+  };
+  return labels[value || ""] || titleCase(value || "");
 }
 
 function workflowStateLabel(value?: string | null) {

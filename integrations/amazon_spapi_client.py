@@ -54,6 +54,7 @@ READ_ONLY_OPERATION_PREFIXES = (
     "/finances/2024-06-19/transactions",
     "/listings/2021-08-01/items/",
     "/products/pricing/",
+    "/products/fees/",
     "/reports/2021-06-30/",
 )
 
@@ -565,6 +566,37 @@ class AmazonSPAPIClient:
         path = f"/products/pricing/v0/listings/{quote(seller_sku, safe='')}/offers"
         return self.request("GET", path, params=params)
 
+    def get_my_fees_estimate_for_asin(
+        self,
+        asin: str,
+        *,
+        listing_price: float,
+        shipping_price: float = 0.0,
+        currency: str = "USD",
+        is_amazon_fulfilled: bool = True,
+        identifier: str | None = None,
+    ) -> dict[str, Any]:
+        body = {
+            "FeesEstimateRequest": {
+                "MarketplaceId": self.config.marketplace_id,
+                "IsAmazonFulfilled": is_amazon_fulfilled,
+                "PriceToEstimateFees": {
+                    "ListingPrice": {
+                        "CurrencyCode": currency,
+                        "Amount": listing_price,
+                    },
+                    "Shipping": {
+                        "CurrencyCode": currency,
+                        "Amount": shipping_price,
+                    },
+                },
+                "Identifier": identifier
+                or f"{asin}-{listing_price:.2f}-{shipping_price:.2f}",
+            }
+        }
+        path = f"/products/fees/v0/items/{quote(asin, safe='')}/feesEstimate"
+        return self.request("POST", path, json_body=body)
+
     def get_order(self, amazon_order_id: str) -> dict[str, Any]:
         path = f"/orders/v0/orders/{quote(amazon_order_id, safe='')}"
         return self.request("GET", path)
@@ -789,7 +821,16 @@ class AmazonSPAPIClient:
 
     def validate_read_only_request(self, method: str, path: str) -> None:
         if method != "GET":
-            if not (method == "POST" and path == "/reports/2021-06-30/reports"):
+            if not (
+                method == "POST"
+                and (
+                    path == "/reports/2021-06-30/reports"
+                    or (
+                        path.startswith("/products/fees/v0/items/")
+                        and path.endswith("/feesEstimate")
+                    )
+                )
+            ):
                 raise AmazonSPAPIError("MBOP Amazon SP-API foundation is read-only")
 
         if not path.startswith(READ_ONLY_OPERATION_PREFIXES):

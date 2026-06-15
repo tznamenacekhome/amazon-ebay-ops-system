@@ -6,7 +6,8 @@ export type RefreshTarget =
   | "sales-orders"
   | "inventory-reconciliation"
   | "repricing"
-  | "fba";
+  | "fba"
+  | "fba-pricing";
 
 export type RefreshNotice = {
   tone: "info" | "success" | "warning";

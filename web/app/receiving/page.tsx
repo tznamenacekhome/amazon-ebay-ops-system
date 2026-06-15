@@ -38,6 +38,8 @@ type ReceivingOutcome =
   | "incomplete_item"
   | "listed_successfully";
 
+const RECEIVING_CONFIRMATION_TOKEN = "operator_receive_v2";
+
 type SortColumn =
   | "date"
   | "order"
@@ -66,6 +68,7 @@ export default function ReceivingPage() {
   const [freshnessKey, setFreshnessKey] = useState(0);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const lastAutoOpenedSearch = useRef("");
+  const detailOpenedAt = useRef(0);
 
   const loadQueue = useCallback(async () => {
     try {
@@ -188,6 +191,7 @@ export default function ReceivingPage() {
       }
 
       setDrafts(nextDrafts);
+      detailOpenedAt.current = Date.now();
       setSelectedRow(row);
     },
     [rows]
@@ -248,10 +252,11 @@ export default function ReceivingPage() {
 
   const closeDetail = useCallback(() => {
     setSelectedRow(null);
+    detailOpenedAt.current = 0;
     setTimeout(() => searchInputRef.current?.focus(), 0);
   }, []);
 
-  const saveReceiving = useCallback(async () => {
+  const saveReceiving = useCallback(async (confirmationSource: "button" | "shortcut") => {
     if (!selectedRow) return;
     if (saving) return;
 
@@ -299,7 +304,11 @@ export default function ReceivingPage() {
       const response = await fetch("/api/receiving", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ items }),
+        body: JSON.stringify({
+          items,
+          confirmation: RECEIVING_CONFIRMATION_TOKEN,
+          confirmation_source: confirmationSource,
+        }),
       });
 
       if (!response.ok) {
@@ -311,6 +320,7 @@ export default function ReceivingPage() {
       setRows((currentRows) =>
         currentRows.filter((row) => !row.item_id || !itemIds.has(row.item_id))
       );
+      detailOpenedAt.current = 0;
       setSelectedRow(null);
       setSearchText("");
       lastAutoOpenedSearch.current = "";
@@ -332,14 +342,27 @@ export default function ReceivingPage() {
         return;
       }
 
+      const target = event.target as HTMLElement | null;
+      const targetTag = target?.tagName.toLowerCase();
+      const isFormTarget =
+        targetTag === "input" ||
+        targetTag === "textarea" ||
+        targetTag === "select" ||
+        targetTag === "button" ||
+        Boolean(target?.isContentEditable);
+      const justOpenedDetail = Date.now() - detailOpenedAt.current < 1200;
+
       if (
         event.key === "Enter" &&
+        (event.ctrlKey || event.metaKey) &&
         !event.repeat &&
+        !isFormTarget &&
+        !justOpenedDetail &&
         !saving &&
         !receivingValidationMessage
       ) {
         event.preventDefault();
-        void saveReceiving();
+        void saveReceiving("shortcut");
       }
     }
 
@@ -629,10 +652,7 @@ export default function ReceivingPage() {
               </div>
 
               <button
-                onClick={() => {
-                  setSelectedRow(null);
-                  setTimeout(() => searchInputRef.current?.focus(), 0);
-                }}
+                onClick={closeDetail}
                 className="rounded-lg border border-slate-300 p-2 hover:bg-slate-50"
                 type="button"
               >
@@ -863,14 +883,14 @@ export default function ReceivingPage() {
               )}
 
               <button
-                onClick={() => setSelectedRow(null)}
+                onClick={closeDetail}
                 className="rounded-lg border border-slate-300 px-4 py-3 text-sm font-medium hover:bg-slate-50"
                 type="button"
               >
                 Cancel
               </button>
               <button
-                onClick={saveReceiving}
+                onClick={() => saveReceiving("button")}
                 disabled={saving || !!receivingValidationMessage}
                 className="inline-flex items-center gap-2 rounded-lg bg-slate-900 px-4 py-3 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-60"
                 type="button"

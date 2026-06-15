@@ -1,10 +1,14 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { spawn } from "child_process";
+import path from "path";
 
 const supabaseUrl = process.env.SUPABASE_URL!;
 const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
 const supabase = createClient(supabaseUrl, supabaseServiceRoleKey);
+const RECEIVING_CONFIRMATION_TOKEN = "operator_receive_v2";
+const ROOT_DIR = path.resolve(process.cwd(), "..");
 
 type ReceivingUpdate = {
   item_id: string;
@@ -171,10 +175,25 @@ async function fetchPurchaseMeta(purchaseIds: string[]) {
 export async function POST(request: Request) {
   const body = await request.json();
   const updates = Array.isArray(body.items) ? body.items : [];
+  const confirmation = typeof body.confirmation === "string" ? body.confirmation : "";
+  const confirmationSource =
+    typeof body.confirmation_source === "string" ? body.confirmation_source : "unknown";
   const receivedDate =
     typeof body.received_date === "string" && body.received_date.trim()
       ? body.received_date.trim()
       : localDateString();
+
+  if (confirmation !== RECEIVING_CONFIRMATION_TOKEN) {
+    console.warn("Rejected receiving save without current operator confirmation", {
+      itemCount: updates.length,
+      confirmationSource,
+      userAgent: request.headers.get("user-agent"),
+    });
+    return NextResponse.json(
+      { error: "Refresh the Receiving page and use the Received button to save." },
+      { status: 409 }
+    );
+  }
 
   if (updates.length === 0) {
     return NextResponse.json(
@@ -190,6 +209,14 @@ export async function POST(request: Request) {
       const result = await receiveItem(update, receivedDate);
       results.push(result);
     }
+
+    console.info("Receiving save applied", {
+      itemCount: updates.length,
+      itemIds: updates.map((update: ReceivingUpdate) => update.item_id).filter(Boolean),
+      confirmationSource,
+      receivedDate,
+    });
+    startReceivedPricingRefresh(results);
 
     return NextResponse.json({ success: true, items: results });
   } catch (err) {
@@ -255,13 +282,18 @@ async function receiveItem(update: ReceivingUpdate, receivedDate: string) {
   };
 
   const expectedQuantity = Number(source.quantity ?? 1);
+  const requiresReturnEpisode = shouldOpenReceivingProblemEpisode(
+    update,
+    quantityReceived,
+    expectedQuantity,
+  );
 
   if (quantityReceived > expectedQuantity) {
     throw new Error("quantity_received cannot exceed quantity expected");
   }
 
   if (
-    !update.return_pending &&
+    !requiresReturnEpisode &&
     quantityReceived > 0 &&
     marketplace === "Amazon" &&
     (!asin || sellPrice === null)
@@ -269,9 +301,9 @@ async function receiveItem(update: ReceivingUpdate, receivedDate: string) {
     throw new Error("ASIN and sell price are required for Amazon received items");
   }
 
-  await updateShipmentReceipt(source.item_id, quantityReceived, !update.return_pending);
+  await updateShipmentReceipt(source.item_id, quantityReceived, !requiresReturnEpisode);
 
-  if (update.return_pending) {
+  if (requiresReturnEpisode) {
     const { data, error } = await supabase
       .from("purchase_items")
       .update({
@@ -408,6 +440,63 @@ async function recordReceivingOutcome(
   }
 }
 
+function startReceivedPricingRefresh(results: unknown[]) {
+  const asins = Array.from(
+    new Set(
+      results
+        .map((result) => {
+          if (!result || typeof result !== "object") return "";
+          const row = result as { current_status?: string | null; asin?: string | null };
+          return row.current_status === "received"
+            ? String(row.asin || "").trim().toUpperCase()
+            : "";
+        })
+        .filter(Boolean)
+    )
+  );
+
+  if (!asins.length) return;
+
+  const asinArgs = asins.flatMap((asin) => ["--asin", asin]);
+  const keepaCommand = [
+    ".venv\\Scripts\\python.exe",
+    "integrations\\keepa_sync_products.py",
+    "--source",
+    "explicit",
+    ...asinArgs,
+    "--batch-size",
+    "20",
+    "--min-tokens",
+    "1",
+    "--offers",
+    "20",
+    "--stock",
+    "--no-history",
+    "--write",
+  ].join(" ");
+  const feeCommand = [
+    ".venv\\Scripts\\python.exe",
+    "integrations\\amazon_sync_fee_estimates.py",
+    "--source",
+    "explicit",
+    ...asinArgs,
+  ].join(" ");
+  const shellCommand = `(${keepaCommand}) >> logs\\on_demand_sync.log 2>&1 & (${feeCommand}) >> logs\\on_demand_sync.log 2>&1`;
+
+  try {
+    const child = spawn("cmd.exe", ["/c", shellCommand], {
+      cwd: ROOT_DIR,
+      detached: true,
+      stdio: "ignore",
+      windowsHide: true,
+    });
+    child.unref();
+    console.info("Started receiving pricing refresh", { asins });
+  } catch (error) {
+    console.warn("Failed to start receiving pricing refresh", error);
+  }
+}
+
 async function openReceivingProblemEpisode(
   source: {
     item_id: string;
@@ -516,7 +605,26 @@ function receivingEpisodeKind(update: ReceivingUpdate, quantityReceived: number,
   if (outcome === "incomplete_item" || issue === "incomplete_product" || quantityReceived < expectedQuantity) {
     return "incomplete_item";
   }
+  if (
+    outcome === "wrong_item" ||
+    ["wrong_product", "wrong_platform", "wrong_edition_version", "non_north_american_version"].includes(issue || "")
+  ) {
+    return "return_request";
+  }
   return "damaged_item";
+}
+
+function shouldOpenReceivingProblemEpisode(
+  update: ReceivingUpdate,
+  quantityReceived: number,
+  expectedQuantity: number,
+) {
+  if (update.return_pending) return true;
+  const outcome = normalizeReceivingOutcome(update.receiving_outcome, false);
+  const issue = normalizeConditionIssue(update.condition_issue);
+  if (quantityReceived < expectedQuantity) return true;
+  if (["wrong_item", "wrong_condition", "packaging_issue", "incomplete_item"].includes(outcome)) return true;
+  return Boolean(issue);
 }
 
 async function nextOrderProblemEpisodeSequence(itemId: string) {

@@ -98,6 +98,13 @@ type ProblemCase = {
   partial_refund_amount: number | null;
   refund_currency: string | null;
   replacement_tracking_number: string | null;
+  return_tracking_number: string | null;
+  return_tracking_carrier: string | null;
+  return_tracking_status: string | null;
+  return_tracking_url: string | null;
+  return_tracking_delivered_at: string | null;
+  return_tracking_last_sync_at: string | null;
+  return_label_printed_at: string | null;
   notes: string | null;
   raw_ebay_json: Record<string, unknown> | null;
   episode_kind: string | null;
@@ -258,7 +265,14 @@ function parseProblemQuery(url: URL): ProblemQuery {
 async function seedDerivedProblemCases() {
   const candidateRows = await fetchDerivedCandidateRows();
   const initialSeeds = dedupeSeeds(candidateRows.map(candidateSeedForRow).filter(Boolean) as ProblemSeed[]);
-  const seeds = initialSeeds;
+  const terminalStatusSeedItemIds = await fetchTerminalStatusSeedItemIds(
+    initialSeeds
+      .filter((seed) => seed.problem_source !== "derived_order_problem")
+      .map((seed) => seed.item_id),
+  );
+  const seeds = initialSeeds.filter(
+    (seed) => seed.problem_source === "derived_order_problem" || !terminalStatusSeedItemIds.has(seed.item_id),
+  );
   await closeResolvedDerivedCandidates(seeds, candidateRows);
   if (seeds.length === 0) return;
 
@@ -355,6 +369,24 @@ async function closeResolvedDerivedCandidates(seeds: ProblemSeed[], candidateRow
       .eq("problem_case_id", problemCase.problem_case_id);
     if (error) throw new Error(`order_problem_cases close resolved derived candidate: ${error.message}`);
   }
+}
+
+async function fetchTerminalStatusSeedItemIds(itemIds: string[]) {
+  const terminalItemIds = new Set<string>();
+  const uniqueItemIds = Array.from(new Set(itemIds.filter(Boolean)));
+  for (const chunk of chunks(uniqueItemIds, 500)) {
+    const { data, error } = await supabase
+      .from("order_problem_cases")
+      .select("purchase_item_id")
+      .in("purchase_item_id", chunk)
+      .eq("is_open", false)
+      .in("workflow_state", ["resolved_refunded", "closed_no_refund", "closed_no_action"]);
+    if (error) throw new Error(`order_problem_cases terminal status lookup: ${error.message}`);
+    for (const row of data ?? []) {
+      if (row.purchase_item_id) terminalItemIds.add(row.purchase_item_id);
+    }
+  }
+  return terminalItemIds;
 }
 
 async function fetchDerivedCandidateRows() {
@@ -794,6 +826,13 @@ function mergeProblemCase(
     partial_refund_amount: problemCase.partial_refund_amount,
     refund_currency: problemCase.refund_currency,
     replacement_tracking_number: problemCase.replacement_tracking_number,
+    return_tracking_number: problemCase.return_tracking_number,
+    problem_return_tracking_carrier: problemCase.return_tracking_carrier,
+    problem_return_tracking_status: problemCase.return_tracking_status,
+    problem_return_tracking_url: problemCase.return_tracking_url,
+    problem_return_tracking_delivered_at: problemCase.return_tracking_delivered_at,
+    problem_return_tracking_last_sync_at: problemCase.return_tracking_last_sync_at,
+    problem_return_label_printed_at: problemCase.return_label_printed_at,
     problem_notes: problemCase.notes,
     problem_episode_kind: problemCase.episode_kind,
     problem_episode_sequence: problemCase.episode_sequence,

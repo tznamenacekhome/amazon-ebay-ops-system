@@ -34,6 +34,22 @@ type FbaRow = {
   cost_per_unit: number | null;
   total_cost: number;
   sell_price: number | null;
+  last_sold_price: number | null;
+  last_sold_at: string | null;
+  current_buy_box_price: number | null;
+  low_fba_new_price_current: number | null;
+  buy_box_price_avg90: number | null;
+  profit_per_unit: number | null;
+  roi: number | null;
+  amazon_fee_estimate: number | null;
+  amazon_fee_estimate_basis_price: number | null;
+  referral_fee_estimate: number | null;
+  non_referral_fee_estimate: number | null;
+  referral_fee_rate: number | null;
+  fee_estimate_status: string | null;
+  fee_cache_updated_at: string | null;
+  keepa_cache_updated_at: string | null;
+  pricing_cache_updated_at: string | null;
   quantity: number;
   purchase_date: string | null;
   supplier: string;
@@ -45,6 +61,7 @@ type FbaData = {
     units: number;
     cost: number;
     asins: number;
+    pricing_cache_oldest_at: string | null;
   };
   rows: FbaRow[];
 };
@@ -122,6 +139,9 @@ type ShipmentData = {
 };
 
 type QuantityDraft = Record<string, string>;
+type SellPriceDraft = Record<string, string>;
+
+const LAST_OPENED_ASIN_KEY = "mbop:fba:last-opened-asin";
 
 export default function FbaPage() {
   const [activeView, setActiveView] = useState<"prep" | "shipments">("prep");
@@ -131,6 +151,12 @@ export default function FbaPage() {
   const [expandedShipment, setExpandedShipment] = useState<string | null>(null);
   const [shipmentId, setShipmentId] = useState("");
   const [quantityDrafts, setQuantityDrafts] = useState<QuantityDraft>({});
+  const [sellPriceDrafts, setSellPriceDrafts] = useState<SellPriceDraft>({});
+  const [savingPriceAsin, setSavingPriceAsin] = useState<string | null>(null);
+  const [lastOpenedAsin, setLastOpenedAsin] = useState<string | null>(() => {
+    if (typeof window === "undefined") return null;
+    return window.sessionStorage.getItem(LAST_OPENED_ASIN_KEY);
+  });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -161,6 +187,43 @@ export default function FbaPage() {
 
     return { units, cost };
   }, [data, quantityDrafts]);
+
+  const prepValueTotals = useMemo(() => {
+    let sellValue = 0;
+    let profit = 0;
+    let costWithProfit = 0;
+    let missingSellPrice = false;
+    let missingProfit = false;
+
+    for (const row of data?.rows ?? []) {
+      const quantity = Number(row.quantity ?? 0);
+      if (quantity <= 0) continue;
+
+      if (row.sell_price === null || row.sell_price === undefined) {
+        missingSellPrice = true;
+      } else {
+        sellValue += row.sell_price * quantity;
+      }
+
+      if (
+        row.profit_per_unit === null ||
+        row.profit_per_unit === undefined ||
+        row.cost_per_unit === null ||
+        row.cost_per_unit === undefined
+      ) {
+        missingProfit = true;
+      } else {
+        profit += row.profit_per_unit * quantity;
+        costWithProfit += row.cost_per_unit * quantity;
+      }
+    }
+
+    return {
+      sellValue: missingSellPrice ? null : sellValue,
+      profit: missingProfit ? null : profit,
+      roi: !missingProfit && costWithProfit > 0 ? profit / costWithProfit : null,
+    };
+  }, [data]);
 
   const validationMessage = useMemo(() => {
     if (!shipmentId.trim()) return "Shipment ID is required before saving.";
@@ -194,6 +257,7 @@ export default function FbaPage() {
       const payload = (await response.json()) as FbaData;
       setData(payload);
       setQuantityDrafts(quantityDraftsForData(payload));
+      setSellPriceDrafts(sellPriceDraftsForData(payload));
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load FBA workflow.");
     } finally {
@@ -227,13 +291,22 @@ export default function FbaPage() {
     setRefreshing(true);
     setError(null);
     try {
-      await runOnDemandRefresh(
-        "fba",
-        activeView === "prep" ? loadFba : loadShipments,
-        setRefreshNotice
-      );
+      await runOnDemandRefresh("fba", loadShipments, setRefreshNotice);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Refresh failed.");
+    } finally {
+      setRefreshing(false);
+      setFreshnessKey((current) => current + 1);
+    }
+  }
+
+  async function updatePricing() {
+    setRefreshing(true);
+    setError(null);
+    try {
+      await runOnDemandRefresh("fba-pricing", loadFba, setRefreshNotice);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Pricing update failed.");
     } finally {
       setRefreshing(false);
       setFreshnessKey((current) => current + 1);
@@ -319,6 +392,63 @@ export default function FbaPage() {
     }
   }
 
+  async function saveSellPrice(row: FbaRow) {
+    const draft = sellPriceDrafts[row.asin]?.trim() ?? "";
+    const nextPrice = Number(draft);
+
+    if (draft === "" || !Number.isFinite(nextPrice) || nextPrice < 0) {
+      setError("Sell price must be zero or greater.");
+      return;
+    }
+
+    setSavingPriceAsin(row.asin);
+    setError(null);
+
+    try {
+      const response = await fetch("/api/fba-shipments", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          items: row.details.map((detail) => ({
+            item_id: detail.item_id,
+            target_price: nextPrice,
+          })),
+        }),
+      });
+
+      if (!response.ok) {
+        const payload = await response.json().catch(() => null);
+        throw new Error(payload?.error || `Sell price save failed: ${response.status}`);
+      }
+
+      setData((current) =>
+        current
+          ? {
+              ...current,
+              rows: current.rows.map((currentRow) =>
+                currentRow.asin === row.asin
+                  ? rowWithSellPrice(currentRow, nextPrice)
+                  : currentRow
+              ),
+            }
+          : current
+      );
+      setSellPriceDrafts((current) => ({
+        ...current,
+        [row.asin]: formatPriceDraft(nextPrice),
+      }));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to save sell price.");
+    } finally {
+      setSavingPriceAsin(null);
+    }
+  }
+
+  function markAsinOpened(asin: string) {
+    setLastOpenedAsin(asin);
+    window.sessionStorage.setItem(LAST_OPENED_ASIN_KEY, asin);
+  }
+
   return (
     <main className="min-h-screen bg-slate-100 p-4 text-slate-900">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
@@ -332,14 +462,25 @@ export default function FbaPage() {
         <div className="flex flex-wrap items-center justify-end gap-3">
           <DataFreshness screen="fba" refreshKey={freshnessKey} />
           <button
-            onClick={refreshFba}
+            onClick={activeView === "prep" ? updatePricing : refreshFba}
             disabled={refreshing}
             className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium shadow-sm hover:bg-slate-50"
             type="button"
           >
             <RefreshCw className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
-            {refreshing ? "Refreshing" : "Refresh"}
+            {refreshing
+              ? activeView === "prep"
+                ? "Updating"
+                : "Refreshing"
+              : activeView === "prep"
+                ? "Update Pricing"
+                : "Refresh"}
           </button>
+          {activeView === "prep" ? (
+            <div className="text-xs text-slate-500">
+              Oldest pricing cache: {formatDateTime(data?.totals.pricing_cache_oldest_at)}
+            </div>
+          ) : null}
           <button
             onClick={exportCsv}
             disabled={activeView !== "prep" || !data?.rows.length}
@@ -407,13 +548,21 @@ export default function FbaPage() {
       ) : (
         <>
 
-      <section className="mb-4 grid gap-3 md:grid-cols-4">
+      <section className="mb-4 grid gap-3 md:grid-cols-6">
         <MetricCard label="ASINs" value={loading ? "--" : formatNumber(data?.totals.asins)} />
         <MetricCard label="Units" value={loading ? "--" : formatNumber(data?.totals.units)} />
         <MetricCard label="Total Cost" value={loading ? "--" : formatMoney(data?.totals.cost)} />
         <MetricCard
-          label="Selected Cost"
-          value={loading ? "--" : formatMoney(selectedTotals.cost)}
+          label="Total Sell Value"
+          value={loading ? "--" : formatMoney(prepValueTotals.sellValue)}
+        />
+        <MetricCard
+          label="Total Profit"
+          value={loading ? "--" : formatMoney(prepValueTotals.profit)}
+        />
+        <MetricCard
+          label="Total ROI"
+          value={loading ? "--" : formatPercentRatio(prepValueTotals.roi)}
         />
       </section>
 
@@ -453,16 +602,20 @@ export default function FbaPage() {
         </div>
       </section>
 
-      <section className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
-        <table className="w-full text-left text-sm">
+      <section className="overflow-x-auto rounded-lg border border-slate-200 bg-white shadow-sm">
+        <table className="min-w-[1500px] w-full text-left text-sm">
           <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
             <tr>
               <th className="w-10 px-3 py-2" />
               <th className="px-3 py-2">ASIN</th>
               <th className="px-3 py-2">Title</th>
               <th className="px-3 py-2">System</th>
-              <th className="px-3 py-2 text-right">Cost / Unit</th>
+              <th className="px-3 py-2 text-right">Buy Price</th>
               <th className="px-3 py-2 text-right">Sell Price</th>
+              <th className="px-3 py-2 text-right">Last Sold</th>
+              <th className="px-3 py-2 text-right">Current Buy Box</th>
+              <th className="px-3 py-2 text-right">90D Buy Box</th>
+              <th className="px-3 py-2 text-right">Profit / ROI</th>
               <th className="px-3 py-2 text-right">Qty</th>
               <th className="px-3 py-2">Purchase Date</th>
               <th className="px-3 py-2">Supplier</th>
@@ -471,20 +624,32 @@ export default function FbaPage() {
           <tbody>
             {loading ? (
               <tr>
-                <td className="px-3 py-8 text-center text-slate-500" colSpan={9}>
+                <td className="px-3 py-8 text-center text-slate-500" colSpan={13}>
                   Loading FBA candidates...
                 </td>
               </tr>
             ) : !data?.rows.length ? (
               <tr>
-                <td className="px-3 py-8 text-center text-slate-500" colSpan={9}>
+                <td className="px-3 py-8 text-center text-slate-500" colSpan={13}>
                   No Received Amazon inventory is ready for FBA.
                 </td>
               </tr>
             ) : (
-              data.rows.map((row) => (
+              data.rows.map((row) => {
+                const isLastOpened = row.asin === lastOpenedAsin;
+                const isSellPriceBelowReferences = sellPriceBelowReferences(
+                  row,
+                  sellPriceDrafts[row.asin]
+                );
+                return (
                 <Fragment key={row.asin}>
-                  <tr className="border-t border-slate-100 align-top">
+                  <tr
+                    className={`border-t align-top ${
+                      isLastOpened
+                        ? "border-amber-200 bg-amber-50/80 ring-1 ring-inset ring-amber-200"
+                        : "border-slate-100"
+                    }`}
+                  >
                     <td className="px-3 py-2">
                       <button
                         onClick={() =>
@@ -503,8 +668,16 @@ export default function FbaPage() {
                         )}
                       </button>
                     </td>
-                    <td className="whitespace-nowrap px-3 py-2 font-medium text-blue-700">
-                      {row.asin}
+                    <td className="whitespace-nowrap px-3 py-2 font-medium">
+                      <a
+                        href={amazonAsinUrl(row.asin)}
+                        target="_blank"
+                        rel="noreferrer"
+                        onClick={() => markAsinOpened(row.asin)}
+                        className="text-blue-700 hover:underline"
+                      >
+                        {row.asin}
+                      </a>
                     </td>
                     <td className="px-3 py-2 font-medium">
                       {row.title ? (
@@ -520,7 +693,66 @@ export default function FbaPage() {
                       {formatMoney(row.cost_per_unit)}
                     </td>
                     <td className="whitespace-nowrap px-3 py-2 text-right">
-                      {formatMoney(row.sell_price)}
+                      <input
+                        value={sellPriceDrafts[row.asin] ?? ""}
+                        onChange={(event) =>
+                          setSellPriceDrafts((current) => ({
+                            ...current,
+                            [row.asin]: event.target.value,
+                          }))
+                        }
+                        onBlur={() => {
+                          if (priceDraftChanged(sellPriceDrafts[row.asin], row.sell_price)) {
+                            void saveSellPrice(row);
+                          }
+                        }}
+                        onKeyDown={(event) => {
+                          if (event.key === "Enter") {
+                            event.currentTarget.blur();
+                          }
+                        }}
+                        className={`h-9 w-24 rounded-md border px-2 text-right font-medium ${
+                          isSellPriceBelowReferences
+                            ? "border-amber-400 bg-amber-50 text-amber-950"
+                            : "border-slate-300"
+                        }`}
+                        inputMode="decimal"
+                        disabled={savingPriceAsin === row.asin}
+                      />
+                      {isSellPriceBelowReferences ? (
+                        <div
+                          className="mt-1 text-xs font-medium text-amber-700"
+                          title="Sell price is below Last Sold, current Buy Box, and 90-day Buy Box average."
+                        >
+                          Below refs
+                        </div>
+                      ) : null}
+                      {savingPriceAsin === row.asin ? (
+                        <div className="text-xs text-slate-500">saving</div>
+                      ) : null}
+                    </td>
+                    <td className="whitespace-nowrap px-3 py-2 text-right">
+                      <div>{formatMoney(row.last_sold_price)}</div>
+                      <div className="text-xs text-slate-500">
+                        {formatDate(row.last_sold_at)}
+                      </div>
+                    </td>
+                    <td className="whitespace-nowrap px-3 py-2 text-right">
+                      <div>{formatMoney(row.current_buy_box_price)}</div>
+                      {row.current_buy_box_price === null && row.low_fba_new_price_current !== null ? (
+                        <div className="text-xs text-slate-500">
+                          FBA low {formatMoney(row.low_fba_new_price_current)}
+                        </div>
+                      ) : null}
+                    </td>
+                    <td className="whitespace-nowrap px-3 py-2 text-right">
+                      {formatMoney(row.buy_box_price_avg90)}
+                    </td>
+                    <td className="whitespace-nowrap px-3 py-2 text-right">
+                      {formatProfitRoi(row, sellPriceDrafts[row.asin])}
+                      <div className="text-xs text-slate-500">
+                        Fees {formatMoney(row.amazon_fee_estimate)}
+                      </div>
                     </td>
                     <td className="px-3 py-2 text-right font-semibold">
                       {formatNumber(row.quantity)}
@@ -533,7 +765,7 @@ export default function FbaPage() {
 
                   {expandedAsin === row.asin && (
                     <tr className="border-t border-slate-100 bg-slate-50">
-                      <td colSpan={9} className="px-3 py-3">
+                      <td colSpan={13} className="px-3 py-3">
                         <DetailTable
                           details={row.details}
                           quantityDrafts={quantityDrafts}
@@ -543,7 +775,8 @@ export default function FbaPage() {
                     </tr>
                   )}
                 </Fragment>
-              ))
+              );
+              })
             )}
           </tbody>
         </table>
@@ -834,6 +1067,114 @@ function quantityDraftsForData(data: FbaData) {
   return drafts;
 }
 
+function sellPriceDraftsForData(data: FbaData) {
+  const drafts: SellPriceDraft = {};
+  for (const row of data.rows) {
+    drafts[row.asin] = formatPriceDraft(row.sell_price);
+  }
+  return drafts;
+}
+
+function rowWithSellPrice(row: FbaRow, sellPrice: number): FbaRow {
+  const amazonFeeEstimate = adjustedAmazonFeeEstimate(row, sellPrice);
+  const profitPerUnit =
+    row.cost_per_unit !== null && amazonFeeEstimate !== null
+      ? sellPrice - row.cost_per_unit - amazonFeeEstimate
+      : null;
+  const roi =
+    profitPerUnit !== null && row.cost_per_unit !== null && row.cost_per_unit > 0
+      ? profitPerUnit / row.cost_per_unit
+      : null;
+
+  return {
+    ...row,
+    sell_price: sellPrice,
+    amazon_fee_estimate: amazonFeeEstimate,
+    profit_per_unit: profitPerUnit,
+    roi,
+    details: row.details.map((detail) => ({
+      ...detail,
+      sell_price: sellPrice,
+    })),
+  };
+}
+
+function priceDraftChanged(value: string | undefined, currentPrice: number | null) {
+  const parsed = Number(String(value ?? "").trim());
+  if (!Number.isFinite(parsed)) return true;
+  return Math.round(parsed * 100) !== Math.round(Number(currentPrice ?? 0) * 100);
+}
+
+function formatPriceDraft(value?: number | null) {
+  if (value === null || value === undefined || Number.isNaN(Number(value))) {
+    return "";
+  }
+  return Number(value).toFixed(2);
+}
+
+function formatProfitRoi(row: FbaRow, draft?: string) {
+  const sellPrice = Number(String(draft ?? "").trim());
+  const effectiveSellPrice = Number.isFinite(sellPrice) ? sellPrice : row.sell_price;
+  const draftMatchesSaved = !priceDraftChanged(draft, row.sell_price);
+  const amazonFeeEstimate =
+    effectiveSellPrice === null || effectiveSellPrice === undefined
+      ? null
+      : adjustedAmazonFeeEstimate(row, effectiveSellPrice);
+  if (
+    effectiveSellPrice === null ||
+    effectiveSellPrice === undefined ||
+    amazonFeeEstimate === null ||
+    !draftMatchesSaved ||
+    row.cost_per_unit === null ||
+    row.cost_per_unit === undefined
+  ) {
+    return <span className="text-slate-500">Update pricing</span>;
+  }
+  const profit = effectiveSellPrice - row.cost_per_unit - amazonFeeEstimate;
+  const roi = row.cost_per_unit > 0 ? profit / row.cost_per_unit : null;
+  return (
+    <>
+      <div className={profit < 0 ? "font-semibold text-red-700" : "font-semibold text-green-700"}>
+        {formatMoney(profit)}
+      </div>
+      <div className="text-xs text-slate-500">{formatPercentRatio(roi)}</div>
+    </>
+  );
+}
+
+function sellPriceBelowReferences(row: FbaRow, draft?: string) {
+  const sellPrice = Number(String(draft ?? "").trim());
+  const effectiveSellPrice = Number.isFinite(sellPrice) ? sellPrice : row.sell_price;
+  const references = [
+    row.last_sold_price,
+    row.current_buy_box_price,
+    row.buy_box_price_avg90,
+  ];
+
+  if (
+    effectiveSellPrice === null ||
+    effectiveSellPrice === undefined ||
+    references.some((value) => value === null || value === undefined)
+  ) {
+    return false;
+  }
+
+  return references.every((value) => effectiveSellPrice < Number(value));
+}
+
+function adjustedAmazonFeeEstimate(row: FbaRow, sellPrice: number) {
+  if (
+    row.non_referral_fee_estimate === null ||
+    row.non_referral_fee_estimate === undefined ||
+    row.referral_fee_rate === null ||
+    row.referral_fee_rate === undefined
+  ) {
+    return row.amazon_fee_estimate;
+  }
+
+  return roundMoney(row.non_referral_fee_estimate + sellPrice * row.referral_fee_rate);
+}
+
 function DetailTable({
   details,
   quantityDrafts,
@@ -876,8 +1217,15 @@ function DetailTable({
                   {formatDate(detail.order_date)}
                 </td>
                 <td className="px-3 py-2">{detail.amazon_title || "--"}</td>
-                <td className="whitespace-nowrap px-3 py-2 text-blue-700">
-                  {detail.asin}
+                <td className="whitespace-nowrap px-3 py-2">
+                  <a
+                    href={amazonAsinUrl(detail.asin)}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-blue-700 hover:underline"
+                  >
+                    {detail.asin}
+                  </a>
                 </td>
                 <td className="px-3 py-2 text-right">{detail.quantity}</td>
                 <td className="px-3 py-2 text-right">
@@ -970,11 +1318,24 @@ function formatMoney(value?: number | null) {
   });
 }
 
+function roundMoney(value: number) {
+  return Math.round(value * 100) / 100;
+}
+
 function formatPercent(value?: number | null) {
   if (value === null || value === undefined || Number.isNaN(Number(value))) {
     return "--";
   }
   return `${Number(value).toLocaleString("en-US", {
+    maximumFractionDigits: 1,
+  })}%`;
+}
+
+function formatPercentRatio(value?: number | null) {
+  if (value === null || value === undefined || Number.isNaN(Number(value))) {
+    return "--";
+  }
+  return `${(Number(value) * 100).toLocaleString("en-US", {
     maximumFractionDigits: 1,
   })}%`;
 }
@@ -997,6 +1358,10 @@ function trackingUrl(row: ShipmentRow) {
   return `https://www.ups.com/track?tracknum=${encodeURIComponent(row.tracking_number || "")}`;
 }
 
+function amazonAsinUrl(asin: string) {
+  return `https://www.amazon.com/dp/${encodeURIComponent(asin)}`;
+}
+
 function noticeClass(tone: RefreshNotice["tone"]) {
   if (tone === "success") return "border-green-200 bg-green-50 text-green-700";
   if (tone === "warning") return "border-amber-200 bg-amber-50 text-amber-800";
@@ -1013,5 +1378,20 @@ function formatDate(value?: string | null) {
     month: "2-digit",
     day: "2-digit",
     year: "2-digit",
+  });
+}
+
+function formatDateTime(value?: string | null) {
+  if (!value) return "--";
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+
+  return date.toLocaleString("en-US", {
+    month: "2-digit",
+    day: "2-digit",
+    year: "2-digit",
+    hour: "numeric",
+    minute: "2-digit",
   });
 }

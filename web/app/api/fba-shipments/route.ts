@@ -21,6 +21,31 @@ type DashboardRow = {
   current_status: string | null;
 };
 
+type KeepaPriceRow = {
+  asin: string | null;
+  captured_at: string | null;
+  buy_box_price_current_cents: number | null;
+  buy_box_price_avg90_cents: number | null;
+  new_fba_price_current_cents: number | null;
+};
+
+type LastSoldRow = {
+  asin: string;
+  price: number;
+  sold_at: string | null;
+};
+
+type FeeEstimateRow = {
+  asin: string | null;
+  listing_price: number | null;
+  total_fees_estimate: number | null;
+  referral_fee_estimate: number | null;
+  fba_fee_estimate: number | null;
+  variable_closing_fee_estimate: number | null;
+  estimate_status: string | null;
+  updated_at: string | null;
+};
+
 type ItemMeta = {
   item_id: string;
   amazon_title: string | null;
@@ -36,6 +61,11 @@ type PurchaseMeta = {
 type SaveItem = {
   item_id: string;
   quantity_to_send: number;
+};
+
+type PriceUpdateItem = {
+  item_id: string;
+  target_price: number;
 };
 
 type ShipmentRow = {
@@ -174,11 +204,50 @@ export async function GET(request: NextRequest) {
     const titleFallbacks = await fetchAmazonTitleFallbacks(
       Array.from(new Set(candidates.map((candidate) => candidate.asin)))
     );
+    const asins = Array.from(new Set(candidates.map((candidate) => candidate.asin)));
+    const keepaPrices = await fetchKeepaPrices(asins);
+    const lastSoldPrices = await fetchLastSoldPrices(asins);
+    const feeEstimates = await fetchFeeEstimates(candidates);
 
-    return NextResponse.json(groupCandidates(candidates, titleFallbacks));
+    return NextResponse.json(
+      groupCandidates(candidates, titleFallbacks, keepaPrices, lastSoldPrices, feeEstimates)
+    );
   } catch (error) {
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Failed to load FBA workflow" },
+      { status: 500 }
+    );
+  }
+}
+
+export async function PATCH(request: NextRequest) {
+  try {
+    const body = await request.json();
+    const items = normalizePriceUpdateItems(
+      Array.isArray(body.items) ? body.items : []
+    );
+
+    if (!items.length) {
+      return NextResponse.json(
+        { error: "At least one item price update is required." },
+        { status: 400 }
+      );
+    }
+
+    for (const item of items) {
+      const { error } = await supabase
+        .from("purchase_items")
+        .update({ target_price: item.target_price })
+        .eq("item_id", item.item_id)
+        .eq("current_status", "received");
+
+      if (error) throw new Error(error.message);
+    }
+
+    return NextResponse.json({ success: true, updated: items.length });
+  } catch (error) {
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : "Failed to update sell price" },
       { status: 500 }
     );
   }
@@ -662,7 +731,26 @@ function groupCandidates(
     sell_price: number | null;
     supplier: string | null;
   }>,
-  titleFallbacks: Map<string, string>
+  titleFallbacks: Map<string, string>,
+  keepaPrices: Map<string, {
+    buy_box_price_current: number | null;
+    buy_box_price_avg90: number | null;
+    low_fba_new_price_current: number | null;
+    updated_at: string | null;
+  }>,
+  lastSoldPrices: Map<string, LastSoldRow>,
+  feeEstimates: Map<string, {
+    listing_price: number;
+    total_fees_estimate: number | null;
+    referral_fee_estimate: number | null;
+    fba_fee_estimate: number | null;
+    variable_closing_fee_estimate: number | null;
+    adjusted_total_fees_estimate: number | null;
+    referral_fee_rate: number | null;
+    non_referral_fee_estimate: number | null;
+    updated_at: string | null;
+    estimate_status: string | null;
+  }>
 ) {
   const groups = new Map<string, {
     asin: string;
@@ -673,6 +761,22 @@ function groupCandidates(
     cost_quantity: number;
     cost_per_unit: number | null;
     sell_price: number | null;
+    last_sold_price: number | null;
+    last_sold_at: string | null;
+    current_buy_box_price: number | null;
+    low_fba_new_price_current: number | null;
+    buy_box_price_avg90: number | null;
+    amazon_fee_estimate: number | null;
+    amazon_fee_estimate_basis_price: number | null;
+    referral_fee_estimate: number | null;
+    non_referral_fee_estimate: number | null;
+    referral_fee_rate: number | null;
+    fee_estimate_status: string | null;
+    fee_cache_updated_at: string | null;
+    keepa_cache_updated_at: string | null;
+    pricing_cache_updated_at: string | null;
+    profit_per_unit: number | null;
+    roi: number | null;
     purchase_date: string | null;
     supplier: string;
     details: typeof candidates;
@@ -688,6 +792,22 @@ function groupCandidates(
       cost_quantity: 0,
       cost_per_unit: null,
       sell_price: null,
+      last_sold_price: null,
+      last_sold_at: null,
+      current_buy_box_price: null,
+      low_fba_new_price_current: null,
+      buy_box_price_avg90: null,
+      amazon_fee_estimate: null,
+      amazon_fee_estimate_basis_price: null,
+      referral_fee_estimate: null,
+      non_referral_fee_estimate: null,
+      referral_fee_rate: null,
+      fee_estimate_status: null,
+      fee_cache_updated_at: null,
+      keepa_cache_updated_at: null,
+      pricing_cache_updated_at: null,
+      profit_per_unit: null,
+      roi: null,
       purchase_date: candidate.order_date,
       supplier: "",
       details: [],
@@ -726,11 +846,47 @@ function groupCandidates(
     const suppliers = Array.from(
       new Set(group.details.map((detail) => detail.supplier).filter(Boolean))
     ) as string[];
+    const keepa = keepaPrices.get(group.asin);
+    const lastSold = lastSoldPrices.get(group.asin);
+    const feeEstimate =
+      group.sell_price === null ? undefined : feeEstimates.get(group.asin);
+    const costPerUnit =
+      group.cost_quantity > 0 ? group.total_cost / group.cost_quantity : null;
+    const profitPerUnit =
+      group.sell_price !== null &&
+      costPerUnit !== null &&
+      feeEstimate?.adjusted_total_fees_estimate !== null &&
+      feeEstimate?.adjusted_total_fees_estimate !== undefined
+        ? group.sell_price -
+          costPerUnit -
+          feeEstimate.adjusted_total_fees_estimate
+        : null;
+    const pricingDates = [keepa?.updated_at ?? null, feeEstimate?.updated_at ?? null].filter(
+      (value): value is string => Boolean(value)
+    );
 
     return {
       ...group,
-      cost_per_unit:
-        group.cost_quantity > 0 ? group.total_cost / group.cost_quantity : null,
+      cost_per_unit: costPerUnit,
+      last_sold_price: lastSold?.price ?? null,
+      last_sold_at: lastSold?.sold_at ?? null,
+      current_buy_box_price: keepa?.buy_box_price_current ?? null,
+      low_fba_new_price_current: keepa?.low_fba_new_price_current ?? null,
+      buy_box_price_avg90: keepa?.buy_box_price_avg90 ?? null,
+      amazon_fee_estimate: feeEstimate?.adjusted_total_fees_estimate ?? null,
+      amazon_fee_estimate_basis_price: feeEstimate?.listing_price ?? null,
+      referral_fee_estimate: feeEstimate?.referral_fee_estimate ?? null,
+      non_referral_fee_estimate: feeEstimate?.non_referral_fee_estimate ?? null,
+      referral_fee_rate: feeEstimate?.referral_fee_rate ?? null,
+      fee_estimate_status: feeEstimate?.estimate_status ?? null,
+      fee_cache_updated_at: feeEstimate?.updated_at ?? null,
+      keepa_cache_updated_at: keepa?.updated_at ?? null,
+      pricing_cache_updated_at: oldestDate(pricingDates),
+      profit_per_unit: profitPerUnit,
+      roi:
+        profitPerUnit !== null && costPerUnit !== null && costPerUnit > 0
+          ? profitPerUnit / costPerUnit
+          : null,
       supplier: suppliers.join(", "),
       details: group.details.sort((left, right) => {
         const dateCompare = compareStrings(left.order_date, right.order_date);
@@ -751,11 +907,210 @@ function groupCandidates(
       units: sum.units + row.quantity,
       cost: sum.cost + row.total_cost,
       asins: sum.asins + 1,
+      pricing_cache_oldest_at: oldestDate([
+        sum.pricing_cache_oldest_at,
+        row.pricing_cache_updated_at,
+      ]),
     }),
-    { units: 0, cost: 0, asins: 0 }
+    { units: 0, cost: 0, asins: 0, pricing_cache_oldest_at: null as string | null }
   );
 
   return { totals, rows: groupedRows };
+}
+
+async function fetchKeepaPrices(asins: string[]) {
+  const prices = new Map<string, {
+    buy_box_price_current: number | null;
+    buy_box_price_avg90: number | null;
+    low_fba_new_price_current: number | null;
+    updated_at: string | null;
+  }>();
+  const chunkSize = 200;
+
+  for (let index = 0; index < asins.length; index += chunkSize) {
+    const chunk = asins.slice(index, index + chunkSize);
+    const { data, error } = await supabase
+      .from("vw_latest_keepa_product_snapshot")
+      .select(
+        "asin,captured_at,buy_box_price_current_cents,buy_box_price_avg90_cents,new_fba_price_current_cents"
+      )
+      .in("asin", chunk);
+
+    if (error) {
+      console.warn("FBA Keepa price lookup failed", error.message);
+      continue;
+    }
+
+    for (const row of (data ?? []) as KeepaPriceRow[]) {
+      const asin = normalizeAsin(row.asin);
+      if (!asin) continue;
+      prices.set(asin, {
+        buy_box_price_current: centsToDollars(row.buy_box_price_current_cents),
+        buy_box_price_avg90: centsToDollars(row.buy_box_price_avg90_cents),
+        low_fba_new_price_current: centsToDollars(row.new_fba_price_current_cents),
+        updated_at: row.captured_at,
+      });
+    }
+  }
+
+  return prices;
+}
+
+async function fetchFeeEstimates(
+  candidates: Array<{ asin: string; sell_price: number | null }>
+) {
+  const sellPriceByAsin = new Map<string, number>();
+  for (const candidate of candidates) {
+    if (candidate.sell_price === null) continue;
+    const current = sellPriceByAsin.get(candidate.asin);
+    const sellPrice = Math.round(candidate.sell_price * 100) / 100;
+    sellPriceByAsin.set(
+      candidate.asin,
+      current === undefined ? sellPrice : Math.max(current, sellPrice)
+    );
+  }
+
+  const asins = Array.from(sellPriceByAsin.keys());
+  const rowsByKey = new Map<string, {
+    listing_price: number;
+    total_fees_estimate: number | null;
+    referral_fee_estimate: number | null;
+    fba_fee_estimate: number | null;
+    variable_closing_fee_estimate: number | null;
+    adjusted_total_fees_estimate: number | null;
+    referral_fee_rate: number | null;
+    non_referral_fee_estimate: number | null;
+    updated_at: string | null;
+    estimate_status: string | null;
+  }>();
+  const chunkSize = 100;
+
+  for (let index = 0; index < asins.length; index += chunkSize) {
+    const chunk = asins.slice(index, index + chunkSize);
+    const { data, error } = await supabase
+      .from("amazon_fee_estimates")
+      .select(
+        "asin,listing_price,total_fees_estimate,referral_fee_estimate,fba_fee_estimate,variable_closing_fee_estimate,estimate_status,updated_at"
+      )
+      .in("asin", chunk)
+      .eq("fulfillment_channel", "AFN")
+      .order("updated_at", { ascending: false });
+
+    if (error) {
+      console.warn("FBA fee estimate lookup failed", error.message);
+      continue;
+    }
+
+    for (const row of (data ?? []) as FeeEstimateRow[]) {
+      const asin = normalizeAsin(row.asin);
+      const listingPrice = toNumber(row.listing_price);
+      if (!asin || listingPrice === null) continue;
+      if (!sellPriceByAsin.has(asin)) continue;
+      if (rowsByKey.has(asin)) continue;
+      const totalFees = toNumber(row.total_fees_estimate);
+      const referralFee = toNumber(row.referral_fee_estimate);
+      const sellPrice = sellPriceByAsin.get(asin) ?? listingPrice;
+      const referralRate =
+        referralFee !== null && listingPrice > 0 ? referralFee / listingPrice : null;
+      const nonReferralFees =
+        totalFees !== null && referralFee !== null ? totalFees - referralFee : null;
+      const adjustedReferralFee =
+        referralRate !== null ? roundMoney(sellPrice * referralRate) : null;
+      const adjustedTotalFees =
+        nonReferralFees !== null && adjustedReferralFee !== null
+          ? roundMoney(nonReferralFees + adjustedReferralFee)
+          : totalFees;
+
+      rowsByKey.set(asin, {
+        listing_price: listingPrice,
+        total_fees_estimate: totalFees,
+        referral_fee_estimate: referralFee,
+        fba_fee_estimate: toNumber(row.fba_fee_estimate),
+        variable_closing_fee_estimate: toNumber(row.variable_closing_fee_estimate),
+        adjusted_total_fees_estimate: adjustedTotalFees,
+        referral_fee_rate: referralRate,
+        non_referral_fee_estimate: nonReferralFees,
+        updated_at: row.updated_at,
+        estimate_status: row.estimate_status,
+      });
+    }
+  }
+
+  return rowsByKey;
+}
+
+async function fetchLastSoldPrices(asins: string[]) {
+  const byAsin = new Map<string, LastSoldRow>();
+  const chunkSize = 100;
+
+  for (let index = 0; index < asins.length; index += chunkSize) {
+    const chunk = asins.slice(index, index + chunkSize);
+    const { data: profitRows, error: profitError } = await supabase
+      .from("amazon_sales_profitability")
+      .select("amazon_order_id,asin,quantity,sale_price,data_status")
+      .in("asin", chunk)
+      .eq("data_status", "complete")
+      .not("sale_price", "is", null)
+      .gt("quantity", 0)
+      .limit(1000);
+
+    if (profitError) {
+      console.warn("FBA last sold profitability lookup failed", profitError.message);
+      continue;
+    }
+
+    const rows = (profitRows ?? []) as Array<{
+      amazon_order_id: string;
+      asin: string | null;
+      quantity: number | null;
+      sale_price: number | null;
+    }>;
+    const orderIds = Array.from(new Set(rows.map((row) => row.amazon_order_id).filter(Boolean)));
+    const purchaseDateByOrder = new Map<string, string | null>();
+
+    for (let orderIndex = 0; orderIndex < orderIds.length; orderIndex += 200) {
+      const orderChunk = orderIds.slice(orderIndex, orderIndex + 200);
+      const { data: orderRows, error: orderError } = await supabase
+        .from("amazon_sales_orders")
+        .select("amazon_order_id,purchase_date")
+        .in("amazon_order_id", orderChunk);
+
+      if (orderError) {
+        console.warn("FBA last sold order lookup failed", orderError.message);
+        continue;
+      }
+
+      for (const order of orderRows ?? []) {
+        purchaseDateByOrder.set(order.amazon_order_id, order.purchase_date ?? null);
+      }
+    }
+
+    for (const row of rows) {
+      const asin = normalizeAsin(row.asin);
+      const salePrice = toNumber(row.sale_price);
+      const quantity = toNumber(row.quantity) ?? 0;
+      if (!asin || salePrice === null || quantity <= 0) continue;
+
+      const soldAt = purchaseDateByOrder.get(row.amazon_order_id) ?? null;
+      const existing = byAsin.get(asin);
+      if (
+        existing &&
+        soldAt &&
+        existing.sold_at &&
+        new Date(existing.sold_at).getTime() >= new Date(soldAt).getTime()
+      ) {
+        continue;
+      }
+
+      byAsin.set(asin, {
+        asin,
+        price: Math.round((salePrice / quantity) * 100) / 100,
+        sold_at: soldAt,
+      });
+    }
+  }
+
+  return byAsin;
 }
 
 function normalizeSaveItems(items: unknown[]): SaveItem[] {
@@ -770,6 +1125,21 @@ function normalizeSaveItems(items: unknown[]): SaveItem[] {
     }
 
     return [{ item_id: itemId, quantity_to_send: quantityToSend }];
+  });
+}
+
+function normalizePriceUpdateItems(items: unknown[]): PriceUpdateItem[] {
+  return items.flatMap((item) => {
+    if (!item || typeof item !== "object") return [];
+    const value = item as Record<string, unknown>;
+    const itemId = typeof value.item_id === "string" ? value.item_id : "";
+    const targetPrice = Number(value.target_price);
+
+    if (!itemId || !Number.isFinite(targetPrice) || targetPrice < 0) {
+      return [];
+    }
+
+    return [{ item_id: itemId, target_price: Math.round(targetPrice * 100) / 100 }];
   });
 }
 
@@ -934,6 +1304,22 @@ function toNumber(value?: number | string | null) {
   if (value === null || value === undefined || value === "") return null;
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : null;
+}
+
+function centsToDollars(value?: number | string | null) {
+  const cents = toNumber(value);
+  return cents === null ? null : Math.round(cents) / 100;
+}
+
+function roundMoney(value: number) {
+  return Math.round(value * 100) / 100;
+}
+
+function oldestDate(values: Array<string | null | undefined>) {
+  const timestamps = values
+    .filter((value): value is string => Boolean(value))
+    .sort((left, right) => Date.parse(left) - Date.parse(right));
+  return timestamps[0] ?? null;
 }
 
 function percent(numerator: number, denominator: number) {

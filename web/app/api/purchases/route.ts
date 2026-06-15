@@ -60,6 +60,19 @@ type PurchaseProblemCase = {
   ebay_current_type: string | null;
   ebay_action_url: string | null;
   replacement_tracking_number: string | null;
+  return_tracking_number: string | null;
+  return_tracking_carrier: string | null;
+  return_tracking_status: string | null;
+  return_tracking_url: string | null;
+  return_tracking_delivered_at: string | null;
+  return_tracking_last_sync_at: string | null;
+  return_label_printed_at: string | null;
+  episode_kind: string | null;
+  episode_sequence: number | null;
+  opened_reason: string | null;
+  resolved_reason: string | null;
+  superseded_by_case_id: string | null;
+  source_artifact_type: string | null;
 };
 
 type CarrierTracking = {
@@ -199,6 +212,19 @@ export async function GET(request: Request) {
       ebay_current_type: problemCase?.ebay_current_type ?? null,
       ebay_action_url: problemCase?.ebay_action_url ?? null,
       replacement_tracking_number: replacementTrackingNumber,
+      return_tracking_number: problemCase?.return_tracking_number ?? null,
+      problem_return_tracking_carrier: problemCase?.return_tracking_carrier ?? null,
+      problem_return_tracking_status: problemCase?.return_tracking_status ?? null,
+      problem_return_tracking_url: problemCase?.return_tracking_url ?? null,
+      problem_return_tracking_delivered_at: problemCase?.return_tracking_delivered_at ?? null,
+      problem_return_tracking_last_sync_at: problemCase?.return_tracking_last_sync_at ?? null,
+      problem_return_label_printed_at: problemCase?.return_label_printed_at ?? null,
+      problem_episode_kind: problemCase?.episode_kind ?? null,
+      problem_episode_sequence: problemCase?.episode_sequence ?? null,
+      problem_opened_reason: problemCase?.opened_reason ?? null,
+      problem_resolved_reason: problemCase?.resolved_reason ?? null,
+      problem_superseded_by_case_id: problemCase?.superseded_by_case_id ?? null,
+      problem_source_artifact_type: problemCase?.source_artifact_type ?? null,
     };
   });
 
@@ -627,6 +653,19 @@ async function fetchOpenProblemCases(itemIds: string[], supplierOrderIds: string
         "ebay_current_type",
         "ebay_action_url",
         "replacement_tracking_number",
+        "return_tracking_number",
+        "return_tracking_carrier",
+        "return_tracking_status",
+        "return_tracking_url",
+        "return_tracking_delivered_at",
+        "return_tracking_last_sync_at",
+        "return_label_printed_at",
+        "episode_kind",
+        "episode_sequence",
+        "opened_reason",
+        "resolved_reason",
+        "superseded_by_case_id",
+        "source_artifact_type",
       ].join(","))
       .in("purchase_item_id", chunk)
       .eq("is_open", true);
@@ -661,6 +700,19 @@ async function fetchOpenProblemCases(itemIds: string[], supplierOrderIds: string
         "ebay_current_type",
         "ebay_action_url",
         "replacement_tracking_number",
+        "return_tracking_number",
+        "return_tracking_carrier",
+        "return_tracking_status",
+        "return_tracking_url",
+        "return_tracking_delivered_at",
+        "return_tracking_last_sync_at",
+        "return_label_printed_at",
+        "episode_kind",
+        "episode_sequence",
+        "opened_reason",
+        "resolved_reason",
+        "superseded_by_case_id",
+        "source_artifact_type",
       ].join(","))
       .in("supplier_order_id", chunk)
       .eq("is_open", true);

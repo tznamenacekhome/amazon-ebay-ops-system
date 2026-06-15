@@ -1,6 +1,6 @@
 # CURRENT_STATE.md
 
-Last Updated: 2026-06-13
+Last Updated: 2026-06-14
 
 # Midnight Blue Operations Platform (MBOP)
 
@@ -254,6 +254,10 @@ Implemented:
   available
 - scheduled Keepa enrichment is capped to 10 stale active-Amazon ASINs, uses stock/offers without history, and skips calls unless at least 100 Keepa tokens are available
 - scheduled sourcing listing availability checks open, Watch, and ROI-snoozed sourcing opportunities once per day and dismisses ended/sold-out/missing eBay listings with `no_longer_available`; Purchased / Offer Made rows are intentionally skipped so purchase matching/enrichment can still run
+- sourcing availability refresh now sends the buyer contextual ZIP header and
+  preserves stored shipping quote data when eBay detail payloads omit
+  `shippingOptions`; sourcing display/scoring trusts stored shipping cost before
+  labeling a row `No ZIP quote`
 - MBOP screens show a screen-specific `Last updated` timestamp near refresh
   controls using `/api/screen-data-freshness`
 - Dashboard freshness uses the oldest required cash/value input so stale Amazon
@@ -868,7 +872,7 @@ Implemented:
 - detail view links eBay title to the eBay listing when a supplier listing URL or eBay item ID is available
 - detail view links Amazon title to Amazon using ASIN
 - Amazon title display appends an operator-facing system suffix when the stored title omits the system
-- detail view shows system/platform near the title and supports Enter to receive plus Escape to close without receiving
+- detail view shows system/platform near the title and supports Ctrl+Enter/Cmd+Enter to receive plus Escape to close without receiving. Plain Enter is ignored so scanner suffixes cannot accidentally receive a just-opened detail view.
 - per-item quantity received input
 - per-item return checkbox
 - per-item marketplace pick list, defaulting to Amazon
@@ -878,6 +882,13 @@ Implemented:
 - partial received quantity splits remaining quantity into a new no-tracking purchase item
 - marketplace is saved only on received items
 - received_date is saved on received purchase items using the local receiving date
+- receiving saves now require an explicit UI confirmation token from the detail
+  action. The old plain-Enter receive shortcut was removed in favor of the
+  button/Ctrl+Enter path so scanner Enter suffixes cannot accidentally mark a
+  just-opened package as received.
+- when an Amazon-bound item is received, MBOP starts a small background pricing
+  refresh for that ASIN so Keepa price context and Amazon Product Fees cache can
+  be available before FBA shipment prep
 
 API behavior:
 - /api/receiving hydrates purchase item metadata from purchase_items in chunks to avoid large PostgREST `in (...)` request failures
@@ -904,8 +915,24 @@ Implemented:
 - Prep Queue and Shipments tabs
 - received Amazon-bound purchase items are grouped into one row per ASIN
 - grouped rows show ASIN, Amazon title, system, weighted cost per unit, sell price, quantity, oldest purchase date, and supplier
+- grouped rows now show Buy Price, editable Sell Price, Last Sold, current Buy
+  Box, Keepa 90-day Buy Box, Amazon estimated fees, Profit/ROI, and an ASIN link
+  to Amazon
 - rows are sorted by system and Amazon title
-- shipment stats show ASIN count, total units, total cost, and selected cost
+- shipment stats show ASIN count, total units, total cost, total sell value,
+  total profit, and total ROI; the smaller shipment-entry summary still shows
+  currently selected units/cost
+- the Prep Queue `Update Pricing` action runs the lightweight `fba-pricing` sync
+  group for received FBA prep rows rather than making marketplace calls on page
+  load
+- `amazon_fee_estimates` stores cached SP-API Product Fees estimates. FBA
+  Profit/ROI uses cached non-referral fees and recalculates referral fee from
+  the cached referral percentage when the operator edits sell price, so the row
+  updates immediately after save without an Amazon call
+- the Sell Price cell warns when the saved price is below Last Sold, current Buy
+  Box, and 90-day Buy Box average
+- clicking an ASIN highlights the last-opened prep row so returning from Amazon
+  is easier to orient
 - CSV export uses the currently selected quantities for InventoryLab import
 - CSV export labels the target sell price column as List Price
 - shipment input is labeled Amazon Shipment ID and uses an Amazon shipment ID example placeholder

@@ -132,7 +132,10 @@ export async function GET(request: NextRequest) {
   const mappedRows = rows
     .map((row) => {
       const rawEbay = row.sourcing_ebay_candidates?.raw_ebay_json;
-      const shippingQuoteStatus = getShippingQuoteStatus(rawEbay);
+      const shippingQuoteStatus = getShippingQuoteStatus(
+        rawEbay,
+        row.sourcing_ebay_candidates?.shipping_cost ?? null,
+      );
       const originalCurrency = getOriginalCurrency(rawEbay);
       return {
         opportunityId: row.opportunity_id,
@@ -320,7 +323,11 @@ function statusRank(status: string | null) {
   return 0;
 }
 
-function getShippingQuoteStatus(rawEbay: unknown): ShippingQuoteStatus {
+function getShippingQuoteStatus(rawEbay: unknown, storedShippingCost?: number | null): ShippingQuoteStatus {
+  if (storedShippingCost !== null && storedShippingCost !== undefined) {
+    return Number(storedShippingCost) === 0 ? "known_free" : "known_paid";
+  }
+
   if (!rawEbay || typeof rawEbay !== "object") return "unknown_no_options";
   const shippingOptions = (rawEbay as { shippingOptions?: unknown }).shippingOptions;
   if (!Array.isArray(shippingOptions) || shippingOptions.length === 0) return "unknown_no_options";

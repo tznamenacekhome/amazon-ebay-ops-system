@@ -38,7 +38,7 @@ export async function POST(request: Request, context: RouteContext) {
   try {
     const problemCase = await fetchProblemCase(id);
     if (!problemCase) {
-      return NextResponse.json({ error: "Order problem case not found." }, { status: 404 });
+      return NextResponse.json({ error: "Order problem episode not found." }, { status: 404 });
     }
 
     const result = actionUpdate(action, body, problemCase);
@@ -114,7 +114,7 @@ function actionUpdate(action: string, body: ActionBody, problemCase: ProblemCase
       return result({
         ...base,
         problem_type: problemType,
-      }, null, `Updated return type to ${problemType}.`, amount, trackingNumber);
+      }, null, `Updated episode type to ${problemType}.`, amount, trackingNumber);
     }
     case "mark_return_needed":
       return result({
@@ -174,6 +174,7 @@ function actionUpdate(action: string, body: ActionBody, problemCase: ProblemCase
         ...base,
         workflow_state: "label_received",
         label_available_at: now,
+        ...(trackingNumber ? { return_tracking_number: trackingNumber } : {}),
         next_action: "Ship item back to seller.",
       }, null, "Marked return label available.", amount, trackingNumber);
     case "mark_return_shipped":
@@ -181,7 +182,7 @@ function actionUpdate(action: string, body: ActionBody, problemCase: ProblemCase
         ...base,
         workflow_state: "return_shipped",
         return_shipped_at: now,
-        replacement_tracking_number: trackingNumber,
+        ...(trackingNumber ? { return_tracking_number: trackingNumber } : {}),
         next_action: "Wait for seller to receive return.",
       }, null, "Marked return shipped.", amount, trackingNumber);
     case "mark_seller_received_return":
@@ -189,6 +190,8 @@ function actionUpdate(action: string, body: ActionBody, problemCase: ProblemCase
         ...base,
         workflow_state: "seller_received_return",
         seller_received_return_at: now,
+        return_tracking_delivered_at: now,
+        refund_due_at: now,
         next_action: "Wait for refund.",
       }, null, "Marked seller received return.", amount, trackingNumber);
     case "mark_refund_pending":
@@ -261,7 +264,7 @@ function actionUpdate(action: string, body: ActionBody, problemCase: ProblemCase
         closed_at: now,
         resolved_reason: "no_refund",
         next_action: null,
-      }, null, "Closed order problem with no refund.", amount, trackingNumber);
+      }, null, "Closed order problem episode with no refund.", amount, trackingNumber);
     case "close_resolve":
       return result({
         ...base,
@@ -270,7 +273,7 @@ function actionUpdate(action: string, body: ActionBody, problemCase: ProblemCase
         closed_at: now,
         resolved_reason: "operator_closed",
         next_action: null,
-      }, null, "Closed order problem case.", amount, trackingNumber);
+      }, null, "Closed order problem episode.", amount, trackingNumber);
     default:
       throw new Error(`Unsupported action: ${action}`);
   }
@@ -289,7 +292,7 @@ function cleanProblemType(value: unknown) {
     "return_needed",
   ]);
   if (!text || !allowed.has(text)) {
-    throw new Error("Unsupported return type.");
+    throw new Error("Unsupported episode type.");
   }
   return text;
 }

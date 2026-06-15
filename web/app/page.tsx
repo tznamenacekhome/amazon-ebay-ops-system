@@ -247,6 +247,12 @@ export default function PurchasesPage() {
                 problem_next_action: String(updatedCase.next_action ?? ""),
                 problem_next_action_due_at: String(updatedCase.next_action_due_at ?? ""),
                 ebay_return_status: String(updatedCase.ebay_return_status ?? current.ebay_return_status ?? ""),
+                problem_episode_kind: String(updatedCase.episode_kind ?? current.problem_episode_kind ?? ""),
+                problem_episode_sequence: numberOrNull(updatedCase.episode_sequence) ?? current.problem_episode_sequence ?? null,
+                problem_opened_reason: String(updatedCase.opened_reason ?? current.problem_opened_reason ?? ""),
+                problem_resolved_reason: String(updatedCase.resolved_reason ?? current.problem_resolved_reason ?? ""),
+                problem_superseded_by_case_id: String(updatedCase.superseded_by_case_id ?? current.problem_superseded_by_case_id ?? ""),
+                problem_source_artifact_type: String(updatedCase.source_artifact_type ?? current.problem_source_artifact_type ?? ""),
                 expected_refund_amount: numberOrNull(updatedCase.expected_refund_amount),
                 actual_refund_amount: numberOrNull(updatedCase.actual_refund_amount),
                 partial_refund_amount: numberOrNull(updatedCase.partial_refund_amount),
@@ -376,8 +382,8 @@ export default function PurchasesPage() {
         </>
       ) : (
         <div className="mb-4 rounded-xl border border-slate-200 bg-white p-3 text-sm text-slate-600 shadow-sm">
-          Order Problems includes past-ETA rows, stale/no-tracking rows between 7 and 90 days old,
-          carrier exceptions, and return-pending rows. Use this list for supplier, carrier, or refund follow-up.
+          Order Problems is an episode queue for past-ETA rows, stale/no-tracking rows,
+          carrier exceptions, and return/refund follow-up. Closed episodes stay as history.
         </div>
       )}
 

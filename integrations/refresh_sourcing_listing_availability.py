@@ -7,10 +7,11 @@ import base64
 import datetime as dt
 import time
 from typing import Any
+from urllib.parse import quote
 
 import requests
 
-from sourcing_common import chunked, get_supabase_client, required_env, to_float
+from sourcing_common import fetch_settings, get_supabase_client, required_env, to_float
 
 
 EBAY_BROWSE_ITEM_URL = "https://api.ebay.com/buy/browse/v1/item"
@@ -21,6 +22,7 @@ UNAVAILABLE_DISMISS_REASON = "no_longer_available"
 def main() -> int:
     args = parse_args()
     supabase = get_supabase_client()
+    settings = fetch_settings(supabase)
     token = get_access_token()
     opportunities = fetch_active_opportunities(supabase, args.limit)
 
@@ -39,7 +41,7 @@ def main() -> int:
         checked += 1
         ebay_item_id = str(ebay_item_id)
         if ebay_item_id not in results_by_item_id:
-            results_by_item_id[ebay_item_id] = fetch_listing(token, ebay_item_id)
+            results_by_item_id[ebay_item_id] = fetch_listing(token, ebay_item_id, settings)
             time.sleep(args.pause_seconds)
         result = results_by_item_id[ebay_item_id]
         now = dt.datetime.now(dt.UTC).isoformat()
@@ -52,7 +54,7 @@ def main() -> int:
         if result["available"]:
             still_active += 1
             if args.apply:
-                update_candidate_active(supabase, candidate_id, result["payload"], now)
+                update_candidate_active(supabase, opportunity, result["payload"], now)
         else:
             unavailable += 1
             print(f"unavailable {ebay_item_id}: {result['reason']}")
@@ -102,7 +104,7 @@ def fetch_active_opportunities(supabase, limit: int) -> list[dict[str, Any]]:
         supabase.table("sourcing_opportunities")
         .select(
             "opportunity_id,candidate_id,asin,ebay_item_id,status,"
-            "sourcing_ebay_candidates(ebay_item_id,listing_status,last_seen_at)"
+            "sourcing_ebay_candidates(ebay_item_id,listing_status,last_seen_at,price,shipping_cost,landed_cost,raw_ebay_json)"
         )
         .in_("status", ACTIVE_OPPORTUNITY_STATUSES)
         .order("updated_at")
@@ -115,18 +117,21 @@ def fetch_active_opportunities(supabase, limit: int) -> list[dict[str, Any]]:
             **row,
             "ebay_item_id": row.get("ebay_item_id")
             or ((row.get("sourcing_ebay_candidates") or {}).get("ebay_item_id")),
+            "candidate": row.get("sourcing_ebay_candidates") or {},
         }
         for row in rows
     ]
 
 
-def fetch_listing(token: str, ebay_item_id: str) -> dict[str, Any]:
+def fetch_listing(token: str, ebay_item_id: str, settings) -> dict[str, Any]:
     response = requests.get(
         f"{EBAY_BROWSE_ITEM_URL}/{ebay_item_id}",
         headers={
             "Authorization": f"Bearer {token}",
             "X-EBAY-C-MARKETPLACE-ID": "EBAY_US",
+            "X-EBAY-C-ENDUSERCTX": end_user_context_header(settings),
         },
+        params={"quantity_for_shipping_estimate": "1"},
         timeout=30,
     )
     if response.status_code in {404, 410}:
@@ -169,19 +174,30 @@ def listing_is_available(payload: dict[str, Any]) -> tuple[bool, str | None]:
     return True, None
 
 
-def update_candidate_active(supabase, candidate_id: str, payload: dict[str, Any] | None, now: str) -> None:
+def update_candidate_active(supabase, opportunity: dict[str, Any], payload: dict[str, Any] | None, now: str) -> None:
+    candidate_id = opportunity["candidate_id"]
+    existing_candidate = opportunity.get("candidate") or {}
+    existing_raw = existing_candidate.get("raw_ebay_json") or {}
     updates: dict[str, Any] = {
         "listing_status": "active",
         "last_seen_at": now,
     }
     if payload:
+        merged_payload = merge_preserving_shipping(payload, existing_raw)
+        shipping_cost = first_shipping_cost(merged_payload)
+        price = merged_payload.get("price") if isinstance(merged_payload.get("price"), dict) else {}
+        item_price = to_float(price.get("value"), 0)
         updates.update(
             {
-                "raw_ebay_json": payload,
-                "available_quantity": first_quantity(payload),
-                "auction_end_time": payload.get("itemEndDate"),
+                "raw_ebay_json": merged_payload,
+                "available_quantity": first_quantity(merged_payload),
+                "auction_end_time": merged_payload.get("itemEndDate"),
             }
         )
+        if shipping_cost is not None:
+            updates["shipping_cost"] = shipping_cost
+            updates["shipping_is_separate"] = shipping_cost > 0
+            updates["landed_cost"] = round(item_price + shipping_cost, 2)
     supabase.table("sourcing_ebay_candidates").update(updates).eq("candidate_id", candidate_id).execute()
 
 
@@ -226,6 +242,30 @@ def first_quantity(payload: dict[str, Any]) -> int | None:
         if quantity is not None:
             return int(to_float(quantity, 0))
     return None
+
+
+def first_shipping_cost(payload: dict[str, Any]) -> float | None:
+    for option in payload.get("shippingOptions") or []:
+        if not isinstance(option, dict):
+            continue
+        cost = option.get("shippingCost") or {}
+        if isinstance(cost, dict) and cost.get("value") is not None:
+            return to_float(cost.get("value"), 0)
+    return None
+
+
+def merge_preserving_shipping(payload: dict[str, Any], existing_raw: dict[str, Any]) -> dict[str, Any]:
+    if payload.get("shippingOptions"):
+        return payload
+    existing_shipping_options = existing_raw.get("shippingOptions") if isinstance(existing_raw, dict) else None
+    if existing_shipping_options:
+        return {**payload, "shippingOptions": existing_shipping_options}
+    return payload
+
+
+def end_user_context_header(settings) -> str:
+    location = f"country={settings.buyer_country},zip={settings.buyer_zip}"
+    return f"contextualLocation={quote(location, safe='')}"
 
 
 def parse_ebay_datetime(value: Any) -> dt.datetime | None:

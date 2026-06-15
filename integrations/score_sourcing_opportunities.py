@@ -886,6 +886,10 @@ def has_shipping_to_buyer(candidate: dict[str, Any]) -> bool:
 
 
 def shipping_quote_status(candidate: dict[str, Any]) -> str:
+    stored_shipping_cost = candidate.get("shipping_cost")
+    if stored_shipping_cost is not None:
+        return "known_free" if to_float(stored_shipping_cost, 0) == 0 else "known_paid"
+
     raw = candidate.get("raw_ebay_json") or {}
     options = raw.get("shippingOptions") or []
     if not options:
