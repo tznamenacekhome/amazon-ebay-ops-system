@@ -295,6 +295,7 @@ Needed for:
 - EasyPost webhooks
 - future external automation callbacks
 - production-like testing outside localhost
+- future independent Supabase/Postgres backups after cloud migration
 
 Next steps:
 - choose hosting target
@@ -302,6 +303,9 @@ Next steps:
 - configure environment variables securely
 - deploy the web app
 - confirm /api/purchases and /api/easypost/webhook are reachable over HTTPS
+- add an independent scheduled Postgres backup, such as `pg_dump` to cloud
+  object storage or another off-site destination, so MBOP is not relying only
+  on Supabase's short-retention managed backups
 
 ---
 
