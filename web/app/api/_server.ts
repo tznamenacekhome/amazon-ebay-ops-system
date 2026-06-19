@@ -16,6 +16,16 @@ function isFalsey(value: string) {
   return ["0", "false", "no", "off"].includes(value.toLowerCase());
 }
 
+function isProductionBuild() {
+  return process.env.NEXT_PHASE === "phase-production-build" ||
+    process.env.npm_lifecycle_event === "build";
+}
+
+function buildPlaceholderEnv(name: string) {
+  if (name === "SUPABASE_URL") return "http://127.0.0.1";
+  return "build-time-placeholder";
+}
+
 export function isCloudDeployment() {
   const cloudDeployment = normalizedEnv("CLOUD_DEPLOYMENT");
   const localSyncEnabled = normalizedEnv("LOCAL_SYNC_ENABLED");
@@ -30,6 +40,7 @@ export function isLocalJobExecutionEnabled() {
 export function requiredEnv(name: string) {
   const value = normalizedEnv(name);
   if (!value) {
+    if (isProductionBuild()) return buildPlaceholderEnv(name);
     throw new Error(`Missing required server environment variable: ${name}`);
   }
   return value;

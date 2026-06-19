@@ -1,10 +1,10 @@
 # MBOP Cloud Deployment Phase 1
 
-Phase 1 deploys the Next.js web app and API to AWS App Runner while keeping
+Phase 1 deploys the Next.js web app and API to AWS as a container while keeping
 Supabase as the database and scheduled Python sync jobs on the local Windows
 machine.
 
-## Required App Runner Environment Variables
+## Required Cloud Environment Variables
 
 - `SUPABASE_URL`
 - `SUPABASE_SERVICE_ROLE_KEY`
@@ -74,7 +74,36 @@ When `MBOP_ADMIN_API_TOKEN` is set, privileged mutation endpoints require either
 The EasyPost webhook is not protected by this token. It continues to use its own
 HMAC secret.
 
-## App Runner Start
+## ECS Container Deployment
+
+Build the web container from the `web/` directory:
+
+```bash
+docker build -t mbop-web:phase1 ./web
+```
+
+Run locally with cloud-safe flags:
+
+```bash
+docker run --rm -p 3103:3103 -e PORT=3103 -e CLOUD_DEPLOYMENT=true -e LOCAL_SYNC_ENABLED=false -e SUPABASE_URL=<supabase-url> -e SUPABASE_SERVICE_ROLE_KEY=<service-role-key> mbop-web:phase1
+```
+
+Required ECS task environment variables:
+
+- `SUPABASE_URL`
+- `SUPABASE_SERVICE_ROLE_KEY`
+- `CLOUD_DEPLOYMENT=true`
+- `LOCAL_SYNC_ENABLED=false`
+
+Recommended:
+
+- `MBOP_ADMIN_API_TOKEN=<long random internal token>`
+
+Scheduled Python jobs remain local during Phase 1. Local job routes are disabled
+in cloud mode and return a clear JSON response instead of attempting to run
+Windows shell commands or local Python scripts.
+
+## Container Start
 
 Use the web package start script:
 
@@ -83,5 +112,5 @@ npm run build
 npm start
 ```
 
-The start script binds Next.js to `0.0.0.0` and respects App Runner's `PORT`
+The start script binds Next.js to `0.0.0.0` and respects the container `PORT`
 environment variable.
