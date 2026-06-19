@@ -1,12 +1,9 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
 import { spawn } from "child_process";
 import path from "path";
+import { createServerSupabaseClient, isLocalJobExecutionEnabled, requireAdminApiToken } from "../_server";
 
-const supabaseUrl = process.env.SUPABASE_URL!;
-const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-
-const supabase = createClient(supabaseUrl, supabaseServiceRoleKey);
+const supabase = createServerSupabaseClient();
 const RECEIVING_CONFIRMATION_TOKEN = "operator_receive_v2";
 const ROOT_DIR = path.resolve(process.cwd(), "..");
 
@@ -173,6 +170,9 @@ async function fetchPurchaseMeta(purchaseIds: string[]) {
 }
 
 export async function POST(request: Request) {
+  const adminError = requireAdminApiToken(request);
+  if (adminError) return adminError;
+
   const body = await request.json();
   const updates = Array.isArray(body.items) ? body.items : [];
   const confirmation = typeof body.confirmation === "string" ? body.confirmation : "";
@@ -216,9 +216,9 @@ export async function POST(request: Request) {
       confirmationSource,
       receivedDate,
     });
-    startReceivedPricingRefresh(results);
+    const pricingRefresh = startReceivedPricingRefresh(results);
 
-    return NextResponse.json({ success: true, items: results });
+    return NextResponse.json({ success: true, items: results, pricingRefresh });
   } catch (err) {
     return NextResponse.json(
       { error: err instanceof Error ? err.message : "Receiving save failed" },
@@ -441,6 +441,15 @@ async function recordReceivingOutcome(
 }
 
 function startReceivedPricingRefresh(results: unknown[]) {
+  if (!isLocalJobExecutionEnabled()) {
+    console.info("Skipped receiving pricing refresh because local job execution is disabled in cloud deployment.");
+    return {
+      started: false,
+      status: "local_job_execution_disabled",
+      message: "Local Keepa/Amazon fee refresh is disabled in cloud deployment.",
+    };
+  }
+
   const asins = Array.from(
     new Set(
       results
@@ -455,7 +464,13 @@ function startReceivedPricingRefresh(results: unknown[]) {
     )
   );
 
-  if (!asins.length) return;
+  if (!asins.length) {
+    return {
+      started: false,
+      status: "no_received_asins",
+      message: "No received ASINs required a pricing refresh.",
+    };
+  }
 
   const asinArgs = asins.flatMap((asin) => ["--asin", asin]);
   const keepaCommand = [
@@ -492,8 +507,18 @@ function startReceivedPricingRefresh(results: unknown[]) {
     });
     child.unref();
     console.info("Started receiving pricing refresh", { asins });
+    return {
+      started: true,
+      status: "started",
+      asins,
+    };
   } catch (error) {
     console.warn("Failed to start receiving pricing refresh", error);
+    return {
+      started: false,
+      status: "failed_to_start",
+      message: error instanceof Error ? error.message : "Failed to start receiving pricing refresh.",
+    };
   }
 }
 

@@ -1,14 +1,11 @@
 import { promises as fs } from "fs";
 import path from "path";
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import { createServerSupabaseClient, isCloudDeployment } from "../_server";
 
 export const runtime = "nodejs";
 
-const supabaseUrl = process.env.SUPABASE_URL!;
-const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-
-const supabase = createClient(supabaseUrl, supabaseServiceRoleKey);
+const supabase = createServerSupabaseClient();
 
 type ScreenKey =
   | "purchases"
@@ -178,6 +175,13 @@ async function latestTableRow(source: FreshnessSource): Promise<Record<string, u
 }
 
 async function latestFileTimestamp(source: FreshnessSource): Promise<{ lastUpdatedAt: string | null; source: string }> {
+  if (isCloudDeployment()) {
+    return {
+      lastUpdatedAt: null,
+      source: `${source.label}: local file signal unavailable in cloud deployment`,
+    };
+  }
+
   const workspaceRoot = path.resolve(/* turbopackIgnore: true */ process.cwd(), "..");
   const directories = [path.join(workspaceRoot, "data"), path.join(workspaceRoot, "logs")];
 

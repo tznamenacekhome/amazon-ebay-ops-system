@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import { createServerSupabaseClient, requireAdminApiToken } from "../_server";
 
 import {
   compactMatchTitle,
@@ -7,10 +7,7 @@ import {
   normalizeSystem,
 } from "../../purchases/matchingKeys";
 
-const supabaseUrl = process.env.SUPABASE_URL!;
-const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-
-const supabase = createClient(supabaseUrl, supabaseServiceRoleKey);
+const supabase = createServerSupabaseClient();
 
 const STALE_TRACKING_ORDER_AGE_DAYS = 14;
 const STALE_TRACKING_LOOKBACK_DAYS = 90;
@@ -814,6 +811,9 @@ function normalizeText(value?: string | null) {
 }
 
 export async function PATCH(request: Request) {
+  const adminError = requireAdminApiToken(request);
+  if (adminError) return adminError;
+
   const body = await request.json();
 
   const itemId = body.item_id as string | undefined;
@@ -947,6 +947,9 @@ export async function PATCH(request: Request) {
 }
 
 export async function POST(request: Request) {
+  const adminError = requireAdminApiToken(request);
+  if (adminError) return adminError;
+
   const body = await request.json();
   const sourceItemId = body.source_item_id as string | undefined;
 

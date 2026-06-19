@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabase } from "../../../_supabase";
 import { buildListingSnapshot } from "../../../matchingIntelligence";
+import { requireAdminApiToken } from "../../../../_server";
 
 const actionStatus: Record<string, string> = {
   dismiss: "dismissed",
@@ -17,6 +18,9 @@ const actionRecordType: Record<string, string> = {
 };
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const adminError = requireAdminApiToken(request);
+  if (adminError) return adminError;
+
   const { id } = await params;
   const body = await request.json();
   const actionType = String(body.actionType ?? "");

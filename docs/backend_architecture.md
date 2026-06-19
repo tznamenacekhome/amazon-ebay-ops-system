@@ -58,11 +58,13 @@ twice per day.
   profitability, and inventory reconciliation. This group is intended for
   2x/day runs.
 - `daily`: Amazon FBA inventory, Amazon FBA shipments, Amazon listing status,
-  Amazon inventory planning, Amazon finance balances, 60-day Amazon sales
-  finance refresh, daily sales profitability, Informed Repricer reports, YNAB
-  Business cash, YNAB Business transactions, sourcing listing availability
-  cleanup, Matching Intelligence refresh, and the daily business value
-  snapshot. This group is intended for 1x/day runs.
+  Amazon inventory planning, YNAB Business transactions/cash, Amazon finance
+  balances, 60-day Amazon sales finance refresh, daily sales profitability,
+  Informed Repricer reports, sourcing listing availability cleanup, Matching
+  Intelligence refresh, and the daily business value snapshot. YNAB runs before
+  Amazon finance so completed Amazon payouts already visible in YNAB are not
+  also counted as Amazon-to-bank in-transit cash; genuine unmatched payout gaps
+  still remain in transit. This group is intended for 1x/day runs.
 - `catalog`: sourcing listing availability cleanup and guarded Keepa
   active-Amazon stale refresh plus Matching Intelligence refresh. Keepa work is
   token-aware and can run daily or less often.

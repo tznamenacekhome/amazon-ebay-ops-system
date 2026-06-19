@@ -1,9 +1,6 @@
-import { createClient } from "@supabase/supabase-js";
+import { createServerSupabaseClient } from "../_server";
 
-const supabaseUrl = process.env.SUPABASE_URL!;
-const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-
-export const supabase = createClient(supabaseUrl, supabaseServiceRoleKey);
+export const supabase = createServerSupabaseClient();
 
 export const STALE_TRACKING_ORDER_AGE_DAYS = 14;
 export const STALE_TRACKING_LOOKBACK_DAYS = 90;

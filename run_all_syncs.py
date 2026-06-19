@@ -222,6 +222,22 @@ JOBS: tuple[SyncJob, ...] = (
         timeout_seconds=60 * 60,
     ),
     SyncJob(
+        name="YNAB Business transactions",
+        command=static_command(
+            "integrations/ynab_sync_business_transactions.py",
+            "--incremental",
+            "--apply",
+        ),
+        groups=("daily", "dashboard"),
+        timeout_seconds=30 * 60,
+    ),
+    SyncJob(
+        name="YNAB cash balance",
+        command=static_command("integrations/ynab_sync_cash_balance.py", "--apply"),
+        groups=("daily", "dashboard"),
+        timeout_seconds=20 * 60,
+    ),
+    SyncJob(
         name="Amazon finance balances",
         command=static_command("integrations/amazon_sync_finance_balances.py", "--apply"),
         groups=("daily", "dashboard"),
@@ -298,22 +314,6 @@ JOBS: tuple[SyncJob, ...] = (
         command=static_command("integrations/informed_sync_reports.py", "--write"),
         groups=("daily", "repricing"),
         timeout_seconds=60 * 60,
-    ),
-    SyncJob(
-        name="YNAB cash balance",
-        command=static_command("integrations/ynab_sync_cash_balance.py", "--apply"),
-        groups=("daily", "dashboard"),
-        timeout_seconds=20 * 60,
-    ),
-    SyncJob(
-        name="YNAB Business transactions",
-        command=static_command(
-            "integrations/ynab_sync_business_transactions.py",
-            "--incremental",
-            "--apply",
-        ),
-        groups=("daily", "dashboard"),
-        timeout_seconds=30 * 60,
     ),
     SyncJob(
         name="Business value snapshot",

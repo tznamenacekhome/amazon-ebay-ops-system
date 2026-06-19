@@ -1,9 +1,7 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import { createServerSupabaseClient } from "../_server";
 
-const supabaseUrl = process.env.SUPABASE_URL!;
-const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-const supabase = createClient(supabaseUrl, supabaseServiceRoleKey);
+const supabase = createServerSupabaseClient();
 
 const LOW_ROI_THRESHOLD = 0.4;
 const SALES_DATA_START_DATE = "2025-01-01";

@@ -1,14 +1,15 @@
 import { promises as fs } from "fs";
 import path from "path";
 import { NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import {
+  createServerSupabaseClient,
+  isCloudDeployment,
+  localFileSignalUnavailable,
+} from "../_server";
 
 export const runtime = "nodejs";
 
-const supabaseUrl = process.env.SUPABASE_URL!;
-const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-
-const supabase = createClient(supabaseUrl, supabaseServiceRoleKey);
+const supabase = createServerSupabaseClient();
 
 type HealthStatus = "ok" | "delayed" | "failed" | "unknown" | "skipped" | "running" | "blocked";
 
@@ -729,6 +730,10 @@ async function latestNonNullRow(
 }
 
 async function latestRevsellerDiagnosticsSignal(): Promise<JobSignal> {
+  if (isCloudDeployment()) {
+    return localFileSignalUnavailable("data/revseller_enrichment_diagnostics_*.csv");
+  }
+
   const diagnosticsDir = path.resolve(process.cwd(), "..", "data");
   const files = await fs.readdir(diagnosticsDir);
   const diagnostics = await Promise.all(
@@ -763,6 +768,10 @@ async function latestRevsellerDiagnosticsSignal(): Promise<JobSignal> {
 
 async function inventorySourceBalanceAuditSignal(): Promise<JobSignal> {
   const filePath = path.resolve(process.cwd(), "..", "logs", "inventory_source_balance_audit_latest.json");
+  if (isCloudDeployment()) {
+    return localFileSignalUnavailable("logs/inventory_source_balance_audit_latest.json");
+  }
+
   try {
     const [stat, text] = await Promise.all([fs.stat(filePath), fs.readFile(filePath, "utf8")]);
     const parsed = JSON.parse(text) as Record<string, unknown>;
@@ -841,6 +850,7 @@ function dynamicFrom(table: string): DynamicQuery {
 
 async function readSchedulerFailures(): Promise<SchedulerFailure[]> {
   const logPath = path.resolve(process.cwd(), "..", "logs", "scheduler.log");
+  if (isCloudDeployment()) return [];
 
   try {
     const stat = await fs.stat(logPath);
@@ -860,6 +870,7 @@ async function readSchedulerFailures(): Promise<SchedulerFailure[]> {
 
 async function readLocalRunRecords(): Promise<LocalRunRecord[]> {
   const logPath = path.resolve(process.cwd(), "..", "logs", "sync_health.json");
+  if (isCloudDeployment()) return [];
 
   try {
     const parsed = JSON.parse(await fs.readFile(logPath, "utf8")) as unknown;

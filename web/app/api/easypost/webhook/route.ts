@@ -1,17 +1,15 @@
 import crypto from "crypto";
 import { NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import { createServerSupabaseClient } from "../../_server";
 
 export const runtime = "nodejs";
 
-const supabaseUrl = process.env.SUPABASE_URL!;
-const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 const webhookSecret = process.env.EASYPOST_WEBHOOK_SECRET;
 const timestampToleranceMinutes = Number(
   process.env.EASYPOST_WEBHOOK_TOLERANCE_MINUTES ?? "1"
 );
 
-const supabase = createClient(supabaseUrl, supabaseServiceRoleKey);
+const supabase = createServerSupabaseClient();
 
 type EasyPostTracker = {
   id?: string;

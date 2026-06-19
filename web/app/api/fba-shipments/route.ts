@@ -1,10 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import { createServerSupabaseClient, requireAdminApiToken } from "../_server";
 
-const supabaseUrl = process.env.SUPABASE_URL!;
-const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-
-const supabase = createClient(supabaseUrl, supabaseServiceRoleKey);
+const supabase = createServerSupabaseClient();
 
 type DashboardRow = {
   item_id: string;
@@ -221,6 +218,9 @@ export async function GET(request: NextRequest) {
 }
 
 export async function PATCH(request: NextRequest) {
+  const adminError = requireAdminApiToken(request);
+  if (adminError) return adminError;
+
   try {
     const body = await request.json();
     const items = normalizePriceUpdateItems(
@@ -543,6 +543,9 @@ function toNumberFromUnknown(value: unknown): number | null {
 }
 
 export async function POST(request: Request) {
+  const adminError = requireAdminApiToken(request);
+  if (adminError) return adminError;
+
   const body = await request.json();
   const shipmentCode =
     typeof body.shipment_id === "string" ? body.shipment_id.trim() : "";

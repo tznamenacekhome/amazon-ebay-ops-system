@@ -3,12 +3,20 @@ import path from "path";
 import { promisify } from "util";
 import { NextResponse } from "next/server";
 import { supabase } from "../../_supabase";
+import { isLocalJobExecutionEnabled, localJobDisabledResponse, requireAdminApiToken } from "../../../_server";
 
 const execFileAsync = promisify(execFile);
 
 export const runtime = "nodejs";
 
-export async function POST() {
+export async function POST(request: Request) {
+  const adminError = requireAdminApiToken(request);
+  if (adminError) return adminError;
+
+  if (!isLocalJobExecutionEnabled()) {
+    return localJobDisabledResponse("apply sourcing settings Python refresh");
+  }
+
   const { data: run, error } = await supabase
     .from("sourcing_runs")
     .select("sourcing_run_id,run_type,status,started_at")

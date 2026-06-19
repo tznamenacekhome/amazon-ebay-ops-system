@@ -2,6 +2,7 @@ import { promises as fs } from "fs";
 import path from "path";
 import { spawn } from "child_process";
 import { NextRequest, NextResponse } from "next/server";
+import { isLocalJobExecutionEnabled, localJobDisabledResponse, requireAdminApiToken } from "../_server";
 
 export const runtime = "nodejs";
 
@@ -29,6 +30,13 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
+  const adminError = requireAdminApiToken(request);
+  if (adminError) return adminError;
+
+  if (!isLocalJobExecutionEnabled()) {
+    return localJobDisabledResponse("on-demand sync refresh");
+  }
+
   const body = (await request.json().catch(() => ({}))) as { target?: string };
   const target = body.target || "";
   const group = TARGET_GROUPS[target];

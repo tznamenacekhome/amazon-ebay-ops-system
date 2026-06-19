@@ -1,6 +1,7 @@
 import fs from "fs";
 import path from "path";
 import { NextRequest, NextResponse } from "next/server";
+import { isCloudDeployment } from "../../_server";
 
 type HealthJob = {
   name: string;
@@ -58,6 +59,12 @@ export async function GET(request: NextRequest) {
       message: job.message,
     })),
     recentRuns,
+    localFileSignals: {
+      status: isCloudDeployment() ? "unavailable_in_cloud_deployment" : "available",
+      message: isCloudDeployment()
+        ? "Local scheduler log files remain on the local sync machine during Phase 1."
+        : null,
+    },
     capacity: {
       supabaseStatus: "unknown",
       databaseSizeMb: null,
@@ -84,6 +91,8 @@ async function fetchHealth(request: NextRequest) {
 }
 
 function readRecentRuns() {
+  if (isCloudDeployment()) return [];
+
   const logPath = path.resolve(process.cwd(), "..", "logs", "sync_runs.jsonl");
   if (!fs.existsSync(logPath)) return [];
   const lines = fs.readFileSync(logPath, "utf8").trim().split(/\r?\n/).filter(Boolean).slice(-200);

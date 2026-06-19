@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { normalizeArray, supabase, toNumber } from "../_supabase";
+import { requireAdminApiToken } from "../../_server";
 
 export async function GET() {
   const { data, error } = await supabase
@@ -14,6 +15,9 @@ export async function GET() {
 }
 
 export async function PATCH(request: NextRequest) {
+  const adminError = requireAdminApiToken(request);
+  if (adminError) return adminError;
+
   const body = await request.json();
   const { data: current, error: readError } = await supabase
     .from("sourcing_settings")

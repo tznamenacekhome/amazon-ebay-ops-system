@@ -5,6 +5,7 @@ import { promises as fs } from "fs";
 import path from "path";
 import { promisify } from "util";
 import { supabase } from "../_supabase";
+import { isLocalJobExecutionEnabled, localJobDisabledResponse, requireAdminApiToken } from "../../_server";
 
 export const runtime = "nodejs";
 
@@ -14,6 +15,9 @@ const LOG_PATH = path.join(ROOT_DIR, "logs", "sourcing_refresh.log");
 const PYTHON = path.join(ROOT_DIR, ".venv", "Scripts", "python.exe");
 
 export async function POST(request: NextRequest) {
+  const adminError = requireAdminApiToken(request);
+  if (adminError) return adminError;
+
   const body = await request.json().catch(() => ({}));
   const runType = body.runType === "full_listings" ? "full_listings" : "recent_sales";
   const execute = body.execute === true;
@@ -51,6 +55,10 @@ export async function POST(request: NextRequest) {
       run: data,
       nextSteps,
     });
+  }
+
+  if (!isLocalJobExecutionEnabled()) {
+    return localJobDisabledResponse("sourcing Python run");
   }
 
   try {

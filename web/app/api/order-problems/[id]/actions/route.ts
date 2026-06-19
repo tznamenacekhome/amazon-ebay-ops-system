@@ -1,10 +1,7 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import { createServerSupabaseClient, requireAdminApiToken } from "../../../_server";
 
-const supabaseUrl = process.env.SUPABASE_URL!;
-const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-
-const supabase = createClient(supabaseUrl, supabaseServiceRoleKey);
+const supabase = createServerSupabaseClient();
 
 type RouteContext = {
   params: Promise<{ id: string }>;
@@ -27,6 +24,9 @@ type ProblemCase = {
 };
 
 export async function POST(request: Request, context: RouteContext) {
+  const adminError = requireAdminApiToken(request);
+  if (adminError) return adminError;
+
   const { id } = await context.params;
   const body = (await request.json().catch(() => ({}))) as ActionBody;
   const action = String(body.action || "").trim();
