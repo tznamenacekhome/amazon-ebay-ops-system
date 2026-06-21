@@ -148,10 +148,13 @@ The CloudFront console shows this distribution on the CloudFront security
 protections Free plan (`$0/month`) with Core protections enabled. The word
 "subscription" in the API error refers to the CloudFront security protections
 plan state, not to the paid Business plan. Advanced DDoS protection is not
-enabled. The expected charge is from the AWS WAF web ACL and managed rule
-groups created by Core protections, not from the CloudFront Free plan itself.
+enabled. The console also says included WAF protections are available at no
+additional charge, and Cost Explorer month-to-date does not show an AWS WAF
+line item for these CloudFront included protections.
 
-To remove WAF cost:
+Keep these included protections enabled unless AWS later shows WAF charges or
+the homepage intentionally no longer needs CloudFront security
+metrics/filtering. If removal becomes necessary:
 
 1. In the CloudFront console, open distribution `E2KKKB5MJ8CV3N`.
 2. Open the Security / WAF protections area.
@@ -227,8 +230,7 @@ Use AWS Cost Explorer after enough data is available. Monitor:
 - AWS WAF if CloudFront security protections remain enabled
 
 Expected current AWS cost after scheduler migration, two-subnet ALB/ECS
-networking, and duplicate-secret cleanup: roughly `$65-$80/month` while
-CloudFront WAF remains attached. Expected total MBOP hosting with Supabase:
-roughly `$90-$105/month`. WAF removal should reduce the AWS estimate by about
-`$8+/month` once CloudFront Core protections are disabled and the web ACL is
-removed.
+networking, and duplicate-secret cleanup: roughly `$65-$72/month` while
+CloudFront included WAF protections remain free. Expected total MBOP hosting
+with Supabase: roughly `$90-$97/month`. Recheck Cost Explorer after the next
+full billing cycle and only revisit WAF removal if an AWS WAF line item appears.

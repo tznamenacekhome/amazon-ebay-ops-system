@@ -371,25 +371,29 @@ S3 origin exposure:
 Cost:
 
 - The CloudFront security protections plan shown in the console is the Free
-  plan (`$0/month`). The estimate below is for the AWS WAF resources created by
-  Core protections, not for the CloudFront plan itself.
-- AWS WAF pricing is based on web ACLs, rules/managed rule groups, and request
-  volume.
-- Current fixed WAF estimate is about `$8/month` before request charges:
-  roughly `$5/month` for one web ACL plus `$1/month` for each of the three AWS
-  managed rule groups.
-- Request charges should be negligible at current homepage traffic.
+  plan (`$0/month`) and the console says the included WAF protections are
+  available at no additional charge.
+- Cost Explorer month-to-date service breakdown does not show an AWS WAF line
+  item for these included CloudFront protections.
+- Generic AWS WAF pricing can still apply to separately created or non-included
+  web ACLs, managed rule groups, and request volume. Monitor Cost Explorer for
+  AWS WAF after the next full billing cycle.
 
 Recommendation:
 
-- Remove the CloudFront one-click WAF/security Core protections for the static
-  homepage to save about `$8/month` in AWS WAF fixed charges.
-- Risk increase to MBOP app/data is minimal because the MBOP app, APIs, and
-  EasyPost webhook do not route through this CloudFront distribution.
+- Keep the included CloudFront Core protections enabled while they remain
+  free/included. They are blocking unwanted homepage requests at no observed
+  added cost.
+- If AWS WAF charges appear later, removal is still safe for MBOP app/data
+  because the MBOP app, APIs, and EasyPost webhook do not route through this
+  CloudFront distribution.
 - The homepage remains public static content either way because the S3 website
   bucket is directly public.
 
 Safe removal path:
+
+Use this only if AWS later shows WAF charges or if the homepage intentionally no
+longer needs CloudFront security metrics/filtering.
 
 1. In the CloudFront console, open distribution `E2KKKB5MJ8CV3N`.
 2. Open the Security / WAF protections area.
