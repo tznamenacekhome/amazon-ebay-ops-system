@@ -13,7 +13,7 @@ Known from the latest handoff:
 - Runtime: ECS/Fargate
 - ECS cluster: `mbop-cluster1`
 - ECS web service: `mbop-web-service`
-- Current web task definition: `mbop-web-task:16`
+- Current web task definition: `mbop-web-task:17`
 - Current web container: `mbop-web`
 - Web task size: `0.5 vCPU / 1 GiB`
 - Web container port: `3103`
@@ -62,10 +62,10 @@ Web repository:
 Current web task image:
 
 ```text
-297464765814.dkr.ecr.us-west-2.amazonaws.com/mbop-web@sha256:f19fa319eaaf8409dbc8493d2232fa15538fbf06aa053fe6ad9e4af696c7d34b
+297464765814.dkr.ecr.us-west-2.amazonaws.com/mbop-web@sha256:d2bc91dd6a3fc8abc982e3df1d2579519f1d8eeef38794dda4c0895e88d73298
 ```
 
-Tag `dashboard-health-telemetry-fix-20260621` points at the current digest.
+Tag `job-metrics-20260621` points at the current digest.
 
 Scheduler repository:
 
@@ -84,8 +84,10 @@ The task definition is registered against image tag `297464765814.dkr.ecr.us-wes
 Current scheduler image digest:
 
 ```text
-sha256:c7a24284e3bf17167e6783600d734c5ae8e1797ebd6cc5e1b112ccfabd253206
+sha256:26e24b0e54c530b8baa76d279da348a89a326b7d9a6500522a0a5efa1e56034e
 ```
+
+Tag `metrics-20260621b` also points at the current scheduler digest.
 
 ## ALB
 
@@ -179,7 +181,7 @@ Run these from an AWS-authenticated shell. Do not paste secret values into docs.
 
 ```powershell
 aws ecs describe-services --region us-west-2 --cluster mbop-cluster1 --services mbop-web-service
-aws ecs describe-task-definition --region us-west-2 --task-definition mbop-web-task:16
+aws ecs describe-task-definition --region us-west-2 --task-definition mbop-web-task:17
 aws elbv2 describe-load-balancers --region us-west-2
 aws elbv2 describe-listeners --region us-west-2 --load-balancer-arn <alb-arn>
 aws elbv2 describe-rules --region us-west-2 --listener-arn <https-listener-arn>
@@ -336,7 +338,7 @@ Inline policy:
 mbop-web-secret-read
 ```
 
-This role is used by `mbop-web-task:16` and can read only the web runtime
+This role is used by `mbop-web-task:17` and can read only the web runtime
 secrets: Supabase service role, EasyPost webhook secret, and admin API token.
 
 ## Security Hardening Status

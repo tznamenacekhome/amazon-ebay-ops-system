@@ -69,7 +69,8 @@ Current ECR image:
 
 ```text
 297464765814.dkr.ecr.us-west-2.amazonaws.com/mbop-scheduler:latest
-digest: sha256:c7a24284e3bf17167e6783600d734c5ae8e1797ebd6cc5e1b112ccfabd253206
+digest: sha256:26e24b0e54c530b8baa76d279da348a89a326b7d9a6500522a0a5efa1e56034e
+tag: metrics-20260621b
 ```
 
 EventBridge Scheduler should override the command per group:

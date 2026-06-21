@@ -123,6 +123,7 @@ type SchedulerJobRunRecord = {
   retryCount: number | null;
   rateLimitCount: number | null;
   logBytes: number | null;
+  metadata: Record<string, unknown>;
 };
 
 type SchedulerGroupSummary = SchedulerGroupConfig & {
@@ -1427,7 +1428,7 @@ async function readSchedulerRuns(): Promise<SchedulerRunRecord[]> {
 async function readSchedulerJobRuns(): Promise<SchedulerJobRunRecord[]> {
   const { data, error } = await dynamicFrom("scheduler_run_jobs")
     .select(
-      "run_id,job_name,group_name,command,status,blocking,started_at,finished_at,runtime_seconds,error_summary,rows_read,rows_inserted,rows_updated,rows_deleted,rows_skipped,external_api_calls,retry_count,rate_limit_count,log_bytes",
+      "run_id,job_name,group_name,command,status,blocking,started_at,finished_at,runtime_seconds,error_summary,rows_read,rows_inserted,rows_updated,rows_deleted,rows_skipped,external_api_calls,retry_count,rate_limit_count,log_bytes,metadata",
     )
     .order("started_at", { ascending: false, nullsFirst: false })
     .limit(500);
@@ -1467,6 +1468,7 @@ async function readSchedulerJobRuns(): Promise<SchedulerJobRunRecord[]> {
       retryCount: numberValue(row.retry_count),
       rateLimitCount: numberValue(row.rate_limit_count),
       logBytes: numberValue(row.log_bytes),
+      metadata: objectValue(row.metadata),
     });
   }
 
@@ -1474,6 +1476,9 @@ async function readSchedulerJobRuns(): Promise<SchedulerJobRunRecord[]> {
 }
 
 function metricStatsForJobRuns(runs: SchedulerJobRunRecord[]) {
+  const metadataStats = metadataMetricStatsForJobRuns(runs);
+  if (metadataStats.length) return metadataStats;
+
   const stats = [
     { label: "Read", value: sumJobMetric(runs, "rowsRead") },
     { label: "Inserted", value: sumJobMetric(runs, "rowsInserted") },
@@ -1495,6 +1500,25 @@ function metricStatsForJobRuns(runs: SchedulerJobRunRecord[]) {
     { label: "OK", value: formatCount(runs.filter((run) => run.status === "ok").length) },
     { label: "Failed", value: formatCount(runs.filter((run) => run.status === "failed").length) },
   ];
+}
+
+function metadataMetricStatsForJobRuns(runs: SchedulerJobRunRecord[]) {
+  const totals = new Map<string, number>();
+  for (const run of runs) {
+    const metrics = Array.isArray(run.metadata.metrics) ? run.metadata.metrics : [];
+    for (const metric of metrics) {
+      if (!metric || typeof metric !== "object") continue;
+      const label = stringValue((metric as Record<string, unknown>).label);
+      const value = numberValue((metric as Record<string, unknown>).value);
+      if (!label || value === null) continue;
+      totals.set(label, (totals.get(label) ?? 0) + value);
+    }
+  }
+
+  return [...totals.entries()]
+    .filter(([, value]) => value > 0)
+    .slice(0, 8)
+    .map(([label, value]) => ({ label, value: formatCount(value) }));
 }
 
 function sumJobMetric(
@@ -1642,6 +1666,10 @@ function numberValue(value: unknown): number | null {
   if (value === null || value === undefined || value === "") return null;
   const number = Number(value);
   return Number.isFinite(number) ? number : null;
+}
+
+function objectValue(value: unknown): Record<string, unknown> {
+  return value && typeof value === "object" && !Array.isArray(value) ? (value as Record<string, unknown>) : {};
 }
 
 function isLocalRunRecord(value: unknown): value is LocalRunRecord {

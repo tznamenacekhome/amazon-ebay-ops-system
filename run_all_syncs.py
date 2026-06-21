@@ -10,6 +10,7 @@ import sys
 import time
 import urllib.request
 import uuid
+from collections import defaultdict
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -593,11 +594,15 @@ def run_job(job: SyncJob, *, group: str, run_id: str) -> None:
     try:
         result = subprocess.run(
             [sys.executable, *command],
-            capture_output=False,
+            capture_output=True,
             text=True,
             timeout=job.timeout_seconds,
         )
     except subprocess.TimeoutExpired as error:
+        output = combined_process_output(error.stdout, error.stderr)
+        if output:
+            print(output, end="" if output.endswith("\n") else "\n")
+        metrics = parse_job_metrics(output)
         message = f"{job.name} timed out after {job.timeout_seconds}s"
         record_job(
             job=job,
@@ -616,8 +621,15 @@ def run_job(job: SyncJob, *, group: str, run_id: str) -> None:
             status="failed",
             started_at=started_at,
             error_summary=message,
+            metrics=metrics,
+            log_bytes=len(output.encode("utf-8")),
         )
         raise RuntimeError(message) from error
+
+    output = combined_process_output(result.stdout, result.stderr)
+    if output:
+        print(output, end="" if output.endswith("\n") else "\n")
+    metrics = parse_job_metrics(output)
 
     if result.returncode != 0:
         message = f"{job.name} failed with exit code {result.returncode}"
@@ -638,11 +650,22 @@ def run_job(job: SyncJob, *, group: str, run_id: str) -> None:
             status="failed",
             started_at=started_at,
             error_summary=message,
+            metrics=metrics,
+            log_bytes=len(output.encode("utf-8")),
         )
         raise RuntimeError(message)
 
     record_job(job=job, command=command, group=group, run_id=run_id, status="ok", started_at=started_at)
-    finish_scheduler_job(job=job, command=command, group=group, run_id=run_id, status="ok", started_at=started_at)
+    finish_scheduler_job(
+        job=job,
+        command=command,
+        group=group,
+        run_id=run_id,
+        status="ok",
+        started_at=started_at,
+        metrics=metrics,
+        log_bytes=len(output.encode("utf-8")),
+    )
 
 
 def record_job(
@@ -836,6 +859,8 @@ def finish_scheduler_job(
     status: str,
     started_at: str,
     error_summary: str | None = None,
+    metrics: dict[str, object] | None = None,
+    log_bytes: int | None = None,
 ) -> None:
     client = telemetry_client()
     if client is None:
@@ -843,16 +868,117 @@ def finish_scheduler_job(
     finished_at = now_iso()
 
     def write() -> None:
+        counters = normalized_counter_columns(metrics or {})
         client.table("scheduler_run_jobs").update(
             {
                 "status": status,
                 "finished_at": finished_at,
                 "runtime_seconds": runtime_seconds(started_at, finished_at),
                 "error_summary": truncate_text(error_summary, 2000),
+                "rows_read": counters["rows_read"],
+                "rows_inserted": counters["rows_inserted"],
+                "rows_updated": counters["rows_updated"],
+                "rows_deleted": counters["rows_deleted"],
+                "rows_skipped": counters["rows_skipped"],
+                "external_api_calls": counters["external_api_calls"],
+                "retry_count": counters["retry_count"],
+                "rate_limit_count": counters["rate_limit_count"],
+                "log_bytes": log_bytes,
+                "metadata": {"metrics": metrics.get("metrics", []) if metrics else []},
             }
         ).eq("run_id", run_id).eq("job_name", job.name).eq("command", " ".join(command)).execute()
 
     telemetry_safe(write)
+
+
+def combined_process_output(stdout: str | bytes | None, stderr: str | bytes | None) -> str:
+    parts = []
+    for value in (stdout, stderr):
+        if value is None:
+            continue
+        if isinstance(value, bytes):
+            parts.append(value.decode("utf-8", errors="replace"))
+        else:
+            parts.append(value)
+    return "".join(parts)
+
+
+def parse_job_metrics(output: str) -> dict[str, object]:
+    raw_metrics: list[dict[str, object]] = []
+    counters: dict[str, int] = defaultdict(int)
+
+    for line in output.splitlines():
+        parsed = parse_metric_line(line)
+        if not parsed:
+            continue
+        label, value = parsed
+        raw_metrics.append({"label": label, "value": value})
+        bucket = metric_bucket(label)
+        if bucket:
+            counters[bucket] += value
+
+    return {
+        "rows_read": counters["rows_read"],
+        "rows_inserted": counters["rows_inserted"],
+        "rows_updated": counters["rows_updated"],
+        "rows_deleted": counters["rows_deleted"],
+        "rows_skipped": counters["rows_skipped"],
+        "external_api_calls": counters["external_api_calls"],
+        "retry_count": counters["retry_count"],
+        "rate_limit_count": counters["rate_limit_count"],
+        "metrics": raw_metrics[:40],
+    }
+
+
+def parse_metric_line(line: str) -> tuple[str, int] | None:
+    match = re.match(r"^\s*[-*]?\s*([A-Za-z][A-Za-z0-9 /_.()+%-]*?):\s*(-?\d[\d,]*)\s*$", line)
+    if not match:
+        return None
+    label = " ".join(match.group(1).strip().split())
+    try:
+        value = int(match.group(2).replace(",", ""))
+    except ValueError:
+        return None
+    return label, value
+
+
+def metric_bucket(label: str) -> str | None:
+    normalized = re.sub(r"[^a-z0-9]+", " ", label.lower()).strip()
+    if not normalized:
+        return None
+    if any(term in normalized for term in ("rate limit", "throttle")):
+        return "rate_limit_count"
+    if "retried" in normalized or normalized == "retries" or normalized.endswith(" retries"):
+        return "retry_count"
+    if any(term in normalized for term in ("error", "failure", "failed")):
+        return "rows_skipped"
+    if any(term in normalized for term in ("deleted", "removed", "no longer available", "dismissed")):
+        return "rows_deleted"
+    if any(term in normalized for term in ("inserted", "created", "cached", "imported", "snapshots")):
+        return "rows_inserted"
+    if any(term in normalized for term in ("updated", "matched", "enriched", "processed", "synced", "active")):
+        return "rows_updated"
+    if any(term in normalized for term in ("skipped", "missing", "unmatched")):
+        return "rows_skipped"
+    if any(term in normalized for term in ("api", "calls", "requests", "retrieved", "checked", "selected", "loaded", "scanned", "scored", "rows", "orders", "transactions", "candidates", "examples", "shipments", "items", "asins")):
+        return "rows_read"
+    return None
+
+
+def normalized_counter_columns(metrics: dict[str, object]) -> dict[str, int | None]:
+    return {
+        key: int(value) if isinstance(value, int) and value > 0 else None
+        for key, value in {
+            "rows_read": metrics.get("rows_read"),
+            "rows_inserted": metrics.get("rows_inserted"),
+            "rows_updated": metrics.get("rows_updated"),
+            "rows_deleted": metrics.get("rows_deleted"),
+            "rows_skipped": metrics.get("rows_skipped"),
+            "external_api_calls": metrics.get("external_api_calls"),
+            "retry_count": metrics.get("retry_count"),
+            "rate_limit_count": metrics.get("rate_limit_count"),
+        }.items()
+    }
 
 
 def scheduler_job_key(job: SyncJob) -> str:
