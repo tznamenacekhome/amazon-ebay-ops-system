@@ -8,6 +8,35 @@ This roadmap tracks MBOP, the internal operations platform for Midnight Blue Ent
 
 # High Priority
 
+## AWS Scheduler Migration
+
+Status:
+Live / first-day monitoring in progress.
+
+Completed:
+- web deployment is live on ECS/Fargate behind Cognito/ALB auth per latest handoff
+- `Dockerfile.scheduler` added for the separate Python scheduler image
+- AWS scheduler foundation created: ECR repo, log group, Secrets Manager entries, execution-role secret policy, EventBridge Scheduler role, and `mbop-scheduler-task:1`
+- AWS scheduler group names added to `run_all_syncs.py`
+- Keepa unattended scheduler defaults tightened for rolling refresh and FBA prep pricing
+- authoritative docs added under `docs/aws/`
+- scheduler image built and pushed to ECR
+- ECS `--list` smoke tests passed for all AWS scheduler groups
+- a real ECS `purchase-ingestion` smoke run completed successfully
+- Supabase scheduler telemetry SQL applied with service-role grants
+- `run_all_syncs.py` writes scheduler run/job telemetry to Supabase
+- System Health reads cloud scheduler telemetry
+- staggered EventBridge Scheduler jobs created and enabled
+- local Windows scheduler jobs are retired, with only AM/PM pending
+  Administrator deletion after Windows denied removal from this shell
+
+Next work:
+- observe the first full day of scheduled runs in System Health and CloudWatch
+- tune cadence only after real runtime and external API behavior is visible
+- add alerting/notification later if failed scheduler jobs need push alerts
+
+---
+
 ## Amazon Sales COGS Allocation
 
 Status:
@@ -297,12 +326,15 @@ Needed for:
 - production-like testing outside localhost
 - future independent Supabase/Postgres backups after cloud migration
 
+Current state:
+- AWS ECS/Fargate hosting is live for the web app.
+- Cognito/ALB authentication is working per the latest handoff.
+- The custom app domain is `https://mbop.midnightblueenterprises.com`.
+- Logout is available from the shared app shell and routes through Cognito.
+- EasyPost webhook delivery is registered through the production AWS domain.
+
 Next steps:
-- choose hosting target
-- add app security before public exposure, including an authenticated login solution and protected routes for operational pages/API routes
-- configure environment variables securely
-- deploy the web app
-- confirm /api/purchases and /api/easypost/webhook are reachable over HTTPS
+- observe real EasyPost webhook delivery and verify Supabase shipment updates
 - add an independent scheduled Postgres backup, such as `pg_dump` to cloud
   object storage or another off-site destination, so MBOP is not relying only
   on Supabase's short-retention managed backups
@@ -312,17 +344,18 @@ Next steps:
 ## EasyPost Webhook Implementation
 
 Status:
-Route implemented locally; external EasyPost setup still pending.
+Deployed / real-event observation pending.
 
 Completed:
 - added /api/easypost/webhook route
-- validates EasyPost HMAC headers
+- validates EasyPost HMAC headers and/or the configured EasyPost outbound token
 - handles tracker.updated events
 - updates inbound_shipments by easypost_tracker_id or tracking_number
+- registered EasyPost production webhook
+- added ALB unauthenticated path rule for `/api/easypost/webhook`
+- deployed webhook secret through AWS Secrets Manager on `mbop-web-task:7`
 
 Next steps:
-- configure EASYPOST_WEBHOOK_SECRET
-- register the public webhook URL in EasyPost after deployment
 - send/observe a real tracker.updated event
 - verify Supabase updates from webhook events
 - decide whether to reduce scheduled polling after webhook validation
@@ -347,19 +380,19 @@ Completed:
   days without carrier activity still qualifies
 - carrier events/statuses such as return-to-sender now seed or relabel derived
   Order Problems as `carrier_exception_candidate`
+- FedEx credential errors for tracking `381367337613` and `381418656302` were
+  addressed and removed from the active issue list
 
 Remaining:
-- resolve FedEx credential errors for tracking 381367337613 and 381418656302
-- decide whether FedEx should be configured in EasyPost or handled through a direct carrier fallback
-- monitor the local Windows AM/PM scheduler now that it points to `C:\Dev\amazon-ebay-ops-system\run_all_syncs.bat`
-- keep scheduled polling as the local freshness fallback until public EasyPost webhooks are live
+- observe real EasyPost webhook deliveries before reducing scheduled polling
+- continue tracking carrier exceptions through Order Problems and shipment detail
 
 ---
 
 ## Local Sync Scheduler
 
 Status:
-Local scheduler configured; broad integration automation enabled with ongoing task-run validation and optimization follow-up.
+Superseded by AWS EventBridge Scheduler; local Windows tasks retired.
 
 Completed:
 - `run_all_syncs.py` now runs eBay buyer purchase sync, sourcing purchase matching, EasyPost shipment sync, read-only eBay Order Problems return/inquiry sync, RevSeller enrichment, Amazon FBA inventory, Amazon FBA shipment sync, Amazon listing status, Amazon inventory planning, Amazon Finance balances, Informed Repricer reports, YNAB Business cash balance/transactions, sourcing listing availability cleanup, guarded Keepa enrichment, and business value snapshots
@@ -392,16 +425,20 @@ Completed:
   refetching transactions already stored in MBOP
 - inventory reconciliation can skip when source datasets have not changed, with
   a fail-open fallback when source freshness columns are unavailable
+- AWS EventBridge Scheduler now owns production cadence through
+  `mbop-scheduler-task:1`
+- Catalog, Daily, and Inventory Source Balance Audit local scheduled tasks were
+  removed on 2026-06-20
 
 Next steps:
-- monitor the next scheduled AM/PM/Daily/Catalog runs after disabling missed-run
-  catch-up
+- remove the remaining local AM/PM scheduled tasks from an Administrator
+  PowerShell because Windows denied delete/disable attempts from this shell
 - split the dashboard refresh/value jobs into lighter operational and heavier
   reporting paths, then optimize the reporting path separately
 - add `purchase_items.updated_at` or an equivalent source-change ledger so
   inventory reconciliation skip-if-unchanged can avoid fail-open runs
-- when manually triggering tasks, use the root task path, for example `schtasks /Run /TN "\Amazon eBay Ops Sync PM"`
-- monitor scheduler logs for EasyPost FedEx credential errors, eBay token/auth issues, SP-API throttling, and Keepa token skips
+- monitor AWS scheduler logs for EasyPost webhook/polling behavior, eBay
+  token/auth issues, SP-API throttling, and Keepa token skips
 
 ---
 

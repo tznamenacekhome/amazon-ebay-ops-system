@@ -1,6 +1,6 @@
 # CURRENT_STATE.md
 
-Last Updated: 2026-06-14
+Last Updated: 2026-06-20
 
 # Midnight Blue Operations Platform (MBOP)
 
@@ -14,7 +14,7 @@ MBOP is the internal operations platform for Midnight Blue Enterprises, LLC.
 | RevSeller enrichment | Functional but evolving |
 | Purchases UI | Operational and componentized |
 | Receiving workflow | First slice implemented |
-| Shipment enrichment | Functional with remaining FedEx/webhook follow-up |
+| Shipment enrichment | Functional with EasyPost webhook live |
 | Sync orchestration | Mature |
 | Dashboard analytics | Split monitoring workspace implemented |
 | Matching engine | Emerging subsystem |
@@ -29,6 +29,8 @@ MBOP is the internal operations platform for Midnight Blue Enterprises, LLC.
 | Legacy spreadsheet backfill | Recently used / repeatable script available |
 | Order Problems / eBay Returns | Operational first slice / eBay read-only |
 | Sourcing Workspace | Operational first slice / daily availability cleanup |
+| AWS web deployment | Live on ECS/Fargate with Cognito/ALB auth |
+| AWS scheduler migration | Live on ECS/EventBridge with Supabase telemetry |
 
 ---
 
@@ -44,6 +46,41 @@ The paid plan limits do not by themselves guarantee enough sustained disk IO for
 ---
 
 # Current Backend State
+
+## AWS Deployment And Scheduler Migration
+
+Status: WEB DEPLOYED / SCHEDULER MIGRATION LIVE
+
+Implemented:
+- MBOP web app is live on ECS/Fargate at `https://mbop.midnightblueenterprises.com`.
+- Google OAuth -> Cognito -> ALB Authentication -> MBOP is working per the latest handoff.
+- `www.midnightblueenterprises.com` points to the S3/CloudFront static homepage.
+- The current web image remains web-only and is built from `web/Dockerfile`.
+- `Dockerfile.scheduler` now defines a separate Python scheduler image that includes `run_all_syncs.py`, `integrations/`, and `requirements.txt`.
+- AWS scheduler infrastructure now exists: ECR repo `mbop-scheduler`, CloudWatch log group `/ecs/mbop-scheduler`, Secrets Manager `/mbop/prod/*` entries, execution-role secret read permission, EventBridge Scheduler run-task role, and ECS task definition `mbop-scheduler-task:1`.
+- The scheduler image has been built and pushed to ECR as `mbop-scheduler:latest`.
+- Staggered EventBridge schedules are created and enabled for production scheduler groups.
+- `sql/2026-06-20_add_scheduler_telemetry.sql` has been applied, including service-role grants.
+- `run_all_syncs.py` writes Supabase-backed `scheduler_runs`, `scheduler_run_jobs`, and `scheduler_job_definitions` telemetry.
+- System Health reads Supabase scheduler telemetry in cloud deployment while preserving existing domain freshness signals.
+- The web app has been redeployed as `mbop-web-task:7` so all screens include logout, both `/system-health` and the Dashboard System Health tab render AWS scheduler group telemetry with clearer first-run-pending statuses, and the production EasyPost webhook validates a shared secret from AWS Secrets Manager.
+- The scheduler image has been rebuilt and pushed so dynamic-date jobs use stable telemetry keys.
+- AWS production scheduler groups are now explicit in `run_all_syncs.py`: `purchase-ingestion`, `purchase-tracking`, `returns-order-problems`, `purchase-enrichment`, `amazon-sales-recent`, `finance-refresh`, `business-value-finalizer`, `fba-inventory-daily`, `fba-shipments`, `reconciliation`, `repricing-catalog`, `sourcing-catalog`, `keepa-rolling-refresh`, and `fba-pricing`.
+- Authoritative AWS docs now live under `docs/aws/`.
+- EasyPost production webhook `hook_d9fecfc86d0611f19a5d15e5f9712463` is registered for `https://mbop.midnightblueenterprises.com/api/easypost/webhook`; the ALB has an unauthenticated path rule for that POST-only endpoint.
+- Cognito logout is wired through `/api/logout`; the shared `AppShell` renders a logout button in the upper-right corner of every MBOP screen.
+
+Verification:
+- Live AWS was inspected on 2026-06-20 after AWS CLI login. `docs/aws/MBOP_AWS_DEPLOYMENT.md` records current ECS, ALB, Cognito, CloudFront, S3, ACM, ECR, IAM, logging, and network IDs.
+- Local container and ECS `--list` smoke tests passed.
+- Supabase telemetry smoke passed after grants were applied.
+- A real ECS `purchase-ingestion` run completed successfully.
+- A one-time EventBridge Scheduler target smoke launched ECS successfully.
+
+Next monitoring:
+- Observe the first full day of enabled schedules in System Health and CloudWatch logs.
+
+---
 
 ## Dashboard Split
 
@@ -230,7 +267,7 @@ Known follow-up:
 
 ## Sync Orchestration
 
-Status: LOCAL SCHEDULER CONFIGURED / BROAD INTEGRATION AUTOMATION ENABLED
+Status: AWS SCHEDULER LIVE / LOCAL TASKS RETIRED
 
 Implemented:
 - `run_all_syncs.py` runs eBay buyer purchase sync, sourcing purchase matching, EasyPost shipment sync, RevSeller enrichment with optional AI same-system review, guarded missing-title Keepa repair, Amazon FBA inventory, Amazon FBA shipment sync, Amazon listing status, Amazon inventory planning, Amazon Finance, Informed Repricer reports, YNAB Business cash balance, guarded sourcing listing availability cleanup, guarded Keepa enrichment, and the daily business value snapshot
@@ -239,14 +276,12 @@ Implemented:
   during active runs to show the current job state.
 - `run_all_syncs.py` also stores YNAB Business-category transaction history
   daily for future P&L, Schedule C, and cash reconciliation features
-- `run_all_syncs.bat` targets the repo at `C:\Dev\amazon-ebay-ops-system`
-- scheduler output is appended to `logs/scheduler.log` through a per-run temp
-  log with append retries so transient Windows file locks do not block a run
-- local Windows scheduled tasks exist for AM core, PM core, Daily, and Catalog
-  groups after the repo moved out of OneDrive
-- all MBOP scheduled tasks use `StartWhenAvailable = False` and
-  `MultipleInstances = IgnoreNew`, so missed laptop-sleep runs are skipped
-  instead of replayed together when the laptop wakes
+- AWS EventBridge Scheduler now owns production scheduled execution through
+  ECS/Fargate `mbop-scheduler-task:1`.
+- The legacy local Windows Task Scheduler path is retired. Catalog, Daily, and
+  Inventory Source Balance Audit tasks were removed on 2026-06-20; Windows
+  denied removal/disable for the remaining AM/PM tasks without an Administrator
+  shell.
 - individual script failures are collected and reported without preventing later independent syncs from running
 - scheduled missing-title Keepa repair fills blank `purchase_items.amazon_title`
   for ASIN-bearing purchase rows from stored Keepa snapshots first, and only
@@ -272,7 +307,7 @@ Recent validation:
 - eBay order problem returns/inquiries sync is now part of the `core`
   scheduled group and reads eBay Post-Order returns, INR inquiries/details, and
   cases without performing marketplace writes
-- EasyPost sync processed/reused 103 shipment trackers with 2 FedEx credential errors remaining
+- EasyPost sync processed/reused 103 shipment trackers; the prior FedEx credential issue has been addressed and is no longer tracked as an active issue.
 - legacy eBay supplier returns sync has been removed from orchestration because
   the new Order Problems return/inquiry sync owns the active workflow
 - RevSeller sync completed and wrote diagnostics
@@ -290,15 +325,18 @@ Recent validation:
 - business value snapshot upserted the 2026-05-27 daily value
 
 Remaining validation:
-- monitor the next scheduled AM/PM/Daily/Catalog runs after disabling
-  Task Scheduler catch-up behavior
-- manually trigger scheduled tasks with the root task path, for example `schtasks /Run /TN "\Amazon eBay Ops Sync PM"`
+- observe the first full production day of AWS EventBridge scheduler runs in
+  System Health and CloudWatch logs.
+- remove the remaining local AM/PM Windows scheduled tasks from an Administrator
+  PowerShell if they still appear locally:
+  `Unregister-ScheduledTask -TaskName 'Amazon eBay Ops Sync AM' -Confirm:$false`
+  and `Unregister-ScheduledTask -TaskName 'Amazon eBay Ops Sync PM' -Confirm:$false`.
 
 ---
 
 ## EasyPost Shipment Enrichment
 
-Status: FUNCTIONAL / WEBHOOK-READY
+Status: FUNCTIONAL / WEBHOOK LIVE
 
 Implemented:
 - EasyPost SDK dependency added to requirements.txt
@@ -310,7 +348,10 @@ Implemented:
 - current EasyPost SDK tracker fields are read defensively
 - delivered date falls back to delivered tracking events when needed
 - EasyPost webhook route exists at /api/easypost/webhook
-- webhook route validates EasyPost HMAC headers before updating Supabase
+- webhook route validates EasyPost HMAC or the configured EasyPost outbound
+  webhook token before updating Supabase
+- production webhook is registered in EasyPost and exposed through an ALB
+  unauthenticated path rule for `/api/easypost/webhook`
 - purchases API falls back to eBay EstimatedDeliveryTimeMax when no carrier ETA exists
 - missing stored eBay ETA values were backfilled into inbound_shipments for 2026-05-01+ purchases
 
@@ -321,20 +362,20 @@ Recent backfill:
 - 87 trackers created
 - 10 trackers reused
 - 2 invalid untracked placeholder rows skipped
-- 2 FedEx rows remain unresolved due to EasyPost credential errors
+- FedEx credential errors from the May backfill have been addressed and removed
+  from the active issue list
 - 88 missing shipment ETA values were restored from stored eBay estimates
 
 Latest scheduler validation:
 - `run_all_syncs.py` now includes EasyPost shipment sync after eBay buyer purchase sync
-- latest direct scheduler run inspected 101 candidate shipment rows, reused 97 trackers, skipped 2 invalid placeholder rows, and still hit the 2 FedEx credential errors
+- latest direct scheduler run inspected 101 candidate shipment rows, reused 97 trackers, and skipped 2 invalid placeholder rows
 - direct batch execution completed with exit code 0 and wrote to `logs/scheduler.log`
 
 Remaining setup:
-- deploy the app to a public HTTPS server
-- configure EASYPOST_WEBHOOK_SECRET
-- register the EasyPost webhook URL in EasyPost
-- resolve or intentionally bypass FedEx tracking credential errors
-- confirm both local Windows AM/PM scheduled tasks append successful runs after the repo move to `C:\Dev`
+- observe a real `tracker.updated` delivery from EasyPost and verify the
+  webhook-updated Supabase rows in System Health or shipment detail screens
+- decide whether scheduled polling can be reduced after webhook delivery has
+  proven stable
 
 ---
 

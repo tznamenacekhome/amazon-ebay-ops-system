@@ -776,13 +776,13 @@ function SystemHealthPanel({ data, loading }: { data: DashboardPayload | null; l
     <div className="space-y-4">
       <MetricGrid>
         <MetricCard label="Overall Status" value={loading ? "--" : data?.summary?.overallStatus ?? "--"} />
-        <MetricCard label="Last Core Run" value={formatDateShort(data?.summary?.lastSuccessfulCoreRunAt)} />
-        <MetricCard label="Last Daily Run" value={formatDateShort(data?.summary?.lastSuccessfulDailyRunAt)} />
+        <MetricCard label="AWS Groups" value={loading ? "--" : formatNumber(data?.summary?.schedulerGroups)} />
+        <MetricCard label="Healthy Groups" value={loading ? "--" : formatNumber(data?.summary?.healthyGroups)} tone="green" />
         <MetricCard label="Failed Jobs" value={loading ? "--" : formatNumber(data?.summary?.failedJobsLastRun)} tone={toneFor(data?.summary?.failedJobsLastRun ?? 0, 0, 1)} />
-        <MetricCard label="Stale Domains" value={loading ? "--" : formatNumber(data?.summary?.staleDomains)} tone={toneFor(data?.summary?.staleDomains ?? 0, 0, 3)} />
+        <MetricCard label="Delayed Groups" value={loading ? "--" : formatNumber(data?.summary?.delayedGroups)} tone={toneFor(data?.summary?.delayedGroups ?? 0, 0, 3)} />
       </MetricGrid>
-      <DashboardSection title="Domain Freshness" eyebrow="Integrations">
-        <CompactStatusTable columns={["Domain", "Status", "Last Success", "Schedule", "Cadence", "Age", "Message"]} rows={asRows(data?.domains).map((row) => ({ id: text(row.domain), cells: [text(row.label), text(row.status), formatDateShort(text(row.lastSuccessAt)), text(row.schedule), text(row.expectedCadence), row.ageHours === null ? "--" : `${Math.round(Number(row.ageHours))}h`, text(row.message) || "--"] }))} />
+      <DashboardSection title="AWS Scheduler Groups" eyebrow="EventBridge / ECS">
+        <CompactStatusTable columns={["Group", "Status", "Last Success", "Runtime", "Cadence", "Jobs", "Trigger"]} rows={asRows(data?.schedulerGroups).map((row) => ({ id: text(row.group), cells: [text(row.label), text(row.status), formatDateShort(text(row.lastSuccessAt)), formatDurationShort(row.runtimeSeconds), text(row.cadence), `${formatNumber(row.jobsOk)}/${formatNumber(row.jobsTotal)} ok`, text(row.trigger) || "--"] }))} />
       </DashboardSection>
       <div className="grid gap-4 xl:grid-cols-2">
         <DashboardSection title="Recent Runs" eyebrow="Orchestrator">
@@ -950,6 +950,14 @@ function formatPercent(value: unknown) {
 function formatDays(value: unknown) {
   if (value === null || value === undefined) return "--";
   return `${formatNumber(value)}d`;
+}
+
+function formatDurationShort(value: unknown) {
+  if (value === null || value === undefined || Number.isNaN(Number(value))) return "--";
+  const seconds = Number(value);
+  if (seconds < 60) return `${Math.round(seconds)}s`;
+  if (seconds < 3600) return `${Math.round(seconds / 60)}m`;
+  return `${(seconds / 3600).toFixed(1)}h`;
 }
 
 function formatDateShort(value: string | null | undefined) {

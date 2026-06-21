@@ -14,13 +14,14 @@ import {
 import { DataFreshness } from "../DataFreshness";
 
 type HealthStatus = "ok" | "delayed" | "failed" | "unknown" | "skipped" | "running" | "blocked";
-type HealthGroup = "core" | "daily" | "catalog" | "monthly" | "disabled";
 
 type HealthJob = {
   id: string;
   name: string;
   command: string;
-  group: HealthGroup;
+  group: string;
+  primaryGroup: string;
+  awsGroups: string[];
   blocking: boolean;
   enabled: boolean;
   status: HealthStatus;
@@ -31,6 +32,51 @@ type HealthJob = {
   source: string;
   stats: Array<{ label: string; value: string }>;
   message: string | null;
+};
+
+type SchedulerRun = {
+  runId: string;
+  groupName: string;
+  groupLabel?: string;
+  status: "running" | "ok" | "degraded" | "failed" | "blocked" | "cancelled";
+  startedAt: string | null;
+  finishedAt: string | null;
+  runtimeSeconds: number | null;
+  triggerSource: string | null;
+  ecsTaskArn: string | null;
+  eventbridgeScheduleName: string | null;
+  containerCpu: number | null;
+  containerMemory: number | null;
+  errorSummary: string | null;
+};
+
+type SchedulerGroup = {
+  key: string;
+  label: string;
+  domain: string;
+  cadence: string;
+  schedule: string;
+  scheduleNames: string[];
+  expectedEveryHours: number;
+  criticalAfterHours: number;
+  description: string;
+  jobNames: string[];
+  status: HealthStatus;
+  lastRunAt: string | null;
+  lastSuccessAt: string | null;
+  hoursSinceLastRun: number | null;
+  hoursSinceLastSuccess: number | null;
+  latestRun: SchedulerRun | null;
+  recentRuns: SchedulerRun[];
+  jobs: Array<{
+    name: string;
+    status: HealthStatus;
+    lastRunAt: string | null;
+    runtimeSeconds: number | null;
+    blocking: boolean;
+    message: string | null;
+  }>;
+  stats: Array<{ label: string; value: string }>;
 };
 
 type HealthData = {
@@ -44,8 +90,16 @@ type HealthData = {
     blocked: number;
     unknown: number;
     skipped: number;
+    groups?: number;
+    healthyGroups?: number;
+    delayedGroups?: number;
+    failedGroups?: number;
+    runningGroups?: number;
+    blockedGroups?: number;
   };
   jobs: HealthJob[];
+  schedulerGroups?: SchedulerGroup[];
+  recentRuns?: SchedulerRun[];
 };
 
 const STATUS_RANK: Record<HealthStatus, number> = {
@@ -58,13 +112,22 @@ const STATUS_RANK: Record<HealthStatus, number> = {
   ok: 6,
 };
 
-const GROUP_LABEL: Record<HealthGroup, string> = {
-  core: "Core 2x/day",
-  daily: "Daily",
-  catalog: "Catalog",
-  monthly: "Monthly",
-  disabled: "Disabled",
-};
+const AWS_GROUP_ORDER = [
+  "purchase-ingestion",
+  "purchase-tracking",
+  "returns-order-problems",
+  "purchase-enrichment",
+  "amazon-sales-recent",
+  "finance-refresh",
+  "business-value-finalizer",
+  "fba-inventory-daily",
+  "fba-shipments",
+  "reconciliation",
+  "repricing-catalog",
+  "sourcing-catalog",
+  "keepa-rolling-refresh",
+  "fba-pricing",
+];
 
 export default function SystemHealthPage() {
   const [data, setData] = useState<HealthData | null>(null);
@@ -78,13 +141,23 @@ export default function SystemHealthPage() {
 
   const jobs = useMemo(() => {
     return [...(data?.jobs ?? [])].sort((a, b) => {
-      const groupSort = groupRank(a.group) - groupRank(b.group);
+      const groupSort = groupRank(a.primaryGroup) - groupRank(b.primaryGroup);
       if (groupSort !== 0) return groupSort;
       const statusSort = STATUS_RANK[a.status] - STATUS_RANK[b.status];
       if (statusSort !== 0) return statusSort;
       return (b.hoursSinceLastRun ?? -1) - (a.hoursSinceLastRun ?? -1);
     });
   }, [data]);
+
+  const schedulerGroups = useMemo(() => {
+    return [...(data?.schedulerGroups ?? [])].sort((a, b) => {
+      const statusSort = STATUS_RANK[a.status] - STATUS_RANK[b.status];
+      if (statusSort !== 0) return statusSort;
+      return groupRank(a.key) - groupRank(b.key);
+    });
+  }, [data]);
+
+  const recentRuns = data?.recentRuns ?? [];
 
   async function loadHealth() {
     setLoading(true);
@@ -142,25 +215,73 @@ export default function SystemHealthPage() {
         <Summary label="Skipped" value={formatNumber(data?.summary.skipped)} tone="skipped" />
       </section>
 
-      <section className="mb-4 grid gap-3 lg:grid-cols-3">
-        <GroupPanel
-          title="Core"
-          cadence="2x/day"
-          detail="Purchases, tracking, RevSeller, recent sales, MF labels, profitability, and reconciliation."
-          jobs={jobs.filter((job) => job.group === "core")}
-        />
-        <GroupPanel
-          title="Daily"
-          cadence="1x/day"
-          detail="Marketplace snapshots, Amazon cash, 60-day sales finance refresh, reports, YNAB, and value snapshot."
-          jobs={jobs.filter((job) => job.group === "daily")}
-        />
-        <GroupPanel
-          title="Catalog"
-          cadence="token-aware"
-          detail="Keepa active-product enrichment. Out-of-stock history belongs in a separate backfill runner."
-          jobs={jobs.filter((job) => job.group === "catalog")}
-        />
+      <section className="mb-4 grid gap-3 md:grid-cols-6">
+        <Summary label="AWS Groups" value={formatNumber(data?.summary.groups)} tone="neutral" />
+        <Summary label="Group Healthy" value={formatNumber(data?.summary.healthyGroups)} tone="ok" />
+        <Summary label="Group Running" value={formatNumber(data?.summary.runningGroups)} tone="running" />
+        <Summary label="Group Delayed" value={formatNumber(data?.summary.delayedGroups)} tone="delayed" />
+        <Summary label="Group Failed" value={formatNumber(data?.summary.failedGroups)} tone="failed" />
+        <Summary label="Group Blocked" value={formatNumber(data?.summary.blockedGroups)} tone="blocked" />
+      </section>
+
+      <section className="mb-4 grid gap-3 xl:grid-cols-2 2xl:grid-cols-3">
+        {loading ? (
+          <div className="rounded-lg border border-slate-200 bg-white p-4 text-sm text-slate-500 shadow-sm">
+            Loading AWS scheduler groups...
+          </div>
+        ) : schedulerGroups.length ? (
+          schedulerGroups.map((group) => <SchedulerGroupPanel key={group.key} group={group} />)
+        ) : (
+          <div className="rounded-lg border border-slate-200 bg-white p-4 text-sm text-slate-500 shadow-sm">
+            No scheduler group telemetry found.
+          </div>
+        )}
+      </section>
+
+      <section className="mb-4 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 px-4 py-3">
+          <div>
+            <div className="text-sm font-medium uppercase tracking-wide text-slate-500">ECS Runs</div>
+            <h2 className="mt-1 text-lg font-semibold">Recent Scheduler Runs</h2>
+          </div>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[980px] text-left text-sm">
+            <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
+              <tr>
+                <th className="px-3 py-2">Status</th>
+                <th className="px-3 py-2">Group</th>
+                <th className="px-3 py-2">Schedule</th>
+                <th className="px-3 py-2">Started</th>
+                <th className="px-3 py-2">Runtime</th>
+                <th className="px-3 py-2">Task</th>
+              </tr>
+            </thead>
+            <tbody>
+              {recentRuns.length ? (
+                recentRuns.slice(0, 12).map((run) => (
+                  <tr key={run.runId} className="border-t border-slate-100">
+                    <td className="px-3 py-2"><StatusBadge status={runStatusToHealth(run.status)} /></td>
+                    <td className="px-3 py-2">
+                      <div className="font-medium text-slate-900">{run.groupLabel ?? run.groupName}</div>
+                      <div className="font-mono text-xs text-slate-500">{shortRunId(run.runId)}</div>
+                    </td>
+                    <td className="px-3 py-2 text-xs text-slate-600">{run.eventbridgeScheduleName ?? run.triggerSource ?? "--"}</td>
+                    <td className="whitespace-nowrap px-3 py-2">{formatPacificDateTime(run.startedAt)}</td>
+                    <td className="whitespace-nowrap px-3 py-2">{formatDuration(run.runtimeSeconds)}</td>
+                    <td className="px-3 py-2 font-mono text-xs text-slate-500">{shortTaskArn(run.ecsTaskArn)}</td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td className="px-3 py-6 text-center text-slate-500" colSpan={6}>
+                    No scheduler runs recorded yet.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
       </section>
 
       <section className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
@@ -207,7 +328,12 @@ export default function SystemHealthPage() {
                       <div className="mt-1 font-mono text-xs text-slate-500">{job.command}</div>
                       {job.message && <div className="mt-2 text-xs text-red-700">{job.message}</div>}
                     </td>
-                    <td className="whitespace-nowrap px-3 py-3 text-slate-700">{GROUP_LABEL[job.group]}</td>
+                    <td className="px-3 py-3 text-slate-700">
+                      <div className="whitespace-nowrap font-medium">{formatGroupName(job.primaryGroup)}</div>
+                      {job.awsGroups.length > 1 ? (
+                        <div className="mt-1 text-xs text-slate-500">{job.awsGroups.map(formatGroupName).join(", ")}</div>
+                      ) : null}
+                    </td>
                     <td className="whitespace-nowrap px-3 py-3">
                       <ModeBadge blocking={job.blocking} enabled={job.enabled} />
                     </td>
@@ -280,17 +406,97 @@ function Summary({
   );
 }
 
-function GroupPanel({
-  title,
-  cadence,
-  detail,
-  jobs,
-}: {
-  title: string;
-  cadence: string;
-  detail: string;
-  jobs: HealthJob[];
-}) {
+function SchedulerGroupPanel({ group }: { group: SchedulerGroup }) {
+  const failed = group.jobs.filter((job) => job.status === "failed").length;
+  const blocked = group.jobs.filter((job) => job.status === "blocked").length;
+  const running = group.jobs.filter((job) => job.status === "running").length;
+  const delayed = group.jobs.filter((job) => job.status === "delayed").length;
+  const ok = group.jobs.filter((job) => job.status === "ok").length;
+
+  return (
+    <div className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm">
+      <div className="flex items-start justify-between gap-2">
+        <div>
+          <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">{group.domain}</div>
+          <div className="mt-0.5 text-sm font-semibold text-slate-900">{group.label}</div>
+          <div className="mt-0.5 text-xs text-slate-500">{group.cadence}</div>
+        </div>
+        <StatusBadge status={group.status} />
+      </div>
+
+      <p className="mt-2 text-xs leading-5 text-slate-600">{group.description}</p>
+
+      <div className="mt-3 grid gap-2 text-xs sm:grid-cols-3">
+        <div>
+          <div className="font-semibold uppercase tracking-wide text-slate-500">Last Success</div>
+          <div className="mt-0.5 text-slate-900">{formatPacificDateTime(group.lastSuccessAt)}</div>
+        </div>
+        <div>
+          <div className="font-semibold uppercase tracking-wide text-slate-500">Last Attempt</div>
+          <div className="mt-0.5 text-slate-900">{formatPacificDateTime(group.lastRunAt)}</div>
+        </div>
+        <div>
+          <div className="font-semibold uppercase tracking-wide text-slate-500">Runtime</div>
+          <div className="mt-0.5 text-slate-900">{formatDuration(group.latestRun?.runtimeSeconds ?? null)}</div>
+        </div>
+      </div>
+
+      <div className="mt-3 text-xs text-slate-600">
+        <span className="font-semibold text-slate-700">Schedule:</span> {group.schedule}
+      </div>
+      <div className="mt-2 flex flex-wrap gap-1">
+        {group.scheduleNames.length ? (
+          group.scheduleNames.map((name) => (
+            <span key={name} className="rounded-md border border-slate-200 bg-slate-50 px-2 py-1 font-mono text-[11px] text-slate-600">
+              {name}
+            </span>
+          ))
+        ) : (
+          <span className="rounded-md border border-slate-200 bg-white px-2 py-1 text-[11px] text-slate-500">manual</span>
+        )}
+      </div>
+
+      <div className="mt-3 flex flex-wrap gap-1 text-xs">
+        <span className="rounded-md bg-emerald-50 px-2 py-1 text-emerald-800">{ok} ok</span>
+        <span className="rounded-md bg-blue-50 px-2 py-1 text-blue-800">{running} run</span>
+        <span className="rounded-md bg-amber-50 px-2 py-1 text-amber-800">{delayed} late</span>
+        <span className="rounded-md bg-orange-50 px-2 py-1 text-orange-800">{blocked} blocked</span>
+        <span className="rounded-md bg-red-50 px-2 py-1 text-red-800">{failed} fail</span>
+      </div>
+
+      <div className="mt-3 flex flex-wrap gap-2">
+        {group.stats.map((stat) => (
+          <span key={`${group.key}-${stat.label}`} className="rounded-md border border-slate-200 bg-slate-50 px-2 py-1 text-xs">
+            <span className="text-slate-500">{stat.label}</span>{" "}
+            <span className="font-medium text-slate-900">{stat.value}</span>
+          </span>
+        ))}
+      </div>
+
+      <div className="mt-3 space-y-1">
+        {group.jobs.map((job) => (
+          <div key={`${group.key}-${job.name}`} className="flex items-center justify-between gap-2 rounded-md border border-slate-100 px-2 py-1.5 text-xs">
+            <div className="min-w-0">
+              <div className="truncate font-medium text-slate-800">{job.name}</div>
+              <div className="text-slate-500">
+                {formatPacificDateTime(job.lastRunAt)} · {formatDuration(job.runtimeSeconds)}
+              </div>
+            </div>
+            <StatusBadge status={job.status} />
+          </div>
+        ))}
+      </div>
+
+      {group.latestRun?.errorSummary ? (
+        <div className="mt-3 rounded-md border border-red-200 bg-red-50 px-2 py-1.5 text-xs text-red-700">
+          {group.latestRun.errorSummary}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function LegacyGroupPanel({ title, cadence, detail, jobs }: { title: string; cadence: string; detail: string; jobs: HealthJob[] }) {
   const failed = jobs.filter((job) => job.status === "failed").length;
   const blocked = jobs.filter((job) => job.status === "blocked").length;
   const running = jobs.filter((job) => job.status === "running").length;
@@ -388,8 +594,26 @@ function ModeBadge({ blocking, enabled }: { blocking: boolean; enabled: boolean 
   );
 }
 
-function groupRank(group: HealthGroup) {
-  return { core: 0, daily: 1, catalog: 2, monthly: 3, disabled: 4 }[group];
+function groupRank(group: string) {
+  const index = AWS_GROUP_ORDER.indexOf(group);
+  return index === -1 ? 999 : index;
+}
+
+function formatGroupName(group: string) {
+  if (!group) return "--";
+  return group
+    .split("-")
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+}
+
+function runStatusToHealth(status: SchedulerRun["status"]): HealthStatus {
+  if (status === "ok") return "ok";
+  if (status === "degraded") return "delayed";
+  if (status === "failed" || status === "cancelled") return "failed";
+  if (status === "blocked") return "blocked";
+  if (status === "running") return "running";
+  return "unknown";
 }
 
 function formatPacificDateTime(value?: string | null) {
@@ -414,7 +638,25 @@ function formatAge(hours?: number | null) {
   return `${Math.round(hours / 24)}d`;
 }
 
+function formatDuration(seconds?: number | null) {
+  if (seconds === null || seconds === undefined || Number.isNaN(Number(seconds))) return "--";
+  if (seconds < 60) return `${Math.round(seconds)}s`;
+  if (seconds < 3600) return `${Math.round(seconds / 60)}m`;
+  return `${(seconds / 3600).toFixed(1)}h`;
+}
+
 function formatNumber(value?: number | null) {
   if (value === null || value === undefined || Number.isNaN(Number(value))) return "--";
   return Number(value).toLocaleString("en-US");
+}
+
+function shortRunId(value?: string | null) {
+  if (!value) return "--";
+  return value.length > 8 ? value.slice(0, 8) : value;
+}
+
+function shortTaskArn(value?: string | null) {
+  if (!value) return "--";
+  const parts = value.split("/");
+  return parts[parts.length - 1] || value;
 }

@@ -5,6 +5,7 @@ import { createServerSupabaseClient } from "../../_server";
 export const runtime = "nodejs";
 
 const webhookSecret = process.env.EASYPOST_WEBHOOK_SECRET;
+const webhookToken = process.env.EASYPOST_WEBHOOK_TOKEN;
 const timestampToleranceMinutes = Number(
   process.env.EASYPOST_WEBHOOK_TOLERANCE_MINUTES ?? "1"
 );
@@ -36,9 +37,9 @@ type EasyPostEvent = {
 export async function POST(request: Request) {
   const rawBody = await request.text();
 
-  if (!webhookSecret) {
+  if (!webhookSecret && !webhookToken) {
     return NextResponse.json(
-      { error: "EASYPOST_WEBHOOK_SECRET is not configured" },
+      { error: "EasyPost webhook authentication is not configured" },
       { status: 500 }
     );
   }
@@ -184,6 +185,15 @@ async function updateLinkedPurchaseItemStatuses(
 }
 
 function validateEasyPostSignature(request: Request, rawBody: string) {
+  if (webhookToken) {
+    const provided = request.headers.get("x-mbop-webhook-token") ?? "";
+    if (provided === webhookToken) return null;
+  }
+
+  if (!webhookSecret) {
+    return "Missing EasyPost HMAC configuration";
+  }
+
   const timestamp = request.headers.get("x-timestamp");
   const path = request.headers.get("x-path");
   const signature = request.headers.get("x-hmac-signature-v2");

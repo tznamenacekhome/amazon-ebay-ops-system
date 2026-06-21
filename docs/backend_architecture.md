@@ -1,6 +1,6 @@
 # Backend Architecture
 
-Last updated: 2026-06-13
+Last updated: 2026-06-20
 
 ## Core Flow
 
@@ -47,9 +47,11 @@ are separate domains.
 
 ## Integration Orchestration
 
-`run_all_syncs.py` is the local orchestrator. It supports grouped runs so Task
-Scheduler can keep operational data fresh without running heavyweight snapshots
-twice per day.
+`run_all_syncs.py` is the scheduler orchestrator. In production, AWS
+EventBridge Scheduler launches ECS/Fargate `mbop-scheduler-task` runs using
+explicit group names. Local Windows Task Scheduler jobs are retired and should
+not be recreated unless a local disaster-recovery fallback is intentionally
+designed.
 
 - `core`: eBay buyer purchases, sourcing purchase matching for opportunities
   marked Purchased / Offer Made, EasyPost tracking, RevSeller enrichment with
@@ -68,10 +70,9 @@ twice per day.
 - `catalog`: sourcing listing availability cleanup and guarded Keepa
   active-Amazon stale refresh plus Matching Intelligence refresh. Keepa work is
   token-aware and can run daily or less often.
-- Windows Task Scheduler currently runs `core` daily at 6:00 AM and 4:00 PM PT,
-  `daily` daily at 8:00 PM PT, `catalog` daily at 9:30 PM PT, and the Inventory
-  Source Balance Audit monthly on the 1st at 6:30 AM PT. System Health displays
-  these schedules beside each job.
+- AWS production schedules use the cloud-specific groups documented in
+  `docs/aws/MBOP_AWS_SCHEDULER_PLAN.md`. System Health reads Supabase
+  `scheduler_runs` and `scheduler_run_jobs` telemetry for those groups.
 
 The legacy eBay supplier returns sync has been removed from active
 orchestration and System Health. The Order Problems return workflow uses
@@ -98,10 +99,9 @@ is evaluated.
 freshness sync. It should run after FIFO allocator runs, after large purchase or
 sales backfills, and as a monthly close check. It verifies that purchase source
 units reconcile to sales COGS consumption, active inventory COGS layers,
-opening-history boundary adjustments, and other explicit adjustments. The local
-monthly scheduler entry point is `inventory_source_balance_audit.bat`, with
-latest report files written to `exports/inventory_source_balance_audit.csv` and
-`logs/inventory_source_balance_audit_latest.json`.
+opening-history boundary adjustments, and other explicit adjustments. It is
+manual/on-demand after the AWS scheduler migration; the legacy local monthly
+Windows task has been removed.
 
 Independent integration failures are collected and reported while later syncs continue running. This prevents one external API failure from blocking unrelated freshness work.
 

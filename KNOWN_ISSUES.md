@@ -2,9 +2,29 @@
 
 This file tracks active issues, monitor items, and deferred decisions for Midnight Blue Operations Platform (MBOP).
 
-Last reviewed: 2026-06-13
+Last reviewed: 2026-06-20
 
 # Active Issues
+
+## AWS Scheduler First-Day Monitoring
+
+Status: ACTIVE / MONITORING
+
+Problem:
+The ECS/EventBridge scheduler migration is live, but the enabled schedules still need a full operating-day observation window to confirm cadence, runtime, external API behavior, and System Health telemetry under normal load.
+
+Current mitigation:
+- `mbop-scheduler:latest` is built and pushed to ECR.
+- `mbop-scheduler-task:1` passed ECS `--list` smoke tests for all AWS scheduler groups.
+- Supabase telemetry SQL and grants are applied.
+- `run_all_syncs.py` writes `scheduler_runs` and `scheduler_run_jobs`.
+- System Health reads scheduler telemetry in cloud deployment.
+- A real ECS `purchase-ingestion` smoke run and a one-time EventBridge target smoke both completed successfully.
+
+Recommended next mitigation:
+Observe the next full day of EventBridge schedules in System Health and `/ecs/mbop-scheduler`, then adjust cadence or resource sizing only if real runtime data shows pressure.
+
+---
 
 ## Dashboard Remaining MVP Gaps
 
@@ -39,11 +59,11 @@ Recommended next mitigation:
 Status: MITIGATED / MONITOR
 
 Problem:
-The local scheduled runs have grown organically and now sync more domains than
-need the same cadence. Some jobs are valuable once or twice per day, while other
-data can be refreshed less often or only on demand. Running unnecessary jobs
-consumes external API quota, increases Supabase IO/load, lengthens scheduler
-runs, and can make troubleshooting harder when an unrelated sync fails.
+The scheduled runs grew organically before the AWS migration. Some jobs are
+valuable once or twice per day, while other data can be refreshed less often or
+only on demand. Running unnecessary jobs consumes external API quota, increases
+Supabase IO/load, lengthens scheduler runs, and can make troubleshooting harder
+when an unrelated sync fails.
 
 Current mitigation:
 - `run_all_syncs.py` supports grouped core/daily runs, disabled jobs, and
@@ -52,11 +72,10 @@ Current mitigation:
   RevSeller enrichment, YNAB business transactions, and Amazon sales finance
   syncs have been narrowed toward incremental or missing-data work where the
   integration supports it.
-- Windows scheduled MBOP tasks have `MultipleInstances=IgnoreNew` and
-  `StartWhenAvailable=False` so laptop wake-up does not stack missed scheduled
-  runs.
-- scheduler output writes through a per-run temp log and appends to
-  `logs/scheduler.log` with retry handling to avoid file-lock collisions.
+- AWS EventBridge Scheduler now owns production cadence with staggered ECS
+  scheduled tasks and Supabase-backed scheduler telemetry.
+- local Windows scheduled tasks have been retired or are pending final
+  Administrator deletion where Windows denies removal from this shell.
 - screen refresh buttons can run screen-specific scheduled-style refreshes
   without historical backfill.
 - sourcing availability cleanup is now a daily scheduled job and only checks
@@ -67,8 +86,8 @@ Recommended next mitigation:
   Value, on the same cadence so freshness indicators stay meaningful.
 - Avoid scheduling exploratory/backfill-style syncs; keep those manual and
   resumable.
-- Continue moving long-polling tracking updates toward EasyPost webhooks once a
-  public HTTPS endpoint exists.
+- Continue observing EasyPost webhook deliveries before reducing scheduled
+  tracking polling.
 
 ---
 
@@ -331,71 +350,63 @@ Recommended next mitigation:
 
 ---
 
-## EasyPost FedEx Tracking Credentials
+## EasyPost Webhook Delivery Observation
 
-Status: ACTIVE / EXTERNAL
-
-Problem:
-Two FedEx tracking numbers from the 2026-05-01+ backfill failed in EasyPost with "Credentials not found for the specified carrier", even when retried without passing carrier.
-
-Affected orders:
-- `06-14656-35281`, tracking `381367337613`, order date `2026-05-17`
-- `27-14629-25992`, tracking `381418656302`, order date `2026-05-18`
-
-Risk:
-FedEx shipments may remain at unknown or awaiting-carrier status unless EasyPost FedEx credentials are configured or a separate FedEx/direct-carrier path is added.
-
-Recommended next mitigation:
-- verify FedEx tracking support/credentials in the EasyPost account.
-- decide whether to configure FedEx credentials in EasyPost or add a carrier-direct fallback later.
-
----
-
-## EasyPost Webhook Requires Public HTTPS Hosting
-
-Status: ACTIVE / EXTERNAL
+Status: ACTIVE / MONITORING
 
 Problem:
-The webhook route exists locally, but EasyPost cannot deliver production webhooks to localhost.
-
-Risk:
-Until the app is deployed publicly and registered with EasyPost, tracking updates still require running the sync script manually or on a scheduler.
-
-Recommended next mitigation:
-- deploy the Next.js app to a public HTTPS server.
-- configure `EASYPOST_WEBHOOK_SECRET`.
-- register `/api/easypost/webhook` in EasyPost.
-- test webhook HMAC validation with a real EasyPost event.
-
----
-
-## Local Windows Scheduler Validation
-
-Status: MONITOR
-
-Problem:
-The repo moved from a OneDrive path to `C:\Dev\amazon-ebay-ops-system`, so the local Windows scheduled tasks had to be recreated with the new batch path.
+The production EasyPost webhook is registered and reachable through AWS, but it
+still needs observation of real `tracker.updated` deliveries before scheduled
+tracking polling is reduced.
 
 Current mitigation:
-- `run_all_syncs.bat` runs successfully when launched directly from the repo.
-- `run_all_syncs.bat` writes to a per-run temp log and then appends to
-  `logs/scheduler.log` with retries to avoid transient Windows file-lock
-  failures.
-- `run_all_syncs.py` now includes eBay buyer purchase sync, sourcing purchase matching, EasyPost shipment sync, Order Problems return/inquiry sync, RevSeller enrichment, Amazon FBA inventory, Amazon FBA shipment sync, Amazon listing status, Amazon inventory planning, Amazon Finance, Informed reports, YNAB cash balance, sourcing listing availability cleanup, guarded Keepa refresh, and business value snapshot.
-- legacy supplier returns sync has been removed from active orchestration and
-  System Health because Order Problems owns return/inquiry/case freshness.
-- direct full-orchestrator validation completed with exit code 0.
-- the stale OneDrive working-directory problem has been replaced by AM, PM,
-  Daily, and Catalog scheduled tasks that target the `C:\Dev` path.
-- all MBOP scheduled tasks have Task Scheduler catch-up disabled
-  (`StartWhenAvailable = False`) and overlap handling set to
-  `MultipleInstances = IgnoreNew`.
+- `/api/easypost/webhook` is deployed on `mbop-web-task:7`.
+- ALB rule priority 10 forwards `/api/easypost/webhook` directly to the web
+  target group without Cognito authentication.
+- EasyPost webhook `hook_d9fecfc86d0611f19a5d15e5f9712463` points to
+  `https://mbop.midnightblueenterprises.com/api/easypost/webhook`.
+- The webhook validates a shared secret from AWS Secrets Manager through HMAC
+  and/or the EasyPost custom outbound header.
+
+Recommended next mitigation:
+- observe a real EasyPost webhook delivery.
+- verify Supabase shipment rows are updated from the webhook path.
+- reduce scheduled EasyPost polling only after webhook delivery is proven.
+
+---
+
+## EasyPost FedEx Tracking Credentials
+
+Status: RESOLVED
+
+Resolution:
+The prior FedEx credential issue for tracking `381367337613` and
+`381418656302` has been addressed and is removed from the active issue list.
+
+---
+
+## Local Windows Scheduler Retirement
+
+Status: PARTIAL CLEANUP / ADMIN ACTION REMAINING
+
+Problem:
+AWS EventBridge Scheduler now supersedes the local Windows Task Scheduler jobs.
+The old local tasks should not remain active because production freshness is now
+owned by ECS scheduled tasks and Supabase scheduler telemetry.
+
+Current mitigation:
+- `Amazon eBay Ops Catalog Sync`, `Amazon eBay Ops Daily Sync`, and
+  `MBOP Inventory Source Balance Audit` were removed on 2026-06-20.
+- `Amazon eBay Ops Sync AM` and `Amazon eBay Ops Sync PM` still appeared after
+  cleanup attempts; Windows returned `Access is denied` for delete and disable
+  attempts from this shell.
 
 Recommended guardrail:
-- monitor the next scheduled runs to confirm laptop sleep no longer causes
-  missed runs to replay together on wake.
-- use the root scheduled-task path when manually triggering, for example `schtasks /Run /TN "\Amazon eBay Ops Sync PM"`.
-- keep public EasyPost webhooks on the roadmap so the scheduler is not the only long-term carrier-update mechanism.
+- From an Administrator PowerShell, run:
+  `Unregister-ScheduledTask -TaskName 'Amazon eBay Ops Sync AM' -Confirm:$false`
+  and `Unregister-ScheduledTask -TaskName 'Amazon eBay Ops Sync PM' -Confirm:$false`.
+- Do not recreate local Windows scheduled jobs unless explicitly designing a
+  local disaster-recovery fallback.
 
 ---
 

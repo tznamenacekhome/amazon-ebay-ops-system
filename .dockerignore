@@ -1,0 +1,17 @@
+.git
+.agents
+.codex
+.venv
+__pycache__
+*.pyc
+.env
+.env.*
+credentials
+data
+logs
+tmp
+exports
+imports
+web/node_modules
+web/.next
+web/.env*

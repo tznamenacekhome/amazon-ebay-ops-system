@@ -104,12 +104,28 @@ EasyPost sync must:
 - retry 429 responses with backoff
 - pass known carrier when available
 
-Long-term tracking updates should come from EasyPost webhooks once the app has a public HTTPS endpoint.
+Long-term tracking updates come from the production EasyPost webhook plus
+bounded scheduled polling until webhook delivery is fully observed.
 
-Local sync orchestration:
+Scheduler orchestration:
 - `run_all_syncs.py` runs eBay buyer purchase sync, sourcing purchase matching, EasyPost shipment sync, Order Problems return/inquiry sync, and RevSeller enrichment
-- `run_all_syncs.bat` is the Windows scheduler entry point and should target `C:\Dev\amazon-ebay-ops-system`
-- scheduler output belongs in `logs/scheduler.log`
+- production schedules run through AWS EventBridge Scheduler launching ECS
+  `mbop-scheduler-task`
+- local Windows Task Scheduler jobs are superseded and should not be recreated
+  unless explicitly designing a local fallback
+
+AWS deployment and scheduler migration:
+- authoritative AWS docs live under `docs/aws/`
+- current web deployment is ECS/Fargate, with the web image built from `web/Dockerfile`
+- current web image is web-only and must not be used for scheduler jobs
+- scheduler image path is `Dockerfile.scheduler`
+- AWS scheduler task target is `mbop-scheduler-task` / container `mbop-scheduler`
+- production AWS schedules should run `python run_all_syncs.py --group <GROUP_NAME>`
+- keep `CLOUD_DEPLOYMENT=true` and `LOCAL_SYNC_ENABLED=false` in cloud web and scheduler tasks
+- do not use `all`, `core`, or `daily` for production AWS schedules
+- apply `sql/2026-06-20_add_scheduler_telemetry.sql` before wiring cloud System Health to scheduler telemetry
+- `/api/easypost/webhook` has an ALB unauthenticated path rule and validates
+  the configured EasyPost webhook secret/token before writing to Supabase
 
 ---
 

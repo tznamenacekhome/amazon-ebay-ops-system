@@ -1,8 +1,14 @@
 # MBOP Cloud Deployment Phase 1
 
-Phase 1 deploys the Next.js web app and API to AWS as a container while keeping
-Supabase as the database and scheduled Python sync jobs on the local Windows
-machine.
+Phase 1 deployed the Next.js web app and API to AWS as a container while keeping
+Supabase as the database. The scheduled Python sync jobs have since moved to
+separate ECS/Fargate scheduled tasks.
+
+Authoritative AWS docs now live in:
+
+- `docs/aws/MBOP_AWS_DEPLOYMENT.md`
+- `docs/aws/MBOP_AWS_SCHEDULER_PLAN.md`
+- `docs/aws/MBOP_AWS_OPERATIONS_RUNBOOK.md`
 
 ## Required Cloud Environment Variables
 
@@ -18,6 +24,7 @@ Recommended for Phase 1:
 Webhook-specific:
 
 - `EASYPOST_WEBHOOK_SECRET`
+- `EASYPOST_WEBHOOK_TOKEN`
 - `EASYPOST_WEBHOOK_TOLERANCE_MINUTES` defaults to `1` when omitted
 
 Optional repricing identifier overrides:
@@ -48,7 +55,8 @@ commands in cloud mode:
 - `POST /api/sourcing/settings/apply`
 - Receiving background Keepa/Amazon fee refresh after `POST /api/receiving`
 
-These jobs remain on the local scheduler for Phase 1.
+These routes remain disabled in cloud mode. Production scheduled execution is
+owned by AWS EventBridge Scheduler and the separate scheduler image.
 
 ## Health And Freshness Signals
 
@@ -71,8 +79,8 @@ When `MBOP_ADMIN_API_TOKEN` is set, privileged mutation endpoints require either
 - `x-mbop-admin-token: <token>`
 - `Authorization: Bearer <token>`
 
-The EasyPost webhook is not protected by this token. It continues to use its own
-HMAC secret.
+The EasyPost webhook is not protected by this token. It uses its own
+HMAC secret and/or EasyPost outbound token.
 
 ## ECS Container Deployment
 
@@ -94,14 +102,17 @@ Required ECS task environment variables:
 - `SUPABASE_SERVICE_ROLE_KEY`
 - `CLOUD_DEPLOYMENT=true`
 - `LOCAL_SYNC_ENABLED=false`
+- `EASYPOST_WEBHOOK_SECRET` or `EASYPOST_WEBHOOK_TOKEN` for the web task if the
+  EasyPost webhook route is enabled
 
 Recommended:
 
 - `MBOP_ADMIN_API_TOKEN=<long random internal token>`
 
-Scheduled Python jobs remain local during Phase 1. Local job routes are disabled
-in cloud mode and return a clear JSON response instead of attempting to run
-Windows shell commands or local Python scripts.
+Scheduled Python jobs were local during Phase 1. The current production path
+uses the separate scheduler image built from `Dockerfile.scheduler`. Local job
+routes stay disabled in cloud mode and return a clear JSON response instead of
+attempting to run Windows shell commands or local Python scripts.
 
 ## Container Start
 

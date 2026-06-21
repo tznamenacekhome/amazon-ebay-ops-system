@@ -12,6 +12,65 @@ Business entity: Midnight Blue Enterprises, LLC.
 
 # Core Architecture Decisions
 
+## AWS Scheduler Uses Separate ECS Scheduled Tasks
+
+Decision:
+Run production sync jobs through EventBridge Scheduler launching ECS/Fargate tasks, using a scheduler-capable Python image separate from the current web image.
+
+Reason:
+The deployed web image is intentionally web-only and built from `web/Dockerfile`. It does not include Python, `run_all_syncs.py`, `integrations/`, or `requirements.txt`, so ECS command overrides cannot safely run scheduler jobs in the web image.
+
+Implementation:
+- Scheduler image: `Dockerfile.scheduler`
+- ECS task definition target: `mbop-scheduler-task`
+- Container name: `mbop-scheduler`
+- CloudWatch log group: `/ecs/mbop-scheduler`
+- Command override: `python run_all_syncs.py --group <GROUP_NAME>`
+
+Rules:
+- Keep `CLOUD_DEPLOYMENT=true`.
+- Keep `LOCAL_SYNC_ENABLED=false`.
+- Do not use `all`, `core`, or `daily` as AWS production schedules.
+- Do not re-enable web/API-triggered local sync execution in cloud.
+- Apply scheduler telemetry SQL before replacing local health files with Supabase-backed scheduler health.
+
+---
+
+## EasyPost Webhook Uses ALB Path Bypass Plus Route Secret
+
+Decision:
+Expose only `/api/easypost/webhook` without Cognito authentication at the ALB,
+then authenticate the webhook inside the Next.js route with the configured
+EasyPost HMAC secret and/or outbound token.
+
+Reason:
+EasyPost cannot complete Cognito login, but the webhook endpoint still needs a
+shared secret before writing shipment state to Supabase.
+
+Implementation:
+- ALB listener priority 10 forwards `/api/easypost/webhook` directly to the web target group.
+- The route remains POST-only.
+- The web ECS task receives `/mbop/prod/easypost/webhook-token` as
+  `EASYPOST_WEBHOOK_TOKEN` and `EASYPOST_WEBHOOK_SECRET`.
+
+Rule:
+Do not make broader unauthenticated ALB path rules for MBOP APIs.
+
+---
+
+## Shared Shell Owns Logout
+
+Decision:
+All MBOP screens expose logout from the shared `AppShell`, routing through
+`/api/logout` and Cognito hosted UI logout.
+
+Reason:
+Authentication is provided by Cognito/ALB, so logout should clear ALB session
+cookies and use the Cognito app-client logout URL rather than adding
+page-specific auth controls.
+
+---
+
 ## eBay Trading API Is Authoritative
 
 Decision:

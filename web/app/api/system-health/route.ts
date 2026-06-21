@@ -17,7 +17,8 @@ type JobConfig = {
   id: string;
   name: string;
   command: string;
-  group: "core" | "daily" | "catalog" | "monthly" | "disabled";
+  group: string;
+  awsGroups?: string[];
   blocking: boolean;
   enabled?: boolean;
   disabledReason?: string;
@@ -50,6 +51,7 @@ type LocalRunRecord = {
   started_at?: string | null;
   finished_at?: string | null;
   message?: string | null;
+  source?: string | null;
 };
 
 type DynamicQueryResult = {
@@ -63,11 +65,248 @@ type DynamicQuery = PromiseLike<DynamicQueryResult> & {
   order: (column: string, options?: { ascending?: boolean; nullsFirst?: boolean }) => DynamicQuery;
   limit: (count: number) => DynamicQuery;
   eq: (column: string, value: unknown) => DynamicQuery;
+  in: (column: string, values: unknown[]) => DynamicQuery;
   neq: (column: string, value: unknown) => DynamicQuery;
   gte: (column: string, value: unknown) => DynamicQuery;
   is: (column: string, value: unknown) => DynamicQuery;
   not: (column: string, operator: string, value: string) => DynamicQuery;
 };
+
+type SchedulerGroupConfig = {
+  key: string;
+  label: string;
+  domain: string;
+  cadence: string;
+  schedule: string;
+  scheduleNames: string[];
+  expectedEveryHours: number;
+  criticalAfterHours: number;
+  description: string;
+  jobNames: string[];
+};
+
+type SchedulerRunRecord = {
+  runId: string;
+  groupName: string;
+  status: "running" | "ok" | "degraded" | "failed" | "blocked" | "cancelled";
+  startedAt: string | null;
+  finishedAt: string | null;
+  runtimeSeconds: number | null;
+  triggerSource: string | null;
+  ecsTaskArn: string | null;
+  eventbridgeScheduleName: string | null;
+  containerCpu: number | null;
+  containerMemory: number | null;
+  errorSummary: string | null;
+};
+
+type SchedulerJobRunRecord = {
+  runId: string;
+  jobName: string;
+  groupName: string;
+  command: string;
+  status: "running" | "ok" | "skipped" | "failed" | "blocked";
+  blocking: boolean;
+  startedAt: string | null;
+  finishedAt: string | null;
+  runtimeSeconds: number | null;
+  errorSummary: string | null;
+};
+
+type SchedulerGroupSummary = SchedulerGroupConfig & {
+  status: HealthStatus;
+  lastRunAt: string | null;
+  lastSuccessAt: string | null;
+  hoursSinceLastRun: number | null;
+  hoursSinceLastSuccess: number | null;
+  latestRun: SchedulerRunRecord | null;
+  recentRuns: SchedulerRunRecord[];
+  jobs: Array<{
+    name: string;
+    status: HealthStatus;
+    lastRunAt: string | null;
+    runtimeSeconds: number | null;
+    blocking: boolean;
+    message: string | null;
+  }>;
+  stats: Array<{ label: string; value: string }>;
+};
+
+const SCHEDULER_GROUPS: SchedulerGroupConfig[] = [
+  {
+    key: "purchase-ingestion",
+    label: "Purchase Ingestion",
+    domain: "Purchases",
+    cadence: "Hourly daytime + 4:00 AM catch-up",
+    schedule: "Hourly 7 AM-10 PM PT; catch-up 4:00 AM PT",
+    scheduleNames: ["mbop-purchase-ingestion-hourly", "mbop-purchase-ingestion-catchup"],
+    expectedEveryHours: 2,
+    criticalAfterHours: 6,
+    description: "Imports recent eBay buyer purchases and matches them to sourcing opportunities.",
+    jobNames: ["eBay buyer purchases", "Sourcing purchase matching"],
+  },
+  {
+    key: "purchase-tracking",
+    label: "Purchase Tracking",
+    domain: "Purchases",
+    cadence: "Hourly daytime + 4:20 AM catch-up",
+    schedule: "Hourly at :20 from 7 AM-10 PM PT; catch-up 4:20 AM PT",
+    scheduleNames: ["mbop-purchase-tracking-hourly", "mbop-purchase-tracking-catchup"],
+    expectedEveryHours: 2,
+    criticalAfterHours: 6,
+    description: "Refreshes inbound EasyPost shipment tracking for purchase visibility.",
+    jobNames: ["EasyPost shipments"],
+  },
+  {
+    key: "returns-order-problems",
+    label: "Returns / Order Problems",
+    domain: "Loss Prevention",
+    cadence: "Five times daily",
+    schedule: "7:15 AM, 11:15 AM, 3:15 PM, 7:15 PM, 10:00 PM PT",
+    scheduleNames: ["mbop-returns-order-problems-day", "mbop-returns-order-problems-late"],
+    expectedEveryHours: 6,
+    criticalAfterHours: 14,
+    description: "Imports eBay return/inquiry/case signals and return tracking updates.",
+    jobNames: ["eBay order problem returns/inquiries", "EasyPost order problem returns"],
+  },
+  {
+    key: "purchase-enrichment",
+    label: "Purchase Enrichment",
+    domain: "Purchases",
+    cadence: "Every 2 hours daytime",
+    schedule: "Every 2 hours from 8 AM-10 PM PT",
+    scheduleNames: ["mbop-purchase-enrichment"],
+    expectedEveryHours: 4,
+    criticalAfterHours: 12,
+    description: "Refreshes RevSeller purchase enrichment and guarded missing-title repairs.",
+    jobNames: ["RevSeller enrichment", "Keepa missing purchase titles"],
+  },
+  {
+    key: "amazon-sales-recent",
+    label: "Recent Amazon Sales",
+    domain: "Sales",
+    cadence: "Every 2 hours daytime + 4:30 AM catch-up",
+    schedule: "Every 2 hours from 7 AM-9 PM PT; catch-up 4:30 AM PT",
+    scheduleNames: ["mbop-amazon-sales-recent-day", "mbop-amazon-sales-recent-catchup"],
+    expectedEveryHours: 4,
+    criticalAfterHours: 12,
+    description: "Refreshes recent Amazon orders, finance events, MF labels, and profitability.",
+    jobNames: [
+      "Amazon sales orders",
+      "Recent Amazon sales finances",
+      "Veeqo MF label costs",
+      "Recent sales profitability",
+    ],
+  },
+  {
+    key: "finance-refresh",
+    label: "Finance Refresh",
+    domain: "Finance",
+    cadence: "Three times daily",
+    schedule: "6:30 AM, 2:00 PM, 8:45 PM PT",
+    scheduleNames: ["mbop-finance-refresh-morning", "mbop-finance-refresh-afternoon", "mbop-finance-refresh-evening"],
+    expectedEveryHours: 12,
+    criticalAfterHours: 24,
+    description: "Refreshes YNAB, Amazon Finance, and the business value snapshot.",
+    jobNames: ["YNAB Business transactions", "YNAB cash balance", "Amazon finance balances", "Business value snapshot"],
+  },
+  {
+    key: "business-value-finalizer",
+    label: "Business Value Finalizer",
+    domain: "Finance",
+    cadence: "Runs with finance refresh",
+    schedule: "Included in finance refresh and available as its own group",
+    scheduleNames: [],
+    expectedEveryHours: 24,
+    criticalAfterHours: 36,
+    description: "Creates the daily business value point after cash and inventory inputs settle.",
+    jobNames: ["Business value snapshot"],
+  },
+  {
+    key: "fba-inventory-daily",
+    label: "FBA Inventory Daily",
+    domain: "Amazon FBA",
+    cadence: "Daily evening",
+    schedule: "8:30 PM PT",
+    scheduleNames: ["mbop-fba-inventory-daily"],
+    expectedEveryHours: 24,
+    criticalAfterHours: 36,
+    description: "Refreshes Amazon FBA inventory and inventory planning report data.",
+    jobNames: ["Amazon FBA inventory", "Amazon inventory planning"],
+  },
+  {
+    key: "fba-shipments",
+    label: "FBA Shipments",
+    domain: "Amazon FBA",
+    cadence: "Four times daily",
+    schedule: "8:40 AM, 12:40 PM, 4:40 PM, 8:40 PM PT",
+    scheduleNames: ["mbop-fba-shipments-active-window"],
+    expectedEveryHours: 8,
+    criticalAfterHours: 18,
+    description: "Refreshes active FBA shipment status and carrier tracking.",
+    jobNames: ["Amazon FBA shipments", "FBA EasyPost carrier tracking"],
+  },
+  {
+    key: "reconciliation",
+    label: "Inventory Reconciliation",
+    domain: "Inventory",
+    cadence: "Daily evening",
+    schedule: "9:00 PM PT",
+    scheduleNames: ["mbop-reconciliation"],
+    expectedEveryHours: 24,
+    criticalAfterHours: 36,
+    description: "Compares MBOP inventory positions to Amazon inventory snapshots.",
+    jobNames: ["Inventory reconciliation"],
+  },
+  {
+    key: "repricing-catalog",
+    label: "Repricing Catalog",
+    domain: "Repricing",
+    cadence: "Daily evening",
+    schedule: "9:30 PM PT",
+    scheduleNames: ["mbop-repricing-catalog"],
+    expectedEveryHours: 24,
+    criticalAfterHours: 36,
+    description: "Refreshes Amazon listing status and Informed Repricer reports.",
+    jobNames: ["Amazon listing status", "Informed repricing reports"],
+  },
+  {
+    key: "sourcing-catalog",
+    label: "Sourcing Catalog",
+    domain: "Sourcing",
+    cadence: "Daily evening",
+    schedule: "10:00 PM PT",
+    scheduleNames: ["mbop-sourcing-catalog"],
+    expectedEveryHours: 24,
+    criticalAfterHours: 36,
+    description: "Refreshes sourcing listing availability and matching intelligence.",
+    jobNames: ["Sourcing listing availability", "Matching intelligence refresh"],
+  },
+  {
+    key: "keepa-rolling-refresh",
+    label: "Keepa Rolling Refresh",
+    domain: "Catalog",
+    cadence: "Every 8 hours",
+    schedule: "1:10 AM, 9:10 AM, 5:10 PM PT",
+    scheduleNames: ["mbop-keepa-rolling-refresh"],
+    expectedEveryHours: 10,
+    criticalAfterHours: 24,
+    description: "Token-aware Keepa refresh for stale active Amazon products.",
+    jobNames: ["Keepa active products"],
+  },
+  {
+    key: "fba-pricing",
+    label: "FBA Pricing",
+    domain: "Amazon FBA",
+    cadence: "Manual/on-demand",
+    schedule: "Manual from Send to Amazon pricing refresh",
+    scheduleNames: [],
+    expectedEveryHours: 0,
+    criticalAfterHours: 0,
+    description: "Refreshes Keepa and Amazon fee estimates for received FBA prep rows.",
+    jobNames: ["Keepa FBA prep pricing", "Amazon Product Fees estimates"],
+  },
+];
 
 const JOBS: JobConfig[] = [
   {
@@ -535,15 +774,24 @@ const JOBS: JobConfig[] = [
 
 export async function GET() {
   try {
-    const [failures, localRuns] = await Promise.all([readSchedulerFailures(), readLocalRunRecords()]);
+    const [failures, localRuns, schedulerRuns, schedulerJobRuns] = await Promise.all([
+      readSchedulerFailures(),
+      readLocalRunRecords(),
+      readSchedulerRuns(),
+      readSchedulerJobRuns(),
+    ]);
     const jobs = await Promise.all(
       JOBS.map(async (job) => {
+        const awsGroups = awsGroupsForJob(job.name);
+        const primaryGroup = awsGroups[0] ?? job.group;
         if (job.enabled === false) {
           return {
             id: job.id,
             name: job.name,
             command: job.command,
             group: job.group,
+            primaryGroup,
+            awsGroups,
             blocking: job.blocking,
             enabled: false,
             status: "skipped" as HealthStatus,
@@ -569,7 +817,7 @@ export async function GET() {
         let source = signal.source;
 
         if (hasNewerLocalRun) {
-          source = `${source} + logs/sync_health.json`;
+          source = `${source} + ${localRun.source || "logs/sync_health.json"}`;
           if (localRun?.status === "skipped") {
             status = "skipped";
             message = localRun.message || message;
@@ -597,6 +845,8 @@ export async function GET() {
           name: job.name,
           command: job.command,
           group: job.group,
+          primaryGroup,
+          awsGroups,
           blocking: job.blocking,
           enabled: true,
           status,
@@ -611,10 +861,17 @@ export async function GET() {
         };
       }),
     );
+    const schedulerGroups = buildSchedulerGroupSummaries(schedulerRuns, schedulerJobRuns, jobs);
+    const recentRuns = schedulerRuns.slice(0, 20).map((run) => ({
+      ...run,
+      groupLabel: groupLabel(run.groupName),
+    }));
 
     return NextResponse.json({
       generatedAt: new Date().toISOString(),
       jobs,
+      schedulerGroups,
+      recentRuns,
       summary: {
         total: jobs.length,
         ok: jobs.filter((job) => job.status === "ok").length,
@@ -624,6 +881,12 @@ export async function GET() {
         blocked: jobs.filter((job) => job.status === "blocked").length,
         unknown: jobs.filter((job) => job.status === "unknown").length,
         skipped: jobs.filter((job) => job.status === "skipped").length,
+        groups: schedulerGroups.length,
+        healthyGroups: schedulerGroups.filter((group) => group.status === "ok").length,
+        delayedGroups: schedulerGroups.filter((group) => group.status === "delayed").length,
+        failedGroups: schedulerGroups.filter((group) => group.status === "failed").length,
+        runningGroups: schedulerGroups.filter((group) => group.status === "running").length,
+        blockedGroups: schedulerGroups.filter((group) => group.status === "blocked").length,
       },
     });
   } catch (error) {
@@ -662,6 +925,145 @@ function scheduleForGroup(group: JobConfig["group"]) {
   if (group === "catalog") return "Daily at 9:30 PM PT";
   if (group === "monthly") return "Monthly on the 1st at 6:30 AM PT";
   return "Not scheduled";
+}
+
+function buildSchedulerGroupSummaries(
+  runs: SchedulerRunRecord[],
+  jobRuns: SchedulerJobRunRecord[],
+  jobs: Array<{
+    name: string;
+    primaryGroup: string;
+    awsGroups: string[];
+    status: HealthStatus;
+    lastRunAt: string | null;
+    blocking: boolean;
+    message: string | null;
+  }>,
+): SchedulerGroupSummary[] {
+  const jobRunsByGroup = groupBy(jobRuns, (run) => run.groupName);
+  const runsByGroup = groupBy(runs, (run) => run.groupName);
+
+  return SCHEDULER_GROUPS.map((group) => {
+    const groupRuns = runsByGroup.get(group.key) ?? [];
+    const latestRun = groupRuns[0] ?? null;
+    const successRun = groupRuns.find((run) => run.status === "ok") ?? null;
+    const latestRunAt = latestRun?.finishedAt || latestRun?.startedAt || null;
+    const lastSuccessAt = successRun?.finishedAt || successRun?.startedAt || null;
+    const hoursSinceLastRun = latestRunAt ? hoursSince(latestRunAt) : null;
+    const hoursSinceLastSuccess = lastSuccessAt ? hoursSince(lastSuccessAt) : null;
+    const latestByJob = latestJobRunsForGroup(jobRunsByGroup.get(group.key) ?? []);
+    const configuredJobs = group.jobNames.map((name) => {
+      const telemetry = latestByJob.get(name);
+      const configured = jobs.find((job) => job.name === name);
+      const status = telemetry
+        ? healthStatusForJobRun(telemetry)
+        : configured?.awsGroups.includes(group.key)
+          ? configured.status
+          : "unknown";
+      const lastRunAt = telemetry?.finishedAt || telemetry?.startedAt || configured?.lastRunAt || null;
+
+      return {
+        name,
+        status,
+        lastRunAt,
+        runtimeSeconds: telemetry?.runtimeSeconds ?? null,
+        blocking: telemetry?.blocking ?? configured?.blocking ?? true,
+        message: telemetry?.errorSummary || configured?.message || null,
+      };
+    });
+
+    const failedJobs = configuredJobs.filter((job) => job.status === "failed").length;
+    const blockedJobs = configuredJobs.filter((job) => job.status === "blocked").length;
+    const okJobs = configuredJobs.filter((job) => job.status === "ok").length;
+    const recentCompletedRuns = groupRuns.filter((run) => run.runtimeSeconds !== null).slice(0, 10);
+    const averageRuntimeSeconds = recentCompletedRuns.length
+      ? recentCompletedRuns.reduce((total, run) => total + (run.runtimeSeconds ?? 0), 0) / recentCompletedRuns.length
+      : null;
+
+    return {
+      ...group,
+      status: statusForSchedulerGroup(group, latestRun, hoursSinceLastSuccess),
+      lastRunAt: latestRunAt,
+      lastSuccessAt,
+      hoursSinceLastRun,
+      hoursSinceLastSuccess,
+      latestRun,
+      recentRuns: groupRuns.slice(0, 5),
+      jobs: configuredJobs,
+      stats: [
+        { label: "Schedules", value: formatCount(group.scheduleNames.length) },
+        { label: "Recent runs", value: formatCount(groupRuns.length) },
+        { label: "Avg runtime", value: formatDuration(averageRuntimeSeconds) },
+        { label: "OK jobs", value: formatCount(okJobs) },
+        { label: "Failed jobs", value: formatCount(failedJobs) },
+        { label: "Blocked jobs", value: formatCount(blockedJobs) },
+      ],
+    };
+  });
+}
+
+function statusForSchedulerGroup(
+  group: SchedulerGroupConfig,
+  latestRun: SchedulerRunRecord | null,
+  hoursSinceLastSuccess: number | null,
+): HealthStatus {
+  if (group.expectedEveryHours <= 0) return latestRun ? runStatusToHealth(latestRun.status) : "skipped";
+  if (latestRun?.status === "running") return "running";
+  if (latestRun?.status === "blocked") return "blocked";
+  if (latestRun?.status === "failed" || latestRun?.status === "cancelled") return "failed";
+  if (!latestRun || hoursSinceLastSuccess === null) return "unknown";
+  if (hoursSinceLastSuccess >= group.criticalAfterHours) return "failed";
+  if (hoursSinceLastSuccess >= group.expectedEveryHours) return "delayed";
+  return runStatusToHealth(latestRun.status);
+}
+
+function latestJobRunsForGroup(runs: SchedulerJobRunRecord[]) {
+  const latest = new Map<string, SchedulerJobRunRecord>();
+  for (const run of runs) {
+    const existing = latest.get(run.jobName);
+    if (!existing || timestampForRun(run) > timestampForRun(existing)) {
+      latest.set(run.jobName, run);
+    }
+  }
+  return latest;
+}
+
+function healthStatusForJobRun(run: SchedulerJobRunRecord): HealthStatus {
+  if (run.status === "ok") return "ok";
+  if (run.status === "failed") return "failed";
+  if (run.status === "blocked") return "blocked";
+  if (run.status === "running") return "running";
+  return "skipped";
+}
+
+function runStatusToHealth(status: SchedulerRunRecord["status"]): HealthStatus {
+  if (status === "ok") return "ok";
+  if (status === "degraded") return "delayed";
+  if (status === "failed" || status === "cancelled") return "failed";
+  if (status === "blocked") return "blocked";
+  if (status === "running") return "running";
+  return "unknown";
+}
+
+function awsGroupsForJob(jobName: string) {
+  return SCHEDULER_GROUPS.filter((group) => group.jobNames.includes(jobName)).map((group) => group.key);
+}
+
+function groupLabel(groupName: string) {
+  return SCHEDULER_GROUPS.find((group) => group.key === groupName)?.label ?? groupName;
+}
+
+function groupBy<T>(values: T[], keyFor: (value: T) => string) {
+  const result = new Map<string, T[]>();
+  for (const value of values) {
+    const key = keyFor(value);
+    result.set(key, [...(result.get(key) ?? []), value]);
+  }
+  return result;
+}
+
+function timestampForRun(run: { finishedAt: string | null; startedAt: string | null }) {
+  return Date.parse(run.finishedAt || run.startedAt || "") || 0;
 }
 
 async function latestTimestampSignal(table: string, column: string, countLabel: string): Promise<JobSignal> {
@@ -868,9 +1270,90 @@ async function readSchedulerFailures(): Promise<SchedulerFailure[]> {
   }
 }
 
+async function readSchedulerRuns(): Promise<SchedulerRunRecord[]> {
+  const { data, error } = await dynamicFrom("scheduler_runs")
+    .select(
+      "run_id,group_name,status,started_at,finished_at,runtime_seconds,trigger_source,ecs_task_arn,eventbridge_schedule_name,container_cpu,container_memory,error_summary",
+    )
+    .order("started_at", { ascending: false, nullsFirst: false })
+    .limit(150);
+
+  if (error) return [];
+
+  const records: SchedulerRunRecord[] = [];
+  for (const row of data ?? []) {
+    const status = stringValue(row.status);
+    if (
+      status !== "running" &&
+      status !== "ok" &&
+      status !== "degraded" &&
+      status !== "failed" &&
+      status !== "blocked" &&
+      status !== "cancelled"
+    ) {
+      continue;
+    }
+
+    records.push({
+      runId: stringValue(row.run_id),
+      groupName: stringValue(row.group_name),
+      status,
+      startedAt: stringValue(row.started_at) || null,
+      finishedAt: stringValue(row.finished_at) || null,
+      runtimeSeconds: numberValue(row.runtime_seconds),
+      triggerSource: stringValue(row.trigger_source) || null,
+      ecsTaskArn: stringValue(row.ecs_task_arn) || null,
+      eventbridgeScheduleName: stringValue(row.eventbridge_schedule_name) || null,
+      containerCpu: numberValue(row.container_cpu),
+      containerMemory: numberValue(row.container_memory),
+      errorSummary: stringValue(row.error_summary) || null,
+    });
+  }
+
+  return records;
+}
+
+async function readSchedulerJobRuns(): Promise<SchedulerJobRunRecord[]> {
+  const { data, error } = await dynamicFrom("scheduler_run_jobs")
+    .select("run_id,job_name,group_name,command,status,blocking,started_at,finished_at,runtime_seconds,error_summary")
+    .order("started_at", { ascending: false, nullsFirst: false })
+    .limit(500);
+
+  if (error) return [];
+
+  const records: SchedulerJobRunRecord[] = [];
+  for (const row of data ?? []) {
+    const status = stringValue(row.status);
+    if (
+      status !== "running" &&
+      status !== "ok" &&
+      status !== "skipped" &&
+      status !== "failed" &&
+      status !== "blocked"
+    ) {
+      continue;
+    }
+
+    records.push({
+      runId: stringValue(row.run_id),
+      jobName: stringValue(row.job_name),
+      groupName: stringValue(row.group_name),
+      command: stringValue(row.command),
+      status,
+      blocking: typeof row.blocking === "boolean" ? row.blocking : true,
+      startedAt: stringValue(row.started_at) || null,
+      finishedAt: stringValue(row.finished_at) || null,
+      runtimeSeconds: numberValue(row.runtime_seconds),
+      errorSummary: stringValue(row.error_summary) || null,
+    });
+  }
+
+  return records;
+}
+
 async function readLocalRunRecords(): Promise<LocalRunRecord[]> {
   const logPath = path.resolve(process.cwd(), "..", "logs", "sync_health.json");
-  if (isCloudDeployment()) return [];
+  if (isCloudDeployment()) return readSchedulerTelemetryJobs();
 
   try {
     const parsed = JSON.parse(await fs.readFile(logPath, "utf8")) as unknown;
@@ -879,6 +1362,43 @@ async function readLocalRunRecords(): Promise<LocalRunRecord[]> {
   } catch {
     return [];
   }
+}
+
+async function readSchedulerTelemetryJobs(): Promise<LocalRunRecord[]> {
+  const { data, error } = await dynamicFrom("scheduler_run_jobs")
+    .select("job_name,group_name,command,status,blocking,started_at,finished_at,error_summary")
+    .order("started_at", { ascending: false, nullsFirst: false })
+    .limit(250);
+
+  if (error) return [];
+
+  const records: LocalRunRecord[] = [];
+  for (const row of data ?? []) {
+    const status = stringValue(row.status);
+    if (
+      status !== "ok" &&
+      status !== "failed" &&
+      status !== "skipped" &&
+      status !== "running" &&
+      status !== "blocked"
+    ) {
+      continue;
+    }
+
+    records.push({
+      command: stringValue(row.command),
+      job_name: stringValue(row.job_name) || null,
+      group: stringValue(row.group_name) || null,
+      blocking: typeof row.blocking === "boolean" ? row.blocking : null,
+      status,
+      started_at: stringValue(row.started_at) || null,
+      finished_at: stringValue(row.finished_at) || null,
+      message: stringValue(row.error_summary) || null,
+      source: "scheduler_run_jobs",
+    });
+  }
+
+  return records;
 }
 
 function parseSchedulerFailures(logText: string): SchedulerFailure[] {
@@ -953,6 +1473,12 @@ function stringValue(value: unknown): string {
   return typeof value === "string" ? value : "";
 }
 
+function numberValue(value: unknown): number | null {
+  if (value === null || value === undefined || value === "") return null;
+  const number = Number(value);
+  return Number.isFinite(number) ? number : null;
+}
+
 function isLocalRunRecord(value: unknown): value is LocalRunRecord {
   if (!value || typeof value !== "object") return false;
   const record = value as Record<string, unknown>;
@@ -974,6 +1500,13 @@ function formatCount(value: unknown): string {
   const number = Number(value);
   if (Number.isNaN(number)) return "--";
   return number.toLocaleString("en-US");
+}
+
+function formatDuration(seconds: number | null): string {
+  if (seconds === null || Number.isNaN(seconds)) return "--";
+  if (seconds < 60) return `${Math.round(seconds)}s`;
+  if (seconds < 3600) return `${Math.round(seconds / 60)}m`;
+  return `${(seconds / 3600).toFixed(1)}h`;
 }
 
 function formatCurrency(value: unknown): string {

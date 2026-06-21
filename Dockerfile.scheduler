@@ -1,0 +1,29 @@
+FROM python:3.12-slim
+
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+ENV CLOUD_DEPLOYMENT=true
+ENV LOCAL_SYNC_ENABLED=false
+
+WORKDIR /app
+
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends ca-certificates \
+  && rm -rf /var/lib/apt/lists/*
+
+COPY requirements.txt ./
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY run_all_syncs.py ./
+COPY integrations ./integrations
+COPY docker/scheduler-entrypoint.sh /usr/local/bin/mbop-scheduler-entrypoint
+
+RUN chmod +x /usr/local/bin/mbop-scheduler-entrypoint \
+  && useradd --create-home --shell /usr/sbin/nologin mbop \
+  && mkdir -p /app/logs /app/data /app/credentials \
+  && chown -R mbop:mbop /app
+
+USER mbop
+
+ENTRYPOINT ["mbop-scheduler-entrypoint"]
+CMD ["python", "run_all_syncs.py", "--group", "purchase-ingestion", "--list"]

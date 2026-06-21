@@ -1,11 +1,15 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
+import re
 import subprocess
 import sys
 import time
+import urllib.request
+import uuid
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -21,6 +25,8 @@ RUN_HISTORY_PATH = LOG_DIR / "sync_runs.jsonl"
 LOCK_PATH = LOG_DIR / "run_all_syncs.lock"
 LOCK_STALE_HOURS = 10
 DEFAULT_TIMEOUT_SECONDS = 45 * 60
+TELEMETRY_CLIENT = None
+ECS_METADATA: dict[str, object] | None = None
 
 
 CommandFactory = Callable[[], list[str]]
@@ -62,19 +68,19 @@ JOBS: tuple[SyncJob, ...] = (
             "--missing-tracking-limit",
             "250",
         ),
-        groups=("core", "purchases", "dashboard"),
+        groups=("core", "purchases", "dashboard", "purchase-ingestion"),
         timeout_seconds=60 * 60,
     ),
     SyncJob(
         name="Sourcing purchase matching",
         command=static_command("integrations/match_sourcing_purchases.py", "--limit", "300"),
-        groups=("core", "purchases", "dashboard"),
+        groups=("core", "purchases", "dashboard", "purchase-ingestion"),
         timeout_seconds=20 * 60,
     ),
     SyncJob(
         name="EasyPost shipments",
         command=static_command("integrations/easypost_sync_shipments.py", "--limit", "150"),
-        groups=("core", "purchases", "dashboard"),
+        groups=("core", "purchases", "dashboard", "purchase-tracking"),
         timeout_seconds=45 * 60,
     ),
     SyncJob(
@@ -87,14 +93,14 @@ JOBS: tuple[SyncJob, ...] = (
             "100",
             "--apply",
         ),
-        groups=("core", "purchases", "dashboard"),
+        groups=("core", "purchases", "dashboard", "returns-order-problems"),
         blocking=False,
         timeout_seconds=30 * 60,
     ),
     SyncJob(
         name="EasyPost order problem returns",
         command=static_command("integrations/easypost_sync_order_problem_returns.py", "--limit", "100"),
-        groups=("core", "purchases", "dashboard"),
+        groups=("core", "purchases", "dashboard", "returns-order-problems"),
         blocking=False,
         timeout_seconds=20 * 60,
     ),
@@ -106,7 +112,7 @@ JOBS: tuple[SyncJob, ...] = (
             "--ai-review-limit",
             "25",
         ),
-        groups=("core", "purchases", "dashboard"),
+        groups=("core", "purchases", "dashboard", "purchase-enrichment"),
         timeout_seconds=45 * 60,
     ),
     SyncJob(
@@ -120,14 +126,14 @@ JOBS: tuple[SyncJob, ...] = (
             "25",
             "--apply",
         ),
-        groups=("core", "purchases", "dashboard"),
+        groups=("core", "purchases", "dashboard", "purchase-enrichment"),
         blocking=False,
         timeout_seconds=20 * 60,
     ),
     SyncJob(
         name="Amazon sales orders",
         command=static_command("integrations/amazon_sync_sales_orders.py", "--apply"),
-        groups=("core", "sales-orders"),
+        groups=("core", "sales-orders", "amazon-sales-recent"),
         blocking=False,
         timeout_seconds=90 * 60,
     ),
@@ -141,7 +147,7 @@ JOBS: tuple[SyncJob, ...] = (
             "1.5",
             "--apply",
         ],
-        groups=("core", "sales-orders"),
+        groups=("core", "sales-orders", "amazon-sales-recent"),
         blocking=False,
         timeout_seconds=45 * 60,
     ),
@@ -154,7 +160,7 @@ JOBS: tuple[SyncJob, ...] = (
             "--missing-only",
             "--apply",
         ],
-        groups=("core", "sales-orders"),
+        groups=("core", "sales-orders", "amazon-sales-recent"),
         blocking=False,
         timeout_seconds=30 * 60,
     ),
@@ -166,7 +172,7 @@ JOBS: tuple[SyncJob, ...] = (
             days_ago_iso(14),
             "--apply",
         ],
-        groups=("core",),
+        groups=("core", "amazon-sales-recent"),
         blocking=False,
         timeout_seconds=45 * 60,
     ),
@@ -177,13 +183,13 @@ JOBS: tuple[SyncJob, ...] = (
             "--page-delay-seconds",
             "0.25",
         ),
-        groups=("daily", "dashboard", "reconciliation", "repricing", "fba"),
+        groups=("daily", "dashboard", "reconciliation", "repricing", "fba", "fba-inventory-daily"),
         timeout_seconds=45 * 60,
     ),
     SyncJob(
         name="Amazon FBA shipments",
         command=static_command("integrations/amazon_sync_fba_shipments.py"),
-        groups=("daily", "dashboard", "reconciliation", "fba"),
+        groups=("daily", "dashboard", "reconciliation", "fba", "fba-shipments"),
         timeout_seconds=30 * 60,
     ),
     SyncJob(
@@ -195,7 +201,7 @@ JOBS: tuple[SyncJob, ...] = (
             "--max-new-trackers",
             "10",
         ),
-        groups=("daily", "dashboard", "reconciliation", "fba"),
+        groups=("daily", "dashboard", "reconciliation", "fba", "fba-shipments"),
         timeout_seconds=30 * 60,
     ),
     SyncJob(
@@ -212,13 +218,13 @@ JOBS: tuple[SyncJob, ...] = (
             "--stale-days",
             "3",
         ),
-        groups=("daily", "dashboard", "repricing"),
+        groups=("daily", "dashboard", "repricing", "repricing-catalog"),
         timeout_seconds=60 * 60,
     ),
     SyncJob(
         name="Amazon inventory planning",
         command=static_command("integrations/amazon_sync_inventory_planning.py"),
-        groups=("daily", "dashboard", "repricing"),
+        groups=("daily", "dashboard", "repricing", "fba-inventory-daily"),
         timeout_seconds=60 * 60,
     ),
     SyncJob(
@@ -228,19 +234,19 @@ JOBS: tuple[SyncJob, ...] = (
             "--incremental",
             "--apply",
         ),
-        groups=("daily", "dashboard"),
+        groups=("daily", "dashboard", "finance-refresh"),
         timeout_seconds=30 * 60,
     ),
     SyncJob(
         name="YNAB cash balance",
         command=static_command("integrations/ynab_sync_cash_balance.py", "--apply"),
-        groups=("daily", "dashboard"),
+        groups=("daily", "dashboard", "finance-refresh"),
         timeout_seconds=20 * 60,
     ),
     SyncJob(
         name="Amazon finance balances",
         command=static_command("integrations/amazon_sync_finance_balances.py", "--apply"),
-        groups=("daily", "dashboard"),
+        groups=("daily", "dashboard", "finance-refresh"),
         timeout_seconds=30 * 60,
     ),
     SyncJob(
@@ -312,13 +318,13 @@ JOBS: tuple[SyncJob, ...] = (
     SyncJob(
         name="Informed repricing reports",
         command=static_command("integrations/informed_sync_reports.py", "--write"),
-        groups=("daily", "repricing"),
+        groups=("daily", "repricing", "repricing-catalog"),
         timeout_seconds=60 * 60,
     ),
     SyncJob(
         name="Business value snapshot",
         command=static_command("integrations/business_value_snapshot.py", "--apply"),
-        groups=("daily", "dashboard", "fba"),
+        groups=("daily", "dashboard", "fba", "finance-refresh", "business-value-finalizer"),
         timeout_seconds=30 * 60,
     ),
     SyncJob(
@@ -329,7 +335,7 @@ JOBS: tuple[SyncJob, ...] = (
             "--limit",
             "250",
         ),
-        groups=("daily", "catalog"),
+        groups=("daily", "catalog", "sourcing-catalog"),
         blocking=False,
         timeout_seconds=30 * 60,
     ),
@@ -340,7 +346,7 @@ JOBS: tuple[SyncJob, ...] = (
             "--runs-per-mode",
             "1",
         ),
-        groups=("core", "daily", "catalog", "purchases"),
+        groups=("core", "daily", "catalog", "purchases", "sourcing-catalog"),
         timeout_seconds=30 * 60,
     ),
     SyncJob(
@@ -356,14 +362,14 @@ JOBS: tuple[SyncJob, ...] = (
             "--stale-days",
             "7",
             "--min-tokens",
-            "100",
+            "150",
             "--offers",
             "20",
             "--stock",
             "--no-history",
             "--write",
         ),
-        groups=("catalog", "repricing"),
+        groups=("catalog", "repricing", "keepa-rolling-refresh"),
         timeout_seconds=45 * 60,
     ),
     SyncJob(
@@ -372,10 +378,12 @@ JOBS: tuple[SyncJob, ...] = (
             "integrations/keepa_sync_products.py",
             "--source",
             "received_fba_prep",
+            "--limit",
+            "10",
             "--batch-size",
-            "20",
+            "10",
             "--min-tokens",
-            "25",
+            "150",
             "--offers",
             "20",
             "--stock",
@@ -407,6 +415,18 @@ GROUPS = (
     "repricing",
     "fba",
     "fba-pricing",
+    "purchase-ingestion",
+    "purchase-tracking",
+    "returns-order-problems",
+    "purchase-enrichment",
+    "amazon-sales-recent",
+    "finance-refresh",
+    "business-value-finalizer",
+    "fba-inventory-daily",
+    "fba-shipments",
+    "repricing-catalog",
+    "sourcing-catalog",
+    "keepa-rolling-refresh",
     "all",
 )
 
@@ -422,9 +442,10 @@ def main() -> int:
         return 0
 
     started_at = now_iso()
-    run_id = datetime.now().strftime("%Y%m%d-%H%M%S")
+    run_id = str(uuid.uuid4())
     print(f"Starting sync group={args.group} run_id={run_id}")
     print(started_at)
+    start_scheduler_run(run_id=run_id, group=args.group, jobs=selected_jobs, started_at=started_at)
 
     lock_acquired = False
     if not args.no_lock:
@@ -444,6 +465,12 @@ def main() -> int:
                     message=message,
                 )
             print(f"ERROR: {message}")
+            finish_scheduler_run(
+                run_id=run_id,
+                status="blocked",
+                started_at=started_at,
+                error_summary=message,
+            )
             return 1
 
     failures: list[str] = []
@@ -485,16 +512,37 @@ def main() -> int:
             for failure in failures:
                 print(f"- {failure}")
             print(now_iso())
+            finish_scheduler_run(
+                run_id=run_id,
+                status="failed",
+                started_at=started_at,
+                error_summary="; ".join(failures),
+            )
             return 1
 
         if nonblocking_failures:
             print("\nSync group completed in degraded state.")
             print(now_iso())
+            finish_scheduler_run(
+                run_id=run_id,
+                status="degraded",
+                started_at=started_at,
+                error_summary="; ".join(nonblocking_failures),
+            )
             return 2
 
         print("\nSync group completed successfully.")
         print(now_iso())
+        finish_scheduler_run(run_id=run_id, status="ok", started_at=started_at)
         return 0
+    except Exception as error:
+        finish_scheduler_run(
+            run_id=run_id,
+            status="failed",
+            started_at=started_at,
+            error_summary=str(error),
+        )
+        raise
     finally:
         if lock_acquired:
             release_lock(run_id)
@@ -540,6 +588,7 @@ def run_job(job: SyncJob, *, group: str, run_id: str) -> None:
         message="Job is currently running.",
         append_history=False,
     )
+    start_scheduler_job(job=job, command=command, group=group, run_id=run_id, started_at=started_at)
 
     try:
         result = subprocess.run(
@@ -559,6 +608,15 @@ def run_job(job: SyncJob, *, group: str, run_id: str) -> None:
             started_at=started_at,
             message=message,
         )
+        finish_scheduler_job(
+            job=job,
+            command=command,
+            group=group,
+            run_id=run_id,
+            status="failed",
+            started_at=started_at,
+            error_summary=message,
+        )
         raise RuntimeError(message) from error
 
     if result.returncode != 0:
@@ -572,9 +630,19 @@ def run_job(job: SyncJob, *, group: str, run_id: str) -> None:
             started_at=started_at,
             message=message,
         )
+        finish_scheduler_job(
+            job=job,
+            command=command,
+            group=group,
+            run_id=run_id,
+            status="failed",
+            started_at=started_at,
+            error_summary=message,
+        )
         raise RuntimeError(message)
 
     record_job(job=job, command=command, group=group, run_id=run_id, status="ok", started_at=started_at)
+    finish_scheduler_job(job=job, command=command, group=group, run_id=run_id, status="ok", started_at=started_at)
 
 
 def record_job(
@@ -623,6 +691,234 @@ def read_health_records() -> dict[str, dict[str, object]]:
         return records if isinstance(records, dict) else {}
     except (FileNotFoundError, json.JSONDecodeError):
         return {}
+
+
+def telemetry_enabled() -> bool:
+    explicit = os.getenv("SCHEDULER_TELEMETRY_ENABLED", "").strip().lower()
+    if explicit in {"0", "false", "no", "off"}:
+        return False
+    if explicit in {"1", "true", "yes", "on"}:
+        return True
+    return os.getenv("CLOUD_DEPLOYMENT", "").strip().lower() in {"1", "true", "yes", "on"}
+
+
+def telemetry_client():
+    global TELEMETRY_CLIENT
+    if TELEMETRY_CLIENT is not None:
+        return TELEMETRY_CLIENT
+    if not telemetry_enabled():
+        return None
+    supabase_url = os.getenv("SUPABASE_URL")
+    supabase_key = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
+    if not supabase_url or not supabase_key:
+        return None
+    TELEMETRY_CLIENT = create_client(supabase_url, supabase_key)
+    return TELEMETRY_CLIENT
+
+
+def telemetry_safe(action: Callable[[], None]) -> None:
+    try:
+        action()
+    except Exception as error:  # noqa: BLE001 - telemetry must not break sync jobs.
+        print(f"WARNING: scheduler telemetry write failed: {error}")
+
+
+def start_scheduler_run(*, run_id: str, group: str, jobs: list[SyncJob], started_at: str) -> None:
+    client = telemetry_client()
+    if client is None:
+        return
+
+    def write() -> None:
+        metadata = get_ecs_metadata()
+        task_arn = str(metadata.get("TaskARN") or os.getenv("ECS_TASK_ARN") or "")
+        client.table("scheduler_runs").insert(
+            {
+                "run_id": run_id,
+                "group_name": group,
+                "status": "running",
+                "started_at": started_at,
+                "trigger_source": os.getenv("SCHEDULER_TRIGGER_SOURCE", "ecs" if task_arn else "local"),
+                "ecs_task_arn": task_arn or None,
+                "eventbridge_schedule_name": os.getenv("EVENTBRIDGE_SCHEDULE_NAME"),
+                "container_cpu": parse_int(os.getenv("CONTAINER_CPU")),
+                "container_memory": parse_int(os.getenv("CONTAINER_MEMORY")),
+                "metadata": {
+                    "aws_execution_env": os.getenv("AWS_EXECUTION_ENV"),
+                    "selected_job_count": len(jobs),
+                },
+            }
+        ).execute()
+        upsert_scheduler_job_definitions(client, jobs, group)
+
+    telemetry_safe(write)
+
+
+def finish_scheduler_run(
+    *,
+    run_id: str,
+    status: str,
+    started_at: str,
+    error_summary: str | None = None,
+) -> None:
+    client = telemetry_client()
+    if client is None:
+        return
+    finished_at = now_iso()
+
+    def write() -> None:
+        client.table("scheduler_runs").update(
+            {
+                "status": status,
+                "finished_at": finished_at,
+                "runtime_seconds": runtime_seconds(started_at, finished_at),
+                "error_summary": truncate_text(error_summary, 2000),
+            }
+        ).eq("run_id", run_id).execute()
+
+    telemetry_safe(write)
+
+
+def upsert_scheduler_job_definitions(client, jobs: list[SyncJob], group: str) -> None:
+    rows = []
+    for job in jobs:
+        rows.append(
+            {
+                "job_key": scheduler_job_key(job),
+                "job_name": job.name,
+                "default_group_name": group,
+                "command": job.command_key,
+                "enabled": job.enabled,
+                "blocking": job.blocking,
+                "timeout_seconds": job.timeout_seconds,
+                "domain": infer_job_domain(job, group),
+                "updated_at": now_iso(),
+            }
+        )
+    if rows:
+        client.table("scheduler_job_definitions").upsert(rows, on_conflict="job_key").execute()
+
+
+def start_scheduler_job(
+    *,
+    job: SyncJob,
+    command: list[str],
+    group: str,
+    run_id: str,
+    started_at: str,
+) -> None:
+    client = telemetry_client()
+    if client is None:
+        return
+
+    def write() -> None:
+        client.table("scheduler_run_jobs").insert(
+            {
+                "run_id": run_id,
+                "job_key": scheduler_job_key(job),
+                "group_name": group,
+                "job_name": job.name,
+                "command": " ".join(command),
+                "status": "running",
+                "blocking": job.blocking,
+                "started_at": started_at,
+            }
+        ).execute()
+
+    telemetry_safe(write)
+
+
+def finish_scheduler_job(
+    *,
+    job: SyncJob,
+    command: list[str],
+    group: str,
+    run_id: str,
+    status: str,
+    started_at: str,
+    error_summary: str | None = None,
+) -> None:
+    client = telemetry_client()
+    if client is None:
+        return
+    finished_at = now_iso()
+
+    def write() -> None:
+        client.table("scheduler_run_jobs").update(
+            {
+                "status": status,
+                "finished_at": finished_at,
+                "runtime_seconds": runtime_seconds(started_at, finished_at),
+                "error_summary": truncate_text(error_summary, 2000),
+            }
+        ).eq("run_id", run_id).eq("job_name", job.name).eq("command", " ".join(command)).execute()
+
+    telemetry_safe(write)
+
+
+def scheduler_job_key(job: SyncJob) -> str:
+    name = re.sub(r"[^a-z0-9]+", "_", job.name.lower()).strip("_")
+    digest = hashlib.sha1(job.name.encode("utf-8")).hexdigest()[:10]
+    return f"{name}_{digest}"
+
+
+def infer_job_domain(job: SyncJob, group: str) -> str:
+    job_name = job.name.lower()
+    if "keepa" in job_name:
+        return "keepa"
+    if "easypost" in job_name:
+        return "easypost"
+    if "amazon" in job_name or group.startswith("amazon") or group.startswith("fba"):
+        return "amazon"
+    if "ebay" in job_name:
+        return "ebay"
+    if "ynab" in job_name:
+        return "ynab"
+    if "revseller" in job_name:
+        return "revseller"
+    if "sourcing" in job_name:
+        return "sourcing"
+    return group
+
+
+def get_ecs_metadata() -> dict[str, object]:
+    global ECS_METADATA
+    if ECS_METADATA is not None:
+        return ECS_METADATA
+    metadata_uri = os.getenv("ECS_CONTAINER_METADATA_URI_V4")
+    if not metadata_uri:
+        ECS_METADATA = {}
+        return ECS_METADATA
+    try:
+        with urllib.request.urlopen(f"{metadata_uri}/task", timeout=2) as response:
+            payload = response.read().decode("utf-8")
+        parsed = json.loads(payload)
+        ECS_METADATA = parsed if isinstance(parsed, dict) else {}
+    except Exception:
+        ECS_METADATA = {}
+    return ECS_METADATA
+
+
+def runtime_seconds(started_at: str, finished_at: str) -> float | None:
+    start = parse_datetime(started_at)
+    finish = parse_datetime(finished_at)
+    if not start or not finish:
+        return None
+    return round((finish - start).total_seconds(), 3)
+
+
+def parse_int(value: str | None) -> int | None:
+    if value is None:
+        return None
+    try:
+        return int(value)
+    except ValueError:
+        return None
+
+
+def truncate_text(value: str | None, limit: int) -> str | None:
+    if value is None or len(value) <= limit:
+        return value
+    return value[: limit - 3] + "..."
 
 
 def write_text_with_retry(path: Path, text: str, *, attempts: int = 5) -> None:
