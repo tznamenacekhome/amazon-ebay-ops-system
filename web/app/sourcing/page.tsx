@@ -14,6 +14,7 @@ import {
 import type { SourcingOpportunity, SourcingRun, SourcingSettings } from "./types";
 import { useSourcingOpportunities } from "./useSourcingOpportunities";
 import { dismissReasonGroups } from "./matchingTaxonomy";
+import { mutationHeaders } from "../mutationHeaders";
 
 const tabs = ["Replenishment", "Watchlist", "Purchased Pending Match", "Sourcing History", "Matching Intelligence", "Settings"] as const;
 const opportunityTypes = ["all", "buy_now", "multi_unit", "best_offer", "auction", "watch"] as const;
@@ -69,7 +70,7 @@ export default function SourcingPage() {
     try {
       const response = await fetch(`/api/sourcing/opportunities/${row.opportunityId}/actions`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: mutationHeaders({ "Content-Type": "application/json" }),
         body: JSON.stringify(payload),
       });
       const result = await response.json();
@@ -90,7 +91,7 @@ export default function SourcingPage() {
       for (const row of rowsToUpdate) {
         const response = await fetch(`/api/sourcing/opportunities/${row.opportunityId}/actions`, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: mutationHeaders({ "Content-Type": "application/json" }),
           body: JSON.stringify(payloadForRow(row)),
         });
         const result = await response.json();
@@ -115,7 +116,7 @@ export default function SourcingPage() {
         setNotice(`Running ${runType === "full_listings" ? "all listings" : "recently sold"} sourcing workflow...`);
         const response = await fetch("/api/sourcing/runs", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: mutationHeaders({ "Content-Type": "application/json" }),
           body: JSON.stringify({ runType, execute: true }),
         });
         const payload = await response.json();
@@ -1027,7 +1028,7 @@ function SourcingSettingsPanel({ onApplied }: { onApplied: () => Promise<void> }
     try {
       const response = await fetch("/api/sourcing/settings", {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: mutationHeaders({ "Content-Type": "application/json" }),
         body: JSON.stringify(settingsToSave),
       });
       const payload = await response.json();
@@ -1036,7 +1037,10 @@ function SourcingSettingsPanel({ onApplied }: { onApplied: () => Promise<void> }
         setItemCountriesText((payload.settings?.item_location_countries ?? []).join(", "));
         setExcludedKeywordsText((payload.settings?.excluded_keywords ?? []).join(", "));
         setNotice("Settings saved. Applying to current opportunities...");
-        const applyResponse = await fetch("/api/sourcing/settings/apply", { method: "POST" });
+        const applyResponse = await fetch("/api/sourcing/settings/apply", {
+          method: "POST",
+          headers: mutationHeaders(),
+        });
         const applyPayload = await applyResponse.json().catch(() => ({}));
         if (!applyResponse.ok) {
           setNotice(applyPayload.error ?? "Settings saved, but opportunity refresh failed.");

@@ -1,5 +1,7 @@
 "use client";
 
+import { mutationHeaders } from "./mutationHeaders";
+
 export type RefreshTarget =
   | "purchases"
   | "dashboard"
@@ -26,7 +28,7 @@ export async function runOnDemandRefresh(
 
   const response = await fetch("/api/sync-refresh", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: mutationHeaders({ "Content-Type": "application/json" }),
     body: JSON.stringify({ target }),
   });
   const payload = await response.json().catch(() => ({}));

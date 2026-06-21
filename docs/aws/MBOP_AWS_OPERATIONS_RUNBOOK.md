@@ -1,6 +1,6 @@
 # MBOP AWS Operations Runbook
 
-Last updated: 2026-06-20
+Last updated: 2026-06-21
 
 ## Deploy Web Updates
 
@@ -8,10 +8,13 @@ Last updated: 2026-06-20
 2. Push it to the ECR repository used by `mbop-web-task`.
 3. Resolve the pushed image digest and register a new `mbop-web-task` revision pinned to that digest.
 4. Keep `CLOUD_DEPLOYMENT=true` and `LOCAL_SYNC_ENABLED=false`.
-5. Preserve required secrets such as `SUPABASE_SERVICE_ROLE_KEY` and, while the
-   webhook is enabled, `EASYPOST_WEBHOOK_TOKEN` / `EASYPOST_WEBHOOK_SECRET`.
-6. Update `mbop-web-service` to the new task revision.
-7. Wait for the ECS service to stabilize, then verify target health and `https://mbop.midnightblueenterprises.com`.
+5. Preserve required secrets such as `SUPABASE_SERVICE_ROLE_KEY`,
+   `MBOP_ADMIN_API_TOKEN`, and, while the webhook is enabled,
+   `EASYPOST_WEBHOOK_TOKEN` / `EASYPOST_WEBHOOK_SECRET`.
+6. Keep the web task execution role set to
+   `arn:aws:iam::297464765814:role/mbop-web-task-execution-role`.
+7. Update `mbop-web-service` to the new task revision.
+8. Wait for the ECS service to stabilize, then verify target health and `https://mbop.midnightblueenterprises.com`.
 
 ```powershell
 aws ecs update-service --region us-west-2 --cluster mbop-cluster1 --service mbop-web-service --task-definition mbop-web-task:<revision>
@@ -110,10 +113,25 @@ Operational notes:
 - The route is POST-only; unauthenticated GET should return `405`.
 - The EasyPost outbound header token and HMAC secret are stored in
   `/mbop/prod/easypost/webhook-token`.
+- Bare static-token webhook auth is not accepted. EasyPost deliveries must use
+  HMAC headers, or an internal relay must send the token plus timestamp and
+  HMAC signature headers.
 - If the secret name or ARN changes, register a new `mbop-web-task` revision and
   redeploy the web service.
 - Keep scheduled EasyPost polling until real webhook deliveries have been
   observed updating Supabase shipment rows.
+
+## Mutation Security
+
+State-changing MBOP API routes require one of:
+
+- Internal automation header `x-mbop-admin-token` or `Authorization: Bearer`
+  matching `MBOP_ADMIN_API_TOKEN`.
+- Same-origin browser request with `x-mbop-csrf: 1` and ALB Cognito identity
+  headers.
+
+Do not expose `MBOP_ADMIN_API_TOKEN` to browser code. The frontend sends only
+the non-secret CSRF marker.
 
 ## Logout
 

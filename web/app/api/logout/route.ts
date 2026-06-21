@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 export const runtime = "nodejs";
 
 const DEFAULT_COGNITO_DOMAIN = "https://us-west-2ibxxtq9xl.auth.us-west-2.amazoncognito.com";
-const DEFAULT_CLIENT_ID = "4008ukjg31rsj9gqn59fhk2nkr";
+const DEFAULT_CLIENT_ID = "11i581nub6aqvqecjmqddrfj7o";
 const DEFAULT_LOGOUT_URI = "https://mbop.midnightblueenterprises.com/";
 
 export async function GET() {

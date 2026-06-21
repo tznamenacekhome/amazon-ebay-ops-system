@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { runOnDemandRefresh, type RefreshNotice } from "../syncRefresh";
 import { DataFreshness } from "../DataFreshness";
+import { mutationHeaders } from "../mutationHeaders";
 
 type FbaDetail = {
   item_id: string;
@@ -369,7 +370,7 @@ export default function FbaPage() {
     try {
       const response = await fetch("/api/fba-shipments", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: mutationHeaders({ "Content-Type": "application/json" }),
         body: JSON.stringify({
           shipment_id: shipmentId.trim(),
           items,
@@ -407,7 +408,7 @@ export default function FbaPage() {
     try {
       const response = await fetch("/api/fba-shipments", {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: mutationHeaders({ "Content-Type": "application/json" }),
         body: JSON.stringify({
           items: row.details.map((detail) => ({
             item_id: detail.item_id,

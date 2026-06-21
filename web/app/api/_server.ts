@@ -79,19 +79,49 @@ export function localFileSignalUnavailable(source: string) {
 
 export function requireAdminApiToken(request: Request) {
   const expected = normalizedEnv("MBOP_ADMIN_API_TOKEN");
-  if (!expected) return null;
-
   const bearer = request.headers.get("authorization")?.match(/^Bearer\s+(.+)$/i)?.[1]?.trim();
   const header = request.headers.get("x-mbop-admin-token")?.trim();
 
-  if (bearer === expected || header === expected) return null;
+  if (expected && (bearer === expected || header === expected)) return null;
+
+  const csrfHeader = request.headers.get("x-mbop-csrf")?.trim();
+  const origin = request.headers.get("origin");
+  const host = request.headers.get("x-forwarded-host") ?? request.headers.get("host");
+  const albAuthenticated =
+    Boolean(request.headers.get("x-amzn-oidc-data")) ||
+    Boolean(request.headers.get("x-amzn-oidc-identity"));
+
+  if (csrfHeader === "1" && isSameOrigin(origin, host)) {
+    if (!isCloudDeployment() || albAuthenticated) return null;
+  }
+
+  if (isCloudDeployment() && !expected) {
+    return NextResponse.json(
+      {
+        error: "Admin API protection is not configured.",
+        details:
+          "Set MBOP_ADMIN_API_TOKEN or call this endpoint through an ALB-authenticated same-origin browser request.",
+      },
+      { status: 500 },
+    );
+  }
 
   return NextResponse.json(
     {
-      error: "Admin API token required.",
+      error: "Admin API token or same-origin mutation header required.",
       details:
-        "Set the x-mbop-admin-token header or Authorization: Bearer token for this privileged endpoint.",
+        "Set x-mbop-admin-token/Authorization for internal calls, or x-mbop-csrf for same-origin browser mutations.",
     },
     { status: 401 },
   );
+}
+
+function isSameOrigin(origin: string | null, host: string | null) {
+  if (!origin || !host) return false;
+
+  try {
+    return new URL(origin).host === host;
+  } catch {
+    return false;
+  }
 }

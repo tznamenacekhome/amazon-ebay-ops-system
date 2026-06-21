@@ -18,6 +18,7 @@ import { usePurchases } from "./purchases/usePurchases";
 import { rowKey } from "./purchases/utils";
 import { runOnDemandRefresh, type RefreshNotice } from "./syncRefresh";
 import { DataFreshness } from "./DataFreshness";
+import { mutationHeaders } from "./mutationHeaders";
 
 const PAGE_SIZE = 100;
 
@@ -215,7 +216,7 @@ export default function PurchasesPage() {
     try {
       const response = await fetch(`/api/order-problems/${selectedRow.problem_case_id}/actions`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: mutationHeaders({ "Content-Type": "application/json" }),
         body: JSON.stringify({ action, ...payload }),
       });
 

@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ArrowDown, ArrowUp, Check, PackageCheck, RefreshCw, Search, X } from "lucide-react";
 import { DataFreshness } from "../DataFreshness";
+import { mutationHeaders } from "../mutationHeaders";
 
 import type { PurchaseRow } from "../purchases/types";
 import {
@@ -303,7 +304,7 @@ export default function ReceivingPage() {
     try {
       const response = await fetch("/api/receiving", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: mutationHeaders({ "Content-Type": "application/json" }),
         body: JSON.stringify({
           items,
           confirmation: RECEIVING_CONFIRMATION_TOKEN,

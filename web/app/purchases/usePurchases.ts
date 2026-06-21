@@ -7,6 +7,7 @@ import type {
   PurchasesApiResponse,
 } from "./types";
 import { rowKey } from "./utils";
+import { mutationHeaders } from "../mutationHeaders";
 
 const PURCHASE_CACHE_KEY = "mbop:purchases:v9";
 const PURCHASE_CACHE_PREFIX = "mbop:purchases:";
@@ -132,7 +133,7 @@ export function usePurchases(query: PurchaseQuery) {
       try {
         const response = await fetch("/api/purchases", {
           method: "PATCH",
-          headers: { "Content-Type": "application/json" },
+          headers: mutationHeaders({ "Content-Type": "application/json" }),
           body: JSON.stringify({
             purchase_id: row.purchase_id,
             item_id: row.item_id,
@@ -208,7 +209,7 @@ export function usePurchases(query: PurchaseQuery) {
     try {
       const response = await fetch("/api/purchases", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: mutationHeaders({ "Content-Type": "application/json" }),
         body: JSON.stringify({
           source_item_id: row.item_id,
           title: "Split item",

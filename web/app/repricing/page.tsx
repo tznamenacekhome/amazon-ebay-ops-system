@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { RefreshCw, X } from "lucide-react";
 import { runOnDemandRefresh, type RefreshNotice } from "../syncRefresh";
 import { DataFreshness } from "../DataFreshness";
+import { mutationHeaders } from "../mutationHeaders";
 
 type RecommendationTier =
   | "Healthy"
@@ -254,7 +255,7 @@ export default function RepricingPage() {
     try {
       const response = await fetch("/api/amazon/repricing-advisor", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: mutationHeaders({ "Content-Type": "application/json" }),
         body: JSON.stringify({
           seller_sku: row.seller_sku,
           asin: row.asin,

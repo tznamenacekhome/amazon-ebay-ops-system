@@ -6,6 +6,8 @@ export const runtime = "nodejs";
 
 const webhookSecret = process.env.EASYPOST_WEBHOOK_SECRET;
 const webhookToken = process.env.EASYPOST_WEBHOOK_TOKEN;
+const webhookTokenSigningSecret =
+  process.env.EASYPOST_WEBHOOK_TOKEN_SIGNING_SECRET ?? webhookSecret;
 const timestampToleranceMinutes = Number(
   process.env.EASYPOST_WEBHOOK_TOLERANCE_MINUTES ?? "1"
 );
@@ -185,14 +187,20 @@ async function updateLinkedPurchaseItemStatuses(
 }
 
 function validateEasyPostSignature(request: Request, rawBody: string) {
-  if (webhookToken) {
-    const provided = request.headers.get("x-mbop-webhook-token") ?? "";
-    if (provided === webhookToken) return null;
-  }
+  const hmacError = validateHmacSignature(request, rawBody);
+  if (!hmacError) return null;
 
-  if (!webhookSecret) {
-    return "Missing EasyPost HMAC configuration";
-  }
+  const tokenError = validateTokenSignature(request, rawBody);
+  if (!tokenError) return null;
+
+  if (webhookSecret) return hmacError;
+  if (webhookToken) return tokenError;
+
+  return "Missing EasyPost webhook authentication configuration";
+}
+
+function validateHmacSignature(request: Request, rawBody: string) {
+  if (!webhookSecret) return "Missing EasyPost HMAC configuration";
 
   const timestamp = request.headers.get("x-timestamp");
   const path = request.headers.get("x-path");
@@ -202,25 +210,60 @@ function validateEasyPostSignature(request: Request, rawBody: string) {
     return "Missing EasyPost HMAC headers";
   }
 
+  const timestampError = validateTimestamp(timestamp);
+  if (timestampError) return timestampError;
+
+  const signatureValue = signature.replace(/^hmac-sha256-hex=/i, "");
+  const stringToSign = `${timestamp}${request.method.toUpperCase()}${path}${rawBody}`;
+  return validateHexHmac(signatureValue, stringToSign, webhookSecret);
+}
+
+function validateTokenSignature(request: Request, rawBody: string) {
+  if (!webhookToken) return "Missing EasyPost token configuration";
+  if (!webhookTokenSigningSecret) {
+    return "Missing EasyPost token signing configuration";
+  }
+
+  const provided = request.headers.get("x-mbop-webhook-token") ?? "";
+  if (!safeEqualText(provided, webhookToken)) return "Invalid EasyPost webhook token";
+
+  const timestamp = request.headers.get("x-mbop-webhook-timestamp");
+  const signature = request.headers.get("x-mbop-webhook-signature");
+
+  if (!timestamp || !signature) return "Missing EasyPost token signature headers";
+
+  const timestampError = validateTimestamp(timestamp);
+  if (timestampError) return timestampError;
+
+  const path = new URL(request.url).pathname;
+  const stringToSign = `${timestamp}${request.method.toUpperCase()}${path}${rawBody}`;
+  return validateHexHmac(
+    signature.replace(/^hmac-sha256-hex=/i, ""),
+    stringToSign,
+    webhookTokenSigningSecret,
+  );
+}
+
+function validateTimestamp(timestamp: string) {
   const parsedTimestamp = Date.parse(timestamp);
 
-  if (Number.isNaN(parsedTimestamp)) {
-    return "Invalid EasyPost timestamp";
-  }
+  if (Number.isNaN(parsedTimestamp)) return "Invalid EasyPost timestamp";
 
   const ageMs = Math.abs(Date.now() - parsedTimestamp);
   const toleranceMs = timestampToleranceMinutes * 60 * 1000;
 
-  if (ageMs > toleranceMs) {
-    return "EasyPost timestamp is outside tolerance";
-  }
+  if (ageMs > toleranceMs) return "EasyPost timestamp is outside tolerance";
 
-  const signatureValue = signature.replace(/^hmac-sha256-hex=/i, "");
-  const stringToSign = `${timestamp}${request.method.toUpperCase()}${path}${rawBody}`;
+  return null;
+}
+
+function validateHexHmac(signatureValue: string, stringToSign: string, secret: string) {
   const expected = crypto
-    .createHmac("sha256", webhookSecret!)
+    .createHmac("sha256", secret)
     .update(stringToSign, "utf8")
     .digest("hex");
+
+  if (!/^[a-f0-9]+$/i.test(signatureValue)) return "Invalid EasyPost signature";
 
   const expectedBuffer = Buffer.from(expected, "hex");
   const actualBuffer = Buffer.from(signatureValue, "hex");
@@ -233,6 +276,16 @@ function validateEasyPostSignature(request: Request, rawBody: string) {
   }
 
   return null;
+}
+
+function safeEqualText(left: string, right: string) {
+  const leftBuffer = Buffer.from(left);
+  const rightBuffer = Buffer.from(right);
+
+  return (
+    leftBuffer.length === rightBuffer.length &&
+    crypto.timingSafeEqual(leftBuffer, rightBuffer)
+  );
 }
 
 function buildShipmentUpdatePayload(tracker: EasyPostTracker) {

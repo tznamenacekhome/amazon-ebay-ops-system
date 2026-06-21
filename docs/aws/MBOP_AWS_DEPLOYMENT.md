@@ -1,8 +1,8 @@
 # MBOP AWS Deployment
 
-Last updated: 2026-06-20
+Last updated: 2026-06-21
 
-This document records the authoritative AWS production state for MBOP as inspected from AWS CLI on 2026-06-20. Live AWS state remains the highest authority.
+This document records the authoritative AWS production state for MBOP as inspected from AWS CLI on 2026-06-21. Live AWS state remains the highest authority.
 
 ## Current Live State
 
@@ -13,7 +13,7 @@ Known from the latest handoff:
 - Runtime: ECS/Fargate
 - ECS cluster: `mbop-cluster1`
 - ECS web service: `mbop-web-service`
-- Current web task definition: `mbop-web-task:8`
+- Current web task definition: `mbop-web-task:13`
 - Current web container: `mbop-web`
 - Web task size: `0.5 vCPU / 1 GiB`
 - Web container port: `3103`
@@ -62,10 +62,10 @@ Web repository:
 Current web task image:
 
 ```text
-297464765814.dkr.ecr.us-west-2.amazonaws.com/mbop-web@sha256:559cca267defce3ec6629524ead47b67b3e0ab35e1c4d980cd2f30cfd23855f3
+297464765814.dkr.ecr.us-west-2.amazonaws.com/mbop-web@sha256:7389088818049fb8c0db28e2ab14c5181dbf6db31fa77c7e69eb1e9a2aebddc5
 ```
 
-Tags `phase1` and `logout-webhook-20260620` currently point at the same digest.
+Tag `security-hardening-20260621b` points at the current digest.
 
 Scheduler repository:
 
@@ -95,7 +95,7 @@ sha256:c7a24284e3bf17167e6783600d734c5ae8e1797ebd6cc5e1b112ccfabd253206
 - Scheme: internet-facing
 - Type: application
 - VPC: `vpc-0aba3173cb039c55c`
-- Security group: `sg-036aae754876afa15` / `default`
+- Security group: `sg-0f50ebb07c1d9bf54` / `mbop-alb-sg`
 
 Listeners:
 
@@ -125,11 +125,13 @@ Target group:
 
 - User pool ID: `us-west-2_IBxxtQ9xL`
 - User pool name: `User pool - fqjwyk`
-- App client name: `MBOP`
-- App client ID: `4008ukjg31rsj9gqn59fhk2nkr`
+- App client name: `MBOP-rotated-20260621`
+- App client ID: `11i581nub6aqvqecjmqddrfj7o`
 - Hosted UI domain: `us-west-2ibxxtq9xl`
 - Hosted UI CloudFront distribution: `dpp0gtxikpq3y.cloudfront.net`
 - Identity provider: `Google`
+- Supported identity providers: `Google` only
+- Explicit auth flows: `ALLOW_REFRESH_TOKEN_AUTH`
 - ALB auth session cookie: `AWSELBAuthSessionCookie`
 - ALB auth scope: `openid`
 - ALB auth session timeout: `604800` seconds
@@ -177,7 +179,7 @@ Run these from an AWS-authenticated shell. Do not paste secret values into docs.
 
 ```powershell
 aws ecs describe-services --region us-west-2 --cluster mbop-cluster1 --services mbop-web-service
-aws ecs describe-task-definition --region us-west-2 --task-definition mbop-web-task:8
+aws ecs describe-task-definition --region us-west-2 --task-definition mbop-web-task:13
 aws elbv2 describe-load-balancers --region us-west-2
 aws elbv2 describe-listeners --region us-west-2 --load-balancer-arn <alb-arn>
 aws elbv2 describe-rules --region us-west-2 --listener-arn <https-listener-arn>
@@ -247,6 +249,10 @@ EasyPost webhook validation secret:
 
 - `/mbop/prod/easypost/webhook-token`
 
+Admin mutation token:
+
+- `/mbop/prod/admin/api-token`
+
 Do not store secret values in the repo.
 
 ## EasyPost Webhook
@@ -261,9 +267,9 @@ Status: enabled
 ```
 
 The route is POST-only. A GET smoke check through the public domain should
-return `405`, not a Cognito redirect. EasyPost outbound requests include the
-configured shared token header, and the ECS web task also receives the same
-secret as `EASYPOST_WEBHOOK_TOKEN` and `EASYPOST_WEBHOOK_SECRET`.
+return `405`, not a Cognito redirect. The route now rejects a bare static token:
+webhook calls must pass EasyPost HMAC headers or the internal token plus
+timestamp/signature headers.
 
 Verification on 2026-06-20:
 
@@ -291,7 +297,7 @@ The scheduler log group exists and has 30-day retention.
 
 ## IAM
 
-ECS execution role:
+Shared scheduler/default ECS execution role:
 
 ```text
 arn:aws:iam::297464765814:role/ecsTaskExecutionRole
@@ -310,7 +316,45 @@ mbop-phase1-secret-read
 ```
 
 The inline policy allows `secretsmanager:GetSecretValue` for `/mbop/prod/*`
-secrets only.
+secrets and is used by scheduler task definitions.
+
+Web ECS execution role:
+
+```text
+arn:aws:iam::297464765814:role/mbop-web-task-execution-role
+```
+
+Attached AWS-managed policy:
+
+```text
+service-role/AmazonECSTaskExecutionRolePolicy
+```
+
+Inline policy:
+
+```text
+mbop-web-secret-read
+```
+
+This role is used by `mbop-web-task:13` and can read only the web runtime
+secrets: Supabase service role, EasyPost webhook secret, and admin API token.
+
+## Security Hardening Status
+
+Applied on 2026-06-21:
+
+- `MBOP_ADMIN_API_TOKEN` is configured in ECS from
+  `/mbop/prod/admin/api-token`.
+- Mutation routes require either the internal admin token or an
+  ALB-authenticated same-origin browser request with `x-mbop-csrf: 1`.
+- Frontend mutation calls send `x-mbop-csrf: 1`.
+- Cognito app client secret was rotated by replacing the old client with
+  `MBOP-rotated-20260621`; the old app client was deleted.
+- Cognito login is Google-only, with direct user-pool auth flows reduced to
+  refresh-token auth.
+- ALB now uses dedicated security group `sg-0f50ebb07c1d9bf54` /
+  `mbop-alb-sg`, not the default security group.
+- ECS web task security group now allows port `3103` from `mbop-alb-sg`.
 
 ## CloudFront WAF
 
