@@ -315,11 +315,92 @@ secrets only.
 ## CloudFront WAF
 
 The static homepage CloudFront distribution still has AWS WAF web ACL
-`CreatedByCloudFront-55bad07c` associated. Attempted API removal on 2026-06-21
-failed because CloudFront reported that distributions with a pricing plan
-subscription must have a web ACL resource. To remove the WAF cost, first disable
-the CloudFront security-protections/pricing-plan subscription for the
-distribution, then disassociate and delete the web ACL.
+`CreatedByCloudFront-55bad07c` associated.
+
+Read-only review on 2026-06-21:
+
+- CloudFront distribution: `E2KKKB5MJ8CV3N` /
+  `dfmaesup5ihuk.cloudfront.net`.
+- Aliases: `www.midnightblueenterprises.com`,
+  `midnightblueenterprises.com`.
+- Origin: S3 website endpoint
+  `midnightblueenterprises.com.s3-website-us-west-2.amazonaws.com`.
+- The distribution has one origin and one cache behavior. It only allows
+  `GET` and `HEAD`.
+- The MBOP app and webhook do not route through this distribution.
+  `mbop.midnightblueenterprises.com` resolves to the ALB
+  `mbop-alb-1736189201.us-west-2.elb.amazonaws.com`.
+- The WAF web ACL is attached only to this CloudFront distribution.
+- Shield Advanced is inactive, there are no CloudFront distribution tenants,
+  and there is no CloudFront monitoring subscription.
+- WAF logging is not enabled.
+- Recent WAF request metrics had no datapoints yet.
+
+The WAF ACL appears to come from CloudFront one-click AWS WAF protections. The
+rule groups are:
+
+- `AWSManagedRulesAmazonIpReputationList`
+- `AWSManagedRulesCommonRuleSet`
+- `AWSManagedRulesKnownBadInputsRuleSet`
+
+AWS rejected direct WAF removal with:
+
+```text
+Distributions with a pricing plan subscription must have a web ACL resource.
+```
+
+This is not protecting MBOP app/API data because MBOP app/API traffic goes to
+the ALB/Cognito endpoint, not this CloudFront distribution. The WAF only
+protects the static homepage path.
+
+S3 origin exposure:
+
+- Bucket: `midnightblueenterprises.com`
+- Static website hosting is enabled.
+- Bucket policy is public read for `arn:aws:s3:::midnightblueenterprises.com/*`.
+- Public access blocks are disabled.
+- There is no CloudFront OAC/OAI because the origin is the public S3 website
+  endpoint.
+
+Cost:
+
+- AWS WAF pricing is based on web ACLs, rules/managed rule groups, and request
+  volume.
+- Current fixed WAF estimate is about `$8/month` before request charges:
+  roughly `$5/month` for one web ACL plus `$1/month` for each of the three AWS
+  managed rule groups.
+- Request charges should be negligible at current homepage traffic.
+
+Recommendation:
+
+- Remove the CloudFront one-click WAF/security-protections subscription for the
+  static homepage to save about `$8/month`.
+- Risk increase to MBOP app/data is minimal because the MBOP app, APIs, and
+  EasyPost webhook do not route through this CloudFront distribution.
+- The homepage remains public static content either way because the S3 website
+  bucket is directly public.
+
+Safe removal path:
+
+1. In the CloudFront console, open distribution `E2KKKB5MJ8CV3N`.
+2. Open the Security / WAF protections area.
+3. Disable the CloudFront one-click security protections or pricing-plan
+   subscription that requires a web ACL.
+4. After the subscription is disabled, disassociate the web ACL from the
+   distribution.
+5. Delete WAF web ACL `CreatedByCloudFront-55bad07c` after confirming it is no
+   longer associated with any distribution.
+6. Verify `www.midnightblueenterprises.com` still serves the static homepage and
+   `mbop.midnightblueenterprises.com` still resolves to the ALB.
+
+Lowest-cost safe alternative if WAF must remain:
+
+- Keep the current WAF ACL as-is. It has no logging enabled and no premium Bot
+  Control/Fraud Control rule groups, so it is already close to the lowest-cost
+  WAF posture.
+- Optionally narrow CloudFront `PriceClass` from `PriceClass_All` to a cheaper
+  regional price class for static homepage traffic, but that is separate from
+  WAF cost.
 
 EventBridge Scheduler role:
 

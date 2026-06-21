@@ -130,16 +130,33 @@ lists and the hosted UI domain recorded in `MBOP_AWS_DEPLOYMENT.md`.
 ## CloudFront WAF Removal
 
 The static homepage CloudFront distribution currently has AWS WAF web ACL
-`CreatedByCloudFront-55bad07c` attached. Direct API removal failed with:
+`CreatedByCloudFront-55bad07c` attached. This WAF protects only the static
+homepage distribution `E2KKKB5MJ8CV3N`; MBOP app/API/webhook traffic routes to
+the ALB at `mbop.midnightblueenterprises.com`, not through CloudFront.
+
+The S3 homepage bucket is already public-read through S3 static website hosting,
+with no OAC/OAI. Removing WAF does not materially increase risk to MBOP app data.
+It only removes WAF filtering for public static homepage requests.
+
+Direct API removal failed with:
 
 ```text
 Distributions with a pricing plan subscription must have a web ACL resource.
 ```
 
-To remove WAF cost, first disable the CloudFront security-protections/pricing
-plan subscription for distribution `E2KKKB5MJ8CV3N`, then disassociate the web
-ACL and delete it. Do not delete the CloudFront distribution or S3 homepage
-bucket as part of WAF removal.
+To remove WAF cost:
+
+1. In the CloudFront console, open distribution `E2KKKB5MJ8CV3N`.
+2. Open the Security / WAF protections area.
+3. Disable the CloudFront one-click security protections or pricing-plan
+   subscription that requires the web ACL.
+4. Disassociate web ACL `CreatedByCloudFront-55bad07c`.
+5. Delete the web ACL after confirming it is no longer associated with any
+   distribution.
+6. Verify `www.midnightblueenterprises.com` serves the homepage and
+   `mbop.midnightblueenterprises.com` still resolves to the ALB.
+
+Expected savings are about `$8/month` before request charges.
 
 ## Disable Schedules
 
