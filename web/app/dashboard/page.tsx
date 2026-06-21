@@ -833,7 +833,7 @@ function SchedulerGroupTable({
       <table className="w-full text-left text-sm">
         <thead className="bg-slate-50 text-[11px] uppercase tracking-wide text-slate-500">
           <tr>
-            {["Group", "Status", "Last Success", "Runtime", "Cadence", "Jobs", "Trigger"].map((column) => (
+            {["Group", "Status", "Since Success", "Last Success", "Runtime", "Cadence", "Jobs", "Trigger"].map((column) => (
               <th key={column} className="px-3 py-2 font-semibold">{column}</th>
             ))}
           </tr>
@@ -844,6 +844,7 @@ function SchedulerGroupTable({
               {[
                 text(group.label),
                 text(group.status),
+                formatAgeHours(group.ageHours),
                 formatDateShort(text(group.lastSuccessAt)),
                 formatDurationShort(group.runtimeSeconds),
                 text(group.cadence),
@@ -1163,6 +1164,14 @@ function formatDurationShort(value: unknown) {
   if (seconds < 60) return `${Math.round(seconds)}s`;
   if (seconds < 3600) return `${Math.round(seconds / 60)}m`;
   return `${(seconds / 3600).toFixed(1)}h`;
+}
+
+function formatAgeHours(value: unknown) {
+  if (value === null || value === undefined || Number.isNaN(Number(value))) return "--";
+  const hours = Number(value);
+  if (hours < 1) return "<1h";
+  if (hours < 48) return `${Math.round(hours)}h`;
+  return `${Math.round(hours / 24)}d`;
 }
 
 function formatDateShort(value: string | null | undefined) {

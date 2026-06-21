@@ -969,18 +969,15 @@ function buildSchedulerGroupSummaries(
   const jobRunsByGroup = groupBy(jobRuns, (run) => run.groupName);
   const jobRunsByRunId = groupBy(jobRuns, (run) => run.runId);
   const runsByGroup = groupBy(runs, (run) => run.groupName);
+  const runsById = new Map(runs.map((run) => [run.runId, run]));
+  const latestByJobName = latestJobRunsForGroup(jobRuns);
 
   return SCHEDULER_GROUPS.map((group) => {
     const groupRuns = runsByGroup.get(group.key) ?? [];
-    const latestRun = groupRuns[0] ?? null;
-    const successRun = groupRuns.find((run) => run.status === "ok") ?? null;
-    const latestRunAt = latestRun?.finishedAt || latestRun?.startedAt || null;
-    const lastSuccessAt = successRun?.finishedAt || successRun?.startedAt || null;
-    const hoursSinceLastRun = latestRunAt ? hoursSince(latestRunAt) : null;
-    const hoursSinceLastSuccess = lastSuccessAt ? hoursSince(lastSuccessAt) : null;
     const latestByJob = latestJobRunsForGroup(jobRunsByGroup.get(group.key) ?? []);
+    const configuredJobRuns = jobRuns.filter((run) => group.jobNames.includes(run.jobName));
     const configuredJobs = group.jobNames.map((name) => {
-      const telemetry = latestByJob.get(name);
+      const telemetry = latestByJob.get(name) ?? latestByJobName.get(name);
       const configured = jobs.find((job) => job.name === name);
       const status = telemetry
         ? healthStatusForJobRun(telemetry)
@@ -998,12 +995,25 @@ function buildSchedulerGroupSummaries(
         message: telemetry?.errorSummary || configured?.message || null,
       };
     });
+    const displayRuns = groupRuns.length ? groupRuns : deriveRunsFromJobTelemetry(group, configuredJobRuns, runsById);
+    const latestRun = displayRuns[0] ?? null;
+    const successRun = displayRuns.find((run) => run.status === "ok") ?? null;
+    const latestJobRunAt = maxTimestamp(configuredJobs.map((job) => job.lastRunAt));
+    const latestOkJobRunAt = maxTimestamp(
+      configuredJobs.filter((job) => job.status === "ok").map((job) => job.lastRunAt),
+    );
+    const latestRunAt = latestRun?.finishedAt || latestRun?.startedAt || latestJobRunAt;
+    const lastSuccessAt = successRun?.finishedAt || successRun?.startedAt || latestOkJobRunAt;
+    const hoursSinceLastRun = latestRunAt ? hoursSince(latestRunAt) : null;
+    const hoursSinceLastSuccess = lastSuccessAt ? hoursSince(lastSuccessAt) : null;
 
     const failedJobs = configuredJobs.filter((job) => job.status === "failed").length;
     const blockedJobs = configuredJobs.filter((job) => job.status === "blocked").length;
     const okJobs = configuredJobs.filter((job) => job.status === "ok").length;
-    const recentGroupRuns = groupRuns.slice(0, 10).map((run) => {
-      const runJobs = jobRunsByRunId.get(run.runId) ?? [];
+    const recentGroupRuns = displayRuns.slice(0, 10).map((run) => {
+      const runJobs = (jobRunsByRunId.get(run.runId) ?? []).filter(
+        (jobRun) => groupRuns.length || group.jobNames.includes(jobRun.jobName),
+      );
       return {
         ...run,
         jobs: runJobs,
@@ -1034,7 +1044,7 @@ function buildSchedulerGroupSummaries(
       jobs: configuredJobs,
       stats: [
         { label: "Schedules", value: formatCount(group.scheduleNames.length) },
-        { label: "Recent runs", value: formatCount(groupRuns.length) },
+        { label: "Recent runs", value: formatCount(displayRuns.length) },
         { label: "Last 10 success", value: `${successfulRuns}/${recentGroupRuns.length || 0}` },
         { label: "Avg runtime", value: formatDuration(averageRuntimeSeconds) },
         { label: "Rows changed", value: formatCount(changedRows) },
@@ -1044,6 +1054,51 @@ function buildSchedulerGroupSummaries(
       ],
     };
   });
+}
+
+function deriveRunsFromJobTelemetry(
+  group: SchedulerGroupConfig,
+  jobRuns: SchedulerJobRunRecord[],
+  runsById: Map<string, SchedulerRunRecord>,
+): SchedulerRunRecord[] {
+  const byRun = groupBy(jobRuns, (run) => run.runId);
+  return [...byRun.entries()]
+    .map(([runId, runs]) => {
+      const parent = runsById.get(runId);
+      const startedAt = minTimestamp(runs.map((run) => run.startedAt)) || parent?.startedAt || null;
+      const finishedAt =
+        maxTimestamp(runs.map((run) => run.finishedAt || run.startedAt)) || parent?.finishedAt || null;
+      const runtimeSeconds = parent?.runtimeSeconds ?? sumJobRuntime(runs);
+
+      return {
+        runId,
+        groupName: group.key,
+        status: parent?.status ?? statusForJobTelemetryRun(runs),
+        startedAt,
+        finishedAt,
+        runtimeSeconds,
+        triggerSource: parent?.groupName ? `via ${groupLabel(parent.groupName)}` : "job telemetry",
+        ecsTaskArn: parent?.ecsTaskArn ?? null,
+        eventbridgeScheduleName: parent?.eventbridgeScheduleName ?? null,
+        containerCpu: parent?.containerCpu ?? null,
+        containerMemory: parent?.containerMemory ?? null,
+        errorSummary: parent?.errorSummary ?? runs.find((run) => run.errorSummary)?.errorSummary ?? null,
+      };
+    })
+    .sort((left, right) => timestampForRun(right) - timestampForRun(left));
+}
+
+function statusForJobTelemetryRun(runs: SchedulerJobRunRecord[]): SchedulerRunRecord["status"] {
+  if (runs.some((run) => run.status === "running")) return "running";
+  if (runs.some((run) => run.status === "blocked")) return "blocked";
+  if (runs.some((run) => run.status === "failed")) return "failed";
+  if (runs.some((run) => run.status === "skipped")) return "degraded";
+  return "ok";
+}
+
+function sumJobRuntime(runs: SchedulerJobRunRecord[]) {
+  const seconds = runs.reduce((total, run) => total + (run.runtimeSeconds ?? 0), 0);
+  return seconds > 0 ? seconds : null;
 }
 
 function statusForSchedulerGroup(
@@ -1108,6 +1163,18 @@ function groupBy<T>(values: T[], keyFor: (value: T) => string) {
 
 function timestampForRun(run: { finishedAt: string | null; startedAt: string | null }) {
   return Date.parse(run.finishedAt || run.startedAt || "") || 0;
+}
+
+function maxTimestamp(values: Array<string | null>) {
+  return values
+    .filter((value): value is string => Boolean(value))
+    .sort((left, right) => Date.parse(right) - Date.parse(left))[0] ?? null;
+}
+
+function minTimestamp(values: Array<string | null>) {
+  return values
+    .filter((value): value is string => Boolean(value))
+    .sort((left, right) => Date.parse(left) - Date.parse(right))[0] ?? null;
 }
 
 async function latestTimestampSignal(table: string, column: string, countLabel: string): Promise<JobSignal> {
@@ -1418,9 +1485,16 @@ function metricStatsForJobRuns(runs: SchedulerJobRunRecord[]) {
     { label: "Rate limits", value: sumJobMetric(runs, "rateLimitCount") },
   ];
 
-  return stats
+  const numericStats = stats
     .filter((stat) => stat.value > 0)
     .map((stat) => ({ label: stat.label, value: formatCount(stat.value) }));
+  if (numericStats.length || !runs.length) return numericStats;
+
+  return [
+    { label: "Jobs", value: formatCount(runs.length) },
+    { label: "OK", value: formatCount(runs.filter((run) => run.status === "ok").length) },
+    { label: "Failed", value: formatCount(runs.filter((run) => run.status === "failed").length) },
+  ];
 }
 
 function sumJobMetric(
