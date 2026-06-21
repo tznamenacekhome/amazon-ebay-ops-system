@@ -19,16 +19,36 @@ type SchedulerGroup = {
   domain: string;
   cadence: string;
   schedule: string;
+  scheduleNames?: string[];
+  description?: string;
+  features?: string[];
+  expectedEveryHours?: number;
+  criticalAfterHours?: number;
   status: "ok" | "delayed" | "failed" | "unknown" | "skipped" | "running" | "blocked";
   lastRunAt: string | null;
   lastSuccessAt: string | null;
   hoursSinceLastSuccess: number | null;
   latestRun: {
+    runId?: string;
     status: string;
+    startedAt?: string | null;
+    finishedAt?: string | null;
     runtimeSeconds: number | null;
     eventbridgeScheduleName: string | null;
     triggerSource: string | null;
+    stats?: Array<{ label: string; value: string }>;
   } | null;
+  recentRuns?: Array<{
+    runId: string;
+    status: string;
+    startedAt: string | null;
+    finishedAt: string | null;
+    runtimeSeconds: number | null;
+    triggerSource: string | null;
+    eventbridgeScheduleName: string | null;
+    errorSummary: string | null;
+    stats?: Array<{ label: string; value: string }>;
+  }>;
   jobs: Array<{
     name: string;
     status: string;
@@ -142,14 +162,23 @@ export async function GET(request: NextRequest) {
       group: group.key,
       label: group.label,
       domain: group.domain,
+      description: group.description ?? null,
+      features: group.features ?? [],
       status: group.status === "unknown" && !group.lastRunAt ? "pending first run" : group.status,
       cadence: group.cadence,
       schedule: group.schedule,
+      scheduleNames: group.scheduleNames ?? [],
+      expectedEveryHours: group.expectedEveryHours ?? null,
+      criticalAfterHours: group.criticalAfterHours ?? null,
       lastRunAt: group.lastRunAt,
       lastSuccessAt: group.lastSuccessAt,
       ageHours: group.hoursSinceLastSuccess,
       runtimeSeconds: group.latestRun?.runtimeSeconds ?? null,
       trigger: group.latestRun?.eventbridgeScheduleName ?? group.latestRun?.triggerSource ?? null,
+      latestRun: group.latestRun ?? null,
+      recentRuns: group.recentRuns ?? [],
+      jobs: group.jobs,
+      stats: (group as SchedulerGroup & { stats?: Array<{ label: string; value: string }> }).stats ?? [],
       jobsOk: group.jobs.filter((job) => job.status === "ok").length,
       jobsFailed: group.jobs.filter((job) => job.status === "failed").length,
       jobsRunning: group.jobs.filter((job) => job.status === "running").length,

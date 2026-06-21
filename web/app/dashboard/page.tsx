@@ -2,7 +2,7 @@
 
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { RefreshCw } from "lucide-react";
+import { RefreshCw, X } from "lucide-react";
 import { runOnDemandRefresh, type RefreshNotice } from "../syncRefresh";
 import {
   CompactStatusTable,
@@ -772,6 +772,10 @@ function LossPreventionPanel({ data, loading }: { data: DashboardPayload | null;
 }
 
 function SystemHealthPanel({ data, loading }: { data: DashboardPayload | null; loading: boolean }) {
+  const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
+  const groups = asRows(data?.schedulerGroups);
+  const selectedGroup = groups.find((group) => text(group.group) === selectedGroupId) ?? null;
+
   return (
     <div className="space-y-4">
       <MetricGrid>
@@ -782,7 +786,11 @@ function SystemHealthPanel({ data, loading }: { data: DashboardPayload | null; l
         <MetricCard label="Delayed Groups" value={loading ? "--" : formatNumber(data?.summary?.delayedGroups)} tone={toneFor(data?.summary?.delayedGroups ?? 0, 0, 3)} />
       </MetricGrid>
       <DashboardSection title="AWS Scheduler Groups" eyebrow="EventBridge / ECS">
-        <CompactStatusTable columns={["Group", "Status", "Last Success", "Runtime", "Cadence", "Jobs", "Trigger"]} rows={asRows(data?.schedulerGroups).map((row) => ({ id: text(row.group), cells: [text(row.label), text(row.status), formatDateShort(text(row.lastSuccessAt)), formatDurationShort(row.runtimeSeconds), text(row.cadence), `${formatNumber(row.jobsOk)}/${formatNumber(row.jobsTotal)} ok`, text(row.trigger) || "--"] }))} />
+        <SchedulerGroupTable
+          groups={groups}
+          loading={loading}
+          onSelect={(group) => setSelectedGroupId(text(group.group))}
+        />
       </DashboardSection>
       <div className="grid gap-4 xl:grid-cols-2">
         <DashboardSection title="Recent Runs" eyebrow="Orchestrator">
@@ -796,6 +804,203 @@ function SystemHealthPanel({ data, loading }: { data: DashboardPayload | null; l
           ]} />
         </DashboardSection>
       </div>
+      {selectedGroup ? (
+        <DashboardSchedulerGroupDrawer group={selectedGroup} onClose={() => setSelectedGroupId(null)} />
+      ) : null}
+    </div>
+  );
+}
+
+function SchedulerGroupTable({
+  groups,
+  loading,
+  onSelect,
+}: {
+  groups: DashboardPayload[];
+  loading: boolean;
+  onSelect: (group: DashboardPayload) => void;
+}) {
+  if (!groups.length) {
+    return (
+      <div className="rounded-md border border-slate-200 px-3 py-6 text-center text-sm text-slate-500">
+        {loading ? "Loading scheduler groups..." : "No scheduler group telemetry found."}
+      </div>
+    );
+  }
+
+  return (
+    <div className="overflow-hidden rounded-md border border-slate-200">
+      <table className="w-full text-left text-sm">
+        <thead className="bg-slate-50 text-[11px] uppercase tracking-wide text-slate-500">
+          <tr>
+            {["Group", "Status", "Last Success", "Runtime", "Cadence", "Jobs", "Trigger"].map((column) => (
+              <th key={column} className="px-3 py-2 font-semibold">{column}</th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {groups.map((group) => (
+            <tr key={text(group.group)} className="border-t border-slate-100 hover:bg-slate-50">
+              {[
+                text(group.label),
+                text(group.status),
+                formatDateShort(text(group.lastSuccessAt)),
+                formatDurationShort(group.runtimeSeconds),
+                text(group.cadence),
+                `${formatNumber(group.jobsOk)}/${formatNumber(group.jobsTotal)} ok`,
+                text(group.trigger) || "--",
+              ].map((cell, index) => (
+                <td key={index} className="p-0">
+                  <button
+                    className="block h-full w-full px-3 py-2 text-left"
+                    onClick={() => onSelect(group)}
+                    type="button"
+                  >
+                    {cell}
+                  </button>
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function DashboardSchedulerGroupDrawer({ group, onClose }: { group: DashboardPayload; onClose: () => void }) {
+  const jobs = asRows(group.jobs);
+  const runs = asRows(group.recentRuns).slice(0, 10);
+  const features = Array.isArray(group.features) ? group.features.map(text).filter(Boolean) : [];
+  const scheduleNames = Array.isArray(group.scheduleNames) ? group.scheduleNames.map(text).filter(Boolean) : [];
+  const successfulRuns = runs.filter((run) => text(run.status) === "ok").length;
+  const topStats = asRows(group.latestRun?.stats).length ? asRows(group.latestRun?.stats) : asRows(group.stats);
+
+  return (
+    <div className="fixed inset-0 z-50">
+      <button aria-label="Close scheduler group details" className="absolute inset-0 cursor-default bg-slate-950/30" onClick={onClose} type="button" />
+      <aside className="absolute right-0 top-0 flex h-full w-full max-w-3xl flex-col border-l border-slate-200 bg-white shadow-2xl">
+        <div className="flex items-start justify-between gap-3 border-b border-slate-200 px-5 py-4">
+          <div>
+            <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">{text(group.domain)}</div>
+            <h2 className="mt-1 text-xl font-semibold text-slate-950">{text(group.label)}</h2>
+            <div className="mt-2 flex flex-wrap gap-2 text-xs">
+              <span className="rounded-md bg-slate-100 px-2 py-1 text-slate-700">{text(group.status)}</span>
+              <span className="rounded-md bg-slate-100 px-2 py-1 text-slate-700">{text(group.cadence)}</span>
+              <span className="rounded-md bg-slate-100 px-2 py-1 text-slate-700">Last 10: {successfulRuns}/{runs.length} successful</span>
+            </div>
+          </div>
+          <button className="rounded-md border border-slate-200 p-2 text-slate-500 hover:bg-slate-50 hover:text-slate-800" onClick={onClose} type="button">
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
+          <div className="grid gap-3 md:grid-cols-3">
+            <DrawerMetric label="Last Success" value={formatDateShort(text(group.lastSuccessAt))} />
+            <DrawerMetric label="Last Attempt" value={formatDateShort(text(group.lastRunAt))} />
+            <DrawerMetric label="Latest Runtime" value={formatDurationShort(group.runtimeSeconds)} />
+          </div>
+
+          <section className="mt-5">
+            <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-500">What This Updates</h3>
+            <p className="mt-2 text-sm leading-6 text-slate-700">{text(group.description) || "No description recorded."}</p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {features.length ? features.map((feature) => (
+                <span key={feature} className="rounded-md border border-slate-200 bg-slate-50 px-2 py-1 text-xs text-slate-700">{feature}</span>
+              )) : <span className="text-xs text-slate-500">No feature mapping recorded.</span>}
+            </div>
+          </section>
+
+          <section className="mt-5 grid gap-4 md:grid-cols-2">
+            <div>
+              <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-500">Schedule</h3>
+              <div className="mt-2 rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700">{text(group.schedule) || "--"}</div>
+              <div className="mt-2 flex flex-wrap gap-1">
+                {scheduleNames.length ? scheduleNames.map((name) => (
+                  <span key={name} className="rounded-md border border-slate-200 bg-white px-2 py-1 font-mono text-[11px] text-slate-600">{name}</span>
+                )) : <span className="rounded-md border border-slate-200 bg-white px-2 py-1 text-[11px] text-slate-500">manual/on-demand</span>}
+              </div>
+            </div>
+            <div>
+              <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-500">Guardrails</h3>
+              <div className="mt-2 grid grid-cols-2 gap-2">
+                <DrawerMetric label="Expected Every" value={Number(group.expectedEveryHours) > 0 ? `${formatNumber(group.expectedEveryHours)}h` : "manual"} compact />
+                <DrawerMetric label="Critical After" value={Number(group.criticalAfterHours) > 0 ? `${formatNumber(group.criticalAfterHours)}h` : "manual"} compact />
+              </div>
+            </div>
+          </section>
+
+          <section className="mt-5">
+            <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-500">Jobs In This Group</h3>
+            <CompactStatusTable
+              columns={["Job", "Status", "Last Run", "Runtime"]}
+              rows={jobs.map((job) => ({
+                id: text(job.name),
+                cells: [
+                  <div key="job">
+                    <div className="font-medium">{text(job.name)}</div>
+                    <div className="text-xs text-slate-500">{job.blocking ? "blocking" : "nonblocking"}</div>
+                  </div>,
+                  text(job.status),
+                  formatDateShort(text(job.lastRunAt)),
+                  formatDurationShort(job.runtimeSeconds),
+                ],
+              }))}
+              emptyText="No job telemetry recorded."
+            />
+          </section>
+
+          <section className="mt-5">
+            <div className="flex items-center justify-between gap-3">
+              <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-500">Last 10 Runs</h3>
+              <DrawerPills stats={topStats} empty="No counters" />
+            </div>
+            <div className="mt-2">
+              <CompactStatusTable
+                columns={["Run", "Status", "Finished", "Runtime", "Changed"]}
+                rows={runs.map((run) => ({
+                  id: text(run.runId),
+                  cells: [
+                    <div key="run">
+                      <div className="font-mono text-xs">{shortId(text(run.runId))}</div>
+                      <div className="text-xs text-slate-500">{text(run.eventbridgeScheduleName) || text(run.triggerSource) || "manual"}</div>
+                    </div>,
+                    text(run.status),
+                    formatDateShort(text(run.finishedAt) || text(run.startedAt)),
+                    formatDurationShort(run.runtimeSeconds),
+                    <DrawerPills key="stats" stats={asRows(run.stats)} empty="No counters" />,
+                  ],
+                }))}
+                emptyText="No run history recorded."
+              />
+            </div>
+          </section>
+        </div>
+      </aside>
+    </div>
+  );
+}
+
+function DrawerMetric({ label, value, compact = false }: { label: string; value: string; compact?: boolean }) {
+  return (
+    <div className={`rounded-lg border border-slate-200 bg-slate-50 ${compact ? "p-2" : "p-3"}`}>
+      <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">{label}</div>
+      <div className={`mt-1 font-semibold text-slate-900 ${compact ? "text-sm" : "text-base"}`}>{value}</div>
+    </div>
+  );
+}
+
+function DrawerPills({ stats, empty }: { stats: DashboardPayload[]; empty: string }) {
+  if (!stats.length) return <span className="text-xs text-slate-500">{empty}</span>;
+  return (
+    <div className="flex flex-wrap gap-1">
+      {stats.map((stat) => (
+        <span key={`${text(stat.label)}-${text(stat.value)}`} className="rounded-md border border-slate-200 bg-slate-50 px-2 py-1 text-xs">
+          <span className="text-slate-500">{text(stat.label)}</span>{" "}
+          <span className="font-medium text-slate-900">{text(stat.value)}</span>
+        </span>
+      ))}
     </div>
   );
 }
@@ -1011,6 +1216,11 @@ function text(value: unknown) {
 function href(value: unknown) {
   const output = text(value);
   return output || undefined;
+}
+
+function shortId(value: string) {
+  if (!value) return "--";
+  return value.length > 8 ? value.slice(0, 8) : value;
 }
 
 function noticeClass(tone: RefreshNotice["tone"]) {
