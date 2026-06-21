@@ -13,7 +13,7 @@ Known from the latest handoff:
 - Runtime: ECS/Fargate
 - ECS cluster: `mbop-cluster1`
 - ECS web service: `mbop-web-service`
-- Current web task definition: `mbop-web-task:7`
+- Current web task definition: `mbop-web-task:8`
 - Current web container: `mbop-web`
 - Web task size: `0.5 vCPU / 1 GiB`
 - Web container port: `3103`
@@ -22,7 +22,7 @@ Known from the latest handoff:
 - CloudFront domain: `dfmaesup5ihuk.cloudfront.net`
 - Public site domain: `www.midnightblueenterprises.com`
 - Authentication: Google OAuth to Cognito to ALB authentication to MBOP
-- Network: no NAT Gateway, public default subnets, one ALB, one running ECS web task
+- Network: no NAT Gateway, public default subnets in `us-west-2a` and `us-west-2b`, one ALB, one running ECS web task
 - Cloud flags: `CLOUD_DEPLOYMENT=true`, `LOCAL_SYNC_ENABLED=false`
 - Logout route: `/api/logout`
 - EasyPost webhook route: `/api/easypost/webhook`
@@ -39,15 +39,15 @@ The deployed web image is built from `web/Dockerfile`. It is web-only: it contai
 - Deployment circuit breaker: enabled with rollback
 - Health check grace period: `300` seconds
 - Current target: healthy
+- Current web task revision uses `/mbop/prod/supabase/service-role-key`; the
+  old phase-1 Supabase secret is scheduled for deletion.
 
 Network configuration:
 
 - VPC: `vpc-0aba3173cb039c55c`
 - Subnets:
-  - `subnet-04169524e0f9bdd8b` / `us-west-2c`
   - `subnet-07558cd00060ff69d` / `us-west-2b`
   - `subnet-0acbbc29cdf301200` / `us-west-2a`
-  - `subnet-0b2f04002f8b85fa0` / `us-west-2d`
 - ECS service security group: `sg-0b05e7760083c5e31` / `mbop-web-sg`
 - Public IP assignment: `ENABLED`
 
@@ -177,7 +177,7 @@ Run these from an AWS-authenticated shell. Do not paste secret values into docs.
 
 ```powershell
 aws ecs describe-services --region us-west-2 --cluster mbop-cluster1 --services mbop-web-service
-aws ecs describe-task-definition --region us-west-2 --task-definition mbop-web-task:7
+aws ecs describe-task-definition --region us-west-2 --task-definition mbop-web-task:8
 aws elbv2 describe-load-balancers --region us-west-2
 aws elbv2 describe-listeners --region us-west-2 --load-balancer-arn <alb-arn>
 aws elbv2 describe-rules --region us-west-2 --listener-arn <https-listener-arn>
@@ -234,7 +234,12 @@ Verify listener rules before changing auth:
 
 Existing phase-1 web secret:
 
-- `mbop/phase1/supabase-service-role-key`
+- `mbop/phase1/supabase-service-role-key` is no longer used by the live web
+  task and is scheduled for deletion on 2026-06-28.
+
+Current web and scheduler Supabase secret:
+
+- `/mbop/prod/supabase/service-role-key`
 
 Scheduler production secrets now exist under `/mbop/prod/*`. See [MBOP_AWS_SCHEDULER_PLAN.md](./MBOP_AWS_SCHEDULER_PLAN.md) for environment mappings.
 
@@ -304,7 +309,17 @@ Inline policy:
 mbop-phase1-secret-read
 ```
 
-The inline policy allows `secretsmanager:GetSecretValue` for the phase-1 Supabase secret and `/mbop/prod/*` scheduler secrets.
+The inline policy allows `secretsmanager:GetSecretValue` for `/mbop/prod/*`
+secrets only.
+
+## CloudFront WAF
+
+The static homepage CloudFront distribution still has AWS WAF web ACL
+`CreatedByCloudFront-55bad07c` associated. Attempted API removal on 2026-06-21
+failed because CloudFront reported that distributions with a pricing plan
+subscription must have a web ACL resource. To remove the WAF cost, first disable
+the CloudFront security-protections/pricing-plan subscription for the
+distribution, then disassociate and delete the web ACL.
 
 EventBridge Scheduler role:
 

@@ -17,6 +17,16 @@ Last updated: 2026-06-20
 aws ecs update-service --region us-west-2 --cluster mbop-cluster1 --service mbop-web-service --task-definition mbop-web-task:<revision>
 ```
 
+The live service intentionally uses only two public subnets:
+
+```text
+us-west-2a: subnet-0acbbc29cdf301200
+us-west-2b: subnet-07558cd00060ff69d
+```
+
+Keep the ALB and ECS service on the same two public subnets unless a future
+availability decision accepts the extra public IPv4 cost of more AZs.
+
 ## Deploy Scheduler Image
 
 Build from the repo root:
@@ -117,6 +127,20 @@ https://mbop.midnightblueenterprises.com/
 If logout redirects fail, verify the Cognito app client callback/logout URL
 lists and the hosted UI domain recorded in `MBOP_AWS_DEPLOYMENT.md`.
 
+## CloudFront WAF Removal
+
+The static homepage CloudFront distribution currently has AWS WAF web ACL
+`CreatedByCloudFront-55bad07c` attached. Direct API removal failed with:
+
+```text
+Distributions with a pricing plan subscription must have a web ACL resource.
+```
+
+To remove WAF cost, first disable the CloudFront security-protections/pricing
+plan subscription for distribution `E2KKKB5MJ8CV3N`, then disassociate the web
+ACL and delete it. Do not delete the CloudFront distribution or S3 homepage
+bucket as part of WAF removal.
+
 ## Disable Schedules
 
 Disable an EventBridge schedule before broad maintenance, Supabase IO incidents, or external API credential repair:
@@ -176,5 +200,11 @@ Use AWS Cost Explorer after enough data is available. Monitor:
 - CloudWatch Logs
 - Public IPv4
 - CloudFront/S3 homepage
+- AWS WAF if CloudFront security protections remain enabled
 
-Expected current AWS cost from handoff: roughly `$35-$50/month`. Expected total MBOP hosting with Supabase: roughly `$60-$75/month`. Scheduler cost increase should be small if groups remain bounded and staggered.
+Expected current AWS cost after scheduler migration, two-subnet ALB/ECS
+networking, and duplicate-secret cleanup: roughly `$65-$80/month` while
+CloudFront WAF remains attached. Expected total MBOP hosting with Supabase:
+roughly `$90-$105/month`. WAF removal should reduce the AWS estimate by about
+`$8+/month` once the CloudFront security-protections subscription is disabled
+and the web ACL is removed.

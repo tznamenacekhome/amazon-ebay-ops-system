@@ -63,12 +63,19 @@ Implemented:
 - `sql/2026-06-20_add_scheduler_telemetry.sql` has been applied, including service-role grants.
 - `run_all_syncs.py` writes Supabase-backed `scheduler_runs`, `scheduler_run_jobs`, and `scheduler_job_definitions` telemetry.
 - System Health reads Supabase scheduler telemetry in cloud deployment while preserving existing domain freshness signals.
-- The web app has been redeployed as `mbop-web-task:7` so all screens include logout, both `/system-health` and the Dashboard System Health tab render AWS scheduler group telemetry with clearer first-run-pending statuses, and the production EasyPost webhook validates a shared secret from AWS Secrets Manager.
+- The web app has been redeployed as `mbop-web-task:8` so all screens include logout, both `/system-health` and the Dashboard System Health tab render AWS scheduler group telemetry with clearer first-run-pending statuses, and the production EasyPost webhook validates a shared secret from AWS Secrets Manager.
 - The scheduler image has been rebuilt and pushed so dynamic-date jobs use stable telemetry keys.
 - AWS production scheduler groups are now explicit in `run_all_syncs.py`: `purchase-ingestion`, `purchase-tracking`, `returns-order-problems`, `purchase-enrichment`, `amazon-sales-recent`, `finance-refresh`, `business-value-finalizer`, `fba-inventory-daily`, `fba-shipments`, `reconciliation`, `repricing-catalog`, `sourcing-catalog`, `keepa-rolling-refresh`, and `fba-pricing`.
 - Authoritative AWS docs now live under `docs/aws/`.
 - EasyPost production webhook `hook_d9fecfc86d0611f19a5d15e5f9712463` is registered for `https://mbop.midnightblueenterprises.com/api/easypost/webhook`; the ALB has an unauthenticated path rule for that POST-only endpoint.
 - Cognito logout is wired through `/api/logout`; the shared `AppShell` renders a logout button in the upper-right corner of every MBOP screen.
+- ALB and ECS web service networking have been reduced to public subnets in
+  `us-west-2a` and `us-west-2b` for lower public IPv4 cost.
+- The duplicate phase-1 Supabase secret has been removed from the live web task
+  and scheduled for deletion.
+- CloudFront WAF removal is still blocked by CloudFront's security-protections
+  pricing-plan subscription, which must be disabled before the web ACL can be
+  removed.
 
 Verification:
 - Live AWS was inspected on 2026-06-20 after AWS CLI login. `docs/aws/MBOP_AWS_DEPLOYMENT.md` records current ECS, ALB, Cognito, CloudFront, S3, ACM, ECR, IAM, logging, and network IDs.
