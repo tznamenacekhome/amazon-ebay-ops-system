@@ -349,6 +349,12 @@ AWS rejected direct WAF removal with:
 Distributions with a pricing plan subscription must have a web ACL resource.
 ```
 
+The CloudFront console shows the distribution on the CloudFront security
+protections **Free plan** (`$0/month`) with **Core protections** enabled. The
+word "subscription" in the API error refers to the CloudFront security
+protections plan state, not to the paid Business plan. Advanced DDoS protection
+is not enabled.
+
 This is not protecting MBOP app/API data because MBOP app/API traffic goes to
 the ALB/Cognito endpoint, not this CloudFront distribution. The WAF only
 protects the static homepage path.
@@ -364,6 +370,9 @@ S3 origin exposure:
 
 Cost:
 
+- The CloudFront security protections plan shown in the console is the Free
+  plan (`$0/month`). The estimate below is for the AWS WAF resources created by
+  Core protections, not for the CloudFront plan itself.
 - AWS WAF pricing is based on web ACLs, rules/managed rule groups, and request
   volume.
 - Current fixed WAF estimate is about `$8/month` before request charges:
@@ -373,8 +382,8 @@ Cost:
 
 Recommendation:
 
-- Remove the CloudFront one-click WAF/security-protections subscription for the
-  static homepage to save about `$8/month`.
+- Remove the CloudFront one-click WAF/security Core protections for the static
+  homepage to save about `$8/month` in AWS WAF fixed charges.
 - Risk increase to MBOP app/data is minimal because the MBOP app, APIs, and
   EasyPost webhook do not route through this CloudFront distribution.
 - The homepage remains public static content either way because the S3 website
@@ -384,8 +393,8 @@ Safe removal path:
 
 1. In the CloudFront console, open distribution `E2KKKB5MJ8CV3N`.
 2. Open the Security / WAF protections area.
-3. Disable the CloudFront one-click security protections or pricing-plan
-   subscription that requires a web ACL.
+3. Use **Manage protections** to disable Core protections / AWS WAF protection
+   for the distribution. The distribution can remain on the Free plan.
 4. After the subscription is disabled, disassociate the web ACL from the
    distribution.
 5. Delete WAF web ACL `CreatedByCloudFront-55bad07c` after confirming it is no

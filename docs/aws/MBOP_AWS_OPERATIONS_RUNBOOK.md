@@ -144,12 +144,19 @@ Direct API removal failed with:
 Distributions with a pricing plan subscription must have a web ACL resource.
 ```
 
+The CloudFront console shows this distribution on the CloudFront security
+protections Free plan (`$0/month`) with Core protections enabled. The word
+"subscription" in the API error refers to the CloudFront security protections
+plan state, not to the paid Business plan. Advanced DDoS protection is not
+enabled. The expected charge is from the AWS WAF web ACL and managed rule
+groups created by Core protections, not from the CloudFront Free plan itself.
+
 To remove WAF cost:
 
 1. In the CloudFront console, open distribution `E2KKKB5MJ8CV3N`.
 2. Open the Security / WAF protections area.
-3. Disable the CloudFront one-click security protections or pricing-plan
-   subscription that requires the web ACL.
+3. Use **Manage protections** to disable Core protections / AWS WAF protection
+   for the distribution. The distribution can remain on the Free plan.
 4. Disassociate web ACL `CreatedByCloudFront-55bad07c`.
 5. Delete the web ACL after confirming it is no longer associated with any
    distribution.
@@ -223,5 +230,5 @@ Expected current AWS cost after scheduler migration, two-subnet ALB/ECS
 networking, and duplicate-secret cleanup: roughly `$65-$80/month` while
 CloudFront WAF remains attached. Expected total MBOP hosting with Supabase:
 roughly `$90-$105/month`. WAF removal should reduce the AWS estimate by about
-`$8+/month` once the CloudFront security-protections subscription is disabled
-and the web ACL is removed.
+`$8+/month` once CloudFront Core protections are disabled and the web ACL is
+removed.
