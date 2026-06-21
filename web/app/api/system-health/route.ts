@@ -82,6 +82,7 @@ type SchedulerGroupConfig = {
   expectedEveryHours: number;
   criticalAfterHours: number;
   description: string;
+  features: string[];
   jobNames: string[];
 };
 
@@ -98,6 +99,8 @@ type SchedulerRunRecord = {
   containerCpu: number | null;
   containerMemory: number | null;
   errorSummary: string | null;
+  jobs?: SchedulerJobRunRecord[];
+  stats?: Array<{ label: string; value: string }>;
 };
 
 type SchedulerJobRunRecord = {
@@ -111,6 +114,15 @@ type SchedulerJobRunRecord = {
   finishedAt: string | null;
   runtimeSeconds: number | null;
   errorSummary: string | null;
+  rowsRead: number | null;
+  rowsInserted: number | null;
+  rowsUpdated: number | null;
+  rowsDeleted: number | null;
+  rowsSkipped: number | null;
+  externalApiCalls: number | null;
+  retryCount: number | null;
+  rateLimitCount: number | null;
+  logBytes: number | null;
 };
 
 type SchedulerGroupSummary = SchedulerGroupConfig & {
@@ -143,6 +155,7 @@ const SCHEDULER_GROUPS: SchedulerGroupConfig[] = [
     expectedEveryHours: 2,
     criticalAfterHours: 6,
     description: "Imports recent eBay buyer purchases and matches them to sourcing opportunities.",
+    features: ["Purchases workspace", "Sourcing workspace", "Receiving prep queue", "System Health"],
     jobNames: ["eBay buyer purchases", "Sourcing purchase matching"],
   },
   {
@@ -155,6 +168,7 @@ const SCHEDULER_GROUPS: SchedulerGroupConfig[] = [
     expectedEveryHours: 2,
     criticalAfterHours: 6,
     description: "Refreshes inbound EasyPost shipment tracking for purchase visibility.",
+    features: ["Purchases ETA/status", "Receiving readiness", "Order follow-up"],
     jobNames: ["EasyPost shipments"],
   },
   {
@@ -167,6 +181,7 @@ const SCHEDULER_GROUPS: SchedulerGroupConfig[] = [
     expectedEveryHours: 6,
     criticalAfterHours: 14,
     description: "Imports eBay return/inquiry/case signals and return tracking updates.",
+    features: ["Loss Prevention", "Order Problems queue", "Purchases exceptions"],
     jobNames: ["eBay order problem returns/inquiries", "EasyPost order problem returns"],
   },
   {
@@ -179,6 +194,7 @@ const SCHEDULER_GROUPS: SchedulerGroupConfig[] = [
     expectedEveryHours: 4,
     criticalAfterHours: 12,
     description: "Refreshes RevSeller purchase enrichment and guarded missing-title repairs.",
+    features: ["Purchases ASIN/title review", "Amazon title enrichment", "Cost/profit readiness"],
     jobNames: ["RevSeller enrichment", "Keepa missing purchase titles"],
   },
   {
@@ -191,6 +207,7 @@ const SCHEDULER_GROUPS: SchedulerGroupConfig[] = [
     expectedEveryHours: 4,
     criticalAfterHours: 12,
     description: "Refreshes recent Amazon orders, finance events, MF labels, and profitability.",
+    features: ["Sales Orders", "Financial dashboard", "Growth dashboard", "Profitability metrics"],
     jobNames: [
       "Amazon sales orders",
       "Recent Amazon sales finances",
@@ -208,6 +225,7 @@ const SCHEDULER_GROUPS: SchedulerGroupConfig[] = [
     expectedEveryHours: 12,
     criticalAfterHours: 24,
     description: "Refreshes YNAB, Amazon Finance, and the business value snapshot.",
+    features: ["Financial dashboard", "Business value trend", "Cash position"],
     jobNames: ["YNAB Business transactions", "YNAB cash balance", "Amazon finance balances", "Business value snapshot"],
   },
   {
@@ -220,6 +238,7 @@ const SCHEDULER_GROUPS: SchedulerGroupConfig[] = [
     expectedEveryHours: 24,
     criticalAfterHours: 36,
     description: "Creates the daily business value point after cash and inventory inputs settle.",
+    features: ["Financial dashboard", "Business value snapshot"],
     jobNames: ["Business value snapshot"],
   },
   {
@@ -232,6 +251,7 @@ const SCHEDULER_GROUPS: SchedulerGroupConfig[] = [
     expectedEveryHours: 24,
     criticalAfterHours: 36,
     description: "Refreshes Amazon FBA inventory and inventory planning report data.",
+    features: ["Amazon FBA inventory", "Inventory dashboard", "Aged inventory planning"],
     jobNames: ["Amazon FBA inventory", "Amazon inventory planning"],
   },
   {
@@ -244,6 +264,7 @@ const SCHEDULER_GROUPS: SchedulerGroupConfig[] = [
     expectedEveryHours: 8,
     criticalAfterHours: 18,
     description: "Refreshes active FBA shipment status and carrier tracking.",
+    features: ["Send to Amazon", "FBA shipment tracking", "Inventory availability"],
     jobNames: ["Amazon FBA shipments", "FBA EasyPost carrier tracking"],
   },
   {
@@ -256,6 +277,7 @@ const SCHEDULER_GROUPS: SchedulerGroupConfig[] = [
     expectedEveryHours: 24,
     criticalAfterHours: 36,
     description: "Compares MBOP inventory positions to Amazon inventory snapshots.",
+    features: ["Inventory Reconciliation", "Inventory dashboard", "Exception review"],
     jobNames: ["Inventory reconciliation"],
   },
   {
@@ -268,6 +290,7 @@ const SCHEDULER_GROUPS: SchedulerGroupConfig[] = [
     expectedEveryHours: 24,
     criticalAfterHours: 36,
     description: "Refreshes Amazon listing status and Informed Repricer reports.",
+    features: ["Repricing advisor", "Amazon listing health", "Aged inventory actions"],
     jobNames: ["Amazon listing status", "Informed repricing reports"],
   },
   {
@@ -280,6 +303,7 @@ const SCHEDULER_GROUPS: SchedulerGroupConfig[] = [
     expectedEveryHours: 24,
     criticalAfterHours: 36,
     description: "Refreshes sourcing listing availability and matching intelligence.",
+    features: ["Sourcing workspace", "Matching intelligence", "Purchase matching"],
     jobNames: ["Sourcing listing availability", "Matching intelligence refresh"],
   },
   {
@@ -292,6 +316,7 @@ const SCHEDULER_GROUPS: SchedulerGroupConfig[] = [
     expectedEveryHours: 10,
     criticalAfterHours: 24,
     description: "Token-aware Keepa refresh for stale active Amazon products.",
+    features: ["Purchases enrichment", "Repricing advisor", "FBA prep pricing"],
     jobNames: ["Keepa active products"],
   },
   {
@@ -304,6 +329,7 @@ const SCHEDULER_GROUPS: SchedulerGroupConfig[] = [
     expectedEveryHours: 0,
     criticalAfterHours: 0,
     description: "Refreshes Keepa and Amazon fee estimates for received FBA prep rows.",
+    features: ["Send to Amazon", "FBA prep pricing", "Fee estimate review"],
     jobNames: ["Keepa FBA prep pricing", "Amazon Product Fees estimates"],
   },
 ];
@@ -941,6 +967,7 @@ function buildSchedulerGroupSummaries(
   }>,
 ): SchedulerGroupSummary[] {
   const jobRunsByGroup = groupBy(jobRuns, (run) => run.groupName);
+  const jobRunsByRunId = groupBy(jobRuns, (run) => run.runId);
   const runsByGroup = groupBy(runs, (run) => run.groupName);
 
   return SCHEDULER_GROUPS.map((group) => {
@@ -975,10 +1002,25 @@ function buildSchedulerGroupSummaries(
     const failedJobs = configuredJobs.filter((job) => job.status === "failed").length;
     const blockedJobs = configuredJobs.filter((job) => job.status === "blocked").length;
     const okJobs = configuredJobs.filter((job) => job.status === "ok").length;
-    const recentCompletedRuns = groupRuns.filter((run) => run.runtimeSeconds !== null).slice(0, 10);
+    const recentGroupRuns = groupRuns.slice(0, 10).map((run) => {
+      const runJobs = jobRunsByRunId.get(run.runId) ?? [];
+      return {
+        ...run,
+        jobs: runJobs,
+        stats: metricStatsForJobRuns(runJobs),
+      };
+    });
+    const recentCompletedRuns = recentGroupRuns.filter((run) => run.runtimeSeconds !== null);
     const averageRuntimeSeconds = recentCompletedRuns.length
       ? recentCompletedRuns.reduce((total, run) => total + (run.runtimeSeconds ?? 0), 0) / recentCompletedRuns.length
       : null;
+    const successfulRuns = recentGroupRuns.filter((run) => run.status === "ok").length;
+    const changedRows = sumJobMetric(
+      recentGroupRuns.flatMap((run) => run.jobs ?? []),
+      "rowsInserted",
+      "rowsUpdated",
+      "rowsDeleted",
+    );
 
     return {
       ...group,
@@ -988,12 +1030,14 @@ function buildSchedulerGroupSummaries(
       hoursSinceLastRun,
       hoursSinceLastSuccess,
       latestRun,
-      recentRuns: groupRuns.slice(0, 5),
+      recentRuns: recentGroupRuns,
       jobs: configuredJobs,
       stats: [
         { label: "Schedules", value: formatCount(group.scheduleNames.length) },
         { label: "Recent runs", value: formatCount(groupRuns.length) },
+        { label: "Last 10 success", value: `${successfulRuns}/${recentGroupRuns.length || 0}` },
         { label: "Avg runtime", value: formatDuration(averageRuntimeSeconds) },
+        { label: "Rows changed", value: formatCount(changedRows) },
         { label: "OK jobs", value: formatCount(okJobs) },
         { label: "Failed jobs", value: formatCount(failedJobs) },
         { label: "Blocked jobs", value: formatCount(blockedJobs) },
@@ -1315,7 +1359,9 @@ async function readSchedulerRuns(): Promise<SchedulerRunRecord[]> {
 
 async function readSchedulerJobRuns(): Promise<SchedulerJobRunRecord[]> {
   const { data, error } = await dynamicFrom("scheduler_run_jobs")
-    .select("run_id,job_name,group_name,command,status,blocking,started_at,finished_at,runtime_seconds,error_summary")
+    .select(
+      "run_id,job_name,group_name,command,status,blocking,started_at,finished_at,runtime_seconds,error_summary,rows_read,rows_inserted,rows_updated,rows_deleted,rows_skipped,external_api_calls,retry_count,rate_limit_count,log_bytes",
+    )
     .order("started_at", { ascending: false, nullsFirst: false })
     .limit(500);
 
@@ -1345,10 +1391,55 @@ async function readSchedulerJobRuns(): Promise<SchedulerJobRunRecord[]> {
       finishedAt: stringValue(row.finished_at) || null,
       runtimeSeconds: numberValue(row.runtime_seconds),
       errorSummary: stringValue(row.error_summary) || null,
+      rowsRead: numberValue(row.rows_read),
+      rowsInserted: numberValue(row.rows_inserted),
+      rowsUpdated: numberValue(row.rows_updated),
+      rowsDeleted: numberValue(row.rows_deleted),
+      rowsSkipped: numberValue(row.rows_skipped),
+      externalApiCalls: numberValue(row.external_api_calls),
+      retryCount: numberValue(row.retry_count),
+      rateLimitCount: numberValue(row.rate_limit_count),
+      logBytes: numberValue(row.log_bytes),
     });
   }
 
   return records;
+}
+
+function metricStatsForJobRuns(runs: SchedulerJobRunRecord[]) {
+  const stats = [
+    { label: "Read", value: sumJobMetric(runs, "rowsRead") },
+    { label: "Inserted", value: sumJobMetric(runs, "rowsInserted") },
+    { label: "Updated", value: sumJobMetric(runs, "rowsUpdated") },
+    { label: "Deleted", value: sumJobMetric(runs, "rowsDeleted") },
+    { label: "Skipped", value: sumJobMetric(runs, "rowsSkipped") },
+    { label: "API", value: sumJobMetric(runs, "externalApiCalls") },
+    { label: "Retries", value: sumJobMetric(runs, "retryCount") },
+    { label: "Rate limits", value: sumJobMetric(runs, "rateLimitCount") },
+  ];
+
+  return stats
+    .filter((stat) => stat.value > 0)
+    .map((stat) => ({ label: stat.label, value: formatCount(stat.value) }));
+}
+
+function sumJobMetric(
+  runs: SchedulerJobRunRecord[],
+  ...keys: Array<
+    | "rowsRead"
+    | "rowsInserted"
+    | "rowsUpdated"
+    | "rowsDeleted"
+    | "rowsSkipped"
+    | "externalApiCalls"
+    | "retryCount"
+    | "rateLimitCount"
+    | "logBytes"
+  >
+) {
+  return runs.reduce((total, run) => {
+    return total + keys.reduce((subtotal, key) => subtotal + (run[key] ?? 0), 0);
+  }, 0);
 }
 
 async function readLocalRunRecords(): Promise<LocalRunRecord[]> {
