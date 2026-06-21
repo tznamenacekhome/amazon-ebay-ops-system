@@ -137,6 +137,12 @@ mbop-sourcing-catalog: cron(0 22 ? * * *)
 mbop-keepa-rolling-refresh: cron(10 1,9,17 ? * * *)
 ```
 
+Most schedules use the default scheduler task size of `512 CPU / 1024 MB`.
+`mbop-sourcing-catalog` is intentionally overridden to `1024 CPU / 2048 MB`
+because `Matching intelligence refresh` was killed by ECS with
+`OutOfMemoryError` at the default 1 GiB size. A manual 2 GiB retry on
+2026-06-21 completed successfully.
+
 `fba-pricing`, `finance-audit`, `listing-audit`, and `inventory-audit` remain manual/on-demand.
 
 ## Secrets Manager Entries

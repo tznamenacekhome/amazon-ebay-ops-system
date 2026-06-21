@@ -467,6 +467,15 @@ arn:aws:iam::297464765814:role/mbopEventBridgeSchedulerEcsRole
 
 This role can run `mbop-scheduler-task:*` on `mbop-cluster1` and pass `ecsTaskExecutionRole`.
 
+Scheduler sizing note:
+
+- Most EventBridge Scheduler targets run `mbop-scheduler-task:1` at the default
+  `512 CPU / 1024 MB`.
+- `mbop-sourcing-catalog` is intentionally overridden to `1024 CPU / 2048 MB`.
+  The default 1 GiB size repeatedly failed with ECS `OutOfMemoryError` during
+  `Matching intelligence refresh`; a manual 2 GiB retry on 2026-06-21 completed
+  successfully.
+
 ## Remaining Deployment Items
 
 - Observe the first full day of EventBridge Scheduler runs and check System Health run history.
