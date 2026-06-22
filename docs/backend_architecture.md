@@ -1,6 +1,6 @@
 # Backend Architecture
 
-Last updated: 2026-06-20
+Last updated: 2026-06-21
 
 ## Core Flow
 
@@ -72,7 +72,9 @@ designed.
   token-aware and can run daily or less often.
 - AWS production schedules use the cloud-specific groups documented in
   `docs/aws/MBOP_AWS_SCHEDULER_PLAN.md`. System Health reads Supabase
-  `scheduler_runs` and `scheduler_run_jobs` telemetry for those groups.
+  `scheduler_runs` and `scheduler_run_jobs` telemetry for those groups,
+  including detail-drawer history and parsed per-job metrics from scheduler
+  output.
 
 The legacy eBay supplier returns sync has been removed from active
 orchestration and System Health. The Order Problems return workflow uses
@@ -105,8 +107,9 @@ Windows task has been removed.
 
 Independent integration failures are collected and reported while later syncs continue running. This prevents one external API failure from blocking unrelated freshness work.
 
-The orchestrator writes the latest per-job state to `logs/sync_health.json`,
-appends run history to `logs/sync_runs.jsonl`, uses a local lock file to prevent
+The orchestrator writes the latest per-job state to Supabase scheduler
+telemetry in cloud runs and to `logs/sync_health.json` for local/manual runs,
+appends run history to `logs/sync_runs.jsonl`, uses a lock to prevent
 overlapping scheduled runs, and performs a tiny Supabase read before launching
 work. Each job writes a `running` health record when it starts and replaces it
 with `ok` or `failed` at completion. If a scheduled wake-up causes multiple

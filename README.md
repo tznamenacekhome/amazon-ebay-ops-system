@@ -32,19 +32,26 @@ Capacity guardrails for Supabase billing limits, Disk IO Budget, and recovery ar
 - `docs/backend_architecture.md`: backend ownership boundaries and integration orchestration.
 - `docs/database_schema.md`: high-level schema map.
 - `docs/business_rules.md`: canonical business rules.
+- `docs/aws/MBOP_AWS_DEPLOYMENT.md`: authoritative AWS production deployment state.
+- `docs/aws/MBOP_AWS_SCHEDULER_PLAN.md`: EventBridge/ECS scheduler design, groups, cadence, and telemetry.
+- `docs/aws/MBOP_AWS_OPERATIONS_RUNBOOK.md`: deploy, rotate, troubleshoot, and cost-check procedures.
 
-## Local Sync
+## Sync Orchestration
 
-`run_all_syncs.py` is the local integration orchestrator. It runs eBay, sourcing purchase matching and availability cleanup, EasyPost, RevSeller, Amazon inventory/listing/planning/finance/FBA shipment jobs, Informed, YNAB, guarded Keepa refresh, and daily business value snapshot jobs.
+`run_all_syncs.py` is the Python integration orchestrator. In production, AWS
+EventBridge Scheduler launches ECS/Fargate `mbop-scheduler-task:1` runs with
+explicit group names documented in `docs/aws/MBOP_AWS_SCHEDULER_PLAN.md`.
 
-`run_all_syncs.bat` appends scheduler output to `logs/scheduler.log`.
+The deployed web app image is web-only and does not run scheduler jobs. The
+legacy local Windows Task Scheduler path is retired; `run_all_syncs.bat`
+remains useful for manual/local development runs and appends output to
+`logs/scheduler.log`.
 
 `inventory_source_balance_audit.py` is a secondary control for purchase-source
 unit balancing. Run it after FIFO allocator/import backfill work and during
-monthly close. The local monthly scheduler entry point is
-`inventory_source_balance_audit.bat`, which appends to
-`logs/inventory_source_balance_audit.log` and writes the latest report to
-`exports/inventory_source_balance_audit.csv`.
+monthly close. `inventory_source_balance_audit.bat` remains a manual local
+entry point that appends to `logs/inventory_source_balance_audit.log` and
+writes the latest report to `exports/inventory_source_balance_audit.csv`.
 
 ## UI Freshness
 

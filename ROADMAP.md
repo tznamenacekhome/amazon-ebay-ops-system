@@ -26,13 +26,20 @@ Completed:
 - Supabase scheduler telemetry SQL applied with service-role grants
 - `run_all_syncs.py` writes scheduler run/job telemetry to Supabase
 - System Health reads cloud scheduler telemetry
+- System Health scheduler group drawers show descriptions, affected MBOP
+  features, schedules, last-success age, recent run history, and parsed job
+  metrics
 - staggered EventBridge Scheduler jobs created and enabled
+- `sourcing-catalog` resized to `1024 CPU / 2048 MB` after a default-size
+  `OutOfMemoryError`
 - local Windows scheduler jobs are retired, with only AM/PM pending
   Administrator deletion after Windows denied removal from this shell
 
 Next work:
 - observe the first full day of scheduled runs in System Health and CloudWatch
 - tune cadence only after real runtime and external API behavior is visible
+- let all scheduler groups run at least once on the metrics-enabled image so
+  every drawer has useful counters
 - add alerting/notification later if failed scheduler jobs need push alerts
 
 ---
@@ -353,7 +360,8 @@ Completed:
 - updates inbound_shipments by easypost_tracker_id or tracking_number
 - registered EasyPost production webhook
 - added ALB unauthenticated path rule for `/api/easypost/webhook`
-- deployed webhook secret through AWS Secrets Manager on `mbop-web-task:7`
+- deployed webhook secret through AWS Secrets Manager and current web task
+  revisions
 
 Next steps:
 - send/observe a real tracker.updated event

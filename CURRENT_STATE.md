@@ -1,6 +1,6 @@
 # CURRENT_STATE.md
 
-Last Updated: 2026-06-20
+Last Updated: 2026-06-21
 
 # Midnight Blue Operations Platform (MBOP)
 
@@ -58,13 +58,14 @@ Implemented:
 - The current web image remains web-only and is built from `web/Dockerfile`.
 - `Dockerfile.scheduler` now defines a separate Python scheduler image that includes `run_all_syncs.py`, `integrations/`, and `requirements.txt`.
 - AWS scheduler infrastructure now exists: ECR repo `mbop-scheduler`, CloudWatch log group `/ecs/mbop-scheduler`, Secrets Manager `/mbop/prod/*` entries, execution-role secret read permission, EventBridge Scheduler run-task role, and ECS task definition `mbop-scheduler-task:1`.
-- The scheduler image has been built and pushed to ECR as `mbop-scheduler:latest`.
+- The scheduler image has been built and pushed to ECR as `mbop-scheduler:latest`
+  and `metrics-20260621b`.
 - Staggered EventBridge schedules are created and enabled for production scheduler groups.
 - `sql/2026-06-20_add_scheduler_telemetry.sql` has been applied, including service-role grants.
 - `run_all_syncs.py` writes Supabase-backed `scheduler_runs`, `scheduler_run_jobs`, and `scheduler_job_definitions` telemetry.
-- System Health reads Supabase scheduler telemetry in cloud deployment while preserving existing domain freshness signals.
-- The web app has been redeployed as `mbop-web-task:8` so all screens include logout, both `/system-health` and the Dashboard System Health tab render AWS scheduler group telemetry with clearer first-run-pending statuses, and the production EasyPost webhook validates a shared secret from AWS Secrets Manager.
-- The scheduler image has been rebuilt and pushed so dynamic-date jobs use stable telemetry keys.
+- System Health reads Supabase scheduler telemetry in cloud deployment while preserving existing domain freshness signals. It now includes AWS scheduler group rows, click-through detail drawers, last-success age, recent run history, and per-job metrics parsed from scheduler output.
+- The web app has been redeployed as `mbop-web-task:17` so all screens include logout, both `/system-health` and the Dashboard System Health tab render AWS scheduler group telemetry, the production EasyPost webhook validates a shared secret from AWS Secrets Manager, mutation routes enforce cloud-mode authorization/CSRF checks, and scheduler detail drawers show useful job metrics.
+- The scheduler image has been rebuilt and pushed so dynamic-date jobs use stable telemetry keys and job output is captured into `scheduler_run_jobs` counters/metadata.
 - AWS production scheduler groups are now explicit in `run_all_syncs.py`: `purchase-ingestion`, `purchase-tracking`, `returns-order-problems`, `purchase-enrichment`, `amazon-sales-recent`, `finance-refresh`, `business-value-finalizer`, `fba-inventory-daily`, `fba-shipments`, `reconciliation`, `repricing-catalog`, `sourcing-catalog`, `keepa-rolling-refresh`, and `fba-pricing`.
 - Authoritative AWS docs now live under `docs/aws/`.
 - EasyPost production webhook `hook_d9fecfc86d0611f19a5d15e5f9712463` is registered for `https://mbop.midnightblueenterprises.com/api/easypost/webhook`; the ALB has an unauthenticated path rule for that POST-only endpoint.
@@ -73,16 +74,21 @@ Implemented:
   `us-west-2a` and `us-west-2b` for lower public IPv4 cost.
 - The duplicate phase-1 Supabase secret has been removed from the live web task
   and scheduled for deletion.
-- CloudFront WAF removal is still blocked by CloudFront's security-protections
-  pricing-plan subscription, which must be disabled before the web ACL can be
-  removed.
+- CloudFront security/WAF protections were reviewed. The homepage distribution
+  is on the CloudFront Free plan with included Core protections at `$0/month`;
+  MBOP app/API/webhook traffic does not route through that distribution. Keep
+  the included protections unless a future Cost Explorer bill shows a separate
+  AWS WAF line item.
 
 Verification:
-- Live AWS was inspected on 2026-06-20 after AWS CLI login. `docs/aws/MBOP_AWS_DEPLOYMENT.md` records current ECS, ALB, Cognito, CloudFront, S3, ACM, ECR, IAM, logging, and network IDs.
+- Live AWS was inspected on 2026-06-20 and 2026-06-21 after AWS CLI login. `docs/aws/MBOP_AWS_DEPLOYMENT.md` records current ECS, ALB, Cognito, CloudFront, S3, ACM, ECR, IAM, logging, and network IDs.
 - Local container and ECS `--list` smoke tests passed.
 - Supabase telemetry smoke passed after grants were applied.
 - A real ECS `purchase-ingestion` run completed successfully.
 - A one-time EventBridge Scheduler target smoke launched ECS successfully.
+- A manual `sourcing-catalog` ECS run completed successfully at the larger
+  `1024 CPU / 2048 MB` size after the default 1 GiB task hit
+  `OutOfMemoryError`.
 
 Next monitoring:
 - Observe the first full day of enabled schedules in System Health and CloudWatch logs.
@@ -122,8 +128,9 @@ Implemented:
   existing sales/profit/inventory data with transparent scoring.
 - Loss Prevention dashboard summarizes open problem cases, estimated value at
   risk, refund/return buckets, urgent cases, and monthly problem trends.
-- System Health dashboard adapts existing health signals plus local sync-run
-  logs into freshness, recent-run, and guardrail summaries.
+- System Health dashboard adapts existing health signals plus Supabase-backed
+  AWS scheduler telemetry into freshness, recent-run, scheduler group, detail
+  drawer, and guardrail summaries.
 
 Known MVP limitations:
 - Some drill-down links intentionally fall back to base workflow routes when the
@@ -279,8 +286,12 @@ Status: AWS SCHEDULER LIVE / LOCAL TASKS RETIRED
 Implemented:
 - `run_all_syncs.py` runs eBay buyer purchase sync, sourcing purchase matching, EasyPost shipment sync, RevSeller enrichment with optional AI same-system review, guarded missing-title Keepa repair, Amazon FBA inventory, Amazon FBA shipment sync, Amazon listing status, Amazon inventory planning, Amazon Finance, Informed Repricer reports, YNAB Business cash balance, guarded sourcing listing availability cleanup, guarded Keepa enrichment, and the daily business value snapshot
 - `run_all_syncs.py` writes `running`, `ok`, `failed`, and lock-collision
-  `blocked` records to `logs/sync_health.json`, allowing System Health refreshes
-  during active runs to show the current job state.
+  `blocked` records to Supabase scheduler telemetry in cloud runs and to
+  `logs/sync_health.json` for local/manual context, allowing System Health
+  refreshes during active runs to show the current job state.
+- The AWS scheduler path captures each job's stdout/stderr summary and stores
+  parsed counters plus descriptive metrics in `scheduler_run_jobs`, so System
+  Health drawers can explain what each job changed.
 - `run_all_syncs.py` also stores YNAB Business-category transaction history
   daily for future P&L, Schedule C, and cash reconciliation features
 - AWS EventBridge Scheduler now owns production scheduled execution through
@@ -333,7 +344,7 @@ Recent validation:
 
 Remaining validation:
 - observe the first full production day of AWS EventBridge scheduler runs in
-  System Health and CloudWatch logs.
+  System Health and CloudWatch logs, especially newly instrumented job metrics.
 - remove the remaining local AM/PM Windows scheduled tasks from an Administrator
   PowerShell if they still appear locally:
   `Unregister-ScheduledTask -TaskName 'Amazon eBay Ops Sync AM' -Confirm:$false`

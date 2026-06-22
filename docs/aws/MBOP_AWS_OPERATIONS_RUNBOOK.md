@@ -184,7 +184,10 @@ metrics/filtering. If removal becomes necessary:
 6. Verify `www.midnightblueenterprises.com` serves the homepage and
    `mbop.midnightblueenterprises.com` still resolves to the ALB.
 
-Expected savings are about `$8/month` before request charges.
+Expected savings are `$0/month` while the distribution remains on the
+CloudFront Free plan with included Core protections. If a future bill shows a
+separate AWS WAF line item, removing the web ACL would avoid roughly the
+generic WAF baseline cost for one web ACL plus managed rule/request charges.
 
 ## Disable Schedules
 
@@ -245,7 +248,8 @@ Use AWS Cost Explorer after enough data is available. Monitor:
 - CloudWatch Logs
 - Public IPv4
 - CloudFront/S3 homepage
-- AWS WAF if CloudFront security protections remain enabled
+- AWS WAF only if Cost Explorer shows a separate line item for CloudFront
+  security protections
 
 Expected current AWS cost after scheduler migration, two-subnet ALB/ECS
 networking, and duplicate-secret cleanup: roughly `$65-$72/month` while

@@ -2,7 +2,7 @@
 
 This file tracks active issues, monitor items, and deferred decisions for Midnight Blue Operations Platform (MBOP).
 
-Last reviewed: 2026-06-20
+Last reviewed: 2026-06-21
 
 # Active Issues
 
@@ -18,8 +18,12 @@ Current mitigation:
 - `mbop-scheduler-task:1` passed ECS `--list` smoke tests for all AWS scheduler groups.
 - Supabase telemetry SQL and grants are applied.
 - `run_all_syncs.py` writes `scheduler_runs` and `scheduler_run_jobs`.
-- System Health reads scheduler telemetry in cloud deployment.
+- System Health reads scheduler telemetry in cloud deployment, including group
+  drawers, last-success age, recent run history, and parsed job metrics after
+  each group runs on scheduler image `metrics-20260621b` or later.
 - A real ECS `purchase-ingestion` smoke run and a one-time EventBridge target smoke both completed successfully.
+- `sourcing-catalog` was resized to `1024 CPU / 2048 MB` after the default
+  1 GiB task hit `OutOfMemoryError`; the larger manual ECS run completed.
 
 Recommended next mitigation:
 Observe the next full day of EventBridge schedules in System Health and `/ecs/mbop-scheduler`, then adjust cadence or resource sizing only if real runtime data shows pressure.
@@ -360,13 +364,15 @@ still needs observation of real `tracker.updated` deliveries before scheduled
 tracking polling is reduced.
 
 Current mitigation:
-- `/api/easypost/webhook` is deployed on `mbop-web-task:7`.
+- `/api/easypost/webhook` is deployed on the current `mbop-web-task`
+  revision.
 - ALB rule priority 10 forwards `/api/easypost/webhook` directly to the web
   target group without Cognito authentication.
 - EasyPost webhook `hook_d9fecfc86d0611f19a5d15e5f9712463` points to
   `https://mbop.midnightblueenterprises.com/api/easypost/webhook`.
-- The webhook validates a shared secret from AWS Secrets Manager through HMAC
-  and/or the EasyPost custom outbound header.
+- The webhook validates a shared secret from AWS Secrets Manager through HMAC.
+  Bare static-token delivery is not accepted; any internal relay path must send
+  token plus timestamp/signature headers.
 
 Recommended next mitigation:
 - observe a real EasyPost webhook delivery.

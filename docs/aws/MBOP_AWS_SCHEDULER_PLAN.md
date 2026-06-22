@@ -1,6 +1,6 @@
 # MBOP AWS Scheduler Plan
 
-Last updated: 2026-06-20
+Last updated: 2026-06-21
 
 ## Architecture Decision
 
@@ -229,6 +229,13 @@ Telemetry tables:
 
 `run_all_syncs.py` writes scheduler runs and per-job records to Supabase telemetry tables. System Health reads cloud scheduler run/job history when `CLOUD_DEPLOYMENT=true`.
 
+The scheduler captures each job's stdout/stderr, parses summary lines into
+standard counters such as rows read/inserted/updated/skipped and stores
+additional human-readable metrics in `scheduler_run_jobs.metadata.metrics`.
+System Health group drawers display those counters and metrics in recent-run
+history. Jobs only show the richer metrics after they have run on scheduler
+image `metrics-20260621b` or later.
+
 Smoke validation completed:
 
 - Local container `purchase-ingestion --list`: passed.
@@ -237,6 +244,8 @@ Smoke validation completed:
 - Supabase telemetry smoke run: passed after grants were applied.
 - Real ECS `purchase-ingestion` run: passed.
 - One-time EventBridge Scheduler to ECS target smoke: passed.
+- Manual ECS `sourcing-catalog` run at `1024 CPU / 2048 MB`: passed after the
+  default 1 GiB task size hit `OutOfMemoryError`.
 
 ## Keepa Guardrails
 
