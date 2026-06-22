@@ -2,16 +2,18 @@
 
 This file tracks active issues, monitor items, and deferred decisions for Midnight Blue Operations Platform (MBOP).
 
-Last reviewed: 2026-06-21
+Last reviewed: 2026-06-22
 
 # Active Issues
 
-## AWS Scheduler First-Day Monitoring
+## AWS Scheduler Production Monitoring
 
-Status: ACTIVE / MONITORING
+Status: RESOLVED MIGRATION / ROUTINE MONITORING
 
 Problem:
-The ECS/EventBridge scheduler migration is live, but the enabled schedules still need a full operating-day observation window to confirm cadence, runtime, external API behavior, and System Health telemetry under normal load.
+The ECS/EventBridge scheduler migration is complete and production freshness is
+no longer laptop-dependent. Ongoing monitoring is still needed for external API
+quota behavior, Supabase pressure, runtime drift, and failed jobs.
 
 Current mitigation:
 - `mbop-scheduler:latest` is built and pushed to ECR.
@@ -24,9 +26,18 @@ Current mitigation:
 - A real ECS `purchase-ingestion` smoke run and a one-time EventBridge target smoke both completed successfully.
 - `sourcing-catalog` was resized to `1024 CPU / 2048 MB` after the default
   1 GiB task hit `OutOfMemoryError`; the larger manual ECS run completed.
+- Live AWS check on 2026-06-21/2026-06-22 found 18 enabled `mbop-*`
+  EventBridge schedules targeting ECS `runTask`.
+- Supabase telemetry showed successful `ok` runs for every enabled production
+  scheduler group: `purchase-ingestion`, `purchase-tracking`,
+  `returns-order-problems`, `purchase-enrichment`, `amazon-sales-recent`,
+  `finance-refresh`, `fba-inventory-daily`, `fba-shipments`,
+  `reconciliation`, `repricing-catalog`, `sourcing-catalog`, and
+  `keepa-rolling-refresh`.
 
 Recommended next mitigation:
-Observe the next full day of EventBridge schedules in System Health and `/ecs/mbop-scheduler`, then adjust cadence or resource sizing only if real runtime data shows pressure.
+Keep routine monitoring in System Health and `/ecs/mbop-scheduler`; adjust
+cadence or resource sizing only if real runtime data shows pressure.
 
 ---
 
@@ -78,8 +89,8 @@ Current mitigation:
   integration supports it.
 - AWS EventBridge Scheduler now owns production cadence with staggered ECS
   scheduled tasks and Supabase-backed scheduler telemetry.
-- local Windows scheduled tasks have been retired or are pending final
-  Administrator deletion where Windows denies removal from this shell.
+- local Windows scheduled tasks have been retired and no matching `Amazon eBay
+  Ops*` or `MBOP*` tasks appeared in the latest local Task Scheduler check.
 - screen refresh buttons can run screen-specific scheduled-style refreshes
   without historical backfill.
 - sourcing availability cleanup is now a daily scheduled job and only checks
@@ -393,24 +404,20 @@ The prior FedEx credential issue for tracking `381367337613` and
 
 ## Local Windows Scheduler Retirement
 
-Status: PARTIAL CLEANUP / ADMIN ACTION REMAINING
+Status: RESOLVED / MONITOR
 
 Problem:
 AWS EventBridge Scheduler now supersedes the local Windows Task Scheduler jobs.
-The old local tasks should not remain active because production freshness is now
+Old local tasks should not be recreated because production freshness is now
 owned by ECS scheduled tasks and Supabase scheduler telemetry.
 
 Current mitigation:
 - `Amazon eBay Ops Catalog Sync`, `Amazon eBay Ops Daily Sync`, and
   `MBOP Inventory Source Balance Audit` were removed on 2026-06-20.
-- `Amazon eBay Ops Sync AM` and `Amazon eBay Ops Sync PM` still appeared after
-  cleanup attempts; Windows returned `Access is denied` for delete and disable
-  attempts from this shell.
+- A later Task Scheduler check found no matching `Amazon eBay Ops*` or
+  `MBOP*` scheduled tasks.
 
 Recommended guardrail:
-- From an Administrator PowerShell, run:
-  `Unregister-ScheduledTask -TaskName 'Amazon eBay Ops Sync AM' -Confirm:$false`
-  and `Unregister-ScheduledTask -TaskName 'Amazon eBay Ops Sync PM' -Confirm:$false`.
 - Do not recreate local Windows scheduled jobs unless explicitly designing a
   local disaster-recovery fallback.
 
@@ -501,10 +508,16 @@ Current mitigation:
 - RevSeller enrichment now uses the latest local `data/revseller_enrichment_diagnostics_*.csv` file as its run signal.
 - EasyPost shipments ignore null timestamp rows when selecting their latest signal.
 - Keepa products can remain on the previous snapshot timestamp when the guarded scheduled run selects 0 ASINs and writes no new snapshot rows.
-- `run_all_syncs.py` now writes `logs/sync_health.json`, so direct orchestrator runs can overlay a newer success/failure when a domain table does not write a fresh row.
+- `run_all_syncs.py` now writes Supabase `scheduler_runs` and
+  `scheduler_run_jobs` in cloud mode, so System Health can read durable
+  scheduler telemetry from ECS/EventBridge runs.
+- `run_all_syncs.py` also writes `logs/sync_health.json` for local/manual
+  context, so direct orchestrator runs can overlay a newer success/failure when
+  a domain table does not write a fresh row.
 - `run_all_syncs.py` now writes `running` records as each job starts and
-  `blocked` records when a scheduled wake-up collision loses the local lock, so
-  System Health can show active progress and missed groups during/after a run.
+  `blocked` records when a scheduled wake-up collision loses the scheduler
+  lock, so System Health can show active progress and missed groups
+  during/after a run.
 - Business value snapshot upserts now refresh `captured_at`.
 - Inventory reconciliation is now included in `run_all_syncs.py` so its health expectation matches the orchestrator.
 
@@ -512,10 +525,8 @@ Impact:
 The health page is less likely to make completed syncs look stale or unknown when the underlying integration ran successfully.
 
 Recommended next mitigation:
-- continue monitoring scheduled wake-up behavior. Windows can still launch
-  multiple missed tasks at once, but lock losers are now visible in System
-  Health instead of disappearing.
-- consider a future Supabase sync-run ledger if local-only health records become insufficient.
+- continue monitoring AWS scheduler wake-up behavior and lock collisions in
+  Supabase scheduler telemetry.
 
 ---
 

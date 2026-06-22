@@ -1,12 +1,26 @@
 # MBOP AWS Scheduler Plan and Outstanding AWS Items
 
+Historical/superseded note: this file is the original ChatGPT-to-Codex handoff
+for the AWS deployment and scheduler migration. It is retained for background
+only. Do not treat the task revisions, outstanding items, or scheduler status
+below as current. Current AWS deployment, scheduler, operations, security, and
+cost documentation lives in:
+
+- `docs/aws/MBOP_AWS_DEPLOYMENT.md`
+- `docs/aws/MBOP_AWS_SCHEDULER_PLAN.md`
+- `docs/aws/MBOP_AWS_OPERATIONS_RUNBOOK.md`
+
+As of the current docs, the web app is live on ECS/Fargate, EventBridge
+Scheduler launches the separate `mbop-scheduler-task`, Supabase scheduler
+telemetry is live, and local Windows scheduled tasks are retired.
+
 ## 1. Current AWS Deployment State
 
 MBOP is currently deployed to AWS with:
 
 * ECS cluster: `mbop-cluster1`
 * Web service: `mbop-web-service`
-* Web task definition: `mbop-web-task:2`
+* Historical web task definition at the time of handoff: `mbop-web-task:2`
 * Web container: `mbop-web`
 * Region: `us-west-2`
 * Runtime: ECS/Fargate

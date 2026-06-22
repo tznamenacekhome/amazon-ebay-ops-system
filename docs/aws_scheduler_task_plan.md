@@ -1,8 +1,11 @@
 # MBOP AWS Scheduler Task Plan
 
-Superseded note: this was the first scheduler task analysis. The current
-authoritative scheduler plan is `docs/aws/MBOP_AWS_SCHEDULER_PLAN.md`, and the
-current operations runbook is `docs/aws/MBOP_AWS_OPERATIONS_RUNBOOK.md`.
+Superseded note: this was the first scheduler task analysis and is retained
+only as historical planning context. Do not use task revisions, blockers, or
+"before schedules can run" statements in this file as current state. The
+current authoritative scheduler plan is
+`docs/aws/MBOP_AWS_SCHEDULER_PLAN.md`, and the current operations runbook is
+`docs/aws/MBOP_AWS_OPERATIONS_RUNBOOK.md`.
 
 ## Goal
 
@@ -16,7 +19,8 @@ Target ECS state:
 
 - ECS cluster: `mbop-cluster1`
 - Web service: `mbop-web-service`
-- Current web task definition: `mbop-web-task:2`
+- Historical web task definition at the time of this analysis:
+  `mbop-web-task:2`
 - Current web container name: `mbop-web`
 - Proposed scheduler task definition: `mbop-scheduler-task`
 - Proposed scheduler container name: `mbop-scheduler`
@@ -42,7 +46,8 @@ Evidence from `web/Dockerfile`:
   - `requirements.txt`
 - It does not install Python or Python dependencies.
 
-Conclusion: `mbop-web-task:2` likely cannot run `python run_all_syncs.py --group <GROUP_NAME>`.
+Historical conclusion at the time of this analysis: `mbop-web-task:2` could
+not run `python run_all_syncs.py --group <GROUP_NAME>`.
 
 Recommended path: build a scheduler-capable MBOP image from the repository root, or adjust the Docker build so the same image contains both the Next.js app and Python scheduler assets. Until that image exists, ECS command overrides alone are not enough.
 
@@ -603,7 +608,7 @@ Avoid starting schedules at the same minute. Stagger starts by 5-15 minutes to r
 ## Required AWS Console Actions
 
 1. Confirm current web image contents.
-   - ECS -> Task definitions -> `mbop-web-task:2`.
+   - ECS -> Task definitions -> historical `mbop-web-task:2`.
    - Confirm image URI.
    - Confirm it was built from `web/Dockerfile`.
    - Treat it as web-only unless a new image has been built with Python scheduler files.
@@ -671,4 +676,7 @@ Avoid starting schedules at the same minute. Stagger starts by 5-15 minutes to r
 
 ## Open Implementation Gap
 
-Before the AWS schedules can actually run, MBOP needs a scheduler-capable container image. The current web image is web-only. No Python scheduler code change is required for command overrides, but Docker/build packaging must change or a separate scheduler image must be introduced.
+Historical conclusion: before the AWS schedules could run, MBOP needed a
+scheduler-capable container image. That has since been implemented as the
+separate `Dockerfile.scheduler` / `mbop-scheduler-task` path documented in
+`docs/aws/MBOP_AWS_SCHEDULER_PLAN.md`.

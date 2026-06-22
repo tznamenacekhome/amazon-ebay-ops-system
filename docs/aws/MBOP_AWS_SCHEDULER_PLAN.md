@@ -1,6 +1,6 @@
 # MBOP AWS Scheduler Plan
 
-Last updated: 2026-06-21
+Last updated: 2026-06-22
 
 ## Architecture Decision
 
@@ -215,6 +215,9 @@ arn:aws:iam::297464765814:role/mbopEventBridgeSchedulerEcsRole
 
 The schedules are created and enabled. A one-time EventBridge Scheduler smoke test launched an ECS task successfully and auto-deleted after completion.
 
+Live verification on 2026-06-21/2026-06-22 found 18 enabled `mbop-*`
+EventBridge schedules targeting ECS `runTask`.
+
 ## Telemetry
 
 ECS task-local files are not durable. `sql/2026-06-20_add_scheduler_telemetry.sql` has been applied, including service-role grants.
@@ -246,6 +249,12 @@ Smoke validation completed:
 - One-time EventBridge Scheduler to ECS target smoke: passed.
 - Manual ECS `sourcing-catalog` run at `1024 CPU / 2048 MB`: passed after the
   default 1 GiB task size hit `OutOfMemoryError`.
+- Production telemetry after the migration shows successful `ok` runs for every
+  enabled scheduler group: `purchase-ingestion`, `purchase-tracking`,
+  `returns-order-problems`, `purchase-enrichment`, `amazon-sales-recent`,
+  `finance-refresh`, `fba-inventory-daily`, `fba-shipments`,
+  `reconciliation`, `repricing-catalog`, `sourcing-catalog`, and
+  `keepa-rolling-refresh`.
 
 ## Keepa Guardrails
 

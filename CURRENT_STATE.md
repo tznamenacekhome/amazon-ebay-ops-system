@@ -1,6 +1,6 @@
 # CURRENT_STATE.md
 
-Last Updated: 2026-06-21
+Last Updated: 2026-06-22
 
 # Midnight Blue Operations Platform (MBOP)
 
@@ -89,9 +89,17 @@ Verification:
 - A manual `sourcing-catalog` ECS run completed successfully at the larger
   `1024 CPU / 2048 MB` size after the default 1 GiB task hit
   `OutOfMemoryError`.
+- Live AWS and Supabase telemetry were rechecked on 2026-06-21/2026-06-22:
+  18 `mbop-*` EventBridge schedules are enabled and target ECS `runTask`;
+  every enabled production scheduler group has at least one successful
+  `scheduler_runs` record, and the latest observed run for each group is `ok`.
+- Local Windows Task Scheduler was rechecked and no `Amazon eBay Ops*` or
+  `MBOP*` scheduled tasks were present.
 
-Next monitoring:
-- Observe the first full day of enabled schedules in System Health and CloudWatch logs.
+Current monitoring:
+- Continue monitoring System Health and `/ecs/mbop-scheduler` for external API
+  throttling, Supabase pressure, and runtime drift. The migration itself is no
+  longer laptop-dependent.
 
 ---
 
@@ -136,8 +144,8 @@ Known MVP limitations:
 - Some drill-down links intentionally fall back to base workflow routes when the
   target screen does not yet support the specific filter.
 - System Health capacity and external-limit panels show safe placeholders unless
-  values are already available from local sync health; they do not run heavy
-  diagnostics.
+  values are already available from scheduler telemetry or lightweight health
+  sources; they do not run heavy diagnostics.
 - Seller Central account-health score and lifetime feedback summary are manual
   snapshots until a broader approved read-only source exists. The SP-API
   `GET_SELLER_FEEDBACK_DATA` report is wired as an alert source for 1-3 star
@@ -296,10 +304,9 @@ Implemented:
   daily for future P&L, Schedule C, and cash reconciliation features
 - AWS EventBridge Scheduler now owns production scheduled execution through
   ECS/Fargate `mbop-scheduler-task:1`.
-- The legacy local Windows Task Scheduler path is retired. Catalog, Daily, and
-  Inventory Source Balance Audit tasks were removed on 2026-06-20; Windows
-  denied removal/disable for the remaining AM/PM tasks without an Administrator
-  shell.
+- The legacy local Windows Task Scheduler path is retired. Catalog, Daily, AM,
+  PM, and Inventory Source Balance Audit tasks no longer appear in the local
+  Task Scheduler check performed after the AWS migration.
 - individual script failures are collected and reported without preventing later independent syncs from running
 - scheduled missing-title Keepa repair fills blank `purchase_items.amazon_title`
   for ASIN-bearing purchase rows from stored Keepa snapshots first, and only
@@ -343,12 +350,8 @@ Recent validation:
 - business value snapshot upserted the 2026-05-27 daily value
 
 Remaining validation:
-- observe the first full production day of AWS EventBridge scheduler runs in
-  System Health and CloudWatch logs, especially newly instrumented job metrics.
-- remove the remaining local AM/PM Windows scheduled tasks from an Administrator
-  PowerShell if they still appear locally:
-  `Unregister-ScheduledTask -TaskName 'Amazon eBay Ops Sync AM' -Confirm:$false`
-  and `Unregister-ScheduledTask -TaskName 'Amazon eBay Ops Sync PM' -Confirm:$false`.
+- continue routine AWS scheduler monitoring in System Health and CloudWatch,
+  especially newly instrumented job metrics and any external API throttling.
 
 ---
 
@@ -389,11 +392,12 @@ Latest scheduler validation:
 - latest direct scheduler run inspected 101 candidate shipment rows, reused 97 trackers, and skipped 2 invalid placeholder rows
 - direct batch execution completed with exit code 0 and wrote to `logs/scheduler.log`
 
-Remaining setup:
+Remaining validation:
 - observe a real `tracker.updated` delivery from EasyPost and verify the
   webhook-updated Supabase rows in System Health or shipment detail screens
-- decide whether scheduled polling can be reduced after webhook delivery has
-  proven stable
+- keep scheduled polling active until real EasyPost-originated webhook
+  deliveries are observed; the webhook is implemented, public, registered, and
+  smoke-tested, but real carrier event delivery has not yet been proven
 
 ---
 

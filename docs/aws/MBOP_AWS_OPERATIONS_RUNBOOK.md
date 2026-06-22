@@ -118,8 +118,10 @@ Operational notes:
   HMAC signature headers.
 - If the secret name or ARN changes, register a new `mbop-web-task` revision and
   redeploy the web service.
-- Keep scheduled EasyPost polling until real webhook deliveries have been
-  observed updating Supabase shipment rows.
+- Keep scheduled EasyPost polling until real EasyPost-originated
+  `tracker.updated` webhook deliveries have been observed updating Supabase
+  shipment rows. Public route and smoke tests are complete; real carrier event
+  delivery is the remaining proof point.
 
 ## Mutation Security
 
@@ -227,8 +229,10 @@ The AWS CLI requires the existing schedule fields when updating. In the console,
 
 ## Retired Local Windows Tasks
 
-AWS EventBridge Scheduler supersedes local Windows Task Scheduler jobs. If old
-tasks remain on the workstation, remove them from an Administrator PowerShell:
+AWS EventBridge Scheduler supersedes local Windows Task Scheduler jobs. The
+latest local check found no matching `Amazon eBay Ops*` or `MBOP*` scheduled
+tasks. If old tasks reappear on the workstation, remove them from an
+Administrator PowerShell:
 
 ```powershell
 Unregister-ScheduledTask -TaskName 'Amazon eBay Ops Sync AM' -Confirm:$false

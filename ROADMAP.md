@@ -11,7 +11,7 @@ This roadmap tracks MBOP, the internal operations platform for Midnight Blue Ent
 ## AWS Scheduler Migration
 
 Status:
-Live / first-day monitoring in progress.
+Completed / routine monitoring.
 
 Completed:
 - web deployment is live on ECS/Fargate behind Cognito/ALB auth per latest handoff
@@ -32,14 +32,18 @@ Completed:
 - staggered EventBridge Scheduler jobs created and enabled
 - `sourcing-catalog` resized to `1024 CPU / 2048 MB` after a default-size
   `OutOfMemoryError`
-- local Windows scheduler jobs are retired, with only AM/PM pending
-  Administrator deletion after Windows denied removal from this shell
+- live AWS check confirmed 18 enabled `mbop-*` EventBridge schedules targeting
+  ECS `runTask`
+- Supabase telemetry shows successful `ok` runs for every enabled production
+  scheduler group
+- local Windows scheduler jobs are retired; the latest local Task Scheduler
+  check found no matching `Amazon eBay Ops*` or `MBOP*` tasks
 
 Next work:
-- observe the first full day of scheduled runs in System Health and CloudWatch
-- tune cadence only after real runtime and external API behavior is visible
 - let all scheduler groups run at least once on the metrics-enabled image so
   every drawer has useful counters
+- continue routine monitoring in System Health and CloudWatch; tune cadence
+  only if real runtime or external API behavior shows pressure
 - add alerting/notification later if failed scheduler jobs need push alerts
 
 ---
@@ -144,7 +148,7 @@ Completed:
   sellers, stale high-capital inventory, Seller Central account-health score,
   Feedback Manager lifetime rating, and 1-3 star feedback alerts.
 - Growth, Sourcing, Loss Prevention, and System Health tabs are implemented
-  from existing backend data and local sync health signals.
+  from existing backend data and Supabase-backed scheduler telemetry.
 - dashboard metadata hydration now pages through `purchase_items` instead of
   giant Supabase `IN` filters, preventing transient metadata lookup failures
   from reviving excluded purchase rows in cleanup counts.
@@ -351,7 +355,7 @@ Next steps:
 ## EasyPost Webhook Implementation
 
 Status:
-Deployed / real-event observation pending.
+Deployed and smoke-tested / real EasyPost event observation pending.
 
 Completed:
 - added /api/easypost/webhook route
@@ -362,6 +366,8 @@ Completed:
 - added ALB unauthenticated path rule for `/api/easypost/webhook`
 - deployed webhook secret through AWS Secrets Manager and current web task
   revisions
+- public GET smoke returns `405` instead of Cognito redirect
+- authenticated non-tracker smoke POST returns accepted/ignored response
 
 Next steps:
 - send/observe a real tracker.updated event
@@ -404,17 +410,14 @@ Superseded by AWS EventBridge Scheduler; local Windows tasks retired.
 
 Completed:
 - `run_all_syncs.py` now runs eBay buyer purchase sync, sourcing purchase matching, EasyPost shipment sync, read-only eBay Order Problems return/inquiry sync, RevSeller enrichment, Amazon FBA inventory, Amazon FBA shipment sync, Amazon listing status, Amazon inventory planning, Amazon Finance balances, Informed Repricer reports, YNAB Business cash balance/transactions, sourcing listing availability cleanup, guarded Keepa enrichment, and business value snapshots
-- scheduler groups split freshness work into `core`, `daily`, and `catalog`
-  groups so operational refreshes can run without every heavyweight snapshot
+- legacy scheduler groups split freshness work into `core`, `daily`, and
+  `catalog`; production AWS now uses the explicit cloud groups documented in
+  `docs/aws/MBOP_AWS_SCHEDULER_PLAN.md`
 - legacy eBay supplier returns sync has been removed from active orchestration
   and System Health; the Order Problems return sync owns return/inquiry/case
   freshness
-- `run_all_syncs.bat` creates the logs directory when missing and appends to
-  `logs/scheduler.log` through a per-run temp log with retries
-- local Windows scheduled tasks were recreated after the repo moved from OneDrive to `C:\Dev`
-- AM, PM, Daily, and Catalog scheduled tasks have Task Scheduler catch-up
-  disabled with `StartWhenAvailable = False`; overlapping instances are ignored
-  with `MultipleInstances = IgnoreNew`
+- `run_all_syncs.bat` remains a manual/local development helper that creates
+  the logs directory when missing and appends to `logs/scheduler.log`
 - direct batch execution completed successfully with exit code 0
 - integration failures are collected and reported while later independent syncs continue running
 - Amazon FBA inventory sync now uses page pacing plus SP-API 429/5xx retry/backoff
@@ -435,12 +438,10 @@ Completed:
   a fail-open fallback when source freshness columns are unavailable
 - AWS EventBridge Scheduler now owns production cadence through
   `mbop-scheduler-task:1`
-- Catalog, Daily, and Inventory Source Balance Audit local scheduled tasks were
-  removed on 2026-06-20
+- Catalog, Daily, AM, PM, and Inventory Source Balance Audit local scheduled
+  tasks no longer appear in the latest local Task Scheduler check
 
 Next steps:
-- remove the remaining local AM/PM scheduled tasks from an Administrator
-  PowerShell because Windows denied delete/disable attempts from this shell
 - split the dashboard refresh/value jobs into lighter operational and heavier
   reporting paths, then optimize the reporting path separately
 - add `purchase_items.updated_at` or an equivalent source-change ledger so

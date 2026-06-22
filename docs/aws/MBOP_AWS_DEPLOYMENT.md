@@ -1,8 +1,8 @@
 # MBOP AWS Deployment
 
-Last updated: 2026-06-21
+Last updated: 2026-06-22
 
-This document records the authoritative AWS production state for MBOP as inspected from AWS CLI on 2026-06-21. Live AWS state remains the highest authority.
+This document records the authoritative AWS production state for MBOP as inspected from AWS CLI on 2026-06-21/2026-06-22. Live AWS state remains the highest authority.
 
 ## Current Live State
 
@@ -478,8 +478,14 @@ Scheduler sizing note:
   `Matching intelligence refresh`; a manual 2 GiB retry on 2026-06-21 completed
   successfully.
 
-## Remaining Deployment Items
+## Current Monitoring Items
 
-- Observe the first full day of EventBridge Scheduler runs and check System Health run history.
-- Observe the first real EasyPost webhook delivery and verify Supabase shipment updates.
+- EventBridge Scheduler migration is live and no longer laptop-dependent. The
+  latest live check found 18 enabled `mbop-*` schedules targeting ECS
+  `runTask`; Supabase telemetry showed successful `ok` runs for every enabled
+  production scheduler group.
+- Continue routine scheduler monitoring in System Health and
+  `/ecs/mbop-scheduler`.
+- Observe the first real EasyPost-originated `tracker.updated` webhook delivery
+  and verify Supabase shipment updates before reducing scheduled polling.
 - Add an independent scheduled Postgres backup outside Supabase managed backups.
