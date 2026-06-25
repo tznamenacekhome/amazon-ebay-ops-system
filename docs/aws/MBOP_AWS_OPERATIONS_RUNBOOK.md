@@ -1,6 +1,18 @@
 # MBOP AWS Operations Runbook
 
-Last updated: 2026-06-21
+Last updated: 2026-06-22
+
+## AWS CLI Preflight
+
+Before inspecting or changing live AWS resources, verify the local AWS CLI
+session is still valid:
+
+```powershell
+aws sts get-caller-identity
+```
+
+If this returns `NoCredentials`, an SSO/login prompt, or an expired-token error,
+run `aws login` and choose region `us-west-2` before proceeding.
 
 ## Deploy Web Updates
 
@@ -79,6 +91,50 @@ After `--list` succeeds for every group, a safe real smoke test is:
 
 ```json
 ["python", "run_all_syncs.py", "--group", "purchase-ingestion"]
+```
+
+## On-Demand Sourcing From Web
+
+The Sourcing page `Run Sourcing` button starts an ECS Fargate task in cloud
+mode instead of local Python. The web API creates the `sourcing_runs` row and
+launches:
+
+```text
+python integrations/run_sourcing_workflow.py --run-id <id> --run-type recent_sales|full_listings
+```
+
+Default target:
+
+- Cluster: `mbop-cluster1`
+- Task definition: `mbop-scheduler-task`
+- Container: `mbop-scheduler`
+- Subnets: `subnet-0acbbc29cdf301200`, `subnet-07558cd00060ff69d`
+- Security group: `sg-0b05e7760083c5e31`
+- CPU/memory override: `1024 / 4096`
+
+Required web task role permissions:
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": "ecs:RunTask",
+      "Resource": "arn:aws:ecs:us-west-2:297464765814:task-definition/mbop-scheduler-task:*"
+    },
+    {
+      "Effect": "Allow",
+      "Action": "ecs:TagResource",
+      "Resource": "arn:aws:ecs:us-west-2:297464765814:task/mbop-cluster1/*"
+    },
+    {
+      "Effect": "Allow",
+      "Action": "iam:PassRole",
+      "Resource": "arn:aws:iam::297464765814:role/ecsTaskExecutionRole"
+    }
+  ]
+}
 ```
 
 ## Check Logs

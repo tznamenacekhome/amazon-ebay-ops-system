@@ -41,7 +41,17 @@ Current implementation notes:
 - `sourcing_runs.status` uses only live schema-supported statuses: `planned`, `running`, `completed`, and `failed`.
 - `sourcing_runs.source_count`, `search_count`, `candidate_count`, and `opportunity_count` are the implemented count columns.
 - Fee context used by scoring is stored under `sourcing_seed_asins.raw_context_json.estimated_fee_cost`.
+- Platform inference used by eBay search is stored under
+  `sourcing_seed_asins.raw_context_json.inferred_system` when the Amazon title
+  does not itself include a video-game platform.
+- Seed creation skips replenishment ASINs when current sellable inventory exists,
+  Amazon inventory planning shows units older than 30 days, and Amazon reports
+  zero shipped units in the last 30 days. Out-of-stock ASINs remain eligible
+  even when the last sale is old or absent.
 - eBay candidates are upserted by the table's unique `ebay_item_id`; duplicate eBay listings returned for multiple seeds are deduped per search run.
+- eBay pickup-only candidates are excluded when Browse API availability exposes
+  pickup delivery options such as `SELLER_ARRANGED_LOCAL_PICKUP` without
+  `shippingOptions`.
 - UI actions are operator-only: `watching`, `dismissed`, `roi_snoozed`, and `purchased_pending_match`.
 - `/api/sourcing/runs` can execute the full sourcing workflow from the UI for Recent Sales, Full Listings, or both depending on source-mode selection.
 - The opportunity detail drawer was removed after operator review.
@@ -638,6 +648,9 @@ Required modes:
 Responsibilities:
 - Build seed ASIN list for recent sales mode.
 - Build seed ASIN list for full listings mode.
+- Exclude stale in-stock/no-30-day-sale ASINs from replenishment seed creation.
+- Store inferred platform/system context from Amazon listing and Keepa/catalog
+  snapshots for video-game titles that do not include a platform.
 - Compute target sale price source.
 - Compute 60/90 day velocity.
 - Compute inventory need.
@@ -645,11 +658,26 @@ Responsibilities:
 
 ---
 
+## integrations/ebay_sourcing_search.py
+
+Responsibilities:
+- Search eBay Browse for seed ASINs.
+- Include video-game platform/system terms in eBay search queries.
+- If the Amazon title lacks a platform but seed context inferred one from
+  Amazon/Keepa/catalog data, search with platform-qualified queries instead of
+  the generic title-only query.
+- Preserve raw eBay payloads and buyer-ZIP shipping context.
+
+---
+
 ## integrations/score_sourcing_opportunities.py
 
 Responsibilities:
 - Read seed ASINs and eBay candidates.
-- Apply keyword exclusions.
+- Apply deterministic match diagnostics for platform boundaries, title overlap,
+  excluded keywords, digital/download listings, region/version signals,
+  incomplete/not-game listings, pickup-only delivery, edition/version warnings,
+  historical dismissal memory, and seller trust.
 - Apply profitability formulas.
 - Classify opportunity type.
 - Compute score.

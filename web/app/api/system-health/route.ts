@@ -128,6 +128,7 @@ type SchedulerJobRunRecord = {
 
 type SchedulerGroupSummary = SchedulerGroupConfig & {
   status: HealthStatus;
+  nextRunAt: string | null;
   lastRunAt: string | null;
   lastSuccessAt: string | null;
   hoursSinceLastRun: number | null;
@@ -190,7 +191,7 @@ const SCHEDULER_GROUPS: SchedulerGroupConfig[] = [
     label: "Purchase Enrichment",
     domain: "Purchases",
     cadence: "Every 2 hours daytime",
-    schedule: "Every 2 hours from 8 AM-10 PM PT",
+    schedule: "Every 2 hours at :35 from 8 AM-10 PM PT",
     scheduleNames: ["mbop-purchase-enrichment"],
     expectedEveryHours: 4,
     criticalAfterHours: 12,
@@ -1033,9 +1034,13 @@ function buildSchedulerGroupSummaries(
       "rowsDeleted",
     );
 
+    const nextRunAt = nextScheduledRunForGroup(group.key);
+    const previousRunAt = previousScheduledRunForGroup(group.key);
+
     return {
       ...group,
-      status: statusForSchedulerGroup(group, latestRun, hoursSinceLastSuccess),
+      status: statusForSchedulerGroup(group, latestRun, lastSuccessAt, hoursSinceLastSuccess, previousRunAt),
+      nextRunAt,
       lastRunAt: latestRunAt,
       lastSuccessAt,
       hoursSinceLastRun,
@@ -1105,16 +1110,182 @@ function sumJobRuntime(runs: SchedulerJobRunRecord[]) {
 function statusForSchedulerGroup(
   group: SchedulerGroupConfig,
   latestRun: SchedulerRunRecord | null,
+  lastSuccessAt: string | null,
   hoursSinceLastSuccess: number | null,
+  previousRunAt: string | null,
 ): HealthStatus {
   if (group.expectedEveryHours <= 0) return latestRun ? runStatusToHealth(latestRun.status) : "skipped";
   if (latestRun?.status === "running") return "running";
   if (latestRun?.status === "blocked") return "blocked";
   if (latestRun?.status === "failed" || latestRun?.status === "cancelled") return "failed";
   if (!latestRun || hoursSinceLastSuccess === null) return "unknown";
+  if (previousRunAt && lastSuccessAt) {
+    const previousRunTimestamp = Date.parse(previousRunAt);
+    const lastSuccessTimestamp = Date.parse(lastSuccessAt);
+    const graceMs = 75 * 60_000;
+    if (Date.now() > previousRunTimestamp + graceMs && lastSuccessTimestamp < previousRunTimestamp) {
+      return hoursSinceLastSuccess >= group.criticalAfterHours ? "failed" : "delayed";
+    }
+    return runStatusToHealth(latestRun.status);
+  }
   if (hoursSinceLastSuccess >= group.criticalAfterHours) return "failed";
   if (hoursSinceLastSuccess >= group.expectedEveryHours) return "delayed";
   return runStatusToHealth(latestRun.status);
+}
+
+type PacificRunTime = {
+  hour: number;
+  minute: number;
+};
+
+const PACIFIC_TIME_ZONE = "America/Los_Angeles";
+
+function nextScheduledRunForGroup(groupKey: string): string | null {
+  const times = scheduledPacificTimesForGroup(groupKey);
+  if (!times.length) return null;
+  return nextPacificOccurrence(times)?.toISOString() ?? null;
+}
+
+function previousScheduledRunForGroup(groupKey: string): string | null {
+  const times = scheduledPacificTimesForGroup(groupKey);
+  if (!times.length) return null;
+  return previousPacificOccurrence(times)?.toISOString() ?? null;
+}
+
+function scheduledPacificTimesForGroup(groupKey: string): PacificRunTime[] {
+  switch (groupKey) {
+    case "purchase-ingestion":
+      return [{ hour: 4, minute: 0 }, ...hourlyTimes(7, 22, 0)];
+    case "purchase-tracking":
+      return [{ hour: 4, minute: 20 }, ...hourlyTimes(7, 22, 20)];
+    case "returns-order-problems":
+      return [
+        { hour: 7, minute: 15 },
+        { hour: 11, minute: 15 },
+        { hour: 15, minute: 15 },
+        { hour: 19, minute: 15 },
+        { hour: 22, minute: 0 },
+      ];
+    case "purchase-enrichment":
+      return hourlyTimes(8, 22, 35, 2);
+    case "amazon-sales-recent":
+      return [{ hour: 4, minute: 30 }, ...hourlyTimes(7, 21, 0, 2)];
+    case "finance-refresh":
+    case "business-value-finalizer":
+      return [
+        { hour: 6, minute: 30 },
+        { hour: 14, minute: 0 },
+        { hour: 20, minute: 45 },
+      ];
+    case "fba-inventory-daily":
+      return [{ hour: 20, minute: 30 }];
+    case "fba-shipments":
+      return [
+        { hour: 8, minute: 40 },
+        { hour: 12, minute: 40 },
+        { hour: 16, minute: 40 },
+        { hour: 20, minute: 40 },
+      ];
+    case "reconciliation":
+      return [{ hour: 21, minute: 0 }];
+    case "repricing-catalog":
+      return [{ hour: 21, minute: 30 }];
+    case "sourcing-catalog":
+      return [{ hour: 22, minute: 0 }];
+    case "keepa-rolling-refresh":
+      return [
+        { hour: 1, minute: 10 },
+        { hour: 9, minute: 10 },
+        { hour: 17, minute: 10 },
+      ];
+    default:
+      return [];
+  }
+}
+
+function hourlyTimes(startHour: number, endHour: number, minute: number, step = 1): PacificRunTime[] {
+  const times: PacificRunTime[] = [];
+  for (let hour = startHour; hour <= endHour; hour += step) {
+    times.push({ hour, minute });
+  }
+  return times;
+}
+
+function nextPacificOccurrence(times: PacificRunTime[], now = new Date()): Date | null {
+  const current = pacificDateParts(now);
+  const candidates: Date[] = [];
+  for (let dayOffset = 0; dayOffset <= 1; dayOffset += 1) {
+    const day = addPacificDays(current.year, current.month, current.day, dayOffset);
+    for (const time of times) {
+      const candidate = dateFromPacificWallTime(day.year, day.month, day.day, time.hour, time.minute);
+      if (candidate.getTime() > now.getTime()) candidates.push(candidate);
+    }
+  }
+
+  return candidates.sort((left, right) => left.getTime() - right.getTime())[0] ?? null;
+}
+
+function previousPacificOccurrence(times: PacificRunTime[], now = new Date()): Date | null {
+  const current = pacificDateParts(now);
+  const candidates: Date[] = [];
+  for (let dayOffset = -1; dayOffset <= 0; dayOffset += 1) {
+    const day = addPacificDays(current.year, current.month, current.day, dayOffset);
+    for (const time of times) {
+      const candidate = dateFromPacificWallTime(day.year, day.month, day.day, time.hour, time.minute);
+      if (candidate.getTime() <= now.getTime()) candidates.push(candidate);
+    }
+  }
+
+  return candidates.sort((left, right) => right.getTime() - left.getTime())[0] ?? null;
+}
+
+function pacificDateParts(date: Date) {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: PACIFIC_TIME_ZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(date);
+
+  return {
+    year: Number(parts.find((part) => part.type === "year")?.value),
+    month: Number(parts.find((part) => part.type === "month")?.value),
+    day: Number(parts.find((part) => part.type === "day")?.value),
+  };
+}
+
+function addPacificDays(year: number, month: number, day: number, offset: number) {
+  const date = new Date(Date.UTC(year, month - 1, day + offset, 12, 0, 0));
+  return pacificDateParts(date);
+}
+
+function dateFromPacificWallTime(year: number, month: number, day: number, hour: number, minute: number) {
+  const utcGuess = new Date(Date.UTC(year, month - 1, day, hour, minute, 0));
+  const offsetMinutes = timeZoneOffsetMinutes(PACIFIC_TIME_ZONE, utcGuess);
+  return new Date(Date.UTC(year, month - 1, day, hour, minute, 0) - offsetMinutes * 60_000);
+}
+
+function timeZoneOffsetMinutes(timeZone: string, date: Date) {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hourCycle: "h23",
+  }).formatToParts(date);
+  const values = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+  const asUtc = Date.UTC(
+    Number(values.year),
+    Number(values.month) - 1,
+    Number(values.day),
+    Number(values.hour),
+    Number(values.minute),
+    Number(values.second),
+  );
+  return (asUtc - date.getTime()) / 60_000;
 }
 
 function latestJobRunsForGroup(runs: SchedulerJobRunRecord[]) {

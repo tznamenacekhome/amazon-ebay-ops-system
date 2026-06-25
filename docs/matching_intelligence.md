@@ -1,7 +1,7 @@
 # Matching Intelligence Layer
 
-Status: Foundation implemented; live scoring integration is partial and
-AI-assisted opportunity review is intentionally deferred.
+Status: Foundation implemented; deterministic live scoring diagnostics are
+implemented; AI-assisted opportunity review is intentionally deferred.
 
 The Matching Intelligence Layer preserves reviewed sourcing evidence so MBOP can
 improve Amazon-to-eBay replenishment matching before any future eBay-to-Amazon
@@ -120,6 +120,13 @@ Dry run:
 
 Amazon-to-eBay sourcing now consumes Matching Intelligence during scoring:
 
+- deterministic static rules produce row-level diagnostics for platform
+  boundaries, title overlap, excluded keywords, digital/download listings,
+  edition/version signals, region signals, incomplete/not-game listings,
+  category/location signals, historical dismissal similarity, seller trust, and
+  the final recommendation
+- recommendations use `Blocked`, `Probable Non-Match`, `Review`,
+  `Probable Match`, and `Strong Match`
 - exact historical positive examples boost candidate score
 - exact historical `non_match` and `condition_problem` examples hard-block the
   candidate
@@ -131,6 +138,19 @@ Amazon-to-eBay sourcing now consumes Matching Intelligence during scoring:
 - the Matching Intelligence UI includes image clue counts and a near-miss
   review queue for title-similar dismissed/condition examples
 
+Rule quality can be reviewed with:
+
+```powershell
+.\.venv\Scripts\python.exe integrations\analyze_sourcing_match_quality.py --limit 5000 --since-days 365
+```
+
+The analyzer defaults to dry-run mode. `--write` stores diagnostics only and
+does not update opportunity status, auto-dismiss listings, bid, purchase,
+submit offers, call AI, train a model, or build eBay-to-Amazon sourcing.
+
+The latest deterministic rule review is documented in
+`docs/sourcing_match_quality_report.md`.
+
 AI review against opportunities should wait until the labeled sample set is
 larger and more balanced. Current target: at least 5,000 labeled examples with a
 stronger mix of negative identity, condition, and near-miss examples before AI
@@ -141,7 +161,6 @@ observations influence opportunity review.
 The remaining requirement work is tracked in `ROADMAP.md`. The important open
 items are:
 
-- detailed row-level diagnostics in the sourcing opportunity UI
 - a dedicated uncertain-match review workflow
 - sample-driven fuzzy matching after the evidence set is large enough
 - AI title/image/item-specific review against live opportunities

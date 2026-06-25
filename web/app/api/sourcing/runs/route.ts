@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
+import { ECSClient, RunTaskCommand } from "@aws-sdk/client-ecs";
 import { randomUUID } from "crypto";
 import { execFile } from "child_process";
 import { promises as fs } from "fs";
 import path from "path";
 import { promisify } from "util";
 import { supabase } from "../_supabase";
-import { isLocalJobExecutionEnabled, localJobDisabledResponse, requireAdminApiToken } from "../../_server";
+import { isCloudDeployment, isLocalJobExecutionEnabled, requireAdminApiToken } from "../../_server";
 
 export const runtime = "nodejs";
 
@@ -13,6 +14,8 @@ const execFileAsync = promisify(execFile);
 const ROOT_DIR = path.resolve(process.cwd(), "..");
 const LOG_PATH = path.join(ROOT_DIR, "logs", "sourcing_refresh.log");
 const PYTHON = path.join(ROOT_DIR, ".venv", "Scripts", "python.exe");
+const DEFAULT_SCHEDULER_SUBNETS = ["subnet-0acbbc29cdf301200", "subnet-07558cd00060ff69d"];
+const DEFAULT_SCHEDULER_SECURITY_GROUPS = ["sg-0b05e7760083c5e31"];
 
 export async function POST(request: NextRequest) {
   const adminError = requireAdminApiToken(request);
@@ -57,8 +60,38 @@ export async function POST(request: NextRequest) {
     });
   }
 
+  if (isCloudDeployment()) {
+    try {
+      const task = await runAwsSourcingTask(runId, runType);
+      return NextResponse.json({
+        run: data,
+        status: "started",
+        executionMode: "aws-ecs",
+        taskArn: task.taskArn,
+        nextSteps,
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to start AWS sourcing task.";
+      await supabase
+        .from("sourcing_runs")
+        .update({
+          status: "failed",
+          completed_at: new Date().toISOString(),
+          error_message: message,
+        })
+        .eq("sourcing_run_id", runId);
+      return NextResponse.json({ error: message, run: data }, { status: 500 });
+    }
+  }
+
   if (!isLocalJobExecutionEnabled()) {
-    return localJobDisabledResponse("sourcing Python run");
+    return NextResponse.json(
+      {
+        error: "Local sourcing execution is disabled and AWS sourcing execution is not configured.",
+        task: "sourcing Python run",
+      },
+      { status: 501 },
+    );
   }
 
   try {
@@ -115,6 +148,77 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ error: message, run: data }, { status: 500 });
   }
+}
+
+async function runAwsSourcingTask(runId: string, runType: "recent_sales" | "full_listings") {
+  const client = new ECSClient({ region: process.env.AWS_REGION || process.env.AWS_DEFAULT_REGION || "us-west-2" });
+  const cluster = process.env.MBOP_SCHEDULER_CLUSTER || "mbop-cluster1";
+  const taskDefinition = process.env.MBOP_SCHEDULER_TASK_DEFINITION || "mbop-scheduler-task";
+  const containerName = process.env.MBOP_SCHEDULER_CONTAINER || "mbop-scheduler";
+  const subnetIds = csvEnv("MBOP_SCHEDULER_SUBNET_IDS");
+  const securityGroupIds = csvEnv("MBOP_SCHEDULER_SECURITY_GROUP_IDS");
+
+  const subnets = subnetIds.length ? subnetIds : DEFAULT_SCHEDULER_SUBNETS;
+  const securityGroups = securityGroupIds.length ? securityGroupIds : DEFAULT_SCHEDULER_SECURITY_GROUPS;
+
+  const response = await client.send(new RunTaskCommand({
+    cluster,
+    taskDefinition,
+    launchType: "FARGATE",
+    count: 1,
+    platformVersion: "LATEST",
+    networkConfiguration: {
+      awsvpcConfiguration: {
+        subnets,
+        securityGroups,
+        assignPublicIp: "ENABLED",
+      },
+    },
+    overrides: {
+      cpu: "1024",
+      memory: "4096",
+      containerOverrides: [
+        {
+          name: containerName,
+          command: [
+            "python",
+            "integrations/run_sourcing_workflow.py",
+            "--run-id",
+            runId,
+            "--run-type",
+            runType,
+          ],
+          environment: [
+            { name: "SCHEDULER_TRIGGER_SOURCE", value: "web-on-demand" },
+            { name: "EVENTBRIDGE_SCHEDULE_NAME", value: "mbop-web-on-demand-sourcing" },
+          ],
+        },
+      ],
+    },
+    tags: [
+      { key: "mbop:source", value: "web-on-demand" },
+      { key: "mbop:job", value: "sourcing" },
+      { key: "mbop:sourcing-run-id", value: runId },
+      { key: "mbop:sourcing-run-type", value: runType },
+    ],
+  }));
+
+  const failure = response.failures?.[0];
+  if (failure) {
+    throw new Error(`ECS RunTask failed: ${failure.arn ?? failure.reason ?? "unknown failure"} ${failure.detail ?? ""}`.trim());
+  }
+  const task = response.tasks?.[0];
+  if (!task?.taskArn) {
+    throw new Error("ECS RunTask did not return a task ARN.");
+  }
+  return task;
+}
+
+function csvEnv(name: string) {
+  return (process.env[name] || "")
+    .split(",")
+    .map((value) => value.trim())
+    .filter(Boolean);
 }
 
 async function runStep(label: string, args: string[]) {

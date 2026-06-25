@@ -4,11 +4,11 @@ from __future__ import annotations
 
 import argparse
 import datetime as dt
-import re
 from typing import Any
 
 from sourcing_common import chunked, fetch_settings, get_supabase_client, paginate_table, to_float
 from matching_intelligence import build_listing_snapshot
+from sourcing_match_rules import evaluate_static_match_rules, meaningful_title_tokens
 from system_detection import detect_system_from_title, normalize_system
 from title_cleaning import clean_marketplace_title_for_search
 
@@ -245,10 +245,10 @@ def fetch_historical_status_by_key(supabase) -> dict[tuple[str, str], dict[str, 
     }
     for row in rows:
         asin = str(row.get("asin") or "").upper()
-        ebay_item_id = str(row.get("ebay_item_id") or "")
         status = action_status.get(str(row.get("action_type") or ""))
-        if asin and ebay_item_id and status:
-            status_by_key[(asin, ebay_item_id)] = {**row, "status": status}
+        for ebay_item_id in ebay_identity_values(row):
+            if asin and ebay_item_id and status:
+                status_by_key[(asin, ebay_item_id)] = {**row, "status": status}
     return status_by_key
 
 
@@ -319,9 +319,9 @@ def score_candidate(
     if not seed:
         return None
     title = str(candidate.get("ebay_title") or "")
-    matching_diagnostics = matching_diagnostics_for_candidate(candidate, seed, matching_context or {})
+    matching_diagnostics = matching_diagnostics_for_candidate(candidate, seed, matching_context or {}, settings)
     flags = advisory_flags(title, candidate, seed, settings) + matching_diagnostics["flags"]
-    has_excluded_keyword = any(flag.startswith("Excluded keyword") for flag in flags)
+    has_excluded_keyword = any("excluded keyword" in flag.lower() for flag in flags)
     has_hard_block = any(flag.startswith("Blocked:") for flag in flags)
 
     sale_price = to_float(seed.get("target_sale_price"), 0)
@@ -375,9 +375,7 @@ def score_candidate(
     displayed_max_landed_cost = best_offer_cap if opportunity_type == "best_offer" else max_profitable_landed_cost
     max_offer_price = suggested_offer(candidate, best_offer_cap, settings)
     required_offer_percent_of_ask = required_offer_percent(candidate, best_offer_cap)
-    historical_status = (historical_status_by_key or {}).get(
-        (str(candidate.get("asin") or "").upper(), str(candidate.get("ebay_item_id") or ""))
-    )
+    historical_status = first_historical_status(historical_status_by_key or {}, candidate)
     if historical_status:
         status = apply_historical_status(
             historical_status,
@@ -450,6 +448,18 @@ def apply_historical_status(
             return scored_status
         return status
     return status or scored_status
+
+
+def first_historical_status(
+    historical_status_by_key: dict[tuple[str, str], dict[str, Any]],
+    candidate: dict[str, Any],
+) -> dict[str, Any] | None:
+    asin = str(candidate.get("asin") or "").upper()
+    for ebay_item_id in ebay_identity_values(candidate):
+        status = historical_status_by_key.get((asin, ebay_item_id))
+        if status:
+            return status
+    return None
 
 
 def should_reactivate_watched_opportunity(
@@ -526,22 +536,6 @@ def conservative_fee_estimate(sale_price: float) -> float:
 
 def advisory_flags(title: str, candidate: dict[str, Any], seed: dict[str, Any], settings) -> list[str]:
     flags = []
-    lower_title = title.lower()
-    for keyword in settings.excluded_keywords:
-        if keyword.lower() in lower_title:
-            flags.append(f"Excluded keyword: {keyword}")
-    if has_no_meaningful_title_overlap(seed.get("amazon_title"), title):
-        flags.append("Blocked: no meaningful title token overlap")
-    if is_wii_seed_with_wii_u_result(seed, title):
-        flags.append("Blocked: Wii U result for Wii seed")
-    if "disc only" in lower_title or re.search(r"\bcase only\b", lower_title):
-        flags.append("Possibly incomplete")
-    if is_accessory_not_game(lower_title, candidate):
-        flags.append("Blocked: accessory/not game")
-    if is_known_non_video_game_category(candidate):
-        flags.append("Blocked: eBay category is not Video Games")
-    if candidate.get("item_location_country") not in settings.item_location_countries:
-        flags.append("Blocked: non-US/Canada item location")
     shipping_status = shipping_quote_status(candidate)
     if shipping_status == "unknown_no_options":
         flags.append("Unknown shipping estimate: no ZIP shipping option returned")
@@ -560,7 +554,14 @@ def matching_diagnostics_for_candidate(
     candidate: dict[str, Any],
     seed: dict[str, Any],
     matching_context: dict[str, Any],
+    settings=None,
 ) -> dict[str, Any]:
+    static_rules = evaluate_static_match_rules(
+        candidate,
+        seed,
+        excluded_keywords=list(getattr(settings, "excluded_keywords", []) or []),
+        allowed_item_location_countries=list(getattr(settings, "item_location_countries", []) or []),
+    )
     asin = clean_asin(seed.get("asin") or candidate.get("asin"))
     examples_by_key = matching_context.get("examples_by_key") or {}
     examples = []
@@ -588,24 +589,24 @@ def matching_diagnostics_for_candidate(
         if row.get("match_label") == "availability_system"
     ]
 
-    flags: list[str] = []
-    score_adjustment = 0
-    recommendation = "Review"
+    flags: list[str] = list(static_rules.get("flags") or [])
+    score_adjustment = int(static_rules.get("score_adjustment") or 0)
+    recommendation = static_rules.get("recommendation") or "Review"
     if negative_examples:
         label = negative_examples[0].get("match_label")
         reason = negative_examples[0].get("dismiss_reason") or label
         flags.append(f"Blocked: historical {label} ({reason})")
         score_adjustment -= 40
         recommendation = "Blocked"
-    elif positive_examples:
+    elif positive_examples and recommendation != "Blocked":
         flags.append("Historical positive match" if exact_example_count else "Historical positive title/system match")
         score_adjustment += 15
-        recommendation = "Strong Match"
-    elif business_examples:
+        recommendation = "Strong Match" if recommendation in {"Review", "Probable Match"} else recommendation
+    elif business_examples and recommendation != "Blocked":
         flags.append("Historical poor opportunity")
         score_adjustment -= 8
         recommendation = "Probable Match"
-    elif availability_examples:
+    elif availability_examples and recommendation != "Blocked":
         flags.append("Historical availability issue")
         score_adjustment -= 4
         recommendation = "Review"
@@ -621,7 +622,17 @@ def matching_diagnostics_for_candidate(
         score_adjustment -= 10
 
     return {
-        "hard_rule_pass": not negative_examples,
+        "hard_rule_pass": not negative_examples and not static_rules.get("hard_blocks"),
+        "static_rules": static_rules,
+        "platform_rule": static_rules.get("platform_rule"),
+        "title_overlap": static_rules.get("title_overlap"),
+        "excluded_keywords": static_rules.get("excluded_keywords"),
+        "digital_download": static_rules.get("digital_download"),
+        "edition_version": static_rules.get("edition_version"),
+        "region": static_rules.get("region"),
+        "incomplete_listing": static_rules.get("incomplete_listing"),
+        "not_game": static_rules.get("not_game"),
+        "delivery": static_rules.get("delivery"),
         "historical_positive_count": len(positive_examples),
         "historical_negative_count": len(negative_examples),
         "historical_business_count": len(business_examples),
@@ -721,164 +732,6 @@ def legacy_item_id(value: Any) -> str:
         parts = text.split("|")
         return parts[1] if len(parts) > 1 else text
     return text
-
-
-TITLE_OVERLAP_STOP_WORDS = {
-    "3ds",
-    "360",
-    "and",
-    "brand",
-    "compatible",
-    "edition",
-    "esrb",
-    "fast",
-    "for",
-    "game",
-    "games",
-    "mac",
-    "microsoft",
-    "new",
-    "nintendo",
-    "one",
-    "pc",
-    "playstation",
-    "ps",
-    "ps2",
-    "ps3",
-    "ps4",
-    "ps5",
-    "psp",
-    "sealed",
-    "series",
-    "shipping",
-    "sony",
-    "standard",
-    "switch",
-    "the",
-    "video",
-    "wii",
-    "wiiu",
-    "windows",
-    "xbox",
-    "xb1",
-    "xbone",
-}
-
-
-def has_no_meaningful_title_overlap(source_title: Any, candidate_title: Any) -> bool:
-    source_tokens = meaningful_title_tokens(source_title)
-    candidate_tokens = meaningful_title_tokens(candidate_title)
-    return bool(source_tokens and candidate_tokens and source_tokens.isdisjoint(candidate_tokens))
-
-
-def is_wii_seed_with_wii_u_result(seed: dict[str, Any], candidate_title: str) -> bool:
-    seed_system = detect_system_from_title(str(seed.get("amazon_title") or ""))
-    candidate_system = detect_system_from_title(candidate_title)
-    return seed_system == "Wii" and candidate_system == "Wii U"
-
-
-def meaningful_title_tokens(value: Any) -> set[str]:
-    tokens = set()
-    for token in re.findall(r"[a-z0-9]+", str(value or "").lower()):
-        if len(token) <= 1 or token in TITLE_OVERLAP_STOP_WORDS:
-            continue
-        if re.fullmatch(r"(?:19|20)\d{2}", token):
-            continue
-        tokens.add(singular_token(token))
-    return tokens
-
-
-def singular_token(token: str) -> str:
-    if len(token) > 4 and token.endswith("s"):
-        return token[:-1]
-    return token
-
-
-def is_accessory_not_game(lower_title: str, candidate: dict[str, Any]) -> bool:
-    accessory_terms = {
-        "bonus content",
-        "bonus code",
-        "booklet only",
-        "car pack dlc",
-        "collectible reservation",
-        "controller performance",
-        "custom playstation",
-        "digital code",
-        "dlc add-on",
-        "element dust",
-        "flak set",
-        "fridge magnet",
-        "giga egg",
-        "instruction manual",
-        "keychain",
-        "key chain",
-        "kibble",
-        "kontrol freek",
-        "manual only",
-        "memory card stickers",
-        "message before purch",
-        "mindwipe tonic",
-        "no game included",
-        "pendant",
-        "pendent",
-        "performance grips",
-        "performance thumbsticks",
-        "plush",
-        "poster",
-        "pre order",
-        "preorder bonus",
-        "promotional sticker",
-        "protector for",
-        "pve official",
-        "pvp official",
-        "req pack code",
-        "steel case only",
-        "steelbook only",
-        "thumbsticks",
-        "will send",
-        "hanger",
-    }
-    if any(term in lower_title for term in accessory_terms):
-        return True
-
-    raw = candidate.get("raw_ebay_json") or {}
-    categories = raw.get("categories") or []
-    for category in categories:
-        if not isinstance(category, dict):
-            continue
-        category_name = str(category.get("categoryName") or "").lower()
-        if "keychain" in category_name or "key chain" in category_name:
-            return True
-    return False
-
-
-def is_known_non_video_game_category(candidate: dict[str, Any]) -> bool:
-    raw = candidate.get("raw_ebay_json") or {}
-    category_texts: list[str] = []
-    category_ids: list[str] = []
-    for key in ("categoryPath", "categoryIdPath"):
-        value = raw.get(key)
-        if value:
-            category_texts.append(str(value).lower())
-    category_id = raw.get("categoryId")
-    if category_id:
-        category_ids.append(str(category_id))
-    for category in raw.get("categories") or []:
-        if not isinstance(category, dict):
-            continue
-        if category.get("categoryName"):
-            category_texts.append(str(category.get("categoryName")).lower())
-        if category.get("categoryId"):
-            category_ids.append(str(category.get("categoryId")))
-
-    has_category_evidence = bool(category_texts or category_ids)
-    if not has_category_evidence:
-        return False
-    if "139973" in category_ids:
-        return False
-    if any("video games" in text for text in category_texts):
-        return False
-    return True
 
 
 def has_shipping_to_buyer(candidate: dict[str, Any]) -> bool:

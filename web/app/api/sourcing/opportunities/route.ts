@@ -16,6 +16,7 @@ type OpportunityRow = {
   total_profit_opportunity: number | null;
   score: number | null;
   ai_flags: string[] | null;
+  matching_diagnostics_json: unknown;
   created_at: string | null;
   sourcing_seed_asins?: {
     amazon_title: string | null;
@@ -193,7 +194,7 @@ export async function GET(request: NextRequest) {
         quantityMultiplier: row.sourcing_ebay_candidates?.available_quantity ?? null,
         totalProfitOpportunity: row.total_profit_opportunity,
         score: row.score,
-        aiFlags: row.ai_flags ?? [],
+        aiFlags: mergeFlags(row.ai_flags, diagnosticFlags(row.matching_diagnostics_json)),
         createdAt: row.created_at,
       };
     })
@@ -321,6 +322,27 @@ function statusRank(status: string | null) {
   if (status === "purchased_pending_match") return 2;
   if (status === "roi_snoozed") return 1;
   return 0;
+}
+
+function mergeFlags(primary: string[] | null, secondary: string[]) {
+  const output: string[] = [];
+  for (const value of [...(primary ?? []), ...secondary]) {
+    const text = String(value ?? "").trim();
+    if (text && !output.includes(text)) output.push(text);
+  }
+  return output;
+}
+
+function diagnosticFlags(value: unknown) {
+  if (!value || typeof value !== "object") return [];
+  const flags = (value as { flags?: unknown }).flags;
+  if (Array.isArray(flags)) return flags.map(String);
+  const staticRules = (value as { static_rules?: unknown }).static_rules;
+  if (staticRules && typeof staticRules === "object") {
+    const staticFlags = (staticRules as { flags?: unknown }).flags;
+    if (Array.isArray(staticFlags)) return staticFlags.map(String);
+  }
+  return [];
 }
 
 function getShippingQuoteStatus(rawEbay: unknown, storedShippingCost?: number | null): ShippingQuoteStatus {

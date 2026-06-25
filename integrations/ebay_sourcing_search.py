@@ -12,13 +12,15 @@ from urllib.parse import quote
 import requests
 
 from sourcing_common import chunked, fetch_settings, get_supabase_client, required_env, to_float
-from system_detection import detect_system_from_title, normalize_spaces, remove_system_terms
+from system_detection import detect_system_from_title, normalize_spaces, normalize_system, remove_system_terms
 from title_cleaning import clean_marketplace_title_for_search
 
 
 EBAY_BROWSE_SEARCH_URL = "https://api.ebay.com/buy/browse/v1/item_summary/search"
 EBAY_BROWSE_ITEM_URL = "https://api.ebay.com/buy/browse/v1/item"
 SEARCH_SYSTEM_ALIASES = {
+    "Xbox Series X": ["Xbox Series X", "Xbox Series"],
+    "Xbox Series S": ["Xbox Series S", "Xbox Series"],
     "Xbox One": ["Xbox One", "xb1"],
     "PS 2": ["PlayStation 2", "ps2"],
     "PS 3": ["PlayStation 3", "ps3"],
@@ -27,6 +29,8 @@ SEARCH_SYSTEM_ALIASES = {
     "Switch": ["Nintendo Switch", "Switch"],
     "Wii": ["Nintendo Wii", "Wii"],
     "Wii U": ["Nintendo Wii U", "Wii U", "wiiu"],
+    "3DS": ["Nintendo 3DS", "3DS"],
+    "DS": ["Nintendo DS", "DS"],
 }
 
 
@@ -109,16 +113,24 @@ def search_queries_for_seed(seed: dict[str, Any]) -> list[str]:
     if not base_query:
         return []
 
-    system = detect_system_from_title(amazon_title)
+    system_from_title = detect_system_from_title(amazon_title)
+    system = system_from_title or inferred_system_from_seed(seed)
     aliases = SEARCH_SYSTEM_ALIASES.get(system or "", [])
     title_without_system = normalize_spaces(remove_system_terms(base_query.lower()))
-    queries = [base_query]
+    queries = [base_query] if system_from_title or not aliases else []
 
     if title_without_system and aliases:
         for alias in aliases:
             queries.append(normalize_spaces(f"{title_without_system} {alias}"))
 
     return unique_queries(queries)
+
+
+def inferred_system_from_seed(seed: dict[str, Any]) -> str | None:
+    raw_context = seed.get("raw_context_json") or {}
+    if not isinstance(raw_context, dict):
+        return None
+    return normalize_system(str(raw_context.get("inferred_system") or ""))
 
 
 def unique_queries(queries: list[str]) -> list[str]:
@@ -268,11 +280,23 @@ def item_price(item: dict[str, Any]) -> float:
 def is_allowed_candidate(row: dict[str, Any], item: dict[str, Any], settings, seed: dict[str, Any]) -> bool:
     if row.get("item_location_country") not in settings.item_location_countries:
         return False
-    seed_system = detect_system_from_title(str(seed.get("amazon_title") or ""))
+    if is_pickup_only(item):
+        return False
+    seed_system = detect_system_from_title(str(seed.get("amazon_title") or "")) or inferred_system_from_seed(seed)
     candidate_system = detect_system_from_title(str(row.get("ebay_title") or ""))
     if seed_system == "Wii" and candidate_system == "Wii U":
         return False
     return True
+
+
+def is_pickup_only(item: dict[str, Any]) -> bool:
+    delivery_options = []
+    for availability in item.get("estimatedAvailabilities") or []:
+        if isinstance(availability, dict):
+            delivery_options.extend(str(option) for option in availability.get("deliveryOptions") or [])
+    has_pickup = any("PICKUP" in option.upper() for option in delivery_options) or bool(item.get("pickupOptions") or [])
+    has_shipping = bool(item.get("shippingOptions") or [])
+    return has_pickup and not has_shipping
 
 
 def has_shipping_to_buyer(item: dict[str, Any]) -> bool:

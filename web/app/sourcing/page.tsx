@@ -112,6 +112,7 @@ export default function SourcingPage() {
     setNotice("Starting sourcing workflow...");
     try {
       const runTypes = sourceMode === "all" ? ["recent_sales", "full_listings"] : [sourceMode];
+      let startedAwsTask = false;
       for (const runType of runTypes) {
         setNotice(`Running ${runType === "full_listings" ? "all listings" : "recently sold"} sourcing workflow...`);
         const response = await fetch("/api/sourcing/runs", {
@@ -121,10 +122,15 @@ export default function SourcingPage() {
         });
         const payload = await response.json();
         if (!response.ok) throw new Error(payload.error ?? "Sourcing workflow failed.");
+        if (payload.executionMode === "aws-ecs" || payload.status === "started") startedAwsTask = true;
       }
       setSelectedIds(new Set());
       await reload();
-      setNotice("Sourcing workflow complete. Loaded fresh opportunities.");
+      setNotice(
+        startedAwsTask
+          ? "AWS sourcing task started. Opportunities will refresh after the ECS task finishes."
+          : "Sourcing workflow complete. Loaded fresh opportunities.",
+      );
     } catch (err) {
       setError(err instanceof Error ? err.message : "Sourcing workflow failed.");
       setNotice(null);

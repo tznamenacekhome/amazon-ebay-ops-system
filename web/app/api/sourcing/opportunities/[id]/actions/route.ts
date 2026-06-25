@@ -106,17 +106,28 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     .update({ listing_snapshot_id: snapshot.listing_snapshot_id })
     .eq("action_id", action.action_id);
 
+  const updatePayload = {
+    status: newStatus,
+    latest_listing_snapshot_id: snapshot.listing_snapshot_id,
+    updated_at: new Date().toISOString(),
+  };
+
   const { data, error } = await supabase
     .from("sourcing_opportunities")
-    .update({
-      status: newStatus,
-      latest_listing_snapshot_id: snapshot.listing_snapshot_id,
-      updated_at: new Date().toISOString(),
-    })
+    .update(updatePayload)
     .eq("opportunity_id", id)
     .select("*")
     .single();
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  const relatedEbayIds = ebayIdentityValues(opportunity);
+  if (relatedEbayIds.length) {
+    await supabase
+      .from("sourcing_opportunities")
+      .update(updatePayload)
+      .eq("asin", opportunity.asin)
+      .in("ebay_item_id", relatedEbayIds);
+  }
 
   return NextResponse.json({ opportunity: data });
 }
@@ -124,4 +135,24 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 function numberOrNull(value: unknown) {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : null;
+}
+
+function ebayIdentityValues(opportunity: {
+  ebay_item_id?: string | null;
+  sourcing_ebay_candidates?: { ebay_legacy_item_id?: string | null } | null;
+}) {
+  const values = [
+    opportunity.ebay_item_id,
+    opportunity.sourcing_ebay_candidates?.ebay_legacy_item_id,
+    legacyEbayItemId(opportunity.ebay_item_id),
+  ];
+  return [...new Set(values.map((value) => String(value ?? "").trim()).filter(Boolean))];
+}
+
+function legacyEbayItemId(value: string | null | undefined) {
+  const trimmed = String(value ?? "").trim();
+  if (!trimmed) return null;
+  if (/^\d+$/.test(trimmed)) return trimmed;
+  if (trimmed.startsWith("v1|")) return trimmed.split("|")[1] || null;
+  return null;
 }

@@ -13,7 +13,7 @@ Known from the latest handoff:
 - Runtime: ECS/Fargate
 - ECS cluster: `mbop-cluster1`
 - ECS web service: `mbop-web-service`
-- Current web task definition: `mbop-web-task:17`
+- Current web task definition: `mbop-web-task:20`
 - Current web container: `mbop-web`
 - Web task size: `0.5 vCPU / 1 GiB`
 - Web container port: `3103`
@@ -39,6 +39,7 @@ The deployed web image is built from `web/Dockerfile`. It is web-only: it contai
 - Deployment circuit breaker: enabled with rollback
 - Health check grace period: `300` seconds
 - Current target: healthy
+- Web task role: `arn:aws:iam::297464765814:role/mbop-web-task-role`
 - Current web task revision uses `/mbop/prod/supabase/service-role-key`; the
   old phase-1 Supabase secret is scheduled for deletion.
 
@@ -62,10 +63,10 @@ Web repository:
 Current web task image:
 
 ```text
-297464765814.dkr.ecr.us-west-2.amazonaws.com/mbop-web@sha256:d2bc91dd6a3fc8abc982e3df1d2579519f1d8eeef38794dda4c0895e88d73298
+297464765814.dkr.ecr.us-west-2.amazonaws.com/mbop-web@sha256:801d43036104579bd84d5365915ac7eb8e20f464802520775db05b95a8932653
 ```
 
-Tag `job-metrics-20260621` points at the current digest.
+Tag `system-health-next-run-20260623` points at the current digest.
 
 Scheduler repository:
 
@@ -84,10 +85,11 @@ The task definition is registered against image tag `297464765814.dkr.ecr.us-wes
 Current scheduler image digest:
 
 ```text
-sha256:26e24b0e54c530b8baa76d279da348a89a326b7d9a6500522a0a5efa1e56034e
+sha256:77b46ba7a474bc718fb34c994a763ebb98200c637d48982eb5c1474ca43ca58a
 ```
 
-Tag `metrics-20260621b` also points at the current scheduler digest.
+Tags `latest` and `on-demand-sourcing-20260622` point at the current scheduler
+digest.
 
 ## ALB
 
@@ -484,6 +486,16 @@ Scheduler sizing note:
   latest live check found 18 enabled `mbop-*` schedules targeting ECS
   `runTask`; Supabase telemetry showed successful `ok` runs for every enabled
   production scheduler group.
+- The Sourcing page `Run Sourcing` button no longer starts local Python in
+  cloud mode. It creates a `sourcing_runs` row, then the web API starts an
+  on-demand ECS Fargate task from `mbop-scheduler-task` with command
+  `python integrations/run_sourcing_workflow.py --run-id <id> --run-type <type>`.
+  The task uses the same two public subnets and `mbop-web-sg` by default, with
+  a `1024 CPU / 4096 MB` override. A limited ECS smoke test completed with exit
+  code `0` on 2026-06-22 after the seed builder stopped broadly loading raw
+  Amazon/Keepa payload JSON. The web task role must allow `ecs:RunTask` on
+  `mbop-scheduler-task:*`, `ecs:TagResource` on tasks in `mbop-cluster1`, and
+  `iam:PassRole` for the scheduler execution role.
 - Continue routine scheduler monitoring in System Health and
   `/ecs/mbop-scheduler`.
 - Observe the first real EasyPost-originated `tracker.updated` webhook delivery

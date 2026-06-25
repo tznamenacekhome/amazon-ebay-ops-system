@@ -89,6 +89,7 @@ type SchedulerGroup = {
   features: string[];
   jobNames: string[];
   status: HealthStatus;
+  nextRunAt: string | null;
   lastRunAt: string | null;
   lastSuccessAt: string | null;
   hoursSinceLastRun: number | null;
@@ -253,24 +254,67 @@ export default function SystemHealthPage() {
         <Summary label="Group Blocked" value={formatNumber(data?.summary.blockedGroups)} tone="blocked" />
       </section>
 
-      <section className="mb-4 grid gap-3 xl:grid-cols-2 2xl:grid-cols-3">
-        {loading ? (
-          <div className="rounded-lg border border-slate-200 bg-white p-4 text-sm text-slate-500 shadow-sm">
-            Loading AWS scheduler groups...
+      <section className="mb-4 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 px-4 py-3">
+          <div>
+            <div className="text-sm font-medium uppercase tracking-wide text-slate-500">EventBridge / ECS</div>
+            <h2 className="mt-1 text-lg font-semibold">AWS Scheduler Groups</h2>
           </div>
-        ) : schedulerGroups.length ? (
-          schedulerGroups.map((group) => (
-            <SchedulerGroupPanel
-              key={group.key}
-              group={group}
-              onOpen={() => setSelectedGroupKey(group.key)}
-            />
-          ))
-        ) : (
-          <div className="rounded-lg border border-slate-200 bg-white p-4 text-sm text-slate-500 shadow-sm">
-            No scheduler group telemetry found.
-          </div>
-        )}
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[1220px] text-left text-sm">
+            <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
+              <tr>
+                <th className="px-3 py-2">Group</th>
+                <th className="px-3 py-2">Status</th>
+                <th className="px-3 py-2">Next Run</th>
+                <th className="px-3 py-2">Last Success</th>
+                <th className="px-3 py-2">Since Success</th>
+                <th className="px-3 py-2">Runtime</th>
+                <th className="px-3 py-2">Cadence</th>
+                <th className="px-3 py-2">Jobs</th>
+              </tr>
+            </thead>
+            <tbody>
+              {loading ? (
+                <tr>
+                  <td className="px-3 py-8 text-center text-slate-500" colSpan={8}>
+                    Loading AWS scheduler groups...
+                  </td>
+                </tr>
+              ) : schedulerGroups.length ? (
+                schedulerGroups.map((group) => (
+                  <tr
+                    key={group.key}
+                    className="cursor-pointer border-t border-slate-100 align-top hover:bg-slate-50"
+                    onClick={() => setSelectedGroupKey(group.key)}
+                  >
+                    <td className="px-3 py-3">
+                      <div className="font-medium text-slate-900">{group.label}</div>
+                      <div className="mt-0.5 text-xs uppercase tracking-wide text-slate-500">{group.domain}</div>
+                    </td>
+                    <td className="px-3 py-3"><StatusBadge status={group.status} /></td>
+                    <td className="whitespace-nowrap px-3 py-3">{formatPacificDateTime(group.nextRunAt)}</td>
+                    <td className="whitespace-nowrap px-3 py-3">{formatPacificDateTime(group.lastSuccessAt)}</td>
+                    <td className="whitespace-nowrap px-3 py-3">{formatAge(group.hoursSinceLastSuccess)}</td>
+                    <td className="whitespace-nowrap px-3 py-3">{formatDuration(group.latestRun?.runtimeSeconds ?? null)}</td>
+                    <td className="px-3 py-3 text-slate-700">
+                      <div>{group.cadence}</div>
+                      <div className="mt-1 text-xs text-slate-500">{group.schedule}</div>
+                    </td>
+                    <td className="px-3 py-3 text-slate-700">{schedulerJobSummary(group)}</td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td className="px-3 py-8 text-center text-slate-500" colSpan={8}>
+                    No scheduler group telemetry found.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
       </section>
 
       <section className="mb-4 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
@@ -579,9 +623,9 @@ function SchedulerGroupDrawer({ group, onClose }: { group: SchedulerGroup; onClo
 
         <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
           <section className="grid gap-3 md:grid-cols-3">
+            <MetricTile label="Next Run" value={formatPacificDateTime(group.nextRunAt)} />
             <MetricTile label="Last Success" value={formatPacificDateTime(group.lastSuccessAt)} />
             <MetricTile label="Last Attempt" value={formatPacificDateTime(group.lastRunAt)} />
-            <MetricTile label="Latest Runtime" value={formatDuration(group.latestRun?.runtimeSeconds ?? null)} />
           </section>
 
           <section className="mt-5">
@@ -723,6 +767,15 @@ function MetricPills({ stats, empty }: { stats: Array<{ label: string; value: st
       ))}
     </div>
   );
+}
+
+function schedulerJobSummary(group: SchedulerGroup) {
+  const ok = group.jobs.filter((job) => job.status === "ok").length;
+  const failed = group.jobs.filter((job) => job.status === "failed").length;
+  const blocked = group.jobs.filter((job) => job.status === "blocked").length;
+  const running = group.jobs.filter((job) => job.status === "running").length;
+  const delayed = group.jobs.filter((job) => job.status === "delayed").length;
+  return `${ok}/${group.jobs.length} ok, ${running} running, ${delayed} delayed, ${failed} failed, ${blocked} blocked`;
 }
 
 function LegacyGroupPanel({ title, cadence, detail, jobs }: { title: string; cadence: string; detail: string; jobs: HealthJob[] }) {
