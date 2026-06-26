@@ -874,6 +874,27 @@ YNAB data must stay in YNAB-specific snapshot tables. Do not write YNAB balances
 
 ---
 
+## ZFI Owns Financial Planning And Tax Reporting
+
+Decision:
+MBOP remains the operational resale system. ZFI is the go-forward owner for
+household finance, business net worth in household context, cash-flow planning,
+Schedule C/tax classification, owner draws/contributions, and long-range
+financial planning.
+
+Implementation:
+- MBOP may compute and display operational profitability, inventory value,
+  Amazon cash state, COGS diagnostics, and item/order-level resale metrics.
+- MBOP must not become the personal finance or tax system.
+- MBOP pushes summarized business-operational finance payloads outward to ZFI
+  Supabase through `integrations/push_zfi_business_summary.py`.
+- MBOP does not query ZFI and does not import ZFI personal finance data.
+- ZFI auth, user tables, and service-role credentials stay separate from MBOP.
+- Existing MBOP YNAB, business value, and Schedule C planning surfaces are
+  transitional/legacy once ZFI has replacement views.
+
+---
+
 ## Amazon Finance Cash Is Separate From Inventory
 
 Decision:

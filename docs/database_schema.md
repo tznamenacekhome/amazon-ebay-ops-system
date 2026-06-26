@@ -116,6 +116,12 @@ ASIN, Amazon title, and target sell price.
   Schedule C, and cash reconciliation features.
 - `business_value_snapshots`: daily backend-computed total business value rollups.
 
+ZFI is a separate application/repo with separate auth and its own Supabase
+database. MBOP does not store ZFI personal finance data. The manual
+`integrations/push_zfi_business_summary.py` job writes summarized
+business-operational payloads into a ZFI-owned table documented in
+`docs/ZFI_INTEGRATION.md`.
+
 `business_value_snapshots.raw_rollup_json.amazon_outbound_value` includes MBOP outbound FBA shipment cost plus Amazon inbound cost not already covered by a saved MBOP outbound shipment ASIN.
 
 Inventory reconciliation tables are derived and additive. Workflow corrections must route through the workflow that owns the underlying state.

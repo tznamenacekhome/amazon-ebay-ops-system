@@ -120,6 +120,11 @@ Implemented:
 - Financial dashboard summarizes profitability windows, cash position, Amazon
   payout reconciliation, financial data completeness, and the future Schedule C
   reporting placeholder from existing backend finance/profitability data.
+- ZFI is the go-forward owner for personal finance, business net worth,
+  cash-flow planning, and tax classification. MBOP has a manual dry-run ZFI
+  export script, `integrations/push_zfi_business_summary.py`, that builds an
+  outbound business-operational summary and can push it to ZFI Supabase only
+  when `--apply` is passed.
 - Inventory dashboard summarizes inventory value/location, age buckets,
   capital at risk, concentration, and reconciliation attention from
   `inventory_positions` and reconciliation views.

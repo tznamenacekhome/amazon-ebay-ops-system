@@ -229,6 +229,17 @@ eBay seller orders are not purchases. Seller-order functionality must use separa
 Dashboard metrics must use backend/API aggregation and authoritative purchase item unit_cost values. The first dashboard report groups purchase units and cost by order month and excludes Return Opened rows, Cancelled rows, plus purchase_items explicitly flagged with exclude_from_purchase_reporting. Do not recalculate landed cost in frontend components.
 Personal purchases and business supplies must be excluded through explicit backend flags, not title/system guesses.
 
+ZFI boundary:
+- MBOP remains the operational resale platform.
+- ZFI owns personal finance, household/business net worth, cash-flow planning,
+  tax classification, owner draws/contributions, and long-range financial
+  planning.
+- MBOP may push summarized business-operational financial payloads outward to
+  ZFI Supabase through server-side integrations, but must not pull ZFI personal
+  finance data into MBOP.
+- Keep ZFI auth, user tables, and service-role credentials separate from MBOP.
+- Do not expose ZFI service-role keys to frontend code.
+
 ---
 
 ## Matching Engine Rule

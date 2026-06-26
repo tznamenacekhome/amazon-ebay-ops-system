@@ -135,6 +135,10 @@ Impact:
   fee exceptions are resolved or classified.
 - Inventory value and tax-close confidence depends on resolving or explicitly
   classifying remaining open reconciliation findings.
+- ZFI is now the intended owner for tax-close, Schedule C, household cash-flow,
+  and business net-worth planning. MBOP's ZFI push is manual/dry-run-first and
+  requires the ZFI Supabase table from `docs/ZFI_INTEGRATION.md` before live
+  `--apply` testing.
 
 Current mitigation:
 - Amazon order sync/backfill is limited to the 2025-forward operating window.

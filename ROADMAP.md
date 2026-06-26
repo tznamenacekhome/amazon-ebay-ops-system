@@ -168,8 +168,8 @@ Next steps:
 ## Business Financial Reporting
 
 Goal:
-Build MBOP-owned reporting for business P&L, Schedule C support, and cash
-reconciliation using YNAB Business transactions plus Amazon/eBay financial data.
+Move household/personal-finance reporting to ZFI while keeping MBOP operational
+business metrics.
 
 Foundation:
 - `ynab_business_transactions` stores YNAB transactions categorized as Business.
@@ -179,11 +179,18 @@ Foundation:
   against YNAB Business deposit transactions before counting them as in transit.
 
 Next steps:
-- classify YNAB Business transactions into tax/reporting categories.
+- keep MBOP item/order profitability, COGS diagnostics, inventory value, and
+  marketplace operational cash context.
+- push summarized business-operational finance data to ZFI Supabase through
+  `integrations/push_zfi_business_summary.py`.
+- add a future scoped operational drilldown API so ZFI/Ask Zoltar can link from
+  financial summaries back to MBOP orders, purchase items, returns, inventory
+  state details, COGS corrections, FBA shipments, shipping labels, and fee
+  details without duplicating full MBOP operational tables in ZFI.
 - add payout reconciliation review/reporting so unmatched Amazon payouts and
   unmatched Amazon-looking YNAB deposits are easy to inspect.
-- combine YNAB expense/cash records with Amazon and eBay sales/fee data for P&L.
-- design Schedule C reporting views after category mapping is reviewed.
+- let ZFI own YNAB, tax/reporting categories, Schedule C support, owner
+  draws/contributions, and household/business planning views.
 
 ---
 

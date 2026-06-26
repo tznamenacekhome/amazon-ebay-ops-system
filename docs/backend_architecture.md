@@ -41,6 +41,10 @@ are separate domains.
 - Informed tables own read-only repricer report snapshots and advisory rule/price context.
 - YNAB tables own read-only category balance snapshots and Business-category
   transaction history.
+- ZFI owns personal finance, household/business net worth, cash-flow planning,
+  tax classification, owner draws/contributions, and long-range financial
+  planning. MBOP may push summarized business-operational finance payloads to
+  ZFI Supabase, but MBOP must not query ZFI or import ZFI personal finance data.
 - eBay draft pricing sheet support is a spreadsheet utility, not a marketplace
   write workflow. See `docs/subsystems/ebay_draft_pricing.md`.
 - `inventory_positions` and reconciliation tables are derived and rebuildable; they do not replace workflow ownership.
@@ -106,6 +110,10 @@ manual/on-demand after the AWS scheduler migration; the legacy local monthly
 Windows task has been removed.
 
 Independent integration failures are collected and reported while later syncs continue running. This prevents one external API failure from blocking unrelated freshness work.
+
+`integrations/push_zfi_business_summary.py` is a manual outbound export to ZFI
+Supabase. It defaults to dry run and is intentionally not part of scheduled
+orchestration until the payload has been reviewed in ZFI.
 
 The orchestrator writes the latest per-job state to Supabase scheduler
 telemetry in cloud runs and to `logs/sync_health.json` for local/manual runs,
