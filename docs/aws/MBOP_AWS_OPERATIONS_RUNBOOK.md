@@ -16,6 +16,9 @@ run `aws login` and choose region `us-west-2` before proceeding.
 
 ## Deploy Web Updates
 
+For the day-to-day solo developer workflow, prefer the wrapper scripts in
+`scripts/` and the short guide in `docs/aws/MBOP_SOLO_DEV_WORKFLOW.md`.
+
 1. Build the web image from `web/`.
 2. Push it to the ECR repository used by `mbop-web-task`.
 3. Resolve the pushed image digest and register a new `mbop-web-task` revision pinned to that digest.

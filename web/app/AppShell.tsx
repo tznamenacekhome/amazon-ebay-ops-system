@@ -59,6 +59,7 @@ const navItems = [
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const buildSha = process.env.NEXT_PUBLIC_MBOP_BUILD_SHA || "local";
 
   return (
     <div className="flex min-h-screen bg-slate-100 text-slate-900">
@@ -92,6 +93,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             );
           })}
         </nav>
+
+        <div
+          className="mt-3 max-w-12 truncate px-1 text-center text-[10px] font-medium text-slate-400"
+          title={`Build ${buildSha}`}
+        >
+          {buildSha.slice(0, 7)}
+        </div>
       </aside>
 
       <a
