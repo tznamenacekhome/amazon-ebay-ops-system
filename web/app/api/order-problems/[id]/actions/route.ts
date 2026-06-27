@@ -18,6 +18,7 @@ type ActionBody = {
 type ProblemCase = {
   problem_case_id: string;
   purchase_item_id: string;
+  problem_source: string;
   problem_type: string;
   workflow_state: string;
   notes: string | null;
@@ -93,7 +94,7 @@ export async function POST(request: Request, context: RouteContext) {
 async function fetchProblemCase(id: string): Promise<ProblemCase | null> {
   const { data, error } = await supabase
     .from("order_problem_cases")
-    .select("problem_case_id,purchase_item_id,problem_type,workflow_state,notes")
+    .select("problem_case_id,purchase_item_id,problem_source,problem_type,workflow_state,notes")
     .eq("problem_case_id", id)
     .limit(1);
   if (error) throw new Error(`order_problem_cases lookup: ${error.message}`);
@@ -308,7 +309,10 @@ function result(
 }
 
 function cancellationPurchaseStatus(problemCase: ProblemCase) {
-  return problemCase.problem_type === "cancelled_refund_followup" ? "cancelled" : null;
+  return problemCase.problem_type === "cancelled_refund_followup" ||
+    problemCase.problem_source === "derived_order_problem"
+    ? "cancelled"
+    : null;
 }
 
 function parseAmount(value: unknown) {

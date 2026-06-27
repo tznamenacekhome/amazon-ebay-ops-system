@@ -641,6 +641,18 @@ def order_refund_total(order):
     )
 
 
+def order_is_fully_refunded(order):
+    payment_total = order_payment_total(order)
+    refund_total = abs(order_refund_total(order))
+    amount_paid = parse_money(child_text(order, "AmountPaid"))
+
+    return (
+        refund_total > Decimal("0.00")
+        and amount_paid <= Decimal("0.00")
+        and refund_total >= payment_total
+    )
+
+
 def transaction_landed_total(transaction):
     quantity = transaction_quantity(transaction)
 
@@ -883,6 +895,7 @@ def build_item_payload(
     existing_item=None,
     calculated_unit_cost=None,
     seller_shipped=False,
+    ebay_cancelled=False,
 ):
     quantity = transaction_quantity(transaction)
     ebay_title = transaction_title(transaction)
@@ -933,6 +946,7 @@ def build_item_payload(
             ),
             delivered_date=dates.get("actual_delivery_time"),
             seller_shipped=seller_shipped,
+            ebay_cancelled=ebay_cancelled,
         ),
         "condition": (
             existing_item.get("condition")
@@ -976,6 +990,7 @@ def upsert_purchase_item(
     used_item_ids,
     calculated_unit_cost=None,
     seller_shipped=False,
+    ebay_cancelled=False,
 ):
     matched_item = match_existing_item(
         existing_items=existing_items,
@@ -993,6 +1008,7 @@ def upsert_purchase_item(
         existing_item=matched_item,
         calculated_unit_cost=calculated_unit_cost,
         seller_shipped=seller_shipped,
+        ebay_cancelled=ebay_cancelled,
     )
 
     if matched_item:
@@ -1022,6 +1038,7 @@ def build_unknown_item_payload(
     raw_order,
     existing_item=None,
     seller_shipped=False,
+    ebay_cancelled=False,
 ):
     title = (
         existing_item.get("title")
@@ -1066,6 +1083,7 @@ def build_unknown_item_payload(
             ),
             delivered_date=dates.get("actual_delivery_time"),
             seller_shipped=seller_shipped,
+            ebay_cancelled=ebay_cancelled,
         ),
         "condition": (
             existing_item.get("condition")
@@ -1117,6 +1135,7 @@ def upsert_purchase(order, import_batch_id, access_token):
     dates = extract_delivery_dates(order)
     raw_order = element_to_dict(order)
     seller_shipped = order_has_shipped_time(order)
+    ebay_cancelled = order_is_fully_refunded(order)
 
     purchase_payload = {
         "supplier": "eBay",
@@ -1170,6 +1189,7 @@ def upsert_purchase(order, import_batch_id, access_token):
             raw_order=raw_order,
             existing_item=existing_item,
             seller_shipped=seller_shipped,
+            ebay_cancelled=ebay_cancelled,
         )
 
         if existing_item:
@@ -1206,6 +1226,7 @@ def upsert_purchase(order, import_batch_id, access_token):
             used_item_ids=used_item_ids,
             calculated_unit_cost=calculated_unit_costs[index],
             seller_shipped=seller_shipped,
+            ebay_cancelled=ebay_cancelled,
         )
 
         link_shipment_item(

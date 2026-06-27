@@ -263,12 +263,10 @@ async function seedDerivedProblemCases() {
   const candidateRows = await fetchDerivedCandidateRows();
   const initialSeeds = dedupeSeeds(candidateRows.map(candidateSeedForRow).filter(Boolean) as ProblemSeed[]);
   const terminalStatusSeedItemIds = await fetchTerminalStatusSeedItemIds(
-    initialSeeds
-      .filter((seed) => seed.problem_source !== "derived_order_problem")
-      .map((seed) => seed.item_id),
+    initialSeeds.map((seed) => seed.item_id),
   );
   const seeds = initialSeeds.filter(
-    (seed) => seed.problem_source === "derived_order_problem" || !terminalStatusSeedItemIds.has(seed.item_id),
+    (seed) => !terminalStatusSeedItemIds.has(seed.item_id),
   );
   await closeResolvedDerivedCandidates(seeds, candidateRows);
   if (seeds.length === 0) return;
