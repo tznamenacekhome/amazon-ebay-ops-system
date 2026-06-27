@@ -252,7 +252,7 @@ async function receiveItem(update: ReceivingUpdate, receivedDate: string) {
     .from("purchase_items")
     .select(
       "item_id,purchase_id,title,amazon_title,quantity,unit_cost,asin,target_price," +
-        "system,condition,supplier_listing_url,import_batch_id,raw_import_json," +
+        "system,condition,supplier_listing_url,import_batch_id,raw_import_json,tracking_number," +
         "manual_title_override,manual_unit_cost_override,purchases(supplier_order_id)"
     )
     .eq("item_id", update.item_id)
@@ -276,6 +276,7 @@ async function receiveItem(update: ReceivingUpdate, receivedDate: string) {
     supplier_listing_url: string | null;
     import_batch_id: string | null;
     raw_import_json: unknown;
+    tracking_number: string | null;
     manual_title_override: boolean | null;
     manual_unit_cost_override: boolean | null;
     purchases?: { supplier_order_id?: string | null } | null;
@@ -292,13 +293,63 @@ async function receiveItem(update: ReceivingUpdate, receivedDate: string) {
     throw new Error("quantity_received cannot exceed quantity expected");
   }
 
+  const isPartialMissingEpisode =
+    requiresReturnEpisode &&
+    quantityReceived > 0 &&
+    quantityReceived < expectedQuantity &&
+    !hasReceivedItemException(update);
+
   if (
-    !requiresReturnEpisode &&
+    (!requiresReturnEpisode || isPartialMissingEpisode) &&
     quantityReceived > 0 &&
     marketplace === "Amazon" &&
     (!asin || sellPrice === null)
   ) {
     throw new Error("ASIN and sell price are required for Amazon received items");
+  }
+
+  if (isPartialMissingEpisode) {
+    const remainingQuantity = expectedQuantity - quantityReceived;
+
+    const { data, error } = await supabase
+      .from("purchase_items")
+      .update({
+        quantity: quantityReceived,
+        current_status: "received",
+        marketplace,
+        asin: marketplace === "Amazon" ? asin : source.asin,
+        target_price: marketplace === "Amazon" ? sellPrice : source.target_price,
+        received_date: receivedDate,
+      })
+      .eq("item_id", source.item_id)
+      .select()
+      .single();
+
+    if (error) throw new Error(error.message);
+
+    const problemSplit = await createProblemQuantitySplit(
+      {
+        ...source,
+        asin: marketplace === "Amazon" ? asin : source.asin,
+        target_price: marketplace === "Amazon" ? sellPrice : source.target_price,
+      },
+      remainingQuantity
+    );
+
+    await splitShipmentReceipt(source.item_id, problemSplit.item_id, quantityReceived, remainingQuantity);
+    await recordReceivingOutcome(source, update, quantityReceived, marketplace, asin, sellPrice);
+    await openReceivingProblemEpisode(
+      {
+        item_id: problemSplit.item_id,
+        purchase_id: source.purchase_id,
+        title: source.title,
+        quantity: remainingQuantity,
+        purchases: source.purchases,
+      },
+      update,
+      0
+    );
+    return data;
   }
 
   await updateShipmentReceipt(source.item_id, quantityReceived, !requiresReturnEpisode);
@@ -652,6 +703,16 @@ function shouldOpenReceivingProblemEpisode(
   return Boolean(issue);
 }
 
+function hasReceivedItemException(update: ReceivingUpdate) {
+  if (update.return_pending) return true;
+  const outcome = normalizeReceivingOutcome(update.receiving_outcome, false);
+  const issue = normalizeConditionIssue(update.condition_issue);
+  if (["wrong_item", "wrong_condition", "packaging_issue", "incomplete_item"].includes(outcome)) {
+    return true;
+  }
+  return Boolean(issue);
+}
+
 async function nextOrderProblemEpisodeSequence(itemId: string) {
   const { data, error } = await supabase
     .from("order_problem_cases")
@@ -744,6 +805,7 @@ async function createMissingQuantitySplit(
     raw_import_json: unknown;
     manual_title_override: boolean | null;
     manual_unit_cost_override: boolean | null;
+    tracking_number: string | null;
   },
   quantity: number
 ) {
@@ -770,6 +832,112 @@ async function createMissingQuantitySplit(
   });
 
   if (error) throw new Error(error.message);
+}
+
+async function createProblemQuantitySplit(
+  source: {
+    item_id: string;
+    purchase_id: string;
+    title: string | null;
+    amazon_title: string | null;
+    unit_cost: number | null;
+    asin: string | null;
+    target_price: number | null;
+    system: string | null;
+    condition: string | null;
+    supplier_listing_url: string | null;
+    import_batch_id: string | null;
+    raw_import_json: unknown;
+    manual_title_override: boolean | null;
+    manual_unit_cost_override: boolean | null;
+    tracking_number: string | null;
+  },
+  quantity: number
+) {
+  const { data, error } = await supabase
+    .from("purchase_items")
+    .insert({
+      purchase_id: source.purchase_id,
+      title: source.title,
+      amazon_title: source.amazon_title,
+      quantity,
+      unit_cost: source.unit_cost,
+      asin: source.asin,
+      target_price: source.target_price,
+      system: source.system,
+      condition: source.condition,
+      supplier_listing_url: source.supplier_listing_url,
+      import_batch_id: source.import_batch_id,
+      raw_import_json: source.raw_import_json,
+      current_status: "return_pending",
+      tracking_number: source.tracking_number,
+      marketplace: null,
+      received_date: null,
+      manual_title_override: source.manual_title_override ?? false,
+      manual_unit_cost_override: source.manual_unit_cost_override ?? false,
+      manual_split_child: true,
+      manual_split_parent_item_id: source.item_id,
+    })
+    .select("item_id")
+    .single();
+
+  if (error) throw new Error(error.message);
+  return data as { item_id: string };
+}
+
+async function splitShipmentReceipt(
+  sourceItemId: string,
+  splitItemId: string,
+  quantityReceived: number,
+  problemQuantity: number
+) {
+  const { data, error } = await supabase
+    .from("inbound_shipment_items")
+    .select("inbound_shipment_item_id,inbound_shipment_id,notes")
+    .eq("item_id", sourceItemId)
+    .limit(1);
+
+  if (error) {
+    console.warn("Failed to look up inbound shipment split", error.message);
+    return;
+  }
+
+  const existing = (data ?? [])[0] as
+    | {
+        inbound_shipment_item_id: string;
+        inbound_shipment_id: string;
+        notes: string | null;
+      }
+    | undefined;
+
+  if (!existing) return;
+
+  const { error: updateError } = await supabase
+    .from("inbound_shipment_items")
+    .update({
+      quantity_expected_in_package: quantityReceived,
+      quantity_received_from_package: quantityReceived,
+      received_verified: true,
+    })
+    .eq("inbound_shipment_item_id", existing.inbound_shipment_item_id);
+
+  if (updateError) {
+    console.warn("Failed to update inbound shipment receipt split", updateError.message);
+    return;
+  }
+
+  const { error: insertError } = await supabase.from("inbound_shipment_items").insert({
+    inbound_shipment_id: existing.inbound_shipment_id,
+    item_id: splitItemId,
+    quantity_expected_in_package: problemQuantity,
+    quantity_received_from_package: 0,
+    received_verified: false,
+    notes: existing.notes || "Split from partial receiving exception",
+  });
+
+  if (insertError) {
+    console.warn("Failed to insert inbound shipment receipt split", insertError.message);
+  }
 }
 
 async function updateShipmentReceipt(

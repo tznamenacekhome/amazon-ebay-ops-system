@@ -229,7 +229,23 @@ export default function ReceivingPage() {
       const draft = drafts[rowKey(row)];
       const marketplace = draft?.marketplace ?? "Amazon";
       const returnPending = draft?.returnPending ?? false;
-      const quantityReceived = Number(draft?.quantityReceived ?? row.quantity ?? 1);
+      const expectedQuantity = Number(row.quantity ?? 1);
+      const quantityReceived = parseQuantityReceived(
+        draft?.quantityReceived,
+        expectedQuantity
+      );
+
+      if (!Number.isFinite(quantityReceived) || quantityReceived < 0) {
+        return "Quantity received must be zero or greater.";
+      }
+
+      if (!Number.isInteger(quantityReceived)) {
+        return "Quantity received must be a whole number.";
+      }
+
+      if (quantityReceived > expectedQuantity) {
+        return "Quantity received cannot exceed expected quantity.";
+      }
 
       if (returnPending || quantityReceived <= 0 || marketplace === "eBay") {
         continue;
@@ -263,9 +279,13 @@ export default function ReceivingPage() {
 
     const items = detailRows.map((row) => {
       const draft = drafts[rowKey(row)];
+      const expectedQuantity = Number(row.quantity ?? 1);
       return {
         item_id: row.item_id,
-        quantity_received: Number(draft?.quantityReceived ?? row.quantity ?? 1),
+        quantity_received: parseQuantityReceived(
+          draft?.quantityReceived,
+          expectedQuantity
+        ),
         return_pending: draft?.returnPending ?? false,
         marketplace: draft?.marketplace ?? "Amazon",
         asin: draft?.asin.trim().toUpperCase() || null,
@@ -667,6 +687,7 @@ export default function ReceivingPage() {
                   const key = rowKey(row);
                   const ebayListingUrl = row.ebay_listing_url || getEbayListingUrl(row);
                   const amazonDisplayTitle = getAmazonDisplayTitle(row);
+                  const expectedQuantity = Number(row.quantity ?? 1);
                   const draft = drafts[key] ?? {
                     quantityReceived: String(row.quantity ?? 1),
                     returnPending: false,
@@ -678,6 +699,15 @@ export default function ReceivingPage() {
                     imageClues: [],
                     receivingNotes: "",
                   };
+                  const quantityReceived = parseQuantityReceived(
+                    draft.quantityReceived,
+                    expectedQuantity
+                  );
+                  const problemQuantity = getProblemQuantity(
+                    draft,
+                    expectedQuantity,
+                    quantityReceived
+                  );
 
                   return (
                     <div
@@ -731,6 +761,7 @@ export default function ReceivingPage() {
                         <label className="grid min-w-0 content-start gap-2 text-sm font-medium uppercase tracking-wide text-slate-500">
                           Qty Received
                           <input
+                            type="number"
                             value={draft.quantityReceived}
                             onChange={(event) =>
                               updateDraft(row, {
@@ -739,7 +770,21 @@ export default function ReceivingPage() {
                             }
                             className="h-14 w-full rounded-lg border border-slate-300 px-3 text-2xl font-semibold normal-case tracking-normal text-slate-900"
                             inputMode="numeric"
+                            min={0}
+                            max={expectedQuantity}
+                            step={1}
                           />
+                          <span
+                            className={
+                              problemQuantity > 0
+                                ? "text-xs font-semibold normal-case tracking-normal text-amber-700"
+                                : "text-xs font-medium normal-case tracking-normal text-slate-500"
+                            }
+                          >
+                            {problemQuantity > 0
+                              ? `${problemQuantity} to Order Problems`
+                              : "No problem qty"}
+                          </span>
                         </label>
 
                         <label className="grid min-w-0 content-start gap-2 text-sm font-medium uppercase tracking-wide text-slate-500">
@@ -1037,6 +1082,32 @@ function formatPriceDraft(value?: number | null) {
   }
 
   return Number(value).toFixed(2);
+}
+
+function parseQuantityReceived(value: string | undefined, fallback: number) {
+  if (value === undefined || value.trim() === "") return fallback;
+  return Number(value);
+}
+
+function getProblemQuantity(
+  draft: ReceivingDraft,
+  expectedQuantity: number,
+  quantityReceived: number
+) {
+  if (!Number.isFinite(quantityReceived)) return 0;
+  if (
+    draft.returnPending ||
+    ["wrong_item", "wrong_condition", "packaging_issue", "incomplete_item"].includes(
+      draft.receivingOutcome
+    ) ||
+    Boolean(draft.conditionIssue)
+  ) {
+    return expectedQuantity;
+  }
+  if (quantityReceived < expectedQuantity) {
+    return Math.max(0, expectedQuantity - Math.max(0, quantityReceived));
+  }
+  return 0;
 }
 
 function formatNumber(value: number) {

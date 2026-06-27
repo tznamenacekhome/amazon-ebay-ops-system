@@ -9,6 +9,7 @@ import {
   PackageOpen,
   RefreshCw,
   Save,
+  Search,
   Truck,
 } from "lucide-react";
 import { runOnDemandRefresh, type RefreshNotice } from "../syncRefresh";
@@ -151,6 +152,7 @@ export default function FbaPage() {
   const [expandedAsin, setExpandedAsin] = useState<string | null>(null);
   const [expandedShipment, setExpandedShipment] = useState<string | null>(null);
   const [shipmentId, setShipmentId] = useState("");
+  const [prepSearchText, setPrepSearchText] = useState("");
   const [quantityDrafts, setQuantityDrafts] = useState<QuantityDraft>({});
   const [sellPriceDrafts, setSellPriceDrafts] = useState<SellPriceDraft>({});
   const [savingPriceAsin, setSavingPriceAsin] = useState<string | null>(null);
@@ -225,6 +227,36 @@ export default function FbaPage() {
       roi: !missingProfit && costWithProfit > 0 ? profit / costWithProfit : null,
     };
   }, [data]);
+
+  const filteredPrepRows = useMemo(() => {
+    const query = prepSearchText.trim().toLowerCase();
+    if (!query) return data?.rows ?? [];
+
+    const terms = query.split(/\s+/).filter(Boolean);
+
+    return (data?.rows ?? []).filter((row) => {
+      const haystack = [
+        row.asin,
+        row.title,
+        row.system,
+        row.supplier,
+        row.purchase_date,
+        ...row.details.flatMap((detail) => [
+          detail.supplier_order_id,
+          detail.amazon_title,
+          detail.asin,
+          detail.system,
+          detail.supplier,
+          detail.order_date,
+        ]),
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+
+      return terms.every((term) => haystack.includes(term));
+    });
+  }, [data, prepSearchText]);
 
   const validationMessage = useMemo(() => {
     if (!shipmentId.trim()) return "Shipment ID is required before saving.";
@@ -549,6 +581,21 @@ export default function FbaPage() {
       ) : (
         <>
 
+      <section className="mb-4 rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+        <label className="grid gap-1 text-sm font-medium text-slate-700">
+          Search Prep Queue
+          <div className="relative">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+            <input
+              value={prepSearchText}
+              onChange={(event) => setPrepSearchText(event.target.value)}
+              className="h-11 w-full rounded-lg border border-slate-300 pl-9 pr-3 text-base font-medium"
+              placeholder="title, ASIN, order number"
+            />
+          </div>
+        </label>
+      </section>
+
       <section className="mb-4 grid gap-3 md:grid-cols-6">
         <MetricCard label="ASINs" value={loading ? "--" : formatNumber(data?.totals.asins)} />
         <MetricCard label="Units" value={loading ? "--" : formatNumber(data?.totals.units)} />
@@ -635,8 +682,14 @@ export default function FbaPage() {
                   No Received Amazon inventory is ready for FBA.
                 </td>
               </tr>
+            ) : !filteredPrepRows.length ? (
+              <tr>
+                <td className="px-3 py-8 text-center text-slate-500" colSpan={13}>
+                  No FBA candidates match search.
+                </td>
+              </tr>
             ) : (
-              data.rows.map((row) => {
+              filteredPrepRows.map((row) => {
                 const isLastOpened = row.asin === lastOpenedAsin;
                 const isSellPriceBelowReferences = sellPriceBelowReferences(
                   row,
