@@ -64,6 +64,7 @@ export function PurchaseDetailDrawer({
   const isSaving = savingKey === rowKey(row);
   const isReturnPending = operationalStatus.value === "return_pending";
   const hasProblemEpisode = Boolean(row.problem_case_id);
+  const problemSummary = hasProblemEpisode ? orderProblemSummary(row) : "";
 
   function runProblemAction(action: string) {
     const amount = problemAmount.trim() === "" ? null : Number(problemAmount);
@@ -132,6 +133,11 @@ export function PurchaseDetailDrawer({
                 <div className="mt-1 text-sm text-slate-700">
                   {episodeLabel(row)} / {workflowStateLabel(row.workflow_state)} / {problemTypeLabel(row.problem_type)}
                 </div>
+                {problemSummary && (
+                  <div className="mt-3 rounded-lg border border-amber-200 bg-white px-3 py-2 text-sm font-medium text-slate-900">
+                    {problemSummary}
+                  </div>
+                )}
                 {row.problem_next_action && (
                   <div className="mt-1 text-sm font-medium text-slate-900">
                     {row.problem_next_action}
@@ -570,6 +576,41 @@ function problemTypeLabel(value?: string | null) {
     cancelled_refund_followup: "Cancelled / Refund Follow-Up",
   };
   return labels[value || ""] || titleCase(value || "Unknown");
+}
+
+function orderProblemSummary(row: PurchaseRow) {
+  const problemType = row.problem_type || "";
+  const workflowState = row.workflow_state || "";
+  const episodeKind = row.problem_episode_kind || "";
+  const source = row.problem_source || "";
+  const quantity = Math.max(1, Math.trunc(Number(row.quantity ?? 1)));
+  const unitLabel = quantity === 1 ? "unit" : "units";
+
+  if (problemType === "missing_items" || episodeKind === "incomplete_item") {
+    return `${quantity} ${unitLabel} missing from received package.`;
+  }
+
+  if (problemType === "cancelled_refund_followup" || workflowState === "refund_pending") {
+    return "Cancelled or refunded order needs refund confirmation.";
+  }
+
+  if (problemType === "stale_tracking_candidate") {
+    return "Tracking is stale and needs order or seller follow-up.";
+  }
+
+  if (problemType === "late_delivery_candidate") {
+    return "Delivery is late and needs order or seller follow-up.";
+  }
+
+  if (problemType === "carrier_exception_candidate") {
+    return "Carrier tracking shows an exception that needs review.";
+  }
+
+  if (source === "receiving_return_pending" || workflowState === "return_needed") {
+    return "Receiving marked this item for return or refund follow-up.";
+  }
+
+  return row.problem_next_action || problemTypeLabel(problemType);
 }
 
 function titleCase(value: string) {
