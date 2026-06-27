@@ -32,7 +32,7 @@ $webRoot = Join-Path $repoRoot "web"
 Set-Location $repoRoot
 
 $gitSha = (git rev-parse --short=12 HEAD).Trim()
-$gitStatus = (git status --short).Trim()
+$gitStatus = (git status --short | Out-String).Trim()
 if ($gitStatus -and -not $AllowDirty) {
   throw "Working tree is dirty. Commit or stash changes before deploying, or rerun with -AllowDirty."
 }
