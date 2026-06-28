@@ -15,7 +15,7 @@ Verified from AWS CLI on 2026-06-28:
 - Runtime: ECS/Fargate
 - ECS cluster: `mbop-cluster1`
 - ECS web service: `mbop-web-service`
-- Current web task definition: `mbop-web-task:26`
+- Current web task definition: `mbop-web-task:27`
 - Current web container: `mbop-web`
 - Web task size: `0.5 vCPU / 1 GiB`
 - Web container port: `3103`
@@ -65,10 +65,10 @@ Web repository:
 Current web task image:
 
 ```text
-297464765814.dkr.ecr.us-west-2.amazonaws.com/mbop-web@sha256:718fc6b4a582d948c52bfe6c61e6f0a75f5f8b4939b1e3631462cc92ae3f5a6c
+297464765814.dkr.ecr.us-west-2.amazonaws.com/mbop-web@sha256:80f98b5376eb1ef8247dec0d590519cb5ab9b0e80c99b54b4f549db0c212fb98
 ```
 
-Tag `web-98cb02f31679` points at the current digest.
+Tag `web-a8e2ba2900cc` points at the current digest.
 
 Scheduler repository:
 
@@ -189,7 +189,7 @@ Run these from an AWS-authenticated shell. Do not paste secret values into docs.
 ```powershell
 .\scripts\aws-web-status.ps1
 aws ecs describe-services --profile mbop-admin --region us-west-2 --cluster mbop-cluster1 --services mbop-web-service
-aws ecs describe-task-definition --profile mbop-admin --region us-west-2 --task-definition mbop-web-task:26
+aws ecs describe-task-definition --profile mbop-admin --region us-west-2 --task-definition mbop-web-task:27
 aws elbv2 describe-load-balancers --region us-west-2
 aws elbv2 describe-listeners --region us-west-2 --load-balancer-arn <alb-arn>
 aws elbv2 describe-rules --region us-west-2 --listener-arn <https-listener-arn>
@@ -346,7 +346,7 @@ Inline policy:
 mbop-web-secret-read
 ```
 
-This role is used by `mbop-web-task:26` and can read only the web runtime
+This role is used by `mbop-web-task:27` and can read only the web runtime
 secrets: Supabase service role, EasyPost webhook secret, and admin API token.
 
 ## Security Hardening Status
