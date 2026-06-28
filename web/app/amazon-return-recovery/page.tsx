@@ -11,6 +11,30 @@ type QueueSummary = {
   with_customer_comments: number;
 };
 
+type OriginalSaleFinancialImpact = {
+  order_date: string | null;
+  order_status: string | null;
+  fulfillment_channel: string | null;
+  sale_price: number | null;
+  item_price: number | null;
+  principal_amount: number | null;
+  cogs: number | null;
+  cogs_source: string | null;
+  amazon_fees_excluding_fulfillment: number | null;
+  fulfillment_cost: number | null;
+  fulfillment_cost_source: string | null;
+  original_net_profit: number | null;
+  roi: number | null;
+  refund_amount: number | null;
+  refund_currency: string | null;
+  estimated_unrecoverable_fees: number | null;
+  estimated_return_loss: number | null;
+  profitability_status: string | null;
+  data_status: "matched" | "needs_matching" | "multiple_possible" | "missing_profitability";
+  confidence: "high" | "order_only" | "needs_matching";
+  match_basis: string;
+};
+
 type QueueRow = {
   id: string;
   return_date: string | null;
@@ -32,6 +56,7 @@ type QueueRow = {
   reimbursement_amount_total: number | null;
   reimbursement_currency: string | null;
   latest_reimbursement_approval_date: string | null;
+  original_sale: OriginalSaleFinancialImpact;
 };
 
 type CustomerReturnRow = {
@@ -81,6 +106,7 @@ type QueueResponse = {
 
 type DetailResponse = {
   row: QueueRow;
+  original_sale: OriginalSaleFinancialImpact;
   customer_return: CustomerReturnRow;
   reimbursement_evidence: ReimbursementRow[];
   raw_evidence: {
@@ -209,10 +235,12 @@ export default function AmazonReturnRecoveryPage() {
 
       <section className="overflow-hidden rounded-md border border-slate-200 bg-white shadow-sm">
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[1320px] text-left text-sm">
+          <table className="w-full min-w-[1520px] text-left text-sm">
             <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
               <tr>
                 <th className="px-3 py-2">Return Date</th>
+                <th className="px-3 py-2">Original Sale</th>
+                <th className="px-3 py-2">Financial Impact</th>
                 <th className="px-3 py-2">Title</th>
                 <th className="px-3 py-2">ASIN</th>
                 <th className="px-3 py-2">SKU / FNSKU</th>
@@ -226,7 +254,7 @@ export default function AmazonReturnRecoveryPage() {
             <tbody>
               {loading ? (
                 <tr>
-                  <td className="px-3 py-8 text-center text-slate-500" colSpan={9}>
+                  <td className="px-3 py-8 text-center text-slate-500" colSpan={11}>
                     Loading Amazon returns...
                   </td>
                 </tr>
@@ -238,6 +266,23 @@ export default function AmazonReturnRecoveryPage() {
                     className="cursor-pointer border-t border-slate-100 align-top hover:bg-blue-50/50"
                   >
                     <td className="whitespace-nowrap px-3 py-2 font-medium">{formatDate(row.return_date)}</td>
+                    <td className="w-[160px] px-3 py-2">
+                      <div className="font-medium">{formatDate(row.original_sale.order_date)}</div>
+                      <div className="mt-1 text-xs text-slate-500">
+                        {formatMoney(row.original_sale.sale_price)}
+                      </div>
+                    </td>
+                    <td className="w-[190px] px-3 py-2">
+                      <div className="font-medium">
+                        Profit {formatMoney(row.original_sale.original_net_profit)}
+                      </div>
+                      <div className="mt-1 text-xs text-slate-500">
+                        Refund {formatMoney(row.original_sale.refund_amount, row.original_sale.refund_currency)}
+                      </div>
+                      <div className="mt-1 text-xs text-slate-500">
+                        {financialStatusLabel(row.original_sale)}
+                      </div>
+                    </td>
                     <td className="w-[300px] px-3 py-2">
                       <div className="line-clamp-2 font-medium leading-snug">{row.title}</div>
                       <div className="mt-1 text-xs text-slate-500">{row.amazon_order_id ?? "--"}</div>
@@ -267,7 +312,7 @@ export default function AmazonReturnRecoveryPage() {
                 ))
               ) : (
                 <tr>
-                  <td className="px-3 py-8 text-center text-slate-500" colSpan={9}>
+                  <td className="px-3 py-8 text-center text-slate-500" colSpan={11}>
                     No Amazon customer returns match the current search.
                   </td>
                 </tr>
@@ -302,6 +347,7 @@ function ReturnDetailDrawer({
 }) {
   const customerReturn = detail?.customer_return ?? null;
   const reimbursements = detail?.reimbursement_evidence ?? [];
+  const originalSale = detail?.original_sale ?? detail?.row.original_sale ?? null;
 
   return (
     <div className="fixed inset-0 z-40" role="dialog" aria-modal="true">
@@ -368,6 +414,57 @@ function ReturnDetailDrawer({
                     {customerReturn.customer_comments ?? "--"}
                   </div>
                 </div>
+              </DetailSection>
+
+              <DetailSection title="Original Sale / Return Financial Impact">
+                {originalSale ? (
+                  <div className="space-y-4">
+                    <div className="grid gap-3 md:grid-cols-3">
+                      <InfoPair label="Order Date" value={displayDate(originalSale.order_date)} />
+                      <InfoPair label="Order Status" value={displayValue(originalSale.order_status)} />
+                      <InfoPair label="Fulfillment" value={displayValue(originalSale.fulfillment_channel)} />
+                      <InfoPair label="Sale Price" value={displayMoney(originalSale.sale_price)} important />
+                      <InfoPair label="Item Price" value={displayMoney(originalSale.item_price)} />
+                      <InfoPair label="Principal Amount" value={displayMoney(originalSale.principal_amount)} />
+                      <InfoPair label="COGS" value={displayMoney(originalSale.cogs)} important />
+                      <InfoPair label="COGS Source" value={displayValue(originalSale.cogs_source)} />
+                      <InfoPair
+                        label="Original Net Profit"
+                        value={displayMoney(originalSale.original_net_profit)}
+                        important
+                      />
+                      <InfoPair label="ROI" value={displayPercent(originalSale.roi)} />
+                      <InfoPair
+                        label="Amazon Fees"
+                        value={displayMoney(originalSale.amazon_fees_excluding_fulfillment)}
+                      />
+                      <InfoPair label="Fulfillment Cost" value={displayMoney(originalSale.fulfillment_cost)} />
+                      <InfoPair label="Refund Amount" value={displayMoney(originalSale.refund_amount, originalSale.refund_currency)} />
+                      <InfoPair
+                        label="Unrecoverable Fees"
+                        value={displayMoney(originalSale.estimated_unrecoverable_fees)}
+                      />
+                      <InfoPair
+                        label="Estimated Return Loss"
+                        value={displayMoney(originalSale.estimated_return_loss)}
+                      />
+                      <InfoPair
+                        label="Profitability Status"
+                        value={displayValue(originalSale.profitability_status)}
+                      />
+                      <InfoPair label="Data Status" value={financialStatusLabel(originalSale)} />
+                      <InfoPair label="Confidence" value={formatStatusText(originalSale.confidence)} />
+                    </div>
+                    <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">
+                      <span className="font-medium text-slate-900">Match basis: </span>
+                      {originalSale.match_basis}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-3 text-sm text-slate-600">
+                    Needs matching.
+                  </div>
+                )}
               </DetailSection>
 
               <DetailSection title="Reimbursement Evidence">
@@ -506,6 +603,39 @@ function EvidencePill({ row }: { row: QueueRow }) {
       </div>
     </div>
   );
+}
+
+function financialStatusLabel(originalSale: OriginalSaleFinancialImpact) {
+  if (originalSale.confidence === "needs_matching") return "Needs matching";
+  if (originalSale.data_status === "missing_profitability") return "Needs matching";
+  if (originalSale.data_status === "multiple_possible") return "Needs matching";
+  return originalSale.profitability_status ?? formatStatusText(originalSale.data_status);
+}
+
+function displayValue(value?: string | null) {
+  return value ?? "Not available";
+}
+
+function displayDate(value?: string | null) {
+  return value ? formatDate(value) : "Not available";
+}
+
+function displayMoney(value?: number | null, currency?: string | null) {
+  return value === null || value === undefined ? "Not available" : formatMoney(value, currency);
+}
+
+function displayPercent(value?: number | null) {
+  if (value === null || value === undefined || !Number.isFinite(Number(value))) {
+    return "Not available";
+  }
+  return `${Number(value).toFixed(1)}%`;
+}
+
+function formatStatusText(value: string) {
+  return value
+    .split("_")
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
 }
 
 function formatDate(value?: string | null) {

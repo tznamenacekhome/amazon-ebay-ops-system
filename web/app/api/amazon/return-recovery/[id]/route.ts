@@ -4,6 +4,7 @@ import {
   fetchCasesAndEventsForReturn,
   fetchCustomerReturnRow,
   fetchRecentReimbursementRows,
+  fetchSalesContextForReturns,
   getReturnRecoverySupabaseClient,
   matchReimbursements,
 } from "../data";
@@ -31,11 +32,14 @@ export async function GET(_request: Request, context: RouteContext) {
       fetchRecentReimbursementRows(supabase),
       fetchCasesAndEventsForReturn(supabase, customerReturn),
     ]);
+    const salesContext = await fetchSalesContextForReturns(supabase, [customerReturn]);
     const reimbursementEvidence = matchReimbursements(customerReturn, reimbursements);
+    const row = buildQueueRow(customerReturn, reimbursements, salesContext);
 
     return NextResponse.json({
       generated_at: new Date().toISOString(),
-      row: buildQueueRow(customerReturn, reimbursements),
+      row,
+      original_sale: row.original_sale,
       customer_return: customerReturn,
       reimbursement_evidence: reimbursementEvidence,
       cases: caseData.cases,

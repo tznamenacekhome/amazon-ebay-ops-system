@@ -3,6 +3,7 @@ import {
   buildQueueRow,
   fetchCustomerReturnRows,
   fetchRecentReimbursementRows,
+  fetchSalesContextForReturns,
   getReturnRecoverySupabaseClient,
   queueRowMatchesSearch,
   summarizeQueue,
@@ -21,8 +22,11 @@ export async function GET(request: Request) {
       fetchCustomerReturnRows(supabase),
       fetchRecentReimbursementRows(supabase),
     ]);
+    const salesContext = await fetchSalesContextForReturns(supabase, customerReturns);
 
-    const allRows = customerReturns.map((row) => buildQueueRow(row, reimbursements));
+    const allRows = customerReturns.map((row) =>
+      buildQueueRow(row, reimbursements, salesContext),
+    );
     const filteredRows = allRows.filter((row) => queueRowMatchesSearch(row, query));
     const rows = filteredRows.slice(0, limit);
 

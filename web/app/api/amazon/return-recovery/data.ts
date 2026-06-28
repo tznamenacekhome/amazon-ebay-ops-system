@@ -19,6 +19,21 @@ const CASE_SELECT =
   "vret_id,ra_number,tracking_number,asin,seller_sku,sku,fnsku,title,quantity,return_date," +
   "raw_evidence_json,created_at,updated_at";
 
+const SALES_ORDER_SELECT =
+  "amazon_order_id,purchase_date,order_status,fulfillment_channel,order_total_amount,order_total_currency";
+
+const SALES_ORDER_ITEM_SELECT =
+  "amazon_order_item_id,amazon_order_id,asin,seller_sku,title,quantity_ordered,quantity_shipped," +
+  "item_price_amount,item_price_currency";
+
+const SALES_PROFITABILITY_SELECT =
+  "amazon_order_id,amazon_order_item_id,asin,seller_sku,title,quantity,sale_price," +
+  "amazon_fees_excluding_fulfillment,fulfillment_cost,fulfillment_cost_source,cogs,cogs_source," +
+  "net_profit,roi,data_status,calculated_at";
+
+const SALES_FINANCIAL_EVENT_SELECT =
+  "amazon_order_id,amazon_order_item_id,event_type,posted_date,amount,currency,fee_type,charge_type";
+
 type ServerSupabaseClient = ReturnType<typeof createServerSupabaseClient>;
 
 export type CustomerReturnRow = {
@@ -70,6 +85,88 @@ export type ReimbursementRow = {
   raw_row_json: unknown;
   imported_at: string | null;
   updated_at: string | null;
+};
+
+export type SalesOrderRow = {
+  amazon_order_id: string;
+  purchase_date: string | null;
+  order_status: string | null;
+  fulfillment_channel: string | null;
+  order_total_amount: number | null;
+  order_total_currency: string | null;
+};
+
+export type SalesOrderItemRow = {
+  amazon_order_item_id: string;
+  amazon_order_id: string;
+  asin: string | null;
+  seller_sku: string | null;
+  title: string | null;
+  quantity_ordered: number | null;
+  quantity_shipped: number | null;
+  item_price_amount: number | null;
+  item_price_currency: string | null;
+};
+
+export type SalesProfitabilityRow = {
+  amazon_order_id: string;
+  amazon_order_item_id: string;
+  asin: string | null;
+  seller_sku: string | null;
+  title: string | null;
+  quantity: number | null;
+  sale_price: number | null;
+  amazon_fees_excluding_fulfillment: number | null;
+  fulfillment_cost: number | null;
+  fulfillment_cost_source: string | null;
+  cogs: number | null;
+  cogs_source: string | null;
+  net_profit: number | null;
+  roi: number | null;
+  data_status: string | null;
+  calculated_at: string | null;
+};
+
+export type SalesFinancialEventRow = {
+  amazon_order_id: string | null;
+  amazon_order_item_id: string | null;
+  event_type: string | null;
+  posted_date: string | null;
+  amount: number | null;
+  currency: string | null;
+  fee_type: string | null;
+  charge_type: string | null;
+};
+
+export type SalesContext = {
+  orders: SalesOrderRow[];
+  items: SalesOrderItemRow[];
+  profitability: SalesProfitabilityRow[];
+  financialEvents: SalesFinancialEventRow[];
+};
+
+export type OriginalSaleFinancialImpact = {
+  order_date: string | null;
+  order_status: string | null;
+  fulfillment_channel: string | null;
+  sale_price: number | null;
+  item_price: number | null;
+  principal_amount: number | null;
+  cogs: number | null;
+  cogs_source: string | null;
+  amazon_fees_excluding_fulfillment: number | null;
+  fulfillment_cost: number | null;
+  fulfillment_cost_source: string | null;
+  original_net_profit: number | null;
+  roi: number | null;
+  refund_amount: number | null;
+  refund_currency: string | null;
+  estimated_unrecoverable_fees: number | null;
+  estimated_return_loss: number | null;
+  profitability_status: string | null;
+  data_status: "matched" | "needs_matching" | "multiple_possible" | "missing_profitability";
+  confidence: "high" | "order_only" | "needs_matching";
+  match_basis: string;
 };
 
 export type ReturnRecoveryCaseRow = {
@@ -137,6 +234,7 @@ export type QueueRow = {
   reimbursement_amount_total: number | null;
   reimbursement_currency: string | null;
   latest_reimbursement_approval_date: string | null;
+  original_sale: OriginalSaleFinancialImpact;
 };
 
 export function getReturnRecoverySupabaseClient() {
@@ -176,6 +274,46 @@ export async function fetchRecentReimbursementRows(supabase: ServerSupabaseClien
 
   if (error) throw new Error(`amazon_fba_reimbursement_rows: ${error.message}`);
   return (data ?? []) as unknown as ReimbursementRow[];
+}
+
+export async function fetchSalesContextForReturns(
+  supabase: ServerSupabaseClient,
+  rows: CustomerReturnRow[],
+): Promise<SalesContext> {
+  const orderIds = Array.from(
+    new Set(
+      rows
+        .map((row) => cleanText(row.amazon_order_id))
+        .filter((value): value is string => Boolean(value)),
+    ),
+  );
+  if (!orderIds.length) {
+    return { orders: [], items: [], profitability: [], financialEvents: [] };
+  }
+
+  const [orders, items, profitability, financialEvents] = await Promise.all([
+    fetchByOrderIds<SalesOrderRow>(supabase, "amazon_sales_orders", SALES_ORDER_SELECT, orderIds),
+    fetchByOrderIds<SalesOrderItemRow>(
+      supabase,
+      "amazon_sales_order_items",
+      SALES_ORDER_ITEM_SELECT,
+      orderIds,
+    ),
+    fetchByOrderIds<SalesProfitabilityRow>(
+      supabase,
+      "amazon_sales_profitability",
+      SALES_PROFITABILITY_SELECT,
+      orderIds,
+    ),
+    fetchByOrderIds<SalesFinancialEventRow>(
+      supabase,
+      "amazon_sales_financial_events",
+      SALES_FINANCIAL_EVENT_SELECT,
+      orderIds,
+    ),
+  ]);
+
+  return { orders, items, profitability, financialEvents };
 }
 
 export async function fetchCasesAndEventsForReturn(
@@ -223,6 +361,7 @@ export async function fetchCasesAndEventsForReturn(
 export function buildQueueRow(
   row: CustomerReturnRow,
   reimbursements: ReimbursementRow[],
+  salesContext: SalesContext = emptySalesContext(),
 ): QueueRow {
   const evidence = matchReimbursements(row, reimbursements);
   const amountTotal = evidence.reduce((total, reimbursement) => {
@@ -255,6 +394,7 @@ export function buildQueueRow(
     latest_reimbursement_approval_date:
       evidence.map((item) => dateOnly(item.approval_date)).filter(Boolean).sort().reverse()[0] ??
       null,
+    original_sale: buildOriginalSaleFinancialImpact(row, salesContext),
   };
 }
 
@@ -305,6 +445,66 @@ export function summarizeQueue(rows: QueueRow[], allRows: QueueRow[]) {
   };
 }
 
+export function buildOriginalSaleFinancialImpact(
+  row: CustomerReturnRow,
+  salesContext: SalesContext,
+): OriginalSaleFinancialImpact {
+  const orderId = cleanText(row.amazon_order_id);
+  if (!orderId) return missingOriginalSale("No Amazon order ID on customer return row.");
+
+  const order = salesContext.orders.find(
+    (candidate) => candidate.amazon_order_id === orderId,
+  );
+  if (!order) return missingOriginalSale("No matching Amazon sales order found.");
+
+  const orderProfitRows = salesContext.profitability.filter(
+    (candidate) => candidate.amazon_order_id === orderId,
+  );
+  const orderItemRows = salesContext.items.filter(
+    (candidate) => candidate.amazon_order_id === orderId,
+  );
+  const profitMatch = bestProductMatch(row, orderProfitRows);
+  const itemMatch = profitMatch
+    ? orderItemRows.find((item) => item.amazon_order_item_id === profitMatch.amazon_order_item_id) ??
+      bestProductMatch(row, orderItemRows)
+    : bestProductMatch(row, orderItemRows);
+  const financialEvents = salesContext.financialEvents.filter(
+    (event) =>
+      event.amazon_order_id === orderId &&
+      (!profitMatch?.amazon_order_item_id ||
+        !event.amazon_order_item_id ||
+        event.amazon_order_item_id === profitMatch.amazon_order_item_id),
+  );
+  const refund = refundPrincipal(financialEvents);
+  const principalAmount = principalCharge(financialEvents);
+  const matchBasis = saleMatchBasis(row, profitMatch, itemMatch, orderProfitRows.length);
+
+  if (!profitMatch && orderProfitRows.length > 1) {
+    return {
+      ...baseOriginalSale(order, itemMatch, null, refund, principalAmount),
+      data_status: "multiple_possible",
+      confidence: "needs_matching",
+      match_basis: matchBasis,
+    };
+  }
+
+  if (!profitMatch) {
+    return {
+      ...baseOriginalSale(order, itemMatch, null, refund, principalAmount),
+      data_status: "missing_profitability",
+      confidence: itemMatch ? "order_only" : "needs_matching",
+      match_basis: matchBasis,
+    };
+  }
+
+  return {
+    ...baseOriginalSale(order, itemMatch, profitMatch, refund, principalAmount),
+    data_status: "matched",
+    confidence: hasProductOverlap(row, profitMatch) ? "high" : "order_only",
+    match_basis: matchBasis,
+  };
+}
+
 function productIdentifiers(row: {
   seller_sku?: string | null;
   sku?: string | null;
@@ -318,6 +518,179 @@ function productIdentifiers(row: {
         .filter((value): value is string => Boolean(value)),
     ),
   );
+}
+
+async function fetchByOrderIds<T>(
+  supabase: ServerSupabaseClient,
+  table: string,
+  select: string,
+  orderIds: string[],
+): Promise<T[]> {
+  const rows: T[] = [];
+  for (let index = 0; index < orderIds.length; index += 100) {
+    const chunk = orderIds.slice(index, index + 100);
+    const { data, error } = await supabase
+      .from(table)
+      .select(select)
+      .in("amazon_order_id", chunk);
+    if (error) throw new Error(`${table}: ${error.message}`);
+    rows.push(...((data ?? []) as unknown as T[]));
+  }
+  return rows;
+}
+
+function emptySalesContext(): SalesContext {
+  return { orders: [], items: [], profitability: [], financialEvents: [] };
+}
+
+function bestProductMatch<T extends { asin?: string | null; seller_sku?: string | null }>(
+  row: CustomerReturnRow,
+  candidates: T[],
+) {
+  if (!candidates.length) return null;
+  const productMatches = candidates.filter((candidate) => hasProductOverlap(row, candidate));
+  if (productMatches.length === 1) return productMatches[0];
+  if (productMatches.length > 1) return productMatches[0];
+  return candidates.length === 1 ? candidates[0] : null;
+}
+
+function hasProductOverlap(
+  row: CustomerReturnRow,
+  candidate: { asin?: string | null; seller_sku?: string | null },
+) {
+  const returnIds = productIdentifiers(row);
+  const candidateIds = productIdentifiers({
+    seller_sku: candidate.seller_sku,
+    sku: candidate.seller_sku,
+    asin: candidate.asin,
+  });
+  return returnIds.some((identifier) => candidateIds.includes(identifier));
+}
+
+function baseOriginalSale(
+  order: SalesOrderRow,
+  item: SalesOrderItemRow | null,
+  profit: SalesProfitabilityRow | null,
+  refund: { amount: number | null; currency: string | null },
+  principalAmount: number | null,
+) {
+  const fulfillmentCost = toOptionalNumber(profit?.fulfillment_cost);
+  const refundAmount = refund.amount;
+  const estimatedUnrecoverableFees =
+    refundAmount !== null && refundAmount > 0 && fulfillmentCost !== null
+      ? fulfillmentCost
+      : null;
+
+  return {
+    order_date: dateOnly(order.purchase_date),
+    order_status: cleanText(order.order_status),
+    fulfillment_channel: cleanText(order.fulfillment_channel),
+    sale_price: toOptionalNumber(profit?.sale_price),
+    item_price: toOptionalNumber(item?.item_price_amount),
+    principal_amount: principalAmount,
+    cogs: toOptionalNumber(profit?.cogs),
+    cogs_source: cleanText(profit?.cogs_source),
+    amazon_fees_excluding_fulfillment: toOptionalNumber(profit?.amazon_fees_excluding_fulfillment),
+    fulfillment_cost: fulfillmentCost,
+    fulfillment_cost_source: cleanText(profit?.fulfillment_cost_source),
+    original_net_profit: toOptionalNumber(profit?.net_profit),
+    roi: toOptionalNumber(profit?.roi),
+    refund_amount: refundAmount,
+    refund_currency: refund.currency,
+    estimated_unrecoverable_fees: estimatedUnrecoverableFees,
+    estimated_return_loss: null,
+    profitability_status: profitabilityStatus(order, profit, refundAmount),
+  };
+}
+
+function missingOriginalSale(matchBasis: string): OriginalSaleFinancialImpact {
+  return {
+    order_date: null,
+    order_status: null,
+    fulfillment_channel: null,
+    sale_price: null,
+    item_price: null,
+    principal_amount: null,
+    cogs: null,
+    cogs_source: null,
+    amazon_fees_excluding_fulfillment: null,
+    fulfillment_cost: null,
+    fulfillment_cost_source: null,
+    original_net_profit: null,
+    roi: null,
+    refund_amount: null,
+    refund_currency: null,
+    estimated_unrecoverable_fees: null,
+    estimated_return_loss: null,
+    profitability_status: null,
+    data_status: "needs_matching",
+    confidence: "needs_matching",
+    match_basis: matchBasis,
+  };
+}
+
+function refundPrincipal(events: SalesFinancialEventRow[]) {
+  const refundEvents = events.filter(
+    (event) =>
+      cleanText(event.event_type) === "RefundEventList" &&
+      normalizeIdentifier(event.charge_type) === "PRINCIPAL",
+  );
+  const amount = refundEvents.reduce((total, event) => {
+    const value = toOptionalNumber(event.amount);
+    return value !== null && value < 0 ? total + Math.abs(value) : total;
+  }, 0);
+  const currency =
+    refundEvents.find((event) => cleanText(event.currency))?.currency ?? null;
+  return { amount: amount > 0 ? roundMoney(amount) : null, currency };
+}
+
+function principalCharge(events: SalesFinancialEventRow[]) {
+  const amount = events.reduce((total, event) => {
+    const value = toOptionalNumber(event.amount);
+    if (
+      normalizeIdentifier(event.charge_type) === "PRINCIPAL" &&
+      value !== null &&
+      value > 0
+    ) {
+      return total + value;
+    }
+    return total;
+  }, 0);
+  return amount > 0 ? roundMoney(amount) : null;
+}
+
+function profitabilityStatus(
+  order: SalesOrderRow,
+  profit: SalesProfitabilityRow | null,
+  refundAmount: number | null,
+) {
+  if (refundAmount !== null && refundAmount > 0) return "Refund detected";
+  if (profit?.data_status === "refunded") return "Refunded";
+  if (profit?.data_status === "cancelled") return "Cancelled";
+  if (profit?.data_status === "complete") return "Complete";
+  if (profit?.data_status) return formatStatus(profit.data_status);
+  if (order.order_status) return order.order_status;
+  return null;
+}
+
+function saleMatchBasis(
+  row: CustomerReturnRow,
+  profit: SalesProfitabilityRow | null,
+  item: SalesOrderItemRow | null,
+  profitRowCount: number,
+) {
+  if (profit && hasProductOverlap(row, profit)) return "Matched by Amazon order ID and product identifier.";
+  if (item && hasProductOverlap(row, item)) return "Matched by Amazon order ID and order-item product identifier.";
+  if (profit && profitRowCount === 1) return "Matched by Amazon order ID; single profitability row for order.";
+  if (profitRowCount > 1) return "Amazon order has multiple profitability rows; product match needed.";
+  return "Matched Amazon order header only; profitability row unavailable.";
+}
+
+function formatStatus(value: string) {
+  return value
+    .split("_")
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
 }
 
 function cleanText(value: unknown) {
