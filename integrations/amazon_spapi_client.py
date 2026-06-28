@@ -64,6 +64,9 @@ ALLOWED_REPORT_TYPES = {
     "GET_FBA_FULFILLMENT_REMOVAL_SHIPMENT_DETAIL_DATA",
     "GET_FBA_INVENTORY_PLANNING_DATA",
     "GET_FBA_REIMBURSEMENTS_DATA",
+    "GET_MERCHANT_LISTINGS_ALL_DATA",
+    "GET_MERCHANT_LISTINGS_DATA",
+    "GET_MERCHANT_LISTINGS_INACTIVE_DATA",
     "GET_SELLER_FEEDBACK_DATA",
 }
 
@@ -705,6 +708,30 @@ class AmazonSPAPIClient:
                 f"Amazon report type is outside the MBOP allow-list: {report_type}"
             )
 
+        body = self.create_report_payload(
+            report_type,
+            marketplace_ids=marketplace_ids,
+            report_options=report_options,
+            data_start_time=data_start_time,
+            data_end_time=data_end_time,
+        )
+
+        return self.request("POST", "/reports/2021-06-30/reports", json_body=body)
+
+    def create_report_payload(
+        self,
+        report_type: str,
+        *,
+        marketplace_ids: list[str] | None = None,
+        report_options: dict[str, Any] | None = None,
+        data_start_time: str | None = None,
+        data_end_time: str | None = None,
+    ) -> dict[str, Any]:
+        if report_type not in ALLOWED_REPORT_TYPES:
+            raise AmazonSPAPIError(
+                f"Amazon report type is outside the MBOP allow-list: {report_type}"
+            )
+
         body: dict[str, Any] = {
             "reportType": report_type,
             "marketplaceIds": marketplace_ids or [self.config.marketplace_id],
@@ -715,8 +742,7 @@ class AmazonSPAPIClient:
             body["dataStartTime"] = data_start_time
         if data_end_time:
             body["dataEndTime"] = data_end_time
-
-        return self.request("POST", "/reports/2021-06-30/reports", json_body=body)
+        return body
 
     def get_report(self, report_id: str) -> dict[str, Any]:
         path = f"/reports/2021-06-30/reports/{quote(report_id, safe='')}"

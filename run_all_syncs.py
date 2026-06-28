@@ -188,6 +188,23 @@ JOBS: tuple[SyncJob, ...] = (
         timeout_seconds=45 * 60,
     ),
     SyncJob(
+        name="Amazon merchant listings",
+        command=static_command("integrations/amazon_sync_merchant_listings.py"),
+        groups=("daily", "dashboard", "reconciliation", "repricing", "fba", "fba-inventory-daily"),
+        timeout_seconds=45 * 60,
+    ),
+    SyncJob(
+        name="Amazon inactive merchant listings",
+        command=static_command(
+            "integrations/amazon_sync_merchant_listings.py",
+            "--report-type",
+            "GET_MERCHANT_LISTINGS_INACTIVE_DATA",
+        ),
+        groups=("daily", "dashboard", "reconciliation", "repricing", "fba", "fba-inventory-daily"),
+        blocking=False,
+        timeout_seconds=45 * 60,
+    ),
+    SyncJob(
         name="Amazon FBA shipments",
         command=static_command("integrations/amazon_sync_fba_shipments.py"),
         groups=("daily", "dashboard", "reconciliation", "fba", "fba-shipments"),
