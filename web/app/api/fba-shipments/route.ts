@@ -362,19 +362,10 @@ async function getShipments() {
     const shipments = (data ?? []) as ShipmentRow[];
     const shipmentIds = shipments.map((row) => row.fba_shipment_id).filter(Boolean);
     const items = await fetchShipmentItems(shipmentIds);
-    const sourceItems = await fetchShipmentSourceItems(shipmentIds);
-    const routedReturnItems = await fetchRoutedReturnRecoverySourceItems(shipmentIds);
-    const sourceItemKeys = new Set(
-      sourceItems.map(
-        (item) => `${item.fba_shipment_id}|${item.source_type}|${item.source_row_id}`
-      )
-    );
-    const allSourceItems = [
-      ...sourceItems,
-      ...routedReturnItems.filter(
-        (item) => !sourceItemKeys.has(`${item.fba_shipment_id}|${item.source_type}|${item.source_row_id}`)
-      ),
-    ];
+    const sourceItemResult = await fetchShipmentSourceItems(shipmentIds);
+    const allSourceItems = sourceItemResult.bridgeAvailable
+      ? sourceItemResult.rows
+      : await fetchRoutedReturnRecoverySourceItems(shipmentIds);
     const itemsByShipment = new Map<string, ShipmentItemRow[]>();
     for (const item of items) {
       const rows = itemsByShipment.get(item.fba_shipment_id) ?? [];
@@ -560,6 +551,8 @@ async function fetchShipmentItems(shipmentIds: string[]) {
 
 async function fetchShipmentSourceItems(shipmentIds: string[]) {
   const rows: ShipmentSourceItemRow[] = [];
+  if (!shipmentIds.length) return { rows, bridgeAvailable: true };
+
   const chunkSize = 250;
   for (let index = 0; index < shipmentIds.length; index += chunkSize) {
     const chunk = shipmentIds.slice(index, index + chunkSize);
@@ -572,13 +565,13 @@ async function fetchShipmentSourceItems(shipmentIds: string[]) {
     if (error) {
       if (error.message.toLowerCase().includes("fba_shipment_source_items")) {
         console.warn("FBA source item bridge table is not available yet", error.message);
-        return rows;
+        return { rows, bridgeAvailable: false };
       }
       throw new Error(error.message);
     }
     rows.push(...((data ?? []) as ShipmentSourceItemRow[]));
   }
-  return rows;
+  return { rows, bridgeAvailable: true };
 }
 
 async function fetchRoutedReturnRecoverySourceItems(shipmentIds: string[]) {
