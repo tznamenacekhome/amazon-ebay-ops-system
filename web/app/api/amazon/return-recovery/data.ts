@@ -221,6 +221,7 @@ export type QueueRow = {
   return_date: string | null;
   title: string;
   asin: string | null;
+  msku: string | null;
   seller_sku: string | null;
   sku: string | null;
   fnsku: string | null;
@@ -423,6 +424,7 @@ export function buildQueueRow(
     return_date: dateOnly(row.return_date),
     title: cleanText(row.title) ?? cleanText(row.product_name) ?? "(Untitled Amazon return)",
     asin: normalizeIdentifier(row.asin),
+    msku: cleanText(row.seller_sku) ?? cleanText(row.sku),
     seller_sku: cleanText(row.seller_sku),
     sku: cleanText(row.sku),
     fnsku: cleanText(row.fnsku),
@@ -475,6 +477,7 @@ export function queueRowMatchesSearch(row: QueueRow, query: string) {
     row.lpn,
     row.amazon_order_id,
     row.asin,
+    row.msku,
     row.seller_sku,
     row.sku,
     row.fnsku,

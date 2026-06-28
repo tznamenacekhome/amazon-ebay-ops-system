@@ -47,6 +47,7 @@ type QueueRow = {
   return_date: string | null;
   title: string;
   asin: string | null;
+  msku: string | null;
   seller_sku: string | null;
   sku: string | null;
   fnsku: string | null;
@@ -313,7 +314,7 @@ export default function AmazonReturnRecoveryPage() {
               value={searchText}
               onChange={(event) => setSearchText(event.target.value)}
               className="w-full rounded-md border border-slate-300 bg-white py-2 pl-9 pr-9 text-sm outline-none ring-blue-500 focus:ring-2"
-              placeholder="LPN, order ID, ASIN, SKU, FNSKU, title, reason, comments"
+              placeholder="LPN, order ID, ASIN, MSKU, FNSKU, title, reason, comments"
             />
             {searchText ? (
               <button
@@ -348,7 +349,7 @@ export default function AmazonReturnRecoveryPage() {
                 <th className="px-3 py-2">Financial Impact</th>
                 <th className="px-3 py-2">Title</th>
                 <th className="px-3 py-2">ASIN</th>
-                <th className="px-3 py-2">SKU / FNSKU</th>
+                <th className="px-3 py-2">MSKU / FNSKU</th>
                 <th className="px-3 py-2">LPN</th>
                 <th className="px-3 py-2">Workflow</th>
                 <th className="px-3 py-2">Amazon Reason</th>
@@ -395,7 +396,7 @@ export default function AmazonReturnRecoveryPage() {
                       {row.asin ?? "--"}
                     </td>
                     <td className="w-[190px] px-3 py-2">
-                      <div className="font-medium">{row.seller_sku ?? row.sku ?? "--"}</div>
+                      <div className="font-medium">{row.msku ?? row.seller_sku ?? row.sku ?? "--"}</div>
                       <div className="text-xs text-slate-500">{row.fnsku ?? "--"}</div>
                     </td>
                     <td className="whitespace-nowrap px-3 py-2 font-medium">{row.lpn ?? "--"}</td>
@@ -592,7 +593,7 @@ function ReturnDetailDrawer({
                   <InfoPair label="Amazon Order ID" value={customerReturn.amazon_order_id} />
                   <InfoPair label="Customer Return Date" value={formatDate(customerReturn.return_date)} />
                   <InfoPair label="ASIN" value={customerReturn.asin} />
-                  <InfoPair label="SKU" value={customerReturn.seller_sku ?? customerReturn.sku} />
+                  <InfoPair label="MSKU" value={customerReturn.seller_sku ?? customerReturn.sku} />
                   <InfoPair label="FNSKU" value={customerReturn.fnsku} />
                   <InfoPair label="Quantity" value={formatNumber(customerReturn.quantity)} />
                   <InfoPair label="Fulfillment Center" value={customerReturn.fulfillment_center_id} />

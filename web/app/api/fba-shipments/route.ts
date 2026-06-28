@@ -93,6 +93,8 @@ type FbaPrepCandidate = {
   order_date: string | null;
   amazon_title: string | null;
   asin: string;
+  seller_sku: string | null;
+  fnsku: string | null;
   system: string | null;
   quantity: number;
   unit_cost: number | null;
@@ -274,6 +276,8 @@ export async function GET(request: NextRequest) {
           order_date: row.order_date,
           amazon_title: meta?.amazon_title ?? row.amazon_title ?? null,
           asin,
+          seller_sku: null,
+          fnsku: null,
           system: row.system,
           quantity,
           unit_cost: toNumber(row.unit_cost),
@@ -1095,6 +1099,8 @@ async function fetchReturnRecoveryFbaCandidates(): Promise<FbaPrepCandidate[]> {
         order_date: row.return_date,
         amazon_title: row.title ?? profit?.title ?? null,
         asin,
+        seller_sku: cleanString(row.seller_sku ?? row.sku),
+        fnsku: cleanString(row.fnsku),
         system: null,
         quantity,
         unit_cost: cogs === null ? null : perUnit(cogs, toNumber(profit?.quantity) ?? quantity),
@@ -1245,7 +1251,7 @@ async function fetchPreferredFbaMskus(asins: string[]) {
         "asin,seller_sku,last_listing_sync_at,last_pricing_sync_at,updated_at,created_at"
       )
       .in("asin", chunk)
-      .eq("fulfillment_channel", "Amazon")
+      .in("fulfillment_channel", ["Amazon", "AMAZON_NA"])
       .not("seller_sku", "is", null)
       .order("last_listing_sync_at", { ascending: false, nullsFirst: false })
       .order("last_pricing_sync_at", { ascending: false, nullsFirst: false })
@@ -1327,7 +1333,7 @@ function groupCandidates(
   for (const candidate of candidates) {
     const group = groups.get(candidate.asin) ?? {
       asin: candidate.asin,
-      msku: preferredMskus.get(candidate.asin) ?? null,
+      msku: preferredMskus.get(candidate.asin) ?? candidate.seller_sku ?? null,
       title: candidate.amazon_title || titleFallbacks.get(candidate.asin) || null,
       system: candidate.system,
       quantity: 0,
@@ -1361,6 +1367,7 @@ function groupCandidates(
       candidate.amazon_title ||
       titleFallbacks.get(candidate.asin) ||
       null;
+    group.msku = group.msku ?? candidate.seller_sku;
     group.system = group.system || candidate.system;
     group.quantity += candidate.quantity;
 
