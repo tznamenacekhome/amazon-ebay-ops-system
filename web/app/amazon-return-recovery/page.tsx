@@ -9,6 +9,12 @@ type QueueSummary = {
   with_reimbursement_evidence: number;
   without_reimbursement_evidence: number;
   with_customer_comments: number;
+  needs_inspection: number;
+  needs_review: number;
+  send_back_to_amazon: number;
+  sell_on_ebay: number;
+  dispose_donate: number;
+  closed: number;
 };
 
 type OriginalSaleFinancialImpact = {
@@ -57,6 +63,20 @@ type QueueRow = {
   reimbursement_currency: string | null;
   latest_reimbursement_approval_date: string | null;
   original_sale: OriginalSaleFinancialImpact;
+  case_id: string | null;
+  workflow_state: string;
+  decision: string;
+  inspection: InspectionEvidence;
+};
+
+type InspectionEvidence = {
+  observed_condition: string | null;
+  sealed_new_status: string | null;
+  complete_item: "yes" | "no" | "unknown";
+  wrong_item: "yes" | "no" | "unknown";
+  notes: string | null;
+  inspected_at: string | null;
+  updated_at: string | null;
 };
 
 type CustomerReturnRow = {
@@ -98,8 +118,32 @@ type ReimbursementRow = {
   raw_row_json: unknown;
 };
 
+type ReturnRecoveryCaseRow = {
+  amazon_return_recovery_case_id: string;
+  workflow_state: string;
+  decision: string;
+  evidence_summary: string | null;
+  inspected_at: string | null;
+  closed_at: string | null;
+  raw_evidence_json: unknown;
+  updated_at: string | null;
+};
+
+type ReturnRecoveryEventRow = {
+  amazon_return_recovery_event_id: string;
+  amazon_return_recovery_case_id: string;
+  event_type: string;
+  event_source: string;
+  event_at: string;
+  message: string | null;
+  notes: string | null;
+  raw_event_json: unknown;
+  created_at: string | null;
+};
+
 type QueueResponse = {
   generated_at: string;
+  workflow: string;
   summary: QueueSummary;
   rows: QueueRow[];
 };
@@ -109,14 +153,48 @@ type DetailResponse = {
   original_sale: OriginalSaleFinancialImpact;
   customer_return: CustomerReturnRow;
   reimbursement_evidence: ReimbursementRow[];
+  primary_case: ReturnRecoveryCaseRow | null;
+  inspection: InspectionEvidence;
+  cases: ReturnRecoveryCaseRow[];
+  events: ReturnRecoveryEventRow[];
   raw_evidence: {
     customer_return: unknown;
     reimbursements: unknown[];
   };
 };
 
+type WorkflowFilter =
+  | "open"
+  | "needs_review"
+  | "send_back_to_amazon"
+  | "sell_on_ebay"
+  | "dispose_donate"
+  | "closed"
+  | "all";
+
+const TRI_STATE_OPTIONS: Array<[string, string]> = [
+  ["unknown", "Unknown"],
+  ["yes", "Yes"],
+  ["no", "No"],
+];
+
+const WORKFLOW_FILTERS: Array<{
+  value: WorkflowFilter;
+  label: string;
+  countKey?: keyof QueueSummary;
+}> = [
+  { value: "open", label: "Open" },
+  { value: "needs_review", label: "Needs Review", countKey: "needs_review" },
+  { value: "send_back_to_amazon", label: "Send Back", countKey: "send_back_to_amazon" },
+  { value: "sell_on_ebay", label: "Sell on eBay", countKey: "sell_on_ebay" },
+  { value: "dispose_donate", label: "Dispose/Donate", countKey: "dispose_donate" },
+  { value: "closed", label: "Closed", countKey: "closed" },
+  { value: "all", label: "All", countKey: "total_customer_returns" },
+];
+
 export default function AmazonReturnRecoveryPage() {
   const [searchText, setSearchText] = useState("");
+  const [workflowFilter, setWorkflowFilter] = useState<WorkflowFilter>("open");
   const [data, setData] = useState<QueueResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -130,7 +208,7 @@ export default function AmazonReturnRecoveryPage() {
       loadQueue(searchText);
     }, 250);
     return () => window.clearTimeout(timeout);
-  }, [searchText]);
+  }, [searchText, workflowFilter]);
 
   useEffect(() => {
     if (!selectedId) {
@@ -148,6 +226,7 @@ export default function AmazonReturnRecoveryPage() {
     try {
       const params = new URLSearchParams();
       if (query.trim()) params.set("q", query.trim());
+      params.set("workflow", workflowFilter);
       params.set("limit", "250");
       const response = await fetch(`/api/amazon/return-recovery?${params.toString()}`, {
         cache: "no-store",
@@ -218,9 +297,10 @@ export default function AmazonReturnRecoveryPage() {
       </section>
 
       <section className="mb-4 rounded-md border border-slate-200 bg-white p-3 shadow-sm">
-        <label className="block">
-          <span className="mb-1 block text-xs font-medium uppercase text-slate-500">Scan / Search</span>
-          <div className="relative max-w-3xl">
+        <div className="flex flex-wrap items-end gap-3">
+          <label className="block min-w-[320px] flex-1">
+            <span className="mb-1 block text-xs font-medium uppercase text-slate-500">Scan / Search</span>
+            <div className="relative max-w-3xl">
             <Search className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
             <input
               autoFocus
@@ -229,13 +309,19 @@ export default function AmazonReturnRecoveryPage() {
               className="w-full rounded-md border border-slate-300 bg-white py-2 pl-9 pr-3 text-sm outline-none ring-blue-500 focus:ring-2"
               placeholder="LPN, order ID, ASIN, SKU, FNSKU, title, reason, comments"
             />
-          </div>
-        </label>
+            </div>
+          </label>
+          <WorkflowFilterButtons
+            value={workflowFilter}
+            summary={summary}
+            onChange={setWorkflowFilter}
+          />
+        </div>
       </section>
 
       <section className="overflow-hidden rounded-md border border-slate-200 bg-white shadow-sm">
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[1520px] text-left text-sm">
+          <table className="w-full min-w-[1660px] text-left text-sm">
             <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
               <tr>
                 <th className="px-3 py-2">Customer Return Date</th>
@@ -245,6 +331,7 @@ export default function AmazonReturnRecoveryPage() {
                 <th className="px-3 py-2">ASIN</th>
                 <th className="px-3 py-2">SKU / FNSKU</th>
                 <th className="px-3 py-2">LPN</th>
+                <th className="px-3 py-2">Workflow</th>
                 <th className="px-3 py-2">Amazon Reason</th>
                 <th className="px-3 py-2">Amazon Disposition / Status</th>
                 <th className="px-3 py-2">Comments</th>
@@ -254,7 +341,7 @@ export default function AmazonReturnRecoveryPage() {
             <tbody>
               {loading ? (
                 <tr>
-                  <td className="px-3 py-8 text-center text-slate-500" colSpan={11}>
+                  <td className="px-3 py-8 text-center text-slate-500" colSpan={12}>
                     Loading Amazon returns...
                   </td>
                 </tr>
@@ -294,6 +381,9 @@ export default function AmazonReturnRecoveryPage() {
                     </td>
                     <td className="whitespace-nowrap px-3 py-2 font-medium">{row.lpn ?? "--"}</td>
                     <td className="w-[170px] px-3 py-2">
+                      <WorkflowPill row={row} />
+                    </td>
+                    <td className="w-[170px] px-3 py-2">
                       <ReturnReason reason={row.return_reason} />
                     </td>
                     <td className="w-[190px] px-3 py-2">
@@ -310,7 +400,7 @@ export default function AmazonReturnRecoveryPage() {
                 ))
               ) : (
                 <tr>
-                  <td className="px-3 py-8 text-center text-slate-500" colSpan={11}>
+                  <td className="px-3 py-8 text-center text-slate-500" colSpan={12}>
                     No Amazon customer returns match the current search.
                   </td>
                 </tr>
@@ -326,6 +416,10 @@ export default function AmazonReturnRecoveryPage() {
           loading={detailLoading}
           error={detailError}
           onClose={() => setSelectedId(null)}
+          onSaved={() => {
+            if (selectedId) loadDetail(selectedId);
+            loadQueue();
+          }}
         />
       ) : null}
     </main>
@@ -337,15 +431,70 @@ function ReturnDetailDrawer({
   loading,
   error,
   onClose,
+  onSaved,
 }: {
   detail: DetailResponse | null;
   loading: boolean;
   error: string | null;
   onClose: () => void;
+  onSaved: () => void;
 }) {
   const customerReturn = detail?.customer_return ?? null;
   const reimbursements = detail?.reimbursement_evidence ?? [];
   const originalSale = detail?.original_sale ?? detail?.row.original_sale ?? null;
+  const events = detail?.events ?? [];
+  const [inspectionForm, setInspectionForm] = useState({
+    observed_condition: "",
+    sealed_new_status: "unknown",
+    complete_item: "unknown",
+    wrong_item: "unknown",
+    notes: "",
+    decision: "needs_review",
+  });
+  const [savingInspection, setSavingInspection] = useState(false);
+  const [saveInspectionError, setSaveInspectionError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!detail) return;
+    setInspectionForm({
+      observed_condition: detail.inspection.observed_condition ?? "",
+      sealed_new_status: detail.inspection.sealed_new_status ?? "unknown",
+      complete_item: detail.inspection.complete_item,
+      wrong_item: detail.inspection.wrong_item,
+      notes: detail.inspection.notes ?? "",
+      decision: detail.row.decision ?? "needs_review",
+    });
+    setSaveInspectionError(null);
+  }, [detail?.row.id, detail?.inspection.updated_at]);
+
+  async function saveInspection() {
+    if (!detail) return;
+    setSavingInspection(true);
+    setSaveInspectionError(null);
+
+    try {
+      const response = await fetch(`/api/amazon/return-recovery/${detail.row.id}/actions`, {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-mbop-csrf": "1",
+        },
+        body: JSON.stringify({
+          action: "record_inspection",
+          ...inspectionForm,
+        }),
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(payload.error ?? `Failed to save inspection: ${response.status}`);
+      }
+      onSaved();
+    } catch (err) {
+      setSaveInspectionError(err instanceof Error ? err.message : "Failed to save inspection.");
+    } finally {
+      setSavingInspection(false);
+    }
+  }
 
   return (
     <div className="fixed inset-0 z-40" role="dialog" aria-modal="true">
@@ -417,6 +566,106 @@ function ReturnDetailDrawer({
                 </div>
               </DetailSection>
 
+              <DetailSection title="Inspection / Decision">
+                <div className="space-y-4">
+                  <div className="grid gap-3 md:grid-cols-3">
+                    <SelectField
+                      label="Observed Condition"
+                      value={inspectionForm.observed_condition}
+                      onChange={(value) =>
+                        setInspectionForm((current) => ({ ...current, observed_condition: value }))
+                      }
+                      options={[
+                        ["", "Not recorded"],
+                        ["new_sealed", "New sealed"],
+                        ["new_opened", "New opened"],
+                        ["used_like_new", "Used like new"],
+                        ["used_good", "Used good"],
+                        ["damaged", "Damaged"],
+                        ["missing_parts", "Missing parts"],
+                        ["wrong_item", "Wrong item"],
+                        ["unknown", "Unknown"],
+                      ]}
+                    />
+                    <SelectField
+                      label="Sealed / New Status"
+                      value={inspectionForm.sealed_new_status}
+                      onChange={(value) =>
+                        setInspectionForm((current) => ({ ...current, sealed_new_status: value }))
+                      }
+                      options={[
+                        ["unknown", "Unknown"],
+                        ["sealed_new", "Sealed new"],
+                        ["opened_new", "Opened new"],
+                        ["not_new", "Not new"],
+                      ]}
+                    />
+                    <SelectField
+                      label="Final Disposition"
+                      value={inspectionForm.decision}
+                      onChange={(value) =>
+                        setInspectionForm((current) => ({ ...current, decision: value }))
+                      }
+                      options={[
+                        ["needs_review", "Needs review"],
+                        ["send_back_to_amazon", "Send back to Amazon"],
+                        ["sell_on_ebay", "Sell/list on eBay"],
+                        ["dispose_donate", "Dispose/donate"],
+                      ]}
+                    />
+                    <SelectField
+                      label="Complete Item"
+                      value={inspectionForm.complete_item}
+                      onChange={(value) =>
+                        setInspectionForm((current) => ({ ...current, complete_item: value }))
+                      }
+                      options={TRI_STATE_OPTIONS}
+                    />
+                    <SelectField
+                      label="Wrong Item"
+                      value={inspectionForm.wrong_item}
+                      onChange={(value) =>
+                        setInspectionForm((current) => ({ ...current, wrong_item: value }))
+                      }
+                      options={TRI_STATE_OPTIONS}
+                    />
+                    <InfoPair
+                      label="Current Workflow"
+                      value={formatStatusText(detail?.row.workflow_state ?? "needs_inspection")}
+                    />
+                  </div>
+                  <label className="block">
+                    <span className="mb-1 block text-xs font-medium uppercase text-slate-500">Notes</span>
+                    <textarea
+                      value={inspectionForm.notes}
+                      onChange={(event) =>
+                        setInspectionForm((current) => ({ ...current, notes: event.target.value }))
+                      }
+                      className="min-h-24 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm outline-none ring-blue-500 focus:ring-2"
+                      placeholder="Observed condition, missing components, wrong item details, or handling notes"
+                    />
+                  </label>
+                  {saveInspectionError ? (
+                    <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+                      {saveInspectionError}
+                    </div>
+                  ) : null}
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="text-xs text-slate-500">
+                      Saved inspections append timeline events and keep Amazon evidence read-only.
+                    </div>
+                    <button
+                      type="button"
+                      onClick={saveInspection}
+                      disabled={savingInspection}
+                      className="rounded-md bg-blue-600 px-3 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      {savingInspection ? "Saving..." : "Save Inspection"}
+                    </button>
+                  </div>
+                </div>
+              </DetailSection>
+
               <DetailSection title="Original Sale / Return Financial Context">
                 {originalSale ? (
                   <div className="space-y-4">
@@ -453,6 +702,37 @@ function ReturnDetailDrawer({
                 ) : (
                   <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-3 text-sm text-slate-600">
                     Needs matching.
+                  </div>
+                )}
+              </DetailSection>
+
+              <DetailSection title="Event Timeline">
+                {events.length ? (
+                  <div className="space-y-3">
+                    {events.map((event) => (
+                      <div
+                        key={event.amazon_return_recovery_event_id}
+                        className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2"
+                      >
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <div className="text-sm font-semibold text-slate-900">
+                            {formatStatusText(event.event_type)}
+                          </div>
+                          <div className="text-xs text-slate-500">{formatDateTime(event.event_at)}</div>
+                        </div>
+                        <div className="mt-1 text-sm text-slate-700">{event.message ?? "--"}</div>
+                        {event.notes ? (
+                          <div className="mt-1 text-sm text-slate-600">{event.notes}</div>
+                        ) : null}
+                        <div className="mt-1 text-xs text-slate-500">
+                          {formatStatusText(event.event_source)}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-3 text-sm text-slate-600">
+                    No inspection or disposition events recorded yet.
                   </div>
                 )}
               </DetailSection>
@@ -527,6 +807,72 @@ function DetailSection({ title, children }: { title: string; children: ReactNode
   );
 }
 
+function SelectField({
+  label,
+  value,
+  onChange,
+  options,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  options: Array<[string, string]>;
+}) {
+  return (
+    <label className="block">
+      <span className="mb-1 block text-xs font-medium uppercase text-slate-500">{label}</span>
+      <select
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm outline-none ring-blue-500 focus:ring-2"
+      >
+        {options.map(([optionValue, optionLabel]) => (
+          <option key={optionValue} value={optionValue}>
+            {optionLabel}
+          </option>
+        ))}
+      </select>
+    </label>
+  );
+}
+
+function WorkflowFilterButtons({
+  value,
+  summary,
+  onChange,
+}: {
+  value: WorkflowFilter;
+  summary?: QueueSummary;
+  onChange: (value: WorkflowFilter) => void;
+}) {
+  return (
+    <div>
+      <div className="mb-1 text-xs font-medium uppercase text-slate-500">Workflow</div>
+      <div className="flex flex-wrap gap-2">
+        {WORKFLOW_FILTERS.map((filter) => {
+          const selected = filter.value === value;
+          const count = filter.countKey ? summary?.[filter.countKey] : null;
+          return (
+            <button
+              key={filter.value}
+              type="button"
+              onClick={() => onChange(filter.value)}
+              className={`rounded-md border px-2.5 py-1.5 text-xs font-semibold ${
+                selected
+                  ? "border-blue-600 bg-blue-600 text-white"
+                  : "border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
+              }`}
+            >
+              {filter.label}
+              {typeof count === "number" ? ` ${formatNumber(count)}` : ""}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 function InfoPair({
   label,
   value,
@@ -595,6 +941,32 @@ function EvidencePill({ row }: { row: QueueRow }) {
   );
 }
 
+function WorkflowPill({ row }: { row: QueueRow }) {
+  const label = row.decision === "needs_review"
+    ? formatStatusText(row.workflow_state)
+    : formatStatusText(row.decision);
+  const color =
+    row.decision === "send_back_to_amazon"
+      ? "border-blue-200 bg-blue-50 text-blue-700"
+      : row.decision === "sell_on_ebay"
+        ? "border-green-200 bg-green-50 text-green-700"
+        : row.decision === "dispose_donate"
+          ? "border-slate-300 bg-slate-100 text-slate-700"
+          : "border-amber-200 bg-amber-50 text-amber-800";
+  return (
+    <div>
+      <span className={`inline-flex rounded border px-2 py-0.5 text-xs font-semibold ${color}`}>
+        {label}
+      </span>
+      {row.inspection.inspected_at ? (
+        <div className="mt-1 text-xs text-slate-500">
+          Inspected {formatDate(row.inspection.inspected_at)}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 function financialStatusLabel(originalSale: OriginalSaleFinancialImpact) {
   if (originalSale.confidence === "needs_matching") return "Needs matching";
   if (originalSale.data_status === "missing_profitability") return "Needs matching";
@@ -623,6 +995,16 @@ function formatStatusText(value: string) {
     .split("_")
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
     .join(" ");
+}
+
+function formatDateTime(value?: string | null) {
+  if (!value) return "--";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return formatDate(value);
+  return new Intl.DateTimeFormat("en-US", {
+    dateStyle: "short",
+    timeStyle: "short",
+  }).format(date);
 }
 
 function formatDate(value?: string | null) {

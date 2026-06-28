@@ -1,10 +1,12 @@
 import { NextResponse } from "next/server";
 import {
   buildQueueRow,
+  fetchCasesForReturns,
   fetchCustomerReturnRows,
   fetchRecentReimbursementRows,
   fetchSalesContextForReturns,
   getReturnRecoverySupabaseClient,
+  queueRowMatchesWorkflowFilter,
   queueRowMatchesSearch,
   summarizeQueue,
 } from "./data";
@@ -15,6 +17,7 @@ export async function GET(request: Request) {
   try {
     const url = new URL(request.url);
     const query = url.searchParams.get("q") ?? url.searchParams.get("search") ?? "";
+    const workflow = url.searchParams.get("workflow") ?? "open";
     const limit = clampLimit(url.searchParams.get("limit"));
     const supabase = getReturnRecoverySupabaseClient();
 
@@ -22,17 +25,23 @@ export async function GET(request: Request) {
       fetchCustomerReturnRows(supabase),
       fetchRecentReimbursementRows(supabase),
     ]);
-    const salesContext = await fetchSalesContextForReturns(supabase, customerReturns);
+    const [salesContext, cases] = await Promise.all([
+      fetchSalesContextForReturns(supabase, customerReturns),
+      fetchCasesForReturns(supabase, customerReturns),
+    ]);
 
     const allRows = customerReturns.map((row) =>
-      buildQueueRow(row, reimbursements, salesContext),
+      buildQueueRow(row, reimbursements, salesContext, cases),
     );
-    const filteredRows = allRows.filter((row) => queueRowMatchesSearch(row, query));
+    const filteredRows = allRows
+      .filter((row) => queueRowMatchesWorkflowFilter(row, workflow))
+      .filter((row) => queueRowMatchesSearch(row, query));
     const rows = filteredRows.slice(0, limit);
 
     return NextResponse.json({
       generated_at: new Date().toISOString(),
       query,
+      workflow,
       limit,
       summary: summarizeQueue(filteredRows, allRows),
       rows,

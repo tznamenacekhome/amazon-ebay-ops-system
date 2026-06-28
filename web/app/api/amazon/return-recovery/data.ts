@@ -17,7 +17,7 @@ const CASE_SELECT =
   "reimbursement_likelihood,return_reason,return_status,return_disposition,customer_comments," +
   "evidence_summary,lpn,amazon_order_id,merchant_order_id,removal_order_id,removal_shipment_id," +
   "vret_id,ra_number,tracking_number,asin,seller_sku,sku,fnsku,title,quantity,return_date," +
-  "raw_evidence_json,created_at,updated_at";
+  "received_at,inspected_at,closed_at,raw_evidence_json,created_at,updated_at";
 
 const SALES_ORDER_SELECT =
   "amazon_order_id,purchase_date,order_status,fulfillment_channel,order_total_amount,order_total_currency";
@@ -196,6 +196,9 @@ export type ReturnRecoveryCaseRow = {
   title: string | null;
   quantity: number | null;
   return_date: string | null;
+  received_at: string | null;
+  inspected_at: string | null;
+  closed_at: string | null;
   raw_evidence_json: unknown;
   created_at: string | null;
   updated_at: string | null;
@@ -235,6 +238,20 @@ export type QueueRow = {
   reimbursement_currency: string | null;
   latest_reimbursement_approval_date: string | null;
   original_sale: OriginalSaleFinancialImpact;
+  case_id: string | null;
+  workflow_state: string;
+  decision: string;
+  inspection: InspectionEvidence;
+};
+
+export type InspectionEvidence = {
+  observed_condition: string | null;
+  sealed_new_status: string | null;
+  complete_item: "yes" | "no" | "unknown";
+  wrong_item: "yes" | "no" | "unknown";
+  notes: string | null;
+  inspected_at: string | null;
+  updated_at: string | null;
 };
 
 export function getReturnRecoverySupabaseClient() {
@@ -274,6 +291,34 @@ export async function fetchRecentReimbursementRows(supabase: ServerSupabaseClien
 
   if (error) throw new Error(`amazon_fba_reimbursement_rows: ${error.message}`);
   return (data ?? []) as unknown as ReimbursementRow[];
+}
+
+export async function fetchCasesForReturns(
+  supabase: ServerSupabaseClient,
+  rows: CustomerReturnRow[],
+) {
+  const casesById = new Map<string, ReturnRecoveryCaseRow>();
+  const orderIds = uniqueClean(rows.map((row) => row.amazon_order_id));
+  const lpns = uniqueClean(rows.map((row) => row.license_plate_number));
+
+  for (const { column, values } of [
+    { column: "amazon_order_id", values: orderIds },
+    { column: "lpn", values: lpns },
+  ]) {
+    for (let index = 0; index < values.length; index += 100) {
+      const chunk = values.slice(index, index + 100);
+      const { data, error } = await supabase
+        .from("amazon_return_recovery_cases")
+        .select(CASE_SELECT)
+        .in(column, chunk);
+      if (error) throw new Error(`amazon_return_recovery_cases: ${error.message}`);
+      for (const caseRow of (data ?? []) as unknown as ReturnRecoveryCaseRow[]) {
+        casesById.set(caseRow.amazon_return_recovery_case_id, caseRow);
+      }
+    }
+  }
+
+  return Array.from(casesById.values());
 }
 
 export async function fetchSalesContextForReturns(
@@ -362,8 +407,10 @@ export function buildQueueRow(
   row: CustomerReturnRow,
   reimbursements: ReimbursementRow[],
   salesContext: SalesContext = emptySalesContext(),
+  cases: ReturnRecoveryCaseRow[] = [],
 ): QueueRow {
   const evidence = matchReimbursements(row, reimbursements);
+  const caseRow = findBestCase(row, cases);
   const amountTotal = evidence.reduce((total, reimbursement) => {
     const amount = toOptionalNumber(reimbursement.amount_total);
     return amount === null ? total : total + amount;
@@ -395,6 +442,10 @@ export function buildQueueRow(
       evidence.map((item) => dateOnly(item.approval_date)).filter(Boolean).sort().reverse()[0] ??
       null,
     original_sale: buildOriginalSaleFinancialImpact(row, salesContext),
+    case_id: caseRow?.amazon_return_recovery_case_id ?? null,
+    workflow_state: caseRow?.workflow_state ?? "needs_inspection",
+    decision: caseRow?.decision ?? "needs_review",
+    inspection: inspectionFromCase(caseRow),
   };
 }
 
@@ -435,6 +486,24 @@ export function queueRowMatchesSearch(row: QueueRow, query: string) {
   ].some((value) => cleanText(value)?.toLowerCase().includes(needle));
 }
 
+export function queueRowMatchesWorkflowFilter(row: QueueRow, filter: string) {
+  switch (filter) {
+    case "open":
+      return !["closed", "disposed_donated"].includes(row.workflow_state);
+    case "needs_review":
+      return row.decision === "needs_review" || row.workflow_state === "decision_needed";
+    case "send_back_to_amazon":
+    case "sell_on_ebay":
+    case "dispose_donate":
+      return row.decision === filter;
+    case "closed":
+      return row.workflow_state === "closed";
+    case "all":
+    default:
+      return true;
+  }
+}
+
 export function summarizeQueue(rows: QueueRow[], allRows: QueueRow[]) {
   return {
     total_customer_returns: allRows.length,
@@ -442,6 +511,41 @@ export function summarizeQueue(rows: QueueRow[], allRows: QueueRow[]) {
     with_reimbursement_evidence: rows.filter((row) => row.reimbursement_count > 0).length,
     without_reimbursement_evidence: rows.filter((row) => row.reimbursement_count === 0).length,
     with_customer_comments: rows.filter((row) => Boolean(cleanText(row.customer_comments))).length,
+    needs_inspection: allRows.filter((row) => row.workflow_state === "needs_inspection").length,
+    needs_review: allRows.filter((row) => row.decision === "needs_review").length,
+    send_back_to_amazon: allRows.filter((row) => row.decision === "send_back_to_amazon").length,
+    sell_on_ebay: allRows.filter((row) => row.decision === "sell_on_ebay").length,
+    dispose_donate: allRows.filter((row) => row.decision === "dispose_donate").length,
+    closed: allRows.filter((row) => row.workflow_state === "closed").length,
+  };
+}
+
+export function findBestCase(row: CustomerReturnRow, cases: ReturnRecoveryCaseRow[]) {
+  const orderId = normalizeIdentifier(row.amazon_order_id);
+  const lpn = normalizeIdentifier(row.license_plate_number);
+  const matching = cases.filter((caseRow) => {
+    const caseOrder = normalizeIdentifier(caseRow.amazon_order_id);
+    const caseLpn = normalizeIdentifier(caseRow.lpn);
+    return (orderId && caseOrder === orderId) || (lpn && caseLpn === lpn);
+  });
+  return matching.sort((left, right) => {
+    const leftUpdated = cleanText(left.updated_at) ?? "";
+    const rightUpdated = cleanText(right.updated_at) ?? "";
+    return rightUpdated.localeCompare(leftUpdated);
+  })[0] ?? null;
+}
+
+export function inspectionFromCase(caseRow?: ReturnRecoveryCaseRow | null): InspectionEvidence {
+  const raw = asRecord(caseRow?.raw_evidence_json);
+  const inspection = asRecord(raw.inspection);
+  return {
+    observed_condition: cleanText(inspection.observed_condition),
+    sealed_new_status: cleanText(inspection.sealed_new_status),
+    complete_item: triState(inspection.complete_item),
+    wrong_item: triState(inspection.wrong_item),
+    notes: cleanText(inspection.notes),
+    inspected_at: cleanText(inspection.inspected_at) ?? cleanText(caseRow?.inspected_at),
+    updated_at: cleanText(inspection.updated_at),
   };
 }
 
@@ -518,6 +622,23 @@ function productIdentifiers(row: {
         .filter((value): value is string => Boolean(value)),
     ),
   );
+}
+
+function uniqueClean(values: unknown[]) {
+  return Array.from(
+    new Set(values.map((value) => cleanText(value)).filter((value): value is string => Boolean(value))),
+  );
+}
+
+function asRecord(value: unknown): Record<string, unknown> {
+  if (value && typeof value === "object" && !Array.isArray(value)) {
+    return value as Record<string, unknown>;
+  }
+  return {};
+}
+
+function triState(value: unknown): "yes" | "no" | "unknown" {
+  return value === "yes" || value === "no" ? value : "unknown";
 }
 
 async function fetchByOrderIds<T>(
