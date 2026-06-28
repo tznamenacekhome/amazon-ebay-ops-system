@@ -1,6 +1,6 @@
 # Business Rules
 
-Last updated: 2026-06-14
+Last updated: 2026-06-28
 
 ## Cost And Reporting
 
@@ -47,6 +47,9 @@ Carrier/status syncs must not downgrade workflow-owned statuses.
   catalog snapshots. This must not change ASIN, system, cost, status, or
   workflow state.
 - ASIN is the primary Amazon product identity for MBOP operational inventory. MSKU remains stored for Amazon traceability and InventoryLab/Informed joins.
+- Amazon listing/MSKU discovery should use the broadest safe Amazon seller
+  listing set available, including inactive merchant listings imported into
+  `amazon_skus`, when a workflow needs historical ASIN/MSKU coverage.
 
 ## Sourcing
 
@@ -93,6 +96,9 @@ Carrier/status syncs must not downgrade workflow-owned statuses.
   ended, sold out, or missing. It must not dismiss Purchased Pending Match rows,
   because those often become unavailable after the operator buys or offers and
   must remain available for purchase matching/enrichment.
+- Sourcing seed generation may use the full known Amazon SKU catalog, including
+  inactive seller listings, so out-of-stock products with known ASIN/MSKU
+  history can still become replenishment candidates.
 
 ## Receiving
 
@@ -189,6 +195,10 @@ Carrier/status syncs must not downgrade workflow-owned statuses.
 - Operator-entered shipment ID links included items to FBA shipment rows.
 - Included quantities move to `listed`; excluded quantities remain `received`.
 - Current non-historical FBA shipment links are valued as `outbound_to_amazon` only for remaining units Amazon has not yet received or made available.
+- Amazon Return Recovery rows may enter FBA shipment prep through
+  `fba_shipment_source_items` when the operator marks a physically inspected
+  item as New and Send to Amazon. They must not be written to `purchases` or
+  `purchase_items`.
 - Amazon FBA shipment sync stores Amazon inbound status, fulfillment center, carrier ETA when available, received quantity, FBA available quantity, and remaining outbound value on shipment workflow rows.
 - FBA prep pricing uses explicit operator refreshes, not page-load marketplace
   calls. The prep table shows Total Cost, Total Sell Value, Total Profit, and
@@ -204,6 +214,25 @@ Carrier/status syncs must not downgrade workflow-owned statuses.
   may participate in Amazon sales FIFO COGS allocation even when the original
   supplier was not stored as eBay. This is for old resale inventory sources that
   should not re-enter receiving or open purchase work.
+
+## Amazon Return Recovery
+
+- Amazon customer return, reimbursement, and future removal data must stay in
+  Amazon-specific tables.
+- Amazon return reason, disposition, and customer comments are evidence only.
+  They do not determine final condition or disposition without manual physical
+  inspection.
+- Observed condition controls the operator workflow. Items observed as New may
+  be routed back to Send to Amazon; Used, Damaged, Missing Parts, and Wrong Item
+  items must not be sent back to Amazon as New without an explicit future
+  review/override workflow.
+- Missing Parts and Wrong Item outcomes may move into reimbursement review, but
+  MBOP does not infer reimbursement eligibility automatically.
+- Seller Central cases are prepared manually. MBOP must not create Amazon cases
+  automatically unless a future approved write workflow is designed.
+- Customer return and reimbursement report imports may be run manually/on
+  demand. Do not schedule unreliable Amazon removal reports while they are
+  returning `FATAL`.
 
 ## Inventory And Valuation
 
@@ -239,8 +268,9 @@ Carrier/status syncs must not downgrade workflow-owned statuses.
   surfaced as an operator problem by itself.
 - Amazon listing/catalog issue signals should be ignored when your FBA units are
   still sellable/available for sale.
-- Amazon damaged/unsellable units should be tracked as a removals workflow, not
-  as purchase or receiving cleanup.
+- Amazon damaged/unsellable units and customer returns returned to the business
+  belong in Amazon Return Recovery/removals workflows, not purchase or
+  receiving cleanup.
 - Amazon receiving shortages, lost units, warehouse damage, and customer returns
   that do not come back to the business belong in a future Amazon Inventory
   Discrepancy workflow.

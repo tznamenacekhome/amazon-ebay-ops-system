@@ -1,6 +1,6 @@
 # Backend Architecture
 
-Last updated: 2026-06-21
+Last updated: 2026-06-28
 
 ## Core Flow
 
@@ -12,9 +12,9 @@ Supabase is the operational source of truth. The frontend never talks directly t
 
 ## Ownership Boundaries
 
-Purchases, receiving, order problems/returns, Amazon FBA shipment prep,
-inventory reconciliation, sourcing, repricing advice, and external intelligence
-are separate domains.
+Purchases, receiving, order problems/returns, Amazon Return Recovery, Amazon
+FBA shipment prep, inventory reconciliation, sourcing, repricing advice, and
+external intelligence are separate domains.
 
 - `purchases` and `purchase_items` own acquired eBay buyer purchase inventory.
 - Sourcing owns advisory replenishment opportunities, eBay candidate discovery,
@@ -29,6 +29,9 @@ are separate domains.
   cancelled-refund follow-up, missing-item/replacement follow-up, and local
   operator action history in `order_problem_cases` and `order_problem_events`.
 - Amazon FBA shipment prep owns grouping received Amazon-bound items for export, shipment ID assignment, and moving included units to `listed`.
+- Amazon Return Recovery owns Amazon customer returns/removals returned to the
+  business, reimbursement-review evidence, manual inspection/disposition, and
+  non-purchase routing back into FBA through `fba_shipment_source_items`.
 - Non-historical FBA shipment item links remain workflow-owned by FBA prep and are projected into inventory value as outbound to Amazon only for quantities Amazon has not yet received or made available.
 - Amazon FBA shipment sync reads Amazon inbound shipment status and shipment-item quantities, stores fulfillment center, carrier ETA/tracking context, FBA availability metrics, and milestone timestamps on FBA shipment workflow tables.
 - Amazon FBA shipment sync also attempts a cached Fulfillment Inbound v2024
@@ -45,7 +48,7 @@ are separate domains.
   tax classification, owner draws/contributions, and long-range financial
   planning. MBOP may push summarized business-operational finance payloads to
   ZFI Supabase, but MBOP must not query ZFI or import ZFI personal finance data.
-- eBay draft pricing sheet support is a spreadsheet utility, not a marketplace
+- eBay draft search-link sheet support is a spreadsheet utility, not a marketplace
   write workflow. See `docs/subsystems/ebay_draft_pricing.md`.
 - `inventory_positions` and reconciliation tables are derived and rebuildable; they do not replace workflow ownership.
 
@@ -177,10 +180,10 @@ Roadmap:
 - Extend Order Problems return handling with full case/event drawer timelines,
   scheduled cancellation search import if more refund-follow-up cancellations
   appear, and controlled partial refund cost adjustment when the item is kept.
-- Add an Amazon FBA removals workflow for damaged/unsellable units that Amazon
-  automatically returns. The workflow should track removal orders, receiving
-  returned units, deciding whether they are still new/sellable, and routing good
-  units back into the send-to-Amazon workflow.
+- Continue Amazon Return Recovery/removals work after the operational first
+  slice: resolve or work around unreliable Amazon removal reports, add manual
+  removal order creation, expand reimbursement case prep, add eBay/disposal
+  closeout paths, and project states into inventory/dashboard summaries.
 - Add an Amazon Inventory Discrepancy workflow for Amazon receiving shortages,
   lost inventory, warehouse-damaged inventory, and customer returns that do not
   come back to the business. This should be separate from Purchases, Receiving,

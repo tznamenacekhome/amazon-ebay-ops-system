@@ -296,6 +296,83 @@ Next steps:
 
 ---
 
+## Amazon Return Recovery And Removals
+
+Status:
+Paused after operational first slice / remaining work documented.
+
+Completed:
+- customer return and reimbursement Reports API imports are working for
+  `GET_FBA_FULFILLMENT_CUSTOMER_RETURNS_DATA` and
+  `GET_FBA_REIMBURSEMENTS_DATA`
+- removal order and removal shipment report support is allowed in the SP-API
+  client, but the reports are unreliable and remain under Amazon support
+  investigation
+- Amazon Returns UI exists at `/amazon-return-recovery`
+- the detail drawer shows customer return evidence, reimbursement evidence,
+  raw Amazon evidence, original sale context, and manual
+  inspection/disposition fields
+- manual inspection supports observed condition, final disposition, notes,
+  event timeline entries, and reimbursement review for Missing Parts / Wrong
+  Item outcomes
+- return recovery items marked New + Send to Amazon can appear in `/fba`
+- the durable non-purchase FBA bridge table `fba_shipment_source_items` exists
+  and is used as authoritative when available, with a defensive fallback only
+  if the table is unavailable
+- FBA shipment detail and InventoryLab CSV export can include Amazon Return
+  Recovery source items without writing to `purchases` or `purchase_items`
+
+Paused boundary:
+- keep this workflow Amazon-specific
+- do not write Amazon return/removal items to eBay Purchases, Receiving,
+  Order Problems, or `purchase_items`
+- Amazon return reason/disposition remains evidence only; final condition and
+  disposition require manual physical inspection
+- do not create Seller Central cases automatically unless a future approved
+  Amazon write workflow exists
+
+Remaining work:
+- track the Amazon support case for
+  `GET_FBA_FULFILLMENT_REMOVAL_ORDER_DETAIL_DATA` and
+  `GET_FBA_FULFILLMENT_REMOVAL_SHIPMENT_DETAIL_DATA` returning `FATAL`.
+  Current evidence: customer returns and reimbursements work; removal reports
+  fail for multiple one-day windows despite Seller Central showing orders; one
+  historical removal report succeeded once. If Amazon resolves or explains the
+  issue, update the importer strategy. If reports remain unreliable, treat
+  manual removal entry as the long-term fallback.
+- add manual "New Removal Order" creation for removal orders not backed by
+  customer-return report data. Capture removal order ID, removal source,
+  submitted date, status, ASIN/SKU/FNSKU, title, quantity, carrier/tracking,
+  LPN if present, and notes. Support scanning/removal slip identifiers when
+  items arrive.
+- expand reimbursement review beyond the current checklist. Add Seller Central
+  case ID, case status, submitted date, follow-up date, response, decision,
+  reimbursement amount, and closure reason. Generate manual case-prep text
+  from Amazon return evidence, LPN, order ID, reimbursement rows,
+  photos/evidence checklist, and inspection notes.
+- add closeout paths for Sell on eBay and Dispose/Donate dispositions. Sell on
+  eBay should bridge into a future eBay resale/listing queue while preserving
+  ASIN, title, source cost, observed condition, and notes. Dispose/Donate
+  should record a closeout event and project inventory/value impact without
+  silently losing cost or value history.
+- project Amazon Return Recovery states into `inventory_positions` or the
+  appropriate derived inventory model: pending inspection, reimbursement
+  review, ready for FBA, routed to FBA, eBay resale candidate, and
+  disposed/donated.
+- add dashboard summaries later for Loss Prevention, Inventory, and Amazon
+  tabs, keeping all rollups backend/API-owned.
+- keep return recovery imports manual/on-demand for now. Later add a
+  low-frequency scheduler group for customer returns/reimbursements only. Do
+  not schedule unreliable removal reports until Amazon support resolves the
+  `FATAL` issue or the importer uses safe narrow windows with backoff.
+- after real-world use, verify `fba_shipment_source_items` rows are created for
+  Amazon return items saved to FBA shipments, routed rows stay out of open
+  Return Recovery work, and InventoryLab export plus FBA shipment detail remain
+  correct for mixed purchase-item and Amazon-return source shipments. Add
+  audit/freshness indicators if needed.
+
+---
+
 ## Supplier-Agnostic Purchase Entry
 
 Future scope:

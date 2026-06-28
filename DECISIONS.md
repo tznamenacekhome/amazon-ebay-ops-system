@@ -26,6 +26,9 @@ Implementation:
 - Container name: `mbop-scheduler`
 - CloudWatch log group: `/ecs/mbop-scheduler`
 - Command override: `python run_all_syncs.py --group <GROUP_NAME>`
+- cloud web refresh buttons that need production sync work launch the
+  appropriate AWS scheduler group rather than attempting local jobs from the
+  web container
 
 Rules:
 - Keep `CLOUD_DEPLOYMENT=true`.
@@ -549,6 +552,9 @@ Implementation:
 Save behavior:
 - operator enters the Amazon shipment ID
 - included quantities are linked to `fba_shipments` and `fba_shipment_items`
+- Amazon Return Recovery source rows are linked through
+  `fba_shipment_source_items` so non-purchase return inventory can be saved in
+  FBA shipments without writing to `purchase_items`
 - included quantities move from `received` to `listed`
 - excluded quantities remain `received`
 - partial included quantities split the purchase item so only the included quantity becomes `listed`
@@ -561,6 +567,39 @@ Use `legacy_listed_no_shipment_id` for already Listed items that predate MBOP sh
 
 Rule:
 Do not mark excluded or damaged units Listed during FBA save. They must remain Received or move through a later exception workflow.
+
+Amazon Return Recovery items may be routed into FBA only through the
+non-purchase bridge after manual inspection confirms the observed condition is
+New and the final disposition is Send to Amazon.
+
+---
+
+## Amazon Return Recovery Is Separate From Purchases
+
+Decision:
+Use Amazon-specific return recovery tables and workflow state for FBA customer
+returns, reimbursements, and removals returned to the business.
+
+Reason:
+Amazon customer returns and removals are not eBay purchases, Receiving rows, or
+Order Problems cases. They have different evidence sources, identifiers, and
+case/reimbursement paths.
+
+Implementation:
+- `/amazon-return-recovery` displays the Amazon Returns queue and detail drawer
+- `/api/amazon/return-recovery` and related action routes own backend reads and
+  workflow mutations
+- customer return and reimbursement report rows are imported into
+  Amazon-specific raw row tables
+- manual inspection/disposition is stored in `amazon_return_recovery_cases`
+  with append-only events in `amazon_return_recovery_events`
+- FBA shipment routing uses `fba_shipment_source_items` instead of
+  `purchase_items`
+
+Rule:
+Amazon return reason/disposition is evidence only. Final condition and
+disposition require manual inspection, and Seller Central cases remain manual
+unless a future approved Amazon write workflow is designed.
 
 ---
 

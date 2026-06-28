@@ -2,7 +2,7 @@
 
 This file tracks active issues, monitor items, and deferred decisions for Midnight Blue Operations Platform (MBOP).
 
-Last reviewed: 2026-06-22
+Last reviewed: 2026-06-28
 
 # Active Issues
 
@@ -158,9 +158,9 @@ Recommended next mitigation:
 - Re-run eBay/non-eBay FIFO allocators after adding purchase source records.
 - Re-run inventory reconciliation and Inventory Source Balance Audit after each
   meaningful COGS/import correction batch.
-- Split future Amazon-side cleanup into first-class workflows for removals and
-  inventory discrepancies instead of treating normal reserved/inbound movement
-  as purchase cleanup.
+- Continue separating Amazon-side cleanup into first-class workflows. Amazon
+  Return Recovery now covers customer returns/reimbursements and manual
+  inspection first slices; Amazon inventory discrepancies remain future work.
 
 ---
 
@@ -279,6 +279,40 @@ Recommended next mitigation:
 - review Amazon listing/suppression/stranded findings and decide which should become operator workflows.
 - add future eBay inventory positions before attempting Amazon-to-eBay transfer reconciliation.
 - keep the reconciliation layer read/project first, then route corrections through the owning workflow.
+
+---
+
+## Amazon Removal Reports Return FATAL
+
+Status: ACTIVE / AMAZON SUPPORT INVESTIGATION
+
+Problem:
+Amazon customer return and reimbursement report imports work, but
+`GET_FBA_FULFILLMENT_REMOVAL_ORDER_DETAIL_DATA` and
+`GET_FBA_FULFILLMENT_REMOVAL_SHIPMENT_DETAIL_DATA` have repeatedly returned
+`FATAL` with no `processingStatusDetails` for one-day windows where Seller
+Central shows removal orders. One historical narrow removal report succeeded
+once.
+
+Impact:
+Amazon Return Recovery cannot yet depend on removal order/shipment reports for
+all returned-to-seller inventory. Manual removal entry is the likely fallback if
+Amazon does not resolve or explain the report behavior.
+
+Current mitigation:
+- customer returns and reimbursements imports remain working and should not be
+  disrupted
+- the importer has safe diagnostics for create payloads and terminal report
+  payloads
+- removal reports should not be scheduled while unreliable
+
+Recommended next mitigation:
+- track the Amazon support case with failing report IDs, known Seller Central
+  removal order dates/IDs, sanitized payloads, and confirmation that customer
+  returns/reimbursements work
+- if Amazon resolves the issue, update the importer strategy
+- if reports remain unreliable, implement manual New Removal Order entry in the
+  Amazon Return Recovery workflow
 
 ---
 

@@ -15,10 +15,14 @@ This file tells ChatGPT and Codex what to read first when discussing MBOP.
 9. `docs/aws/MBOP_AWS_DEPLOYMENT.md`
 10. `docs/aws/MBOP_AWS_SCHEDULER_PLAN.md`
 11. `docs/aws/MBOP_AWS_OPERATIONS_RUNBOOK.md`
-12. `docs/supabase_capacity.md`
-13. `docs/architecture/DATA_FLOW.md`
-14. `docs/architecture/INTEGRATION_PRINCIPLES.md`
+12. `docs/aws/MBOP_SOLO_DEV_WORKFLOW.md`
+13. `docs/supabase_capacity.md`
+14. `docs/architecture/README.md`
 15. `docs/architecture/SYSTEM_BOUNDARIES.md`
+16. `docs/architecture/DATA_FLOW.md`
+17. `docs/architecture/INTEGRATION_PRINCIPLES.md`
+18. `docs/subsystems/matching_engine.md`
+19. `docs/subsystems/ebay_draft_pricing.md`
 
 
 

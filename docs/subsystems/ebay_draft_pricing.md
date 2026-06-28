@@ -1,18 +1,18 @@
-# eBay Draft Pricing Sheet
+# eBay Draft Search Link Sheet
 
-Last updated: 2026-06-12
+Last updated: 2026-06-28
 
 ## Purpose
 
 `integrations/price_ebay_draft_listings.py` supports manual eBay seller draft
-pricing from the Google Sheet named `ebay drafts`.
+research from the Google Sheet named `ebay drafts`.
 
-The useful current workflow is AI-assisted search-link generation:
+The workflow is AI-assisted search-link generation:
 
 - read the draft listing title from column `D`
 - generate a compact eBay sold-search keyword phrase
 - write that phrase to column `E` as a clickable eBay sold-search link
-- leave column `F` available for suggested listing price
+- leave pricing columns untouched
 
 The script is intentionally read/write only against the spreadsheet. It does
 not create, revise, publish, or otherwise write to eBay listings.
@@ -31,7 +31,7 @@ Expected columns:
 
 - `D`: `Listing Title`
 - `E`: `Optimized search term`
-- `F`: `Suggested lsting price`
+- `F`: manual pricing column, untouched by this script
 
 Column `E` is written as a Google Sheets formula:
 
@@ -75,23 +75,14 @@ python integrations\price_ebay_draft_listings.py --limit 100 --only-blank --appl
 Useful options:
 
 - `--limit N`: maximum rows to process
-- `--only-blank`: skip rows where either column `E` or `F` is already filled
+- `--only-blank`: skip rows where column `E` is already filled
 - `--start-row N`: first sheet row to consider; default is `2`
 - `--apply`: write to the sheet; without this, the script is dry-run only
 - `--ai-model MODEL`: override the OpenAI model; default is `gpt-4.1-mini`
 
-## Pricing Limitation
+## Pricing
 
-The script contains a sold-comps pricing path using eBay's older
-`findCompletedItems` endpoint and includes shipping in the comp total:
-
-```text
-landed comp = sold item price + shipping
-```
-
-However, as of 2026-06-12, eBay returns HTTP `503` for that completed-items
-endpoint from this environment. eBay's normal Browse API supports active listing
-search, but it does not support a sold/completed-only filter.
+The script does not suggest pricing.
 
 Seller Hub Product Research / Terapeak has the sold-price and average-shipping
 data that would be ideal for this workflow, but it is not exposed through the
@@ -102,12 +93,11 @@ than normal seller API access.
 Current expected behavior:
 
 - column `E` is useful and should be populated by the script
-- column `F` remains blank unless eBay completed-items access starts returning
-  usable sold-comps data
+- column `F` and other pricing fields are left for manual review
 - pricing should be manually decided from the linked sold-search results
 
 ## Recent Run
 
-On 2026-06-12, rows `2-26` were processed successfully. Column `E` was filled
-with optimized sold-search links. Column `F` remained blank because eBay returned
-HTTP `503` for all sold-comp requests.
+On 2026-06-28, the script was simplified to search-link generation only because
+the available eBay APIs do not provide reliable sold-comps pricing for this
+workflow. Column `E` is the only scripted output; pricing columns remain manual.

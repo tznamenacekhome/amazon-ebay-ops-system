@@ -18,6 +18,7 @@ from __future__ import annotations
 import argparse
 import csv
 import gzip
+import json
 import logging
 import os
 import time
@@ -34,7 +35,8 @@ from amazon_spapi_client import AmazonSPAPIClient, AmazonSPAPIError
 
 LOGGER = logging.getLogger("amazon_return_recovery_report_sync")
 BATCH_SIZE = 500
-TERMINAL_STATUSES = {"DONE", "CANCELLED", "FATAL"}
+TERMINAL_STATUSES = {"DONE", "CANCELLED", "FATAL", "DONE_NO_DATA"}
+DIAGNOSTIC_TERMINAL_STATUSES = {"CANCELLED", "FATAL", "DONE_NO_DATA"}
 
 CUSTOMER_RETURNS = "GET_FBA_FULFILLMENT_CUSTOMER_RETURNS_DATA"
 REIMBURSEMENTS = "GET_FBA_REIMBURSEMENTS_DATA"
@@ -260,6 +262,16 @@ def sync_report_type(
     )
 
     if not report_id:
+        create_payload = client.create_report_payload(
+            spec.report_type,
+            data_start_time=data_start_time,
+            data_end_time=data_end_time,
+        )
+        LOGGER.info(
+            "%s sanitized createReport payload: %s",
+            spec.report_type,
+            json_dump(sanitize_amazon_payload(create_payload)),
+        )
         response = client.create_report(
             spec.report_type,
             data_start_time=data_start_time,
@@ -427,6 +439,12 @@ def wait_for_report(
         LOGGER.info("Amazon report %s status=%s", report_id, status)
 
         if status in TERMINAL_STATUSES:
+            if status in DIAGNOSTIC_TERMINAL_STATUSES:
+                LOGGER.warning(
+                    "Amazon report %s terminal payload: %s",
+                    report_id,
+                    json_dump(sanitize_amazon_payload(report)),
+                )
             return report
         if time.monotonic() >= deadline:
             raise AmazonSPAPIError(
@@ -815,6 +833,33 @@ def utc_now_iso() -> str:
         .isoformat()
         .replace("+00:00", "Z")
     )
+
+
+def sanitize_amazon_payload(payload: Any) -> Any:
+    if isinstance(payload, dict):
+        sanitized: dict[str, Any] = {}
+        for key, value in payload.items():
+            key_lower = str(key).lower()
+            if key_lower in {
+                "url",
+                "headers",
+                "authorization",
+                "x-amz-access-token",
+                "access_token",
+                "refresh_token",
+                "client_secret",
+            }:
+                sanitized[key] = "<redacted>"
+            else:
+                sanitized[key] = sanitize_amazon_payload(value)
+        return sanitized
+    if isinstance(payload, list):
+        return [sanitize_amazon_payload(item) for item in payload]
+    return payload
+
+
+def json_dump(payload: Any) -> str:
+    return json.dumps(payload, sort_keys=True, default=str)
 
 
 def empty_summary(

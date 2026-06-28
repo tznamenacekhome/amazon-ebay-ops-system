@@ -1,13 +1,13 @@
 # Database Schema Overview
 
-Last updated: 2026-06-14
+Last updated: 2026-06-28
 
 This document is a high-level map of MBOP's schema. SQL migrations remain the source of exact column definitions.
 
 ## Core Purchase Workflow
 
 - `purchases`: supplier/eBay buyer order-level records.
-- `purchase_items`: item/unit-level resale purchase records, current workflow status, ASIN, Amazon title, system, target sell price, reporting exclusion flags, received date, marketplace, and manual override flags.
+- `purchase_items`: item/unit-level resale purchase records, current workflow status, ASIN, Amazon title, system, target sell price, reporting exclusion flags, received date, marketplace, operator notes, and manual override flags.
 - `inbound_shipments`: inbound tracking and carrier enrichment records linked to purchases/items.
 - `manual_item_matches`: reusable title/system ASIN and sell-price corrections.
 
@@ -17,6 +17,10 @@ Authoritative cost for dashboards and purchase reporting comes through `vw_purch
 
 - `fba_shipments`: operator-entered Amazon shipment batches, enriched with Amazon inbound status, fulfillment center, carrier/tracking fields, milestone timestamps, FBA availability metrics, and outbound remaining value.
 - `fba_shipment_items`: item-level links between purchase items and FBA shipments, enriched with Amazon expected/received/available quantities and remaining outbound cost.
+- `fba_shipment_source_items`: non-purchase FBA shipment source links, currently
+  for Amazon Return Recovery items routed back to FBA. This lets Amazon-return
+  units join FBA shipment detail and InventoryLab export without pretending
+  they are eBay purchase items.
 - `fba_shipment_events`: milestone history for FBA shipment pickup, delivery, check-in, receiving, closure, and all-units-available events.
 
 Receiving state is stored on `purchase_items`; shipment prep links included quantities to FBA shipment rows and moves those included quantities to `listed`.
@@ -43,7 +47,9 @@ incomplete-item, cancellation, and refund-follow-up episodes over time.
 
 ## Amazon Snapshot Tables
 
-- `amazon_skus`: seller SKU/MSKU traceability, ASIN, FNSKU, listing/pricing fields, and raw listing/pricing payloads.
+- `amazon_skus`: seller SKU/MSKU traceability, ASIN, FNSKU, fulfillment
+  channel, listing/pricing fields, active and inactive merchant-listing
+  coverage where imported, and raw listing/pricing payloads.
 - `amazon_fba_inventory_snapshots`: point-in-time FBA inventory summaries, including fulfillable, inbound, reserved, FC transfer, FC processing, researching, and unfulfillable breakdowns.
 - `amazon_listing_snapshots`: point-in-time Listings Items status/issues/fulfillment availability.
 - `amazon_report_runs`: audit metadata for Amazon report requests/imports.
@@ -53,6 +59,24 @@ incomplete-item, cancellation, and refund-follow-up episodes over time.
 - `amazon_seller_feedback_snapshots`: manual Seller Central Feedback Manager star-rating/count snapshots.
 - `amazon_seller_feedback_items`: Seller Central / SP-API seller feedback rows with date, rating, order ID, and comment; dashboard alerts focus on 1-3 star feedback.
 - `amazon_fee_estimates`: cached read-only SP-API Product Fees estimates keyed by ASIN, marketplace, fulfillment channel, listing price, shipping price, and currency. MBOP stores total, referral, FBA, variable closing, raw breakdown, and status fields for FBA prep pricing/ROI review.
+- `amazon_return_recovery_cases`: Amazon-specific workflow cases for customer
+  returns/removals returned to the business, including normalized return
+  evidence, manual inspection/disposition, reimbursement review, and FBA
+  routing state.
+- `amazon_return_recovery_events`: append-only event timeline for Amazon Return
+  Recovery inspection, decision, case-review, and FBA routing actions.
+- `amazon_fba_customer_return_rows`: raw and normalized
+  `GET_FBA_FULFILLMENT_CUSTOMER_RETURNS_DATA` rows, preserving return reason,
+  customer comments, disposition, LPN, order identifiers, ASIN/SKU/FNSKU, and
+  raw row JSON.
+- `amazon_fba_reimbursement_rows`: raw and normalized
+  `GET_FBA_REIMBURSEMENTS_DATA` rows, preserving reimbursement IDs, case/order
+  identifiers, ASIN/SKU/FNSKU, reason, approval date, quantity, amount,
+  currency, and raw row JSON.
+- `amazon_fba_removal_order_detail_rows` and
+  `amazon_fba_removal_shipment_detail_rows`: foundation tables for Amazon
+  removal reports. The reports remain unreliable from Amazon as of 2026-06-28,
+  so these tables are present but not a dependable data source yet.
 
 Amazon seller/FBA data stays in Amazon-specific tables and must not be written into purchases or purchase_items.
 

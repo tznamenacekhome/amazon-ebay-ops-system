@@ -1,6 +1,6 @@
 # CURRENT_STATE.md
 
-Last Updated: 2026-06-22
+Last Updated: 2026-06-28
 
 # Midnight Blue Operations Platform (MBOP)
 
@@ -18,7 +18,7 @@ MBOP is the internal operations platform for Midnight Blue Enterprises, LLC.
 | Sync orchestration | Mature |
 | Dashboard analytics | Split monitoring workspace implemented |
 | Matching engine | Emerging subsystem |
-| Amazon SP-API foundation | Read-only inventory/listing sync working |
+| Amazon SP-API foundation | Read-only inventory/listing/report sync working |
 | Keepa catalog intelligence | Token-aware enrichment working |
 | Informed Repricer intelligence | Read-only report snapshot import working |
 | Unified inventory state / reconciliation | First slice implemented |
@@ -28,6 +28,7 @@ MBOP is the internal operations platform for Midnight Blue Enterprises, LLC.
 | Non-eBay purchase COGS sources | Manual import bridge implemented |
 | Legacy spreadsheet backfill | Recently used / repeatable script available |
 | Order Problems / eBay Returns | Operational first slice / eBay read-only |
+| Amazon Return Recovery | Operational first slice / removals report issue under Amazon support |
 | Sourcing Workspace | Operational first slice / daily availability cleanup |
 | AWS web deployment | Live on ECS/Fargate with Cognito/ALB auth |
 | AWS scheduler migration | Live on ECS/EventBridge with Supabase telemetry |
@@ -67,6 +68,9 @@ Implemented:
 - The web app has been redeployed as `mbop-web-task:17` so all screens include logout, both `/system-health` and the Dashboard System Health tab render AWS scheduler group telemetry, the production EasyPost webhook validates a shared secret from AWS Secrets Manager, mutation routes enforce cloud-mode authorization/CSRF checks, and scheduler detail drawers show useful job metrics.
 - The scheduler image has been rebuilt and pushed so dynamic-date jobs use stable telemetry keys and job output is captured into `scheduler_run_jobs` counters/metadata.
 - AWS production scheduler groups are now explicit in `run_all_syncs.py`: `purchase-ingestion`, `purchase-tracking`, `returns-order-problems`, `purchase-enrichment`, `amazon-sales-recent`, `finance-refresh`, `business-value-finalizer`, `fba-inventory-daily`, `fba-shipments`, `reconciliation`, `repricing-catalog`, `sourcing-catalog`, `keepa-rolling-refresh`, and `fba-pricing`.
+- cloud web refresh actions route through AWS scheduler task launches instead
+  of local laptop jobs; production behavior should be verified through ECS and
+  the live Cognito-protected app
 - Authoritative AWS docs now live under `docs/aws/`.
 - EasyPost production webhook `hook_d9fecfc86d0611f19a5d15e5f9712463` is registered for `https://mbop.midnightblueenterprises.com/api/easypost/webhook`; the ALB has an unauthenticated path rule for that POST-only endpoint.
 - Cognito logout is wired through `/api/logout`; the shared `AppShell` renders a logout button in the upper-right corner of every MBOP screen.
@@ -297,7 +301,7 @@ Known follow-up:
 Status: AWS SCHEDULER LIVE / LOCAL TASKS RETIRED
 
 Implemented:
-- `run_all_syncs.py` runs eBay buyer purchase sync, sourcing purchase matching, EasyPost shipment sync, RevSeller enrichment with optional AI same-system review, guarded missing-title Keepa repair, Amazon FBA inventory, Amazon FBA shipment sync, Amazon listing status, Amazon inventory planning, Amazon Finance, Informed Repricer reports, YNAB Business cash balance, guarded sourcing listing availability cleanup, guarded Keepa enrichment, and the daily business value snapshot
+- `run_all_syncs.py` runs eBay buyer purchase sync, sourcing purchase matching, EasyPost shipment sync, RevSeller enrichment with optional AI same-system review, guarded missing-title Keepa repair, Amazon FBA inventory, Amazon merchant listing import, Amazon FBA shipment sync, Amazon listing status, Amazon inventory planning, Amazon Finance, Informed Repricer reports, YNAB Business cash balance, guarded sourcing listing availability cleanup, guarded Keepa enrichment, and the daily business value snapshot
 - `run_all_syncs.py` writes `running`, `ok`, `failed`, and lock-collision
   `blocked` records to Supabase scheduler telemetry in cloud runs and to
   `logs/sync_health.json` for local/manual context, allowing System Health
@@ -323,6 +327,9 @@ Implemented:
   preserves stored shipping quote data when eBay detail payloads omit
   `shippingOptions`; sourcing display/scoring trusts stored shipping cost before
   labeling a row `No ZIP quote`
+- sourcing seed ASIN generation can use the full Amazon SKU catalog in
+  `amazon_skus`, including inactive merchant listings, so out-of-stock items
+  with known ASIN/MSKU history remain eligible for sourcing consideration
 - MBOP screens show a screen-specific `Last updated` timestamp near refresh
   controls using `/api/screen-data-freshness`
 - Dashboard freshness uses the oldest required cash/value input so stale Amazon
@@ -456,7 +463,7 @@ Recent ASIN validation:
 
 ## Amazon SP-API Foundation
 
-Status: READ-ONLY INVENTORY, LISTING, AND PLANNING SYNC WORKING
+Status: READ-ONLY INVENTORY, LISTING, PLANNING, AND RETURN REPORT SYNC WORKING
 
 Implemented:
 - `integrations/amazon_spapi_client.py`
@@ -464,6 +471,8 @@ Implemented:
 - `integrations/amazon_sync_fba_inventory.py`
 - `integrations/amazon_sync_listing_status.py`
 - `integrations/amazon_sync_inventory_planning.py`
+- `integrations/amazon_sync_merchant_listings.py`
+- `integrations/amazon_sync_return_recovery_reports.py`
 - Login with Amazon refresh-token exchange
 - LWA-only SP-API request support for the post-Oct-2023 auth model
 - optional legacy AWS SigV4 signing only when `AMAZON_SP_API_USE_SIGV4=true`
@@ -471,7 +480,11 @@ Implemented:
 - paginated FBA inventory summary sync
 - FBA inventory pagination delay plus retry/backoff for Amazon 429/5xx responses
 - read-only Listings Items status/issue sync for active Amazon inventory
+- read-only merchant-listing report sync for active and inactive Amazon
+  listings so MBOP has a broader seller SKU/MSKU catalog than current FBA
+  stock alone
 - read-only Reports API sync for `GET_FBA_INVENTORY_PLANNING_DATA`
+- read-only Reports API imports for Amazon customer returns and reimbursements
 - Amazon SKU upsert into `amazon_skus`
 - point-in-time inventory snapshot inserts into `amazon_fba_inventory_snapshots`
 - point-in-time listing snapshot inserts into `amazon_listing_snapshots`
@@ -492,6 +505,12 @@ Schema:
 - `amazon_listing_snapshots`
 - `amazon_report_runs`
 - `amazon_inventory_planning_snapshots`
+- `amazon_return_recovery_cases`
+- `amazon_return_recovery_events`
+- `amazon_fba_customer_return_rows`
+- `amazon_fba_reimbursement_rows`
+- `amazon_fba_removal_order_detail_rows`
+- `amazon_fba_removal_shipment_detail_rows`
 
 Current validation:
 - local syntax checks pass
@@ -501,11 +520,19 @@ Current validation:
 - limited write upserted 50 SKU rows and inserted 50 snapshot rows
 - full sync fetched 6,292 FBA inventory summaries, upserted 6,292 SKU rows, and inserted 6,292 inventory snapshot rows
 - active listing-status sync selected 296 current Amazon SKUs, inserted 296 listing snapshots, updated 296 Amazon SKU rows, and had 0 fetch failures
+- Amazon merchant-listing sync can import active and inactive seller listings
+  into `amazon_skus` for MSKU discovery and ASIN coverage even when an item is
+  currently out of stock
 - latest active listing snapshot set contains 49 rows with Amazon listing issues
 - inventory planning dry run/write validation has parsed the Amazon planning report successfully
 - latest all-sync inventory planning write inserted 295 planning snapshot rows
 - Amazon FBA inventory snapshots now normalize reserved customer order, FC transfer, FC processing, future supply, researching, and unfulfillable damage/defect breakdowns from raw SP-API inventory details
 - a follow-up full FBA inventory sync initially hit Amazon SP-API 429 QuotaExceeded; after adding retry/backoff and page pacing, the sync fetched 6,292 summaries, upserted 6,292 SKUs, and inserted 6,292 fresh inventory snapshots
+- Amazon customer returns and reimbursements imports work for recent backfills
+- Amazon removal order and removal shipment reports are allowed but currently
+  unreliable: multiple one-day windows return `FATAL` with no
+  `processingStatusDetails`, despite Seller Central showing removal orders;
+  one historical narrow removal report succeeded once
 
 Boundary:
 Amazon seller/FBA data must stay in Amazon-specific tables and must not write to `purchases` or `purchase_items`.
@@ -742,9 +769,10 @@ Known follow-up:
   rerun reconciliation and review the smaller remaining set. ASIN `B002BRYXRQ`
   is an example that should have an eBay purchase source unless the purchase is
   older than the 2025-forward operating window.
-- returned-to-seller Amazon removals are not yet modeled. Some FBA units are
-  returned by Amazon as damaged/unsellable, inspected by the operator, and then
-  sent back to Amazon when still new; this needs a dedicated removals workflow.
+- returned-to-seller Amazon customer returns now have an operational first
+  slice in Amazon Return Recovery. Manual removal orders and broader removal
+  shipment/order ingestion remain future work while Amazon support investigates
+  removal report `FATAL` failures.
 - Amazon-side receiving/lost/damaged/customer-return discrepancies are deferred
   to a future Amazon Inventory Discrepancy workflow.
 
@@ -866,6 +894,8 @@ Implemented:
 - purchases cache key was bumped after reporting-exclusion fixes so stale non-resale rows are not reused
 - purchases cache key was bumped again after backend status normalization so stale derived-status filter results are not reused
 - purchases Refresh now clears all purchases query-cache entries before reloading
+- purchase and Order Problems detail drawers include editable operator notes
+  stored on `purchase_items.notes` for unusual item/order context
 
 Current architecture:
 web/app/page.tsx is now the composition layer.
@@ -1003,10 +1033,15 @@ Implemented:
   is easier to orient
 - CSV export uses the currently selected quantities for InventoryLab import
 - CSV export labels the target sell price column as List Price
+- CSV export includes an `MSKU` column immediately after ASIN when a preferred
+  Amazon FBA seller SKU is available from `amazon_skus`
 - shipment input is labeled Amazon Shipment ID and uses an Amazon shipment ID example placeholder
 - detail expansion shows supplier order ID, Amazon title, ASIN, received quantity, quantity to send, and unit cost for underlying purchase items
 - quantity-to-send supports excluding a specific unit from an FBA shipment
 - saving with a shipment ID links included items to fba_shipments/fba_shipment_items and moves included quantities to Listed
+- saving Amazon Return Recovery source rows uses
+  `fba_shipment_source_items` as the durable non-purchase bridge instead of
+  writing to `purchase_items`
 - saved current shipment links are projected as outbound-to-Amazon inventory value
 - partial included quantities split the remaining quantity into a Received split child row
 - same-ASIN Amazon title fallback fills FBA display titles when a Received row has ASIN but blank amazon_title
