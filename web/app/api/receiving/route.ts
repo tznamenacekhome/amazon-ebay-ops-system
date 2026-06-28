@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { spawn } from "child_process";
 import path from "path";
-import { createServerSupabaseClient, isLocalJobExecutionEnabled, requireAdminApiToken } from "../_server";
+import { createServerSupabaseClient, isCloudDeployment, isLocalJobExecutionEnabled, requireAdminApiToken } from "../_server";
+import { runSchedulerGroupTask } from "../_awsScheduler";
 
 const supabase = createServerSupabaseClient();
 const RECEIVING_CONFIRMATION_TOKEN = "operator_receive_v2";
@@ -216,7 +217,7 @@ export async function POST(request: Request) {
       confirmationSource,
       receivedDate,
     });
-    const pricingRefresh = startReceivedPricingRefresh(results);
+    const pricingRefresh = await startReceivedPricingRefresh(results);
 
     return NextResponse.json({ success: true, items: results, pricingRefresh });
   } catch (err) {
@@ -491,16 +492,7 @@ async function recordReceivingOutcome(
   }
 }
 
-function startReceivedPricingRefresh(results: unknown[]) {
-  if (!isLocalJobExecutionEnabled()) {
-    console.info("Skipped receiving pricing refresh because local job execution is disabled in cloud deployment.");
-    return {
-      started: false,
-      status: "local_job_execution_disabled",
-      message: "Local Keepa/Amazon fee refresh is disabled in cloud deployment.",
-    };
-  }
-
+async function startReceivedPricingRefresh(results: unknown[]) {
   const asins = Array.from(
     new Set(
       results
@@ -520,6 +512,43 @@ function startReceivedPricingRefresh(results: unknown[]) {
       started: false,
       status: "no_received_asins",
       message: "No received ASINs required a pricing refresh.",
+    };
+  }
+
+  if (isCloudDeployment()) {
+    try {
+      const task = await runSchedulerGroupTask({
+        group: "fba-pricing",
+        source: "mbop-web-receiving-pricing",
+        job: "receiving-pricing",
+      });
+      console.info("Started receiving pricing refresh in AWS", { asins, taskArn: task.taskArn });
+      return {
+        started: true,
+        status: "started",
+        executionMode: "aws-ecs",
+        taskArn: task.taskArn,
+        asins,
+      };
+    } catch (error) {
+      console.warn("Failed to start AWS receiving pricing refresh", error);
+      return {
+        started: false,
+        status: "failed_to_start",
+        executionMode: "aws-ecs",
+        message: error instanceof Error ? error.message : "Failed to start AWS receiving pricing refresh.",
+        asins,
+      };
+    }
+  }
+
+  if (!isLocalJobExecutionEnabled()) {
+    console.info("Skipped receiving pricing refresh because job execution is disabled.");
+    return {
+      started: false,
+      status: "job_execution_disabled",
+      message: "Keepa/Amazon fee refresh is disabled.",
+      asins,
     };
   }
 

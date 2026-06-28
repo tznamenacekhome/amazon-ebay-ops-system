@@ -1050,6 +1050,8 @@ function SourcingSettingsPanel({ onApplied }: { onApplied: () => Promise<void> }
         const applyPayload = await applyResponse.json().catch(() => ({}));
         if (!applyResponse.ok) {
           setNotice(applyPayload.error ?? "Settings saved, but opportunity refresh failed.");
+        } else if (applyPayload?.executionMode === "aws-ecs" || applyPayload?.taskArn) {
+          setNotice("Settings saved. AWS scoring refresh started; check System Health for progress.");
         } else {
           await onApplied();
           setNotice("Settings applied and opportunity list refreshed.");

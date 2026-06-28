@@ -52,6 +52,15 @@ export async function runOnDemandRefresh(
     return;
   }
 
+  if (payload?.executionMode === "aws-ecs" || payload?.taskArn) {
+    setNotice({
+      tone: "info",
+      text: payload?.message ||
+        "Started the AWS scheduler task. Check System Health for progress; data will update after it finishes.",
+    });
+    return;
+  }
+
   setNotice({
     tone: "info",
     text: payload?.message

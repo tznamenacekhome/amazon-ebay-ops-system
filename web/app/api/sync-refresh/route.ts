@@ -2,7 +2,8 @@ import { promises as fs } from "fs";
 import path from "path";
 import { spawn } from "child_process";
 import { NextRequest, NextResponse } from "next/server";
-import { isLocalJobExecutionEnabled, localJobDisabledResponse, requireAdminApiToken } from "../_server";
+import { isCloudDeployment, isLocalJobExecutionEnabled, requireAdminApiToken } from "../_server";
+import { runSchedulerGroupTask } from "../_awsScheduler";
 
 export const runtime = "nodejs";
 
@@ -33,10 +34,6 @@ export async function POST(request: NextRequest) {
   const adminError = requireAdminApiToken(request);
   if (adminError) return adminError;
 
-  if (!isLocalJobExecutionEnabled()) {
-    return localJobDisabledResponse("on-demand sync refresh");
-  }
-
   const body = (await request.json().catch(() => ({}))) as { target?: string };
   const target = body.target || "";
   const group = TARGET_GROUPS[target];
@@ -52,6 +49,48 @@ export async function POST(request: NextRequest) {
     });
   }
 
+  const runId = `${target}-${new Date().toISOString().replace(/[:.]/g, "-")}`;
+
+  if (isCloudDeployment()) {
+    try {
+      const task = await runSchedulerGroupTask({
+        group,
+        source: `mbop-web-on-demand-${target}`,
+        job: target,
+        runId,
+      });
+      return NextResponse.json({
+        status: "started",
+        target,
+        group,
+        runId,
+        executionMode: "aws-ecs",
+        taskArn: task.taskArn,
+        message: `Started ${target} refresh in AWS. Check System Health for progress; page data will update after the scheduler task finishes.`,
+      });
+    } catch (error) {
+      return NextResponse.json(
+        {
+          error: error instanceof Error ? error.message : `Failed to start ${target} refresh in AWS.`,
+          target,
+          group,
+          executionMode: "aws-ecs",
+        },
+        { status: 500 },
+      );
+    }
+  }
+
+  if (!isLocalJobExecutionEnabled()) {
+    return NextResponse.json(
+      {
+        error: "Local job execution is disabled and AWS scheduler execution is not active.",
+        task: "on-demand sync refresh",
+      },
+      { status: 501 },
+    );
+  }
+
   const activeLock = await readActiveLock();
   if (activeLock) {
     return NextResponse.json(
@@ -65,7 +104,6 @@ export async function POST(request: NextRequest) {
   }
 
   await fs.mkdir(path.dirname(LOG_PATH), { recursive: true });
-  const runId = `${target}-${new Date().toISOString().replace(/[:.]/g, "-")}`;
   const command = [
     ".venv\\Scripts\\python.exe",
     "run_all_syncs.py",
