@@ -18,7 +18,8 @@ COPY run_all_syncs.py ./
 COPY integrations ./integrations
 COPY docker/scheduler-entrypoint.sh /usr/local/bin/mbop-scheduler-entrypoint
 
-RUN chmod +x /usr/local/bin/mbop-scheduler-entrypoint \
+RUN sed -i 's/\r$//' /usr/local/bin/mbop-scheduler-entrypoint \
+  && chmod +x /usr/local/bin/mbop-scheduler-entrypoint \
   && useradd --create-home --shell /usr/sbin/nologin mbop \
   && mkdir -p /app/logs /app/data /app/credentials \
   && chown -R mbop:mbop /app
