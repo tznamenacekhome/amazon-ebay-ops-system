@@ -31,6 +31,7 @@ type FbaDetail = {
 
 type FbaRow = {
   asin: string;
+  msku: string | null;
   title: string | null;
   system: string | null;
   cost_per_unit: number | null;
@@ -351,6 +352,7 @@ export default function FbaPage() {
     const csvRows = [
       [
         "ASIN",
+        "MSKU",
         "Title",
         "System",
         "Cost per unit",
@@ -361,6 +363,7 @@ export default function FbaPage() {
       ],
       ...rows.map((row) => [
         row.asin,
+        row.msku || "",
         row.title || "Missing Amazon title",
         row.system || "",
         moneyForCsv(row.cost_per_unit),

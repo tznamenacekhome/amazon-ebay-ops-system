@@ -198,16 +198,22 @@ export async function GET(request: NextRequest) {
       ];
     });
 
-    const titleFallbacks = await fetchAmazonTitleFallbacks(
-      Array.from(new Set(candidates.map((candidate) => candidate.asin)))
-    );
     const asins = Array.from(new Set(candidates.map((candidate) => candidate.asin)));
+    const titleFallbacks = await fetchAmazonTitleFallbacks(asins);
+    const preferredMskus = await fetchPreferredFbaMskus(asins);
     const keepaPrices = await fetchKeepaPrices(asins);
     const lastSoldPrices = await fetchLastSoldPrices(asins);
     const feeEstimates = await fetchFeeEstimates(candidates);
 
     return NextResponse.json(
-      groupCandidates(candidates, titleFallbacks, keepaPrices, lastSoldPrices, feeEstimates)
+      groupCandidates(
+        candidates,
+        titleFallbacks,
+        preferredMskus,
+        keepaPrices,
+        lastSoldPrices,
+        feeEstimates
+      )
     );
   } catch (error) {
     return NextResponse.json(
@@ -720,6 +726,42 @@ async function fetchAmazonTitleFallbacks(asins: string[]) {
   return titleByAsin;
 }
 
+async function fetchPreferredFbaMskus(asins: string[]) {
+  const mskuByAsin = new Map<string, string>();
+  const chunkSize = 500;
+
+  for (let index = 0; index < asins.length; index += chunkSize) {
+    const chunk = asins.slice(index, index + chunkSize);
+    const { data, error } = await supabase
+      .from("amazon_skus")
+      .select(
+        "asin,seller_sku,last_listing_sync_at,last_pricing_sync_at,updated_at,created_at"
+      )
+      .in("asin", chunk)
+      .eq("fulfillment_channel", "Amazon")
+      .not("seller_sku", "is", null)
+      .order("last_listing_sync_at", { ascending: false, nullsFirst: false })
+      .order("last_pricing_sync_at", { ascending: false, nullsFirst: false })
+      .order("updated_at", { ascending: false, nullsFirst: false })
+      .order("created_at", { ascending: false, nullsFirst: false });
+
+    if (error) {
+      console.warn("FBA preferred MSKU lookup failed", error.message);
+      continue;
+    }
+
+    for (const item of data ?? []) {
+      const asin = normalizeAsin(item.asin);
+      const sellerSku = cleanString(item.seller_sku);
+      if (asin && sellerSku && !mskuByAsin.has(asin)) {
+        mskuByAsin.set(asin, sellerSku);
+      }
+    }
+  }
+
+  return mskuByAsin;
+}
+
 function groupCandidates(
   candidates: Array<{
     item_id: string;
@@ -735,6 +777,7 @@ function groupCandidates(
     supplier: string | null;
   }>,
   titleFallbacks: Map<string, string>,
+  preferredMskus: Map<string, string>,
   keepaPrices: Map<string, {
     buy_box_price_current: number | null;
     buy_box_price_avg90: number | null;
@@ -757,6 +800,7 @@ function groupCandidates(
 ) {
   const groups = new Map<string, {
     asin: string;
+    msku: string | null;
     title: string | null;
     system: string | null;
     quantity: number;
@@ -788,6 +832,7 @@ function groupCandidates(
   for (const candidate of candidates) {
     const group = groups.get(candidate.asin) ?? {
       asin: candidate.asin,
+      msku: preferredMskus.get(candidate.asin) ?? null,
       title: candidate.amazon_title || titleFallbacks.get(candidate.asin) || null,
       system: candidate.system,
       quantity: 0,
