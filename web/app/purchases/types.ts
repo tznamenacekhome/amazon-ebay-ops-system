@@ -26,6 +26,7 @@ export type PurchaseRow = {
   delivered_date?: string | null;
   received_date?: string | null;
   current_status?: string | null;
+  notes?: string | null;
   order_status?: string | null;
   seller_shipped?: boolean | null;
   ebay_cancelled?: boolean | null;

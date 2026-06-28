@@ -85,6 +85,7 @@ export default function PurchasesPage() {
   const [drawerEbayTitle, setDrawerEbayTitle] = useState("");
   const [drawerUnitCost, setDrawerUnitCost] = useState("");
   const [drawerSystem, setDrawerSystem] = useState("");
+  const [drawerOperatorNotes, setDrawerOperatorNotes] = useState("");
   const [priceDrafts, setPriceDrafts] = useState<Record<string, string>>({});
   const [refreshing, setRefreshing] = useState(false);
   const [refreshNotice, setRefreshNotice] = useState<RefreshNotice | null>(null);
@@ -190,6 +191,7 @@ export default function PurchasesPage() {
       setDrawerEbayTitle(newRow.ebay_title || newRow.title || "");
       setDrawerUnitCost("");
       setDrawerSystem(newRow.system || "");
+      setDrawerOperatorNotes(newRow.notes || "");
     }
   }
 
@@ -202,6 +204,20 @@ export default function PurchasesPage() {
 
     if (updatedRow) {
       setSelectedRow(updatedRow);
+      setDrawerOperatorNotes(updatedRow.notes || drawerOperatorNotes);
+    }
+  }
+
+  async function saveOperatorNotes() {
+    if (!selectedRow) return;
+
+    const updatedRow = await patchPurchase(selectedRow, {
+      notes: drawerOperatorNotes.trim() || null,
+    });
+
+    if (updatedRow) {
+      setSelectedRow(updatedRow);
+      setDrawerOperatorNotes(updatedRow.notes || "");
     }
   }
 
@@ -322,6 +338,7 @@ export default function PurchasesPage() {
     setDrawerEbayTitle(row.ebay_title || row.title || "");
     setDrawerUnitCost(formatPriceDraft(row.unit_cost));
     setDrawerSystem(row.system || "");
+    setDrawerOperatorNotes(row.notes || "");
   }
 
   return (
@@ -453,6 +470,7 @@ export default function PurchasesPage() {
           drawerEbayTitle={drawerEbayTitle}
           drawerUnitCost={drawerUnitCost}
           drawerSystem={drawerSystem}
+          drawerOperatorNotes={drawerOperatorNotes}
           savingKey={savingKey}
           onAsinChange={setDrawerAsin}
           onAmazonTitleChange={setDrawerAmazonTitle}
@@ -460,6 +478,8 @@ export default function PurchasesPage() {
           onEbayTitleChange={setDrawerEbayTitle}
           onUnitCostChange={setDrawerUnitCost}
           onSystemChange={setDrawerSystem}
+          onOperatorNotesChange={setDrawerOperatorNotes}
+          onSaveOperatorNotes={saveOperatorNotes}
           onAddSplitItem={addSplitItem}
           onMarkReturnPending={markSelectedReturnPending}
           onProblemAction={runSelectedProblemAction}

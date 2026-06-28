@@ -700,11 +700,16 @@ async function fetchDashboardRows(itemIds: string[]) {
 }
 
 async function fetchItemMeta(itemIds: string[]) {
-  const rows: Array<{ item_id: string; amazon_title: string | null; exclude_from_purchase_reporting: boolean | null }> = [];
+  const rows: Array<{
+    item_id: string;
+    amazon_title: string | null;
+    notes: string | null;
+    exclude_from_purchase_reporting: boolean | null;
+  }> = [];
   for (const chunk of chunks(itemIds, 500)) {
     const { data, error } = await supabase
       .from("purchase_items")
-      .select("item_id,amazon_title,exclude_from_purchase_reporting")
+      .select("item_id,amazon_title,notes,exclude_from_purchase_reporting")
       .in("item_id", chunk);
     if (error) throw new Error(`purchase_items: ${error.message}`);
     rows.push(...((data ?? []) as unknown as typeof rows));
@@ -756,7 +761,12 @@ async function fetchCarrierTrackingRows(trackingNumbers: string[]) {
 function mergeProblemCase(
   problemCase: ProblemCase,
   dashboardByItemId: Map<string, DashboardRow>,
-  itemMetaById: Map<string, { item_id: string; amazon_title: string | null; exclude_from_purchase_reporting: boolean | null }>,
+  itemMetaById: Map<string, {
+    item_id: string;
+    amazon_title: string | null;
+    notes: string | null;
+    exclude_from_purchase_reporting: boolean | null;
+  }>,
   eventsByCaseId: Map<string, ProblemEvent[]>,
   carrierByTrackingNumber: Map<string, CarrierTracking>,
 ) {
@@ -772,6 +782,7 @@ function mergeProblemCase(
     ...row,
     ebay_title: row.title,
     amazon_title: meta?.amazon_title ?? null,
+    notes: meta?.notes ?? null,
     exclude_from_purchase_reporting: false,
     problem_case_id: problemCase.problem_case_id,
     problem_type: problemCase.problem_type,

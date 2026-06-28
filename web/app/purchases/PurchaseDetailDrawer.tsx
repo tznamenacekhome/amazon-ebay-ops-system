@@ -21,6 +21,7 @@ type PurchaseDetailDrawerProps = {
   drawerEbayTitle: string;
   drawerUnitCost: string;
   drawerSystem: string;
+  drawerOperatorNotes: string;
   savingKey: string | null;
   onAsinChange: (value: string) => void;
   onAmazonTitleChange: (value: string) => void;
@@ -28,6 +29,8 @@ type PurchaseDetailDrawerProps = {
   onEbayTitleChange: (value: string) => void;
   onUnitCostChange: (value: string) => void;
   onSystemChange: (value: string) => void;
+  onOperatorNotesChange: (value: string) => void;
+  onSaveOperatorNotes: () => void;
   onAddSplitItem: () => void;
   onMarkReturnPending: () => void;
   onProblemAction?: (action: string, payload?: { notes?: string; amount?: number | null; tracking_number?: string | null; problem_type?: string | null }) => void;
@@ -43,6 +46,7 @@ export function PurchaseDetailDrawer({
   drawerEbayTitle,
   drawerUnitCost,
   drawerSystem,
+  drawerOperatorNotes,
   savingKey,
   onAsinChange,
   onAmazonTitleChange,
@@ -50,6 +54,8 @@ export function PurchaseDetailDrawer({
   onEbayTitleChange,
   onUnitCostChange,
   onSystemChange,
+  onOperatorNotesChange,
+  onSaveOperatorNotes,
   onAddSplitItem,
   onMarkReturnPending,
   onProblemAction,
@@ -122,6 +128,27 @@ export function PurchaseDetailDrawer({
                 </div>
               </>
             )}
+          </section>
+
+          <section className="rounded-xl border border-slate-200 p-4">
+            <div className="mb-2 text-xs uppercase tracking-wide text-slate-500">
+              Operator Notes
+            </div>
+            <textarea
+              value={drawerOperatorNotes}
+              onChange={(event) => onOperatorNotesChange(event.target.value)}
+              className="min-h-24 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900"
+              placeholder="Add a reminder or context for this item"
+            />
+            <button
+              type="button"
+              onClick={onSaveOperatorNotes}
+              disabled={isSaving}
+              className="mt-2 inline-flex items-center justify-center gap-2 rounded-lg bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-60"
+            >
+              <Save className="h-4 w-4" />
+              {isSaving ? "Saving" : "Save Note"}
+            </button>
           </section>
 
           {hasProblemEpisode && (

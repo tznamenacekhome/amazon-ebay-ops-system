@@ -137,6 +137,9 @@ export async function GET(request: Request) {
   const amazonTitleByItemId = new Map(
     itemMeta.map((item) => [item.item_id, item.amazon_title])
   );
+  const notesByItemId = new Map(
+    itemMeta.map((item) => [item.item_id, item.notes])
+  );
 
   const [purchases, problemCases] = await Promise.all([
     fetchPurchaseMeta(purchaseIds),
@@ -187,6 +190,7 @@ export async function GET(request: Request) {
       normalized_status: replacementCarrierTracking?.normalized_status ?? null,
       shipment_status: replacementCarrierTracking?.shipment_status ?? null,
       amazon_title: amazonTitleByItemId.get(row.item_id) ?? null,
+      notes: notesByItemId.get(row.item_id) ?? null,
       exclude_from_purchase_reporting: false,
       order_status: purchaseMetaById.get(row.purchase_id)?.orderStatus ?? null,
       seller_shipped: purchaseMetaById.get(row.purchase_id)?.sellerShipped ?? false,
@@ -565,6 +569,7 @@ async function fetchItemMeta(itemIds: string[]) {
   const rows: {
     item_id: string;
     amazon_title: string | null;
+    notes: string | null;
     exclude_from_purchase_reporting: boolean | null;
     exclusion_reason: string | null;
   }[] = [];
@@ -574,7 +579,7 @@ async function fetchItemMeta(itemIds: string[]) {
     const chunk = itemIds.slice(index, index + chunkSize);
     const { data, error } = await supabase
       .from("purchase_items")
-      .select("item_id,amazon_title,exclude_from_purchase_reporting,exclusion_reason")
+      .select("item_id,amazon_title,notes,exclude_from_purchase_reporting,exclusion_reason")
       .in("item_id", chunk);
 
     if (error) {
@@ -586,6 +591,7 @@ async function fetchItemMeta(itemIds: string[]) {
       ...((data ?? []) as {
         item_id: string;
         amazon_title: string | null;
+        notes: string | null;
         exclude_from_purchase_reporting: boolean | null;
         exclusion_reason: string | null;
       }[])
@@ -832,6 +838,7 @@ export async function PATCH(request: Request) {
     title?: string | null;
     unit_cost?: number | null;
     system?: string | null;
+    notes?: string | null;
     current_status?: string;
     manual_title_override?: boolean;
     manual_unit_cost_override?: boolean;
@@ -886,6 +893,11 @@ export async function PATCH(request: Request) {
   if ("system" in body) {
     const system = body.system === null ? "" : String(body.system ?? "").trim();
     updates.system = system || null;
+  }
+
+  if ("notes" in body) {
+    const notes = body.notes === null ? "" : String(body.notes ?? "").trim();
+    updates.notes = notes || null;
   }
 
   if ("current_status" in body) {
