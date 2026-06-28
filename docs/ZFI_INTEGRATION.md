@@ -80,6 +80,59 @@ Custom period:
 The script is intentionally not scheduled yet. Run it manually until the
 payload is reviewed in ZFI.
 
+## One-Time Business Value History Backfill
+
+ZFI owns ongoing business value history after the one-time MBOP historical
+backfill is verified. MBOP currently has historical rows in
+`public.business_value_snapshots`; these rows are not written by
+`integrations/push_zfi_business_summary.py`.
+
+The one-time dry-run-first migration helper is:
+
+```powershell
+.\.venv\Scripts\python.exe integrations\backfill_zfi_business_value_history.py
+```
+
+Dry run is the default. It reads MBOP `business_value_snapshots`, maps rows to
+ZFI `public.business_value_snapshots`, prints a preview, and performs no ZFI
+writes.
+
+Live backfill:
+
+```powershell
+.\.venv\Scripts\python.exe integrations\backfill_zfi_business_value_history.py --apply
+```
+
+This backfill:
+
+- is one-time migration tooling, not ongoing sync
+- is not scheduled
+- does not disable MBOP YNAB
+- does not remove or mutate MBOP `business_value_snapshots`
+- sets `source_system = 'mbop'`
+- sets `source_type = 'migrated_mbop_history'`
+- preserves original MBOP `snapshot_date`
+- preserves component values such as Amazon inventory, pre-Amazon inventory,
+  Amazon cash, Amazon cash in transit, YNAB cash on hand, and total business
+  value
+- maps MBOP inventory components into ZFI `inventory_value`
+- maps MBOP YNAB cash-on-hand into ZFI `business_cash`
+- maps MBOP Amazon cash in transit into ZFI `amazon_funds_in_transit`
+- preserves MBOP component values and `raw_rollup_json` inside ZFI
+  `source_payload` and `raw_component_context`
+- uses a deterministic UUID primary key derived from the MBOP snapshot id/date
+  to avoid duplicate migrated rows
+
+ZFI migration `017` must grant service-role access before the script can read
+counts or write rows through PostgREST:
+
+```sql
+grant select, insert, update on public.business_value_snapshots to service_role;
+```
+
+If that grant is missing, dry run still previews MBOP mappings, but the ZFI row
+count prints as unavailable. Live `--apply` will fail safely.
+
 ## Environment Variables
 
 MBOP source database:
@@ -95,12 +148,14 @@ ZFI target database:
 ZFI_SUPABASE_URL=<zfi supabase url>
 ZFI_SUPABASE_SERVICE_ROLE_KEY=<zfi service role key>
 ZFI_BUSINESS_SUMMARY_TABLE=mbop_business_summaries
+ZFI_BUSINESS_VALUE_HISTORY_TABLE=business_value_snapshots
 ZFI_PUSH_RETRY_ATTEMPTS=3
 ZFI_PUSH_RETRY_DELAY_SECONDS=2
 ZFI_PUSH_GENERATED_BY=manual
 ```
 
-`ZFI_BUSINESS_SUMMARY_TABLE`, `ZFI_PUSH_RETRY_ATTEMPTS`,
+`ZFI_BUSINESS_SUMMARY_TABLE`, `ZFI_BUSINESS_VALUE_HISTORY_TABLE`,
+`ZFI_PUSH_RETRY_ATTEMPTS`,
 `ZFI_PUSH_RETRY_DELAY_SECONDS`, and `ZFI_PUSH_GENERATED_BY` are optional.
 
 ## ZFI Supabase Table

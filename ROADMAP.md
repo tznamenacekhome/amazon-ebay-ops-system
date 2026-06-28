@@ -171,6 +171,12 @@ Goal:
 Move household/personal-finance reporting to ZFI while keeping MBOP operational
 business metrics.
 
+Architecture docs:
+See `docs/architecture/README.md`,
+`docs/architecture/SYSTEM_BOUNDARIES.md`,
+`docs/architecture/DATA_FLOW.md`, and
+`docs/architecture/INTEGRATION_PRINCIPLES.md`.
+
 Foundation:
 - `ynab_business_transactions` stores YNAB transactions categorized as Business.
 - The initial backfill starts at 2026-01-01.
@@ -191,6 +197,20 @@ Next steps:
   unmatched Amazon-looking YNAB deposits are easy to inspect.
 - let ZFI own YNAB, tax/reporting categories, Schedule C support, owner
   draws/contributions, and household/business planning views.
+
+### Operational Drilldown From ZFI
+
+Future enhancement:
+ZFI and Ask Zoltar may request scoped item, order, return, inventory, COGS, FBA,
+shipping-label, or marketplace-fee details from MBOP when a user needs to
+explain a financial result.
+
+Boundary:
+- MBOP remains the operational source of truth.
+- ZFI remains the financial data warehouse/intelligence layer.
+- Drilldown is on-demand and scoped to the user's question.
+- ZFI should not duplicate full MBOP operational tables by default.
+- MBOP does not receive ZFI personal finance data.
 
 ---
 
