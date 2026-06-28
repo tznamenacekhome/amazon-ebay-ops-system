@@ -22,7 +22,7 @@ import logging
 import os
 import time
 from dataclasses import dataclass
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 from io import StringIO
 from typing import Any, Callable
 
@@ -100,25 +100,34 @@ def main() -> int:
         format="%(asctime)s %(levelname)s %(name)s - %(message)s",
     )
     logging.getLogger("httpx").setLevel(logging.WARNING)
+    logging.getLogger("amazon_spapi").setLevel(logging.WARNING)
     load_dotenv()
 
     try:
         selected_report_types = select_report_types(args)
+        data_start_time, data_end_time = report_window(args)
         client = AmazonSPAPIClient.from_env()
         supabase = get_supabase_client()
 
         exit_code = 0
         for report_type in selected_report_types:
-            summary = sync_report_type(
-                client=client,
-                supabase=supabase,
-                spec=REPORT_SPECS[report_type],
-                report_id=args.report_id,
-                create_only=args.create_only,
-                dry_run=args.dry_run,
-                poll_seconds=args.poll_seconds,
-                timeout_seconds=args.timeout_seconds,
-            )
+            spec = REPORT_SPECS[report_type]
+            try:
+                summary = sync_report_type(
+                    client=client,
+                    supabase=supabase,
+                    spec=spec,
+                    report_id=args.report_id,
+                    create_only=args.create_only,
+                    dry_run=args.dry_run,
+                    data_start_time=data_start_time,
+                    data_end_time=data_end_time,
+                    poll_seconds=args.poll_seconds,
+                    timeout_seconds=args.timeout_seconds,
+                )
+            except AmazonSPAPIError as error:
+                LOGGER.error("%s failed safely: %s", report_type, error)
+                summary = error_summary(spec, str(error), report_id=args.report_id)
             print_summary(summary)
             if summary["errors"] > 0:
                 exit_code = 1
@@ -161,6 +170,22 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Download and parse report rows but do not write row tables.",
     )
+    parser.add_argument(
+        "--start-date",
+        default=None,
+        help="Report data start date/time. Accepts YYYY-MM-DD or an ISO timestamp.",
+    )
+    parser.add_argument(
+        "--end-date",
+        default=None,
+        help="Report data end date/time. Accepts YYYY-MM-DD or an ISO timestamp. Defaults to now.",
+    )
+    parser.add_argument(
+        "--lookback-days",
+        type=int,
+        default=30,
+        help="Default report window when --start-date is omitted. Default: 30.",
+    )
     parser.add_argument("--poll-seconds", type=int, default=30)
     parser.add_argument("--timeout-seconds", type=int, default=900)
     return parser.parse_args()
@@ -176,6 +201,43 @@ def select_report_types(args: argparse.Namespace) -> list[str]:
     raise AmazonSPAPIError("Choose --report-type <type> or --all")
 
 
+def report_window(args: argparse.Namespace) -> tuple[str, str]:
+    if args.report_id:
+        return "", ""
+
+    end_time = parse_report_time(args.end_date) if args.end_date else datetime.now(timezone.utc)
+    if args.start_date:
+        start_time = parse_report_time(args.start_date)
+    else:
+        start_time = end_time - timedelta(days=max(args.lookback_days, 1))
+
+    if start_time >= end_time:
+        raise AmazonSPAPIError("Report --start-date must be before --end-date")
+
+    return format_report_time(start_time), format_report_time(end_time)
+
+
+def parse_report_time(value: str) -> datetime:
+    text = value.strip()
+    if len(text) == 10:
+        return datetime.strptime(text, "%Y-%m-%d").replace(tzinfo=timezone.utc)
+    if text.endswith("Z"):
+        text = f"{text[:-1]}+00:00"
+    parsed = datetime.fromisoformat(text)
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=timezone.utc)
+    return parsed.astimezone(timezone.utc)
+
+
+def format_report_time(value: datetime) -> str:
+    return (
+        value.astimezone(timezone.utc)
+        .replace(microsecond=0)
+        .isoformat()
+        .replace("+00:00", "Z")
+    )
+
+
 def sync_report_type(
     *,
     client: AmazonSPAPIClient,
@@ -184,6 +246,8 @@ def sync_report_type(
     report_id: str | None,
     create_only: bool,
     dry_run: bool,
+    data_start_time: str,
+    data_end_time: str,
     poll_seconds: int,
     timeout_seconds: int,
 ) -> dict[str, Any]:
@@ -196,7 +260,11 @@ def sync_report_type(
     )
 
     if not report_id:
-        response = client.create_report(spec.report_type)
+        response = client.create_report(
+            spec.report_type,
+            data_start_time=data_start_time,
+            data_end_time=data_end_time,
+        )
         report_id = response.get("reportId")
         if not report_id:
             raise AmazonSPAPIError(f"Create report response missing reportId: {response}")
@@ -206,6 +274,8 @@ def sync_report_type(
             {
                 "amazon_report_id": report_id,
                 "processing_status": "IN_QUEUE",
+                "data_start_time": data_start_time,
+                "data_end_time": data_end_time,
                 "raw_report_json": response,
                 "updated_at": utc_now_iso(),
             },
@@ -241,11 +311,19 @@ def sync_report_type(
     )
 
     if status != "DONE":
-        raise AmazonSPAPIError(f"Amazon report {report_id} did not complete successfully: {status}")
+        return error_summary(
+            spec,
+            f"Amazon report {report_id} did not complete successfully: {status}",
+            report_id=report_id,
+        )
 
     document_id = report.get("reportDocumentId")
     if not document_id:
-        raise AmazonSPAPIError(f"Completed report missing reportDocumentId: {report}")
+        return error_summary(
+            spec,
+            f"Completed report {report_id} missing reportDocumentId",
+            report_id=report_id,
+        )
 
     document = client.get_report_document(document_id)
     text = download_report_document(document)
@@ -372,7 +450,16 @@ def download_report_document(document: dict[str, Any]) -> str:
     content = response.content
     if document.get("compressionAlgorithm") == "GZIP":
         content = gzip.decompress(content)
-    return content.decode("utf-8-sig")
+    return decode_report_bytes(content)
+
+
+def decode_report_bytes(content: bytes) -> str:
+    for encoding in ("utf-8-sig", "cp1252", "latin-1"):
+        try:
+            return content.decode(encoding)
+        except UnicodeDecodeError:
+            LOGGER.debug("Report document did not decode as %s", encoding)
+    return content.decode("utf-8-sig", errors="replace")
 
 
 def parse_flat_file_report(text: str) -> list[dict[str, str]]:
@@ -483,10 +570,14 @@ def build_reimbursement_row(
         "reimbursed-amount",
         "currency-amount",
     )
+    amount_per_unit = first_money(row, "amount-per-unit", "per-unit-amount")
     quantity = to_int_or_none(
         first_value(
             row,
+            "quantity-reimbursed-total",
             "quantity-reimbursed",
+            "quantity-reimbursed-cash",
+            "quantity-reimbursed-inventory",
             "quantity",
             "qty",
             "reimbursed-quantity",
@@ -517,7 +608,7 @@ def build_reimbursement_row(
         "title": first_value(row, "title", "product-name", "product-name/title"),
         "quantity_reimbursed": quantity,
         "amount_total": amount_total,
-        "amount_per_unit": per_unit_amount(amount_total, quantity),
+        "amount_per_unit": amount_per_unit or per_unit_amount(amount_total, quantity),
         "currency": first_value(row, "currency", "currency-unit", "currency-code") or infer_currency(row),
         "raw_row_json": row,
         "updated_at": utc_now_iso(),
@@ -746,6 +837,27 @@ def empty_summary(
     }
 
 
+def error_summary(
+    spec: ReportSpec,
+    error_message: str,
+    *,
+    report_id: str | None,
+) -> dict[str, Any]:
+    return {
+        "report_type": spec.report_type,
+        "report_id": report_id,
+        "table_name": spec.table_name,
+        "rows_read": 0,
+        "rows_prepared": 0,
+        "rows_inserted_or_updated": 0,
+        "rows_skipped": 0,
+        "errors": 1,
+        "dry_run": False,
+        "created_only": False,
+        "error_message": error_message,
+    }
+
+
 def print_summary(summary: dict[str, Any]) -> None:
     print("Amazon return recovery report")
     print("-----------------------------")
@@ -757,6 +869,8 @@ def print_summary(summary: dict[str, Any]) -> None:
     print(f"Rows inserted/updated: {summary['rows_inserted_or_updated']}")
     print(f"Rows skipped: {summary['rows_skipped']}")
     print(f"Errors: {summary['errors']}")
+    if summary.get("error_message"):
+        print(f"Error: {summary['error_message']}")
     if summary.get("dry_run"):
         print("Mode: dry run; no row-table writes")
     if summary.get("created_only"):
