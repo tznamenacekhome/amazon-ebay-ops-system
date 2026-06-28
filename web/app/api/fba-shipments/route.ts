@@ -169,6 +169,49 @@ type ShipmentItemRow = {
   amazon_available_cost: number | null;
 };
 
+type ShipmentSourceItemRow = {
+  fba_shipment_source_item_id: string;
+  fba_shipment_id: string;
+  source_type: "amazon_return_recovery";
+  source_row_id: string;
+  amazon_return_recovery_case_id: string | null;
+  quantity: number | null;
+  asin: string | null;
+  amazon_title: string | null;
+  seller_sku: string | null;
+  fnsku: string | null;
+  observed_condition: string | null;
+  unit_cost: number | null;
+  target_price: number | null;
+  expected_quantity: number | null;
+  received_quantity: number | null;
+  available_quantity: number | null;
+  reserved_quantity: number | null;
+  unfulfillable_quantity: number | null;
+  missing_quantity: number | null;
+  outbound_remaining_quantity: number | null;
+  cost_sent: number | null;
+  outbound_remaining_cost: number | null;
+  amazon_received_cost: number | null;
+  amazon_available_cost: number | null;
+};
+
+type ShipmentSummaryItem = {
+  quantity: number | string | null;
+  unit_cost: number | string | null;
+  expected_quantity?: number | string | null;
+  received_quantity?: number | string | null;
+  available_quantity?: number | string | null;
+  reserved_quantity?: number | string | null;
+  unfulfillable_quantity?: number | string | null;
+  missing_quantity?: number | string | null;
+  outbound_remaining_quantity?: number | string | null;
+  cost_sent?: number | string | null;
+  outbound_remaining_cost?: number | string | null;
+  amazon_received_cost?: number | string | null;
+  amazon_available_cost?: number | string | null;
+};
+
 type ShipmentDetailApiRow = {
   id: string;
   item_id: string | null;
@@ -191,7 +234,7 @@ type ShipmentDetailApiRow = {
   outbound_remaining_cost: number | null;
   amazon_received_cost: number | null;
   amazon_available_cost: number | null;
-  source: "mbop" | "amazon_v2024_box";
+  source: "mbop" | "amazon_return_recovery" | "amazon_v2024_box";
 };
 
 export async function GET(request: NextRequest) {
@@ -319,11 +362,30 @@ async function getShipments() {
     const shipments = (data ?? []) as ShipmentRow[];
     const shipmentIds = shipments.map((row) => row.fba_shipment_id).filter(Boolean);
     const items = await fetchShipmentItems(shipmentIds);
+    const sourceItems = await fetchShipmentSourceItems(shipmentIds);
+    const routedReturnItems = await fetchRoutedReturnRecoverySourceItems(shipmentIds);
+    const sourceItemKeys = new Set(
+      sourceItems.map(
+        (item) => `${item.fba_shipment_id}|${item.source_type}|${item.source_row_id}`
+      )
+    );
+    const allSourceItems = [
+      ...sourceItems,
+      ...routedReturnItems.filter(
+        (item) => !sourceItemKeys.has(`${item.fba_shipment_id}|${item.source_type}|${item.source_row_id}`)
+      ),
+    ];
     const itemsByShipment = new Map<string, ShipmentItemRow[]>();
     for (const item of items) {
       const rows = itemsByShipment.get(item.fba_shipment_id) ?? [];
       rows.push(item);
       itemsByShipment.set(item.fba_shipment_id, rows);
+    }
+    const sourceItemsByShipment = new Map<string, ShipmentSourceItemRow[]>();
+    for (const item of allSourceItems) {
+      const rows = sourceItemsByShipment.get(item.fba_shipment_id) ?? [];
+      rows.push(item);
+      sourceItemsByShipment.set(item.fba_shipment_id, rows);
     }
     const syntheticDetailRows = shipments.flatMap((shipment) =>
       buildV2024BoxDetails(shipment)
@@ -340,11 +402,13 @@ async function getShipments() {
 
     const rows = shipments.map((shipment) => {
       const detailRows = itemsByShipment.get(shipment.fba_shipment_id) ?? [];
+      const sourceDetailRows = sourceItemsByShipment.get(shipment.fba_shipment_id) ?? [];
+      const hasStoredDetailRows = detailRows.length > 0 || sourceDetailRows.length > 0;
       const hasTrackedItemRows = detailRows.length > 0;
-      const computed = summarizeShipmentFromItems(detailRows);
-      const details: ShipmentDetailApiRow[] = hasTrackedItemRows
-        ? detailRows
-            .map((item) => ({
+      const computed = summarizeShipmentFromItems([...detailRows, ...sourceDetailRows]);
+      const details: ShipmentDetailApiRow[] = hasStoredDetailRows
+        ? [
+            ...detailRows.map((item) => ({
               id: item.fba_shipment_item_id,
               item_id: item.item_id,
               asin: item.asin,
@@ -367,8 +431,32 @@ async function getShipments() {
               amazon_received_cost: toNumber(item.amazon_received_cost),
               amazon_available_cost: toNumber(item.amazon_available_cost),
               source: "mbop" as const,
-            }))
-            .sort((left, right) => compareStrings(left.asin, right.asin))
+            })),
+            ...sourceDetailRows.map((item) => ({
+              id: item.fba_shipment_source_item_id,
+              item_id: `amazon-return:${item.amazon_return_recovery_case_id ?? item.source_row_id}`,
+              asin: item.asin,
+              amazon_title: item.amazon_title,
+              system: item.observed_condition ? `Condition: ${formatStatus(item.observed_condition)}` : null,
+              seller_sku: item.seller_sku,
+              fnsku: item.fnsku,
+              quantity_sent: toNumber(item.quantity) ?? 0,
+              expected_quantity: toNumber(item.expected_quantity),
+              received_quantity: toNumber(item.received_quantity),
+              available_quantity: toNumber(item.available_quantity),
+              reserved_quantity: toNumber(item.reserved_quantity),
+              unfulfillable_quantity: toNumber(item.unfulfillable_quantity),
+              missing_quantity: toNumber(item.missing_quantity),
+              outbound_remaining_quantity: toNumber(item.outbound_remaining_quantity),
+              unit_cost: toNumber(item.unit_cost),
+              target_price: toNumber(item.target_price),
+              cost_sent: toNumber(item.cost_sent),
+              outbound_remaining_cost: toNumber(item.outbound_remaining_cost),
+              amazon_received_cost: toNumber(item.amazon_received_cost),
+              amazon_available_cost: toNumber(item.amazon_available_cost),
+              source: "amazon_return_recovery" as const,
+            })),
+          ].sort((left, right) => compareStrings(left.asin, right.asin))
         : buildV2024BoxDetails(shipment, titleFallbacks);
       const unitsAvailable = hasTrackedItemRows
         ? toNumber(shipment.units_available) ?? computed.units_available
@@ -420,7 +508,7 @@ async function getShipments() {
         finalized_at: shipment.finalized_at,
         last_amazon_sync_at: shipment.last_amazon_sync_at,
         updated_at: shipment.updated_at,
-        detail_source: hasTrackedItemRows ? "mbop" : "amazon_v2024_box",
+        detail_source: hasStoredDetailRows ? "mbop" : "amazon_v2024_box",
         fba_availability_tracked: hasTrackedItemRows,
         details,
       };
@@ -470,7 +558,106 @@ async function fetchShipmentItems(shipmentIds: string[]) {
   return rows;
 }
 
-function summarizeShipmentFromItems(items: ShipmentItemRow[]) {
+async function fetchShipmentSourceItems(shipmentIds: string[]) {
+  const rows: ShipmentSourceItemRow[] = [];
+  const chunkSize = 250;
+  for (let index = 0; index < shipmentIds.length; index += chunkSize) {
+    const chunk = shipmentIds.slice(index, index + chunkSize);
+    const { data, error } = await supabase
+      .from("fba_shipment_source_items")
+      .select("*")
+      .in("fba_shipment_id", chunk)
+      .eq("included", true);
+
+    if (error) {
+      if (error.message.toLowerCase().includes("fba_shipment_source_items")) {
+        console.warn("FBA source item bridge table is not available yet", error.message);
+        return rows;
+      }
+      throw new Error(error.message);
+    }
+    rows.push(...((data ?? []) as ShipmentSourceItemRow[]));
+  }
+  return rows;
+}
+
+async function fetchRoutedReturnRecoverySourceItems(shipmentIds: string[]) {
+  const shipmentIdSet = new Set(shipmentIds);
+  if (!shipmentIdSet.size) return [] as ShipmentSourceItemRow[];
+
+  const { data, error } = await supabase
+    .from("amazon_return_recovery_cases")
+    .select(
+      "amazon_return_recovery_case_id,workflow_state,decision,asin,seller_sku,sku,fnsku,title," +
+        "quantity,amazon_order_id,lpn,return_date,raw_evidence_json"
+    )
+    .eq("workflow_state", "closed")
+    .eq("decision", "send_back_to_amazon")
+    .limit(1000);
+
+  if (error) {
+    console.warn("FBA routed return recovery lookup failed", error.message);
+    return [];
+  }
+
+  const cases = ((data ?? []) as unknown as ReturnRecoveryCaseRow[]).filter((row) => {
+    const routing = fbaRoutingFromRaw(row.raw_evidence_json);
+    return Boolean(routing.fba_shipment_id && shipmentIdSet.has(routing.fba_shipment_id));
+  });
+  const orderIds = Array.from(
+    new Set(cases.map((row) => cleanString(row.amazon_order_id)).filter((value): value is string => Boolean(value)))
+  );
+  const profitRows = await fetchReturnRecoveryProfitRows(orderIds);
+
+  return cases.flatMap((row): ShipmentSourceItemRow[] => {
+    const routing = fbaRoutingFromRaw(row.raw_evidence_json);
+    if (!routing.fba_shipment_id) return [];
+    const asin = normalizeAsin(row.asin);
+    if (!asin) return [];
+
+    const quantity = toNumber(routing.quantity) ?? toNumber(row.quantity) ?? 1;
+    const profit = findReturnProfitRow(row, profitRows);
+    const cogs = toNumber(profit?.cogs);
+    const profitQuantity = toNumber(profit?.quantity) ?? quantity;
+    const unitCost = cogs === null ? null : perUnit(cogs, profitQuantity);
+    const targetPrice =
+      profit?.sale_price !== null && profit?.sale_price !== undefined
+        ? perUnit(toNumber(profit.sale_price), profitQuantity)
+        : null;
+    const costSent = unitCost === null ? null : roundMoney(unitCost * quantity);
+
+    return [
+      {
+        fba_shipment_source_item_id: `amazon-return-route:${row.amazon_return_recovery_case_id}`,
+        fba_shipment_id: routing.fba_shipment_id,
+        source_type: "amazon_return_recovery",
+        source_row_id: row.amazon_return_recovery_case_id,
+        amazon_return_recovery_case_id: row.amazon_return_recovery_case_id,
+        quantity,
+        asin,
+        amazon_title: row.title ?? profit?.title ?? null,
+        seller_sku: row.seller_sku ?? row.sku ?? null,
+        fnsku: row.fnsku,
+        observed_condition: cleanString(routing.observed_condition) ?? observedConditionFromRaw(row.raw_evidence_json),
+        unit_cost: unitCost,
+        target_price: targetPrice,
+        expected_quantity: quantity,
+        received_quantity: null,
+        available_quantity: null,
+        reserved_quantity: null,
+        unfulfillable_quantity: null,
+        missing_quantity: null,
+        outbound_remaining_quantity: quantity,
+        cost_sent: costSent,
+        outbound_remaining_cost: costSent,
+        amazon_received_cost: null,
+        amazon_available_cost: null,
+      },
+    ];
+  });
+}
+
+function summarizeShipmentFromItems(items: ShipmentSummaryItem[]) {
   return items.reduce(
     (sum, item) => {
       const quantity = toNumberFromUnknown(item.quantity) ?? 0;
@@ -619,17 +806,9 @@ export async function POST(request: Request) {
     );
   }
 
-  if (requestedItems.some((item) => item.item_id.startsWith("amazon-return:"))) {
-    return NextResponse.json(
-      {
-        error:
-          "Amazon Return Recovery rows are visible in FBA prep, but saving them to an FBA shipment needs a dedicated non-purchase shipment bridge first.",
-      },
-      { status: 400 }
-    );
-  }
-
   try {
+    const returnCasesById = await validateReturnRecoverySaveItems(requestedItems);
+
     const { data: shipment, error: shipmentError } = await supabase
       .from("fba_shipments")
       .insert({
@@ -645,11 +824,19 @@ export async function POST(request: Request) {
     const savedItems = [];
 
     for (const requestedItem of requestedItems) {
-      const savedItem = await listPurchaseItem(
-        shipment.fba_shipment_id,
-        requestedItem.item_id,
-        requestedItem.quantity_to_send
-      );
+      const returnCaseId = parseReturnRecoveryItemId(requestedItem.item_id);
+      const savedItem = returnCaseId
+        ? await listReturnRecoveryItem(
+            shipment.fba_shipment_id,
+            shipment.shipment_code,
+            returnCasesById.get(returnCaseId),
+            requestedItem.quantity_to_send
+          )
+        : await listPurchaseItem(
+            shipment.fba_shipment_id,
+            requestedItem.item_id,
+            requestedItem.quantity_to_send
+          );
       savedItems.push(savedItem);
     }
 
@@ -664,6 +851,184 @@ export async function POST(request: Request) {
       { status: 500 }
     );
   }
+}
+
+async function validateReturnRecoverySaveItems(requestedItems: SaveItem[]) {
+  const returnItems = requestedItems
+    .map((item) => ({
+      ...item,
+      returnCaseId: parseReturnRecoveryItemId(item.item_id),
+    }))
+    .filter((item): item is SaveItem & { returnCaseId: string } => Boolean(item.returnCaseId));
+
+  const returnCasesById = new Map<string, ReturnRecoveryCaseRow>();
+  if (!returnItems.length) return returnCasesById;
+
+  const caseIds = Array.from(new Set(returnItems.map((item) => item.returnCaseId)));
+  const { data, error } = await supabase
+    .from("amazon_return_recovery_cases")
+    .select(
+      "amazon_return_recovery_case_id,workflow_state,decision,asin,seller_sku,sku,fnsku,title," +
+        "quantity,amazon_order_id,lpn,return_date,raw_evidence_json"
+    )
+    .in("amazon_return_recovery_case_id", caseIds);
+
+  if (error) throw new Error(`amazon_return_recovery_cases: ${error.message}`);
+
+  for (const row of (data ?? []) as unknown as ReturnRecoveryCaseRow[]) {
+    returnCasesById.set(row.amazon_return_recovery_case_id, row);
+  }
+
+  for (const item of returnItems) {
+    const recoveryCase = returnCasesById.get(item.returnCaseId);
+    if (!recoveryCase) {
+      throw new Error("Amazon Return Recovery case was not found for FBA routing.");
+    }
+
+    if (
+      recoveryCase.workflow_state !== "ready_to_send_back_to_amazon" ||
+      recoveryCase.decision !== "send_back_to_amazon"
+    ) {
+      throw new Error("Only Return Recovery items marked Ready for Send to Amazon can be saved to an FBA shipment.");
+    }
+
+    const asin = normalizeAsin(recoveryCase.asin);
+    if (!asin) {
+      throw new Error("ASIN is required before routing an Amazon return to FBA.");
+    }
+
+    const observedCondition = observedConditionFromRaw(recoveryCase.raw_evidence_json);
+    if (observedCondition !== "new") {
+      throw new Error(
+        `Amazon Return Recovery item ${asin} is blocked from Send to Amazon because observed condition is ${formatStatus(observedCondition)}. Only observed condition New can be routed to FBA in this workflow.`
+      );
+    }
+
+    const caseQuantity = Math.max(1, toNumber(recoveryCase.quantity) ?? 1);
+    if (item.quantity_to_send !== caseQuantity) {
+      throw new Error("Partial Amazon Return Recovery FBA routing is not supported yet; send the full inspected quantity or leave it unselected.");
+    }
+  }
+
+  return returnCasesById;
+}
+
+async function listReturnRecoveryItem(
+  fbaShipmentId: string,
+  shipmentCode: string,
+  recoveryCase: ReturnRecoveryCaseRow | undefined,
+  quantityToSend: number
+) {
+  if (!recoveryCase) {
+    throw new Error("Amazon Return Recovery case was not loaded for FBA routing.");
+  }
+
+  const asin = normalizeAsin(recoveryCase.asin);
+  const observedCondition = observedConditionFromRaw(recoveryCase.raw_evidence_json);
+  const quantity = Math.max(1, toNumber(recoveryCase.quantity) ?? 1);
+  if (!asin) throw new Error("ASIN is required before routing an Amazon return to FBA.");
+  if (observedCondition !== "new") {
+    throw new Error("Only Amazon returns with observed condition New can be routed to FBA.");
+  }
+  if (quantityToSend !== quantity) {
+    throw new Error("Partial Amazon Return Recovery FBA routing is not supported yet.");
+  }
+
+  const amazonOrderId = cleanString(recoveryCase.amazon_order_id);
+  const profitRows = await fetchReturnRecoveryProfitRows(amazonOrderId ? [amazonOrderId] : []);
+  const profit = findReturnProfitRow(recoveryCase, profitRows);
+  const cogs = toNumber(profit?.cogs);
+  const profitQuantity = toNumber(profit?.quantity) ?? quantity;
+  const unitCost = cogs === null ? null : perUnit(cogs, profitQuantity);
+  const targetPrice =
+    profit?.sale_price !== null && profit?.sale_price !== undefined
+      ? perUnit(toNumber(profit.sale_price), profitQuantity)
+      : null;
+  const costSent = unitCost === null ? null : roundMoney(unitCost * quantityToSend);
+  const now = new Date().toISOString();
+
+  const sourceItemPayload = {
+    fba_shipment_id: fbaShipmentId,
+    source_type: "amazon_return_recovery",
+    source_row_id: recoveryCase.amazon_return_recovery_case_id,
+    amazon_return_recovery_case_id: recoveryCase.amazon_return_recovery_case_id,
+    quantity: quantityToSend,
+    asin,
+    amazon_title: recoveryCase.title ?? profit?.title ?? null,
+    seller_sku: recoveryCase.seller_sku ?? recoveryCase.sku ?? null,
+    fnsku: recoveryCase.fnsku,
+    observed_condition: observedCondition,
+    workflow_state_at_save: recoveryCase.workflow_state,
+    unit_cost: unitCost,
+    target_price: targetPrice,
+    included: true,
+    expected_quantity: quantityToSend,
+    outbound_remaining_quantity: quantityToSend,
+    cost_sent: costSent,
+    outbound_remaining_cost: costSent,
+    raw_source_json: {
+      amazon_return_recovery_case_id: recoveryCase.amazon_return_recovery_case_id,
+      amazon_order_id: recoveryCase.amazon_order_id,
+      lpn: recoveryCase.lpn,
+      raw_evidence_json: recoveryCase.raw_evidence_json,
+    },
+  };
+
+  const { data: shipmentItem, error: shipmentItemError } = await supabase
+    .from("fba_shipment_source_items")
+    .insert(sourceItemPayload)
+    .select()
+    .single();
+
+  if (shipmentItemError && !isMissingBridgeTableError(shipmentItemError.message)) {
+    throw new Error(shipmentItemError.message);
+  }
+
+  const rawEvidence = mergeRecord(recoveryCase.raw_evidence_json, {
+    fba_routing: {
+      status: "routed_to_fba_shipment",
+      routed_at: now,
+      fba_shipment_id: fbaShipmentId,
+      shipment_code: shipmentCode,
+      quantity: quantityToSend,
+      asin,
+      observed_condition: observedCondition,
+    },
+  });
+
+  const { error: caseError } = await supabase
+    .from("amazon_return_recovery_cases")
+    .update({
+      workflow_state: "closed",
+      evidence_summary: `Routed to FBA shipment ${shipmentCode}; condition=${formatStatus(observedCondition)}.`,
+      raw_evidence_json: rawEvidence,
+      closed_at: now,
+      updated_at: now,
+    })
+    .eq("amazon_return_recovery_case_id", recoveryCase.amazon_return_recovery_case_id);
+
+  if (caseError) throw new Error(`amazon_return_recovery_cases update: ${caseError.message}`);
+
+  const { error: eventError } = await supabase
+    .from("amazon_return_recovery_events")
+    .insert({
+      amazon_return_recovery_case_id: recoveryCase.amazon_return_recovery_case_id,
+      event_type: "routed_to_fba_shipment",
+      event_source: "operator",
+      message: `Routed to FBA shipment ${shipmentCode}.`,
+      notes: null,
+      raw_event_json: {
+        fba_shipment_id: fbaShipmentId,
+        shipment_code: shipmentCode,
+        quantity: quantityToSend,
+        asin,
+        observed_condition: observedCondition,
+      },
+    });
+
+  if (eventError) throw new Error(`amazon_return_recovery_events insert: ${eventError.message}`);
+
+  return shipmentItem ?? sourceItemPayload;
 }
 
 async function fetchReceivedRows() {
@@ -717,6 +1082,11 @@ async function fetchReturnRecoveryFbaCandidates(): Promise<FbaPrepCandidate[]> {
 
     const quantity = toNumber(row.quantity) ?? 1;
     if (quantity <= 0) return [];
+    const observedCondition = observedConditionFromRaw(row.raw_evidence_json);
+    const sourceStatus =
+      observedCondition === "new"
+        ? "Ready for Send to Amazon"
+        : `Blocked: observed condition ${formatStatus(observedCondition)}`;
 
     const profit = findReturnProfitRow(row, profitRows);
     const cogs = toNumber(profit?.cogs);
@@ -738,7 +1108,7 @@ async function fetchReturnRecoveryFbaCandidates(): Promise<FbaPrepCandidate[]> {
         sell_price: salePrice,
         supplier: "Amazon Return Recovery",
         source_type: "amazon_return_recovery" as const,
-        source_status: "Ready for Send to Amazon",
+        source_status: sourceStatus,
       },
     ];
   });
@@ -1308,6 +1678,11 @@ function normalizeSaveItems(items: unknown[]): SaveItem[] {
   });
 }
 
+function parseReturnRecoveryItemId(itemId: string) {
+  const prefix = "amazon-return:";
+  return itemId.startsWith(prefix) ? itemId.slice(prefix.length).trim() : null;
+}
+
 function normalizePriceUpdateItems(items: unknown[]): PriceUpdateItem[] {
   return items.flatMap((item) => {
     if (!item || typeof item !== "object") return [];
@@ -1478,6 +1853,48 @@ async function createReceivedRemainderSplit(
 
 function normalizeAsin(value?: string | null) {
   return value ? value.trim().toUpperCase() : "";
+}
+
+function observedConditionFromRaw(value: unknown) {
+  const raw = isRecord(value) ? value : {};
+  const inspection = isRecord(raw.inspection) ? raw.inspection : {};
+  const condition = cleanString(inspection.observed_condition)
+    ?.toLowerCase()
+    .replace(/[\s-]+/g, "_");
+  return condition || "not_recorded";
+}
+
+function fbaRoutingFromRaw(value: unknown) {
+  const raw = isRecord(value) ? value : {};
+  const routing = isRecord(raw.fba_routing) ? raw.fba_routing : {};
+  return {
+    fba_shipment_id: cleanString(routing.fba_shipment_id),
+    quantity: toNumberFromUnknown(routing.quantity),
+    observed_condition: cleanString(routing.observed_condition),
+  };
+}
+
+function mergeRecord(existing: unknown, patch: Record<string, unknown>) {
+  const base = isRecord(existing) ? existing : {};
+  return { ...base, ...patch };
+}
+
+function isMissingBridgeTableError(message: string) {
+  const normalized = message.toLowerCase();
+  return (
+    normalized.includes("fba_shipment_source_items") &&
+    (normalized.includes("could not find") ||
+      normalized.includes("does not exist") ||
+      normalized.includes("schema cache"))
+  );
+}
+
+function formatStatus(value?: string | null) {
+  return (value || "not_recorded")
+    .split("_")
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
 }
 
 function toNumber(value?: number | string | null) {

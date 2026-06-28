@@ -92,7 +92,7 @@ type ShipmentDetail = {
   outbound_remaining_cost: number | null;
   amazon_received_cost: number | null;
   amazon_available_cost: number | null;
-  source: "mbop" | "amazon_v2024_box";
+  source: "mbop" | "amazon_return_recovery" | "amazon_v2024_box";
 };
 
 type ShipmentRow = {
@@ -268,8 +268,12 @@ export default function FbaPage() {
     for (const row of data?.rows ?? []) {
       for (const detail of row.details) {
         const quantity = parseQuantity(quantityDrafts[detail.item_id]);
-        if (detail.source_type === "amazon_return_recovery" && quantity > 0) {
-          return "Amazon Return Recovery rows are visible for Send to Amazon routing, but saving them needs a dedicated non-purchase shipment bridge first.";
+        if (
+          detail.source_type === "amazon_return_recovery" &&
+          quantity > 0 &&
+          detail.source_status !== "Ready for Send to Amazon"
+        ) {
+          return detail.source_status || "This Amazon Return Recovery row is not eligible for Send to Amazon.";
         }
         if (quantity < 0) return "Quantity to send cannot be negative.";
         if (quantity > detail.quantity) {
@@ -1046,6 +1050,8 @@ function ShipmentDetailTable({ details }: { details: ShipmentDetail[] }) {
         </div>
         {detailSource === "amazon_v2024_box" ? (
           <span className="text-xs font-normal text-slate-500">from Amazon box contents</span>
+        ) : detailSource === "amazon_return_recovery" ? (
+          <span className="text-xs font-normal text-slate-500">from Amazon Return Recovery</span>
         ) : null}
       </div>
       <table className="w-full text-left text-sm">
@@ -1124,7 +1130,10 @@ function quantityDraftsForData(data: FbaData) {
   for (const row of data.rows) {
     for (const detail of row.details) {
       drafts[detail.item_id] =
-        detail.source_type === "amazon_return_recovery" ? "0" : String(detail.quantity);
+        detail.source_type === "amazon_return_recovery" &&
+        detail.source_status !== "Ready for Send to Amazon"
+          ? "0"
+          : String(detail.quantity);
     }
   }
   return drafts;
@@ -1314,8 +1323,16 @@ function DetailTable({
                 </td>
                 <td className="px-3 py-2">
                   {detail.source_type === "amazon_return_recovery" ? (
-                    <span className="text-blue-700">
-                      Ready for Send to Amazon; shipment save needs return bridge
+                    <span
+                      className={
+                        detail.source_status === "Ready for Send to Amazon"
+                          ? "text-green-700"
+                          : "text-amber-700"
+                      }
+                    >
+                      {detail.source_status === "Ready for Send to Amazon"
+                        ? "Will route Return Recovery case to FBA shipment"
+                        : detail.source_status || "Not eligible for Send to Amazon"}
                     </span>
                   ) : quantityToSend === 0 ? (
                     <span className="text-slate-600">Remain Received</span>
