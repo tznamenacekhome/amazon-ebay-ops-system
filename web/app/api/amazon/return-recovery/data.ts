@@ -576,10 +576,6 @@ function baseOriginalSale(
 ) {
   const fulfillmentCost = toOptionalNumber(profit?.fulfillment_cost);
   const refundAmount = refund.amount;
-  const estimatedUnrecoverableFees =
-    refundAmount !== null && refundAmount > 0 && fulfillmentCost !== null
-      ? fulfillmentCost
-      : null;
 
   return {
     order_date: dateOnly(order.purchase_date),
@@ -597,7 +593,7 @@ function baseOriginalSale(
     roi: toOptionalNumber(profit?.roi),
     refund_amount: refundAmount,
     refund_currency: refund.currency,
-    estimated_unrecoverable_fees: estimatedUnrecoverableFees,
+    estimated_unrecoverable_fees: null,
     estimated_return_loss: null,
     profitability_status: profitabilityStatus(order, profit, refundAmount),
   };

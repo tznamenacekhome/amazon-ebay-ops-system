@@ -238,15 +238,15 @@ export default function AmazonReturnRecoveryPage() {
           <table className="w-full min-w-[1520px] text-left text-sm">
             <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
               <tr>
-                <th className="px-3 py-2">Return Date</th>
-                <th className="px-3 py-2">Original Sale</th>
+                <th className="px-3 py-2">Customer Return Date</th>
+                <th className="px-3 py-2">Original Order Date / Sale</th>
                 <th className="px-3 py-2">Financial Impact</th>
                 <th className="px-3 py-2">Title</th>
                 <th className="px-3 py-2">ASIN</th>
                 <th className="px-3 py-2">SKU / FNSKU</th>
                 <th className="px-3 py-2">LPN</th>
-                <th className="px-3 py-2">Reason</th>
-                <th className="px-3 py-2">Disposition / Status</th>
+                <th className="px-3 py-2">Amazon Reason</th>
+                <th className="px-3 py-2">Amazon Disposition / Status</th>
                 <th className="px-3 py-2">Comments</th>
                 <th className="px-3 py-2">Reimbursement</th>
               </tr>
@@ -273,14 +273,12 @@ export default function AmazonReturnRecoveryPage() {
                       </div>
                     </td>
                     <td className="w-[190px] px-3 py-2">
-                      <div className="font-medium">
-                        Profit {formatMoney(row.original_sale.original_net_profit)}
-                      </div>
+                      <div className="font-medium">{financialStatusLabel(row.original_sale)}</div>
                       <div className="mt-1 text-xs text-slate-500">
                         Refund {formatMoney(row.original_sale.refund_amount, row.original_sale.refund_currency)}
                       </div>
                       <div className="mt-1 text-xs text-slate-500">
-                        {financialStatusLabel(row.original_sale)}
+                        Loss: Needs financial mapping
                       </div>
                     </td>
                     <td className="w-[300px] px-3 py-2">
@@ -400,7 +398,7 @@ function ReturnDetailDrawer({
                   <InfoPair label="Status" value={customerReturn.status} />
                   <InfoPair label="LPN" value={customerReturn.license_plate_number} important />
                   <InfoPair label="Amazon Order ID" value={customerReturn.amazon_order_id} />
-                  <InfoPair label="Return Date" value={formatDate(customerReturn.return_date)} />
+                  <InfoPair label="Customer Return Date" value={formatDate(customerReturn.return_date)} />
                   <InfoPair label="ASIN" value={customerReturn.asin} />
                   <InfoPair label="SKU" value={customerReturn.seller_sku ?? customerReturn.sku} />
                   <InfoPair label="FNSKU" value={customerReturn.fnsku} />
@@ -414,13 +412,16 @@ function ReturnDetailDrawer({
                     {customerReturn.customer_comments ?? "--"}
                   </div>
                 </div>
+                <div className="mt-4 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+                  Amazon return reason/disposition is evidence only. Final condition and disposition require manual inspection; customer damaged does not automatically mean unsellable.
+                </div>
               </DetailSection>
 
-              <DetailSection title="Original Sale / Return Financial Impact">
+              <DetailSection title="Original Sale / Return Financial Context">
                 {originalSale ? (
                   <div className="space-y-4">
                     <div className="grid gap-3 md:grid-cols-3">
-                      <InfoPair label="Order Date" value={displayDate(originalSale.order_date)} />
+                      <InfoPair label="Original Order Date" value={displayDate(originalSale.order_date)} />
                       <InfoPair label="Order Status" value={displayValue(originalSale.order_status)} />
                       <InfoPair label="Fulfillment" value={displayValue(originalSale.fulfillment_channel)} />
                       <InfoPair label="Sale Price" value={displayMoney(originalSale.sale_price)} important />
@@ -428,28 +429,17 @@ function ReturnDetailDrawer({
                       <InfoPair label="Principal Amount" value={displayMoney(originalSale.principal_amount)} />
                       <InfoPair label="COGS" value={displayMoney(originalSale.cogs)} important />
                       <InfoPair label="COGS Source" value={displayValue(originalSale.cogs_source)} />
-                      <InfoPair
-                        label="Original Net Profit"
-                        value={displayMoney(originalSale.original_net_profit)}
-                        important
-                      />
-                      <InfoPair label="ROI" value={displayPercent(originalSale.roi)} />
-                      <InfoPair
-                        label="Amazon Fees"
-                        value={displayMoney(originalSale.amazon_fees_excluding_fulfillment)}
-                      />
-                      <InfoPair label="Fulfillment Cost" value={displayMoney(originalSale.fulfillment_cost)} />
                       <InfoPair label="Refund Amount" value={displayMoney(originalSale.refund_amount, originalSale.refund_currency)} />
                       <InfoPair
                         label="Unrecoverable Fees"
-                        value={displayMoney(originalSale.estimated_unrecoverable_fees)}
+                        value={displayFinancialMapping(originalSale.estimated_unrecoverable_fees)}
                       />
                       <InfoPair
                         label="Estimated Return Loss"
-                        value={displayMoney(originalSale.estimated_return_loss)}
+                        value={displayFinancialMapping(originalSale.estimated_return_loss)}
                       />
                       <InfoPair
-                        label="Profitability Status"
+                        label="Current Profit Status"
                         value={displayValue(originalSale.profitability_status)}
                       />
                       <InfoPair label="Data Status" value={financialStatusLabel(originalSale)} />
@@ -624,11 +614,8 @@ function displayMoney(value?: number | null, currency?: string | null) {
   return value === null || value === undefined ? "Not available" : formatMoney(value, currency);
 }
 
-function displayPercent(value?: number | null) {
-  if (value === null || value === undefined || !Number.isFinite(Number(value))) {
-    return "Not available";
-  }
-  return `${Number(value).toFixed(1)}%`;
+function displayFinancialMapping(value?: number | null, currency?: string | null) {
+  return value === null || value === undefined ? "Needs financial mapping" : formatMoney(value, currency);
 }
 
 function formatStatusText(value: string) {
