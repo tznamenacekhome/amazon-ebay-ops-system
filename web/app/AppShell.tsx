@@ -7,6 +7,7 @@ import {
   BarChart3,
   LogOut,
   PackageCheck,
+  PackageOpen,
   ReceiptText,
   Send,
   Search,
@@ -39,6 +40,11 @@ const navItems = [
     href: "/fba",
     label: "Send to Amazon",
     icon: Send,
+  },
+  {
+    href: "/amazon-return-recovery",
+    label: "Amazon Returns",
+    icon: PackageOpen,
   },
   {
     href: "/sales-orders",

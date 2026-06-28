@@ -1,6 +1,6 @@
 # MBOP AWS Operations Runbook
 
-Last updated: 2026-06-22
+Last updated: 2026-06-28
 
 ## AWS CLI Preflight
 
@@ -8,16 +8,29 @@ Before inspecting or changing live AWS resources, verify the local AWS CLI
 session is still valid:
 
 ```powershell
-aws sts get-caller-identity
+aws sts get-caller-identity --profile mbop-admin
 ```
 
 If this returns `NoCredentials`, an SSO/login prompt, or an expired-token error,
-run `aws login` and choose region `us-west-2` before proceeding.
+run the repo login helper before proceeding:
+
+```powershell
+.\scripts\aws-login.ps1
+```
+
+Use `.\scripts\aws-login.ps1 -RootFallback` only for account recovery,
+billing, or other break-glass root-account work.
 
 ## Deploy Web Updates
 
 For the day-to-day solo developer workflow, prefer the wrapper scripts in
 `scripts/` and the short guide in `docs/aws/MBOP_SOLO_DEV_WORKFLOW.md`.
+
+For web changes, a local build is only a compile/type check. It does not prove
+production behavior because MBOP runs behind ALB/Cognito on ECS/Fargate. When a
+change must be verified in production, deploy with `.\scripts\deploy-web.ps1`,
+confirm service stability with `.\scripts\aws-web-status.ps1`, then verify in
+the browser at `https://mbop.midnightblueenterprises.com`.
 
 1. Build the web image from `web/`.
 2. Push it to the ECR repository used by `mbop-web-task`.
@@ -78,7 +91,12 @@ docker tag mbop-scheduler:<tag> 297464765814.dkr.ecr.us-west-2.amazonaws.com/mbo
 docker push 297464765814.dkr.ecr.us-west-2.amazonaws.com/mbop-scheduler:<tag>
 ```
 
-If pushing `:latest`, the registered task definition `mbop-scheduler-task:1` can be smoke-tested immediately after the push. If pushing a different tag, register a new task definition revision with that image tag or digest.
+Current scheduler task definition `mbop-scheduler-task:1` uses
+`mbop-scheduler:latest`. Pushing `:latest` is therefore a production-affecting
+change for scheduled jobs. Prefer registering a new task definition revision
+pinned to a digest when changing scheduler code; at minimum, run ECS `--list`
+smoke tests and verify `/ecs/mbop-scheduler` logs before relying on the new
+image.
 
 ## One-Off ECS Scheduler Task
 

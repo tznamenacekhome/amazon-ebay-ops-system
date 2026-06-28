@@ -69,6 +69,11 @@ Then deploy:
 .\scripts\deploy-web.ps1
 ```
 
+Local `npm run build` is useful as a compile/type check, but it is not the
+production test for MBOP. The production app runs on ECS/Fargate behind
+ALB/Cognito. After deploy, use `.\scripts\aws-web-status.ps1` and browser
+verification at `https://mbop.midnightblueenterprises.com`.
+
 The deploy script:
 
 1. Refuses to deploy a dirty working tree by default.

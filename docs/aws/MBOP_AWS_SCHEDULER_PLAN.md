@@ -1,6 +1,6 @@
 # MBOP AWS Scheduler Plan
 
-Last updated: 2026-06-22
+Last updated: 2026-06-28
 
 ## Architecture Decision
 
@@ -69,9 +69,14 @@ Current ECR image:
 
 ```text
 297464765814.dkr.ecr.us-west-2.amazonaws.com/mbop-scheduler:latest
-digest: sha256:26e24b0e54c530b8baa76d279da348a89a326b7d9a6500522a0a5efa1e56034e
-tag: metrics-20260621b
+digest: sha256:77b46ba7a474bc718fb34c994a763ebb98200c637d48982eb5c1474ca43ca58a
+tags: latest, on-demand-sourcing-20260622
 ```
+
+The current scheduler task definition is tag-based on `:latest`, so pushing a
+new `latest` image changes what scheduled jobs run without registering a new
+task definition revision. Prefer digest-pinned task definition revisions for
+future scheduler deployments.
 
 EventBridge Scheduler should override the command per group:
 
@@ -237,7 +242,8 @@ standard counters such as rows read/inserted/updated/skipped and stores
 additional human-readable metrics in `scheduler_run_jobs.metadata.metrics`.
 System Health group drawers display those counters and metrics in recent-run
 history. Jobs only show the richer metrics after they have run on scheduler
-image `metrics-20260621b` or later.
+image `sha256:77b46ba7a474bc718fb34c994a763ebb98200c637d48982eb5c1474ca43ca58a`
+or later.
 
 Smoke validation completed:
 

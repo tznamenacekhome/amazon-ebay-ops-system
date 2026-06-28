@@ -45,5 +45,8 @@ background; prefer the `docs/aws/` files for current state and operations.
 - Do not infer live operational state from documentation.
 - For AWS state, inspect live AWS when current configuration matters; docs are
   an orientation layer, not the source of truth.
+- For AWS-hosted web workflows, local builds/dev servers are compile checks
+  only. Production behavior must be verified through ECS deployment/status and
+  the Cognito-protected app at `https://mbop.midnightblueenterprises.com`.
 - For live data, use a future authenticated MBOP AI API only if available.
 - Do not expose secrets, tokens, service role keys, raw marketplace payloads, or unrestricted logs.

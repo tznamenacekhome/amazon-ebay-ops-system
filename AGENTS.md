@@ -127,6 +127,20 @@ AWS deployment and scheduler migration:
 - `/api/easypost/webhook` has an ALB unauthenticated path rule and validates
   the configured EasyPost webhook secret/token before writing to Supabase
 
+Production verification rule:
+- Local `npm run build` is a compile/type check only. It is useful, but it is
+  not proof that the AWS-hosted MBOP app works in production.
+- Do not ask the operator to verify Cognito-protected production API behavior
+  with local `Invoke-RestMethod`, localhost checks, or a local dev server.
+- For web changes that need production verification, use the AWS workflow:
+  `.\scripts\aws-login.ps1` if SSO is needed, `.\scripts\deploy-web.ps1` to
+  build/push/register/update ECS, `.\scripts\aws-web-status.ps1` to confirm the
+  stable deployed task, then browser verification at
+  `https://mbop.midnightblueenterprises.com`.
+- If deployment is out of scope or not permitted, say clearly that only local
+  compile/static verification was performed and provide AWS deployment
+  verification commands instead of presenting local checks as sufficient.
+
 ---
 
 # Critical Architectural Rules

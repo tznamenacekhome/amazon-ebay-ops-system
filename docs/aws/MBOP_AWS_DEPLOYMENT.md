@@ -1,19 +1,21 @@
 # MBOP AWS Deployment
 
-Last updated: 2026-06-22
+Last updated: 2026-06-28
 
-This document records the authoritative AWS production state for MBOP as inspected from AWS CLI on 2026-06-21/2026-06-22. Live AWS state remains the highest authority.
+This document records the AWS production state for MBOP as inspected from AWS
+CLI. Live AWS state remains the highest authority; run
+`scripts/aws-web-status.ps1` before making deploy decisions.
 
 ## Current Live State
 
-Known from the latest handoff:
+Verified from AWS CLI on 2026-06-28:
 
 - Region: `us-west-2`
 - Account: `297464765814`
 - Runtime: ECS/Fargate
 - ECS cluster: `mbop-cluster1`
 - ECS web service: `mbop-web-service`
-- Current web task definition: `mbop-web-task:20`
+- Current web task definition: `mbop-web-task:24`
 - Current web container: `mbop-web`
 - Web task size: `0.5 vCPU / 1 GiB`
 - Web container port: `3103`
@@ -63,10 +65,10 @@ Web repository:
 Current web task image:
 
 ```text
-297464765814.dkr.ecr.us-west-2.amazonaws.com/mbop-web@sha256:801d43036104579bd84d5365915ac7eb8e20f464802520775db05b95a8932653
+297464765814.dkr.ecr.us-west-2.amazonaws.com/mbop-web@sha256:f9a4164704a5ccfeb3401faea7d7f6099cd56ee4a196dab50c1ffa20ff2c3a19
 ```
 
-Tag `system-health-next-run-20260623` points at the current digest.
+Tag `web-2db68c4b78c5` points at the current digest.
 
 Scheduler repository:
 
@@ -80,7 +82,10 @@ Scheduler task definition:
 arn:aws:ecs:us-west-2:297464765814:task-definition/mbop-scheduler-task:1
 ```
 
-The task definition is registered against image tag `297464765814.dkr.ecr.us-west-2.amazonaws.com/mbop-scheduler:latest`.
+The task definition is registered against image tag
+`297464765814.dkr.ecr.us-west-2.amazonaws.com/mbop-scheduler:latest`.
+Unlike the web task, the current scheduler task is tag-based rather than
+digest-pinned; treat `:latest` updates as production changes.
 
 Current scheduler image digest:
 
@@ -182,8 +187,9 @@ Status: ISSUED
 Run these from an AWS-authenticated shell. Do not paste secret values into docs.
 
 ```powershell
-aws ecs describe-services --region us-west-2 --cluster mbop-cluster1 --services mbop-web-service
-aws ecs describe-task-definition --region us-west-2 --task-definition mbop-web-task:17
+.\scripts\aws-web-status.ps1
+aws ecs describe-services --profile mbop-admin --region us-west-2 --cluster mbop-cluster1 --services mbop-web-service
+aws ecs describe-task-definition --profile mbop-admin --region us-west-2 --task-definition mbop-web-task:24
 aws elbv2 describe-load-balancers --region us-west-2
 aws elbv2 describe-listeners --region us-west-2 --load-balancer-arn <alb-arn>
 aws elbv2 describe-rules --region us-west-2 --listener-arn <https-listener-arn>
@@ -340,7 +346,7 @@ Inline policy:
 mbop-web-secret-read
 ```
 
-This role is used by `mbop-web-task:17` and can read only the web runtime
+This role is used by `mbop-web-task:24` and can read only the web runtime
 secrets: Supabase service role, EasyPost webhook secret, and admin API token.
 
 ## Security Hardening Status
