@@ -1,4 +1,4 @@
-"""Build sourcing seed ASINs from Amazon sales or active listing data."""
+"""Build sourcing seed ASINs from Amazon sales or seller listing data."""
 
 from __future__ import annotations
 
@@ -53,7 +53,7 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Create MBOP sourcing seed ASINs.")
     parser.add_argument("--mode", choices=["recent_sales", "full_listings"], default="recent_sales")
     parser.add_argument("--run-id", help="Optional existing sourcing_run_id.")
-    parser.add_argument("--limit", type=int, default=250)
+    parser.add_argument("--limit", type=int, default=5000)
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("--replace-run", action="store_true", help="Delete existing seeds for the run before writing.")
     return parser.parse_args()
@@ -139,10 +139,17 @@ def build_recent_sales_seeds(supabase, settings, limit: int) -> list[dict[str, A
 def build_full_listing_seeds(supabase, settings, limit: int) -> list[dict[str, Any]]:
     listing_rows = paginate_table(
         supabase,
-        "vw_latest_amazon_listing_snapshot",
-        "asin,seller_sku,product_name,listing_status,item_status,condition,issue_count,issue_severity",
-        max_rows=10000,
+        "amazon_skus",
+        (
+            "asin,seller_sku,product_name,listing_status,item_status,condition,"
+            "fulfillment_channel,listing_price,last_listing_sync_at,updated_at"
+        ),
+        max_rows=20000,
+        order_column="last_listing_sync_at",
+        desc=True,
     )
+    listing_context_by_sku = latest_listing_context_by_sku(supabase)
+    listing_context_by_asin = latest_listing_context_by_asin(supabase)
     keepa_rows = paginate_table(
         supabase,
         "vw_latest_keepa_product_snapshot",
@@ -157,35 +164,87 @@ def build_full_listing_seeds(supabase, settings, limit: int) -> list[dict[str, A
     by_asin: dict[str, dict[str, Any]] = {}
     for row in listing_rows:
         asin = str(row.get("asin") or "").upper()
-        if not asin:
+        if not asin or asin in by_asin:
             continue
+        if not is_fba_listing(row.get("fulfillment_channel")):
+            continue
+
         keepa = keepa_by_asin.get(asin, {})
         cents = (
             keepa.get("buy_box_price_avg90_cents")
             or keepa.get("buy_box_price_current_cents")
             or keepa.get("new_price_current_cents")
         )
-        target_sale_price = to_float(cents, 0) / 100
+        keepa_price = to_float(cents, 0) / 100
+        listing_price = to_float(row.get("listing_price"), 0)
+        target_sale_price = keepa_price or listing_price
         if target_sale_price < settings.min_amazon_price:
             continue
+
+        seller_sku = str(row.get("seller_sku") or "")
+        listing_context = listing_context_by_sku.get(seller_sku) or listing_context_by_asin.get(asin) or {}
         by_asin[asin] = {
             "asin": asin,
             "amazon_title": row.get("product_name") or keepa.get("title") or asin,
             "amazon_image_url": None,
-            "seller_sku": row.get("seller_sku"),
+            "seller_sku": seller_sku or None,
             "units_sold_lookback": 0,
             "last_sold_at": None,
             "target_sale_price": round(target_sale_price, 2),
             "units_sold_60d": 0,
             "fee_samples": [],
+            "target_sale_price_source_override": "keepa_new_90d_avg" if keepa_price else "amazon_listing_price",
             "listing_warnings": {
-                "issue_count": row.get("issue_count"),
-                "issue_severity": row.get("issue_severity"),
+                "issue_count": listing_context.get("issue_count"),
+                "issue_severity": listing_context.get("issue_severity"),
                 "listing_status": row.get("listing_status"),
+                "item_status": row.get("item_status"),
+                "fulfillment_channel": row.get("fulfillment_channel"),
+            },
+            "listing_source": {
+                "source_table": "amazon_skus",
+                "seller_sku": seller_sku or None,
+                "last_listing_sync_at": row.get("last_listing_sync_at"),
+                "updated_at": row.get("updated_at"),
             },
         }
 
     return finalize_seeds(by_asin.values(), inventory_by_asin, settings, limit, planning_by_asin, catalog_by_asin, supabase)
+
+
+def latest_listing_context_by_sku(supabase) -> dict[str, dict[str, Any]]:
+    rows = paginate_table(
+        supabase,
+        "vw_latest_amazon_listing_snapshot",
+        "asin,seller_sku,issue_count,issue_severity,source,captured_at",
+        max_rows=20000,
+    )
+    context: dict[str, dict[str, Any]] = {}
+    for row in rows:
+        seller_sku = str(row.get("seller_sku") or "")
+        if seller_sku:
+            context[seller_sku] = row
+    return context
+
+
+def latest_listing_context_by_asin(supabase) -> dict[str, dict[str, Any]]:
+    rows = paginate_table(
+        supabase,
+        "vw_latest_amazon_listing_snapshot",
+        "asin,issue_count,issue_severity,source,captured_at",
+        max_rows=20000,
+    )
+    context: dict[str, dict[str, Any]] = {}
+    for row in rows:
+        asin = str(row.get("asin") or "").upper()
+        if asin and asin not in context:
+            context[asin] = row
+    return context
+
+
+def is_fba_listing(value: Any) -> bool:
+    channel = str(value or "").strip().upper()
+    return channel in {"AMAZON", "AMAZON_NA"} or "AMAZON" in channel
 
 
 def latest_inventory_by_asin(supabase) -> dict[str, float]:
@@ -340,6 +399,8 @@ def finalize_seeds(
         units_sold_lookback = int(to_float(row.pop("units_sold_lookback", 0), 0))
         units_sold_60d = int(to_float(row.pop("units_sold_60d", 0), 0))
         listing_warnings = row.pop("listing_warnings", {})
+        listing_source = row.pop("listing_source", {})
+        target_sale_price_source_override = row.pop("target_sale_price_source_override", None)
         warning_flags = row.pop("warning_flags", [])
         estimated_fee_cost = round(sum(fee_samples) / len(fee_samples), 2) if fee_samples else None
         platform_context = infer_platform_context(row["asin"], row.get("amazon_title"), catalog_by_asin.get(row["asin"]) or {})
@@ -352,7 +413,11 @@ def finalize_seeds(
                 "inventory_need_level": need_level,
                 "seed_id": str(uuid.uuid4()),
                 "source_mode": "recent_sales" if row.get("last_sold_at") else "full_listings",
-                "target_sale_price_source": "most_recent_sale" if row.get("last_sold_at") else "keepa_new_90d_avg",
+                "target_sale_price_source": (
+                    "most_recent_sale"
+                    if row.get("last_sold_at")
+                    else target_sale_price_source_override or "keepa_new_90d_avg"
+                ),
                 "units_sold_60d": units_sold_60d,
                 "units_sold_90d": units_sold_lookback,
                 "is_restricted": False,
@@ -362,6 +427,7 @@ def finalize_seeds(
                 "raw_context_json": {
                     "estimated_fee_cost": estimated_fee_cost,
                     "listing_warnings": listing_warnings,
+                    "listing_source": listing_source,
                     "inferred_system": platform_context.get("system"),
                     "inferred_system_source": platform_context.get("source"),
                     "inventory_planning": stale_stock,
