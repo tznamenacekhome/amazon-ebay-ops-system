@@ -60,6 +60,48 @@ type SaveItem = {
   quantity_to_send: number;
 };
 
+type ReturnRecoveryCaseRow = {
+  amazon_return_recovery_case_id: string;
+  workflow_state: string | null;
+  decision: string | null;
+  asin: string | null;
+  seller_sku: string | null;
+  sku: string | null;
+  fnsku: string | null;
+  title: string | null;
+  quantity: number | null;
+  amazon_order_id: string | null;
+  lpn: string | null;
+  return_date: string | null;
+  raw_evidence_json: unknown;
+};
+
+type ReturnRecoverySalesProfitRow = {
+  amazon_order_id: string;
+  asin: string | null;
+  seller_sku: string | null;
+  title: string | null;
+  quantity: number | null;
+  sale_price: number | null;
+  cogs: number | null;
+};
+
+type FbaPrepCandidate = {
+  item_id: string;
+  purchase_id: string | null;
+  supplier_order_id: string | null;
+  order_date: string | null;
+  amazon_title: string | null;
+  asin: string;
+  system: string | null;
+  quantity: number;
+  unit_cost: number | null;
+  sell_price: number | null;
+  supplier: string | null;
+  source_type: "purchase_item" | "amazon_return_recovery";
+  source_status: string | null;
+};
+
 type PriceUpdateItem = {
   item_id: string;
   target_price: number;
@@ -170,7 +212,7 @@ export async function GET(request: NextRequest) {
       purchaseMeta.map((purchase) => [purchase.purchase_id, purchase.supplier])
     );
 
-    const candidates = rows.flatMap((row) => {
+    const purchaseCandidates = rows.flatMap((row) => {
       const meta = metaByItemId.get(row.item_id);
       if (meta?.exclude_from_purchase_reporting) return [];
       if (meta?.marketplace === "eBay") return [];
@@ -194,9 +236,13 @@ export async function GET(request: NextRequest) {
           unit_cost: toNumber(row.unit_cost),
           sell_price: toNumber(row.sell_price ?? row.target_price),
           supplier: supplierByPurchaseId.get(row.purchase_id) ?? null,
+          source_type: "purchase_item" as const,
+          source_status: null,
         },
       ];
     });
+    const returnCandidates = await fetchReturnRecoveryFbaCandidates();
+    const candidates = [...purchaseCandidates, ...returnCandidates];
 
     const asins = Array.from(new Set(candidates.map((candidate) => candidate.asin)));
     const titleFallbacks = await fetchAmazonTitleFallbacks(asins);
@@ -573,6 +619,16 @@ export async function POST(request: Request) {
     );
   }
 
+  if (requestedItems.some((item) => item.item_id.startsWith("amazon-return:"))) {
+    return NextResponse.json(
+      {
+        error:
+          "Amazon Return Recovery rows are visible in FBA prep, but saving them to an FBA shipment needs a dedicated non-purchase shipment bridge first.",
+      },
+      { status: 400 }
+    );
+  }
+
   try {
     const { data: shipment, error: shipmentError } = await supabase
       .from("fba_shipments")
@@ -631,6 +687,94 @@ async function fetchReceivedRows() {
   }
 
   return rows;
+}
+
+async function fetchReturnRecoveryFbaCandidates(): Promise<FbaPrepCandidate[]> {
+  const { data, error } = await supabase
+    .from("amazon_return_recovery_cases")
+    .select(
+      "amazon_return_recovery_case_id,workflow_state,decision,asin,seller_sku,sku,fnsku,title," +
+        "quantity,amazon_order_id,lpn,return_date,raw_evidence_json"
+    )
+    .eq("workflow_state", "ready_to_send_back_to_amazon")
+    .eq("decision", "send_back_to_amazon")
+    .limit(500);
+
+  if (error) {
+    console.warn("FBA Amazon return recovery lookup failed", error.message);
+    return [];
+  }
+
+  const cases = (data ?? []) as unknown as ReturnRecoveryCaseRow[];
+  const orderIds = Array.from(
+    new Set(cases.map((row) => cleanString(row.amazon_order_id)).filter((value): value is string => Boolean(value)))
+  );
+  const profitRows = await fetchReturnRecoveryProfitRows(orderIds);
+
+  return cases.flatMap((row) => {
+    const asin = normalizeAsin(row.asin);
+    if (!asin) return [];
+
+    const quantity = toNumber(row.quantity) ?? 1;
+    if (quantity <= 0) return [];
+
+    const profit = findReturnProfitRow(row, profitRows);
+    const cogs = toNumber(profit?.cogs);
+    const salePrice = profit?.sale_price !== null && profit?.sale_price !== undefined
+      ? perUnit(toNumber(profit.sale_price), toNumber(profit.quantity) ?? quantity)
+      : null;
+
+    return [
+      {
+        item_id: `amazon-return:${row.amazon_return_recovery_case_id}`,
+        purchase_id: null,
+        supplier_order_id: row.amazon_order_id ?? row.lpn ?? null,
+        order_date: row.return_date,
+        amazon_title: row.title ?? profit?.title ?? null,
+        asin,
+        system: null,
+        quantity,
+        unit_cost: cogs === null ? null : perUnit(cogs, toNumber(profit?.quantity) ?? quantity),
+        sell_price: salePrice,
+        supplier: "Amazon Return Recovery",
+        source_type: "amazon_return_recovery" as const,
+        source_status: "Ready for Send to Amazon",
+      },
+    ];
+  });
+}
+
+async function fetchReturnRecoveryProfitRows(orderIds: string[]) {
+  const rows: ReturnRecoverySalesProfitRow[] = [];
+  for (let index = 0; index < orderIds.length; index += 100) {
+    const chunk = orderIds.slice(index, index + 100);
+    const { data, error } = await supabase
+      .from("amazon_sales_profitability")
+      .select("amazon_order_id,asin,seller_sku,title,quantity,sale_price,cogs")
+      .in("amazon_order_id", chunk);
+    if (error) {
+      console.warn("FBA return recovery profitability lookup failed", error.message);
+      continue;
+    }
+    rows.push(...((data ?? []) as unknown as ReturnRecoverySalesProfitRow[]));
+  }
+  return rows;
+}
+
+function findReturnProfitRow(
+  row: ReturnRecoveryCaseRow,
+  profitRows: ReturnRecoverySalesProfitRow[]
+) {
+  const orderId = cleanString(row.amazon_order_id);
+  if (!orderId) return null;
+  const asin = normalizeAsin(row.asin);
+  const sellerSku = normalizeAsin(row.seller_sku ?? row.sku);
+  const matches = profitRows.filter((profit) => profit.amazon_order_id === orderId);
+  return matches.find((profit) => {
+    const profitAsin = normalizeAsin(profit.asin);
+    const profitSku = normalizeAsin(profit.seller_sku);
+    return (asin && profitAsin === asin) || (sellerSku && profitSku === sellerSku);
+  }) ?? (matches.length === 1 ? matches[0] : null);
 }
 
 async function fetchItemMeta(itemIds: string[]) {
@@ -763,19 +907,7 @@ async function fetchPreferredFbaMskus(asins: string[]) {
 }
 
 function groupCandidates(
-  candidates: Array<{
-    item_id: string;
-    purchase_id: string;
-    supplier_order_id: string | null;
-    order_date: string | null;
-    amazon_title: string | null;
-    asin: string;
-    system: string | null;
-    quantity: number;
-    unit_cost: number | null;
-    sell_price: number | null;
-    supplier: string | null;
-  }>,
+  candidates: FbaPrepCandidate[],
   titleFallbacks: Map<string, string>,
   preferredMskus: Map<string, string>,
   keepaPrices: Map<string, {
@@ -1361,6 +1493,11 @@ function centsToDollars(value?: number | string | null) {
 
 function roundMoney(value: number) {
   return Math.round(value * 100) / 100;
+}
+
+function perUnit(value: number | null, quantity: number | null) {
+  if (value === null || quantity === null || quantity <= 0) return value;
+  return roundMoney(value / quantity);
 }
 
 function oldestDate(values: Array<string | null | undefined>) {

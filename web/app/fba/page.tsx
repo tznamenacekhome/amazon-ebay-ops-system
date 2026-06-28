@@ -18,6 +18,8 @@ import { mutationHeaders } from "../mutationHeaders";
 
 type FbaDetail = {
   item_id: string;
+  source_type?: "purchase_item" | "amazon_return_recovery";
+  source_status?: string | null;
   supplier_order_id: string | null;
   order_date: string | null;
   amazon_title: string | null;
@@ -266,6 +268,9 @@ export default function FbaPage() {
     for (const row of data?.rows ?? []) {
       for (const detail of row.details) {
         const quantity = parseQuantity(quantityDrafts[detail.item_id]);
+        if (detail.source_type === "amazon_return_recovery" && quantity > 0) {
+          return "Amazon Return Recovery rows are visible for Send to Amazon routing, but saving them needs a dedicated non-purchase shipment bridge first.";
+        }
         if (quantity < 0) return "Quantity to send cannot be negative.";
         if (quantity > detail.quantity) {
           return "Quantity to send cannot exceed received quantity.";
@@ -1118,7 +1123,8 @@ function quantityDraftsForData(data: FbaData) {
   const drafts: QuantityDraft = {};
   for (const row of data.rows) {
     for (const detail of row.details) {
-      drafts[detail.item_id] = String(detail.quantity);
+      drafts[detail.item_id] =
+        detail.source_type === "amazon_return_recovery" ? "0" : String(detail.quantity);
     }
   }
   return drafts;
@@ -1268,7 +1274,12 @@ function DetailTable({
             return (
               <tr key={detail.item_id} className="border-t border-slate-100">
                 <td className="whitespace-nowrap px-3 py-2 font-medium">
-                  {detail.supplier_order_id || "--"}
+                  <div>{detail.supplier_order_id || "--"}</div>
+                  {detail.source_type === "amazon_return_recovery" ? (
+                    <div className="mt-1 inline-flex rounded border border-blue-200 bg-blue-50 px-2 py-0.5 text-xs font-semibold text-blue-700">
+                      Amazon return
+                    </div>
+                  ) : null}
                 </td>
                 <td className="whitespace-nowrap px-3 py-2">
                   {formatDate(detail.order_date)}
@@ -1302,7 +1313,11 @@ function DetailTable({
                   {formatMoney(detail.unit_cost)}
                 </td>
                 <td className="px-3 py-2">
-                  {quantityToSend === 0 ? (
+                  {detail.source_type === "amazon_return_recovery" ? (
+                    <span className="text-blue-700">
+                      Ready for Send to Amazon; shipment save needs return bridge
+                    </span>
+                  ) : quantityToSend === 0 ? (
                     <span className="text-slate-600">Remain Received</span>
                   ) : remaining > 0 ? (
                     <span className="text-amber-700">

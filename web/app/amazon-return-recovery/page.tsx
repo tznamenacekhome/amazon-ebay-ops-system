@@ -10,6 +10,7 @@ type QueueSummary = {
   without_reimbursement_evidence: number;
   with_customer_comments: number;
   needs_inspection: number;
+  case_review: number;
   needs_review: number;
   send_back_to_amazon: number;
   sell_on_ebay: number;
@@ -165,6 +166,7 @@ type DetailResponse = {
 
 type WorkflowFilter =
   | "open"
+  | "case_review"
   | "needs_review"
   | "send_back_to_amazon"
   | "sell_on_ebay"
@@ -172,10 +174,13 @@ type WorkflowFilter =
   | "closed"
   | "all";
 
-const TRI_STATE_OPTIONS: Array<[string, string]> = [
-  ["unknown", "Unknown"],
-  ["yes", "Yes"],
-  ["no", "No"],
+const OBSERVED_CONDITION_OPTIONS: Array<[string, string]> = [
+  ["not_recorded", "Not Recorded"],
+  ["new", "New"],
+  ["used", "Used"],
+  ["damaged", "Damaged"],
+  ["missing_parts", "Missing Parts"],
+  ["wrong_item", "Wrong Item"],
 ];
 
 const WORKFLOW_FILTERS: Array<{
@@ -184,6 +189,7 @@ const WORKFLOW_FILTERS: Array<{
   countKey?: keyof QueueSummary;
 }> = [
   { value: "open", label: "Open" },
+  { value: "case_review", label: "Case Review", countKey: "case_review" },
   { value: "needs_review", label: "Needs Review", countKey: "needs_review" },
   { value: "send_back_to_amazon", label: "Send Back", countKey: "send_back_to_amazon" },
   { value: "sell_on_ebay", label: "Sell on eBay", countKey: "sell_on_ebay" },
@@ -306,9 +312,22 @@ export default function AmazonReturnRecoveryPage() {
               autoFocus
               value={searchText}
               onChange={(event) => setSearchText(event.target.value)}
-              className="w-full rounded-md border border-slate-300 bg-white py-2 pl-9 pr-3 text-sm outline-none ring-blue-500 focus:ring-2"
+              className="w-full rounded-md border border-slate-300 bg-white py-2 pl-9 pr-9 text-sm outline-none ring-blue-500 focus:ring-2"
               placeholder="LPN, order ID, ASIN, SKU, FNSKU, title, reason, comments"
             />
+            {searchText ? (
+              <button
+                type="button"
+                onClick={() => {
+                  setSearchText("");
+                  loadQueue("");
+                }}
+                className="absolute right-2 top-2 rounded p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+                aria-label="Clear Amazon return search"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            ) : null}
             </div>
           </label>
           <WorkflowFilterButtons
@@ -444,10 +463,7 @@ function ReturnDetailDrawer({
   const originalSale = detail?.original_sale ?? detail?.row.original_sale ?? null;
   const events = detail?.events ?? [];
   const [inspectionForm, setInspectionForm] = useState({
-    observed_condition: "",
-    sealed_new_status: "unknown",
-    complete_item: "unknown",
-    wrong_item: "unknown",
+    observed_condition: "not_recorded",
     notes: "",
     decision: "needs_review",
   });
@@ -457,10 +473,7 @@ function ReturnDetailDrawer({
   useEffect(() => {
     if (!detail) return;
     setInspectionForm({
-      observed_condition: detail.inspection.observed_condition ?? "",
-      sealed_new_status: detail.inspection.sealed_new_status ?? "unknown",
-      complete_item: detail.inspection.complete_item,
-      wrong_item: detail.inspection.wrong_item,
+      observed_condition: normalizeObservedCondition(detail.inspection.observed_condition),
       notes: detail.inspection.notes ?? "",
       decision: detail.row.decision ?? "needs_review",
     });
@@ -491,6 +504,36 @@ function ReturnDetailDrawer({
       onSaved();
     } catch (err) {
       setSaveInspectionError(err instanceof Error ? err.message : "Failed to save inspection.");
+    } finally {
+      setSavingInspection(false);
+    }
+  }
+
+  async function openCaseReview() {
+    if (!detail) return;
+    setSavingInspection(true);
+    setSaveInspectionError(null);
+
+    try {
+      const response = await fetch(`/api/amazon/return-recovery/${detail.row.id}/actions`, {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-mbop-csrf": "1",
+        },
+        body: JSON.stringify({
+          action: "open_case_review",
+          ...inspectionForm,
+          decision: "needs_review",
+        }),
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(payload.error ?? `Failed to open case review: ${response.status}`);
+      }
+      onSaved();
+    } catch (err) {
+      setSaveInspectionError(err instanceof Error ? err.message : "Failed to open case review.");
     } finally {
       setSavingInspection(false);
     }
@@ -575,30 +618,7 @@ function ReturnDetailDrawer({
                       onChange={(value) =>
                         setInspectionForm((current) => ({ ...current, observed_condition: value }))
                       }
-                      options={[
-                        ["", "Not recorded"],
-                        ["new_sealed", "New sealed"],
-                        ["new_opened", "New opened"],
-                        ["used_like_new", "Used like new"],
-                        ["used_good", "Used good"],
-                        ["damaged", "Damaged"],
-                        ["missing_parts", "Missing parts"],
-                        ["wrong_item", "Wrong item"],
-                        ["unknown", "Unknown"],
-                      ]}
-                    />
-                    <SelectField
-                      label="Sealed / New Status"
-                      value={inspectionForm.sealed_new_status}
-                      onChange={(value) =>
-                        setInspectionForm((current) => ({ ...current, sealed_new_status: value }))
-                      }
-                      options={[
-                        ["unknown", "Unknown"],
-                        ["sealed_new", "Sealed new"],
-                        ["opened_new", "Opened new"],
-                        ["not_new", "Not new"],
-                      ]}
+                      options={OBSERVED_CONDITION_OPTIONS}
                     />
                     <SelectField
                       label="Final Disposition"
@@ -613,25 +633,9 @@ function ReturnDetailDrawer({
                         ["dispose_donate", "Dispose/donate"],
                       ]}
                     />
-                    <SelectField
-                      label="Complete Item"
-                      value={inspectionForm.complete_item}
-                      onChange={(value) =>
-                        setInspectionForm((current) => ({ ...current, complete_item: value }))
-                      }
-                      options={TRI_STATE_OPTIONS}
-                    />
-                    <SelectField
-                      label="Wrong Item"
-                      value={inspectionForm.wrong_item}
-                      onChange={(value) =>
-                        setInspectionForm((current) => ({ ...current, wrong_item: value }))
-                      }
-                      options={TRI_STATE_OPTIONS}
-                    />
                     <InfoPair
                       label="Current Workflow"
-                      value={formatStatusText(detail?.row.workflow_state ?? "needs_inspection")}
+                      value={workflowDisplayLabel(detail?.row.workflow_state ?? "needs_inspection", detail?.row.decision ?? "needs_review")}
                     />
                   </div>
                   <label className="block">
@@ -663,6 +667,25 @@ function ReturnDetailDrawer({
                       {savingInspection ? "Saving..." : "Save Inspection"}
                     </button>
                   </div>
+                  {["missing_parts", "wrong_item"].includes(inspectionForm.observed_condition) ? (
+                    <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-3 text-sm text-amber-900">
+                      <div className="font-semibold">Case review recommended</div>
+                      <div className="mt-1">
+                        Open Case moves this MBOP row into manual Seller Central case review. It does not file anything with Amazon.
+                      </div>
+                      <button
+                        type="button"
+                        onClick={openCaseReview}
+                        disabled={savingInspection}
+                        className="mt-3 rounded-md border border-amber-300 bg-white px-3 py-2 text-sm font-semibold text-amber-900 hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        Open Case
+                      </button>
+                    </div>
+                  ) : null}
+                  {detail?.row.workflow_state === "reimbursement_review" ? (
+                    <CaseReviewChecklist />
+                  ) : null}
                 </div>
               </DetailSection>
 
@@ -807,6 +830,22 @@ function DetailSection({ title, children }: { title: string; children: ReactNode
   );
 }
 
+function CaseReviewChecklist() {
+  return (
+    <div className="rounded-md border border-blue-200 bg-blue-50 px-3 py-3 text-sm text-blue-950">
+      <div className="font-semibold">Manual case review checklist</div>
+      <ul className="mt-2 list-disc space-y-1 pl-5">
+        <li>Verify LPN and Amazon order ID.</li>
+        <li>Photograph the item, packaging, and missing/wrong contents.</li>
+        <li>Review Amazon customer return reason, disposition, and comments.</li>
+        <li>Check for existing reimbursement evidence.</li>
+        <li>Prepare Seller Central case manually.</li>
+        <li>Record Seller Central case ID later.</li>
+      </ul>
+    </div>
+  );
+}
+
 function SelectField({
   label,
   value,
@@ -942,11 +981,11 @@ function EvidencePill({ row }: { row: QueueRow }) {
 }
 
 function WorkflowPill({ row }: { row: QueueRow }) {
-  const label = row.decision === "needs_review"
-    ? formatStatusText(row.workflow_state)
-    : formatStatusText(row.decision);
+  const label = workflowDisplayLabel(row.workflow_state, row.decision);
   const color =
-    row.decision === "send_back_to_amazon"
+    row.workflow_state === "reimbursement_review"
+      ? "border-blue-200 bg-blue-50 text-blue-700"
+      : row.decision === "send_back_to_amazon"
       ? "border-blue-200 bg-blue-50 text-blue-700"
       : row.decision === "sell_on_ebay"
         ? "border-green-200 bg-green-50 text-green-700"
@@ -965,6 +1004,16 @@ function WorkflowPill({ row }: { row: QueueRow }) {
       ) : null}
     </div>
   );
+}
+
+function workflowDisplayLabel(workflowState: string, decision: string) {
+  if (workflowState === "needs_inspection") return "Needs inspection";
+  if (workflowState === "reimbursement_review") return "Needs case review";
+  if (workflowState === "ready_to_send_back_to_amazon") return "Ready for Send to Amazon";
+  if (decision === "sell_on_ebay") return "eBay decision recorded";
+  if (decision === "dispose_donate") return "Dispose/donate recorded";
+  if (decision === "send_back_to_amazon") return "Ready for Send to Amazon";
+  return formatStatusText(workflowState);
 }
 
 function financialStatusLabel(originalSale: OriginalSaleFinancialImpact) {
@@ -995,6 +1044,16 @@ function formatStatusText(value: string) {
     .split("_")
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
     .join(" ");
+}
+
+function normalizeObservedCondition(value?: string | null) {
+  const text = (value ?? "not_recorded").trim().toLowerCase().replace(/[\s-]+/g, "_");
+  if (!text || text === "unknown") return "not_recorded";
+  if (["new_sealed", "sealed_new", "new_opened", "opened_new"].includes(text)) return "new";
+  if (["used_like_new", "used_good"].includes(text)) return "used";
+  return OBSERVED_CONDITION_OPTIONS.some(([optionValue]) => optionValue === text)
+    ? text
+    : "not_recorded";
 }
 
 function formatDateTime(value?: string | null) {

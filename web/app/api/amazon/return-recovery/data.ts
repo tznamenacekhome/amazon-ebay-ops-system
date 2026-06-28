@@ -490,6 +490,8 @@ export function queueRowMatchesWorkflowFilter(row: QueueRow, filter: string) {
   switch (filter) {
     case "open":
       return !["closed", "disposed_donated"].includes(row.workflow_state);
+    case "case_review":
+      return row.workflow_state === "reimbursement_review";
     case "needs_review":
       return row.decision === "needs_review" || row.workflow_state === "decision_needed";
     case "send_back_to_amazon":
@@ -512,6 +514,7 @@ export function summarizeQueue(rows: QueueRow[], allRows: QueueRow[]) {
     without_reimbursement_evidence: rows.filter((row) => row.reimbursement_count === 0).length,
     with_customer_comments: rows.filter((row) => Boolean(cleanText(row.customer_comments))).length,
     needs_inspection: allRows.filter((row) => row.workflow_state === "needs_inspection").length,
+    case_review: allRows.filter((row) => row.workflow_state === "reimbursement_review").length,
     needs_review: allRows.filter((row) => row.decision === "needs_review").length,
     send_back_to_amazon: allRows.filter((row) => row.decision === "send_back_to_amazon").length,
     sell_on_ebay: allRows.filter((row) => row.decision === "sell_on_ebay").length,
