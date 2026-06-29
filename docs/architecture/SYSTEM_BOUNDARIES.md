@@ -310,8 +310,10 @@ ZFI outbound integration:
 Orchestration:
 
 - `run_all_syncs.py`
-  - current groups include `finance-refresh` and `business-value-finalizer`
-  - ZFI push is manual today and intentionally not scheduled yet
+  - current ZFI push groups include `amazon-sales-recent`, `finance-refresh`,
+    `business-value-finalizer`, `fba-inventory-daily`, and `fba-shipments`
+  - ZFI push remains outbound-only and nonblocking; MBOP does not read ZFI
+    personal finance data
 
 ### Tables And Views
 

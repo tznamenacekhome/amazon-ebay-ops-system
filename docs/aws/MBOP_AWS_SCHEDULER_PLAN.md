@@ -99,11 +99,11 @@ These group names are now accepted by `run_all_syncs.py`:
 - `purchase-tracking`: EasyPost inbound purchase shipments
 - `returns-order-problems`: eBay order problem returns/inquiries, EasyPost order problem returns
 - `purchase-enrichment`: RevSeller enrichment, Keepa missing purchase titles
-- `amazon-sales-recent`: Amazon sales orders, recent finances, Veeqo labels, profitability
-- `finance-refresh`: YNAB transactions, YNAB cash, Amazon finance balances, business value snapshot
-- `business-value-finalizer`: business value snapshot
-- `fba-inventory-daily`: Amazon FBA inventory, Amazon inventory planning
-- `fba-shipments`: Amazon FBA shipments, FBA EasyPost carrier tracking
+- `amazon-sales-recent`: Amazon sales orders, recent finances, Veeqo labels, profitability, ZFI business summary push
+- `finance-refresh`: YNAB transactions, YNAB cash, Amazon finance balances, business value snapshot, ZFI business summary push
+- `business-value-finalizer`: business value snapshot, ZFI business summary push
+- `fba-inventory-daily`: Amazon FBA inventory, Amazon inventory planning, ZFI business summary push
+- `fba-shipments`: Amazon FBA shipments, FBA EasyPost carrier tracking, ZFI business summary push
 - `reconciliation`: inventory reconciliation with `--skip-if-unchanged`
 - `repricing-catalog`: Amazon listing status, Informed repricing reports
 - `sourcing-catalog`: sourcing listing availability, matching intelligence refresh
@@ -174,9 +174,11 @@ Create these if missing. Map each secret to the listed environment variable in t
 /mbop/prod/veeqo/api-key -> VEEQO_KEY
 /mbop/prod/informed/api-key -> INFORMED_REPRICER_API_KEY
 /mbop/prod/openai/api-key -> OPENAI_API_KEY
+/mbop/prod/zfi/supabase-url -> ZFI_SUPABASE_URL
+/mbop/prod/zfi/supabase-service-role-key -> ZFI_SUPABASE_SERVICE_ROLE_KEY
 ```
 
-These secrets exist in AWS Secrets Manager as of 2026-06-20, created from local `.env` values without printing secret contents.
+These secrets exist in AWS Secrets Manager. Core MBOP scheduler secrets were created as of 2026-06-20, and the ZFI outbound secrets were added on 2026-06-28 from local `.env` values without printing secret contents.
 
 Optional non-secret environment:
 

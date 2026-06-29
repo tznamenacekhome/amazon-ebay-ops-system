@@ -114,9 +114,10 @@ Windows task has been removed.
 
 Independent integration failures are collected and reported while later syncs continue running. This prevents one external API failure from blocking unrelated freshness work.
 
-`integrations/push_zfi_business_summary.py` is a manual outbound export to ZFI
-Supabase. It defaults to dry run and is intentionally not part of scheduled
-orchestration until the payload has been reviewed in ZFI.
+`integrations/push_zfi_business_summary.py` is an outbound-only export to ZFI
+Supabase. It defaults to dry run for manual use, and production scheduler
+groups that refresh Amazon/SP-API sales, finance, inventory, shipment, or
+business-value source data run it with `--apply` as a nonblocking final push.
 
 The orchestrator writes the latest per-job state to Supabase scheduler
 telemetry in cloud runs and to `logs/sync_health.json` for local/manual runs,

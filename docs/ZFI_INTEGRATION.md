@@ -1,6 +1,6 @@
 # ZFI Integration
 
-Last updated: 2026-06-26
+Last updated: 2026-06-28
 
 ## Purpose
 
@@ -77,8 +77,19 @@ Custom period:
 .\.venv\Scripts\python.exe integrations\push_zfi_business_summary.py --start-date 2026-06-01 --end-date 2026-06-30
 ```
 
-The script is intentionally not scheduled yet. Run it manually until the
-payload is reviewed in ZFI.
+The script is now wired into AWS scheduler groups that refresh MBOP source data
+used by the payload:
+
+- `amazon-sales-recent`
+- `finance-refresh`
+- `business-value-finalizer`
+- `fba-inventory-daily`
+- `fba-shipments`
+
+This keeps ZFI updated after MBOP refreshes Amazon/SP-API sales, finance,
+inventory, and FBA-shipment source data. The job remains safe to run manually
+for dry-run review, and it is nonblocking in scheduler orchestration so a ZFI
+push failure does not prevent MBOP source syncs from completing.
 
 ## One-Time Business Value History Backfill
 

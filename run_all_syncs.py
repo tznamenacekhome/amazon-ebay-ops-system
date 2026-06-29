@@ -346,6 +346,24 @@ JOBS: tuple[SyncJob, ...] = (
         timeout_seconds=30 * 60,
     ),
     SyncJob(
+        name="ZFI business summary push",
+        command=static_command(
+            "integrations/push_zfi_business_summary.py",
+            "--generated-by",
+            "aws-scheduler",
+            "--apply",
+        ),
+        groups=(
+            "amazon-sales-recent",
+            "finance-refresh",
+            "business-value-finalizer",
+            "fba-inventory-daily",
+            "fba-shipments",
+        ),
+        blocking=False,
+        timeout_seconds=20 * 60,
+    ),
+    SyncJob(
         name="Sourcing listing availability",
         command=static_command(
             "integrations/refresh_sourcing_listing_availability.py",
