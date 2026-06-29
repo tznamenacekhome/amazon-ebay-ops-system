@@ -51,7 +51,7 @@ Target:
 
 ```text
 Task definition family: mbop-scheduler-task
-Current ZFI-enabled revision: mbop-scheduler-task:3
+Current ZFI-enabled revision: mbop-scheduler-task:4
 Container: mbop-scheduler
 CPU: 512
 Memory: 1024 MiB
@@ -68,8 +68,8 @@ Default command:
 Current ECR image:
 
 ```text
-297464765814.dkr.ecr.us-west-2.amazonaws.com/mbop-scheduler@sha256:9f854b80092d019175a820496558a7fa94be43f06c76baaf9241867e5143e0d0
-tag: 2c704a4
+297464765814.dkr.ecr.us-west-2.amazonaws.com/mbop-scheduler@sha256:260dfc320f6f55638c90631d3a4823507e4f7d1f9fa5fab79625d7bb7be252dd
+tag: 3e21eea
 ```
 
 The current ZFI-enabled scheduler task definition is digest-pinned. Legacy
@@ -121,7 +121,7 @@ Do not use `all`, `core`, or `daily` for production AWS schedules.
 
 Production schedules are enabled in EventBridge Scheduler with timezone `America/Los_Angeles`. They launch scheduler tasks on `mbop-cluster1` through role `mbopEventBridgeSchedulerEcsRole`.
 
-ZFI-enabled schedules currently launch `mbop-scheduler-task:3`: `mbop-amazon-sales-recent-day`, `mbop-amazon-sales-recent-catchup`, `mbop-finance-refresh-morning`, `mbop-finance-refresh-afternoon`, `mbop-finance-refresh-evening`, `mbop-fba-inventory-daily`, and `mbop-fba-shipments-active-window`. Other production schedules still use the older scheduler revision until their next deployment.
+ZFI-enabled schedules currently launch `mbop-scheduler-task:4`: `mbop-amazon-sales-recent-day`, `mbop-amazon-sales-recent-catchup`, `mbop-finance-refresh-morning`, `mbop-finance-refresh-afternoon`, `mbop-finance-refresh-evening`, `mbop-fba-inventory-daily`, and `mbop-fba-shipments-active-window`. Other production schedules still use the older scheduler revision until their next deployment.
 
 ```text
 mbop-purchase-ingestion-hourly: cron(0 7-22 ? * * *)
@@ -247,7 +247,7 @@ System Health group drawers display those counters and metrics in recent-run
 history. Jobs only show the richer metrics after they have run on scheduler
 image `sha256:77b46ba7a474bc718fb34c994a763ebb98200c637d48982eb5c1474ca43ca58a`
 or later; ZFI-enabled groups now run on image
-`sha256:9f854b80092d019175a820496558a7fa94be43f06c76baaf9241867e5143e0d0`.
+`sha256:260dfc320f6f55638c90631d3a4823507e4f7d1f9fa5fab79625d7bb7be252dd`.
 
 Smoke validation completed:
 
@@ -265,8 +265,8 @@ Smoke validation completed:
   `finance-refresh`, `fba-inventory-daily`, `fba-shipments`,
   `reconciliation`, `repricing-catalog`, `sourcing-catalog`, and
   `keepa-rolling-refresh`.
-- ECS one-off ZFI smoke run on `mbop-scheduler-task:3`: passed on 2026-06-28
-  with `ZFI business summary pushed`.
+- ECS one-off expanded ZFI payload smoke run on `mbop-scheduler-task:4`:
+  passed on 2026-06-28 with `ZFI business summary pushed`.
 
 ## Keepa Guardrails
 

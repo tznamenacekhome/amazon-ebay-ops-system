@@ -91,7 +91,7 @@ docker tag mbop-scheduler:<tag> 297464765814.dkr.ecr.us-west-2.amazonaws.com/mbo
 docker push 297464765814.dkr.ecr.us-west-2.amazonaws.com/mbop-scheduler:<tag>
 ```
 
-Current ZFI-enabled schedules use digest-pinned `mbop-scheduler-task:3`. Some
+Current ZFI-enabled schedules use digest-pinned `mbop-scheduler-task:4`. Some
 legacy schedules still use `mbop-scheduler-task:1`, which is tag-based on
 `mbop-scheduler:latest`; pushing `:latest` is therefore a production-affecting
 change for those scheduled jobs. Prefer registering a new task definition

@@ -79,7 +79,7 @@ Scheduler repository:
 Scheduler task definition:
 
 ```text
-ZFI-enabled schedules: arn:aws:ecs:us-west-2:297464765814:task-definition/mbop-scheduler-task:3
+ZFI-enabled schedules: arn:aws:ecs:us-west-2:297464765814:task-definition/mbop-scheduler-task:4
 Legacy unchanged schedules: arn:aws:ecs:us-west-2:297464765814:task-definition/mbop-scheduler-task:1
 ```
 
@@ -91,11 +91,11 @@ The ZFI-enabled scheduler task definition is digest-pinned. Legacy
 Current scheduler image digest:
 
 ```text
-ZFI-enabled revision: sha256:9f854b80092d019175a820496558a7fa94be43f06c76baaf9241867e5143e0d0
+ZFI-enabled revision: sha256:260dfc320f6f55638c90631d3a4823507e4f7d1f9fa5fab79625d7bb7be252dd
 Legacy latest revision: sha256:77b46ba7a474bc718fb34c994a763ebb98200c637d48982eb5c1474ca43ca58a
 ```
 
-Tag `2c704a4` points at the ZFI-enabled scheduler digest. Tags `latest` and
+Tag `3e21eea` points at the ZFI-enabled scheduler digest. Tags `latest` and
 `on-demand-sourcing-20260622` point at the legacy scheduler digest.
 
 ## ALB
@@ -481,7 +481,7 @@ This role can run `mbop-scheduler-task:*` on `mbop-cluster1` and pass `ecsTaskEx
 
 Scheduler sizing note:
 
-- ZFI-enabled EventBridge Scheduler targets run `mbop-scheduler-task:3` at the
+- ZFI-enabled EventBridge Scheduler targets run `mbop-scheduler-task:4` at the
   default `512 CPU / 1024 MB`: `amazon-sales-recent`, `finance-refresh`,
   `fba-inventory-daily`, and `fba-shipments` schedules.
 - Other EventBridge Scheduler targets still run `mbop-scheduler-task:1` at the
