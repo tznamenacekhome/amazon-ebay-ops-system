@@ -1,6 +1,6 @@
 # ZFI Integration
 
-Last updated: 2026-06-28
+Last updated: 2026-06-29
 
 ## Purpose
 
@@ -224,6 +224,8 @@ Top-level metadata:
 
 - `source`: always `mbop`
 - `schema_version`: payload version
+- `payload_version`: current expanded payload is
+  `business_finance_replacement_v2`
 - `summary_id`: stable UUID for the source/period
 - `generated_at`: UTC generation timestamp
 - `generated_by`: manual/operator label
@@ -279,6 +281,40 @@ Review support:
 - `source_summary`
 - `reconciliation_confidence_notes`
 
+Expanded dashboard-replacement sections:
+
+- `profitability_windows`: 30-day, 90-day, and YTD gross sales, revenue,
+  Amazon/marketplace fees, fulfillment/shipping-label costs, COGS, gross
+  profit, net profit, ROI, average profit per unit, units sold, period source
+  dates, timestamps, and completeness warnings.
+- `cash_position`: Amazon cash total, available-to-withdraw cash,
+  Amazon-to-bank in-transit cash, deferred/reserved cash, temporary MBOP YNAB
+  Business cash during the parallel period, available business cash, payout
+  status summary, source timestamps, freshness, and warnings.
+- `payout_reconciliation`: in-transit payout amount, completed payouts matched
+  or not matched to YNAB, latest payout/deposit dates where MBOP has them,
+  reconciliation status, and explicit warnings for values MBOP does not safely
+  model yet.
+- `inventory_capital`: total, Amazon, and pre-Amazon inventory value; value by
+  operational location; value by age bucket; capital-at-risk buckets; source
+  timestamps; and warnings for missing or unavailable valuation concepts.
+- `loss_prevention`: open sales/value-at-risk, refund pending, expected and
+  received refunds, partial refunds, refund-event totals, Amazon
+  reimbursement totals, currency handling, and conservative nulls/warnings for
+  unrecoverable fees that still need financial mapping.
+- `top_sellers`: 90-day top sellers by revenue, profit, and ROI, with ASIN,
+  title, units sold, revenue, net profit, ROI, average profit per unit, and
+  source period.
+- `growth_summary`: recent monthly revenue, profit, inventory spend, ending
+  inventory/business value, units sold, ROI, and average profit per unit where
+  source data is available.
+- `sourcing_summary`: replenishment/research queue count, estimated value,
+  total profit opportunity, average estimated profit, average ROI, max-buy
+  total, and timestamps.
+- `financial_readiness`: missing COGS units/value, missing fees, pending fees,
+  missing fulfillment-cost count, stale source count, source freshness summary,
+  blocking issues, and warning issues.
+
 ## Current Limitations
 
 - eBay seller revenue is currently `0` because MBOP does not yet own eBay
@@ -290,6 +326,9 @@ Review support:
 - Net profit is based on complete Amazon profitability rows. Missing COGS,
   missing fees, refunded, and cancelled rows are surfaced in alerts/confidence
   notes rather than silently blended into complete-profit totals.
+- Some replacement fields intentionally remain `null` with warnings until MBOP
+  has a backend-owned source. Examples include unrecoverable return fees,
+  listing-health dollar value, and YNAB Amazon deposits without matched payout.
 
 ## Operator Checklist
 

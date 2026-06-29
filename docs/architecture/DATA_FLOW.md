@@ -1,7 +1,7 @@
 # MBOP / ZFI Data Flow
 
 Status: Phase A final
-Last updated: 2026-06-27
+Last updated: 2026-06-29
 
 ## Architecture Docs
 
@@ -54,6 +54,11 @@ Use for:
 - Sales, fees, fulfillment cost, COGS, and operational profit summaries.
 - Amazon payout/cash status.
 - Confidence, timestamp, lineage, and review-status metadata.
+- Expanded ZFI finance replacement summaries, currently published as
+  `payload_version = business_finance_replacement_v2`, including
+  profitability windows, cash position, payout reconciliation, inventory
+  capital, loss prevention, top sellers, growth, sourcing, and financial
+  readiness.
 
 Mechanism:
 

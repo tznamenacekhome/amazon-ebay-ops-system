@@ -1,7 +1,7 @@
 # MBOP / ZFI Integration Principles
 
 Status: Phase A final
-Last updated: 2026-06-27
+Last updated: 2026-06-29
 
 ## Architecture Docs
 
@@ -67,6 +67,10 @@ Normal ZFI reporting should start from:
 - Operational profit summaries.
 - Amazon cash/payout summaries.
 - Source timestamps, confidence, and review status.
+
+The current MBOP publisher uses `business_finance_replacement_v2` to send
+dashboard-replacement summaries to ZFI without sending item-level operational
+rows by default.
 
 Full operational replication is not the default.
 

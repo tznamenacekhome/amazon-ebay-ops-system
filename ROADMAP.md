@@ -183,12 +183,19 @@ Foundation:
 - The daily scheduler refreshes the YNAB Business transaction copy once per day.
 - Amazon Finance balance snapshots now reconcile completed Amazon payouts
   against YNAB Business deposit transactions before counting them as in transit.
+- `integrations/push_zfi_business_summary.py` now publishes the expanded
+  `business_finance_replacement_v2` payload to ZFI, preserving the original
+  summary fields while adding profitability windows, cash position, payout
+  reconciliation, inventory capital, loss prevention, top sellers, growth,
+  sourcing, and financial-readiness sections.
 
 Next steps:
 - keep MBOP item/order profitability, COGS diagnostics, inventory value, and
-  marketplace operational cash context.
-- push summarized business-operational finance data to ZFI Supabase through
-  `integrations/push_zfi_business_summary.py`.
+  marketplace operational cash context while ZFI builds replacement finance
+  views from the expanded payload.
+- compare ZFI replacement values against MBOP Financial, Growth, Loss
+  Prevention, Inventory, Amazon, Sourcing, and Sales Orders summaries before
+  hiding or narrowing MBOP financial dashboard surfaces.
 - add a future scoped operational drilldown API so ZFI/Ask Zoltar can link from
   financial summaries back to MBOP orders, purchase items, returns, inventory
   state details, COGS corrections, FBA shipments, shipping labels, and fee

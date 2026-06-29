@@ -1,7 +1,7 @@
 # System Boundaries: MBOP Relative To ZFI
 
 Status: Phase A final
-Last updated: 2026-06-27
+Last updated: 2026-06-29
 
 ## Architecture Docs
 
@@ -237,6 +237,20 @@ Minimum payload categories:
 - Source timestamps.
 - Alerts and confidence notes.
 - Data completeness and review status.
+
+Current expanded payload:
+
+- `payload_version = business_finance_replacement_v2`
+- profitability windows for 30-day, 90-day, and YTD periods
+- cash position and Amazon payout reconciliation
+- inventory capital by operational location and age bucket
+- loss-prevention/refund/reimbursement summaries
+- top sellers by revenue, profit, and ROI
+- growth, sourcing, and financial-readiness summaries
+
+These sections are summaries for ZFI finance reporting. MBOP still owns the
+operational source records and correction workflows, and ZFI must not require
+full MBOP operational table replication for normal dashboard reporting.
 
 Future push/backfill work:
 

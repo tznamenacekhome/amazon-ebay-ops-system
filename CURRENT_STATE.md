@@ -125,10 +125,13 @@ Implemented:
   payout reconciliation, financial data completeness, and the future Schedule C
   reporting placeholder from existing backend finance/profitability data.
 - ZFI is the go-forward owner for personal finance, business net worth,
-  cash-flow planning, and tax classification. MBOP has a manual dry-run ZFI
-  export script, `integrations/push_zfi_business_summary.py`, that builds an
-  outbound business-operational summary and can push it to ZFI Supabase only
-  when `--apply` is passed.
+  cash-flow planning, and tax classification. MBOP's outbound ZFI publisher,
+  `integrations/push_zfi_business_summary.py`, now builds the expanded
+  `business_finance_replacement_v2` payload for ZFI dashboard replacement
+  work. It preserves the original summary fields and adds profitability
+  windows, cash position, payout reconciliation, inventory capital, loss
+  prevention, top sellers, growth, sourcing, and financial-readiness sections.
+  Dry run remains the default; live ZFI writes require `--apply`.
 - Inventory dashboard summarizes inventory value/location, age buckets,
   capital at risk, concentration, and reconciliation attention from
   `inventory_positions` and reconciliation views.

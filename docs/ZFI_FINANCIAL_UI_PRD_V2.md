@@ -2,7 +2,7 @@
 
 **Document:** ZFI Financial UI PRD  
 **Version:** 2  
-**Last updated:** 2026-06-26  
+**Last updated:** 2026-06-29
 **Purpose:** Define the ZoltarFI / ZFI business financial UI requirements and the migration boundary between MBOP and ZFI.
 
 ---
@@ -19,6 +19,18 @@ The long-term direction is:
 - ZFI should combine MBOP summaries with YNAB, tax returns, receipts, paystubs, Plaid, and manual inputs.
 
 MBOP should not become a personal finance, tax, or household net worth application.
+
+Implementation status as of 2026-06-29:
+
+- MBOP publishes `payload_version = business_finance_replacement_v2` through
+  `integrations/push_zfi_business_summary.py`.
+- The payload includes the financial dashboard replacement summaries ZFI needs
+  for profitability windows, cash position, payout reconciliation, inventory
+  capital, loss prevention, top sellers, growth, sourcing, and financial
+  readiness.
+- MBOP still keeps its dashboards during the parallel verification period.
+- ZFI should treat these payload sections as imported operational summaries,
+  not as personal finance or tax/accounting conclusions.
 
 ---
 
