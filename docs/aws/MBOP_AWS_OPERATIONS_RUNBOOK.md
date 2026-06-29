@@ -91,12 +91,13 @@ docker tag mbop-scheduler:<tag> 297464765814.dkr.ecr.us-west-2.amazonaws.com/mbo
 docker push 297464765814.dkr.ecr.us-west-2.amazonaws.com/mbop-scheduler:<tag>
 ```
 
-Current scheduler task definition `mbop-scheduler-task:1` uses
-`mbop-scheduler:latest`. Pushing `:latest` is therefore a production-affecting
-change for scheduled jobs. Prefer registering a new task definition revision
-pinned to a digest when changing scheduler code; at minimum, run ECS `--list`
-smoke tests and verify `/ecs/mbop-scheduler` logs before relying on the new
-image.
+Current ZFI-enabled schedules use digest-pinned `mbop-scheduler-task:3`. Some
+legacy schedules still use `mbop-scheduler-task:1`, which is tag-based on
+`mbop-scheduler:latest`; pushing `:latest` is therefore a production-affecting
+change for those scheduled jobs. Prefer registering a new task definition
+revision pinned to a digest when changing scheduler code; at minimum, run ECS
+`--list` smoke tests and verify `/ecs/mbop-scheduler` logs before relying on
+the new image.
 
 ## One-Off ECS Scheduler Task
 

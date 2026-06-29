@@ -79,22 +79,24 @@ Scheduler repository:
 Scheduler task definition:
 
 ```text
-arn:aws:ecs:us-west-2:297464765814:task-definition/mbop-scheduler-task:1
+ZFI-enabled schedules: arn:aws:ecs:us-west-2:297464765814:task-definition/mbop-scheduler-task:3
+Legacy unchanged schedules: arn:aws:ecs:us-west-2:297464765814:task-definition/mbop-scheduler-task:1
 ```
 
-The task definition is registered against image tag
-`297464765814.dkr.ecr.us-west-2.amazonaws.com/mbop-scheduler:latest`.
-Unlike the web task, the current scheduler task is tag-based rather than
-digest-pinned; treat `:latest` updates as production changes.
+The ZFI-enabled scheduler task definition is digest-pinned. Legacy
+`mbop-scheduler-task:1` is still registered against image tag
+`297464765814.dkr.ecr.us-west-2.amazonaws.com/mbop-scheduler:latest`, so treat
+`:latest` updates as production changes for any schedules that still use it.
 
 Current scheduler image digest:
 
 ```text
-sha256:77b46ba7a474bc718fb34c994a763ebb98200c637d48982eb5c1474ca43ca58a
+ZFI-enabled revision: sha256:9f854b80092d019175a820496558a7fa94be43f06c76baaf9241867e5143e0d0
+Legacy latest revision: sha256:77b46ba7a474bc718fb34c994a763ebb98200c637d48982eb5c1474ca43ca58a
 ```
 
-Tags `latest` and `on-demand-sourcing-20260622` point at the current scheduler
-digest.
+Tag `2c704a4` points at the ZFI-enabled scheduler digest. Tags `latest` and
+`on-demand-sourcing-20260622` point at the legacy scheduler digest.
 
 ## ALB
 
@@ -479,8 +481,11 @@ This role can run `mbop-scheduler-task:*` on `mbop-cluster1` and pass `ecsTaskEx
 
 Scheduler sizing note:
 
-- Most EventBridge Scheduler targets run `mbop-scheduler-task:1` at the default
-  `512 CPU / 1024 MB`.
+- ZFI-enabled EventBridge Scheduler targets run `mbop-scheduler-task:3` at the
+  default `512 CPU / 1024 MB`: `amazon-sales-recent`, `finance-refresh`,
+  `fba-inventory-daily`, and `fba-shipments` schedules.
+- Other EventBridge Scheduler targets still run `mbop-scheduler-task:1` at the
+  default `512 CPU / 1024 MB` until their next scheduler deployment.
 - `mbop-sourcing-catalog` is intentionally overridden to `1024 CPU / 2048 MB`.
   The default 1 GiB size repeatedly failed with ECS `OutOfMemoryError` during
   `Matching intelligence refresh`; a manual 2 GiB retry on 2026-06-21 completed

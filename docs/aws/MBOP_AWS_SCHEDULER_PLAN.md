@@ -51,7 +51,7 @@ Target:
 
 ```text
 Task definition family: mbop-scheduler-task
-Current revision: mbop-scheduler-task:1
+Current ZFI-enabled revision: mbop-scheduler-task:3
 Container: mbop-scheduler
 CPU: 512
 Memory: 1024 MiB
@@ -68,15 +68,14 @@ Default command:
 Current ECR image:
 
 ```text
-297464765814.dkr.ecr.us-west-2.amazonaws.com/mbop-scheduler:latest
-digest: sha256:77b46ba7a474bc718fb34c994a763ebb98200c637d48982eb5c1474ca43ca58a
-tags: latest, on-demand-sourcing-20260622
+297464765814.dkr.ecr.us-west-2.amazonaws.com/mbop-scheduler@sha256:9f854b80092d019175a820496558a7fa94be43f06c76baaf9241867e5143e0d0
+tag: 2c704a4
 ```
 
-The current scheduler task definition is tag-based on `:latest`, so pushing a
-new `latest` image changes what scheduled jobs run without registering a new
-task definition revision. Prefer digest-pinned task definition revisions for
-future scheduler deployments.
+The current ZFI-enabled scheduler task definition is digest-pinned. Legacy
+`mbop-scheduler-task:1` is still tag-based on `:latest` for schedules that were
+not changed in the ZFI rollout. Prefer digest-pinned task definition revisions
+for future scheduler deployments.
 
 EventBridge Scheduler should override the command per group:
 
@@ -120,7 +119,9 @@ Do not use `all`, `core`, or `daily` for production AWS schedules.
 
 ## EventBridge Schedules
 
-Production schedules are enabled in EventBridge Scheduler with timezone `America/Los_Angeles`. They launch `mbop-scheduler-task:1` on `mbop-cluster1` through role `mbopEventBridgeSchedulerEcsRole`.
+Production schedules are enabled in EventBridge Scheduler with timezone `America/Los_Angeles`. They launch scheduler tasks on `mbop-cluster1` through role `mbopEventBridgeSchedulerEcsRole`.
+
+ZFI-enabled schedules currently launch `mbop-scheduler-task:3`: `mbop-amazon-sales-recent-day`, `mbop-amazon-sales-recent-catchup`, `mbop-finance-refresh-morning`, `mbop-finance-refresh-afternoon`, `mbop-finance-refresh-evening`, `mbop-fba-inventory-daily`, and `mbop-fba-shipments-active-window`. Other production schedules still use the older scheduler revision until their next deployment.
 
 ```text
 mbop-purchase-ingestion-hourly: cron(0 7-22 ? * * *)
@@ -245,7 +246,8 @@ additional human-readable metrics in `scheduler_run_jobs.metadata.metrics`.
 System Health group drawers display those counters and metrics in recent-run
 history. Jobs only show the richer metrics after they have run on scheduler
 image `sha256:77b46ba7a474bc718fb34c994a763ebb98200c637d48982eb5c1474ca43ca58a`
-or later.
+or later; ZFI-enabled groups now run on image
+`sha256:9f854b80092d019175a820496558a7fa94be43f06c76baaf9241867e5143e0d0`.
 
 Smoke validation completed:
 
@@ -263,6 +265,8 @@ Smoke validation completed:
   `finance-refresh`, `fba-inventory-daily`, `fba-shipments`,
   `reconciliation`, `repricing-catalog`, `sourcing-catalog`, and
   `keepa-rolling-refresh`.
+- ECS one-off ZFI smoke run on `mbop-scheduler-task:3`: passed on 2026-06-28
+  with `ZFI business summary pushed`.
 
 ## Keepa Guardrails
 
