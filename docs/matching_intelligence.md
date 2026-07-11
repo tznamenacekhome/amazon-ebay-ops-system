@@ -125,6 +125,17 @@ Amazon-to-eBay sourcing now consumes Matching Intelligence during scoring:
   edition/version signals, region signals, incomplete/not-game listings,
   category/location signals, historical dismissal similarity, seller trust, and
   the final recommendation
+- static rules normalize eBay raw payload evidence into diagnostics, including
+  localized aspects for Platform, Game Name, Region Code, Country of Origin,
+  Format, Type, Features, and Release Year, plus category names/IDs, seller
+  description text, and image URL availability
+- Amazon seed platform resolution now uses first-class seed `system`,
+  `raw_context_json.inferred_system`, and title detection in that order; eBay
+  item-specific Platform is used before title platform detection
+- clear non-game categories, accessory/merchandise phrases, digital/service
+  phrases, incomplete-product phrases, non-North-American region signals,
+  numeric sequel/year mismatches, item-specific Game Name conflicts, and
+  edition/version conflicts can hard-block profitable-looking rows
 - recommendations use `Blocked`, `Probable Non-Match`, `Review`,
   `Probable Match`, and `Strong Match`
 - exact historical positive examples boost candidate score
@@ -135,6 +146,9 @@ Amazon-to-eBay sourcing now consumes Matching Intelligence during scoring:
 - seller `watch` and `avoid` statuses add warnings and score penalties, but do
   not hide opportunities yet
 - eBay listings with known category evidence outside Video Games are hard-blocked
+  or routed to Review for ambiguous game-plus-accessory bundles
+- `/api/sourcing/opportunities` returns full backend `matchingDiagnostics` for
+  each row in addition to flattened flags
 - the Matching Intelligence UI includes image clue counts and a near-miss
   review queue for title-similar dismissed/condition examples
 
@@ -148,8 +162,9 @@ The analyzer defaults to dry-run mode. `--write` stores diagnostics only and
 does not update opportunity status, auto-dismiss listings, bid, purchase,
 submit offers, call AI, train a model, or build eBay-to-Amazon sourcing.
 
-The latest deterministic rule review is documented in
-`docs/sourcing_match_quality_report.md`.
+The latest deterministic rule reviews are documented in
+`docs/sourcing_match_quality_report.md` and
+`docs/sourcing_matching_quality_sprint_2026-07-11.md`.
 
 AI review against opportunities should wait until the labeled sample set is
 larger and more balanced. Current target: at least 5,000 labeled examples with a
@@ -162,6 +177,8 @@ The remaining requirement work is tracked in `ROADMAP.md`. The important open
 items are:
 
 - a dedicated uncertain-match review workflow
+- a full per-opportunity diagnostics drawer that renders backend-provided
+  `matchingDiagnostics`
 - sample-driven fuzzy matching after the evidence set is large enough
 - AI title/image/item-specific review against live opportunities
 - scoring that directly uses structured image/listing clues

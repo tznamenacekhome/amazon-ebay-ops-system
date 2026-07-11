@@ -331,6 +331,33 @@ Implementation:
 
 ---
 
+## Sourcing Match Evidence Is Backend-Owned
+
+Decision:
+Amazon ASIN -> eBay sourcing matching normalizes and evaluates structured
+listing evidence in backend scoring code, not in the frontend.
+
+Implementation:
+- Amazon seed platform resolution uses first-class seed `system`, then
+  `sourcing_seed_asins.raw_context_json.inferred_system`, then Amazon title
+  detection.
+- eBay candidate matching parses raw Browse payload evidence, including
+  `localizedAspects.Platform`, `Game Name`, `Region Code`,
+  `Country of Origin`, `Format`, `Type`, `Features`, `Release Year`, category
+  IDs/names, seller description text, and image URL availability.
+- `score_sourcing_opportunities.py` writes the resulting backend diagnostics to
+  `sourcing_opportunities.matching_diagnostics_json`.
+- `/api/sourcing/opportunities` may expose those diagnostics for display, but
+  the React workspace must not calculate match decisions itself.
+
+Rule:
+Clear wrong-platform, non-game/accessory, digital/service, incomplete-product,
+foreign-region, sequel/year, Game Name, and edition/version conflicts should be
+hard-blocked before profitability can make a row open. Ambiguous
+game-plus-accessory bundles should route to Review.
+
+---
+
 ## Matched Amazon Title Is Stored Separately
 
 Decision:

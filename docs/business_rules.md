@@ -66,6 +66,16 @@ Carrier/status syncs must not downgrade workflow-owned statuses.
   opportunity open.
 - Sourcing must hard-block eBay results when known category evidence shows the
   listing is not in the Video Games category.
+- Sourcing scoring must consume backend-resolved Amazon platform context from
+  first-class seed `system`, then `sourcing_seed_asins.raw_context_json.inferred_system`,
+  then title detection. eBay item-specific `Platform` must be used before
+  title-only platform detection when available.
+- Sourcing must treat explicit structured and textual evidence for accessories,
+  merchandise, digital/service items, incomplete products, foreign regions,
+  sequel/year conflicts, and edition/version conflicts as backend-owned
+  diagnostics and hard blocks where confidence is high.
+- Possible game-plus-accessory bundles should route to Review instead of being
+  blindly hard-blocked unless the listing clearly lacks the game.
 - eBay sourcing search must include common seller platform abbreviations, such
   as xb1, ps2, ps3, ps4, ps5, Switch, Wii, Wii U, and wiiu. Wii and Wii U are
   separate platforms; a Wii seed must not accept a Wii U eBay result.
@@ -101,6 +111,10 @@ Carrier/status syncs must not downgrade workflow-owned statuses.
   history can still become replenishment candidates. Full-listing sourcing may
   also seed ASINs known only through current stored Keepa snapshots, but not
   snapshots older than 7 days.
+- Sourcing opportunity Last Sold display is backend-owned. It should use the
+  seed's stored sale context when present and otherwise fall back to Amazon
+  sales history by ASIN so full-listing candidates do not lose recent sale
+  context.
 
 ## Receiving
 

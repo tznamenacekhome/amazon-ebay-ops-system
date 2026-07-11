@@ -333,6 +333,18 @@ Implemented:
 - sourcing seed ASIN generation can use the full Amazon SKU catalog in
   `amazon_skus`, including inactive merchant listings, so out-of-stock items
   with known ASIN/MSKU history remain eligible for sourcing consideration
+- sourcing scoring now consumes stored Amazon inferred-system context and eBay
+  item-specific Platform before title-only platform detection, normalizes
+  structured eBay aspects/categories/descriptions/images into diagnostics, and
+  hard-blocks clear accessory, merchandise, digital/service, incomplete,
+  foreign-region, sequel/year, Game Name, and edition/version mismatches
+- `/api/sourcing/opportunities` now falls back to Amazon sales history by ASIN
+  for Last Sold display when a full-listing seed lacks `last_sold_at`, so
+  opportunities sourced from catalog inventory still show recent sale context.
+- the current deterministic match-quality sprint is documented in
+  `docs/sourcing_matching_quality_sprint_2026-07-11.md`; the latest
+  `recent_sales` and `full_listings` sourcing runs were rescored after the
+  rules were updated
 - MBOP screens show a screen-specific `Last updated` timestamp near refresh
   controls using `/api/screen-data-freshness`
 - Dashboard freshness uses the oldest required cash/value input so stale Amazon

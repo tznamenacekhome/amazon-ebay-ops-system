@@ -69,6 +69,33 @@ Recommended next mitigation:
 
 ---
 
+## Sourcing Diagnostics UI Gap
+
+Status: ACTIVE / BACKEND READY
+
+Problem:
+Sourcing scoring now writes full structured `matching_diagnostics_json` and the
+opportunities API exposes it as `matchingDiagnostics`, but the main sourcing
+table still primarily renders flattened flags. Operators cannot yet inspect the
+complete platform/category/item-specific/title/history/seller trace in a row
+drawer.
+
+Current mitigation:
+- Backend scoring owns all match decisions and diagnostics.
+- The API returns the backend diagnostics payload without adding frontend match
+logic.
+- `docs/sourcing_matching_quality_sprint_2026-07-11.md` records the latest
+deterministic quality pass and rescore.
+
+Recommended next mitigation:
+- Add a compact per-opportunity diagnostics drawer that renders
+  `matchingDiagnostics`, including platform source/result, title overlap,
+  category, Game Name, numeric/edition signals, digital/accessory/incomplete
+  signals, region, history, seller status, final recommendation, hard blocks,
+  and warnings.
+
+---
+
 ## Scheduled Sync Scope Needs Optimization
 
 Status: MITIGATED / MONITOR

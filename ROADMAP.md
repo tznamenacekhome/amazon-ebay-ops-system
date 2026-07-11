@@ -694,10 +694,16 @@ Implemented foundation:
 - listing snapshots are preserved for opportunities, actions, and best-effort
   historical/manual purchases
 - live Amazon-to-eBay sourcing consumes exact positive/negative examples,
-  seller warnings, hard platform rules, and non-video-game category blocks
+  seller warnings, hard platform rules, item-specific Platform, category
+  evidence, Game Name, numeric sequel/year checks, edition/version checks,
+  digital/service terms, accessory/merchandise terms, incomplete-product terms,
+  and region signals
 - Matching Intelligence refresh runs through sync orchestration after purchase,
   dismissal, return, and catalog updates, then rescoring refreshes recent
   sourcing runs
+- deterministic matcher regression tests cover known recent false-positive
+  patterns, and the latest quality sprint/rescore is documented in
+  `docs/sourcing_matching_quality_sprint_2026-07-11.md`
 
 Remaining capabilities:
 - full per-opportunity diagnostics UI showing hard-rule pass/fail, title

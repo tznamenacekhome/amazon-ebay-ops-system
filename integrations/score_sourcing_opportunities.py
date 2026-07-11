@@ -8,7 +8,7 @@ from typing import Any
 
 from sourcing_common import chunked, fetch_settings, get_supabase_client, paginate_table, to_float
 from matching_intelligence import build_listing_snapshot
-from sourcing_match_rules import evaluate_static_match_rules, meaningful_title_tokens
+from sourcing_match_rules import evaluate_static_match_rules, meaningful_title_tokens, resolve_seed_system
 from system_detection import detect_system_from_title, normalize_system
 from title_cleaning import clean_marketplace_title_for_search
 
@@ -359,6 +359,8 @@ def score_candidate(
     flags = advisory_flags(title, candidate, seed, settings) + matching_diagnostics["flags"]
     has_excluded_keyword = any("excluded keyword" in flag.lower() for flag in flags)
     has_hard_block = any(flag.startswith("Blocked:") for flag in flags)
+    match_recommendation = str(matching_diagnostics.get("recommendation") or "Review")
+    is_review_or_non_match = match_recommendation in {"Review", "Probable Non-Match", "Blocked"}
 
     seed_sale_price = to_float(seed.get("target_sale_price"), 0)
     pricing_reference = sale_price_reference(seed, keepa_prices_by_asin or {}, seed_sale_price)
@@ -386,6 +388,7 @@ def score_candidate(
     passes = (
         not has_excluded_keyword
         and not has_hard_block
+        and not is_review_or_non_match
         and profit is not None
         and roi is not None
         and profit >= settings.min_profit_dollars
@@ -400,13 +403,14 @@ def score_candidate(
         passes,
         settings,
         shipping_unknown,
-        has_excluded_keyword or has_hard_block,
+        has_excluded_keyword or has_hard_block or is_review_or_non_match,
     )
     potential_without_shipping = shipping_unknown and item_price > 0 and item_price <= max_profitable_landed_cost
     status = (
         "open"
         if not has_excluded_keyword
         and not has_hard_block
+        and not is_review_or_non_match
         and passes
         else "rejected"
     )
@@ -703,6 +707,10 @@ def matching_diagnostics_for_candidate(
         "title_overlap": static_rules.get("title_overlap"),
         "excluded_keywords": static_rules.get("excluded_keywords"),
         "digital_download": static_rules.get("digital_download"),
+        "category": static_rules.get("category"),
+        "normalized_evidence": static_rules.get("normalized_evidence"),
+        "game_name": static_rules.get("game_name"),
+        "numeric_identity": static_rules.get("numeric_identity"),
         "edition_version": static_rules.get("edition_version"),
         "region": static_rules.get("region"),
         "incomplete_listing": static_rules.get("incomplete_listing"),
@@ -736,7 +744,7 @@ def title_memory_examples(
     if not candidate_key:
         return []
 
-    seed_system = normalize_system(str(seed.get("system") or "")) or detect_system_from_title(str(seed.get("amazon_title") or ""))
+    seed_system, _ = resolve_seed_system(seed, str(seed.get("amazon_title") or ""))
     candidate_system = detect_system_from_title(str(candidate.get("ebay_title") or ""))
     examples = []
     for example in (matching_context.get("examples_by_asin") or {}).get(asin, []):

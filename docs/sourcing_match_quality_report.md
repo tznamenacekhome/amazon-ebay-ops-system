@@ -7,6 +7,12 @@ deterministic rules, diagnostics, and historical dismissal data only. No AI
 calls, model training, marketplace write actions, or eBay -> Amazon sourcing
 were added.
 
+Update 2026-07-11: the follow-up deterministic matching-quality sprint is
+documented in `docs/sourcing_matching_quality_sprint_2026-07-11.md`. It adds
+structured eBay evidence parsing, seed inferred-platform scoring, stronger
+category/accessory/digital/incomplete/region/numeric/edition blocks, regression
+tests, analyzer coverage output, and a live rescore of the latest sourcing runs.
+
 ## Current Dataset Summary
 
 Live sourcing dataset reviewed:

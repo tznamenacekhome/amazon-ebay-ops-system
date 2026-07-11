@@ -32,6 +32,10 @@ data/imports/*.csv
 exports/*.csv
 tmp/
 temp/
+PhotoDateAudit.csv
+
+# Local Supabase CLI scaffold/state. SQL migrations remain in sql/.
+supabase/
 
 # =========================
 # RevSeller diagnostics

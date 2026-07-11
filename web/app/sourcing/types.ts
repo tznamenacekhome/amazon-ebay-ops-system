@@ -51,6 +51,7 @@ export type SourcingOpportunity = {
   totalProfitOpportunity: number | null;
   score: number | null;
   aiFlags: string[];
+  matchingDiagnostics: unknown;
   createdAt: string | null;
 };
 

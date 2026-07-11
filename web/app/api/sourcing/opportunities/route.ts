@@ -69,6 +69,23 @@ type KeepaPriceContext = {
   imageUrl: string | null;
 };
 
+type LastSaleContext = {
+  salePrice: number | null;
+  soldAt: string | null;
+};
+
+type AmazonProfitabilitySaleRow = {
+  amazon_order_id: string | null;
+  asin: string | null;
+  quantity: number | null;
+  sale_price: number | null;
+};
+
+type AmazonOrderDateRow = {
+  amazon_order_id: string | null;
+  purchase_date: string | null;
+};
+
 type ShippingQuoteStatus = "known_paid" | "known_free" | "unknown_no_cost" | "unknown_no_options";
 
 export async function GET(request: NextRequest) {
@@ -141,6 +158,7 @@ export async function GET(request: NextRequest) {
   const rows = (data ?? []) as OpportunityRow[];
   const keepaByAsin = await fetchKeepaPriceContextByAsin(rows.map((row) => row.asin));
   const amazonImageByAsin = await fetchAmazonImageFallbackByAsin(rows.map((row) => row.asin), keepaByAsin);
+  const lastSaleByAsin = await fetchLastSaleContextByAsin(rows.map((row) => row.asin));
 
   const mappedRows = rows
     .map((row) => {
@@ -151,6 +169,13 @@ export async function GET(request: NextRequest) {
       );
       const originalCurrency = getOriginalCurrency(rawEbay);
       const targetSalePrice = row.target_sale_price ?? row.sourcing_seed_asins?.target_sale_price ?? null;
+      const seedLastSale = row.sourcing_seed_asins?.last_sold_at
+        ? {
+            salePrice: row.sourcing_seed_asins?.target_sale_price ?? null,
+            soldAt: row.sourcing_seed_asins.last_sold_at,
+          }
+        : null;
+      const lastSale = seedLastSale ?? lastSaleByAsin.get(row.asin.toUpperCase()) ?? null;
       const landedCost = row.sourcing_ebay_candidates?.landed_cost ?? null;
       const conservativeProfit = conservativeDisplayedProfit(targetSalePrice, landedCost, row.profit);
       return {
@@ -186,9 +211,7 @@ export async function GET(request: NextRequest) {
         bidCount: row.sourcing_ebay_candidates?.bid_count ?? null,
         bestOfferEnabled: row.sourcing_ebay_candidates?.best_offer_enabled ?? false,
         targetSalePrice,
-        lastSalePrice: row.sourcing_seed_asins?.last_sold_at
-          ? row.sourcing_seed_asins?.target_sale_price ?? null
-          : null,
+        lastSalePrice: lastSale?.salePrice ?? null,
         keepaAvg90Price: keepaByAsin.get(row.asin)?.avg90Price ?? null,
         keepaAvg90Label: keepaByAsin.get(row.asin)?.avg90Label ?? null,
         keepaCurrentPrice: keepaByAsin.get(row.asin)?.currentPrice ?? null,
@@ -197,7 +220,7 @@ export async function GET(request: NextRequest) {
         monthlyVelocity: row.sourcing_seed_asins?.monthly_velocity ?? null,
         monthsOfSupply: row.sourcing_seed_asins?.months_of_supply ?? null,
         inventoryNeedLevel: row.sourcing_seed_asins?.inventory_need_level ?? null,
-        lastSoldAt: row.sourcing_seed_asins?.last_sold_at ?? null,
+        lastSoldAt: lastSale?.soldAt ?? null,
         opportunityType: row.opportunity_type,
         status: row.status,
         estimatedProfit: conservativeProfit.profit,
@@ -210,6 +233,7 @@ export async function GET(request: NextRequest) {
         totalProfitOpportunity: row.total_profit_opportunity,
         score: row.score,
         aiFlags: mergeFlags(row.ai_flags, diagnosticFlags(row.matching_diagnostics_json)),
+        matchingDiagnostics: row.matching_diagnostics_json ?? null,
         createdAt: row.created_at,
       };
     })
@@ -559,6 +583,56 @@ async function fetchAmazonImageFallbackByAsin(asins: string[], keepaByAsin: Map<
   }
 
   return byAsin;
+}
+
+async function fetchLastSaleContextByAsin(asins: string[]) {
+  const uniqueAsins = [...new Set(asins.map((asin) => asin?.toUpperCase()).filter(Boolean))];
+  const saleRows: AmazonProfitabilitySaleRow[] = [];
+
+  for (let index = 0; index < uniqueAsins.length; index += 100) {
+    const chunk = uniqueAsins.slice(index, index + 100);
+    const { data, error } = await supabase
+      .from("amazon_sales_profitability")
+      .select("amazon_order_id,asin,quantity,sale_price")
+      .in("asin", chunk)
+      .not("sale_price", "is", null);
+    if (error) throw new Error(`Amazon last sale profitability: ${error.message}`);
+    saleRows.push(...((data ?? []) as AmazonProfitabilitySaleRow[]));
+  }
+
+  const orderIds = [...new Set(saleRows.map((row) => row.amazon_order_id).filter(Boolean))] as string[];
+  const orderDateById = new Map<string, string>();
+  for (let index = 0; index < orderIds.length; index += 100) {
+    const chunk = orderIds.slice(index, index + 100);
+    const { data, error } = await supabase
+      .from("amazon_sales_orders")
+      .select("amazon_order_id,purchase_date")
+      .in("amazon_order_id", chunk);
+    if (error) throw new Error(`Amazon last sale order dates: ${error.message}`);
+    for (const row of (data ?? []) as AmazonOrderDateRow[]) {
+      if (row.amazon_order_id && row.purchase_date) orderDateById.set(row.amazon_order_id, row.purchase_date);
+    }
+  }
+
+  const byAsin = new Map<string, LastSaleContext>();
+  for (const row of saleRows) {
+    const asin = row.asin?.toUpperCase();
+    const soldAt = row.amazon_order_id ? orderDateById.get(row.amazon_order_id) ?? null : null;
+    const salePrice = unitSalePrice(row.sale_price, row.quantity);
+    if (!asin || !soldAt || salePrice === null) continue;
+
+    const current = byAsin.get(asin);
+    if (!current?.soldAt || soldAt > current.soldAt) {
+      byAsin.set(asin, { salePrice, soldAt });
+    }
+  }
+  return byAsin;
+}
+
+function unitSalePrice(salePrice: number | null | undefined, quantity: number | null | undefined) {
+  if (typeof salePrice !== "number" || salePrice <= 0) return null;
+  const divisor = typeof quantity === "number" && quantity > 0 ? quantity : 1;
+  return Math.round((salePrice / divisor) * 100) / 100;
 }
 
 function centsToDollars(value: number | null | undefined) {

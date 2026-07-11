@@ -102,6 +102,10 @@ def summarize(evaluated: list[tuple[dict[str, Any], dict[str, Any]]], args: argp
     recommendation_counts = Counter(diagnostics.get("recommendation") for _, diagnostics in evaluated)
     block_reasons = Counter()
     warning_reasons = Counter()
+    metadata_availability = Counter()
+    structured_rule_hits = Counter()
+    platform_sources = Counter()
+    category_sources = Counter()
     newly_blocked = []
     potential_false_positives = []
     manual_review = []
@@ -113,6 +117,32 @@ def summarize(evaluated: list[tuple[dict[str, Any], dict[str, Any]]], args: argp
             block_reasons[reason] += 1
         for reason in warnings:
             warning_reasons[reason] += 1
+
+        evidence = diagnostics.get("normalized_evidence") or {}
+        for key, available in evidence_availability(evidence).items():
+            if available:
+                metadata_availability[key] += 1
+        platform_rule = diagnostics.get("platform_rule") or {}
+        platform_sources[str(platform_rule.get("seed_system_source") or "missing")] += 1
+        platform_sources[str(platform_rule.get("candidate_system_source") or "missing")] += 1
+        category = diagnostics.get("category") or {}
+        if category.get("category_ids") or category.get("category_names"):
+            category_sources["category_present"] += 1
+        if category.get("positive_game_software_category"):
+            category_sources["game_software_category"] += 1
+        for key in (
+            "game_name",
+            "numeric_identity",
+            "edition_version",
+            "digital_download",
+            "not_game",
+            "incomplete_listing",
+            "region",
+            "category",
+        ):
+            rule = diagnostics.get(key) or {}
+            if rule.get("result") in {"blocked", "review"}:
+                structured_rule_hits[f"{key}:{rule.get('result')}"] += 1
 
         status = opportunity.get("status")
         if hard_blocks and status in REVIEW_STATUSES:
@@ -135,9 +165,30 @@ def summarize(evaluated: list[tuple[dict[str, Any], dict[str, Any]]], args: argp
 
     print_counter("\nTop block reasons", block_reasons)
     print_counter("\nTop warning reasons", warning_reasons)
+    print_counter("\nStructured metadata availability", metadata_availability)
+    print_counter("\nStructured metadata rule hits", structured_rule_hits)
+    print_counter("\nPlatform-source coverage", platform_sources)
+    print_counter("\nCategory-source coverage", category_sources)
     print_examples("\nNewly blocked examples", newly_blocked, limit=8)
     print_examples("\nPotential false positive examples", potential_false_positives, limit=8)
     print_examples("\nManual review examples", manual_review, limit=8)
+
+
+def evidence_availability(evidence: dict[str, Any]) -> dict[str, bool]:
+    return {
+        "localized_aspects": bool(evidence.get("aspects")),
+        "item_specific_platform": bool(evidence.get("platform_values")),
+        "item_specific_game_name": bool(evidence.get("game_name_values")),
+        "item_specific_region": bool(evidence.get("region_code_values") or evidence.get("country_of_origin_values")),
+        "item_specific_format": bool(evidence.get("format_values")),
+        "item_specific_type": bool(evidence.get("type_values")),
+        "item_specific_features": bool(evidence.get("features_values")),
+        "item_specific_release_year": bool(evidence.get("release_year_values")),
+        "category": bool(evidence.get("category_ids") or evidence.get("category_names")),
+        "description": bool(evidence.get("description")),
+        "primary_image": bool(evidence.get("primary_image_url")),
+        "additional_images": len(evidence.get("image_urls") or []) > 1,
+    }
 
 
 def print_counter(title: str, counter: Counter) -> None:
@@ -188,6 +239,10 @@ def write_diagnostics(supabase, evaluated: list[tuple[dict[str, Any], dict[str, 
                     "title_overlap": diagnostics.get("title_overlap"),
                     "excluded_keywords": diagnostics.get("excluded_keywords"),
                     "digital_download": diagnostics.get("digital_download"),
+                    "category": diagnostics.get("category"),
+                    "normalized_evidence": diagnostics.get("normalized_evidence"),
+                    "game_name": diagnostics.get("game_name"),
+                    "numeric_identity": diagnostics.get("numeric_identity"),
                     "edition_version": diagnostics.get("edition_version"),
                     "region": diagnostics.get("region"),
                     "incomplete_listing": diagnostics.get("incomplete_listing"),

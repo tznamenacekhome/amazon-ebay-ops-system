@@ -12,6 +12,8 @@ logs
 tmp
 exports
 imports
+PhotoDateAudit.csv
+supabase
 web/node_modules
 web/.next
 web/.env*

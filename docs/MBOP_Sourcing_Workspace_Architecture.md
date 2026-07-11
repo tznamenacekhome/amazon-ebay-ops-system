@@ -65,6 +65,22 @@ Current implementation notes:
 - `refresh_sourcing_listing_availability.py` sends the same buyer contextual ZIP
   header used by sourcing search and preserves an existing stored shipping
   option/cost when eBay item-detail responses omit `shippingOptions`.
+- `score_sourcing_opportunities.py` normalizes structured eBay raw payload
+  evidence for deterministic matching diagnostics, including item-specific
+  Platform, Game Name, Region Code, Country of Origin, Format, Type, Features,
+  Release Year, category IDs/names, seller description text, and image URL
+  availability.
+- `/api/sourcing/opportunities` hydrates Last Sold from the seed row first and
+  then falls back to Amazon sales history by ASIN, which keeps full-listing
+  opportunities from showing an empty Last Sold column when the ASIN has recent
+  Amazon sales.
+- Sourcing platform scoring uses seed `system`, then
+  `raw_context_json.inferred_system`, then title detection. eBay item-specific
+  Platform is preferred over title-only candidate platform detection.
+- Clear wrong-platform, non-game/accessory, digital/service,
+  incomplete-product, non-North-American region, sequel/year, Game Name, and
+  edition/version conflicts are backend hard blocks before profitability can
+  surface a row as open.
 
 ---
 
