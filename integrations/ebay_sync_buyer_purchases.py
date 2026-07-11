@@ -629,15 +629,15 @@ def transaction_has_non_usd_currency(transaction):
 
 def order_payment_total(order):
     return sum(
-        parse_money(elem.text)
-        for elem in find_all(order, "PaymentAmount")
+        (parse_money(elem.text) for elem in find_all(order, "PaymentAmount")),
+        Decimal("0.00"),
     )
 
 
 def order_refund_total(order):
     return sum(
-        parse_money(elem.text)
-        for elem in find_all(order, "RefundAmount")
+        (parse_money(elem.text) for elem in find_all(order, "RefundAmount")),
+        Decimal("0.00"),
     )
 
 
@@ -694,7 +694,7 @@ def transaction_unit_costs(order, transactions):
         transaction_landed_total(transaction)
         for transaction in transactions
     ]
-    gross_order_total = sum(gross_totals)
+    gross_order_total = sum(gross_totals, Decimal("0.00"))
     payment_total = order_payment_total(order)
     refund_total = order_refund_total(order)
     net_payment_total = (payment_total + refund_total).quantize(
