@@ -739,7 +739,10 @@ def upsert_order_problem_case(supabase, mapped: dict[str, Any]) -> str:
     existing = find_existing_case(supabase, mapped)
     now = iso_z(dt.datetime.now(dt.timezone.utc))
     if existing:
-        if should_preserve_operator_terminal_state(existing, mapped):
+        if should_preserve_operator_terminal_state(existing, mapped) or has_latest_operator_terminal_event(
+            supabase,
+            existing["problem_case_id"],
+        ):
             append_event(supabase, existing["problem_case_id"], "ebay_return_sync_skipped_terminal", mapped)
             return "skipped"
 
@@ -1044,17 +1047,6 @@ def find_existing_case(supabase, mapped: dict[str, Any]) -> dict[str, Any] | Non
 
 
 def should_preserve_operator_terminal_state(existing: dict[str, Any], mapped: dict[str, Any]) -> bool:
-    if mapped.get("problem_source") == "ebay_return_sync" and mapped.get("workflow_state") not in {
-        "resolved_refunded",
-        "closed_no_action",
-        "closed_no_refund",
-    }:
-        return False
-    if existing.get("problem_source") == "ebay_return_sync":
-        return False
-    if existing.get("ebay_return_id") and existing.get("ebay_return_id") == existing.get("ebay_case_id"):
-        return False
-
     workflow_state = existing.get("workflow_state")
     if workflow_state not in {
         "resolved_refunded",
@@ -1065,6 +1057,26 @@ def should_preserve_operator_terminal_state(existing: dict[str, Any], mapped: di
         return False
 
     return existing.get("is_open") is False or bool(existing.get("closed_at") or existing.get("refund_received_at"))
+
+
+def has_latest_operator_terminal_event(supabase, case_id: str) -> bool:
+    response = (
+        supabase.table("order_problem_events")
+        .select("event_type")
+        .eq("problem_case_id", case_id)
+        .eq("event_source", "operator")
+        .order("event_at", desc=True)
+        .limit(1)
+        .execute()
+    )
+    event_type = clean_text((response.data or [{}])[0].get("event_type"))
+    return event_type in {
+        "mark_refund_received",
+        "mark_replacement_received",
+        "close_no_refund",
+        "close_no_action",
+        "restore_refund_received_after_sync_reopen",
+    }
 
 
 def should_preserve_operator_replacement_state(

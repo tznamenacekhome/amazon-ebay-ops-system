@@ -16,7 +16,8 @@ export function useSourcingOpportunities(status: string, type: string, searchTex
       const params = new URLSearchParams({ status, type, limit: "150" });
       if (sourceMode !== "all") params.set("sourceMode", sourceMode);
       if (searchText.trim()) params.set("q", searchText.trim());
-      const response = await fetch(`/api/sourcing/opportunities?${params.toString()}`);
+      params.set("_", String(Date.now()));
+      const response = await fetch(`/api/sourcing/opportunities?${params.toString()}`, { cache: "no-store" });
       const payload = await response.json();
       if (!response.ok) throw new Error(payload.error ?? "Failed to load sourcing opportunities.");
       setRows(payload.opportunities ?? []);

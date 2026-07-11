@@ -7,6 +7,7 @@ type OpportunityRow = {
   asin: string;
   opportunity_type: string | null;
   status: string | null;
+  target_sale_price: number | null;
   profit: number | null;
   roi_percent: number | null;
   max_profitable_landed_cost: number | null;
@@ -65,6 +66,7 @@ type KeepaPriceContext = {
   avg90Label: string | null;
   currentPrice: number | null;
   currentPriceLabel: string | null;
+  imageUrl: string | null;
 };
 
 type ShippingQuoteStatus = "known_paid" | "known_free" | "unknown_no_cost" | "unknown_no_options";
@@ -78,6 +80,14 @@ export async function GET(request: NextRequest) {
   const queryText = (searchParams.get("q") ?? "").trim();
   const limit = Math.min(toNumber(searchParams.get("limit"), 100), 250);
   const queryLimit = Math.min(Math.max(limit * 5, 500), 1000);
+  const latestRunIds = runId ? [] : await fetchLatestSourcingRunIds(sourceMode);
+  if (!runId && latestRunIds.length === 0) {
+    return jsonNoStore({
+      refreshedAt: new Date().toISOString(),
+      summary: { total: 0, buyNow: 0, bestOffer: 0, auction: 0, multiUnit: 0 },
+      opportunities: [],
+    });
+  }
 
   let query = supabase
     .from("sourcing_opportunities")
@@ -124,11 +134,13 @@ export async function GET(request: NextRequest) {
   if (status !== "all") query = query.eq("status", status);
   if (type !== "all") query = query.eq("opportunity_type", type);
   if (runId) query = query.eq("sourcing_run_id", runId);
+  if (!runId) query = query.in("sourcing_run_id", latestRunIds);
   const { data, error } = await query;
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return jsonNoStore({ error: error.message }, { status: 500 });
 
   const rows = (data ?? []) as OpportunityRow[];
   const keepaByAsin = await fetchKeepaPriceContextByAsin(rows.map((row) => row.asin));
+  const amazonImageByAsin = await fetchAmazonImageFallbackByAsin(rows.map((row) => row.asin), keepaByAsin);
 
   const mappedRows = rows
     .map((row) => {
@@ -138,12 +150,15 @@ export async function GET(request: NextRequest) {
         row.sourcing_ebay_candidates?.shipping_cost ?? null,
       );
       const originalCurrency = getOriginalCurrency(rawEbay);
+      const targetSalePrice = row.target_sale_price ?? row.sourcing_seed_asins?.target_sale_price ?? null;
+      const landedCost = row.sourcing_ebay_candidates?.landed_cost ?? null;
+      const conservativeProfit = conservativeDisplayedProfit(targetSalePrice, landedCost, row.profit);
       return {
         opportunityId: row.opportunity_id,
         runId: row.sourcing_run_id,
         asin: row.asin,
         amazonTitle: row.sourcing_seed_asins?.amazon_title ?? "",
-        amazonImageUrl: row.sourcing_seed_asins?.amazon_image_url ?? null,
+        amazonImageUrl: row.sourcing_seed_asins?.amazon_image_url ?? amazonImageByAsin.get(row.asin.toUpperCase()) ?? null,
         sellerSku: row.sourcing_seed_asins?.seller_sku ?? null,
         sourceMode: row.sourcing_seed_asins?.source_mode ?? null,
         amazonUrl: `https://www.amazon.com/dp/${row.asin}`,
@@ -160,7 +175,7 @@ export async function GET(request: NextRequest) {
         buyingOptions: row.sourcing_ebay_candidates?.buying_options ?? [],
         itemPrice: row.sourcing_ebay_candidates?.price ?? null,
         shippingPrice: row.sourcing_ebay_candidates?.shipping_cost ?? null,
-        landedCost: row.sourcing_ebay_candidates?.landed_cost ?? null,
+        landedCost,
         originalCurrency,
         originalItemPrice: getOriginalItemPrice(rawEbay),
         originalShippingPrice: getOriginalShippingPrice(rawEbay),
@@ -170,7 +185,7 @@ export async function GET(request: NextRequest) {
         auctionEndAt: row.sourcing_ebay_candidates?.auction_end_time ?? null,
         bidCount: row.sourcing_ebay_candidates?.bid_count ?? null,
         bestOfferEnabled: row.sourcing_ebay_candidates?.best_offer_enabled ?? false,
-        targetSalePrice: row.sourcing_seed_asins?.target_sale_price ?? null,
+        targetSalePrice,
         lastSalePrice: row.sourcing_seed_asins?.last_sold_at
           ? row.sourcing_seed_asins?.target_sale_price ?? null
           : null,
@@ -185,8 +200,8 @@ export async function GET(request: NextRequest) {
         lastSoldAt: row.sourcing_seed_asins?.last_sold_at ?? null,
         opportunityType: row.opportunity_type,
         status: row.status,
-        estimatedProfit: row.profit,
-        estimatedRoiPercent: row.roi_percent,
+        estimatedProfit: conservativeProfit.profit,
+        estimatedRoiPercent: conservativeProfit.roiPercent ?? row.roi_percent,
         maxProfitableLandedCost: row.max_profitable_landed_cost,
         suggestedOfferPrice: row.max_offer_price,
         requiredOfferPercentOfAsk: row.required_offer_percent_of_ask,
@@ -207,7 +222,7 @@ export async function GET(request: NextRequest) {
 
   const opportunities = groupByAsinPriority(dedupeExactEbayListings(mappedRows)).slice(0, limit);
 
-  return NextResponse.json({
+  return jsonNoStore({
     refreshedAt: new Date().toISOString(),
     summary: {
       total: opportunities.length,
@@ -218,6 +233,64 @@ export async function GET(request: NextRequest) {
     },
     opportunities,
   });
+}
+
+async function fetchLatestSourcingRunIds(sourceMode: string) {
+  const wantedModes = sourceMode === "all" ? ["recent_sales", "full_listings"] : [sourceMode];
+  const { data, error } = await supabase
+    .from("sourcing_runs")
+    .select("sourcing_run_id,run_type,started_at")
+    .eq("status", "completed")
+    .in("run_type", wantedModes)
+    .order("started_at", { ascending: false })
+    .limit(20);
+  if (error) throw new Error(`Latest sourcing runs: ${error.message}`);
+
+  const runIds: string[] = [];
+  const seenModes = new Set<string>();
+  for (const row of (data ?? []) as Array<{ sourcing_run_id: string | null; run_type: string | null }>) {
+    const mode = row.run_type ?? "";
+    if (!mode || seenModes.has(mode) || !row.sourcing_run_id) continue;
+    seenModes.add(mode);
+    runIds.push(row.sourcing_run_id);
+  }
+  return runIds;
+}
+
+function jsonNoStore(body: unknown, init?: ResponseInit) {
+  const response = NextResponse.json(body, init);
+  response.headers.set("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
+  response.headers.set("Pragma", "no-cache");
+  response.headers.set("Expires", "0");
+  return response;
+}
+
+function conservativeDisplayedProfit(
+  salePrice: number | null,
+  landedCost: number | null,
+  storedProfit: number | null,
+) {
+  if (salePrice === null || landedCost === null || storedProfit === null || landedCost <= 0) {
+    return { profit: storedProfit, roiPercent: null };
+  }
+  const impliedFees = salePrice - landedCost - storedProfit;
+  if (impliedFees >= 1) {
+    return { profit: storedProfit, roiPercent: null };
+  }
+  const conservativeFees = salePrice * 0.22 + 4;
+  const profit = roundMoney(salePrice - conservativeFees - landedCost);
+  return {
+    profit,
+    roiPercent: roundPercent((profit / landedCost) * 100),
+  };
+}
+
+function roundMoney(value: number) {
+  return Math.round(value * 100) / 100;
+}
+
+function roundPercent(value: number) {
+  return Math.round(value * 10) / 10;
 }
 
 function groupByAsinPriority<T extends { asin: string }>(rows: T[]) {
@@ -451,9 +524,38 @@ async function fetchKeepaPriceContextByAsin(asins: string[]) {
                 : newCurrent !== null
                   ? "New Current"
                   : null,
+          imageUrl: keepaImageUrl(row.raw_keepa_json),
         });
       }
     }
+  }
+
+  return byAsin;
+}
+
+async function fetchAmazonImageFallbackByAsin(asins: string[], keepaByAsin: Map<string, KeepaPriceContext>) {
+  const uniqueAsins = [...new Set(asins.map((asin) => asin?.toUpperCase()).filter(Boolean))];
+  const byAsin = new Map<string, string>();
+
+  for (let index = 0; index < uniqueAsins.length; index += 100) {
+    const chunk = uniqueAsins.slice(index, index + 100);
+    const { data, error } = await supabase
+      .from("vw_latest_amazon_listing_snapshot")
+      .select("asin,raw_listing_json")
+      .in("asin", chunk);
+    if (error) throw new Error(`Amazon listing images: ${error.message}`);
+
+    for (const row of (data ?? []) as Array<{ asin: string | null; raw_listing_json: unknown }>) {
+      const asin = row.asin?.toUpperCase();
+      const imageUrl = listingImageUrl(row.raw_listing_json);
+      if (asin && imageUrl) byAsin.set(asin, imageUrl);
+    }
+  }
+
+  for (const asin of uniqueAsins) {
+    const keepaImage = keepaByAsin.get(asin)?.imageUrl;
+    if (!byAsin.has(asin) && keepaImage) byAsin.set(asin, keepaImage);
+    if (!byAsin.has(asin)) byAsin.set(asin, amazonAsinImageUrl(asin));
   }
 
   return byAsin;
@@ -471,4 +573,52 @@ function keepaStatsCentsToDollars(rawKeepa: unknown, statsKey: "avg90" | "curren
   if (!Array.isArray(values)) return null;
   const cents = values[index];
   return typeof cents === "number" && cents >= 0 ? cents / 100 : null;
+}
+
+function listingImageUrl(rawListing: unknown) {
+  if (!rawListing || typeof rawListing !== "object") return null;
+  const summaries = (rawListing as { summaries?: unknown }).summaries;
+  if (!Array.isArray(summaries)) return null;
+
+  for (const summary of summaries) {
+    if (!summary || typeof summary !== "object") continue;
+    const mainImage = (summary as { mainImage?: unknown }).mainImage;
+    if (!mainImage || typeof mainImage !== "object") continue;
+    const link = (mainImage as { link?: unknown }).link;
+    if (typeof link === "string" && link.trim()) return link.trim();
+  }
+  return null;
+}
+
+function keepaImageUrl(rawKeepa: unknown) {
+  if (!rawKeepa || typeof rawKeepa !== "object") return null;
+  const images = (rawKeepa as { images?: unknown }).images;
+  if (Array.isArray(images)) {
+    for (const image of images) {
+      if (!image || typeof image !== "object") continue;
+      const imageName = firstString((image as Record<string, unknown>).l, (image as Record<string, unknown>).m, (image as Record<string, unknown>).s);
+      if (imageName) return amazonImageHostUrl(imageName);
+    }
+  }
+
+  const imagesCsv = (rawKeepa as { imagesCSV?: unknown }).imagesCSV;
+  if (typeof imagesCsv !== "string") return null;
+  const imageName = imagesCsv.split(",")[0]?.trim();
+  return imageName ? amazonImageHostUrl(imageName) : null;
+}
+
+function firstString(...values: unknown[]) {
+  for (const value of values) {
+    if (typeof value === "string" && value.trim()) return value.trim();
+  }
+  return null;
+}
+
+function amazonImageHostUrl(imageName: string) {
+  if (/^https?:\/\//i.test(imageName)) return imageName;
+  return `https://images-na.ssl-images-amazon.com/images/I/${imageName}`;
+}
+
+function amazonAsinImageUrl(asin: string) {
+  return `https://images-na.ssl-images-amazon.com/images/P/${asin}.01._SL160_.jpg`;
 }

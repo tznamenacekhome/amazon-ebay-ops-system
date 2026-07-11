@@ -37,7 +37,9 @@ if ($gitStatus -and -not $AllowDirty) {
   throw "Working tree is dirty. Commit or stash changes before deploying, or rerun with -AllowDirty."
 }
 
-$tag = "web-$gitSha"
+$timestamp = Get-Date -Format "yyyyMMddHHmmss"
+$dirtySuffix = if ($gitStatus) { "-dirty-$timestamp" } else { "" }
+$tag = "web-$gitSha$dirtySuffix"
 $localImage = "mbop-web:$tag"
 $remoteTaggedImage = "${RepositoryUri}:$tag"
 

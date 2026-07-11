@@ -22,6 +22,16 @@ LOGGER = logging.getLogger("inventory_reconcile")
 BATCH_SIZE = 500
 ITEM_LOOKUP_BATCH_SIZE = 100
 DERIVATION_VERSION = "inventory_state_v1"
+LATEST_FBA_INVENTORY_COLUMNS = (
+    "seller_sku,marketplace_id,asin,fnsku,product_name,"
+    "total_quantity,fulfillable_quantity,inbound_working_quantity,"
+    "inbound_shipped_quantity,inbound_receiving_quantity,reserved_quantity,"
+    "unfulfillable_quantity"
+)
+LATEST_LISTING_COLUMNS = (
+    "amazon_sku_id,seller_sku,asin,product_name,listing_status,"
+    "issue_count,issue_severity,issues_json"
+)
 
 
 @dataclass(frozen=True)
@@ -64,12 +74,12 @@ def main() -> int:
         amazon_snapshots = fetch_all(
             supabase,
             "vw_latest_amazon_fba_inventory_snapshot",
-            "*",
+            LATEST_FBA_INVENTORY_COLUMNS,
         )
         amazon_listing_snapshots = fetch_all(
             supabase,
             "vw_latest_amazon_listing_snapshot",
-            "*",
+            LATEST_LISTING_COLUMNS,
         )
         amazon_current_asins = current_amazon_asins(amazon_snapshots)
 

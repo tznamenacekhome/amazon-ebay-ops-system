@@ -153,7 +153,7 @@ def build_full_listing_seeds(supabase, settings, limit: int) -> list[dict[str, A
     keepa_rows = paginate_table(
         supabase,
         "vw_latest_keepa_product_snapshot",
-        "asin,new_price_current_cents,buy_box_price_avg90_cents,buy_box_price_current_cents,title",
+        "asin,captured_at,new_price_current_cents,buy_box_price_avg90_cents,buy_box_price_current_cents,title",
         max_rows=15000,
     )
     keepa_by_asin = {str(row.get("asin") or "").upper(): row for row in keepa_rows}
@@ -170,12 +170,7 @@ def build_full_listing_seeds(supabase, settings, limit: int) -> list[dict[str, A
             continue
 
         keepa = keepa_by_asin.get(asin, {})
-        cents = (
-            keepa.get("buy_box_price_avg90_cents")
-            or keepa.get("buy_box_price_current_cents")
-            or keepa.get("new_price_current_cents")
-        )
-        keepa_price = to_float(cents, 0) / 100
+        keepa_price = keepa_catalog_price(keepa)
         listing_price = to_float(row.get("listing_price"), 0)
         target_sale_price = keepa_price or listing_price
         if target_sale_price < settings.min_amazon_price:
@@ -209,7 +204,61 @@ def build_full_listing_seeds(supabase, settings, limit: int) -> list[dict[str, A
             },
         }
 
+    for asin, keepa in keepa_by_asin.items():
+        if asin in by_asin:
+            continue
+        if not is_recent_keepa_snapshot(keepa):
+            continue
+
+        keepa_price = keepa_catalog_price(keepa)
+        if keepa_price < settings.min_amazon_price:
+            continue
+
+        by_asin[asin] = {
+            "asin": asin,
+            "amazon_title": keepa.get("title") or asin,
+            "amazon_image_url": None,
+            "seller_sku": None,
+            "units_sold_lookback": 0,
+            "last_sold_at": None,
+            "target_sale_price": round(keepa_price, 2),
+            "units_sold_60d": 0,
+            "fee_samples": [],
+            "target_sale_price_source_override": "keepa_new_90d_avg",
+            "listing_warnings": {
+                "listing_status": "known_catalog_keepa_only",
+                "item_status": None,
+                "fulfillment_channel": None,
+            },
+            "listing_source": {
+                "source_table": "vw_latest_keepa_product_snapshot",
+                "captured_at": keepa.get("captured_at"),
+            },
+        }
+
     return finalize_seeds(by_asin.values(), inventory_by_asin, settings, limit, planning_by_asin, catalog_by_asin, supabase)
+
+
+def keepa_catalog_price(keepa: dict[str, Any]) -> float:
+    cents = (
+        keepa.get("buy_box_price_avg90_cents")
+        or keepa.get("buy_box_price_current_cents")
+        or keepa.get("new_price_current_cents")
+    )
+    return to_float(cents, 0) / 100
+
+
+def is_recent_keepa_snapshot(keepa: dict[str, Any], max_age_days: int = 7) -> bool:
+    captured_at = keepa.get("captured_at")
+    if not captured_at:
+        return False
+    try:
+        parsed = dt.datetime.fromisoformat(str(captured_at).replace("Z", "+00:00"))
+    except ValueError:
+        return False
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=dt.UTC)
+    return dt.datetime.now(dt.UTC) - parsed.astimezone(dt.UTC) <= dt.timedelta(days=max_age_days)
 
 
 def latest_listing_context_by_sku(supabase) -> dict[str, dict[str, Any]]:

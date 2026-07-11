@@ -107,6 +107,8 @@ These group names are now accepted by `run_all_syncs.py`:
 - `repricing-catalog`: Amazon listing status, Informed repricing reports
 - `sourcing-catalog`: sourcing listing availability, matching intelligence refresh
 - `keepa-rolling-refresh`: Keepa active products
+- `keepa-catalog-priority`: fast lightweight Keepa refresh for Send to Amazon,
+  active sourcing opportunities, then broader known catalog ASINs
 - `fba-pricing`: Keepa FBA prep pricing, Amazon Product Fees estimates
 
 Manual/audit groups remain manual-only initially:
@@ -142,6 +144,7 @@ mbop-reconciliation: cron(0 21 ? * * *)
 mbop-repricing-catalog: cron(30 21 ? * * *)
 mbop-sourcing-catalog: cron(0 22 ? * * *)
 mbop-keepa-rolling-refresh: cron(10 1,9,17 ? * * *)
+mbop-keepa-catalog-priority: rate(5 minutes)
 ```
 
 Most schedules use the default scheduler task size of `512 CPU / 1024 MB`.
@@ -275,6 +278,15 @@ Current deep `offers=20` plus `stock` mode costs roughly 9.8 tokens per ASIN for
 Current scheduler-safe defaults:
 
 ```text
+keepa-catalog-priority:
+  --source catalog_priority
+  --batch-size 25
+  --limit 25
+  --stale-days 7
+  --min-tokens 25
+  --no-history
+  --no-rating
+
 keepa-rolling-refresh:
   --batch-size 10
   --limit 10
@@ -286,4 +298,8 @@ fba-pricing:
   --min-tokens 150
 ```
 
-Future improvement: add a light stats-only Keepa mode without `offers` and `stock`, and reserve deep offer/stock mode for selected candidates.
+The fast `keepa-catalog-priority` schedule is stats-only and omits rating,
+offer, stock, and history payloads. It is intended to track the observed
+5-token/minute Keepa refill rate: 25 ASINs every 5 minutes, skipping ASINs with
+snapshots newer than 7 days. Deep `offers`/`stock` mode remains reserved for
+slower selected candidate/pricing workflows.

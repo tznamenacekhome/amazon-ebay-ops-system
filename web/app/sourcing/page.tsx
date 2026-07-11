@@ -338,7 +338,7 @@ function ReplenishmentTable({
   return (
     <div className="overflow-hidden rounded-md border border-slate-200 bg-white shadow-sm">
       <div className="max-h-[calc(100vh-250px)] overflow-auto">
-        <table className="min-w-full text-left text-sm">
+        <table className="min-w-[112rem] table-fixed text-left text-sm">
           <thead className="sticky top-0 z-10 bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
             <tr>
               <th colSpan={14} className="border-b border-slate-200 bg-white px-2 py-2">
@@ -364,8 +364,8 @@ function ReplenishmentTable({
                   className="sourcing-checkbox"
                 />
               </th>
-              <th className="w-32 px-2 py-2">eBay</th>
-              <th className="w-32 px-2 py-2">Amazon</th>
+              <th className="w-36 px-3 py-2">eBay</th>
+              <th className="w-36 px-3 py-2">Amazon</th>
               <th className="w-[26rem] px-2 py-2">Opportunity</th>
               <th className="w-24 px-2 py-2">Cost</th>
               <th className="w-24 px-2 py-2">Last Sold</th>
@@ -396,26 +396,24 @@ function ReplenishmentTable({
                       className="sourcing-checkbox"
                     />
                   </td>
-                  <td className="px-2 py-2">
+                  <td className="px-3 py-2">
                     {row.ebayImageUrl ? (
                       <OptionalImageLink href={row.ebayUrl}>
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={row.ebayImageUrl} alt="" className="h-28 w-28 rounded object-cover" />
+                        <SourcingThumbnail src={row.ebayImageUrl} />
                       </OptionalImageLink>
                     ) : (
                       <OptionalImageLink href={row.ebayUrl}>
-                        <div className="flex h-28 w-28 items-center justify-center rounded bg-slate-100 text-slate-400">--</div>
+                        <SourcingThumbnail />
                       </OptionalImageLink>
                     )}
                   </td>
-                  <td className="px-2 py-2">
+                  <td className="px-3 py-2">
                     {row.amazonImageUrl ? (
                       <OptionalImageLink href={row.amazonUrl}>
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={row.amazonImageUrl} alt="" className="h-28 w-28 rounded object-cover" />
+                        <SourcingThumbnail src={row.amazonImageUrl} />
                       </OptionalImageLink>
                     ) : (
-                      <div className="flex h-28 w-28 items-center justify-center rounded bg-slate-100 text-slate-400">--</div>
+                      <SourcingThumbnail />
                     )}
                   </td>
                   <td className="px-2 py-2">
@@ -781,9 +779,20 @@ function ImageClueButtons({
 function OptionalImageLink({ href, children }: { href: string | null; children: ReactNode }) {
   if (!href) return <>{children}</>;
   return (
-    <Link href={href} target="_blank" className="block rounded-md outline-none ring-offset-2 hover:ring-2 hover:ring-blue-400 focus:ring-2 focus:ring-blue-500">
+    <Link href={href} target="_blank" className="block w-32 rounded-md outline-none ring-offset-2 hover:ring-2 hover:ring-blue-400 focus:ring-2 focus:ring-blue-500">
       {children}
     </Link>
+  );
+}
+
+function SourcingThumbnail({ src }: { src?: string | null }) {
+  const className = "h-32 w-32 rounded-md border border-slate-200 bg-slate-50";
+  if (!src) {
+    return <div className={`flex ${className} items-center justify-center text-slate-400`}>--</div>;
+  }
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img src={src} alt="" className={`${className} object-contain`} loading="lazy" />
   );
 }
 

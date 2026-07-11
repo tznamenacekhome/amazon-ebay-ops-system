@@ -61,9 +61,8 @@ def main() -> int:
             LOGGER.info("No MBOP FBA shipments selected for sync.")
             return 0
 
-        sku_index = fetch_amazon_sku_index(supabase)
-        latest_inventory = fetch_latest_inventory(supabase)
         shipment_items = fetch_shipment_items(supabase, shipments)
+        sku_index = fetch_amazon_sku_index(supabase)
 
         LOGGER.info("Selected MBOP FBA shipments: %s", len(shipments))
         synced = 0
@@ -99,6 +98,10 @@ def main() -> int:
             if not amazon_shipment and not amazon_items:
                 LOGGER.warning("No Amazon shipment data returned for %s", shipment_code)
 
+            latest_inventory = fetch_latest_inventory(
+                supabase,
+                seller_skus_for_amazon_items(amazon_items, sku_index),
+            )
             planned = build_plan(
                 shipment,
                 amazon_shipment,
@@ -782,13 +785,54 @@ def fetch_amazon_sku_index(supabase) -> dict[str, dict[str, Any]]:
     }
 
 
-def fetch_latest_inventory(supabase) -> dict[str, dict[str, int]]:
-    rows = fetch_all(
-        supabase,
-        "vw_latest_amazon_fba_inventory_snapshot",
-        "seller_sku,asin,fulfillable_quantity,reserved_quantity,unfulfillable_quantity,total_quantity",
-    )
+def seller_skus_for_amazon_items(
+    amazon_items: list[dict[str, Any]],
+    sku_index: dict[str, dict[str, Any]],
+) -> list[str]:
+    seller_skus: list[str] = []
+    seen: set[str] = set()
+    for item in amazon_items:
+        seller_sku = clean_text(item.get("SellerSKU") or item.get("SellerSku"))
+        if seller_sku:
+            value = seller_sku
+        else:
+            asin = clean_asin(item.get("ASIN"))
+            value = next(
+                (
+                    sku
+                    for sku, row in sku_index.items()
+                    if clean_asin(row.get("asin")) == asin
+                ),
+                None,
+            )
+        if value and value not in seen:
+            seen.add(value)
+            seller_skus.append(value)
+    return seller_skus
+
+
+def fetch_latest_inventory(
+    supabase,
+    seller_skus: list[str],
+) -> dict[str, dict[str, int]]:
     inventory: dict[str, dict[str, int]] = {}
+    if not seller_skus:
+        return inventory
+
+    columns = (
+        "seller_sku,asin,fulfillable_quantity,reserved_quantity,"
+        "unfulfillable_quantity,total_quantity"
+    )
+    rows: list[dict[str, Any]] = []
+    for chunk in chunks(seller_skus, 100):
+        response = (
+            supabase.table("vw_latest_amazon_fba_inventory_snapshot")
+            .select(columns)
+            .in_("seller_sku", chunk)
+            .execute()
+        )
+        rows.extend(response.data or [])
+
     for row in rows:
         seller_sku = clean_text(row.get("seller_sku"))
         if not seller_sku:

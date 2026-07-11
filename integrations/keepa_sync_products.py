@@ -23,6 +23,9 @@ from keepa_client import KeepaAPIError, KeepaClient
 LOGGER = logging.getLogger("keepa_product_sync")
 BATCH_SIZE = 500
 KEEPA_EPOCH_SECONDS = 1293840000
+SOURCE_PRIORITY_HIGH = 0
+SOURCE_PRIORITY_MEDIUM = 1
+SOURCE_PRIORITY_LOW = 2
 
 CSV_AMAZON = 0
 CSV_NEW = 1
@@ -60,7 +63,7 @@ def main() -> int:
         client = KeepaClient.from_env()
         supabase = get_supabase_client()
         captured_at = utc_now_iso()
-        asins = collect_source_asins(supabase, source=args.source)
+        asins, priority_by_asin = collect_source_asins(supabase, source=args.source)
         if args.missing_only:
             existing_asins = fetch_existing_keepa_asins(supabase)
             asins = [asin for asin in asins if asin not in existing_asins]
@@ -69,6 +72,7 @@ def main() -> int:
                 supabase,
                 asins,
                 stale_days=args.stale_days,
+                priority_by_asin=priority_by_asin,
             )
         if args.asin:
             asins = sorted(set(asins) | {asin.strip().upper() for asin in args.asin if asin.strip()})
@@ -117,7 +121,7 @@ def main() -> int:
                     history=not args.no_history,
                     offers=args.offers,
                     stock=args.stock,
-                    rating=True,
+                    rating=not args.no_rating,
                     wait=True,
                 )
             except KeepaAPIError as error:
@@ -199,11 +203,21 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--source",
-        choices=["canonical", "amazon_active", "purchase_pre_listed", "received_fba_prep", "explicit"],
+        choices=[
+            "canonical",
+            "amazon_active",
+            "purchase_pre_listed",
+            "received_fba_prep",
+            "sourcing_active",
+            "catalog_priority",
+            "explicit",
+        ],
         default="canonical",
         help=(
             "ASIN source. canonical = current Amazon FBA plus pre-Listed MBOP purchase inventory. "
             "received_fba_prep = received Amazon-bound purchase items waiting for FBA shipment. "
+            "sourcing_active = ASINs from active sourcing opportunities/watchlist. "
+            "catalog_priority = received FBA prep first, active sourcing second, then all known catalog ASINs. "
             "explicit = only ASINs passed with --asin."
         ),
     )
@@ -238,6 +252,7 @@ def parse_args() -> argparse.Namespace:
         help="Request Keepa offer stock detail when available. Use selectively because it may cost extra tokens.",
     )
     parser.add_argument("--no-history", action="store_true", help="Do not request Keepa history arrays.")
+    parser.add_argument("--no-rating", action="store_true", help="Do not request Keepa rating/review stats.")
     parser.add_argument(
         "--plan-only",
         action="store_true",
@@ -269,8 +284,16 @@ def get_supabase_client():
     return create_client(supabase_url, supabase_key)
 
 
-def collect_source_asins(supabase, *, source: str) -> list[str]:
+def collect_source_asins(supabase, *, source: str) -> tuple[list[str], dict[str, int]]:
     asins: set[str] = set()
+    priority_by_asin: dict[str, int] = {}
+
+    def add_asin(value: Any, priority: int) -> None:
+        asin = clean_asin(value)
+        if not asin:
+            return
+        asins.add(asin)
+        priority_by_asin[asin] = min(priority_by_asin.get(asin, priority), priority)
 
     if source in {"canonical", "amazon_active"}:
         for row in fetch_all(
@@ -282,9 +305,9 @@ def collect_source_asins(supabase, *, source: str) -> list[str]:
         ):
             asin = clean_asin(row.get("asin"))
             if asin and current_quantity(row) > 0:
-                asins.add(asin)
+                add_asin(asin, SOURCE_PRIORITY_LOW)
 
-    if source == "received_fba_prep":
+    if source in {"received_fba_prep", "catalog_priority"}:
         for row in fetch_all(
             supabase,
             "purchase_items",
@@ -299,7 +322,7 @@ def collect_source_asins(supabase, *, source: str) -> list[str]:
                 and marketplace != "ebay"
                 and row.get("exclude_from_purchase_reporting") is not True
             ):
-                asins.add(asin)
+                add_asin(asin, SOURCE_PRIORITY_HIGH)
 
     if source in {"canonical", "purchase_pre_listed"}:
         purchase_rows = fetch_all(
@@ -314,9 +337,54 @@ def collect_source_asins(supabase, *, source: str) -> list[str]:
             should_include = status not in {"listed", "cancelled", "return_opened", "return_pending"}
 
             if asin and should_include and row.get("item_id") not in excluded_item_ids:
-                asins.add(asin)
+                priority = SOURCE_PRIORITY_LOW if source == "catalog_priority" else SOURCE_PRIORITY_MEDIUM
+                add_asin(asin, priority)
 
-    return sorted(asins)
+    if source == "catalog_priority":
+        for row in fetch_all(
+            supabase,
+            "purchase_items",
+            "asin,current_status,exclude_from_purchase_reporting",
+        ):
+            status = clean_text(row.get("current_status"))
+            should_include = status not in {"listed", "cancelled", "return_opened", "return_pending"}
+            if should_include and row.get("exclude_from_purchase_reporting") is not True:
+                add_asin(row.get("asin"), SOURCE_PRIORITY_LOW)
+
+    if source in {"sourcing_active", "catalog_priority"}:
+        for row in fetch_all(
+            supabase,
+            "sourcing_opportunities",
+            "asin,status",
+        ):
+            asin = clean_asin(row.get("asin"))
+            status = clean_text(row.get("status"))
+            if asin and status in {"open", "watching", "roi_snoozed", "purchased_pending_match"}:
+                add_asin(asin, SOURCE_PRIORITY_MEDIUM)
+
+    if source == "catalog_priority":
+        for row in fetch_all(
+            supabase,
+            "amazon_skus",
+            "asin,listing_status,item_status",
+        ):
+            add_asin(row.get("asin"), SOURCE_PRIORITY_LOW)
+
+        for row in fetch_all(
+            supabase,
+            "amazon_sales_profitability",
+            "asin",
+        ):
+            add_asin(row.get("asin"), SOURCE_PRIORITY_LOW)
+
+        for row in fetch_all(
+            supabase,
+            "manual_item_matches",
+            "asin",
+        ):
+            add_asin(row.get("asin"), SOURCE_PRIORITY_LOW)
+
+    return sorted(asins), priority_by_asin
 
 
 def fetch_excluded_item_ids(
@@ -365,6 +433,7 @@ def filter_stale_keepa_asins(
     asins: list[str],
     *,
     stale_days: int,
+    priority_by_asin: dict[str, int] | None = None,
 ) -> list[str]:
     if stale_days < 0:
         raise ValueError("--stale-days must be zero or greater.")
@@ -373,14 +442,17 @@ def filter_stale_keepa_asins(
     asin_set.discard(None)
     latest_by_asin: dict[str, datetime | None] = {}
 
-    for row in fetch_all(
-        supabase,
-        "vw_latest_keepa_product_snapshot",
-        "asin,captured_at",
-    ):
-        asin = clean_asin(row.get("asin"))
-        if asin and asin in asin_set:
-            latest_by_asin[asin] = parse_timestamp(row.get("captured_at"))
+    for chunk in chunks(sorted(asin for asin in asin_set if asin), 200):
+        response = (
+            supabase.table("vw_latest_keepa_product_snapshot")
+            .select("asin,captured_at")
+            .in_("asin", chunk)
+            .execute()
+        )
+        for row in response.data or []:
+            asin = clean_asin(row.get("asin"))
+            if asin and asin in asin_set:
+                latest_by_asin[asin] = parse_timestamp(row.get("captured_at"))
 
     cutoff = datetime.now(timezone.utc) - timedelta(days=stale_days)
     selected = []
@@ -389,11 +461,14 @@ def filter_stale_keepa_asins(
         if captured_at is None or captured_at < cutoff:
             selected.append(asin)
 
-    def sort_key(asin: str) -> tuple[int, datetime]:
+    priority_by_asin = priority_by_asin or {}
+
+    def sort_key(asin: str) -> tuple[int, int, datetime]:
         captured_at = latest_by_asin.get(asin)
+        priority = priority_by_asin.get(asin, SOURCE_PRIORITY_LOW)
         if captured_at is None:
-            return (0, datetime.min.replace(tzinfo=timezone.utc))
-        return (1, captured_at)
+            return (priority, 0, datetime.min.replace(tzinfo=timezone.utc))
+        return (priority, 1, captured_at)
 
     return sorted(selected, key=sort_key)
 

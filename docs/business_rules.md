@@ -98,7 +98,9 @@ Carrier/status syncs must not downgrade workflow-owned statuses.
   must remain available for purchase matching/enrichment.
 - Sourcing seed generation may use the full known Amazon SKU catalog, including
   inactive seller listings, so out-of-stock products with known ASIN/MSKU
-  history can still become replenishment candidates.
+  history can still become replenishment candidates. Full-listing sourcing may
+  also seed ASINs known only through current stored Keepa snapshots, but not
+  snapshots older than 7 days.
 
 ## Receiving
 

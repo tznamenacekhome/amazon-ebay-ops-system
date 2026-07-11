@@ -66,7 +66,8 @@ def main() -> int:
         return 0
 
     if args.replace_run:
-        supabase.table("sourcing_opportunities").delete().eq("sourcing_run_id", args.run_id).execute()
+        deleted = delete_run_opportunities(supabase, args.run_id)
+        print(f"Deleted existing opportunities: {deleted}")
     for batch in chunked(rows, 250):
         supabase.table("sourcing_opportunities").insert(batch).execute()
     snapshots = snapshot_new_opportunities(supabase, args.run_id)
@@ -79,6 +80,23 @@ def main() -> int:
     ).eq("sourcing_run_id", args.run_id).execute()
     print(f"Initial listing snapshots created: {snapshots}")
     return 0
+
+
+def delete_run_opportunities(supabase, run_id: str) -> int:
+    deleted = 0
+    while True:
+        response = (
+            supabase.table("sourcing_opportunities")
+            .select("opportunity_id")
+            .eq("sourcing_run_id", run_id)
+            .limit(500)
+            .execute()
+        )
+        ids = [row["opportunity_id"] for row in response.data or [] if row.get("opportunity_id")]
+        if not ids:
+            return deleted
+        supabase.table("sourcing_opportunities").delete().in_("opportunity_id", ids).execute()
+        deleted += len(ids)
 
 
 def parse_args() -> argparse.Namespace:
@@ -96,19 +114,25 @@ def parse_args() -> argparse.Namespace:
 
 def upsert_opportunities(supabase, run_id: str, scored_rows: list[dict[str, Any]]) -> tuple[int, int]:
     existing_rows = fetch_existing_opportunities(supabase, run_id)
-    existing_by_candidate_id = {
-        row.get("candidate_id"): row
-        for row in existing_rows
-        if row.get("candidate_id")
-    }
+    existing_by_candidate_id: dict[str, list[dict[str, Any]]] = {}
+    for row in existing_rows:
+        candidate_id = row.get("candidate_id")
+        if candidate_id:
+            existing_by_candidate_id.setdefault(candidate_id, []).append(row)
     update_rows = []
     insert_rows = []
     for row in scored_rows:
-        existing = existing_by_candidate_id.get(row.get("candidate_id"))
-        if existing:
-            update_rows.append(merge_existing_opportunity(existing, row))
+        existing_matches = existing_by_candidate_id.get(row.get("candidate_id")) or []
+        if existing_matches:
+            update_rows.extend(merge_existing_opportunity(existing, row) for existing in existing_matches)
         else:
             insert_rows.append(row)
+    update_rows_by_id = {
+        row["opportunity_id"]: row
+        for row in update_rows
+        if row.get("opportunity_id")
+    }
+    update_rows = list(update_rows_by_id.values())
 
     updated = 0
     for batch in chunked(update_rows, 250):
@@ -127,13 +151,25 @@ def upsert_opportunities(supabase, run_id: str, scored_rows: list[dict[str, Any]
 
 
 def fetch_existing_opportunities(supabase, run_id: str) -> list[dict[str, Any]]:
-    response = (
-        supabase.table("sourcing_opportunities")
-        .select("opportunity_id,candidate_id,status,created_at")
-        .eq("sourcing_run_id", run_id)
-        .execute()
-    )
-    return response.data or []
+    rows: list[dict[str, Any]] = []
+    start = 0
+    page_size = 1000
+    while True:
+        end = start + page_size - 1
+        response = (
+            supabase.table("sourcing_opportunities")
+            .select("opportunity_id,candidate_id,status,created_at")
+            .eq("sourcing_run_id", run_id)
+            .order("opportunity_id")
+            .range(start, end)
+            .execute()
+        )
+        batch = response.data or []
+        rows.extend(batch)
+        if len(batch) < page_size:
+            break
+        start += page_size
+    return rows
 
 
 def snapshot_new_opportunities(supabase, run_id: str) -> int:
@@ -324,15 +360,19 @@ def score_candidate(
     has_excluded_keyword = any("excluded keyword" in flag.lower() for flag in flags)
     has_hard_block = any(flag.startswith("Blocked:") for flag in flags)
 
-    sale_price = to_float(seed.get("target_sale_price"), 0)
+    seed_sale_price = to_float(seed.get("target_sale_price"), 0)
+    pricing_reference = sale_price_reference(seed, keepa_prices_by_asin or {}, seed_sale_price)
+    sale_price = pricing_reference["reference_price"]
     shipping_status = shipping_quote_status(candidate)
     shipping_unknown = shipping_status.startswith("unknown")
     landed_cost = to_float(candidate.get("landed_cost"), 0) if not shipping_unknown else None
     item_price = to_float(candidate.get("price"), 0)
     raw_context = seed.get("raw_context_json") or {}
-    estimated_fees = to_float(raw_context.get("estimated_fee_cost"), 0) or conservative_fee_estimate(sale_price)
+    raw_estimated_fees = to_float(raw_context.get("estimated_fee_cost"), 0)
+    conservative_fees = conservative_fee_estimate(sale_price)
+    estimated_fees = max(raw_estimated_fees, conservative_fees) if raw_estimated_fees > 0 else conservative_fees
     max_profitable_landed_cost = profitability_landed_cap(sale_price, estimated_fees, settings)
-    best_offer_sale_price = best_offer_reference_price(seed, keepa_prices_by_asin or {})
+    best_offer_sale_price = sale_price
     best_offer_landed_cap = (
         profitability_landed_cap(best_offer_sale_price, estimated_fees, settings)
         if best_offer_sale_price is not None
@@ -367,7 +407,7 @@ def score_candidate(
         "open"
         if not has_excluded_keyword
         and not has_hard_block
-        and (passes or opportunity_type in {"best_offer", "auction", "multi_unit"} or potential_without_shipping)
+        and passes
         else "rejected"
     )
     score = opportunity_score(seed, profit, roi, quantity_available, opportunity_type)
@@ -391,6 +431,15 @@ def score_candidate(
         if shipping_unknown
         else f"{seed.get('inventory_need_level')} need, ${profit} profit, {roi}% ROI"
     )
+    matching_diagnostics = {
+        **matching_diagnostics,
+        "pricing_reference": {
+            **pricing_reference,
+            "estimated_fees": estimated_fees,
+            "conservative_fees": conservative_fees,
+            "raw_estimated_fees": raw_estimated_fees or None,
+        },
+    }
 
     return {
         "sourcing_run_id": candidate["sourcing_run_id"],
@@ -511,17 +560,43 @@ def nullable_float(value: Any) -> float | None:
 
 
 def best_offer_reference_price(seed: dict[str, Any], keepa_prices_by_asin: dict[str, dict[str, float | None]]) -> float | None:
+    sale_price = to_float(seed.get("target_sale_price"), 0)
+    return sale_price_reference(seed, keepa_prices_by_asin, sale_price)["reference_price"] or None
+
+
+def sale_price_reference(
+    seed: dict[str, Any],
+    keepa_prices_by_asin: dict[str, dict[str, float | None]],
+    seed_sale_price: float | None = None,
+) -> dict[str, Any]:
     asin = str(seed.get("asin") or "").upper()
     keepa = keepa_prices_by_asin.get(asin) or {}
-    prices = [
-        price
-        for price in (keepa.get("avg90_price"), keepa.get("current_price"))
-        if isinstance(price, (int, float)) and price > 0
-    ]
-    if prices:
-        return round(min(prices), 2)
-    sale_price = to_float(seed.get("target_sale_price"), 0)
-    return sale_price if sale_price > 0 else None
+    seed_price = seed_sale_price if seed_sale_price is not None else to_float(seed.get("target_sale_price"), 0)
+    candidates: list[tuple[str, float]] = []
+    if seed_price and seed_price > 0:
+        candidates.append(("seed_target_sale_price", round(seed_price, 2)))
+    for source, price in (
+        ("keepa_avg90_price", keepa.get("avg90_price")),
+        ("keepa_current_price", keepa.get("current_price")),
+    ):
+        if isinstance(price, (int, float)) and price > 0:
+            candidates.append((source, round(price, 2)))
+    if not candidates:
+        return {
+            "reference_price": 0,
+            "source": "none",
+            "seed_target_sale_price": seed_price if seed_price and seed_price > 0 else None,
+            "keepa_avg90_price": keepa.get("avg90_price"),
+            "keepa_current_price": keepa.get("current_price"),
+        }
+    source, reference_price = min(candidates, key=lambda item: item[1])
+    return {
+        "reference_price": reference_price,
+        "source": source,
+        "seed_target_sale_price": round(seed_price, 2) if seed_price and seed_price > 0 else None,
+        "keepa_avg90_price": keepa.get("avg90_price"),
+        "keepa_current_price": keepa.get("current_price"),
+    }
 
 
 def profitability_landed_cap(sale_price: float, estimated_fees: float, settings) -> float:
