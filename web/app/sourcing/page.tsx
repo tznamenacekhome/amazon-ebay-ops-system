@@ -800,6 +800,8 @@ function SourcingHistory() {
   const [runs, setRuns] = useState<SourcingRun[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [refreshedAt, setRefreshedAt] = useState<string | null>(null);
+  const [serverRunCount, setServerRunCount] = useState<number | null>(null);
 
   async function loadHistory() {
     setLoading(true);
@@ -809,6 +811,8 @@ function SourcingHistory() {
       const payload = await response.json();
       if (!response.ok) throw new Error(payload.error ?? "Failed to load sourcing history.");
       setRuns(payload.runs ?? []);
+      setServerRunCount(typeof payload.runCount === "number" ? payload.runCount : null);
+      setRefreshedAt(typeof payload.refreshedAt === "string" ? payload.refreshedAt : new Date().toISOString());
       setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load sourcing history.");
@@ -830,7 +834,12 @@ function SourcingHistory() {
   return (
     <div className="rounded-md border border-slate-200 bg-white shadow-sm">
       <div className="flex items-center justify-between border-b border-slate-200 px-3 py-2">
-        <div className="text-sm font-semibold text-slate-800">Sourcing Runs</div>
+        <div>
+          <div className="text-sm font-semibold text-slate-800">Sourcing Runs</div>
+          <div className="text-xs text-slate-500">
+            {refreshedAt ? `Last refreshed ${date(refreshedAt)} · ${serverRunCount ?? runs.length} rows returned` : ""}
+          </div>
+        </div>
         <button
           type="button"
           onClick={() => void loadHistory()}

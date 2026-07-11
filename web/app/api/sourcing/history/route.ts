@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import { supabase, toNumber } from "../_supabase";
+import { createServerSupabaseClient } from "../../_server";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 export async function GET(request: NextRequest) {
   const limit = Math.min(toNumber(new URL(request.url).searchParams.get("limit"), 50), 100);
+  const supabase = createServerSupabaseClient();
   const { data, error } = await supabase
     .from("sourcing_runs")
     .select(
@@ -16,6 +17,8 @@ export async function GET(request: NextRequest) {
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   const response = NextResponse.json({
+    runCount: data?.length ?? 0,
+    refreshedAt: new Date().toISOString(),
     runs: (data ?? []).map((row) => ({
       ...row,
       seed_asin_count: row.source_count,
@@ -26,4 +29,9 @@ export async function GET(request: NextRequest) {
   response.headers.set("Pragma", "no-cache");
   response.headers.set("Expires", "0");
   return response;
+}
+
+function toNumber(value: unknown, fallback = 0) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : fallback;
 }
