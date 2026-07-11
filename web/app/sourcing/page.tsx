@@ -799,16 +799,48 @@ function SourcingThumbnail({ src }: { src?: string | null }) {
 function SourcingHistory() {
   const [runs, setRuns] = useState<SourcingRun[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  async function loadHistory() {
+    setLoading(true);
+    try {
+      const response = await fetch("/api/sourcing/history", { cache: "no-store" });
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload.error ?? "Failed to load sourcing history.");
+      setRuns(payload.runs ?? []);
+      setError(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to load sourcing history.");
+    } finally {
+      setLoading(false);
+    }
+  }
 
   useEffect(() => {
-    fetch("/api/sourcing/history")
-      .then((response) => response.json())
-      .then((payload) => setRuns(payload.runs ?? []))
-      .finally(() => setLoading(false));
+    void loadHistory();
   }, []);
+
+  useEffect(() => {
+    if (!runs.some((run) => run.status === "running" || run.status === "planned")) return;
+    const timer = window.setInterval(() => void loadHistory(), 15000);
+    return () => window.clearInterval(timer);
+  }, [runs]);
 
   return (
     <div className="rounded-md border border-slate-200 bg-white shadow-sm">
+      <div className="flex items-center justify-between border-b border-slate-200 px-3 py-2">
+        <div className="text-sm font-semibold text-slate-800">Sourcing Runs</div>
+        <button
+          type="button"
+          onClick={() => void loadHistory()}
+          disabled={loading}
+          className="inline-flex h-8 items-center gap-2 rounded-md border border-slate-300 bg-white px-2 text-xs font-medium text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          <RefreshCw className={`h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} />
+          Refresh
+        </button>
+      </div>
+      {error ? <div className="border-b border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div> : null}
       <table className="min-w-full text-sm">
         <thead className="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
           <tr>
@@ -818,11 +850,12 @@ function SourcingHistory() {
             <th className="px-3 py-2">Seeds</th>
             <th className="px-3 py-2">Candidates</th>
             <th className="px-3 py-2">Opportunities</th>
+            <th className="px-3 py-2">Message</th>
             <th className="px-3 py-2">Run ID</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-slate-100">
-          {loading ? <tr><td colSpan={7} className="px-3 py-6 text-center text-slate-500">Loading run history...</td></tr> : runs.map((run) => (
+          {loading && !runs.length ? <tr><td colSpan={8} className="px-3 py-6 text-center text-slate-500">Loading run history...</td></tr> : runs.map((run) => (
             <tr key={run.sourcing_run_id}>
               <td className="px-3 py-2">{date(run.started_at)}</td>
               <td className="px-3 py-2">{label(run.run_type)}</td>
@@ -830,9 +863,11 @@ function SourcingHistory() {
               <td className="px-3 py-2">{run.seed_asin_count ?? 0}</td>
               <td className="px-3 py-2">{run.ebay_candidate_count ?? 0}</td>
               <td className="px-3 py-2">{run.opportunity_count ?? 0}</td>
+              <td className="max-w-96 px-3 py-2 text-xs text-slate-600">{run.error_message ?? ""}</td>
               <td className="px-3 py-2 font-mono text-xs">{run.sourcing_run_id}</td>
             </tr>
           ))}
+          {!loading && !runs.length ? <tr><td colSpan={8} className="px-3 py-6 text-center text-slate-500">No sourcing runs found.</td></tr> : null}
         </tbody>
       </table>
     </div>

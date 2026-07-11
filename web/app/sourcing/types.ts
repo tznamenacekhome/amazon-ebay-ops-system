@@ -79,4 +79,5 @@ export type SourcingRun = {
   seed_asin_count: number | null;
   ebay_candidate_count: number | null;
   opportunity_count: number | null;
+  error_message?: string | null;
 };
