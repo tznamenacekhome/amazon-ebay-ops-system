@@ -48,8 +48,11 @@ Write-Host ""
 aws sts get-caller-identity --profile $Profile --output json | Out-Null
 
 Write-Host "Logging Docker into ECR..." -ForegroundColor Cyan
-aws ecr get-login-password --profile $Profile --region $Region |
-  docker login --username AWS --password-stdin ($RepositoryUri.Split("/")[0])
+$registryHost = $RepositoryUri.Split("/")[0]
+cmd.exe /c "aws ecr get-login-password --profile `"$Profile`" --region `"$Region`" | docker login --username AWS --password-stdin $registryHost"
+if ($LASTEXITCODE -ne 0) {
+  throw "Docker login to ECR failed."
+}
 
 Write-Host "Building Docker image..." -ForegroundColor Cyan
 docker build -f Dockerfile.scheduler -t $localImage .
