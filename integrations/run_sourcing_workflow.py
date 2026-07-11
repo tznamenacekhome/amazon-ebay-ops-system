@@ -7,6 +7,8 @@ import subprocess
 import sys
 from pathlib import Path
 
+from sourcing_common import get_supabase_client
+
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -43,10 +45,14 @@ def main() -> int:
         ],
     ]
 
-    for step in steps:
-        print(f"\n--- python {' '.join(step)} ---", flush=True)
-        subprocess.run([sys.executable, *step], cwd=ROOT, check=True)
-    return 0
+    try:
+        for step in steps:
+            print(f"\n--- python {' '.join(step)} ---", flush=True)
+            subprocess.run([sys.executable, *step], cwd=ROOT, check=True)
+        return 0
+    except Exception as error:
+        mark_run_failed(args.run_id, str(error))
+        raise
 
 
 def parse_args() -> argparse.Namespace:
@@ -65,6 +71,25 @@ def default_seed_limit(run_type: str) -> int:
 
 def default_search_limit(run_type: str, seed_limit: int) -> int:
     return seed_limit if run_type == "full_listings" else 50
+
+
+def mark_run_failed(run_id: str, message: str) -> None:
+    try:
+        get_supabase_client().table("sourcing_runs").update(
+            {
+                "status": "failed",
+                "completed_at": now_iso(),
+                "error_message": message[:1000],
+            }
+        ).eq("sourcing_run_id", run_id).execute()
+    except Exception as update_error:  # noqa: BLE001 - best-effort task cleanup
+        print(f"Could not mark sourcing run {run_id} failed: {update_error}", flush=True)
+
+
+def now_iso() -> str:
+    import datetime as dt
+
+    return dt.datetime.now(dt.UTC).isoformat()
 
 
 if __name__ == "__main__":

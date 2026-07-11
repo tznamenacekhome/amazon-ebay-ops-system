@@ -297,12 +297,35 @@ def is_fba_listing(value: Any) -> bool:
 
 
 def latest_inventory_by_asin(supabase) -> dict[str, float]:
-    rows = paginate_table(
-        supabase,
-        "vw_latest_amazon_fba_inventory_snapshot",
-        "asin,fulfillable_quantity,total_quantity,reserved_customer_order_quantity,product_name",
-        max_rows=15000,
+    latest_response = (
+        supabase.table("amazon_fba_inventory_snapshots")
+        .select("captured_at")
+        .order("captured_at", desc=True)
+        .limit(1)
+        .execute()
     )
+    latest_captured_at = (latest_response.data or [{}])[0].get("captured_at")
+    if not latest_captured_at:
+        return {}
+
+    rows: list[dict[str, Any]] = []
+    start = 0
+    page_size = 1000
+    while True:
+        end = start + page_size - 1
+        response = (
+            supabase.table("amazon_fba_inventory_snapshots")
+            .select("asin,fulfillable_quantity")
+            .eq("captured_at", latest_captured_at)
+            .range(start, end)
+            .execute()
+        )
+        batch = response.data or []
+        rows.extend(batch)
+        if len(batch) < page_size:
+            break
+        start += page_size
+
     inventory: dict[str, float] = defaultdict(float)
     for row in rows:
         asin = str(row.get("asin") or "").upper()
