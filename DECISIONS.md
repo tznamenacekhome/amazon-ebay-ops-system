@@ -358,6 +358,30 @@ game-plus-accessory bundles should route to Review.
 
 ---
 
+## Sourcing Discovery Uses A Unified Coverage Cycle
+
+Decision:
+Daily Amazon ASIN -> eBay sourcing discovery is one quota-driven catalog
+coverage cycle, not separate Recent Sales and Full Listings jobs.
+
+Implementation:
+- `integrations/run_daily_catalog_sourcing.py` owns the daily runner.
+- `integrations/sourcing_coverage_cycle.py` builds the durable ASIN queue and
+  coverage metrics.
+- Queue priority is recently sold ASINs, purchased Amazon-bound items not yet
+  sent to Amazon, then remaining eligible catalog ASINs.
+- The runner reads eBay Developer Analytics for the Browse quota and spends the
+  usable daily budget instead of trying to fill a fixed count of opportunities.
+- `/api/sourcing/runs` starts `daily_catalog_sourcing`; the Coverage Cycle UI
+  renders backend cycle, queue, quota, and run diagnostics.
+
+Rule:
+This remains advisory Amazon-to-eBay replenishment sourcing only. MBOP must not
+auto-purchase, bid, submit offers, or add eBay-to-Amazon sourcing through this
+workflow.
+
+---
+
 ## Matched Amazon Title Is Stored Separately
 
 Decision:

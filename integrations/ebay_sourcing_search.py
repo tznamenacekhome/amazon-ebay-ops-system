@@ -147,15 +147,28 @@ def parse_args() -> argparse.Namespace:
 
 
 def fetch_seeds(supabase, run_id: str, limit: int, offset: int = 0) -> list[dict[str, Any]]:
-    response = (
-        supabase.table("sourcing_seed_asins")
-        .select("*")
-        .eq("sourcing_run_id", run_id)
-        .order("inventory_need_level")
-        .range(max(offset, 0), max(offset, 0) + max(limit, 0) - 1)
-        .execute()
-    )
+    query = supabase.table("sourcing_seed_asins").select("*").eq("sourcing_run_id", run_id)
+    if has_cycle_queue_columns(supabase, run_id):
+        query = query.order("queue_position")
+    else:
+        query = query.order("inventory_need_level")
+    response = query.range(max(offset, 0), max(offset, 0) + max(limit, 0) - 1).execute()
     return response.data or []
+
+
+def has_cycle_queue_columns(supabase, run_id: str) -> bool:
+    try:
+        response = (
+            supabase.table("sourcing_seed_asins")
+            .select("queue_position")
+            .eq("sourcing_run_id", run_id)
+            .not_.is_("queue_position", "null")
+            .limit(1)
+            .execute()
+        )
+    except Exception:
+        return False
+    return bool(response.data)
 
 
 def search_queries_for_seed(seed: dict[str, Any]) -> list[str]:

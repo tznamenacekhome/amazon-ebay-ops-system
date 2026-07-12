@@ -1,6 +1,6 @@
 # Backend Architecture
 
-Last updated: 2026-06-28
+Last updated: 2026-07-12
 
 ## Core Flow
 
@@ -83,20 +83,22 @@ designed.
   including detail-drawer history and parsed per-job metrics from scheduler
   output.
 
-Sourcing Workspace runs use a quota-based progressive runner. The web API
-creates a `sourcing_runs` row, ECS runs
-`integrations/run_sourcing_workflow.py`, and the runner reads eBay Developer
-Analytics for the `buy.browse` daily quota before searching seed chunks. The
-default behavior is to spend the available daily Browse quota and persist every
-qualifying opportunity it finds in `sourcing_opportunity_batches`; an explicit
-`--target-opportunities` value is now a bounded/manual mode. The daily
-`sourcing-catalog` scheduler group also runs
-`integrations/run_daily_sourcing_discovery.py` so opportunity discovery can
-harvest the Browse quota automatically. If eBay Browse quota is exhausted, the
-run completes with stop reason `ebay_out_of_quota` and UI copy says "Out of
-quota" rather than treating the run as a failed job. The frontend renders saved
-backend batch/quota diagnostics and does not calculate matching, profitability,
-or batch eligibility in React.
+Sourcing Workspace opportunity discovery uses a unified daily catalog coverage
+cycle. The web API and the daily `sourcing-catalog` scheduler group both launch
+`integrations/run_daily_catalog_sourcing.py` through
+`integrations/run_daily_sourcing_discovery.py` for backward-compatible
+orchestration. The runner builds one durable ASIN queue per coverage cycle:
+recently sold ASINs first, purchased-but-not-sent-to-Amazon ASINs second, and
+the remaining eligible catalog third. It reads eBay Developer Analytics for the
+`buy.browse` daily quota, searches queue chunks until usable quota is spent or
+the cycle is complete, and stores every qualifying opportunity it finds in
+`sourcing_opportunity_batches` for operator review. A coverage cycle prevents
+re-searching the same ASIN during the same pass and adds newly eligible ASINs to
+the end of the active cycle. If eBay Browse quota is exhausted or the configured
+reserve is reached, the run completes with an "Out of quota" stop reason instead
+of being treated as a failed job. The frontend renders saved backend
+cycle/batch/quota diagnostics and does not calculate matching, profitability, or
+queue eligibility in React.
 
 The legacy eBay supplier returns sync has been removed from active
 orchestration and System Health. The Order Problems return workflow uses

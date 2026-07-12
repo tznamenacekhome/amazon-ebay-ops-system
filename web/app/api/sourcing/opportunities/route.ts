@@ -337,7 +337,12 @@ function isMissingBatchTableError(message: string) {
 }
 
 async function fetchLatestSourcingRunIds(sourceMode: string) {
-  const wantedModes = sourceMode === "all" ? ["recent_sales", "full_listings"] : [sourceMode];
+  const priorityModes = new Set(["1_recently_sold", "2_purchased_not_sent", "3_catalog_remaining"]);
+  const wantedModes = sourceMode === "all"
+    ? ["daily_catalog_sourcing", "recent_sales", "full_listings"]
+    : priorityModes.has(sourceMode)
+      ? ["daily_catalog_sourcing"]
+      : [sourceMode];
   const { data, error } = await supabase
     .from("sourcing_runs")
     .select("sourcing_run_id,run_type,started_at")
@@ -550,6 +555,8 @@ function getOriginalCurrency(rawEbay: unknown) {
   if (!rawEbay || typeof rawEbay !== "object") return null;
   const price = (rawEbay as { price?: { convertedFromCurrency?: unknown } }).price;
   if (typeof price?.convertedFromCurrency === "string") return price.convertedFromCurrency;
+  const currentBidPrice = (rawEbay as { currentBidPrice?: { convertedFromCurrency?: unknown } }).currentBidPrice;
+  if (typeof currentBidPrice?.convertedFromCurrency === "string") return currentBidPrice.convertedFromCurrency;
   const shipping = firstShippingOptionWithCost(rawEbay);
   const cost = shipping?.shippingCost;
   return typeof cost?.convertedFromCurrency === "string" ? cost.convertedFromCurrency : null;
@@ -558,7 +565,10 @@ function getOriginalCurrency(rawEbay: unknown) {
 function getOriginalItemPrice(rawEbay: unknown) {
   if (!rawEbay || typeof rawEbay !== "object") return null;
   const price = (rawEbay as { price?: { convertedFromValue?: unknown } }).price;
-  return toNullableNumber(price?.convertedFromValue);
+  const priceValue = toNullableNumber(price?.convertedFromValue);
+  if (priceValue !== null) return priceValue;
+  const currentBidPrice = (rawEbay as { currentBidPrice?: { convertedFromValue?: unknown } }).currentBidPrice;
+  return toNullableNumber(currentBidPrice?.convertedFromValue);
 }
 
 function getOriginalShippingPrice(rawEbay: unknown) {

@@ -1,6 +1,6 @@
 # Database Schema Overview
 
-Last updated: 2026-06-28
+Last updated: 2026-07-12
 
 This document is a high-level map of MBOP's schema. SQL migrations remain the source of exact column definitions.
 
@@ -96,24 +96,35 @@ Keepa and Informed data are advisory intelligence only.
 
 - `sourcing_settings`: operator-configurable sourcing thresholds, buyer ZIP,
   allowed item-location countries, Best Offer threshold, and excluded keywords.
+- `sourcing_coverage_cycles`: durable daily catalog coverage-cycle headers,
+  including total eligible ASINs, priority bucket counts, searched/remaining
+  counts, completion percentage, last run, last stop reason, and quota reset
+  context.
+- `sourcing_coverage_cycle_items`: one row per ASIN in a coverage cycle,
+  including priority bucket, queue position, processing status, source evidence,
+  last eBay check, Browse calls used, candidate counts, qualifying opportunity
+  counts, and retry/error context.
 - `sourcing_runs`: one row per sourcing scan, including mode, counts, status,
-  settings snapshot, API call count, and errors.
-- `sourcing_seed_asins`: ASINs selected for a sourcing run from recent Amazon
-  sales or active listings, including Amazon title/image, target sale context,
-  velocity, inventory need, and warning flags.
+  settings snapshot, API call count, errors, optional coverage-cycle link, stop
+  reason, Browse quota snapshots, and per-priority coverage metrics.
+- `sourcing_seed_asins`: ASINs selected for a sourcing run from the coverage
+  queue, recent Amazon sales, purchased-not-sent Amazon-bound items, or active
+  listings, including Amazon title/image, target sale context, velocity,
+  inventory need, queue position, and warning flags.
 - `sourcing_ebay_candidates`: eBay Browse candidate listings with raw payload,
   buying options, item location, shipping quote state, price, landed cost,
   quantity, auction, and Best Offer metadata.
 - `sourcing_opportunities`: scored candidate rows shown to the operator with
   opportunity type, workflow status, profit/ROI context, offer/bid guidance,
   flags, and score.
-- `sourcing_opportunity_batches`: durable progressive sourcing batches for the
+- `sourcing_opportunity_batches`: durable sourcing batches for the
   Replenishment queue, including requested/current counts, cumulative seed
   cursor, eBay Browse API-call count, stop reason, quota diagnostics, and
-  funnel diagnostics. Quota-based runs use `requested_opportunity_count = 0`
-  to mean "spend available daily Browse quota" rather than "stop after N
-  opportunities"; quota exhaustion is recorded with
-  `stop_reason = 'ebay_out_of_quota'`.
+  funnel diagnostics. Unified coverage-cycle runs use
+  `requested_opportunity_count = 0` to mean "spend available daily Browse
+  quota" rather than "stop after N opportunities"; quota stops are recorded as
+  `ebay_out_of_quota`, `ebay_rate_limited`, or `quota_reserve_reached` and
+  displayed as "Out of quota".
 - `sourcing_opportunity_batch_items`: stable membership of opportunities
   presented in each progressive sourcing batch so later batches do not repeat
   rows already shown to the operator.

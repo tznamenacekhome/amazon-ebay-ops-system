@@ -22,40 +22,17 @@ export async function POST(request: NextRequest) {
   if (adminError) return adminError;
 
   const body = await request.json().catch(() => ({}));
-  const runType = body.runType === "full_listings" ? "full_listings" : "recent_sales";
+  const runType = "daily_catalog_sourcing";
   const execute = body.execute === true;
   const runId = randomUUID();
 
-  const { data: settings } = await supabase
-    .from("sourcing_settings")
-    .select("*")
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
-  const { data, error } = await supabase
-    .from("sourcing_runs")
-    .insert({
-      sourcing_run_id: runId,
-      run_type: runType,
-      status: "planned",
-      started_at: new Date().toISOString(),
-      settings_snapshot: settings ?? {},
-    })
-    .select("*")
-    .single();
-
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-
   const nextSteps = [
-    `python integrations/build_sourcing_seed_asins.py --mode ${runType} --run-id ${runId}`,
-    `python integrations/ebay_sourcing_search.py --run-id ${runId}`,
-    `python integrations/score_sourcing_opportunities.py --run-id ${runId}`,
+    `python integrations/run_daily_catalog_sourcing.py --run-id ${runId}`,
   ];
 
   if (!execute) {
     return NextResponse.json({
-      run: data,
+      run: { sourcing_run_id: runId, run_type: runType, status: "planned" },
       nextSteps,
     });
   }
@@ -64,7 +41,7 @@ export async function POST(request: NextRequest) {
     try {
       const task = await runAwsSourcingTask(runId, runType);
       return NextResponse.json({
-        run: data,
+        run: { sourcing_run_id: runId, run_type: runType, status: "planned" },
         status: "started",
         executionMode: "aws-ecs",
         taskArn: task.taskArn,
@@ -74,13 +51,15 @@ export async function POST(request: NextRequest) {
       const message = error instanceof Error ? error.message : "Failed to start AWS sourcing task.";
       await supabase
         .from("sourcing_runs")
-        .update({
+        .upsert({
+          sourcing_run_id: runId,
+          run_type: runType,
           status: "failed",
+          started_at: new Date().toISOString(),
           completed_at: new Date().toISOString(),
           error_message: message,
-        })
-        .eq("sourcing_run_id", runId);
-      return NextResponse.json({ error: message, run: data }, { status: 500 });
+        }, { onConflict: "sourcing_run_id" });
+      return NextResponse.json({ error: message, run: { sourcing_run_id: runId, run_type: runType } }, { status: 500 });
     }
   }
 
@@ -97,12 +76,10 @@ export async function POST(request: NextRequest) {
   try {
     await fs.mkdir(path.dirname(LOG_PATH), { recursive: true });
     await appendLog(`\n================================\nStarting sourcing ${runType} run ${runId} at ${new Date().toISOString()}\n`);
-    await runStep("Run quota-based sourcing workflow", [
-      "integrations/run_sourcing_workflow.py",
+    await runStep("Run unified daily sourcing workflow", [
+      "integrations/run_daily_catalog_sourcing.py",
       "--run-id",
       runId,
-      "--run-type",
-      runType,
     ]);
     await appendLog(`Completed sourcing ${runType} run ${runId} at ${new Date().toISOString()}\n`);
 
@@ -113,7 +90,7 @@ export async function POST(request: NextRequest) {
       .single();
 
     return NextResponse.json({
-      run: completedRun ?? data,
+      run: completedRun ?? { sourcing_run_id: runId, run_type: runType, status: "completed" },
       status: "completed",
       nextSteps,
     });
@@ -122,17 +99,20 @@ export async function POST(request: NextRequest) {
     await appendLog(`FAILED sourcing ${runType} run ${runId}: ${message}\n`);
     await supabase
       .from("sourcing_runs")
-      .update({
+      .upsert({
+        sourcing_run_id: runId,
+        run_type: runType,
         status: "failed",
+        started_at: new Date().toISOString(),
         completed_at: new Date().toISOString(),
-      })
-      .eq("sourcing_run_id", runId);
+        error_message: message,
+      }, { onConflict: "sourcing_run_id" });
 
-    return NextResponse.json({ error: message, run: data }, { status: 500 });
+    return NextResponse.json({ error: message, run: { sourcing_run_id: runId, run_type: runType } }, { status: 500 });
   }
 }
 
-export async function runAwsSourcingTask(runId: string, runType: "recent_sales" | "full_listings", continueRun = false) {
+export async function runAwsSourcingTask(runId: string, runType: "recent_sales" | "full_listings" | "daily_catalog_sourcing", continueRun = false) {
   const client = new ECSClient({ region: process.env.AWS_REGION || process.env.AWS_DEFAULT_REGION || "us-west-2" });
   const cluster = process.env.MBOP_SCHEDULER_CLUSTER || "mbop-cluster1";
   const taskDefinition = process.env.MBOP_SCHEDULER_TASK_DEFINITION || "mbop-scheduler-task";
@@ -162,15 +142,7 @@ export async function runAwsSourcingTask(runId: string, runType: "recent_sales" 
       containerOverrides: [
         {
           name: containerName,
-          command: [
-            "python",
-            "integrations/run_sourcing_workflow.py",
-            "--run-id",
-            runId,
-            "--run-type",
-            runType,
-            ...(continueRun ? ["--continue-run"] : []),
-          ],
+          command: sourcingTaskCommand(runId, runType, continueRun),
           environment: [
             { name: "SCHEDULER_TRIGGER_SOURCE", value: "web-on-demand" },
             { name: "EVENTBRIDGE_SCHEDULE_NAME", value: "mbop-web-on-demand-sourcing" },
@@ -195,6 +167,21 @@ export async function runAwsSourcingTask(runId: string, runType: "recent_sales" 
     throw new Error("ECS RunTask did not return a task ARN.");
   }
   return task;
+}
+
+function sourcingTaskCommand(runId: string, runType: "recent_sales" | "full_listings" | "daily_catalog_sourcing", continueRun: boolean) {
+  if (runType === "daily_catalog_sourcing" && !continueRun) {
+    return ["python", "integrations/run_daily_catalog_sourcing.py", "--run-id", runId];
+  }
+  return [
+    "python",
+    "integrations/run_sourcing_workflow.py",
+    "--run-id",
+    runId,
+    "--run-type",
+    runType === "daily_catalog_sourcing" ? "full_listings" : runType,
+    ...(continueRun ? ["--continue-run"] : []),
+  ];
 }
 
 function csvEnv(name: string) {

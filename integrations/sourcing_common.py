@@ -41,6 +41,7 @@ class SourcingSettings:
 
 def load_environment() -> None:
     load_dotenv(".env")
+    load_dotenv(".env.local")
 
 
 def get_supabase_client():

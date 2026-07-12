@@ -698,6 +698,11 @@ Implemented foundation:
   evidence, Game Name, numeric sequel/year checks, edition/version checks,
   digital/service terms, accessory/merchandise terms, incomplete-product terms,
   and region signals
+- daily Amazon-to-eBay sourcing discovery now uses a unified
+  `daily_catalog_sourcing` coverage cycle that spends the usable eBay Browse
+  quota across recently sold ASINs, purchased-not-sent Amazon-bound items, and
+  remaining eligible catalog ASINs without re-searching an ASIN during the same
+  cycle
 - Matching Intelligence refresh runs through sync orchestration after purchase,
   dismissal, return, and catalog updates, then rescoring refreshes recent
   sourcing runs

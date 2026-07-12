@@ -81,7 +81,9 @@ export type SourcingRun = {
   opportunity_count: number | null;
   scored_opportunity_count?: number | null;
   presented_opportunity_count?: number | null;
+  stop_reason?: string | null;
   batch_stop_reason?: string | null;
+  browse_quota_reset_at?: string | null;
   error_message?: string | null;
   raw_summary_json?: unknown;
 };

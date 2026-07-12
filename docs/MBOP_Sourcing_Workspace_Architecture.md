@@ -11,7 +11,7 @@ Related requirements document:
 
 ---
 
-# Implementation Status - 2026-06-13 PT
+# Implementation Status - 2026-07-12 PT
 
 Implemented entry points:
 - `web/app/sourcing/page.tsx`
@@ -21,20 +21,33 @@ Implemented entry points:
 - `web/app/api/sourcing/settings/route.ts`
 - `web/app/api/sourcing/history/route.ts`
 - `web/app/api/sourcing/runs/route.ts`
+- `web/app/api/sourcing/coverage-cycle/route.ts`
+- `web/app/api/sourcing/coverage-cycle/items/route.ts`
+- `web/app/api/sourcing/daily-runs/route.ts`
 - `integrations/build_sourcing_seed_asins.py`
 - `integrations/ebay_sourcing_search.py`
 - `integrations/score_sourcing_opportunities.py`
+- `integrations/sourcing_coverage_cycle.py`
+- `integrations/run_daily_catalog_sourcing.py`
+- `integrations/run_daily_sourcing_discovery.py`
 - `integrations/match_sourcing_purchases.py`
 - `integrations/refresh_sourcing_listing_availability.py`
 - `integrations/sourcing_common.py`
 
-Manual population sequence:
+Manual legacy population sequence:
 
 ```powershell
 $runId = [guid]::NewGuid().ToString()
 python integrations/build_sourcing_seed_asins.py --mode recent_sales --limit 30 --run-id $runId
 python integrations/ebay_sourcing_search.py --run-id $runId --limit 15 --max-results-per-asin 8
 python integrations/score_sourcing_opportunities.py --run-id $runId --replace-run
+```
+
+Unified daily coverage-cycle sequence:
+
+```powershell
+python integrations/run_daily_catalog_sourcing.py --plan-only
+python integrations/run_daily_catalog_sourcing.py
 ```
 
 Current implementation notes:
@@ -53,21 +66,32 @@ Current implementation notes:
   pickup delivery options such as `SELLER_ARRANGED_LOCAL_PICKUP` without
   `shippingOptions`.
 - UI actions are operator-only: `watching`, `dismissed`, `roi_snoozed`, and `purchased_pending_match`.
-- `/api/sourcing/runs` can execute the full sourcing workflow from the UI for Recent Sales, Full Listings, or both depending on source-mode selection.
-- `run_daily_sourcing_discovery.py` creates a scheduled Full Listings sourcing
-  run for the `sourcing-catalog` group and lets the backend runner spend the
-  available eBay Browse quota automatically each day.
+- `/api/sourcing/runs` starts the unified daily coverage-cycle workflow. The
+  UI no longer launches separate Recent Sales and Full Listings discovery jobs.
+- `run_daily_sourcing_discovery.py` is a compatibility wrapper around
+  `run_daily_catalog_sourcing.py` for scheduler wiring. The unified runner
+  spends the usable eBay Browse quota automatically each day.
+- `sourcing_coverage_cycles` and `sourcing_coverage_cycle_items` store the
+  durable ASIN pass. Priority order is recently sold in the last 90 days,
+  purchased Amazon-bound items not yet sent to Amazon, then the remaining
+  eligible catalog.
+- The Coverage Cycle tab shows cycle progress, priority-bucket progress, queue
+  rows, and recent `daily_catalog_sourcing` runs from backend API routes.
 - The opportunity detail drawer was removed after operator review.
 - Table actions handle watch, purchased/offer made, and dismiss directly; table dismiss uses a modal for dismiss reason and notes.
 - Auction type cells link to Gixen and copy the eBay item number to the clipboard.
 - Type cells show backend-suggested Best Offer and auction bid amounts in USD.
   When eBay Browse returns an original non-USD amount, the cell also displays
   the original currency equivalent, such as CAD, using the Browse converted
-  item-price ratio.
+  item-price ratio. Fixed-price rows read original currency from `price`;
+  auction rows read it from `currentBidPrice`.
 - Sourcing History separates scored rows from operator-presented rows. The
   `Shown` column uses the latest completed batch count, while the message can
   say `Scored N; shown M` so rejected/non-actionable scored rows are not
   confused with buyable opportunities.
+- Quota stops such as `ebay_out_of_quota`, `ebay_rate_limited`, and
+  `quota_reserve_reached` are displayed as "Out of quota" rather than failed
+  sourcing jobs.
 - `match_sourcing_purchases.py` performs exact item-ID matching only. It does not yet attempt title/price/date fallback matches.
 - `purchased_pending_match` also represents Best Offers made by the operator. The matcher moves rows back to `watching` when no matching eBay purchase appears within 72 hours of the purchased/offer-made action.
 - When the matcher finds the imported eBay purchase, it writes sourced ASIN, Amazon title, and `purchase_items.target_price` using the highest of Last Sold, Keepa 90-day, and current Buy Box price.

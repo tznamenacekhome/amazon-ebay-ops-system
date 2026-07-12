@@ -364,13 +364,9 @@ JOBS: tuple[SyncJob, ...] = (
         timeout_seconds=20 * 60,
     ),
     SyncJob(
-        name="Sourcing opportunity discovery",
+        name="Daily catalog sourcing",
         command=static_command(
             "integrations/run_daily_sourcing_discovery.py",
-            "--run-type",
-            "full_listings",
-            "--seed-limit",
-            "5000",
         ),
         groups=("daily", "catalog", "sourcing-catalog"),
         blocking=False,

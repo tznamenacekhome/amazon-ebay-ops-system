@@ -29,7 +29,7 @@ MBOP is the internal operations platform for Midnight Blue Enterprises, LLC.
 | Legacy spreadsheet backfill | Recently used / repeatable script available |
 | Order Problems / eBay Returns | Operational first slice / eBay read-only |
 | Amazon Return Recovery | Operational first slice / removals report issue under Amazon support |
-| Sourcing Workspace | Operational first slice / daily availability cleanup |
+| Sourcing Workspace | Operational first slice / unified daily coverage-cycle sourcing |
 | AWS web deployment | Live on ECS/Fargate with Cognito/ALB auth |
 | AWS scheduler migration | Live on ECS/EventBridge with Supabase telemetry |
 
@@ -341,6 +341,14 @@ Implemented:
 - `/api/sourcing/opportunities` now falls back to Amazon sales history by ASIN
   for Last Sold display when a full-listing seed lacks `last_sold_at`, so
   opportunities sourced from catalog inventory still show recent sale context.
+- sourcing opportunity discovery now uses one `daily_catalog_sourcing`
+  coverage cycle instead of separate recent-sales and full-listings daily jobs.
+  The queue prioritizes recently sold ASINs, purchased Amazon-bound items not
+  yet sent to Amazon, and then remaining eligible catalog ASINs; the runner
+  spends the usable eBay Browse quota and reports quota stops as `Out of quota`.
+- the Sourcing Workspace includes a Coverage Cycle tab backed by
+  `/api/sourcing/coverage-cycle`, `/api/sourcing/coverage-cycle/items`, and
+  `/api/sourcing/daily-runs`.
 - the current deterministic match-quality sprint is documented in
   `docs/sourcing_matching_quality_sprint_2026-07-11.md`; the latest
   `recent_sales` and `full_listings` sourcing runs were rescored after the

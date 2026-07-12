@@ -1,6 +1,6 @@
 # Business Rules
 
-Last updated: 2026-06-28
+Last updated: 2026-07-12
 
 ## Cost And Reporting
 
@@ -115,12 +115,18 @@ Carrier/status syncs must not downgrade workflow-owned statuses.
   seed's stored sale context when present and otherwise fall back to Amazon
   sales history by ASIN so full-listing candidates do not lose recent sale
   context.
-- On-demand sourcing should fill operator review in progressive batches. A run
-  searches prioritized seed ASIN chunks until it can present up to 100 valid
-  open opportunities, reaches the end of the seed queue, or hits the configured
-  API-call budget. `Find 100 More` continues the same run from the durable seed
-  cursor and must not re-present opportunities already assigned to prior
-  batches.
+- Daily and on-demand sourcing use the same unified coverage cycle. A cycle
+  searches each eligible ASIN at most once before starting a fresh pass, while
+  newly eligible ASINs are appended to the active queue. Queue priority is:
+  Amazon ASINs sold in the last 90 days, purchased Amazon-bound items not yet
+  sent to Amazon, then remaining eligible catalog ASINs.
+- Sourcing discovery is quota-driven, not target-count driven. The job should
+  spend the available daily eBay Browse budget, subject to any configured
+  reserve, and store all qualifying opportunities found. Quota exhaustion or
+  quota-reserve stops are normal "Out of quota" outcomes, not failed jobs.
+- Coverage-cycle batch membership must not re-present opportunities already
+  assigned to prior batches unless the operator action/workflow explicitly
+  returns the row to an open sourcing state.
 
 ## Receiving
 

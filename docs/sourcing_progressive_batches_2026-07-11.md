@@ -2,6 +2,13 @@
 
 Date: 2026-07-11
 
+Update 2026-07-12: daily discovery now runs through
+`integrations/run_daily_catalog_sourcing.py`, a unified coverage-cycle runner
+that builds one prioritized ASIN queue and spends the usable eBay Browse quota.
+The progressive batch tables remain the presentation/history layer for
+operator-visible opportunities, and `run_sourcing_workflow.py` remains useful
+for legacy/manual compatibility.
+
 ## Current Run Semantics Audited
 
 - `/api/sourcing/runs` creates a `sourcing_runs` row and starts an AWS ECS
