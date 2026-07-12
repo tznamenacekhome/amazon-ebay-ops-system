@@ -232,14 +232,7 @@ def refresh_active_cycle_queue(supabase, cycle_id: str, settings, queue_limit: i
     queue = build_unified_priority_queue(supabase, settings, limit=queue_limit)
     existing = {
         str(row.get("asin") or "").upper(): row
-        for row in (
-            supabase.table("sourcing_coverage_cycle_items")
-            .select("asin,queue_position")
-            .eq("coverage_cycle_id", cycle_id)
-            .execute()
-            .data
-            or []
-        )
+        for row in paginate_cycle_item_keys(supabase, cycle_id)
     }
     max_position = max([int(row.get("queue_position") or 0) for row in existing.values()] or [0])
     new_rows = []
@@ -252,6 +245,24 @@ def refresh_active_cycle_queue(supabase, cycle_id: str, settings, queue_limit: i
     insert_cycle_items(supabase, cycle_id, new_rows)
     refresh_cycle_metrics(supabase, cycle_id)
     return len(new_rows)
+
+
+def paginate_cycle_item_keys(supabase, cycle_id: str) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    start = 0
+    while True:
+        response = (
+            supabase.table("sourcing_coverage_cycle_items")
+            .select("asin,queue_position")
+            .eq("coverage_cycle_id", cycle_id)
+            .range(start, start + 999)
+            .execute()
+        )
+        batch = response.data or []
+        rows.extend(batch)
+        if len(batch) < 1000:
+            return rows
+        start += 1000
 
 
 def insert_cycle_items(supabase, cycle_id: str, rows: list[dict[str, Any]]) -> None:
