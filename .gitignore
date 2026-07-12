@@ -34,8 +34,10 @@ tmp/
 temp/
 PhotoDateAudit.csv
 
-# Local Supabase CLI scaffold/state. SQL migrations remain in sql/.
-supabase/
+# Local Supabase CLI scaffold/state. Supabase CLI migrations are tracked.
+supabase/*
+!supabase/migrations/
+!supabase/migrations/*.sql
 
 # =========================
 # RevSeller diagnostics
