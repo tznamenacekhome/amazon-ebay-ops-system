@@ -120,6 +120,11 @@ Carrier/status syncs must not downgrade workflow-owned statuses.
   newly eligible ASINs are appended to the active queue. Queue priority is:
   Amazon ASINs sold in the last 90 days, purchased Amazon-bound items not yet
   sent to Amazon, then remaining eligible catalog ASINs.
+- Sourcing coverage-cycle ASIN eligibility is limited to video game catalog
+  items. Backend seed building should use Keepa product group/category evidence
+  and platform/system evidence to exclude books, board games, pet products,
+  apparel, music accessories, supplies, and other non-video-game ASINs before
+  the queue is persisted.
 - Sourcing discovery is quota-driven, not target-count driven. The job should
   spend the available daily eBay Browse budget, subject to any configured
   reserve, and store all qualifying opportunities found. Quota exhaustion or

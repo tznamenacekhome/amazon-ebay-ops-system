@@ -10,6 +10,7 @@ from sourcing_coverage_cycle import (  # noqa: E402
     PRIORITY_PURCHASED_NOT_SENT,
     PRIORITY_RECENTLY_SOLD,
     is_purchased_not_yet_sent_to_amazon,
+    is_video_game_seed,
     queue_row_from_seed,
     queue_sort_key,
 )
@@ -105,6 +106,38 @@ class SourcingCoverageCycleTests(unittest.TestCase):
         )
 
         self.assertLess(queue_sort_key(sold), queue_sort_key(never_sold))
+
+    def test_video_game_seed_accepts_keepa_video_games_category(self):
+        seed = {
+            "asin": "B000TEST01",
+            "amazon_title": "Some Game",
+            "raw_context_json": {
+                "keepa_product_group": "Video Games",
+                "keepa_category_tree": "Video Games > Nintendo Switch > Games",
+            },
+        }
+
+        self.assertIs(is_video_game_seed(seed), True)
+
+    def test_video_game_seed_rejects_known_non_game_categories(self):
+        for seed in (
+            {
+                "asin": "B000TEST02",
+                "amazon_title": "Harmony Good Dog Ceramic Dog Bowl, 6 Cups",
+                "raw_context_json": {"keepa_product_group": "Pet Products", "keepa_category_tree": "Pet Supplies"},
+            },
+            {
+                "asin": "B000TEST03",
+                "amazon_title": "Happy Birthday, Mrs. Piggle-Wiggle",
+                "raw_context_json": {"keepa_product_group": "Book"},
+            },
+            {
+                "asin": "B000TEST04",
+                "amazon_title": "Family Game Night Board Game",
+                "raw_context_json": {"keepa_product_group": "Toys & Games", "keepa_category_tree": "Board Games"},
+            },
+        ):
+            self.assertIs(is_video_game_seed(seed), False)
 
 
 if __name__ == "__main__":

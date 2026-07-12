@@ -94,11 +94,15 @@ the remaining eligible catalog third. It reads eBay Developer Analytics for the
 the cycle is complete, and stores every qualifying opportunity it finds in
 `sourcing_opportunity_batches` for operator review. A coverage cycle prevents
 re-searching the same ASIN during the same pass and adds newly eligible ASINs to
-the end of the active cycle. If eBay Browse quota is exhausted or the configured
-reserve is reached, the run completes with an "Out of quota" stop reason instead
-of being treated as a failed job. The frontend renders saved backend
-cycle/batch/quota diagnostics and does not calculate matching, profitability, or
-queue eligibility in React.
+the end of the active cycle. The queue is restricted to video game catalog ASINs
+using backend category/product-group/platform evidence before persistence; the
+frontend only reads the saved queue state. Coverage-cycle API routes page
+through the full queue when summarizing buckets so the UI totals match durable
+cycle metrics. If eBay Browse quota is exhausted or the configured reserve is
+reached, the run completes with an "Out of quota" stop reason instead of being
+treated as a failed job. The frontend renders saved backend cycle/batch/quota
+diagnostics and does not calculate matching, profitability, or queue eligibility
+in React.
 
 The legacy eBay supplier returns sync has been removed from active
 orchestration and System Health. The Order Problems return workflow uses

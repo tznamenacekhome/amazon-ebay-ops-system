@@ -7,7 +7,14 @@ import uuid
 from dataclasses import dataclass
 from typing import Any
 
-from build_sourcing_seed_asins import build_full_listing_seeds, build_recent_sales_seeds
+from build_sourcing_seed_asins import (
+    build_full_listing_seeds,
+    build_recent_sales_seeds,
+    catalog_video_game_context,
+    infer_platform_context,
+    is_video_game_seed,
+    latest_catalog_context_by_asin,
+)
 from sourcing_common import chunked, fetch_settings, paginate_table, to_float
 
 
@@ -70,6 +77,7 @@ def build_purchased_not_sent_seeds(supabase, settings, limit: int) -> list[dict[
         desc=True,
     )
     fba_links = fetch_fba_links_by_item_id(supabase, [str(row.get("item_id")) for row in rows if row.get("item_id")])
+    catalog_by_asin = latest_catalog_context_by_asin(supabase)
     seeds: list[dict[str, Any]] = []
     for row in rows:
         asin = clean_asin(row.get("asin"))
@@ -80,36 +88,43 @@ def build_purchased_not_sent_seeds(supabase, settings, limit: int) -> list[dict[
             continue
         if not is_purchased_not_yet_sent_to_amazon(row, fba_links.get(str(row.get("item_id"))) or []):
             continue
-        seeds.append(
-            {
-                "seed_id": str(uuid.uuid4()),
-                "asin": asin,
-                "seller_sku": None,
-                "amazon_title": row.get("amazon_title") or row.get("title") or asin,
-                "amazon_image_url": None,
-                "source_mode": "purchased_not_sent",
-                "target_sale_price": to_float(row.get("target_price"), 0),
-                "target_sale_price_source": "purchase_context",
-                "last_sold_at": None,
-                "units_sold_60d": 0,
-                "units_sold_90d": 0,
-                "monthly_velocity": 0,
-                "current_inventory_units": to_float(row.get("quantity"), 1),
-                "months_of_supply": None,
-                "inventory_need_level": "critical",
-                "is_restricted": False,
-                "is_suppressed": False,
-                "is_return_heavy": False,
-                "warning_flags": [],
-                "raw_context_json": {
-                    "eligibility_reason": "purchased_not_sent_to_amazon",
-                    "purchase_item_id": row.get("item_id"),
-                    "purchase_id": row.get("purchase_id"),
-                    "purchase_state": purchase_state(row, fba_links.get(str(row.get("item_id"))) or []),
-                    "last_purchased_at": purchase_date,
-                },
-            }
-        )
+        amazon_title = row.get("amazon_title") or row.get("title") or asin
+        catalog_context = catalog_by_asin.get(asin) or {}
+        platform_context = infer_platform_context(asin, amazon_title, catalog_context)
+        seed = {
+            "seed_id": str(uuid.uuid4()),
+            "asin": asin,
+            "seller_sku": None,
+            "amazon_title": amazon_title,
+            "amazon_image_url": None,
+            "source_mode": "purchased_not_sent",
+            "target_sale_price": to_float(row.get("target_price"), 0),
+            "target_sale_price_source": "purchase_context",
+            "last_sold_at": None,
+            "units_sold_60d": 0,
+            "units_sold_90d": 0,
+            "monthly_velocity": 0,
+            "current_inventory_units": to_float(row.get("quantity"), 1),
+            "months_of_supply": None,
+            "inventory_need_level": "critical",
+            "is_restricted": False,
+            "is_suppressed": False,
+            "is_return_heavy": False,
+            "warning_flags": [],
+            "raw_context_json": {
+                **catalog_video_game_context(catalog_context),
+                "eligibility_reason": "purchased_not_sent_to_amazon",
+                "purchase_item_id": row.get("item_id"),
+                "purchase_id": row.get("purchase_id"),
+                "purchase_state": purchase_state(row, fba_links.get(str(row.get("item_id"))) or []),
+                "last_purchased_at": purchase_date,
+                "inferred_system": platform_context.get("system"),
+                "inferred_system_source": platform_context.get("source"),
+            },
+        }
+        if not is_video_game_seed(seed):
+            continue
+        seeds.append(seed)
         if len(seeds) >= limit:
             break
     return sorted(seeds, key=lambda seed: (seed["raw_context_json"].get("last_purchased_at") or ""), reverse=True)

@@ -370,6 +370,8 @@ Implementation:
   coverage metrics.
 - Queue priority is recently sold ASINs, purchased Amazon-bound items not yet
   sent to Amazon, then remaining eligible catalog ASINs.
+- Queue eligibility is backend-scoped to video game catalog ASINs before rows
+  are persisted; frontend code must render the saved queue and diagnostics only.
 - The runner reads eBay Developer Analytics for the Browse quota and spends the
   usable daily budget instead of trying to fill a fixed count of opportunities.
 - `/api/sourcing/runs` starts `daily_catalog_sourcing`; the Coverage Cycle UI

@@ -345,7 +345,8 @@ Implemented:
   coverage cycle instead of separate recent-sales and full-listings daily jobs.
   The queue prioritizes recently sold ASINs, purchased Amazon-bound items not
   yet sent to Amazon, and then remaining eligible catalog ASINs; the runner
-  spends the usable eBay Browse quota and reports quota stops as `Out of quota`.
+  filters the durable queue to video game catalog ASINs, spends the usable eBay
+  Browse quota, and reports quota stops as `Out of quota`.
 - the Sourcing Workspace includes a Coverage Cycle tab backed by
   `/api/sourcing/coverage-cycle`, `/api/sourcing/coverage-cycle/items`, and
   `/api/sourcing/daily-runs`.

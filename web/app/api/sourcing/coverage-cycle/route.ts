@@ -24,10 +24,7 @@ export async function GET() {
   if (!cycle) return noStoreJson({ cycle: null, bucketSummary: [], lastRun: null });
 
   const [itemsResult, lastRunResult] = await Promise.all([
-    supabase
-      .from("sourcing_coverage_cycle_items")
-      .select("priority_bucket,processing_status,queue_position,asin,amazon_title")
-      .eq("coverage_cycle_id", cycle.coverage_cycle_id),
+    fetchCycleItems(supabase, cycle.coverage_cycle_id),
     supabase
       .from("sourcing_runs")
       .select("*")
@@ -39,7 +36,7 @@ export async function GET() {
   if (itemsResult.error) return noStoreJson({ error: itemsResult.error.message }, { status: 500 });
   if (lastRunResult.error) return noStoreJson({ error: lastRunResult.error.message }, { status: 500 });
 
-  const items = itemsResult.data ?? [];
+  const items = itemsResult.data;
   const bucketSummary = buckets.map(([bucket, label]) => {
     const rows = items.filter((item) => item.priority_bucket === bucket);
     const searched = rows.filter((item) => item.processing_status === "searched").length;
@@ -64,6 +61,31 @@ export async function GET() {
     lastRun: lastRunResult.data ?? null,
     statusMessage: statusMessage(cycle, bucketSummary),
   });
+}
+
+async function fetchCycleItems(supabase: ReturnType<typeof createServerSupabaseClient>, cycleId: string) {
+  const rows: Array<{
+    priority_bucket: string | null;
+    processing_status: string | null;
+    queue_position: number | null;
+    asin: string | null;
+    amazon_title: string | null;
+  }> = [];
+  let start = 0;
+
+  while (true) {
+    const { data, error } = await supabase
+      .from("sourcing_coverage_cycle_items")
+      .select("priority_bucket,processing_status,queue_position,asin,amazon_title")
+      .eq("coverage_cycle_id", cycleId)
+      .range(start, start + 999);
+
+    if (error) return { data: rows, error };
+    const batch = data ?? [];
+    rows.push(...batch);
+    if (batch.length < 1000) return { data: rows, error: null };
+    start += 1000;
+  }
 }
 
 function statusMessage(cycle: Record<string, unknown>, bucketSummary: Array<{ label: string; remaining: number }>) {

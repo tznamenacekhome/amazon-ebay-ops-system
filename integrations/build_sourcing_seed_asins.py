@@ -12,6 +12,42 @@ from sourcing_common import chunked, fetch_settings, get_supabase_client, pagina
 from system_detection import detect_system_from_title, normalize_system
 
 
+VIDEO_GAME_PRODUCT_GROUPS = {"video games"}
+NON_VIDEO_GAME_PRODUCT_GROUPS = {
+    "automotive",
+    "baby product",
+    "beauty",
+    "book",
+    "camera",
+    "ce",
+    "drugstore",
+    "grocery",
+    "health and beauty",
+    "home",
+    "home improvement",
+    "kitchen",
+    "lawn and patio",
+    "musical instruments",
+    "office product",
+    "pet products",
+    "sports",
+    "toy",
+    "toys & games",
+}
+NON_VIDEO_GAME_CATEGORY_TERMS = (
+    "arts crafts & sewing",
+    "board games",
+    "card games",
+    "collectible card games",
+    "dishware",
+    "dog supplies",
+    "home & kitchen",
+    "musical instruments",
+    "pet supplies",
+    "toys & games",
+)
+
+
 def main() -> int:
     args = parse_args()
     supabase = get_supabase_client()
@@ -475,37 +511,41 @@ def finalize_seeds(
         target_sale_price_source_override = row.pop("target_sale_price_source_override", None)
         warning_flags = row.pop("warning_flags", [])
         estimated_fee_cost = round(sum(fee_samples) / len(fee_samples), 2) if fee_samples else None
-        platform_context = infer_platform_context(row["asin"], row.get("amazon_title"), catalog_by_asin.get(row["asin"]) or {})
-        seeds.append(
-            {
-                **row,
-                "current_inventory_units": inventory_units,
-                "monthly_velocity": round(velocity, 2),
-                "months_of_supply": round(months_supply, 2) if months_supply is not None else None,
-                "inventory_need_level": need_level,
-                "seed_id": str(uuid.uuid4()),
-                "source_mode": "recent_sales" if row.get("last_sold_at") else "full_listings",
-                "target_sale_price_source": (
-                    "most_recent_sale"
-                    if row.get("last_sold_at")
-                    else target_sale_price_source_override or "keepa_new_90d_avg"
-                ),
-                "units_sold_60d": units_sold_60d,
-                "units_sold_90d": units_sold_lookback,
-                "is_restricted": False,
-                "is_suppressed": False,
-                "is_return_heavy": False,
-                "warning_flags": warning_flags,
-                "raw_context_json": {
-                    "estimated_fee_cost": estimated_fee_cost,
-                    "listing_warnings": listing_warnings,
-                    "listing_source": listing_source,
-                    "inferred_system": platform_context.get("system"),
-                    "inferred_system_source": platform_context.get("source"),
-                    "inventory_planning": stale_stock,
-                },
-            }
-        )
+        catalog_context = catalog_by_asin.get(row["asin"]) or {}
+        platform_context = infer_platform_context(row["asin"], row.get("amazon_title"), catalog_context)
+        video_game_context = catalog_video_game_context(catalog_context)
+        seed = {
+            **row,
+            "current_inventory_units": inventory_units,
+            "monthly_velocity": round(velocity, 2),
+            "months_of_supply": round(months_supply, 2) if months_supply is not None else None,
+            "inventory_need_level": need_level,
+            "seed_id": str(uuid.uuid4()),
+            "source_mode": "recent_sales" if row.get("last_sold_at") else "full_listings",
+            "target_sale_price_source": (
+                "most_recent_sale"
+                if row.get("last_sold_at")
+                else target_sale_price_source_override or "keepa_new_90d_avg"
+            ),
+            "units_sold_60d": units_sold_60d,
+            "units_sold_90d": units_sold_lookback,
+            "is_restricted": False,
+            "is_suppressed": False,
+            "is_return_heavy": False,
+            "warning_flags": warning_flags,
+            "raw_context_json": {
+                **video_game_context,
+                "estimated_fee_cost": estimated_fee_cost,
+                "listing_warnings": listing_warnings,
+                "listing_source": listing_source,
+                "inferred_system": platform_context.get("system"),
+                "inferred_system_source": platform_context.get("source"),
+                "inventory_planning": stale_stock,
+            },
+        }
+        if not is_video_game_seed(seed):
+            continue
+        seeds.append(seed)
     seeds = sorted(seeds, key=lambda item: need_sort(item["inventory_need_level"], item["monthly_velocity"]), reverse=True)[:limit]
     image_by_asin = amazon_images_for_asins(supabase, [seed["asin"] for seed in seeds])
     for seed in seeds:
@@ -554,6 +594,35 @@ def infer_platform_context(asin: str, amazon_title: Any, context: dict[str, Any]
         if system:
             return {"system": system, "source": source}
     return {"system": None, "source": None}
+
+
+def catalog_video_game_context(context: dict[str, Any]) -> dict[str, Any]:
+    keepa = context.get("keepa") or {}
+    product_group = str(keepa.get("product_group") or "").strip()
+    category_tree = flatten_text(keepa.get("category_tree_json"))
+    return {
+        "keepa_product_group": product_group or None,
+        "keepa_category_tree": category_tree or None,
+    }
+
+
+def is_video_game_seed(seed: dict[str, Any]) -> bool:
+    raw_context = seed.get("raw_context_json") if isinstance(seed.get("raw_context_json"), dict) else {}
+    product_group = str(raw_context.get("keepa_product_group") or "").strip().casefold()
+    category_tree = str(raw_context.get("keepa_category_tree") or "").strip().casefold()
+
+    if product_group in VIDEO_GAME_PRODUCT_GROUPS:
+        return True
+    if "video games" in category_tree:
+        return True
+    if product_group in NON_VIDEO_GAME_PRODUCT_GROUPS:
+        return False
+    if any(term in category_tree for term in NON_VIDEO_GAME_CATEGORY_TERMS):
+        return False
+
+    title = str(seed.get("amazon_title") or "")
+    inferred_system = normalize_system(str(raw_context.get("inferred_system") or ""))
+    return bool(inferred_system or detect_system_from_title(title))
 
 
 def flatten_text(value: Any) -> str:
