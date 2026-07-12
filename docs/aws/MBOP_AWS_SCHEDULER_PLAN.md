@@ -1,6 +1,6 @@
 # MBOP AWS Scheduler Plan
 
-Last updated: 2026-06-28
+Last updated: 2026-07-12
 
 ## Architecture Decision
 
@@ -51,7 +51,7 @@ Target:
 
 ```text
 Task definition family: mbop-scheduler-task
-Current ZFI-enabled revision: mbop-scheduler-task:4
+Current deployed revision: mbop-scheduler-task:18
 Container: mbop-scheduler
 CPU: 512
 Memory: 1024 MiB
@@ -68,8 +68,8 @@ Default command:
 Current ECR image:
 
 ```text
-297464765814.dkr.ecr.us-west-2.amazonaws.com/mbop-scheduler@sha256:260dfc320f6f55638c90631d3a4823507e4f7d1f9fa5fab79625d7bb7be252dd
-tag: 3e21eea
+297464765814.dkr.ecr.us-west-2.amazonaws.com/mbop-scheduler@sha256:87743704698d4de067522a20f8dff44e967df0ed9826d2c7900f648063e1fa05
+tag: scheduler-35d36536bea3
 ```
 
 The current ZFI-enabled scheduler task definition is digest-pinned. Legacy
@@ -105,7 +105,8 @@ These group names are now accepted by `run_all_syncs.py`:
 - `fba-shipments`: Amazon FBA shipments, FBA EasyPost carrier tracking, ZFI business summary push
 - `reconciliation`: inventory reconciliation with `--skip-if-unchanged`
 - `repricing-catalog`: Amazon listing status, Informed repricing reports
-- `sourcing-catalog`: sourcing listing availability, matching intelligence refresh
+- `sourcing-catalog`: unified daily catalog sourcing, sourcing listing availability,
+  Matching Intelligence refresh
 - `keepa-rolling-refresh`: Keepa active products
 - `keepa-catalog-priority`: fast lightweight Keepa refresh for Send to Amazon,
   active sourcing opportunities, then broader known catalog ASINs
@@ -142,7 +143,7 @@ mbop-fba-inventory-daily: cron(30 20 ? * * *)
 mbop-fba-shipments-active-window: cron(40 8,12,16,20 ? * * *)
 mbop-reconciliation: cron(0 21 ? * * *)
 mbop-repricing-catalog: cron(30 21 ? * * *)
-mbop-sourcing-catalog: cron(0 22 ? * * *)
+mbop-sourcing-catalog: cron(10 0 ? * * *)
 mbop-keepa-rolling-refresh: cron(10 1,9,17 ? * * *)
 mbop-keepa-catalog-priority: rate(5 minutes)
 ```
@@ -152,6 +153,9 @@ Most schedules use the default scheduler task size of `512 CPU / 1024 MB`.
 because `Matching intelligence refresh` was killed by ECS with
 `OutOfMemoryError` at the default 1 GiB size. A manual 2 GiB retry on
 2026-06-21 completed successfully.
+`mbop-sourcing-catalog` runs at 12:10 AM in `America/Los_Angeles`, shortly
+after the eBay Browse quota reset, so the unified daily coverage-cycle runner
+can spend the usable quota before lower-priority Browse consumers.
 
 `fba-pricing`, `finance-audit`, `listing-audit`, and `inventory-audit` remain manual/on-demand.
 
