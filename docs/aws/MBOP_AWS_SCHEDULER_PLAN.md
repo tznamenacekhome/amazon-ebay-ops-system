@@ -51,7 +51,7 @@ Target:
 
 ```text
 Task definition family: mbop-scheduler-task
-Current deployed revision: mbop-scheduler-task:18
+Current deployed revision: mbop-scheduler-task:19
 Container: mbop-scheduler
 CPU: 512
 Memory: 1024 MiB
@@ -68,8 +68,8 @@ Default command:
 Current ECR image:
 
 ```text
-297464765814.dkr.ecr.us-west-2.amazonaws.com/mbop-scheduler@sha256:87743704698d4de067522a20f8dff44e967df0ed9826d2c7900f648063e1fa05
-tag: scheduler-35d36536bea3
+297464765814.dkr.ecr.us-west-2.amazonaws.com/mbop-scheduler@sha256:6d490c279a2cbb6f1f5c95caf6b8f84e72e804a490582d5ec947c51ca7085993
+tag: scheduler-32ece9e3435f
 ```
 
 The current ZFI-enabled scheduler task definition is digest-pinned. Legacy
