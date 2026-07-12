@@ -7,7 +7,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "integrations"))
 
-from run_sourcing_workflow import choose_batch_opportunities, summarize_funnel_from_rows  # noqa: E402
+from run_sourcing_workflow import choose_batch_opportunities, fetch_ebay_search_summary, summarize_funnel_from_rows  # noqa: E402
 
 
 class SourcingProgressiveBatchTests(unittest.TestCase):
@@ -51,6 +51,38 @@ class SourcingProgressiveBatchTests(unittest.TestCase):
         self.assertEqual(funnel["hard_blocked_opportunities"], 1)
         self.assertEqual(funnel["profitability_rejects"], 1)
         self.assertEqual(funnel["review_or_watch"], 1)
+
+    def test_fetch_ebay_search_summary_handles_nested_summary(self):
+        supabase = FakeSupabase({"raw_summary_json": {"ebay_search": {"rate_limited": True, "searched_seed_count": 0}}})
+
+        summary = fetch_ebay_search_summary(supabase, "run-1")
+
+        self.assertEqual(summary, {"rate_limited": True, "searched_seed_count": 0})
+
+
+class FakeSupabase:
+    def __init__(self, row):
+        self.row = row
+
+    def table(self, _name):
+        return self
+
+    def select(self, _columns):
+        return self
+
+    def eq(self, _column, _value):
+        return self
+
+    def maybe_single(self):
+        return self
+
+    def execute(self):
+        return FakeResponse(self.row)
+
+
+class FakeResponse:
+    def __init__(self, data):
+        self.data = data
 
 
 if __name__ == "__main__":

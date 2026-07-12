@@ -44,13 +44,22 @@ def main() -> int:
     seeds = fetch_seeds(supabase, args.run_id, args.limit, args.offset)
     rows_by_item_id: dict[str, dict[str, Any]] = {}
     api_call_count = 0
+    searched_seed_count = 0
+    rate_limited = False
+    rate_limit_message = None
 
     for index, seed in enumerate(seeds, start=1):
         queries = search_queries_for_seed(seed)
         for query_index, query in enumerate(queries, start=1):
             print(f"[{index}/{len(seeds)}:{query_index}/{len(queries)}] {seed['asin']} search: {query}")
-            items = search_ebay(token, query, settings, args.max_results_per_asin)
-            api_call_count += 1
+            try:
+                items = search_ebay(token, query, settings, args.max_results_per_asin)
+                api_call_count += 1
+            except EbayRateLimitedError as error:
+                rate_limited = True
+                rate_limit_message = str(error)
+                print(f"eBay sourcing search paused: {rate_limit_message}", flush=True)
+                break
             for item in items:
                 item = enrich_item_if_shipping_missing(token, item, settings)
                 row = map_item(seed, item)
@@ -60,12 +69,15 @@ def main() -> int:
                 if ebay_item_id and ebay_item_id not in rows_by_item_id:
                     rows_by_item_id[ebay_item_id] = row
             time.sleep(args.pause_seconds)
+        if rate_limited:
+            break
+        searched_seed_count += 1
     rows = list(rows_by_item_id.values())
 
     print("eBay sourcing search")
     print("--------------------")
     print(f"Run ID: {args.run_id}")
-    print(f"Seeds searched: {len(seeds)}")
+    print(f"Seeds searched: {searched_seed_count}")
     print(f"Candidates found: {len(rows)}")
 
     if args.dry_run:
@@ -78,10 +90,20 @@ def main() -> int:
     supabase.table("sourcing_runs").update(
         {
             "status": "running",
-            "search_count": len(seeds),
+            "search_count": args.offset + searched_seed_count,
             "candidate_count": len(rows),
             "api_call_count": api_call_count,
             "settings_snapshot": settings.__dict__,
+            "raw_summary_json": {
+                "ebay_search": {
+                    "rate_limited": rate_limited,
+                    "stop_reason": "ebay_rate_limited" if rate_limited else None,
+                    "message": rate_limit_message,
+                    "offset": args.offset,
+                    "requested_seed_count": len(seeds),
+                    "searched_seed_count": searched_seed_count,
+                }
+            },
         }
     ).eq("sourcing_run_id", args.run_id).execute()
     return 0
@@ -230,6 +252,10 @@ def enrich_item_if_shipping_missing(token: str, item: dict[str, Any], settings) 
     return {**item, **detail, "rawSearchSummary": item}
 
 
+class EbayRateLimitedError(RuntimeError):
+    pass
+
+
 def get_with_retries(url: str, **kwargs) -> requests.Response:
     last_response: requests.Response | None = None
     for attempt in range(1, MAX_HTTP_RETRIES + 1):
@@ -246,6 +272,8 @@ def get_with_retries(url: str, **kwargs) -> requests.Response:
         )
         time.sleep(sleep_seconds)
     assert last_response is not None
+    if last_response.status_code == 429:
+        raise EbayRateLimitedError(f"eBay Browse returned 429 after {MAX_HTTP_RETRIES} attempts")
     return last_response
 
 

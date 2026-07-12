@@ -136,8 +136,10 @@ def run_progressive(args: argparse.Namespace) -> int:
                     str(args.max_results_per_asin),
                 ]
             )
-            offset += search_limit
-            api_calls_used += search_limit
+            search_summary = fetch_ebay_search_summary(supabase, args.run_id)
+            searched_this_chunk = int(search_summary.get("searched_seed_count") or search_limit)
+            offset += searched_this_chunk
+            api_calls_used += searched_this_chunk
 
             run_python(
                 [
@@ -162,6 +164,9 @@ def run_progressive(args: argparse.Namespace) -> int:
             )
             if len(selected) >= target:
                 stop_reason = "target_reached"
+                break
+            if search_summary.get("rate_limited"):
+                stop_reason = "ebay_rate_limited"
                 break
             if api_calls_used >= args.max_api_calls:
                 stop_reason = "api_call_budget_reached"
@@ -245,6 +250,21 @@ def previous_cumulative_seeds(supabase, run_id: str, batch_sequence: int) -> int
 def count_run_rows(supabase, table_name: str, run_id: str) -> int:
     response = supabase.table(table_name).select("sourcing_run_id", count="exact").eq("sourcing_run_id", run_id).limit(1).execute()
     return int(response.count or 0)
+
+
+def fetch_ebay_search_summary(supabase, run_id: str) -> dict[str, Any]:
+    response = (
+        supabase.table("sourcing_runs")
+        .select("raw_summary_json")
+        .eq("sourcing_run_id", run_id)
+        .maybe_single()
+        .execute()
+    )
+    raw_summary = (response.data or {}).get("raw_summary_json") or {}
+    if not isinstance(raw_summary, dict):
+        return {}
+    search_summary = raw_summary.get("ebay_search") or {}
+    return search_summary if isinstance(search_summary, dict) else {}
 
 
 def select_unbatched_open_opportunities(supabase, run_id: str, target: int) -> list[dict[str, Any]]:
