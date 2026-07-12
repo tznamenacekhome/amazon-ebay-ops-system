@@ -107,6 +107,12 @@ Keepa and Informed data are advisory intelligence only.
 - `sourcing_opportunities`: scored candidate rows shown to the operator with
   opportunity type, workflow status, profit/ROI context, offer/bid guidance,
   flags, and score.
+- `sourcing_opportunity_batches`: durable progressive sourcing batches for the
+  Replenishment queue, including requested/current counts, cumulative seed
+  cursor, stop reason, and funnel diagnostics for each Find 100 run.
+- `sourcing_opportunity_batch_items`: stable membership of opportunities
+  presented in each progressive sourcing batch so later batches do not repeat
+  rows already shown to the operator.
 - `sourcing_actions`: operator action history for dismiss, watch, ROI snooze,
   and purchased/offer-made workflows.
 - `sourcing_purchase_matches`: links sourced opportunities to imported eBay

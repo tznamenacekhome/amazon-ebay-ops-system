@@ -1,11 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import type { SourcingOpportunity } from "./types";
+import type { SourcingBatch, SourcingOpportunity } from "./types";
 
 export function useSourcingOpportunities(status: string, type: string, searchText: string, sourceMode: string) {
   const [rows, setRows] = useState<SourcingOpportunity[]>([]);
   const [summary, setSummary] = useState<Record<string, number>>({});
+  const [batch, setBatch] = useState<SourcingBatch | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -22,6 +23,7 @@ export function useSourcingOpportunities(status: string, type: string, searchTex
       if (!response.ok) throw new Error(payload.error ?? "Failed to load sourcing opportunities.");
       setRows(payload.opportunities ?? []);
       setSummary(payload.summary ?? {});
+      setBatch(payload.batch ?? null);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load sourcing opportunities.");
     } finally {
@@ -43,7 +45,7 @@ export function useSourcingOpportunities(status: string, type: string, searchTex
     });
   }, []);
 
-  return { rows, summary, loading, error, reload: load, removeRows, setError };
+  return { rows, summary, batch, loading, error, reload: load, removeRows, setError };
 }
 
 function summarizeRows(rows: SourcingOpportunity[]) {

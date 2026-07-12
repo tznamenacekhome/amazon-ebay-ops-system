@@ -88,6 +88,23 @@ type AmazonOrderDateRow = {
 
 type ShippingQuoteStatus = "known_paid" | "known_free" | "unknown_no_cost" | "unknown_no_options";
 
+type SourcingBatchRow = {
+  batch_id: string;
+  sourcing_run_id: string;
+  batch_sequence: number | null;
+  status: string | null;
+  requested_opportunity_count: number | null;
+  qualifying_opportunity_count: number | null;
+  cumulative_qualifying_count: number | null;
+  seeds_searched: number | null;
+  cumulative_seeds_searched: number | null;
+  seeds_remaining: number | null;
+  stop_reason: string | null;
+  funnel_json: unknown;
+  started_at: string | null;
+  completed_at: string | null;
+};
+
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const status = searchParams.get("status") ?? "open";
@@ -98,11 +115,22 @@ export async function GET(request: NextRequest) {
   const limit = Math.min(toNumber(searchParams.get("limit"), 100), 250);
   const queryLimit = Math.min(Math.max(limit * 5, 500), 1000);
   const latestRunIds = runId ? [] : await fetchLatestSourcingRunIds(sourceMode);
+  const latestBatch = await fetchLatestSourcingBatch(runId, latestRunIds);
+  const batchOpportunityIds = latestBatch ? await fetchBatchOpportunityIds(latestBatch.batch_id) : null;
   if (!runId && latestRunIds.length === 0) {
     return jsonNoStore({
       refreshedAt: new Date().toISOString(),
       summary: { total: 0, buyNow: 0, bestOffer: 0, auction: 0, multiUnit: 0 },
       opportunities: [],
+      batch: null,
+    });
+  }
+  if (latestBatch && batchOpportunityIds?.length === 0) {
+    return jsonNoStore({
+      refreshedAt: new Date().toISOString(),
+      summary: { total: 0, buyNow: 0, bestOffer: 0, auction: 0, multiUnit: 0 },
+      opportunities: [],
+      batch: latestBatch,
     });
   }
 
@@ -146,12 +174,13 @@ export async function GET(request: NextRequest) {
     )
     .order("score", { ascending: false })
     .order("created_at", { ascending: false })
-    .limit(queryLimit);
+    .limit(batchOpportunityIds ? Math.max(batchOpportunityIds.length, 1) : queryLimit);
 
   if (status !== "all") query = query.eq("status", status);
   if (type !== "all") query = query.eq("opportunity_type", type);
-  if (runId) query = query.eq("sourcing_run_id", runId);
-  if (!runId) query = query.in("sourcing_run_id", latestRunIds);
+  if (batchOpportunityIds) query = query.in("opportunity_id", batchOpportunityIds);
+  if (!batchOpportunityIds && runId) query = query.eq("sourcing_run_id", runId);
+  if (!batchOpportunityIds && !runId) query = query.in("sourcing_run_id", latestRunIds);
   const { data, error } = await query;
   if (error) return jsonNoStore({ error: error.message }, { status: 500 });
 
@@ -256,7 +285,44 @@ export async function GET(request: NextRequest) {
       multiUnit: opportunities.filter((row) => row.opportunityType === "multi_unit").length,
     },
     opportunities,
+    batch: latestBatch,
   });
+}
+
+async function fetchLatestSourcingBatch(runId: string | null, latestRunIds: string[]) {
+  const runIds = runId ? [runId] : latestRunIds;
+  if (!runIds.length) return null;
+  const { data, error } = await supabase
+    .from("sourcing_opportunity_batches")
+    .select(
+      "batch_id,sourcing_run_id,batch_sequence,status,requested_opportunity_count,qualifying_opportunity_count,cumulative_qualifying_count,seeds_searched,cumulative_seeds_searched,seeds_remaining,stop_reason,funnel_json,started_at,completed_at",
+    )
+    .in("sourcing_run_id", runIds)
+    .eq("status", "completed")
+    .order("completed_at", { ascending: false })
+    .limit(1);
+  if (error) {
+    if (isMissingBatchTableError(error.message)) return null;
+    throw new Error(`Latest sourcing batch: ${error.message}`);
+  }
+  return ((data ?? [])[0] as SourcingBatchRow | undefined) ?? null;
+}
+
+async function fetchBatchOpportunityIds(batchId: string) {
+  const { data, error } = await supabase
+    .from("sourcing_opportunity_batch_items")
+    .select("opportunity_id")
+    .eq("batch_id", batchId)
+    .order("presented_at", { ascending: true });
+  if (error) {
+    if (isMissingBatchTableError(error.message)) return null;
+    throw new Error(`Sourcing batch items: ${error.message}`);
+  }
+  return (data ?? []).map((row) => row.opportunity_id).filter(Boolean) as string[];
+}
+
+function isMissingBatchTableError(message: string) {
+  return message.includes("sourcing_opportunity_batches") || message.includes("sourcing_opportunity_batch_items");
 }
 
 async function fetchLatestSourcingRunIds(sourceMode: string) {

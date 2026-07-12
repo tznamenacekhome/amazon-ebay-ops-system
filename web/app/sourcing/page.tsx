@@ -11,7 +11,7 @@ import {
   Search,
   ShoppingBag,
 } from "lucide-react";
-import type { SourcingOpportunity, SourcingRun, SourcingSettings } from "./types";
+import type { SourcingBatch, SourcingOpportunity, SourcingRun, SourcingSettings } from "./types";
 import { useSourcingOpportunities } from "./useSourcingOpportunities";
 import { dismissReasonGroups } from "./matchingTaxonomy";
 import { mutationHeaders } from "../mutationHeaders";
@@ -41,7 +41,7 @@ export default function SourcingPage() {
       : activeTab === "Purchased Pending Match"
         ? "purchased_pending_match"
         : status;
-  const { rows, summary, loading, error, reload, removeRows, setError } = useSourcingOpportunities(
+  const { rows, summary, batch, loading, error, reload, removeRows, setError } = useSourcingOpportunities(
     effectiveStatus,
     type,
     searchText,
@@ -52,6 +52,7 @@ export default function SourcingPage() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkDismissOpen, setBulkDismissOpen] = useState(false);
   const [sourcingRefreshRunning, setSourcingRefreshRunning] = useState(false);
+  const [batchContinueRunning, setBatchContinueRunning] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
 
   const visibleRows = useMemo(() => {
@@ -139,6 +140,28 @@ export default function SourcingPage() {
     }
   }
 
+  async function continueSourcingBatch() {
+    if (!batch?.sourcing_run_id) return;
+    setBatchContinueRunning(true);
+    setError(null);
+    setNotice("Starting next sourcing batch...");
+    try {
+      const response = await fetch(`/api/sourcing/runs/${batch.sourcing_run_id}/continue`, {
+        method: "POST",
+        headers: mutationHeaders(),
+      });
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload.error ?? "Failed to start next sourcing batch.");
+      await reload();
+      setNotice("AWS sourcing task started for the next batch. Opportunities will refresh after the ECS task finishes.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to start next sourcing batch.");
+      setNotice(null);
+    } finally {
+      setBatchContinueRunning(false);
+    }
+  }
+
   return (
     <main className="min-h-screen bg-slate-100 p-5 text-slate-950">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
@@ -192,6 +215,9 @@ export default function SourcingPage() {
             <Metric label="Auction" value={summary.auction ?? 0} />
             <Metric label="Multi-Unit" value={summary.multiUnit ?? 0} />
           </div>
+          {activeTab === "Replenishment" ? (
+            <BatchStatus batch={batch} busy={batchContinueRunning} onContinue={() => void continueSourcingBatch()} />
+          ) : null}
 
           <div className="mb-3 flex flex-wrap items-center gap-2 rounded-md border border-slate-200 bg-white p-2 shadow-sm">
             <div className="relative min-w-80 flex-1">
@@ -299,6 +325,34 @@ function Metric({ label, value }: { label: string; value: number }) {
     <div className="rounded-md border border-slate-200 bg-white px-3 py-2 shadow-sm">
       <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">{label}</div>
       <div className="mt-1 text-xl font-semibold">{value}</div>
+    </div>
+  );
+}
+
+function BatchStatus({ batch, busy, onContinue }: { batch: SourcingBatch | null; busy: boolean; onContinue: () => void }) {
+  if (!batch) return null;
+  const funnel = batch.funnel_json && typeof batch.funnel_json === "object" ? batch.funnel_json as Record<string, unknown> : {};
+  const canContinue = (batch.seeds_remaining ?? 0) > 0;
+  return (
+    <div className="mb-3 flex flex-wrap items-center justify-between gap-3 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm shadow-sm">
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-slate-700">
+        <span className="font-medium text-slate-900">Batch {batch.batch_sequence ?? "--"}</span>
+        <span>{batch.qualifying_opportunity_count ?? 0}/{batch.requested_opportunity_count ?? 100} current rows</span>
+        <span>{batch.cumulative_qualifying_count ?? 0} cumulative</span>
+        <span>{batch.cumulative_seeds_searched ?? 0} seeds searched</span>
+        <span>{batch.seeds_remaining ?? 0} remaining</span>
+        {typeof funnel.hard_blocked_opportunities === "number" ? <span>{funnel.hard_blocked_opportunities} blocked</span> : null}
+        {batch.stop_reason ? <span>{label(batch.stop_reason)}</span> : null}
+      </div>
+      <button
+        type="button"
+        onClick={onContinue}
+        disabled={busy || !canContinue}
+        className="inline-flex h-8 items-center gap-2 rounded-md border border-slate-300 bg-white px-2 text-xs font-medium text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+      >
+        <RefreshCw className={`h-3.5 w-3.5 ${busy ? "animate-spin" : ""}`} />
+        {busy ? "Starting" : "Find 100 More"}
+      </button>
     </div>
   );
 }

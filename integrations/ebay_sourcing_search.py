@@ -39,7 +39,7 @@ def main() -> int:
     supabase = get_supabase_client()
     settings = fetch_settings(supabase)
     token = get_access_token()
-    seeds = fetch_seeds(supabase, args.run_id, args.limit)
+    seeds = fetch_seeds(supabase, args.run_id, args.limit, args.offset)
     rows_by_item_id: dict[str, dict[str, Any]] = {}
     api_call_count = 0
 
@@ -89,19 +89,20 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Search eBay Browse for MBOP sourcing candidates.")
     parser.add_argument("--run-id", required=True)
     parser.add_argument("--limit", type=int, default=50, help="Seed ASINs to search.")
+    parser.add_argument("--offset", type=int, default=0, help="Number of prioritized seed ASINs to skip.")
     parser.add_argument("--max-results-per-asin", type=int, default=10)
     parser.add_argument("--pause-seconds", type=float, default=0.3)
     parser.add_argument("--dry-run", action="store_true")
     return parser.parse_args()
 
 
-def fetch_seeds(supabase, run_id: str, limit: int) -> list[dict[str, Any]]:
+def fetch_seeds(supabase, run_id: str, limit: int, offset: int = 0) -> list[dict[str, Any]]:
     response = (
         supabase.table("sourcing_seed_asins")
         .select("*")
         .eq("sourcing_run_id", run_id)
         .order("inventory_need_level")
-        .limit(limit)
+        .range(max(offset, 0), max(offset, 0) + max(limit, 0) - 1)
         .execute()
     )
     return response.data or []

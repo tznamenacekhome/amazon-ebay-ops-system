@@ -150,7 +150,7 @@ export async function POST(request: NextRequest) {
   }
 }
 
-async function runAwsSourcingTask(runId: string, runType: "recent_sales" | "full_listings") {
+export async function runAwsSourcingTask(runId: string, runType: "recent_sales" | "full_listings", continueRun = false) {
   const client = new ECSClient({ region: process.env.AWS_REGION || process.env.AWS_DEFAULT_REGION || "us-west-2" });
   const cluster = process.env.MBOP_SCHEDULER_CLUSTER || "mbop-cluster1";
   const taskDefinition = process.env.MBOP_SCHEDULER_TASK_DEFINITION || "mbop-scheduler-task";
@@ -187,6 +187,9 @@ async function runAwsSourcingTask(runId: string, runType: "recent_sales" | "full
             runId,
             "--run-type",
             runType,
+            "--target-opportunities",
+            "100",
+            ...(continueRun ? ["--continue-run"] : []),
           ],
           environment: [
             { name: "SCHEDULER_TRIGGER_SOURCE", value: "web-on-demand" },

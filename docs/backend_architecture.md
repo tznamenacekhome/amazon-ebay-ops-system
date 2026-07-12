@@ -83,6 +83,15 @@ designed.
   including detail-drawer history and parsed per-job metrics from scheduler
   output.
 
+On-demand Sourcing Workspace runs use a progressive batch runner. The web API
+creates a `sourcing_runs` row, ECS runs
+`integrations/run_sourcing_workflow.py --target-opportunities 100`, and the
+runner searches seed chunks until it can persist the current
+`sourcing_opportunity_batches` membership or reaches a stop condition. The
+frontend renders the saved backend batch and uses
+`POST /api/sourcing/runs/[runId]/continue` for Find 100 More; it does not
+calculate matching, profitability, or batch eligibility in React.
+
 The legacy eBay supplier returns sync has been removed from active
 orchestration and System Health. The Order Problems return workflow uses
 `integrations/ebay_sync_order_problem_returns.py` as a scheduled, read-only eBay

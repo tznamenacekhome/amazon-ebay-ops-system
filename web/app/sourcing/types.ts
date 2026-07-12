@@ -81,3 +81,20 @@ export type SourcingRun = {
   opportunity_count: number | null;
   error_message?: string | null;
 };
+
+export type SourcingBatch = {
+  batch_id: string;
+  sourcing_run_id: string;
+  batch_sequence: number | null;
+  status: string | null;
+  requested_opportunity_count: number | null;
+  qualifying_opportunity_count: number | null;
+  cumulative_qualifying_count: number | null;
+  seeds_searched: number | null;
+  cumulative_seeds_searched: number | null;
+  seeds_remaining: number | null;
+  stop_reason: string | null;
+  funnel_json: unknown;
+  started_at: string | null;
+  completed_at: string | null;
+};
