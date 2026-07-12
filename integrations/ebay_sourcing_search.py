@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import base64
 import datetime as dt
+import random
 import time
 from typing import Any
 from urllib.parse import quote
@@ -18,6 +19,7 @@ from title_cleaning import clean_marketplace_title_for_search
 
 EBAY_BROWSE_SEARCH_URL = "https://api.ebay.com/buy/browse/v1/item_summary/search"
 EBAY_BROWSE_ITEM_URL = "https://api.ebay.com/buy/browse/v1/item"
+MAX_HTTP_RETRIES = 6
 SEARCH_SYSTEM_ALIASES = {
     "Xbox Series X": ["Xbox Series X", "Xbox Series"],
     "Xbox Series S": ["Xbox Series S", "Xbox Series"],
@@ -91,7 +93,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--limit", type=int, default=50, help="Seed ASINs to search.")
     parser.add_argument("--offset", type=int, default=0, help="Number of prioritized seed ASINs to skip.")
     parser.add_argument("--max-results-per-asin", type=int, default=10)
-    parser.add_argument("--pause-seconds", type=float, default=0.3)
+    parser.add_argument("--pause-seconds", type=float, default=1.0)
     parser.add_argument("--dry-run", action="store_true")
     return parser.parse_args()
 
@@ -172,34 +174,27 @@ def search_ebay(token: str, query: str, settings, limit: int) -> list[dict[str, 
         f"deliveryCountry:{settings.delivery_country}",
         "buyingOptions:{FIXED_PRICE|AUCTION}",
     ]
-    response = requests.get(
-        EBAY_BROWSE_SEARCH_URL,
-        headers={
-            "Authorization": f"Bearer {token}",
-            "X-EBAY-C-MARKETPLACE-ID": "EBAY_US",
-            "X-EBAY-C-ENDUSERCTX": end_user_context_header(settings),
-        },
-        params={
-            "q": query,
-            "limit": min(limit, 50),
-            "filter": ",".join(filters),
-            "sort": "price",
-        },
-        timeout=30,
-    )
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "X-EBAY-C-MARKETPLACE-ID": "EBAY_US",
+        "X-EBAY-C-ENDUSERCTX": end_user_context_header(settings),
+    }
+    params = {
+        "q": query,
+        "limit": min(limit, 50),
+        "filter": ",".join(filters),
+        "sort": "price",
+    }
+    response = get_with_retries(EBAY_BROWSE_SEARCH_URL, headers=headers, params=params, timeout=30)
     if response.status_code == 400 and "deliveryCountry" in response.text:
         filters_without_delivery_country = [
             filter_value
             for filter_value in filters
             if not filter_value.startswith("deliveryCountry:")
         ]
-        response = requests.get(
+        response = get_with_retries(
             EBAY_BROWSE_SEARCH_URL,
-            headers={
-                "Authorization": f"Bearer {token}",
-                "X-EBAY-C-MARKETPLACE-ID": "EBAY_US",
-                "X-EBAY-C-ENDUSERCTX": end_user_context_header(settings),
-            },
+            headers=headers,
             params={
                 "q": query,
                 "limit": min(limit, 50),
@@ -219,7 +214,7 @@ def enrich_item_if_shipping_missing(token: str, item: dict[str, Any], settings) 
     if not item_id:
         return item
 
-    response = requests.get(
+    response = get_with_retries(
         f"{EBAY_BROWSE_ITEM_URL}/{item_id}",
         headers={
             "Authorization": f"Bearer {token}",
@@ -233,6 +228,35 @@ def enrich_item_if_shipping_missing(token: str, item: dict[str, Any], settings) 
         return item
     detail = response.json()
     return {**item, **detail, "rawSearchSummary": item}
+
+
+def get_with_retries(url: str, **kwargs) -> requests.Response:
+    last_response: requests.Response | None = None
+    for attempt in range(1, MAX_HTTP_RETRIES + 1):
+        response = requests.get(url, **kwargs)
+        last_response = response
+        if response.status_code != 429:
+            return response
+        if attempt == MAX_HTTP_RETRIES:
+            break
+        sleep_seconds = retry_after_seconds(response, attempt)
+        print(
+            f"eBay Browse rate limited (429). Retry {attempt}/{MAX_HTTP_RETRIES - 1} in {sleep_seconds:.1f}s.",
+            flush=True,
+        )
+        time.sleep(sleep_seconds)
+    assert last_response is not None
+    return last_response
+
+
+def retry_after_seconds(response: requests.Response, attempt: int) -> float:
+    retry_after = response.headers.get("Retry-After")
+    if retry_after:
+        try:
+            return min(max(float(retry_after), 1.0), 90.0)
+        except ValueError:
+            pass
+    return min(2 ** attempt + random.uniform(0, 1.5), 90.0)
 
 
 def map_item(seed: dict[str, Any], item: dict[str, Any]) -> dict[str, Any]:

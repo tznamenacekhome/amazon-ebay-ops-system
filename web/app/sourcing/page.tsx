@@ -114,7 +114,11 @@ export default function SourcingPage() {
     try {
       const runTypes = sourceMode === "all" ? ["recent_sales", "full_listings"] : [sourceMode];
       let startedAwsTask = false;
-      for (const runType of runTypes) {
+      for (const [index, runType] of runTypes.entries()) {
+        if (index > 0) {
+          setNotice("Waiting briefly before starting the next sourcing workflow...");
+          await delay(30000);
+        }
         setNotice(`Running ${runType === "full_listings" ? "all listings" : "recently sold"} sourcing workflow...`);
         const response = await fetch("/api/sourcing/runs", {
           method: "POST",
@@ -1277,6 +1281,10 @@ function parseCommaList(value: string) {
     .split(",")
     .map((part) => part.trim())
     .filter(Boolean);
+}
+
+function delay(milliseconds: number) {
+  return new Promise((resolve) => window.setTimeout(resolve, milliseconds));
 }
 
 function date(value: string | null | undefined) {
