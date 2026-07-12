@@ -97,30 +97,12 @@ export async function POST(request: NextRequest) {
   try {
     await fs.mkdir(path.dirname(LOG_PATH), { recursive: true });
     await appendLog(`\n================================\nStarting sourcing ${runType} run ${runId} at ${new Date().toISOString()}\n`);
-    await runStep("Build sourcing seed ASINs", [
-      "integrations/build_sourcing_seed_asins.py",
-      "--mode",
+    await runStep("Run quota-based sourcing workflow", [
+      "integrations/run_sourcing_workflow.py",
+      "--run-id",
+      runId,
+      "--run-type",
       runType,
-      "--limit",
-      "250",
-      "--run-id",
-      runId,
-      "--replace-run",
-    ]);
-    await runStep("Search eBay sourcing candidates", [
-      "integrations/ebay_sourcing_search.py",
-      "--run-id",
-      runId,
-      "--limit",
-      "50",
-      "--max-results-per-asin",
-      "10",
-    ]);
-    await runStep("Score sourcing opportunities", [
-      "integrations/score_sourcing_opportunities.py",
-      "--run-id",
-      runId,
-      "--replace-run",
     ]);
     await appendLog(`Completed sourcing ${runType} run ${runId} at ${new Date().toISOString()}\n`);
 
@@ -187,8 +169,6 @@ export async function runAwsSourcingTask(runId: string, runType: "recent_sales" 
             runId,
             "--run-type",
             runType,
-            "--target-opportunities",
-            "100",
             ...(continueRun ? ["--continue-run"] : []),
           ],
           environment: [

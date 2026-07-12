@@ -51,6 +51,11 @@ def main() -> int:
     for index, seed in enumerate(seeds, start=1):
         queries = search_queries_for_seed(seed)
         for query_index, query in enumerate(queries, start=1):
+            if args.max_api_calls is not None and api_call_count >= args.max_api_calls:
+                rate_limited = True
+                rate_limit_message = "eBay Browse daily quota budget exhausted before next search"
+                print(f"eBay sourcing search paused: {rate_limit_message}", flush=True)
+                break
             print(f"[{index}/{len(seeds)}:{query_index}/{len(queries)}] {seed['asin']} search: {query}")
             try:
                 items = search_ebay(token, query, settings, args.max_results_per_asin)
@@ -61,13 +66,27 @@ def main() -> int:
                 print(f"eBay sourcing search paused: {rate_limit_message}", flush=True)
                 break
             for item in items:
-                item = enrich_item_if_shipping_missing(token, item, settings)
+                if args.max_api_calls is not None and api_call_count >= args.max_api_calls:
+                    rate_limited = True
+                    rate_limit_message = "eBay Browse daily quota budget exhausted before item detail enrichment"
+                    print(f"eBay sourcing search paused: {rate_limit_message}", flush=True)
+                    break
+                try:
+                    item, detail_call_count = enrich_item_if_shipping_missing(token, item, settings)
+                except EbayRateLimitedError as error:
+                    rate_limited = True
+                    rate_limit_message = str(error)
+                    print(f"eBay sourcing search paused: {rate_limit_message}", flush=True)
+                    break
+                api_call_count += detail_call_count
                 row = map_item(seed, item)
                 if not is_allowed_candidate(row, item, settings, seed):
                     continue
                 ebay_item_id = str(row.get("ebay_item_id") or "")
                 if ebay_item_id and ebay_item_id not in rows_by_item_id:
                     rows_by_item_id[ebay_item_id] = row
+            if rate_limited:
+                break
             time.sleep(args.pause_seconds)
         if rate_limited:
             break
@@ -97,11 +116,17 @@ def main() -> int:
             "raw_summary_json": {
                 "ebay_search": {
                     "rate_limited": rate_limited,
-                    "stop_reason": "ebay_rate_limited" if rate_limited else None,
+                    "stop_reason": "ebay_out_of_quota"
+                    if rate_limited and "quota budget exhausted" in str(rate_limit_message or "")
+                    else "ebay_rate_limited"
+                    if rate_limited
+                    else None,
                     "message": rate_limit_message,
                     "offset": args.offset,
                     "requested_seed_count": len(seeds),
                     "searched_seed_count": searched_seed_count,
+                    "api_call_count": api_call_count,
+                    "max_api_calls": args.max_api_calls,
                 }
             },
         }
@@ -116,6 +141,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--offset", type=int, default=0, help="Number of prioritized seed ASINs to skip.")
     parser.add_argument("--max-results-per-asin", type=int, default=10)
     parser.add_argument("--pause-seconds", type=float, default=1.0)
+    parser.add_argument("--max-api-calls", type=int, default=None, help="Maximum eBay Browse calls to spend in this slice.")
     parser.add_argument("--dry-run", action="store_true")
     return parser.parse_args()
 
@@ -229,12 +255,12 @@ def search_ebay(token: str, query: str, settings, limit: int) -> list[dict[str, 
     return response.json().get("itemSummaries", [])
 
 
-def enrich_item_if_shipping_missing(token: str, item: dict[str, Any], settings) -> dict[str, Any]:
+def enrich_item_if_shipping_missing(token: str, item: dict[str, Any], settings) -> tuple[dict[str, Any], int]:
     if has_shipping_to_buyer(item):
-        return item
+        return item, 0
     item_id = item.get("itemId")
     if not item_id:
-        return item
+        return item, 0
 
     response = get_with_retries(
         f"{EBAY_BROWSE_ITEM_URL}/{item_id}",
@@ -247,9 +273,9 @@ def enrich_item_if_shipping_missing(token: str, item: dict[str, Any], settings) 
         timeout=30,
     )
     if not response.ok:
-        return item
+        return item, 1
     detail = response.json()
-    return {**item, **detail, "rawSearchSummary": item}
+    return {**item, **detail, "rawSearchSummary": item}, 1
 
 
 class EbayRateLimitedError(RuntimeError):

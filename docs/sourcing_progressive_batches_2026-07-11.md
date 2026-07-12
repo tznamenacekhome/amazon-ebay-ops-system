@@ -1,4 +1,4 @@
-# Sourcing Progressive 100 Batches
+# Sourcing Progressive Quota Batches
 
 Date: 2026-07-11
 
@@ -21,9 +21,9 @@ Date: 2026-07-11
   existing `sourcing_opportunities.status`, opportunity type, and matching
   diagnostics. The progressive batch selector additionally excludes opportunities
   already assigned to earlier batch items for the same run.
-- eBay calls are counted per run/batch by searched seed chunk. A per-request
-  `--max-api-calls` guardrail is enforced. A deeper persisted daily quota ledger
-  remains a follow-up.
+- eBay calls are counted per run/batch by actual Browse search/detail calls.
+  The runner reads eBay Developer Analytics before searching and treats the
+  remaining `buy.browse` quota as the default daily budget.
 
 `CODEX_PROMPTING_GUIDE_v3.md` was not present in this repository.
 
@@ -34,14 +34,20 @@ Date: 2026-07-11
   - `sourcing_opportunity_batch_items`
 - Added `--offset` support to `integrations/ebay_sourcing_search.py` so the
   runner can continue through the prioritized seed queue in chunks.
-- Changed cloud on-demand sourcing to run
-  `integrations/run_sourcing_workflow.py --target-opportunities 100`.
+- Changed cloud on-demand sourcing to run `integrations/run_sourcing_workflow.py`
+  without a fixed opportunity target. The runner spends the available daily
+  eBay Browse quota and collects as many qualifying opportunities as that quota
+  can find.
+- Added `integrations/run_daily_sourcing_discovery.py` and a
+  `run_all_syncs.py` daily `Sourcing opportunity discovery` job in the
+  `sourcing-catalog` group.
 - Added a progressive loop that:
   - builds the full seed queue for a new run
   - searches seed chunks
   - rescoring after each chunk
   - counts only open Buy Now, Best Offer, auction, and multi-unit opportunities
-  - stops at 100, exhausted seeds, or the API-call budget
+  - stops at exhausted seeds, explicit manual target, persistent eBay 429, or
+    depleted Browse quota
   - persists batch membership and funnel summary
 - Added `POST /api/sourcing/runs/[runId]/continue` to start the next batch for
   the same run.
@@ -56,7 +62,9 @@ Date: 2026-07-11
   - seeds remaining
   - hard-block count when available
   - stop reason
-  - Find 100 More button
+  - Spend Remaining Quota button
+- Updated Sourcing History display language so `ebay_out_of_quota` and
+  persistent Browse 429 stops display as `Out of quota` rather than `Failed`.
 
 ## Funnel Coverage
 
@@ -87,7 +95,9 @@ These were intentionally not papered over:
   are not yet first-class columns.
 - Seed exclusion counts for minimum price, stale-stock logic, MFN/FBA
   eligibility, and Keepa snapshot age are not yet persisted in the funnel.
-- eBay daily quota remaining is not yet read from a durable quota ledger.
+- The eBay daily quota is read live from eBay Developer Analytics. A durable
+  quota history table remains a possible follow-up if trend reporting becomes
+  useful.
 - UI progress while an ECS task is actively running still depends on history
   refresh/polling rather than streaming per-chunk progress.
 

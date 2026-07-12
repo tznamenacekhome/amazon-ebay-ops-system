@@ -54,9 +54,20 @@ Current implementation notes:
   `shippingOptions`.
 - UI actions are operator-only: `watching`, `dismissed`, `roi_snoozed`, and `purchased_pending_match`.
 - `/api/sourcing/runs` can execute the full sourcing workflow from the UI for Recent Sales, Full Listings, or both depending on source-mode selection.
+- `run_daily_sourcing_discovery.py` creates a scheduled Full Listings sourcing
+  run for the `sourcing-catalog` group and lets the backend runner spend the
+  available eBay Browse quota automatically each day.
 - The opportunity detail drawer was removed after operator review.
 - Table actions handle watch, purchased/offer made, and dismiss directly; table dismiss uses a modal for dismiss reason and notes.
 - Auction type cells link to Gixen and copy the eBay item number to the clipboard.
+- Type cells show backend-suggested Best Offer and auction bid amounts in USD.
+  When eBay Browse returns an original non-USD amount, the cell also displays
+  the original currency equivalent, such as CAD, using the Browse converted
+  item-price ratio.
+- Sourcing History separates scored rows from operator-presented rows. The
+  `Shown` column uses the latest completed batch count, while the message can
+  say `Scored N; shown M` so rejected/non-actionable scored rows are not
+  confused with buyable opportunities.
 - `match_sourcing_purchases.py` performs exact item-ID matching only. It does not yet attempt title/price/date fallback matches.
 - `purchased_pending_match` also represents Best Offers made by the operator. The matcher moves rows back to `watching` when no matching eBay purchase appears within 72 hours of the purchased/offer-made action.
 - When the matcher finds the imported eBay purchase, it writes sourced ASIN, Amazon title, and `purchase_items.target_price` using the highest of Last Sold, Keepa 90-day, and current Buy Box price.
@@ -341,6 +352,30 @@ Assume default eBay Browse API quota around:
 ```text
 5,000 calls/day
 ```
+
+MBOP treats `buy.browse` as a shared daily budget, not as a fixed opportunity
+count. Before quota-based sourcing discovery, `run_sourcing_workflow.py` calls
+eBay Developer Analytics `GET /developer/analytics/v1_beta/rate_limit/` and
+reads the `buy.browse` resource. The workflow then searches seed chunks until
+the usable remaining quota is exhausted, all seeds are searched, or eBay returns
+a persistent 429. Quota exhaustion is a normal stop condition:
+
+```text
+stop_reason = ebay_out_of_quota
+display = Out of quota
+```
+
+The same `buy.browse` quota is also used by:
+- `ebay_sourcing_search.py` item summary search
+- `ebay_sourcing_search.py` item-detail shipping enrichment
+- `refresh_sourcing_listing_availability.py` active listing availability checks
+- `ebay_sync_buyer_purchases.py` legacy-item detail enrichment for missing
+  platform/system values
+
+When sourcing consumes the remaining daily quota, those other Browse-backed
+enrichments may skip or report errors until the eBay reset time. Buyer purchase
+ingestion itself still uses the legacy Trading API for orders and does not
+depend on Browse for the core order import.
 
 Implementation guardrails:
 - Cache search results by ASIN/query/filter set.

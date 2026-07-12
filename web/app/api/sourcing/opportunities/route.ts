@@ -99,6 +99,7 @@ type SourcingBatchRow = {
   seeds_searched: number | null;
   cumulative_seeds_searched: number | null;
   seeds_remaining: number | null;
+  api_call_count: number | null;
   stop_reason: string | null;
   funnel_json: unknown;
   started_at: string | null;
@@ -115,8 +116,9 @@ export async function GET(request: NextRequest) {
   const limit = Math.min(toNumber(searchParams.get("limit"), 100), 250);
   const queryLimit = Math.min(Math.max(limit * 5, 500), 1000);
   const latestRunIds = runId ? [] : await fetchLatestSourcingRunIds(sourceMode);
-  const latestBatch = await fetchLatestSourcingBatch(runId, latestRunIds);
-  const batchOpportunityIds = latestBatch ? await fetchBatchOpportunityIds(latestBatch.batch_id) : null;
+  const latestBatches = await fetchLatestSourcingBatches(runId, latestRunIds);
+  const latestBatch = latestBatches[0] ?? null;
+  const batchOpportunityIds = latestBatches.length ? await fetchBatchOpportunityIds(latestBatches.map((batch) => batch.batch_id)) : null;
   if (!runId && latestRunIds.length === 0) {
     return jsonNoStore({
       refreshedAt: new Date().toISOString(),
@@ -289,30 +291,39 @@ export async function GET(request: NextRequest) {
   });
 }
 
-async function fetchLatestSourcingBatch(runId: string | null, latestRunIds: string[]) {
+async function fetchLatestSourcingBatches(runId: string | null, latestRunIds: string[]) {
   const runIds = runId ? [runId] : latestRunIds;
-  if (!runIds.length) return null;
+  if (!runIds.length) return [];
   const { data, error } = await supabase
     .from("sourcing_opportunity_batches")
     .select(
-      "batch_id,sourcing_run_id,batch_sequence,status,requested_opportunity_count,qualifying_opportunity_count,cumulative_qualifying_count,seeds_searched,cumulative_seeds_searched,seeds_remaining,stop_reason,funnel_json,started_at,completed_at",
+      "batch_id,sourcing_run_id,batch_sequence,status,requested_opportunity_count,qualifying_opportunity_count,cumulative_qualifying_count,seeds_searched,cumulative_seeds_searched,seeds_remaining,api_call_count,stop_reason,funnel_json,started_at,completed_at",
     )
     .in("sourcing_run_id", runIds)
     .eq("status", "completed")
     .order("completed_at", { ascending: false })
-    .limit(1);
+    .limit(runId ? 1 : runIds.length);
   if (error) {
-    if (isMissingBatchTableError(error.message)) return null;
+    if (isMissingBatchTableError(error.message)) return [];
     throw new Error(`Latest sourcing batch: ${error.message}`);
   }
-  return ((data ?? [])[0] as SourcingBatchRow | undefined) ?? null;
+  const rows = (data ?? []) as SourcingBatchRow[];
+  if (runId) return rows;
+  const selected: SourcingBatchRow[] = [];
+  const seenRunIds = new Set<string>();
+  for (const row of rows) {
+    if (seenRunIds.has(row.sourcing_run_id)) continue;
+    seenRunIds.add(row.sourcing_run_id);
+    selected.push(row);
+  }
+  return selected;
 }
 
-async function fetchBatchOpportunityIds(batchId: string) {
+async function fetchBatchOpportunityIds(batchIds: string[]) {
   const { data, error } = await supabase
     .from("sourcing_opportunity_batch_items")
     .select("opportunity_id")
-    .eq("batch_id", batchId)
+    .in("batch_id", batchIds)
     .order("presented_at", { ascending: true });
   if (error) {
     if (isMissingBatchTableError(error.message)) return null;

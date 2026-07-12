@@ -83,14 +83,20 @@ designed.
   including detail-drawer history and parsed per-job metrics from scheduler
   output.
 
-On-demand Sourcing Workspace runs use a progressive batch runner. The web API
+Sourcing Workspace runs use a quota-based progressive runner. The web API
 creates a `sourcing_runs` row, ECS runs
-`integrations/run_sourcing_workflow.py --target-opportunities 100`, and the
-runner searches seed chunks until it can persist the current
-`sourcing_opportunity_batches` membership or reaches a stop condition. The
-frontend renders the saved backend batch and uses
-`POST /api/sourcing/runs/[runId]/continue` for Find 100 More; it does not
-calculate matching, profitability, or batch eligibility in React.
+`integrations/run_sourcing_workflow.py`, and the runner reads eBay Developer
+Analytics for the `buy.browse` daily quota before searching seed chunks. The
+default behavior is to spend the available daily Browse quota and persist every
+qualifying opportunity it finds in `sourcing_opportunity_batches`; an explicit
+`--target-opportunities` value is now a bounded/manual mode. The daily
+`sourcing-catalog` scheduler group also runs
+`integrations/run_daily_sourcing_discovery.py` so opportunity discovery can
+harvest the Browse quota automatically. If eBay Browse quota is exhausted, the
+run completes with stop reason `ebay_out_of_quota` and UI copy says "Out of
+quota" rather than treating the run as a failed job. The frontend renders saved
+backend batch/quota diagnostics and does not calculate matching, profitability,
+or batch eligibility in React.
 
 The legacy eBay supplier returns sync has been removed from active
 orchestration and System Health. The Order Problems return workflow uses

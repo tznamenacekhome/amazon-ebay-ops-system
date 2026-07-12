@@ -79,7 +79,11 @@ export type SourcingRun = {
   seed_asin_count: number | null;
   ebay_candidate_count: number | null;
   opportunity_count: number | null;
+  scored_opportunity_count?: number | null;
+  presented_opportunity_count?: number | null;
+  batch_stop_reason?: string | null;
   error_message?: string | null;
+  raw_summary_json?: unknown;
 };
 
 export type SourcingBatch = {
@@ -94,6 +98,7 @@ export type SourcingBatch = {
   cumulative_seeds_searched: number | null;
   seeds_remaining: number | null;
   stop_reason: string | null;
+  api_call_count?: number | null;
   funnel_json: unknown;
   started_at: string | null;
   completed_at: string | null;

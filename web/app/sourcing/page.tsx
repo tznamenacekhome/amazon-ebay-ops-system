@@ -337,13 +337,18 @@ function BatchStatus({ batch, busy, onContinue }: { batch: SourcingBatch | null;
   if (!batch) return null;
   const funnel = batch.funnel_json && typeof batch.funnel_json === "object" ? batch.funnel_json as Record<string, unknown> : {};
   const canContinue = (batch.seeds_remaining ?? 0) > 0;
+  const budgetMode = (batch.requested_opportunity_count ?? 0) === 0;
+  const quota = typeof funnel.ebay_browse_quota === "object" && funnel.ebay_browse_quota !== null ? funnel.ebay_browse_quota as Record<string, unknown> : null;
+  const quotaRemaining = typeof quota?.remaining === "number" ? quota.remaining : null;
   return (
     <div className="mb-3 flex flex-wrap items-center justify-between gap-3 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm shadow-sm">
       <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-slate-700">
         <span className="font-medium text-slate-900">Batch {batch.batch_sequence ?? "--"}</span>
-        <span>{batch.qualifying_opportunity_count ?? 0}/{batch.requested_opportunity_count ?? 100} current rows</span>
+        <span>{budgetMode ? `${batch.qualifying_opportunity_count ?? 0} current rows` : `${batch.qualifying_opportunity_count ?? 0}/${batch.requested_opportunity_count ?? 100} current rows`}</span>
         <span>{batch.cumulative_qualifying_count ?? 0} cumulative</span>
         <span>{batch.cumulative_seeds_searched ?? 0} seeds searched</span>
+        {typeof batch.api_call_count === "number" ? <span>{batch.api_call_count} Browse calls</span> : null}
+        {quotaRemaining !== null ? <span>{quotaRemaining} quota remaining at start</span> : null}
         <span>{batch.seeds_remaining ?? 0} remaining</span>
         {typeof funnel.hard_blocked_opportunities === "number" ? <span>{funnel.hard_blocked_opportunities} blocked</span> : null}
         {batch.stop_reason ? <span>{label(batch.stop_reason)}</span> : null}
@@ -355,7 +360,7 @@ function BatchStatus({ batch, busy, onContinue }: { batch: SourcingBatch | null;
         className="inline-flex h-8 items-center gap-2 rounded-md border border-slate-300 bg-white px-2 text-xs font-medium text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
       >
         <RefreshCw className={`h-3.5 w-3.5 ${busy ? "animate-spin" : ""}`} />
-        {busy ? "Starting" : "Find 100 More"}
+        {busy ? "Starting" : "Spend Remaining Quota"}
       </button>
     </div>
   );
@@ -432,7 +437,7 @@ function ReplenishmentTable({
               <th className="w-24 px-2 py-2">Profit</th>
               <th className="w-16 px-2 py-2">ROI</th>
               <th className="w-24 px-2 py-2">Velocity</th>
-              <th className="w-24 px-2 py-2">Type</th>
+              <th className="w-32 px-2 py-2">Type</th>
               <th className="w-40 px-2 py-2">Flags</th>
               <th className="w-60 px-2 py-2">Actions</th>
             </tr>
@@ -655,7 +660,7 @@ function OpportunityTypeCell({ row }: { row: SourcingOpportunity }) {
         >
           Auction
         </Link>
-        <div className="text-xs text-slate-500">max bid {money(row.suggestedMaxBid)}</div>
+        <AmountLine label="max bid" row={row} amountUsd={row.suggestedMaxBid} />
       </div>
     );
   }
@@ -664,7 +669,7 @@ function OpportunityTypeCell({ row }: { row: SourcingOpportunity }) {
     return (
       <div>
         <div>{label(row.opportunityType ?? "")}</div>
-        <div className="text-xs text-slate-500">max offer {money(row.suggestedOfferPrice)}</div>
+        <AmountLine label="max offer" row={row} amountUsd={row.suggestedOfferPrice} />
         <div className="text-xs text-slate-500">{percent(row.requiredOfferPercentOfAsk)} of ask</div>
         <div className="text-xs text-slate-500">landed cap {money(row.maxProfitableLandedCost)}</div>
       </div>
@@ -672,6 +677,10 @@ function OpportunityTypeCell({ row }: { row: SourcingOpportunity }) {
   }
 
   return <div>{label(row.opportunityType ?? "")}</div>;
+}
+
+function AmountLine({ label: lineLabel, row, amountUsd }: { label: string; row: SourcingOpportunity; amountUsd: number | null | undefined }) {
+  return <div className="text-xs text-slate-500">{lineLabel} {offerBidAmountLabel(row, amountUsd)}</div>;
 }
 
 function DismissOpportunityDialog({
@@ -917,24 +926,27 @@ function SourcingHistory() {
             <th className="px-3 py-2">Status</th>
             <th className="px-3 py-2">Seeds</th>
             <th className="px-3 py-2">Candidates</th>
-            <th className="px-3 py-2">Opportunities</th>
+            <th className="px-3 py-2">Shown</th>
             <th className="px-3 py-2">Message</th>
             <th className="px-3 py-2">Run ID</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-slate-100">
-          {loading && !runs.length ? <tr><td colSpan={8} className="px-3 py-6 text-center text-slate-500">Loading run history...</td></tr> : runs.map((run) => (
-            <tr key={run.sourcing_run_id}>
-              <td className="px-3 py-2">{date(run.started_at)}</td>
-              <td className="px-3 py-2">{label(run.run_type)}</td>
-              <td className="px-3 py-2">{run.status}</td>
-              <td className="px-3 py-2">{run.seed_asin_count ?? 0}</td>
-              <td className="px-3 py-2">{run.ebay_candidate_count ?? 0}</td>
-              <td className="px-3 py-2">{run.opportunity_count ?? 0}</td>
-              <td className="max-w-96 px-3 py-2 text-xs text-slate-600">{run.error_message ?? ""}</td>
-              <td className="px-3 py-2 font-mono text-xs">{run.sourcing_run_id}</td>
-            </tr>
-          ))}
+          {loading && !runs.length ? <tr><td colSpan={8} className="px-3 py-6 text-center text-slate-500">Loading run history...</td></tr> : runs.map((run) => {
+            const status = sourcingRunStatusLabel(run);
+            return (
+              <tr key={run.sourcing_run_id}>
+                <td className="px-3 py-2">{date(run.started_at)}</td>
+                <td className="px-3 py-2">{label(run.run_type)}</td>
+                <td className="px-3 py-2">{status}</td>
+                <td className="px-3 py-2">{run.seed_asin_count ?? 0}</td>
+                <td className="px-3 py-2">{run.ebay_candidate_count ?? 0}</td>
+                <td className="px-3 py-2">{run.presented_opportunity_count ?? run.opportunity_count ?? 0}</td>
+                <td className="max-w-96 px-3 py-2 text-xs text-slate-600">{sourcingRunMessage(run)}</td>
+                <td className="px-3 py-2 font-mono text-xs">{run.sourcing_run_id}</td>
+              </tr>
+            );
+          })}
           {!loading && !runs.length ? <tr><td colSpan={8} className="px-3 py-6 text-center text-slate-500">No sourcing runs found.</td></tr> : null}
         </tbody>
       </table>
@@ -1229,6 +1241,7 @@ function TextField({ label: fieldLabel, value, onChange }: { label: string; valu
 }
 
 function label(value: string) {
+  if (value === "ebay_out_of_quota" || value === "ebay_rate_limited") return "Out of quota";
   return value.replaceAll("_", " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
 
@@ -1243,6 +1256,22 @@ function originalCurrencyCostLabel(row: SourcingOpportunity) {
     parts.push(`ship ${formatCurrency(row.originalShippingPrice, row.originalCurrency)}`);
   }
   return parts.join(" + ");
+}
+
+function offerBidAmountLabel(row: SourcingOpportunity, amountUsd: number | null | undefined) {
+  if (typeof amountUsd !== "number") return "--";
+  const originalAmount = originalCurrencyAmount(row, amountUsd);
+  if (!originalAmount) return `${money(amountUsd)} USD`;
+  return `${money(amountUsd)} USD / ${formatCurrency(originalAmount.amount, originalAmount.currency)}`;
+}
+
+function originalCurrencyAmount(row: SourcingOpportunity, amountUsd: number) {
+  if (!row.originalCurrency || row.originalCurrency.toUpperCase() === "USD") return null;
+  if (typeof row.originalItemPrice !== "number" || typeof row.itemPrice !== "number" || row.itemPrice <= 0) return null;
+  return {
+    currency: row.originalCurrency,
+    amount: amountUsd * (row.originalItemPrice / row.itemPrice),
+  };
 }
 
 function formatCurrency(value: number, currency: string) {
@@ -1285,6 +1314,47 @@ function parseCommaList(value: string) {
 
 function delay(milliseconds: number) {
   return new Promise((resolve) => window.setTimeout(resolve, milliseconds));
+}
+
+function sourcingRunStatusLabel(run: SourcingRun) {
+  const stopReason = sourcingRunStopReason(run);
+  if (stopReason === "ebay_out_of_quota" || stopReason === "ebay_rate_limited") return "Out of quota";
+  return label(run.status);
+}
+
+function sourcingRunMessage(run: SourcingRun) {
+  const stopReason = sourcingRunStopReason(run);
+  if (stopReason === "ebay_out_of_quota" || stopReason === "ebay_rate_limited") {
+    const reset = sourcingRunQuotaReset(run);
+    return reset ? `eBay Browse quota exhausted. Resets ${date(reset)}.` : "eBay Browse quota exhausted.";
+  }
+  if (typeof run.scored_opportunity_count === "number" && typeof run.presented_opportunity_count === "number") {
+    return `Scored ${run.scored_opportunity_count}; shown ${run.presented_opportunity_count}.`;
+  }
+  return run.error_message ?? "";
+}
+
+function sourcingRunStopReason(run: SourcingRun) {
+  if (run.batch_stop_reason) return run.batch_stop_reason;
+  const summary = objectRecord(run.raw_summary_json);
+  const progressive = objectRecord(summary?.progressive_batch);
+  const search = objectRecord(summary?.ebay_search);
+  return stringValue(progressive?.stop_reason) ?? stringValue(search?.stop_reason);
+}
+
+function sourcingRunQuotaReset(run: SourcingRun) {
+  const summary = objectRecord(run.raw_summary_json);
+  const progressive = objectRecord(summary?.progressive_batch);
+  const quota = objectRecord(progressive?.ebay_browse_quota);
+  return stringValue(quota?.reset);
+}
+
+function objectRecord(value: unknown): Record<string, unknown> | null {
+  return typeof value === "object" && value !== null ? value as Record<string, unknown> : null;
+}
+
+function stringValue(value: unknown) {
+  return typeof value === "string" && value ? value : null;
 }
 
 function date(value: string | null | undefined) {

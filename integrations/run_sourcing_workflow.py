@@ -9,6 +9,7 @@ import sys
 from pathlib import Path
 from typing import Any
 
+from ebay_api_limits import browse_call_budget, fetch_browse_quota, quota_summary
 from sourcing_common import get_supabase_client
 
 
@@ -17,7 +18,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 def main() -> int:
     args = parse_args()
-    if args.target_opportunities:
+    if not args.single_pass:
         try:
             return run_progressive(args)
         except Exception as error:
@@ -71,9 +72,10 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--seed-limit", type=int, default=None)
     parser.add_argument("--search-limit", type=int, default=None)
     parser.add_argument("--max-results-per-asin", type=int, default=10)
-    parser.add_argument("--target-opportunities", type=int, default=100)
+    parser.add_argument("--target-opportunities", type=int, default=0, help="Optional row target. Default 0 spends the daily Browse quota.")
     parser.add_argument("--seed-chunk-size", type=int, default=50)
-    parser.add_argument("--max-api-calls", type=int, default=500)
+    parser.add_argument("--max-api-calls", type=int, default=None, help="Optional cap after eBay Analytics quota preflight.")
+    parser.add_argument("--browse-quota-reserve", type=int, default=0, help="Browse calls to leave unused for other MBOP jobs.")
     parser.add_argument("--continue-run", action="store_true")
     parser.add_argument("--single-pass", action="store_true", help="Run the legacy single search slice workflow.")
     return parser.parse_args()
@@ -94,11 +96,26 @@ def run_progressive(args: argparse.Namespace) -> int:
 
     supabase = get_supabase_client()
     seed_limit = args.seed_limit or default_seed_limit(args.run_type)
-    target = max(args.target_opportunities, 1)
+    target = max(args.target_opportunities or 0, 0)
     chunk_size = max(args.seed_chunk_size, 1)
+    quota = fetch_browse_quota()
+    quota_budget = browse_call_budget(quota, args.browse_quota_reserve)
+    max_api_calls = min_positive(args.max_api_calls, quota_budget)
     batch_sequence = next_batch_sequence(supabase, args.run_id)
     batch = create_batch(supabase, args.run_id, batch_sequence, target)
     batch_id = batch["batch_id"]
+    if max_api_calls == 0:
+        complete_quota_exhausted_batch(
+            supabase,
+            batch_id,
+            args.run_id,
+            batch_sequence,
+            target,
+            quota,
+            args.browse_quota_reserve,
+        )
+        print(f"Progressive sourcing batch {batch_sequence}: out of eBay Browse quota")
+        return 0
 
     try:
         if not args.continue_run:
@@ -122,24 +139,34 @@ def run_progressive(args: argparse.Namespace) -> int:
         stop_reason = "no_seeds_remaining"
 
         while offset < source_count:
+            remaining_budget = None if max_api_calls is None else max(max_api_calls - api_calls_used, 0)
+            if remaining_budget == 0:
+                stop_reason = "ebay_out_of_quota"
+                break
             search_limit = min(chunk_size, source_count - offset)
+            if remaining_budget is not None:
+                search_limit = min(search_limit, remaining_budget)
+            search_step = [
+                "integrations/ebay_sourcing_search.py",
+                "--run-id",
+                args.run_id,
+                "--offset",
+                str(offset),
+                "--limit",
+                str(search_limit),
+                "--max-results-per-asin",
+                str(args.max_results_per_asin),
+            ]
+            if remaining_budget is not None:
+                search_step.extend(["--max-api-calls", str(remaining_budget)])
             run_python(
-                [
-                    "integrations/ebay_sourcing_search.py",
-                    "--run-id",
-                    args.run_id,
-                    "--offset",
-                    str(offset),
-                    "--limit",
-                    str(search_limit),
-                    "--max-results-per-asin",
-                    str(args.max_results_per_asin),
-                ]
+                search_step
             )
             search_summary = fetch_ebay_search_summary(supabase, args.run_id)
-            searched_this_chunk = int(search_summary.get("searched_seed_count") or search_limit)
+            searched_this_chunk = int_value(search_summary.get("searched_seed_count"), search_limit)
+            calls_this_chunk = int_value(search_summary.get("api_call_count"), searched_this_chunk)
             offset += searched_this_chunk
-            api_calls_used += searched_this_chunk
+            api_calls_used += calls_this_chunk
 
             run_python(
                 [
@@ -162,14 +189,17 @@ def run_progressive(args: argparse.Namespace) -> int:
                 source_count - offset,
                 api_calls_used,
             )
-            if len(selected) >= target:
+            if target and len(selected) >= target:
                 stop_reason = "target_reached"
+                break
+            if search_summary.get("stop_reason") == "ebay_out_of_quota":
+                stop_reason = "ebay_out_of_quota"
                 break
             if search_summary.get("rate_limited"):
                 stop_reason = "ebay_rate_limited"
                 break
-            if api_calls_used >= args.max_api_calls:
-                stop_reason = "api_call_budget_reached"
+            if max_api_calls is not None and api_calls_used >= max_api_calls:
+                stop_reason = "ebay_out_of_quota"
                 break
 
         selected = select_unbatched_open_opportunities(supabase, args.run_id, target)
@@ -188,8 +218,11 @@ def run_progressive(args: argparse.Namespace) -> int:
             source_count - offset,
             api_calls_used,
             stop_reason,
+            quota,
+            args.browse_quota_reserve,
         )
-        print(f"Progressive sourcing batch {batch_sequence}: {len(selected)}/{target} opportunities ({stop_reason})")
+        requested_label = "daily quota" if target == 0 else str(target)
+        print(f"Progressive sourcing batch {batch_sequence}: {len(selected)}/{requested_label} opportunities ({stop_reason})")
         return 0
     except Exception as error:
         fail_batch(supabase, batch_id, str(error))
@@ -269,6 +302,7 @@ def fetch_ebay_search_summary(supabase, run_id: str) -> dict[str, Any]:
 
 def select_unbatched_open_opportunities(supabase, run_id: str, target: int) -> list[dict[str, Any]]:
     batched_ids = batched_opportunity_ids(supabase, run_id)
+    limit = target * 5 if target else 5000
     response = (
         supabase.table("sourcing_opportunities")
         .select("opportunity_id,asin,ebay_item_id,score,opportunity_type,created_at")
@@ -277,7 +311,7 @@ def select_unbatched_open_opportunities(supabase, run_id: str, target: int) -> l
         .in_("opportunity_type", ["buy_now", "multi_unit", "best_offer", "auction"])
         .order("score", desc=True)
         .order("created_at", desc=True)
-        .limit(target * 5)
+        .limit(limit)
         .execute()
     )
     return choose_batch_opportunities(response.data or [], batched_ids, target)
@@ -300,7 +334,7 @@ def choose_batch_opportunities(rows: list[dict[str, Any]], batched_ids: set[str]
         if ebay_key:
             seen_ebay_ids.add(ebay_key)
         selected.append(row)
-        if len(selected) >= target:
+        if target and len(selected) >= target:
             break
     return selected
 
@@ -426,6 +460,8 @@ def complete_batch(
     seeds_remaining: int,
     api_calls_used: int,
     stop_reason: str,
+    quota=None,
+    quota_reserve: int = 0,
 ) -> None:
     completed_at = now_iso()
     candidate_count = count_run_rows(supabase, "sourcing_ebay_candidates", run_id)
@@ -442,7 +478,11 @@ def complete_batch(
         "profitability_reject_count": funnel.get("profitability_rejects", 0),
         "api_call_count": api_calls_used,
         "stop_reason": stop_reason,
-        "funnel_json": funnel,
+        "funnel_json": {
+            **funnel,
+            "ebay_browse_quota": quota_summary(quota),
+            "ebay_browse_quota_reserve": quota_reserve,
+        },
         "completed_at": completed_at,
         "updated_at": completed_at,
     }
@@ -463,10 +503,42 @@ def complete_batch(
                     "qualifying_opportunity_count": len(selected),
                     "stop_reason": stop_reason,
                     "funnel": funnel,
+                    "ebay_browse_quota": quota_summary(quota),
+                    "ebay_browse_quota_reserve": quota_reserve,
                 }
             },
         }
     ).eq("sourcing_run_id", run_id).execute()
+
+
+def complete_quota_exhausted_batch(
+    supabase,
+    batch_id: str,
+    run_id: str,
+    sequence: int,
+    target: int,
+    quota,
+    quota_reserve: int,
+) -> None:
+    reset = (quota_summary(quota) or {}).get("reset")
+    message = f"Out of eBay Browse quota. Resets at {reset}." if reset else "Out of eBay Browse quota."
+    complete_batch(
+        supabase,
+        batch_id,
+        run_id,
+        sequence,
+        target,
+        [],
+        {"quota_message": message},
+        0,
+        previous_cumulative_seeds(supabase, run_id, sequence),
+        None,
+        0,
+        "ebay_out_of_quota",
+        quota,
+        quota_reserve,
+    )
+    supabase.table("sourcing_runs").update({"error_message": message}).eq("sourcing_run_id", run_id).execute()
 
 
 def batched_count(supabase, run_id: str) -> int:
@@ -509,6 +581,22 @@ def mark_run_failed(run_id: str, message: str) -> None:
         ).eq("sourcing_run_id", run_id).execute()
     except Exception as update_error:  # noqa: BLE001 - best-effort task cleanup
         print(f"Could not mark sourcing run {run_id} failed: {update_error}", flush=True)
+
+
+def min_positive(*values: int | None) -> int | None:
+    positive = [value for value in values if value is not None and value >= 0]
+    if not positive:
+        return None
+    return min(positive)
+
+
+def int_value(value: Any, fallback: int) -> int:
+    if value is None:
+        return fallback
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return fallback
 
 
 def now_iso() -> str:

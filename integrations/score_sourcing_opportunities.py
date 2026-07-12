@@ -418,7 +418,8 @@ def score_candidate(
     score = max(0, min(100, score + matching_diagnostics["score_adjustment"]))
     displayed_max_landed_cost = best_offer_cap if opportunity_type == "best_offer" else max_profitable_landed_cost
     max_offer_price = suggested_offer(candidate, best_offer_cap, settings)
-    required_offer_percent_of_ask = required_offer_percent(candidate, best_offer_cap)
+    required_offer_percent_of_ask = required_offer_percent(candidate, max_offer_price)
+    max_bid = suggested_max_bid(candidate, max_profitable_landed_cost, shipping_unknown)
     historical_status = first_historical_status(historical_status_by_key or {}, candidate)
     if historical_status:
         status = apply_historical_status(
@@ -461,7 +462,7 @@ def score_candidate(
         "max_profitable_landed_cost": displayed_max_landed_cost,
         "max_offer_price": max_offer_price,
         "required_offer_percent_of_ask": required_offer_percent_of_ask,
-        "max_bid": max_profitable_landed_cost if "AUCTION" in buying_options and not shipping_unknown else None,
+        "max_bid": max_bid if "AUCTION" in buying_options else None,
         "total_profit_opportunity": round(max(profit, 0) * max(quantity_available, 1), 2) if profit is not None else None,
         "inventory_need_level": seed.get("inventory_need_level"),
         "months_of_supply": seed.get("months_of_supply"),
@@ -871,20 +872,33 @@ def suggested_offer(candidate: dict[str, Any], max_profitable_landed_cost: float
         return None
     item_price = to_float(candidate.get("price"), 0)
     shipping_price = to_float(candidate.get("shipping_cost"), 0)
-    max_item_offer = max(max_profitable_landed_cost - shipping_price, 0)
-    if max_item_offer < item_price * (settings.best_offer_min_ask_percent / 100):
-        return None
-    return round(min(max_item_offer, item_price), 2)
-
-
-def required_offer_percent(candidate: dict[str, Any], max_profitable_landed_cost: float) -> float | None:
-    if shipping_quote_status(candidate).startswith("unknown"):
-        return None
-    item_price = to_float(candidate.get("price"), 0)
-    shipping_price = to_float(candidate.get("shipping_cost"), 0)
     if item_price <= 0:
         return None
-    return round(max((max_profitable_landed_cost - shipping_price) / item_price, 0) * 100, 1)
+    max_item_offer = max(max_profitable_landed_cost - shipping_price, 0)
+    target_offer = min(max_item_offer, item_price * 0.95)
+    if target_offer >= item_price - 0.009:
+        return None
+    if target_offer < item_price * (settings.best_offer_min_ask_percent / 100):
+        return None
+    return round(target_offer, 2)
+
+
+def required_offer_percent(candidate: dict[str, Any], suggested_offer_price: float | None) -> float | None:
+    if shipping_quote_status(candidate).startswith("unknown"):
+        return None
+    if suggested_offer_price is None:
+        return None
+    item_price = to_float(candidate.get("price"), 0)
+    if item_price <= 0:
+        return None
+    return round(max(suggested_offer_price / item_price, 0) * 100, 1)
+
+
+def suggested_max_bid(candidate: dict[str, Any], max_profitable_landed_cost: float, shipping_unknown: bool) -> float | None:
+    if shipping_unknown:
+        return None
+    shipping_price = to_float(candidate.get("shipping_cost"), 0)
+    return round(max(max_profitable_landed_cost - shipping_price, 0), 2)
 
 
 def cents_to_dollars(value: Any) -> float | None:

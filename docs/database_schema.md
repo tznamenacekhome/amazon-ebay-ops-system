@@ -109,7 +109,11 @@ Keepa and Informed data are advisory intelligence only.
   flags, and score.
 - `sourcing_opportunity_batches`: durable progressive sourcing batches for the
   Replenishment queue, including requested/current counts, cumulative seed
-  cursor, stop reason, and funnel diagnostics for each Find 100 run.
+  cursor, eBay Browse API-call count, stop reason, quota diagnostics, and
+  funnel diagnostics. Quota-based runs use `requested_opportunity_count = 0`
+  to mean "spend available daily Browse quota" rather than "stop after N
+  opportunities"; quota exhaustion is recorded with
+  `stop_reason = 'ebay_out_of_quota'`.
 - `sourcing_opportunity_batch_items`: stable membership of opportunities
   presented in each progressive sourcing batch so later batches do not repeat
   rows already shown to the operator.
