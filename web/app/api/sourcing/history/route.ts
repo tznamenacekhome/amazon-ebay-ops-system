@@ -5,7 +5,8 @@ export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 export async function GET(request: NextRequest) {
-  const limit = Math.min(toNumber(new URL(request.url).searchParams.get("limit"), 50), 100);
+  const limitParam = new URL(request.url).searchParams.get("limit");
+  const limit = Math.min(limitParam === null ? 50 : toNumber(limitParam, 50), 100);
   const supabase = createServerSupabaseClient();
   const { data, error } = await supabase
     .from("sourcing_runs")

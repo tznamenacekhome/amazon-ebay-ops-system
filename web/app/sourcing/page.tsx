@@ -806,7 +806,7 @@ function SourcingHistory() {
   async function loadHistory() {
     setLoading(true);
     try {
-      const params = new URLSearchParams({ _: String(Date.now()) });
+      const params = new URLSearchParams({ limit: "50", _: String(Date.now()) });
       const response = await fetch(`/api/sourcing/history?${params.toString()}`, { cache: "no-store" });
       const payload = await response.json();
       if (!response.ok) throw new Error(payload.error ?? "Failed to load sourcing history.");
