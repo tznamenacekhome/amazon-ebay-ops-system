@@ -377,6 +377,21 @@ Assume default eBay Browse API quota around:
 5,000 calls/day
 ```
 
+Measured production audit:
+- `docs/ebay_browse_call_efficiency_audit_2026-07-12.md` records the
+  2026-07-12 eBay Browse call-efficiency audit. The monitored daily catalog
+  sourcing run searched 248 ASINs and used 1,498 counted Browse calls, or 6.04
+  calls per searched ASIN.
+- The measured split was 666 search-query calls, averaging 2.69 searches per
+  ASIN, plus 832 inferred item-detail shipping-enrichment calls, averaging 3.35
+  detail calls per ASIN.
+- Duplicate candidate hits across aliases were small in that run. The primary
+  quota sink was eager detail enrichment for search results whose summaries did
+  not include buyer-ZIP shipping.
+- Priority optimization sequence: add search/detail/retry diagnostics, make
+  detail enrichment lazy and bounded, add adaptive alias stopping, then revisit
+  the eBay quota increase case with before/after evidence.
+
 MBOP treats `buy.browse` as a shared daily budget, not as a fixed opportunity
 count. Before quota-based sourcing discovery, `run_sourcing_workflow.py` calls
 eBay Developer Analytics `GET /developer/analytics/v1_beta/rate_limit/` and

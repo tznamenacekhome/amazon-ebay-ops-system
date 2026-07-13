@@ -104,6 +104,15 @@ treated as a failed job. The frontend renders saved backend cycle/batch/quota
 diagnostics and does not calculate matching, profitability, or queue eligibility
 in React.
 
+The 2026-07-12 eBay Browse call-efficiency audit lives at
+`docs/ebay_browse_call_efficiency_audit_2026-07-12.md`. In the monitored
+production ECS run, daily catalog sourcing searched 248 ASINs with 1,498
+counted Browse calls, or 6.04 calls per ASIN. The measured split was 666 search
+query calls and 832 inferred item-detail shipping-enrichment calls. Future
+optimization should prioritize lazy/bounded detail enrichment, adaptive alias
+stopping, and detail-call dedupe/cache diagnostics before requesting a larger
+eBay quota.
+
 The legacy eBay supplier returns sync has been removed from active
 orchestration and System Health. The Order Problems return workflow uses
 `integrations/ebay_sync_order_problem_returns.py` as a scheduled, read-only eBay

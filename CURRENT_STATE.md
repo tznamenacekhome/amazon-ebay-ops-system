@@ -1,6 +1,6 @@
 # CURRENT_STATE.md
 
-Last Updated: 2026-06-28
+Last Updated: 2026-07-12
 
 # Midnight Blue Operations Platform (MBOP)
 
@@ -104,6 +104,13 @@ Current monitoring:
 - Continue monitoring System Health and `/ecs/mbop-scheduler` for external API
   throttling, Supabase pressure, and runtime drift. The migration itself is no
   longer laptop-dependent.
+
+Recent sourcing quota audit:
+- `docs/ebay_browse_call_efficiency_audit_2026-07-12.md` documents the
+  production eBay Browse call-efficiency audit for the unified sourcing
+  coverage cycle. The monitored ECS run searched 248 ASINs and used 1,498
+  counted Browse calls, or 6.04 calls per ASIN. The dominant quota sink was
+  item-detail shipping enrichment, not repeated ASIN coverage-cycle searches.
 
 ---
 
