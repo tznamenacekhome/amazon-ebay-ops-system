@@ -79,6 +79,7 @@ def main() -> int:
     api_calls_used = 0
     stop_reason = "no_pending_asins"
     last_queue_position = None
+    ebay_search_summary = empty_ebay_search_summary()
 
     while True:
         remaining_budget = None if budget is None else max(budget - api_calls_used, 0)
@@ -115,6 +116,7 @@ def main() -> int:
         run_python(search_step)
 
         search_summary = fetch_ebay_search_summary(supabase, run_id)
+        merge_ebay_search_summary(ebay_search_summary, search_summary)
         searched_this_chunk = int_value(search_summary.get("searched_seed_count"), search_limit)
         calls_this_chunk = int_value(search_summary.get("api_call_count"), searched_this_chunk)
         searched_items = pending[:searched_this_chunk]
@@ -170,6 +172,7 @@ def main() -> int:
         api_calls_used,
         last_queue_position=last_queue_position,
         added_count=added_count,
+        ebay_search_summary=ebay_search_summary,
     )
     print("Daily catalog sourcing")
     print("----------------------")
@@ -187,7 +190,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--run-id")
     parser.add_argument("--queue-limit", type=int, default=20000)
     parser.add_argument("--seed-chunk-size", type=int, default=50)
-    parser.add_argument("--max-results-per-asin", type=int, default=10)
+    parser.add_argument("--max-results-per-asin", type=int, default=200)
     parser.add_argument("--browse-quota-reserve", type=int, default=0)
     parser.add_argument("--max-api-calls", type=int, default=None, help="Diagnostic cap only; production uses live quota.")
     parser.add_argument("--single-chunk", action="store_true", help="Diagnostic mode for one chunk only.")
@@ -306,16 +309,17 @@ def update_cycle_items_after_chunk(supabase, run_id: str, items: list[dict[str, 
     seed_id_by_item_id = {row["coverage_cycle_item_id"]: row["seed_id"] for row in seed_rows}
     candidate_counts = count_by_seed(supabase, "sourcing_ebay_candidates", run_id, seed_id_by_item_id.values())
     opportunity_counts = count_by_seed(supabase, "sourcing_opportunities", run_id, seed_id_by_item_id.values())
-    per_item_calls = max(round(calls_used / len(items)), 0) if items else 0
+    base_item_calls = calls_used // len(items) if items else 0
+    remainder_calls = calls_used % len(items) if items else 0
     updates = []
-    for item in items:
+    for index, item in enumerate(items):
         seed_id = seed_id_by_item_id.get(item["cycle_item_id"])
         updates.append(
             {
                 "cycle_item_id": item["cycle_item_id"],
                 "processing_status": "searched",
                 "last_ebay_checked_at": now_iso(),
-                "browse_calls_used": per_item_calls,
+                "browse_calls_used": base_item_calls + (1 if index < remainder_calls else 0),
                 "candidate_count": candidate_counts.get(seed_id, 0),
                 "qualifying_opportunity_count": opportunity_counts.get(seed_id, 0),
                 "last_error": None,
@@ -377,6 +381,7 @@ def finish_daily_run(
     *,
     last_queue_position: int | None = None,
     added_count: int = 0,
+    ebay_search_summary: dict[str, Any] | None = None,
 ) -> None:
     metrics = refresh_cycle_metrics(supabase, cycle_id, run_id=run_id, stop_reason=stop_reason)
     bucket = fetch_bucket_progress(supabase, cycle_id)
@@ -404,6 +409,7 @@ def finish_daily_run(
         "last_processed_queue_position": last_queue_position,
         "api_call_count": api_calls_used,
         "raw_summary_json": {
+            "ebay_search": ebay_search_summary or {},
             "daily_catalog_sourcing": {
                 "coverage_cycle_id": cycle_id,
                 "batch_id": batch_id,
@@ -425,6 +431,81 @@ def finish_daily_run(
             "updated_at": now_iso(),
         }
     ).eq("coverage_cycle_id", cycle_id).execute()
+
+
+def empty_ebay_search_summary() -> dict[str, Any]:
+    return {
+        "chunks": [],
+        "search_call_count": 0,
+        "detail_call_count": 0,
+        "retry_http_attempt_count": 0,
+        "rate_limited_http_attempt_count": 0,
+        "failed_search_call_count": 0,
+        "failed_detail_call_count": 0,
+        "query_variant_count": 0,
+        "search_results_returned_count": 0,
+        "summary_filtered_count": 0,
+        "skipped_unsourced_seed_count": 0,
+        "summary_profitability_filtered_count": 0,
+        "detail_eligible_count": 0,
+        "detail_calls_skipped_shipping_known_count": 0,
+        "detail_calls_skipped_not_needed_count": 0,
+        "detail_calls_success_count": 0,
+        "detail_calls_missing_data_resolved_count": 0,
+        "detail_calls_missing_data_not_resolved_count": 0,
+        "detail_calls_changed_decision_count": 0,
+        "detail_calls_no_decision_change_count": 0,
+        "detail_calls_candidate_rejected_afterward_count": 0,
+        "detail_calls_candidate_retained_count": 0,
+        "duplicate_item_count": 0,
+        "duplicate_detail_calls_prevented_count": 0,
+        "api_call_count": 0,
+        "detail_reason_counts": {},
+        "detail_reason_breakdown": {},
+        "detail_call_records": [],
+    }
+
+
+def merge_ebay_search_summary(target: dict[str, Any], chunk: dict[str, Any]) -> None:
+    if not chunk:
+        return
+    target["chunks"].append(
+        {
+            "offset": chunk.get("offset"),
+            "requested_seed_count": chunk.get("requested_seed_count"),
+            "searched_seed_count": chunk.get("searched_seed_count"),
+            "api_call_count": chunk.get("api_call_count"),
+            "search_call_count": chunk.get("search_call_count"),
+            "detail_call_count": chunk.get("detail_call_count"),
+            "rate_limited": chunk.get("rate_limited"),
+            "stop_reason": chunk.get("stop_reason"),
+        }
+    )
+    for key, value in chunk.items():
+        if isinstance(value, int) and key in target:
+            target[key] += value
+    reason_counts = chunk.get("detail_reason_counts") or {}
+    if isinstance(reason_counts, dict):
+        target_counts = target.setdefault("detail_reason_counts", {})
+        for reason, count in reason_counts.items():
+            target_counts[reason] = int(target_counts.get(reason) or 0) + int(count or 0)
+    reason_breakdown = chunk.get("detail_reason_breakdown") or {}
+    if isinstance(reason_breakdown, dict):
+        target_breakdown = target.setdefault("detail_reason_breakdown", {})
+        for reason, values in reason_breakdown.items():
+            if not isinstance(values, dict):
+                continue
+            row = target_breakdown.setdefault(
+                reason,
+                {"calls": 0, "missing_data_resolved": 0, "decision_changed": 0, "candidate_retained": 0},
+            )
+            for key in ("calls", "missing_data_resolved", "decision_changed", "candidate_retained"):
+                row[key] += int(values.get(key) or 0)
+    records = chunk.get("detail_call_records") or []
+    if isinstance(records, list):
+        target_records = target.setdefault("detail_call_records", [])
+        remaining = max(500 - len(target_records), 0)
+        target_records.extend(records[:remaining])
 
 
 def fetch_bucket_progress(supabase, cycle_id: str) -> dict[str, dict[str, int]]:

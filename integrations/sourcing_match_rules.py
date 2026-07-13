@@ -619,6 +619,9 @@ def platform_rule(
     if seed_system and not ebay_systems:
         result = "review"
         reason = "Candidate listing has no detectable platform"
+    elif seed_system and ebay_systems and xbox_one_series_compatible(seed_system, ebay_systems):
+        result = "pass"
+        reason = "Xbox One / Xbox Series cross-generation-compatible platform"
     elif seed_system and ebay_systems and seed_system not in ebay_systems:
         result = "blocked"
         reason = f"platform mismatch: Amazon {seed_system}, eBay {', '.join(ebay_systems)}"
@@ -640,6 +643,13 @@ def platform_rule(
         "result": result,
         "reason": reason,
     }
+
+
+def xbox_one_series_compatible(seed_system: str | None, ebay_systems: list[str]) -> bool:
+    xbox_cross_gen = {"Xbox One", "Xbox Series X", "Xbox Series S"}
+    known = {seed_system, *ebay_systems}
+    known = {system for system in known if system}
+    return bool(known) and known.issubset(xbox_cross_gen)
 
 
 def resolve_seed_system(seed: dict[str, Any], amazon_title: str) -> tuple[str | None, str | None]:

@@ -392,6 +392,20 @@ Measured production audit:
   detail enrichment lazy and bounded, add adaptive alias stopping, then revisit
   the eBay quota increase case with before/after evidence.
 
+Implementation update:
+- `docs/ebay_browse_call_optimization_implementation_2026-07-13.md` documents
+  the first optimization pass. eBay search now uses one approved platform-aware
+  query per ASIN, `category_ids=139973` for EBAY_US Video Games software, and a
+  first-page `limit=200` without pagination. DS, original Xbox, and GameCube
+  seeds are not searched.
+- `ebay_sourcing_search.py` maps and filters summary rows before any detail
+  call. Item detail is called only for plausible candidates with missing data
+  needed for final matching or scoring, and in-run detail calls are cached by
+  eBay item ID plus buyer context.
+- Exact search/detail/retry counters and compact detail-call records are stored
+  under `sourcing_runs.raw_summary_json.ebay_search`; the Coverage Cycle Daily
+  Runs table displays the backend-owned metrics.
+
 MBOP treats `buy.browse` as a shared daily budget, not as a fixed opportunity
 count. Before quota-based sourcing discovery, `run_sourcing_workflow.py` calls
 eBay Developer Analytics `GET /developer/analytics/v1_beta/rate_limit/` and

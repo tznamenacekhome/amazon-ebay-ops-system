@@ -76,9 +76,18 @@ Carrier/status syncs must not downgrade workflow-owned statuses.
   diagnostics and hard blocks where confidence is high.
 - Possible game-plus-accessory bundles should route to Review instead of being
   blindly hard-blocked unless the listing clearly lacks the game.
-- eBay sourcing search must include common seller platform abbreviations, such
-  as xb1, ps2, ps3, ps4, ps5, Switch, Wii, Wii U, and wiiu. Wii and Wii U are
-  separate platforms; a Wii seed must not accept a Wii U eBay result.
+- eBay sourcing search uses one approved platform-aware search suffix per ASIN
+  and must not add unapproved aliases. DS, original Xbox, and GameCube are not
+  searched by the replenishment sourcing workflow. Wii and Wii U are separate
+  platforms; a Wii seed must not accept a Wii U eBay result.
+- Xbox One and Xbox Series X/S physical releases may be cross-generation for
+  this workflow. Sourcing matching must not hard-block an otherwise plausible
+  candidate solely because one side says Xbox One and the other says Xbox
+  Series X/S.
+- eBay sourcing search must constrain Browse search to the EBAY_US Video Games
+  software category ID `139973`, request up to 200 first-page results, and must
+  not paginate beyond that first 200-result page without a future explicit
+  design.
 - Unknown eBay ZIP shipping estimates may be shown as watch opportunities when
   otherwise plausible, but MBOP must not calculate profit, ROI, offer, or bid
   guidance from assumed free shipping.

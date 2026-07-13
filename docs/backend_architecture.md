@@ -113,6 +113,15 @@ optimization should prioritize lazy/bounded detail enrichment, adaptive alias
 stopping, and detail-call dedupe/cache diagnostics before requesting a larger
 eBay quota.
 
+The first optimization pass is documented in
+`docs/ebay_browse_call_optimization_implementation_2026-07-13.md`. It keeps
+the existing schema and stores exact call-type counters, detail reasons, and
+compact detail-call outcomes in `sourcing_runs.raw_summary_json.ebay_search`.
+The daily coverage runner aggregates chunk summaries into the completed run so
+Coverage Cycle diagnostics can display search calls, detail calls, retries, and
+detail usefulness without treating rounded per-cycle-item calls as
+authoritative.
+
 The legacy eBay supplier returns sync has been removed from active
 orchestration and System Health. The Order Problems return workflow uses
 `integrations/ebay_sync_order_problem_returns.py` as a scheduled, read-only eBay

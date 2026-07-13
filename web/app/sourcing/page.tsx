@@ -1107,23 +1107,41 @@ function CoverageCyclePanel() {
                 <th className="px-3 py-2">Date</th>
                 <th className="px-3 py-2 text-right">Quota Start</th>
                 <th className="px-3 py-2 text-right">Calls</th>
+                <th className="px-3 py-2 text-right">Search</th>
+                <th className="px-3 py-2 text-right">Detail</th>
+                <th className="px-3 py-2 text-right">Retries</th>
                 <th className="px-3 py-2 text-right">ASINs</th>
+                <th className="px-3 py-2 text-right">Filtered</th>
+                <th className="px-3 py-2 text-right">Resolved</th>
+                <th className="px-3 py-2 text-right">Changed</th>
                 <th className="px-3 py-2 text-right">Opps</th>
                 <th className="px-3 py-2">Stop</th>
               </tr>
             </thead>
             <tbody>
-              {runs.map((run) => (
-                <tr key={run.sourcing_run_id} className="border-t border-slate-100">
-                  <td className="px-3 py-2">{date(run.started_at)}</td>
-                  <td className="px-3 py-2 text-right">{run.starting_browse_quota_remaining ?? "--"}</td>
-                  <td className="px-3 py-2 text-right">{run.api_call_count ?? 0}</td>
-                  <td className="px-3 py-2 text-right">{run.asins_searched_this_run ?? 0}</td>
-                  <td className="px-3 py-2 text-right">{run.opportunity_count ?? 0}</td>
-                  <td className="px-3 py-2">{label(run.stop_reason ?? run.status ?? "")}</td>
-                </tr>
-              ))}
-              {!runs.length ? <tr><td colSpan={6} className="px-3 py-6 text-center text-slate-500">No daily sourcing runs found.</td></tr> : null}
+              {runs.map((run) => {
+                const search = ebaySearchSummary(run);
+                return (
+                  <tr key={run.sourcing_run_id} className="border-t border-slate-100 align-top">
+                    <td className="px-3 py-2">{date(run.started_at)}</td>
+                    <td className="px-3 py-2 text-right">{run.starting_browse_quota_remaining ?? "--"}</td>
+                    <td className="px-3 py-2 text-right">{run.api_call_count ?? 0}</td>
+                    <td className="px-3 py-2 text-right">{numberMetric(search, "search_call_count")}</td>
+                    <td className="px-3 py-2 text-right">{numberMetric(search, "detail_call_count")}</td>
+                    <td className="px-3 py-2 text-right">{numberMetric(search, "retry_http_attempt_count")}</td>
+                    <td className="px-3 py-2 text-right">{run.asins_searched_this_run ?? 0}</td>
+                    <td className="px-3 py-2 text-right">{numberMetric(search, "summary_filtered_count") + numberMetric(search, "summary_profitability_filtered_count")}</td>
+                    <td className="px-3 py-2 text-right">{numberMetric(search, "detail_calls_missing_data_resolved_count")}</td>
+                    <td className="px-3 py-2 text-right">{numberMetric(search, "detail_calls_changed_decision_count")}</td>
+                    <td className="px-3 py-2 text-right">{run.opportunity_count ?? 0}</td>
+                    <td className="px-3 py-2">
+                      <div>{label(run.stop_reason ?? run.status ?? "")}</div>
+                      <DetailReasonBreakdown summary={search} />
+                    </td>
+                  </tr>
+                );
+              })}
+              {!runs.length ? <tr><td colSpan={12} className="px-3 py-6 text-center text-slate-500">No daily sourcing runs found.</td></tr> : null}
             </tbody>
           </table>
         </div>
@@ -1178,7 +1196,55 @@ type CoverageDailyRun = {
   asins_searched_this_run: number | null;
   api_call_count: number | null;
   opportunity_count: number | null;
+  raw_summary_json?: unknown;
 };
+
+function ebaySearchSummary(run: CoverageDailyRun) {
+  return objectRecord(objectRecord(run.raw_summary_json)?.ebay_search);
+}
+
+function numberMetric(summary: Record<string, unknown> | null | undefined, key: string) {
+  const value = summary?.[key];
+  return typeof value === "number" && Number.isFinite(value) ? value : 0;
+}
+
+function DetailReasonBreakdown({ summary }: { summary: Record<string, unknown> | null | undefined }) {
+  const breakdown = objectRecord(summary?.detail_reason_breakdown);
+  const counts = objectRecord(summary?.detail_reason_counts);
+  const reasons = Object.entries(breakdown ?? {}).filter(([, value]) => objectRecord(value));
+  const fallbackReasons = reasons.length ? [] : Object.entries(counts ?? {}).filter(([, value]) => typeof value === "number" && value > 0);
+  const rows = reasons.length
+    ? reasons.map(([reason, value]) => ({ reason, values: objectRecord(value) }))
+    : fallbackReasons.map(([reason, value]) => ({ reason, values: { calls: value } as Record<string, unknown> }));
+  if (!rows.length) return null;
+  return (
+    <details className="mt-1 text-[11px] text-slate-500">
+      <summary className="cursor-pointer text-slate-600">Detail reasons</summary>
+      <table className="mt-1 min-w-80 text-left">
+        <thead>
+          <tr className="text-slate-400">
+            <th className="py-1 pr-3 font-medium">Reason</th>
+            <th className="py-1 pr-3 text-right font-medium">Calls</th>
+            <th className="py-1 pr-3 text-right font-medium">Resolved</th>
+            <th className="py-1 pr-3 text-right font-medium">Changed</th>
+            <th className="py-1 pr-3 text-right font-medium">Retained</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map(({ reason, values }) => (
+            <tr key={reason}>
+              <td className="py-0.5 pr-3">{label(reason)}</td>
+              <td className="py-0.5 pr-3 text-right">{numberMetric(values, "calls")}</td>
+              <td className="py-0.5 pr-3 text-right">{numberMetric(values, "missing_data_resolved")}</td>
+              <td className="py-0.5 pr-3 text-right">{numberMetric(values, "decision_changed")}</td>
+              <td className="py-0.5 pr-3 text-right">{numberMetric(values, "candidate_retained")}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </details>
+  );
+}
 
 function MatchingIntelligencePanel() {
   const [data, setData] = useState<MatchingIntelligenceData | null>(null);

@@ -37,7 +37,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--seed-limit", type=int, default=5000, help="Ignored compatibility option from the old split workflow.")
     parser.add_argument("--queue-limit", type=int, default=20000)
     parser.add_argument("--seed-chunk-size", type=int, default=50)
-    parser.add_argument("--max-results-per-asin", type=int, default=10)
+    parser.add_argument("--max-results-per-asin", type=int, default=200)
     parser.add_argument("--browse-quota-reserve", type=int, default=0)
     parser.add_argument("--max-api-calls", type=int, default=None, help="Diagnostic cap only; production uses live quota.")
     return parser.parse_args()

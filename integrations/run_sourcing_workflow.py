@@ -71,7 +71,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--run-type", choices=["recent_sales", "full_listings"], required=True)
     parser.add_argument("--seed-limit", type=int, default=None)
     parser.add_argument("--search-limit", type=int, default=None)
-    parser.add_argument("--max-results-per-asin", type=int, default=10)
+    parser.add_argument("--max-results-per-asin", type=int, default=200)
     parser.add_argument("--target-opportunities", type=int, default=0, help="Optional row target. Default 0 spends the daily Browse quota.")
     parser.add_argument("--seed-chunk-size", type=int, default=50)
     parser.add_argument("--max-api-calls", type=int, default=None, help="Optional cap after eBay Analytics quota preflight.")

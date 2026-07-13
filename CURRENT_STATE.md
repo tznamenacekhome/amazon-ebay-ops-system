@@ -111,6 +111,11 @@ Recent sourcing quota audit:
   coverage cycle. The monitored ECS run searched 248 ASINs and used 1,498
   counted Browse calls, or 6.04 calls per ASIN. The dominant quota sink was
   item-detail shipping enrichment, not repeated ASIN coverage-cycle searches.
+- `docs/ebay_browse_call_optimization_implementation_2026-07-13.md` documents
+  the first optimization pass: one approved platform-aware query per ASIN,
+  EBAY_US Video Games category `139973`, 200 first-page results, summary
+  filtering before detail, in-run detail caching, exact search/detail/retry
+  metrics, and Coverage Cycle Daily Runs diagnostics.
 
 ---
 

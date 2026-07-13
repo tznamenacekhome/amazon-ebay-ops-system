@@ -106,7 +106,8 @@ Keepa and Informed data are advisory intelligence only.
   counts, and retry/error context.
 - `sourcing_runs`: one row per sourcing scan, including mode, counts, status,
   settings snapshot, API call count, errors, optional coverage-cycle link, stop
-  reason, Browse quota snapshots, and per-priority coverage metrics.
+  reason, Browse quota snapshots, per-priority coverage metrics, and
+  `raw_summary_json.ebay_search` call-type/detail diagnostics.
 - `sourcing_seed_asins`: ASINs selected for a sourcing run from the coverage
   queue, recent Amazon sales, purchased-not-sent Amazon-bound items, or active
   listings, including Amazon title/image, target sale context, velocity,
