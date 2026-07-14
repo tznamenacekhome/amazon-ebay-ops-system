@@ -1,408 +1,355 @@
-# eBay Browse Call Optimization Production Validation
+# eBay Browse Call Optimization Production Validation - 2026-07-14
 
-Date: 2026-07-14
+Scope: read-only validation of the first production run that actually used the
+deployed eBay Browse optimization image. No code, schema, settings, sourcing
+behavior, or production data were changed during this investigation.
 
-Scope: read-only validation of the first production daily sourcing run after the
-eBay Browse quota reset. No code, schema, settings, sourcing behavior, or
-production data were changed.
+Important timing note: at validation time, Supabase did not contain a completed
+`daily_catalog_sourcing` run after the `2026-07-14T07:00:00Z` Browse quota
+reset. The latest completed optimized production run was the manual
+leftover-quota run below. It completed the active coverage cycle before that
+reset and is still the first run with the new instrumentation and optimized
+search path.
 
 Primary run analyzed:
 
-- `sourcing_run_id`: `6e8d5312-e490-47a9-9018-28dd219e91cd`
+- `sourcing_run_id`: `5ec1f3b0-20f3-4d65-a0a9-09efb19e5daa`
 - Run type: `daily_catalog_sourcing`
 - Coverage cycle: `dd2f604c-2651-44f3-925f-60de361d36bd`
-- Started: `2026-07-13T07:11:20Z`
-- Completed: `2026-07-13T08:57:21Z`
-- Stop reason: `quota_reserve_reached`
-- Scheduler telemetry job: `Daily catalog sourcing`
-- Scheduler command: `integrations/run_daily_sourcing_discovery.py`
-- Scheduler window: `2026-07-13T07:10:36Z` to `2026-07-13T08:47:12Z`
+- Started: `2026-07-14T00:52:22.929912Z`
+- Completed: `2026-07-14T01:01:35.889854Z`
+- Stop reason: `cycle_completed`
+- ECS task:
+  `arn:aws:ecs:us-west-2:297464765814:task/mbop-cluster1/97f3b7c91bfb48dbac82a439be6d41fc`
+- ECS task definition: `mbop-scheduler-task:21`
+- Scheduler image:
+  `297464765814.dkr.ecr.us-west-2.amazonaws.com/mbop-scheduler@sha256:bc42711a71e9f13ed95ad5f35fbf8181d117f0ac404730ad3ddc39ff42986f2d`
 - CloudWatch log stream:
-  `scheduled/mbop-scheduler/f8ef2f5d3ea1417ea394d5718109b62c`
+  `scheduled/mbop-scheduler/97f3b7c91bfb48dbac82a439be6d41fc`
 
 Baseline:
 
 - `docs/ebay_browse_call_efficiency_audit_2026-07-12.md`
 - Baseline run: `97224694-8db6-43fe-bbc5-ec49c5d7ba82`
 
-## Executive Summary
+## 1. Executive Summary
 
-The optimization did **not** run in production as implemented. CloudWatch logs
-confirm the scheduler still used the pre-optimization alias fan-out search path:
-the run logged `2,287` eBay search lines for `1,193` searched ASINs, and the
-first ASINs used three variants such as:
+The optimization worked for the behaviors it targeted:
 
-```text
-Wolfenstein II The New Colossus PlayStation 4 PlayStation 4
-wolfenstein ii the new colossus PlayStation 4
-wolfenstein ii the new colossus ps4
-```
+- one platform-aware query per supported ASIN was active
+- old alias fan-out was gone
+- eBay Video Games category `139973` was active for stored candidates
+- `--max-results-per-asin 200` was active
+- summary filtering ran before detail enrichment
+- detail reasons and outcomes were persisted under
+  `sourcing_runs.raw_summary_json.ebay_search`
 
-Browse throughput improved materially, but this was not because the intended
-one-query/category-filter/detail-diagnostics implementation was active. The
-production run also did not persist the new `raw_summary_json.ebay_search`
-diagnostics that were added for this validation. Detail-call reasons and
-per-detail outcomes were missing from the completed run record.
+Browse usage decreased materially:
 
-Observed Browse usage did decrease by ASIN:
+- app-counted calls per ASIN fell from `6.04` to `4.04`
+- search calls per ASIN fell from `2.69` to `0.99`
+- detail calls per ASIN fell from `3.35` inferred to `3.05`
 
-- Baseline app-counted usage: `1,498` calls / `248` ASINs = `6.04` calls/ASIN.
-- Latest app-counted usage: `5,000` calls / `1,193` ASINs = `4.19` calls/ASIN.
-- Latest external eBay Analytics usage: `4,140` calls / `1,193` ASINs =
-  `3.47` calls/ASIN.
+Sourcing quality appears better, with caveats:
 
-Sourcing quality improved in raw actionable volume: the latest run produced
-`210` batch-qualifying opportunities versus `1` in the audited baseline. That is
-a large improvement, but it is not a clean recall/precision proof because the
-run still admitted non-video-game categories into stored candidates.
+- stored candidates in the optimized run were `350 / 350` in category `139973`
+- the run produced `47` open batch-qualifying opportunities from `143` searched
+  ASINs
+- the active coverage cycle completed with zero remaining ASINs
+- the sample is not perfectly comparable to the baseline because it searched
+  the final leftover ASINs in the cycle, mostly catalog remaining rows
 
-The most important finding: the production scheduler appears to be running an
-older scheduler image or task revision. The Video Games category filter was not
-fully active in the production path that ran. Stored candidate payloads included
-rows from
-Postcards, Collectible Ads, Video Game Merchandise, Manuals, Posters, Magnets,
-Controllers, Strategy Guides, and other non-software categories. Candidate
-category distribution showed `7,013` rows in category `139973 Video Games` and
-`2,006` rows outside category `139973`.
+What is now consuming the most Browse quota: item detail calls. Detail calls
+were `436 / 578` app-counted Browse calls (`75.4%`). The dominant reason was
+`game_name_confirmation_needed`, followed by `shipping_missing`.
 
-What is now consuming the most Browse quota: discovery item-detail calls remain
-the largest app-counted consumer. CloudWatch logged `2,287` search calls; with
-`5,000` app-counted Browse calls, that implies `2,713` app-counted detail calls.
-The post-run availability refresh then checked `150` unique eBay items.
+Recommendation: **NEEDS ANOTHER OPTIMIZATION PASS**. The deployed optimization
+is production-safe and should remain active, but detail calls are now the clear
+remaining quota sink.
 
-Recommendation: **NEEDS ANOTHER OPTIMIZATION PASS**.
-
-## Baseline Comparison
-
-Two after values are shown where they differ:
-
-- App-counted calls: `sourcing_runs.api_call_count`.
-- Analytics calls: eBay Developer Analytics quota delta.
+## 2. Baseline Comparison
 
 | Metric | Before | After | Delta |
 | --- | ---: | ---: | ---: |
-| Browse calls, app-counted | 1,498 | 5,000 | +3,502 |
-| Browse calls, Analytics delta | ~1,500 | 4,140 | +2,640 |
-| Search calls | 666 inferred | 2,287 CloudWatch | +1,621 |
-| Detail calls | 832 inferred | 2,713 app-inferred | +1,881 |
-| Calls / ASIN, app-counted | 6.04 | 4.19 | -1.85 (-30.6%) |
-| Calls / ASIN, Analytics delta | ~6.05 | 3.47 | -2.58 (-42.6%) |
-| Search calls / ASIN | 2.69 | 1.92 | -0.77 (-28.8%) |
-| Detail calls / ASIN | 3.35 | 2.27 app-inferred | -1.08 (-32.1%) |
-| ASINs searched | 248 | 1,193 | +945 |
-| Search results returned | Not persisted | Not persisted | Unknown |
-| Candidates after summary filtering | 2,009 stored | 9,033 stored | +7,024 |
-| Candidates sent to detail | Not persisted | Not persisted | Unknown |
-| Batch-qualifying opportunities | 1 | 210 | +209 |
-| Batch-qualifying opportunities / 1,000 Analytics calls | 0.67 | 50.72 | +50.05 |
+| Browse calls | 1,498 | 578 | -920 (-61.4%) |
+| Search calls | 666 inferred | 142 | -524 (-78.7%) |
+| Detail calls | 832 inferred | 436 | -396 (-47.6%) |
+| Calls / ASIN | 6.04 | 4.04 | -2.00 (-33.1%) |
+| Search calls / ASIN | 2.69 | 0.99 | -1.70 (-63.0%) |
+| Detail calls / ASIN | 3.35 | 3.05 | -0.30 (-9.0%) |
+| ASINs searched | 248 | 143 | -105 |
+| Search results returned | Not persisted | 4,900 | New metric |
+| Candidates after summary filtering | 2,009 stored | 350 stored | -1,659 |
+| Candidates sent to detail | Not persisted | 437 eligible / 436 HTTP calls | New metric |
+| Opportunities produced | 1 batch-qualifying | 47 batch-qualifying | +46 |
+| Opportunities / 1,000 Browse calls | 0.67 | 81.31 | +80.64 |
 
-Notes:
+Run-level quota snapshots:
 
-- The latest run began with Browse quota at `0 / 5,000` used and ended with
-  `4,140 / 5,000` used, leaving `860`.
-- The latest run nevertheless recorded `api_call_count = 5,000` and stopped as
-  `quota_reserve_reached`. That means app-counted quota and eBay Analytics quota
-  diverged by `860` calls.
-- If the Analytics delta is used with the CloudWatch search-call count, inferred
-  detail calls are `1,853`, or `1.55` detail calls/ASIN. This conflicts with the
-  app-counted inferred detail total of `2,713`, so exact detail totals still need
-  the missing instrumentation.
-- The run-specific cycle item allocation summed to `4,815` Browse calls across
-  the `1,200` seed rows loaded for the run, which also differs from both the app
-  run total and Analytics total. Treat the run-level Analytics delta as the best
-  external quota measurement for this validation.
+| Quota Metric | Value |
+| --- | ---: |
+| Starting Browse quota remaining | 710 |
+| Ending Browse quota remaining | 130 |
+| App-counted Browse calls | 578 |
+| eBay Analytics delta | 580 |
+| Reconciliation difference | 2 |
 
-## Search Query Analysis
+The app counter and eBay Analytics were effectively reconciled in this run. The
+previous `860`-call divergence did not repeat.
 
-Metrics from the latest run:
+## 3. Search Query Analysis
 
 | Search Metric | Value |
 | --- | ---: |
-| Seed rows loaded | 1,200 |
-| ASINs searched | 1,193 |
-| Retryable failed seed rows | 7 |
-| CloudWatch search lines | 2,287 |
-| CloudWatch search lines / searched ASIN | 1.92 |
-| Stored candidates | 9,033 |
-| Stored candidates / searched ASIN | 7.57 |
-| ASINs with at least one CloudWatch search line | 1,194 |
-| Unique ASINs with query text recoverable from eBay `_skw` URLs | 1,067 |
-| ASINs with multiple recovered query strings | 343 |
-| Average CloudWatch query length | 36.55 characters |
-| Average recovered `_skw` query length | 34.66 characters |
+| Seed rows loaded | 143 |
+| Supported ASINs searched | 142 |
+| Unsourced seeds skipped | 1 |
+| Search calls | 142 |
+| Query variants | 142 |
+| Search calls / supported searched ASIN | 1.00 |
+| Search calls / loaded seed | 0.99 |
+| Search results returned | 4,900 |
+| Search results / search call | 34.51 |
+| Stored candidates | 350 |
+| Stored candidates / searched ASIN | 2.45 |
+| Unique query strings observed in stored detail/candidate records | 76 |
+| Average observed query length | 40.03 characters |
 
-One-query-per-ASIN is **confirmed not active** in this production run.
-CloudWatch logged these query-variant counts by ASIN:
+Confirmation:
 
-| Logged Queries For ASIN | ASIN Count |
-| ---: | ---: |
-| 1 | 276 |
-| 2 | 748 |
-| 3 | 165 |
-| 4 | 5 |
+- One-query-per-supported-ASIN: confirmed by `142` query variants for `142`
+  supported searched ASINs.
+- Original Xbox not searched: confirmed. One run seed had inferred system
+  `Xbox` (`B0CFTFG12B`) and the run recorded `skipped_unsourced_seed_count = 1`.
+- DS not searched: no DS seed appeared in this run.
+- GameCube not searched: no GameCube seed appeared in this run.
+- Wii U `(Wii U,wiiu)` suffix: not exercised by this run because no Wii U seed
+  appeared.
+- Approved platform suffixes: confirmed in CloudWatch examples such as
+  `(PlayStation 4,PS4)`, `(Xbox One,XB1)`,
+  `(Xbox Series X,Series X,Series S)`, `(Xbox 360,X360,XB360,Xbox360)`,
+  `Switch`, `3DS`, `Wii`, and `PC`.
+- Video Games category filter: confirmed for stored candidates;
+  `350 / 350` stored candidates had primary category `139973 Video Games`.
+- Search limit: confirmed in CloudWatch command lines:
+  `--max-results-per-asin 200`.
 
-The log stream also showed the old alias format with duplicated platform terms,
-for example `Dragon Quest Builders PlayStation 4 PlayStation 4` and
-`dragon quest builders ps4`.
-
-Video Games category filtering is **not confirmed and appears not fully active**.
-
-Candidate category sample:
-
-| Category | Candidate Rows |
-| --- | ---: |
-| `139973 Video Games` | 7,013 |
-| `165266 Other Collectible Ads` | 357 |
-| `38583 Video Game Merchandise` | 274 |
-| `182180 Toys to Life` | 115 |
-| `182174 Manuals, Inserts & Box Art` | 99 |
-| `3628 Modern (1970-Now)` | 89 |
-| `41511 Posters & Prints` | 74 |
-| `476 Refrigerator Magnets` | 73 |
-| `117042 Controllers & Attachments` | 73 |
-| `60339 2000-Now` | 49 |
-
-Stored candidate rows outside `139973`: `2,006` (`22.2%` of stored candidates).
-
-Search limit `200` is not confirmed. The metric was absent from
-`raw_summary_json.ebay_search`, CloudWatch did not log request parameters, and
-eBay URL payloads do not preserve the request limit.
-
-Approved suffix usage is partially observed but not validated end-to-end.
-Recovered `_skw` strings included approved platform terms such as `Switch`,
-`Wii`, `Wii U`, `wiiu`, `3DS`, `PlayStation 2`, `PS2`, `PlayStation 3`, `PS3`,
-`PlayStation 4`, `PS4`, `PlayStation 5`, `PS5`, `PlayStation Vita`, `Xbox 360`,
-`X360`, `XB360`, `Xbox One`, `XB1`, `Series X`, and `Series S`. Because multiple
-queries were recovered for many ASINs, this does not prove the optimized
-one-query path ran.
-
-Weak query examples from recovered `_skw` strings:
-
-| ASIN | Query | Example Stored Candidate |
-| --- | --- | --- |
-| `B004M8M30G` | `cars ps3` | Tamiya Spray Paints for RC car bodies |
-| `B000Q4SREG` | `mysims Wii` | Barbie dollhouse miniature DVD/Blu-Ray/Wii item |
-| `B0056C2LIG` | `Wii Play` | Ringling Bros Circus Wii listing |
-| `B000QL0T36` | `dirt ps3` | Dirt stickers/posters/ads |
-| `B002EZH804` | `avatar ps3` | Modded avatars / promo art / lenticular cards |
-
-DS/original Xbox/GameCube skip behavior is not confirmed because
-`skipped_unsourced_seed_count` was absent from the run summary. The CloudWatch
-search lines did not provide enough context to prove those systems were skipped.
-
-## Detail Call Analysis
-
-The latest run did not persist detail-call diagnostics. CloudWatch does allow an
-app-counted inference:
+CloudWatch command examples:
 
 ```text
-5,000 app-counted Browse calls - 2,287 CloudWatch search lines = 2,713 inferred detail calls
+python integrations/ebay_sourcing_search.py --run-id 5ec1f3b0-20f3-4d65-a0a9-09efb19e5daa --offset 0 --limit 50 --max-results-per-asin 200 --max-api-calls 710
+python integrations/ebay_sourcing_search.py --run-id 5ec1f3b0-20f3-4d65-a0a9-09efb19e5daa --offset 50 --limit 50 --max-results-per-asin 200 --max-api-calls 501
+python integrations/ebay_sourcing_search.py --run-id 5ec1f3b0-20f3-4d65-a0a9-09efb19e5daa --offset 100 --limit 43 --max-results-per-asin 200 --max-api-calls 360
 ```
 
-This is still not a substitute for detail-call diagnostics because it does not
-identify which item details were called, why they were called, or whether they
-changed the sourcing decision.
+Potential weak query examples:
+
+| ASIN | Query | Note |
+| --- | --- | --- |
+| `B0C7SK37D4` | `avatar frontiers of pandora limited edition (Xbox Series X,Series X,Series S)` | Generic word `avatar`, but the full title keeps it usable. |
+| `B0935PJSZX` | `skinfix triple lipid boost eye ... (Xbox 360,X360,XB360,Xbox360)` | Bad seed/title data; not a video game title even though it entered the catalog queue. |
+| `B0009Z3HYW` | `gun (PlayStation 2,PS2)` | Very short game title; high risk of broad matches. |
+
+The weak-query issue now appears driven more by upstream seed/title quality than
+by the eBay query builder.
+
+## 4. Detail Call Analysis
+
+Unique Browse item-detail HTTP calls: `436`.
+
+Detail records: `437`. One eligible detail was served from the run-level detail
+cache (`duplicate_detail_calls_prevented_count = 1`), so records exceed HTTP
+detail calls by one.
+
+Detail reasons can overlap, so reason counts sum above unique detail calls.
 
 | Detail Reason | Calls |
 | --- | ---: |
-| `shipping_missing` | Not persisted |
-| `platform_confirmation_needed` | Not persisted |
-| `region_confirmation_needed` | Not persisted |
-| `game_name_confirmation_needed` | Not persisted |
-| `edition_confirmation_needed` | Not persisted |
-| `type_or_format_confirmation_needed` | Not persisted |
-| `description_needed` | Not persisted |
-| `quantity_confirmation_needed` | Not persisted |
-| `combined_shipping_evaluation_needed` | Not persisted |
-| `other` | Not persisted |
+| `shipping_missing` | 297 |
+| `platform_confirmation_needed` | 19 |
+| `region_confirmation_needed` | 0 |
+| `game_name_confirmation_needed` | 437 |
+| `edition_confirmation_needed` | 0 |
+| `type_or_format_confirmation_needed` | 0 |
+| `description_needed` | 0 |
+| `quantity_confirmation_needed` | 0 |
+| `combined_shipping_evaluation_needed` | 0 |
+| `other` | 0 |
 
-The following expected counters were all absent or zero:
+| Detail Reason | Requested Fields | Returned / Populated | Still Missing | Changed Decision | Retained | Rejected |
+| --- | --- | --- | --- | ---: | ---: | ---: |
+| `shipping_missing` | `shipping_cost`; often `Game Name`; sometimes `Platform` | `shipping_cost` populated 296/297; `Game Name` 294/297; `Platform` 11/11 | `Game Name` still missing on 2 | 297 | 238 | 59 |
+| `platform_confirmation_needed` | `localizedAspects.Platform`, `Game Name`; sometimes `shipping_cost` | `Platform` 19/19; `Game Name` 19/19; shipping 11/11 | none | 19 | 7 | 12 |
+| `game_name_confirmation_needed` | `localizedAspects.Game Name`; often shipping/platform too | `Game Name` 434/437; shipping 296; platform 19 | `Game Name` still missing on 2 | 329 | 350 | 87 |
+| Other listed reasons | none in this run | none | none | 0 | 0 | 0 |
 
-- `search_call_count`
-- `detail_call_count`
-- `retry_http_attempt_count`
-- `rate_limited_http_attempt_count`
-- `detail_reason_counts`
-- `detail_reason_breakdown`
-- `detail_call_records`
-- `detail_calls_missing_data_resolved_count`
-- `detail_calls_changed_decision_count`
+Effectiveness summary:
 
-Because of that, requested fields, returned fields, still-missing fields,
-decision changes, retained/rejected detail outcomes, and useful/unnecessary
-classifications cannot be measured from this run.
+| Detail Outcome | Count | Percent |
+| --- | ---: | ---: |
+| Missing data resolved | 436 | 99.8% of detail records |
+| Missing data not resolved | 1 | 0.2% |
+| Changed sourcing decision/economics | 329 | 75.3% |
+| No decision change | 108 | 24.7% |
+| Candidate retained after detail | 350 | 80.1% |
+| Candidate rejected after detail | 87 | 19.9% |
 
-## Shipping Analysis
+## 5. Shipping Analysis
 
-Stored candidates with non-null `shipping_cost`: `9,033 / 9,033`.
-
-That only proves final stored candidates had shipping. It does not prove how many
-Browse item-detail calls were spent to obtain shipping because the run did not
-persist `detail_call_count`, `shipping_missing`, or detail outcome records.
-
-Post-run availability refresh did consume Browse item detail calls:
-
-| Availability Refresh Metric | Value |
+| Shipping Metric | Value |
 | --- | ---: |
-| Opportunities checked | 250 |
-| Unique eBay items checked | 150 |
-| Still active | 248 |
-| No longer available | 2 |
-| Errors | 0 |
+| Stored candidates with shipping | 350 / 350 |
+| Detail records with `shipping_missing` reason | 297 |
+| Shipping retrieval successes | 296 |
+| Shipping retrieval failures | 1 |
+| Detail calls spent for shipping-related enrichment | up to 297 |
 
-Estimated Browse calls spent only by availability refresh: `150`.
+Estimated Browse calls spent only to obtain shipping: not exactly measurable
+because every `shipping_missing` detail call in this run also carried
+`game_name_confirmation_needed`. The safe upper bound is `297` calls. The lower
+bound is `0` if Game Name confirmation alone would have forced the same calls.
 
-Estimated app-counted Browse detail calls during discovery: `2,713`. Most of
-those are probably shipping enrichment because this old path detail-enriched
-missing-shipping results, but the exact shipping-only count is **not measurable**
-without the missing detail reasons.
+Operationally, shipping enrichment worked: all stored candidates ended with a
+non-null shipping cost.
 
-## Profitability Filter
-
-The latest run's batch funnel recorded:
+## 6. Profitability Filter
 
 | Profitability Metric | Value |
 | --- | ---: |
-| Scored opportunities | 9,033 |
-| Profitability rejects | 4,706 |
-| Hard-blocked opportunities | 4,039 |
-| Review/watch | 44 |
-| Valid open opportunities | 210 |
+| Search results returned | 4,900 |
+| Summary profitability filtered before detail | 2,226 |
+| Other summary/matching filtered before detail | 2,232 |
+| Duplicate summary items skipped | 6 |
+| Detail-eligible records | 437 |
+| Stored candidates after detail/final filters | 350 |
 
-The requested pre-detail split was not persisted:
+Estimated Browse calls saved by the pre-detail profitability filter:
+approximately `2,226` potential detail calls avoided in the best case. The
+exact split between regular listings above cap, impossible Best Offers, and
+auctions above max bid is not persisted yet.
 
-- regular listing above landed-cost cap
-- Best Offer impossible even assuming free shipping
-- auction already above max bid
+## 7. Summary Filtering
 
-Estimated Browse calls saved by the new pre-detail profitability filter:
-**not measurable from this run**.
+The run persists total summary filtering, but not the requested detailed reason
+split. Available totals:
 
-## Summary Filtering
-
-The latest run did not persist summary-filter reason counters. The run-level
-`summary_filtered_count` and `summary_profitability_filtered_count` were absent
-or zero in `raw_summary_json.ebay_search`.
-
-Measured downstream scoring categories:
-
-| Downstream Classification | Rows |
+| Summary Filter Bucket | Count |
 | --- | ---: |
-| Hard-blocked opportunities | 4,039 |
-| Profitability rejects | 4,706 |
-| Rejected opportunities | 8,745 |
-| Review/watch | 44 |
-| Valid open opportunities | 210 |
+| Matching / category / seller / other non-economic summary filters | 2,232 |
+| Profitability summary filters | 2,226 |
+| Duplicate items skipped before persistence | 6 |
 
-Requested pre-detail reason split:
+Requested reason split:
 
 | Reason | Count |
 | --- | ---: |
-| category | Not persisted |
-| accessory | Not persisted |
-| digital/service | Not persisted |
-| incomplete product | Not persisted |
-| platform mismatch | Not persisted |
-| edition/version mismatch | Not persisted |
-| sequel/year mismatch | Not persisted |
-| region | Not persisted |
-| seller rules | Not persisted |
-| profitability | Not persisted |
-| duplicate | Not persisted |
-| other | Not persisted |
+| category | Not persisted separately |
+| accessory | Not persisted separately |
+| digital/service | Not persisted separately |
+| incomplete product | Not persisted separately |
+| platform mismatch | Not persisted separately |
+| edition/version mismatch | Not persisted separately |
+| sequel/year mismatch | Not persisted separately |
+| region | Not persisted separately |
+| seller rules | Not persisted separately |
+| profitability | 2,226 |
+| duplicate | 6 |
+| other | Included in 2,232 non-economic summary filters |
 
-The category payload analysis shows summary filtering was not sufficient:
-`2,006` stored candidates were outside eBay category `139973`.
+Evidence that summary filtering is working:
 
-## Detail Call Effectiveness
+- only `350` of `4,900` search results became stored candidates
+- all stored candidates were category `139973 Video Games`
+- no stored opportunity had category/accessory/digital/platform/edition/region
+  hard-block diagnostics; only two retained rows still lacked item-specific Game
+  Name evidence after detail
 
-Detail usefulness cannot be classified because no detail records were persisted.
+## 8. Detail Call Effectiveness
+
+Classification rule: a detail call is useful when it changed shipping,
+landed cost, profitability, matching recommendation, hard-block result,
+persistence decision, or opportunity type.
 
 | Classification | Count | Percent |
 | --- | ---: | ---: |
-| Useful | Not persisted | Not persisted |
-| Unnecessary | Not persisted | Not persisted |
+| Useful | 329 | 75.3% |
+| Unnecessary / no material effect | 108 | 24.7% |
 
-Useful detail effects that were expected but absent from the run data:
+Detail calls are much more targeted than before, but they remain the dominant
+quota sink. The biggest remaining question is whether every candidate truly
+needs Game Name confirmation, or whether high-confidence title/platform/category
+matches can skip detail when shipping is already present.
 
-- profitability changed
-- shipping changed
-- match decision changed
-- opportunity type changed
-
-## Opportunity Quality
-
-The latest run produced many more actionable opportunities than the baseline,
-but the raw candidate set also contained non-video-game categories, so precision
-needs operator review before declaring success.
+## 9. Opportunity Quality
 
 Opportunity type comparison by scored rows:
 
 | Opportunity Type | Before Rows | After Rows | Delta |
 | --- | ---: | ---: | ---: |
-| Buy Now | 7 | 106 | +99 |
-| Best Offer | 32 | 376 | +344 |
-| Auction | 4 | 9 | +5 |
-| Multi-unit | 0 | 12 | +12 |
-| Watch | 11 | 44 | +33 |
-| No profitable source found | 1,955 | 8,486 | +6,531 |
+| Buy Now | 7 | 19 | +12 |
+| Best Offer | 32 | 100 | +68 |
+| Auction | 4 | 7 | +3 |
+| Multi-unit | 0 | 3 | +3 |
+| Watch | 11 | 3 | -8 |
+| No profitable source found | 1,955 | 218 | -1,737 |
 
 Workflow/status comparison:
 
 | Status | Before Rows | After Rows | Delta |
 | --- | ---: | ---: | ---: |
-| Open | 0 | 177 | +177 |
-| Watching | 17 | 6 | -11 |
-| Purchased pending match | 3 | 9 | +6 |
-| Dismissed | 86 | 77 | -9 |
-| Rejected | 1,903 | 8,764 | +6,861 |
+| Open | 0 | 47 | +47 |
+| Watching | 17 | 3 | -14 |
+| Purchased pending match | 3 | 1 | -2 |
+| Dismissed | 86 | 1 | -85 |
+| Rejected | 1,903 | 298 | -1,605 |
 
-Actionable batch count:
+Actionable batch comparison:
 
 | Metric | Before | After | Delta |
 | --- | ---: | ---: | ---: |
-| Batch-qualifying opportunities | 1 | 210 | +209 |
-| Batch-qualifying opportunities / searched ASIN | 0.004 | 0.176 | +0.172 |
-| Batch-qualifying opportunities / 1,000 Analytics calls | 0.67 | 50.72 | +50.05 |
+| Batch-qualifying opportunities | 1 | 47 | +46 |
+| Batch-qualifying opportunities / searched ASIN | 0.004 | 0.329 | +0.325 |
+| Batch-qualifying opportunities / 1,000 Browse calls | 0.67 | 81.31 | +80.64 |
 
-Recall appears improved by volume, but precision is not proven because of the
-non-video-game category leakage and missing detail/reason diagnostics.
+Opportunity recall appears maintained or improved by volume. Precision also
+appears improved because the optimized run stored only Video Games category
+rows, but the sample is smaller and skewed toward final-cycle catalog ASINs.
 
-## Remaining Optimization Opportunities
+## 10. Remaining Optimization Opportunities
 
 | Rank | Opportunity | Expected Browse Savings | Complexity | Sourcing Risk |
 | ---: | --- | --- | --- | --- |
-| 1 | Deploy and point `mbop-sourcing-catalog` at the scheduler image/task revision containing the optimization. | The intended one-query/category-filter/detail-lazy behavior did not run; expected savings should be revalidated after deployment. | Medium | Low |
-| 2 | Enforce eBay category `139973` in the production search path and hard-reject non-`139973` summaries before detail. | Up to `2,006` stored candidates from this run were outside category; savings depend on when rejected. | Low to Medium | Low |
-| 3 | Fix app-counted Browse budget reconciliation against eBay Analytics. | Prevents stopping with `860` calls still available. Potentially +200 to +250 more ASINs/day at observed actual usage. | Medium | Low |
-| 4 | Persist search/detail/retry/detail-reason counters at final run completion. | No direct savings, but required to target detail spend. | Low | Low |
-| 5 | Confirm one-query-per-ASIN in production and remove any remaining alias fan-out from the scheduler image. | This run logged `2,287` searches. At one query per `1,193` searched ASINs, search calls would have been about `1,193`, saving roughly `1,094` calls before any detail savings. | Medium | Medium |
-| 6 | Keep availability refresh reserve separate from discovery budget. | Availability refresh used `150` item detail checks after discovery. | Low | Low |
-| 7 | Add or enforce pre-detail category/accessory/manual/poster filters before shipping detail. | High if current non-game rows are detail-enriched before rejection. | Medium | Low to Medium |
+| 1 | Reduce Game Name detail calls for high-confidence title/platform/category matches. | Up to part of `437` detail records; likely the largest remaining savings. | Medium | Medium |
+| 2 | Skip shipping detail when a candidate is already economically impossible even with unknown/free shipping. | Could reduce the `297` shipping-missing detail reason overlap. | Medium | Low |
+| 3 | Persist summary-filter reason counters. | No direct savings, but needed to target the `2,232` non-economic pre-detail rejects. | Low | Low |
+| 4 | Improve upstream seed/title hygiene for non-game titles entering the queue. | Prevents weak queries like the Skinfix/Xbox 360 row. | Medium | Low |
+| 5 | Add a confidence gate for detail: no detail if category, platform, title overlap, and price/shipping are already decisive. | Could remove some of the `108` no-effect detail records. | Medium | Medium |
+| 6 | Keep the run-level detail cache and consider a short-lived persistent item-detail cache. | Small in this run (`1` duplicate detail prevented), but useful across runs. | Medium | Low |
 
-## Recommendation
+## 11. Recommendation
 
 **NEEDS ANOTHER OPTIMIZATION PASS**
 
-Reasons:
+The first optimization should stay deployed: it fixed the production search
+path, category leakage, alias fan-out, and quota accounting gap. It also
+completed the active coverage cycle with a reconciled quota delta.
 
-1. The latest production run did not persist the new validation diagnostics under
-   `sourcing_runs.raw_summary_json.ebay_search`.
-2. CloudWatch proves one-query-per-ASIN was not active; the run still used old
-   alias fan-out with up to four queries per ASIN.
-3. Video Games category filtering was not fully active in the production path;
-   `2,006` stored candidates were outside category `139973`.
-4. App-counted Browse usage diverged from eBay Analytics by `860` calls.
-5. Detail-reason effectiveness cannot be measured from the run.
-6. Throughput and actionable opportunity volume improved, but quality cannot be
-   declared stable until category leakage and diagnostics are corrected.
+However, Browse efficiency is not done. Detail calls are now `75.4%` of
+app-counted Browse usage, and `24.7%` of detail records had no material effect.
+The next pass should focus on reducing Game Name and shipping detail calls
+without weakening platform-specific matching.
 
-Recommended next step: deploy the scheduler image/task revision that contains
-the optimization implementation, verify the `mbop-sourcing-catalog` schedule is
-using that revision, then run one more daily cycle after reset and re-run this
-validation. This report used Supabase `sourcing_runs`,
-`sourcing_coverage_cycles`, `sourcing_opportunity_batches`,
-`sourcing_ebay_candidates`, `sourcing_opportunities`, scheduler telemetry
-tables, and CloudWatch log stream
-`scheduled/mbop-scheduler/f8ef2f5d3ea1417ea394d5718109b62c`. No production
-behavior was changed.
+Sources used:
+
+- Supabase `sourcing_runs`
+- Supabase `sourcing_coverage_cycles`
+- Supabase `sourcing_opportunity_batches`
+- Supabase `sourcing_seed_asins`
+- Supabase `sourcing_ebay_candidates`
+- Supabase `sourcing_opportunities`
+- CloudWatch log stream
+  `scheduled/mbop-scheduler/97f3b7c91bfb48dbac82a439be6d41fc`
+- ECS task description for
+  `arn:aws:ecs:us-west-2:297464765814:task/mbop-cluster1/97f3b7c91bfb48dbac82a439be6d41fc`
+
+No production behavior was changed.

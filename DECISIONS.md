@@ -382,6 +382,17 @@ This remains advisory Amazon-to-eBay replenishment sourcing only. MBOP must not
 auto-purchase, bid, submit offers, or add eBay-to-Amazon sourcing through this
 workflow.
 
+Production deployment note:
+As of the 2026-07-14 deployment verification, the production
+`mbop-sourcing-catalog` EventBridge schedule targets digest-pinned
+`mbop-scheduler-task:21`, built from repository HEAD
+`56a34347dd8eb515161e32ef88bdcd24d92a3fcb`. This deployment moves the daily
+coverage-cycle scheduler from the older pre-optimization scheduler image to the
+image that includes one platform-aware eBay Browse query per ASIN, category
+`139973`, 200-result searches, pre-detail filtering, lazy detail enrichment,
+and persisted `raw_summary_json.ebay_search` diagnostics. The deployment did
+not change sourcing business rules or production data.
+
 ---
 
 ## Matched Amazon Title Is Stored Separately

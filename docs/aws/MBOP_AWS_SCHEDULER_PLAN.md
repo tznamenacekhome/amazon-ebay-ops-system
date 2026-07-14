@@ -1,6 +1,6 @@
 # MBOP AWS Scheduler Plan
 
-Last updated: 2026-07-12
+Last updated: 2026-07-14
 
 ## Architecture Decision
 
@@ -51,7 +51,7 @@ Target:
 
 ```text
 Task definition family: mbop-scheduler-task
-Current deployed revision: mbop-scheduler-task:19
+Current deployed revision for mbop-sourcing-catalog: mbop-scheduler-task:21
 Container: mbop-scheduler
 CPU: 512
 Memory: 1024 MiB
@@ -68,14 +68,13 @@ Default command:
 Current ECR image:
 
 ```text
-297464765814.dkr.ecr.us-west-2.amazonaws.com/mbop-scheduler@sha256:6d490c279a2cbb6f1f5c95caf6b8f84e72e804a490582d5ec947c51ca7085993
-tag: scheduler-32ece9e3435f
+297464765814.dkr.ecr.us-west-2.amazonaws.com/mbop-scheduler@sha256:bc42711a71e9f13ed95ad5f35fbf8181d117f0ac404730ad3ddc39ff42986f2d
+tag: scheduler-56a34347dd8e
 ```
 
-The current ZFI-enabled scheduler task definition is digest-pinned. Legacy
-`mbop-scheduler-task:1` is still tag-based on `:latest` for schedules that were
-not changed in the ZFI rollout. Prefer digest-pinned task definition revisions
-for future scheduler deployments.
+The current `mbop-sourcing-catalog` scheduler task definition is digest-pinned
+and includes the eBay Browse search/detail optimization deployed from
+repository HEAD `56a34347dd8eb515161e32ef88bdcd24d92a3fcb`.
 
 EventBridge Scheduler should override the command per group:
 
@@ -156,6 +155,15 @@ because `Matching intelligence refresh` was killed by ECS with
 `mbop-sourcing-catalog` runs at 12:10 AM in `America/Los_Angeles`, shortly
 after the eBay Browse quota reset, so the unified daily coverage-cycle runner
 can spend the usable quota before lower-priority Browse consumers.
+As of 2026-07-14 verification, `mbop-sourcing-catalog` targets
+`mbop-scheduler-task:21` and runs:
+
+```text
+python run_all_syncs.py --group sourcing-catalog
+```
+
+The target still overrides the task to `1024 CPU / 2048 MB` and keeps the same
+cluster, public subnet set, security group, and EventBridge Scheduler role.
 
 `fba-pricing`, `finance-audit`, `listing-audit`, and `inventory-audit` remain manual/on-demand.
 

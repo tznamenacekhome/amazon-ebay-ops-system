@@ -1,6 +1,6 @@
 # CURRENT_STATE.md
 
-Last Updated: 2026-07-12
+Last Updated: 2026-07-14
 
 # Midnight Blue Operations Platform (MBOP)
 
@@ -116,6 +116,16 @@ Recent sourcing quota audit:
   EBAY_US Video Games category `139973`, 200 first-page results, summary
   filtering before detail, in-run detail caching, exact search/detail/retry
   metrics, and Coverage Cycle Daily Runs diagnostics.
+- `docs/ebay_browse_optimization_deployment_verification_2026-07-14.md`
+  documents the production deployment verification. The `mbop-sourcing-catalog`
+  EventBridge schedule now targets `mbop-scheduler-task:21`, pinned to scheduler
+  image digest
+  `sha256:bc42711a71e9f13ed95ad5f35fbf8181d117f0ac404730ad3ddc39ff42986f2d`,
+  built from repository HEAD `56a34347dd8eb515161e32ef88bdcd24d92a3fcb`.
+  The previous production schedule used `mbop-scheduler-task:20` and image
+  digest
+  `sha256:2a6eea5d26635662ca1b95b41d9b05a5f1a850bc312ac518feb0b2ebf703850c`,
+  which predated the Browse optimization commit.
 
 ---
 

@@ -136,21 +136,26 @@ export default function SourcingPage() {
   }
 
   async function continueSourcingBatch() {
-    if (!batch?.sourcing_run_id) return;
     setBatchContinueRunning(true);
     setError(null);
-    setNotice("Starting next sourcing batch...");
+    setNotice("Starting unified sourcing coverage cycle for remaining quota...");
     try {
-      const response = await fetch(`/api/sourcing/runs/${batch.sourcing_run_id}/continue`, {
+      const response = await fetch("/api/sourcing/runs", {
         method: "POST",
-        headers: mutationHeaders(),
+        headers: mutationHeaders({ "Content-Type": "application/json" }),
+        body: JSON.stringify({ execute: true }),
       });
       const payload = await response.json();
-      if (!response.ok) throw new Error(payload.error ?? "Failed to start next sourcing batch.");
+      if (!response.ok) throw new Error(payload.error ?? "Failed to start sourcing coverage cycle.");
+      const startedAwsTask = payload.executionMode === "aws-ecs" || payload.status === "started";
       await reload();
-      setNotice("AWS sourcing task started for the next batch. Opportunities will refresh after the ECS task finishes.");
+      setNotice(
+        startedAwsTask
+          ? "AWS sourcing coverage task started. It will check live eBay quota before spending calls."
+          : "Sourcing coverage run complete. Loaded fresh opportunities.",
+      );
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to start next sourcing batch.");
+      setError(err instanceof Error ? err.message : "Failed to start sourcing coverage cycle.");
       setNotice(null);
     } finally {
       setBatchContinueRunning(false);
@@ -1019,7 +1024,7 @@ function CoverageCyclePanel() {
         <div className="mt-3 grid gap-2 text-xs text-slate-600 md:grid-cols-4">
           <div>Cycle status: <span className="font-medium text-slate-800">{label(cycle.status ?? "")}</span></div>
           <div>Last run: <span className="font-medium text-slate-800">{date(lastRun?.started_at)}</span></div>
-          <div>Stop reason: <span className="font-medium text-slate-800">{label(lastRun?.stop_reason ?? cycle.last_stop_reason ?? "")}</span></div>
+          <div>Stop reason: <span className="font-medium text-slate-800">{stopReasonLabel(lastRun?.stop_reason ?? cycle.last_stop_reason ?? "", lastRun)}</span></div>
           <div>Next reset: <span className="font-medium text-slate-800">{date(lastRun?.browse_quota_reset_at ?? cycle.last_quota_reset_at)}</span></div>
         </div>
       </div>
@@ -1135,7 +1140,7 @@ function CoverageCyclePanel() {
                     <td className="px-3 py-2 text-right">{numberMetric(search, "detail_calls_changed_decision_count")}</td>
                     <td className="px-3 py-2 text-right">{run.opportunity_count ?? 0}</td>
                     <td className="px-3 py-2">
-                      <div>{label(run.stop_reason ?? run.status ?? "")}</div>
+                      <div>{stopReasonLabel(run.stop_reason ?? run.status ?? "", run)}</div>
                       <DetailReasonBreakdown summary={search} />
                     </td>
                   </tr>
@@ -1533,8 +1538,28 @@ function TextField({ label: fieldLabel, value, onChange }: { label: string; valu
 }
 
 function label(value: string) {
-  if (value === "ebay_out_of_quota" || value === "ebay_rate_limited" || value === "quota_reserve_reached") return "Out of quota";
+  if (value === "ebay_out_of_quota" || value === "ebay_rate_limited") return "Out of quota";
+  if (value === "quota_reserve_reached") return "Run budget reached";
   return value.replaceAll("_", " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
+function stopReasonLabel(value: string | null | undefined, run?: CoverageDailyRun | null) {
+  if (!value) return "";
+  if (value !== "quota_reserve_reached") return label(value);
+  return hasRemainingBrowseQuota(run) ? "Run budget reached" : "Quota reserve reached";
+}
+
+function hasRemainingBrowseQuota(run?: CoverageDailyRun | null) {
+  const endingQuota = run?.ending_browse_quota_remaining;
+  if (typeof endingQuota !== "number") return false;
+  return endingQuota > quotaReserve(run);
+}
+
+function quotaReserve(run?: CoverageDailyRun | null) {
+  const summary = objectRecord(run?.raw_summary_json);
+  const daily = objectRecord(summary?.daily_catalog_sourcing);
+  const reserve = daily?.quota_reserve;
+  return typeof reserve === "number" && Number.isFinite(reserve) ? reserve : 0;
 }
 
 function money(value: number | null | undefined) {
@@ -1607,6 +1632,7 @@ function parseCommaList(value: string) {
 function sourcingRunStatusLabel(run: SourcingRun) {
   const stopReason = sourcingRunStopReason(run);
   if (isQuotaStop(stopReason)) return "Out of quota";
+  if (stopReason === "quota_reserve_reached") return "Run budget reached";
   return label(run.status);
 }
 
@@ -1615,6 +1641,9 @@ function sourcingRunMessage(run: SourcingRun) {
   if (isQuotaStop(stopReason)) {
     const reset = sourcingRunQuotaReset(run);
     return reset ? `eBay Browse quota exhausted. Resets ${date(reset)}.` : "eBay Browse quota exhausted.";
+  }
+  if (stopReason === "quota_reserve_reached") {
+    return "MBOP stopped after its Browse call budget was reached; eBay may still report remaining quota.";
   }
   if (typeof run.scored_opportunity_count === "number" && typeof run.presented_opportunity_count === "number") {
     return `Scored ${run.scored_opportunity_count}; shown ${run.presented_opportunity_count}.`;
@@ -1644,7 +1673,7 @@ function sourcingRunQuotaReset(run: SourcingRun) {
 }
 
 function isQuotaStop(stopReason: string | null) {
-  return stopReason === "ebay_out_of_quota" || stopReason === "ebay_rate_limited" || stopReason === "quota_reserve_reached";
+  return stopReason === "ebay_out_of_quota" || stopReason === "ebay_rate_limited";
 }
 
 function objectRecord(value: unknown): Record<string, unknown> | null {

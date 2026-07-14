@@ -1,6 +1,6 @@
 # MBOP AWS Deployment
 
-Last updated: 2026-06-28
+Last updated: 2026-07-14
 
 This document records the AWS production state for MBOP as inspected from AWS
 CLI. Live AWS state remains the highest authority; run
@@ -79,24 +79,22 @@ Scheduler repository:
 Scheduler task definition:
 
 ```text
-ZFI-enabled schedules: arn:aws:ecs:us-west-2:297464765814:task-definition/mbop-scheduler-task:4
-Legacy unchanged schedules: arn:aws:ecs:us-west-2:297464765814:task-definition/mbop-scheduler-task:1
+Sourcing catalog schedule: arn:aws:ecs:us-west-2:297464765814:task-definition/mbop-scheduler-task:21
+Other scheduler schedules: inspect live EventBridge Scheduler targets before changing
 ```
 
-The ZFI-enabled scheduler task definition is digest-pinned. Legacy
-`mbop-scheduler-task:1` is still registered against image tag
-`297464765814.dkr.ecr.us-west-2.amazonaws.com/mbop-scheduler:latest`, so treat
-`:latest` updates as production changes for any schedules that still use it.
+The sourcing catalog scheduler task definition is digest-pinned. Inspect live
+EventBridge Scheduler targets before changing other schedules.
 
 Current scheduler image digest:
 
 ```text
-ZFI-enabled revision: sha256:260dfc320f6f55638c90631d3a4823507e4f7d1f9fa5fab79625d7bb7be252dd
-Legacy latest revision: sha256:77b46ba7a474bc718fb34c994a763ebb98200c637d48982eb5c1474ca43ca58a
+Sourcing catalog revision: sha256:bc42711a71e9f13ed95ad5f35fbf8181d117f0ac404730ad3ddc39ff42986f2d
 ```
 
-Tag `3e21eea` points at the ZFI-enabled scheduler digest. Tags `latest` and
-`on-demand-sourcing-20260622` point at the legacy scheduler digest.
+Tag `scheduler-56a34347dd8e` points at the sourcing catalog scheduler digest.
+This image was built from repository HEAD
+`56a34347dd8eb515161e32ef88bdcd24d92a3fcb`.
 
 ## ALB
 
@@ -490,6 +488,11 @@ Scheduler sizing note:
   The default 1 GiB size repeatedly failed with ECS `OutOfMemoryError` during
   `Matching intelligence refresh`; a manual 2 GiB retry on 2026-06-21 completed
   successfully.
+- On 2026-07-14, `mbop-sourcing-catalog` was updated from
+  `mbop-scheduler-task:20` to `mbop-scheduler-task:21` after verifying the
+  previous image predated the eBay Browse optimization commit. The schedule
+  retained the same command override, networking, EventBridge role, and
+  `1024 CPU / 2048 MB` override.
 
 ## Current Monitoring Items
 
