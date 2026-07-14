@@ -1,7 +1,14 @@
 # MBOP / ZFI Data Flow
 
 Status: Phase A final
-Last updated: 2026-06-29
+Last updated: 2026-07-14
+
+## 2026-07-14 Verified Boundary Update
+
+The MBOP-to-ZFI migration is complete for legacy MBOP financial-planning
+surfaces. Ongoing YNAB, business cash, and business-value history data flows are
+ZFI-owned. MBOP no longer produces YNAB snapshots or daily business-value
+snapshots; it only exports operational summaries to ZFI.
 
 ## Architecture Docs
 
@@ -29,12 +36,12 @@ MBOP does not pull ZFI personal finance data.
 
 | Dataset | Source | Owner | Consumer | Transfer mechanism | Lifetime | Notes |
 |---|---|---|---|---|---|---|
-| YNAB transactions | YNAB API | ZFI long-term; MBOP temporary legacy copy | ZFI finance, tax, cash-flow planning; MBOP only during parallel comparison | ZFI should sync directly from YNAB. MBOP currently has `integrations/ynab_sync_business_transactions.py` into `ynab_business_transactions`. | Temporary in MBOP until ZFI business finance is verified | MBOP YNAB sync is for comparison only. Do not route YNAB data from ZFI back into MBOP. |
-| YNAB business cash/category balance | YNAB API Business category | ZFI long-term; MBOP temporary legacy snapshot | ZFI cash planning and business finance views; MBOP legacy dashboard comparison | ZFI should sync directly from YNAB. MBOP currently has `integrations/ynab_sync_cash_balance.py` into `ynab_category_balance_snapshots`. | Temporary in MBOP until ZFI verification | MBOP should eventually freeze/archive/remove this sync only after ZFI replacement values are trusted. |
+| YNAB transactions | YNAB API | ZFI | ZFI finance, tax, cash-flow planning | ZFI syncs directly from YNAB. MBOP's old `ynab_business_transactions` table is legacy audit/comparison data until cleanup. | Retired in MBOP; ongoing in ZFI | MBOP no longer runs active YNAB sync. Do not route YNAB data from ZFI back into MBOP. |
+| YNAB business cash/category balance | YNAB API Business category | ZFI | ZFI cash planning and business finance views | ZFI syncs directly from YNAB. MBOP's old `ynab_category_balance_snapshots` table is legacy audit/comparison data until cleanup. | Retired in MBOP; ongoing in ZFI | MBOP no longer owns business-cash planning or YNAB category balance snapshots. |
 | MBOP inventory value | MBOP purchase, receiving, FBA, Amazon inventory, InventoryLab, and inventory-position records | MBOP | ZFI business value, capital allocation, cash-flow planning | MBOP pushes summaries by period/state through `integrations/push_zfi_business_summary.py`; future snapshots may be pushed if ZFI needs trend fidelity | Ongoing MBOP-to-ZFI summary | MBOP remains source of truth for inventory value and inventory states. ZFI interprets inventory capital in financial context. |
 | MBOP item/order profitability | MBOP sales orders, fees, fulfillment costs, COGS, purchase items | MBOP | ZFI profitability reports and Ask Zoltar explanations | Summary push for normal reporting; future scoped drilldown API for item/order detail | Ongoing summary, on-demand detail | MBOP operational profit is not accounting profit or taxable profit. |
 | MBOP sales/orders/fees/COGS | Amazon sales/order APIs, Veeqo labels, COGS allocation, MBOP sales profitability jobs | MBOP | ZFI business finance reporting, accounting/tax interpretation | MBOP summary payload with lineage timestamps and completeness flags; scoped drilldown later | Ongoing | MBOP owns sales/order operational records, marketplace fees, fulfillment costs, and COGS layers. |
-| MBOP Amazon payout/cash status | Amazon Finance read-only endpoints | MBOP as operational source; ZFI as financial interpreter | ZFI cash/payout view and cash-flow planning | MBOP pushes Amazon available balance, in-transit funds, deferred/reserved funds, and timestamps | Ongoing | MBOP should not show payout status as a broad finance dashboard widget once ZFI has verified replacement views. MBOP may keep narrow operational links/status. |
+| MBOP Amazon payout/cash status | Amazon Finance read-only endpoints | MBOP as operational source; ZFI as financial interpreter | ZFI cash/payout view and cash-flow planning | MBOP pushes Amazon available balance, processing transfers, deferred/reserved funds, and timestamps | Ongoing | MBOP keeps Amazon payout/cash source data for operations and export, but no longer reconciles it against MBOP-owned YNAB data. |
 | MBOP historical business value snapshots | `business_value_snapshots` from MBOP | MBOP before migration; ZFI after verified backfill | ZFI long-term business value history | One-time backfill/export to ZFI with original dates, components, raw rollup JSON where available, and confidence notes | One-time migration | Clearly label as migrated MBOP history in ZFI. Do not confuse this with ongoing ZFI-computed history. |
 | ZFI ongoing business value history | ZFI calculations from MBOP summaries plus ZFI-owned cash/planning data | ZFI | ZFI dashboards, Ask Zoltar, long-term planning | No transfer back to MBOP | Ongoing in ZFI only | After backfill verification, ZFI owns the history. MBOP continues to own operational inputs. |
 | ZFI tax returns | ZFI document/tax records | ZFI | ZFI tax planning and Ask Zoltar financial analysis | No transfer to MBOP | Permanent ZFI-only | MBOP must never receive tax return data. |

@@ -98,8 +98,7 @@ These group names are now accepted by `run_all_syncs.py`:
 - `returns-order-problems`: eBay order problem returns/inquiries, EasyPost order problem returns
 - `purchase-enrichment`: RevSeller enrichment, Keepa missing purchase titles
 - `amazon-sales-recent`: Amazon sales orders, recent finances, Veeqo labels, profitability, ZFI business summary push
-- `finance-refresh`: YNAB transactions, YNAB cash, Amazon finance balances, business value snapshot, ZFI business summary push
-- `business-value-finalizer`: business value snapshot, ZFI business summary push
+- `finance-refresh`: Amazon finance balances, ZFI business summary push
 - `fba-inventory-daily`: Amazon FBA inventory, Amazon inventory planning, ZFI business summary push
 - `fba-shipments`: Amazon FBA shipments, FBA EasyPost carrier tracking, ZFI business summary push
 - `reconciliation`: inventory reconciliation with `--skip-if-unchanged`
@@ -183,7 +182,6 @@ Create these if missing. Map each secret to the listed environment variable in t
 /mbop/prod/amazon-spapi/marketplace-id -> AMAZON_SP_API_MARKETPLACE_ID
 /mbop/prod/amazon-spapi/aws-access-key-id -> AMAZON_SP_API_AWS_ACCESS_KEY_ID
 /mbop/prod/amazon-spapi/aws-secret-access-key -> AMAZON_SP_API_AWS_SECRET_ACCESS_KEY
-/mbop/prod/ynab/access-token -> YNAB_PERSONAL_TOKEN
 /mbop/prod/keepa/api-key -> KEEPA_API_KEY
 /mbop/prod/revseller/google-sheet-id -> REVSELLER_GOOGLE_SHEET_ID
 /mbop/prod/google/service-account-json -> GOOGLE_APPLICATION_CREDENTIALS_JSON

@@ -5,7 +5,6 @@ const supabase = createServerSupabaseClient();
 
 const STALE_TRACKING_ORDER_AGE_DAYS = 14;
 const STALE_TRACKING_LOOKBACK_DAYS = 90;
-const BUSINESS_VALUE_HISTORY_START_DATE = "2026-05-30";
 
 type DashboardPurchaseRow = {
   item_id: string | null;
@@ -116,31 +115,13 @@ type BusinessInventoryValueSummary = {
   pre_amazon_inventory_value: number;
   amazon_cash_balance: number | null;
   amazon_cash_in_transit: number | null;
-  cash_on_hand: number | null;
-  total_business_value: number;
   amazon_cash_source: string;
   amazon_cash_in_transit_source: string;
-  cash_on_hand_source: string;
-};
-
-type BusinessValueHistoryRow = {
-  snapshot_date: string;
-  total_business_value: number;
-  amazon_inventory_value: number;
-  pre_amazon_inventory_value: number;
-  amazon_cash_balance: number;
-  amazon_cash_in_transit: number;
-  cash_on_hand: number;
 };
 
 type InventoryLabValuationSummary = {
   units: number;
   total_value: number;
-  source: string;
-} | null;
-
-type YnabCashBalanceSummary = {
-  balance: number;
   source: string;
 } | null;
 
@@ -515,9 +496,7 @@ async function fetchInventoryVisibility() {
     openItems,
     latestEvent,
     inventoryLabValuation,
-    ynabCashBalance,
     amazonFinanceBalance,
-    businessValueHistory,
     inventoryValueRows,
   ] =
     await Promise.all([
@@ -525,9 +504,7 @@ async function fetchInventoryVisibility() {
     fetchOpenReconciliationItems(),
     fetchLatestReconciliationEvent(),
     fetchInventoryLabValuationSummary(),
-    fetchYnabCashBalanceSummary(),
     fetchAmazonFinanceBalanceSummary(),
-    fetchBusinessValueHistory(),
     fetchInventoryPositionValueRows(),
   ]);
 
@@ -614,17 +591,13 @@ async function fetchInventoryVisibility() {
     },
     locationValueSummary: buildLocationValueSummary(
       unitsByState,
-      costByState,
-      inventoryLabValuation
+      costByState
     ),
     businessInventoryValue: buildBusinessInventoryValueSummary(
       costByState,
       inventoryValueRows,
-      inventoryLabValuation,
-      ynabCashBalance,
       amazonFinanceBalance
     ),
-    businessValueHistory,
     unitsByState: Array.from(unitsByState.entries())
       .map(([state, units]) => ({ state, label: inventoryStateLabel(state), units }))
       .sort((left, right) => right.units - left.units),
@@ -656,8 +629,7 @@ async function fetchInventoryVisibility() {
 
 function buildLocationValueSummary(
   unitsByState: Map<string, number>,
-  costByState: Map<string, number>,
-  _inventoryLabValuation: InventoryLabValuationSummary
+  costByState: Map<string, number>
 ): InventoryLocationValueRow[] {
   const rows = [
     {
@@ -704,8 +676,6 @@ function buildLocationValueSummary(
 function buildBusinessInventoryValueSummary(
   costByState: Map<string, number>,
   inventoryValueRows: InventoryPositionValueRow[],
-  _inventoryLabValuation: InventoryLabValuationSummary,
-  ynabCashBalance: YnabCashBalanceSummary,
   amazonFinanceBalance: AmazonFinanceBalanceSummary
 ): BusinessInventoryValueSummary {
   const amazonAtFbaValue = sumStates(costByState, [
@@ -725,30 +695,20 @@ function buildBusinessInventoryValueSummary(
   ]);
   const amazonCashBalance = amazonFinanceBalance?.total_amazon_cash ?? null;
   const amazonCashInTransit = amazonFinanceBalance?.in_transit_to_bank ?? null;
-  const cashOnHand = ynabCashBalance?.balance ?? null;
-  const totalBusinessValue =
-    amazonInventoryValue +
-    preAmazonInventoryValue +
-    (amazonCashBalance ?? 0) +
-    (amazonCashInTransit ?? 0) +
-    (cashOnHand ?? 0);
 
   return {
     amazon_inventory_value: amazonInventoryValue,
     pre_amazon_inventory_value: preAmazonInventoryValue,
     amazon_cash_balance: amazonCashBalance,
     amazon_cash_in_transit: amazonCashInTransit,
-    cash_on_hand: cashOnHand,
-    total_business_value: totalBusinessValue,
     amazon_cash_source: amazonFinanceBalance
       ? `${amazonFinanceBalance.source}; available/API open ${formatCurrencyNumber(
           amazonFinanceBalance.available_to_withdraw
         )}; deferred ${formatCurrencyNumber(amazonFinanceBalance.deferred_or_reserved_cash)}`
       : "Amazon Finance snapshot missing",
     amazon_cash_in_transit_source: amazonFinanceBalance
-      ? "Amazon Finance Processing transfers plus completed payouts not yet matched to YNAB Business deposits"
+      ? "Amazon Finance Processing transfers and payout groups"
       : "Amazon Finance snapshot missing",
-    cash_on_hand_source: ynabCashBalance?.source ?? "YNAB Business category snapshot missing",
   };
 }
 
@@ -806,44 +766,6 @@ async function fetchInventoryLabValuationSummary(): Promise<InventoryLabValuatio
   };
 }
 
-async function fetchYnabCashBalanceSummary(): Promise<YnabCashBalanceSummary> {
-  const { data, error } = await supabase
-    .from("vw_latest_ynab_category_balance_snapshot")
-    .select("plan_name,category_group_name,category_name,balance_currency,balance_formatted")
-    .ilike("category_name", "Business")
-    .limit(1);
-
-  if (error) {
-    console.warn("YNAB cash balance lookup failed", error.message);
-    return null;
-  }
-
-  const row = ((data ?? [])[0] ?? null) as unknown as
-    | {
-        plan_name: string | null;
-        category_group_name: string | null;
-        category_name: string | null;
-        balance_currency: unknown;
-        balance_formatted: string | null;
-      }
-    | null;
-  if (!row) {
-    return null;
-  }
-
-  const balance = Number(row.balance_currency ?? 0);
-  if (!Number.isFinite(balance)) {
-    return null;
-  }
-
-  return {
-    balance,
-    source: `YNAB ${row.plan_name ?? "plan"} / ${row.category_group_name ?? "category group"} / ${
-      row.category_name ?? "category"
-    }${row.balance_formatted ? ` (${row.balance_formatted})` : ""}`,
-  };
-}
-
 async function fetchAmazonFinanceBalanceSummary(): Promise<AmazonFinanceBalanceSummary> {
   const { data, error } = await supabase
     .from("vw_latest_amazon_finance_balance_snapshot")
@@ -878,43 +800,6 @@ async function fetchAmazonFinanceBalanceSummary(): Promise<AmazonFinanceBalanceS
     deferred_or_reserved_cash: nullableNumber(row.deferred_or_reserved_cash),
     source: `Amazon Finance snapshot ${row.captured_at ?? ""}`.trim(),
   };
-}
-
-async function fetchBusinessValueHistory(): Promise<BusinessValueHistoryRow[]> {
-  const { data, error } = await supabase
-    .from("business_value_snapshots")
-    .select(
-      "snapshot_date,total_business_value,amazon_inventory_value,pre_amazon_inventory_value," +
-        "amazon_cash_balance,amazon_cash_in_transit,cash_on_hand"
-    )
-    .gte("snapshot_date", BUSINESS_VALUE_HISTORY_START_DATE)
-    .order("snapshot_date", { ascending: true })
-    .limit(365);
-
-  if (error) {
-    console.warn("Business value history lookup failed", error.message);
-    return [];
-  }
-
-  const rows = (data ?? []) as unknown as Array<{
-    snapshot_date: string;
-    total_business_value: unknown;
-    amazon_inventory_value: unknown;
-    pre_amazon_inventory_value: unknown;
-    amazon_cash_balance: unknown;
-    amazon_cash_in_transit: unknown;
-    cash_on_hand: unknown;
-  }>;
-
-  return rows.map((row) => ({
-    snapshot_date: row.snapshot_date,
-    total_business_value: Number(row.total_business_value ?? 0),
-    amazon_inventory_value: Number(row.amazon_inventory_value ?? 0),
-    pre_amazon_inventory_value: Number(row.pre_amazon_inventory_value ?? 0),
-    amazon_cash_balance: Number(row.amazon_cash_balance ?? 0),
-    amazon_cash_in_transit: Number(row.amazon_cash_in_transit ?? 0),
-    cash_on_hand: Number(row.cash_on_hand ?? 0),
-  }));
 }
 
 function nullableNumber(value: unknown) {

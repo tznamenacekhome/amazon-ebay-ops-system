@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 import {
-  fetchBusinessValueHistory,
   fetchDashboardPurchaseRows,
   fetchOpenOrderProblemCases,
   hasSellPrice,
@@ -9,21 +8,14 @@ import {
   reportableRows,
   sumCost,
   sumUnits,
-  supabase,
-  toNumber,
 } from "../_summary";
 
-const SELLER_CENTRAL_PAYMENTS_URL = "https://sellercentral.amazon.com/payments/dashboard/index.html";
-
 export async function GET() {
-  const [history, purchaseRows, problemCases, amazonCash] = await Promise.all([
-    fetchBusinessValueHistory(30),
+  const [purchaseRows, problemCases] = await Promise.all([
     fetchDashboardPurchaseRows(),
     fetchOpenOrderProblemCases(),
-    fetchLatestAmazonCash(),
   ]);
   const rows = reportableRows(purchaseRows);
-  const latestValue = history.at(-1) ?? null;
   const receivingRows = rows.filter((row) =>
     ["delivered", "shipped_no_tracking"].includes(normalizeStatus(row.current_status)),
   );
@@ -40,18 +32,15 @@ export async function GET() {
     if (["listed", "cancelled", "return_opened"].includes(status)) return false;
     return !hasValidAsin(row.asin) || !hasSellPrice(row) || !row.system || !row.amazon_title;
   });
+  const preAmazonRows = rows.filter((row) => {
+    const status = normalizeStatus(row.current_status);
+    return !["listed", "cancelled", "return_opened"].includes(status);
+  });
 
   return NextResponse.json({
-    refreshedAt: latestValue?.snapshot_date ?? new Date().toISOString(),
+    refreshedAt: new Date().toISOString(),
     metrics: {
-      totalBusinessValue: latestValue?.total_business_value ?? null,
-      amazonInventoryValue: latestValue?.amazon_inventory_value ?? null,
-      preAmazonInventoryValue: latestValue?.pre_amazon_inventory_value ?? null,
-      amazonCash: latestValue?.amazon_cash_balance ?? null,
-      amazonFundsAvailable: toNumber(amazonCash?.available_to_withdraw),
-      sellerCentralPaymentsUrl: SELLER_CENTRAL_PAYMENTS_URL,
-      amazonToBankInTransit: latestValue?.amazon_cash_in_transit ?? null,
-      ynabBusinessCash: latestValue?.cash_on_hand ?? null,
+      preAmazonInventoryValue: sumCost(preAmazonRows),
     },
     attention: [
       {
@@ -97,26 +86,10 @@ export async function GET() {
         href: "/inventory-reconciliation",
       },
     ],
-    trend: history.map((row) => ({
-      date: row.snapshot_date,
-      value: row.total_business_value,
-    })),
     warnings: [
       "Dashboard split MVP tabs are live. Some drill-downs still open base workflow routes until those pages support exact dashboard filters.",
     ],
   });
-}
-
-async function fetchLatestAmazonCash() {
-  const { data, error } = await supabase
-    .from("vw_latest_amazon_finance_balance_snapshot")
-    .select("available_to_withdraw")
-    .limit(1);
-  if (error) {
-    console.warn("Dashboard Amazon funds available lookup failed", error.message);
-    return null;
-  }
-  return ((data ?? []) as unknown as Array<{ available_to_withdraw?: number | null }>)[0] ?? null;
 }
 
 function severityFor(value: number, warningAt: number, urgentAt: number) {

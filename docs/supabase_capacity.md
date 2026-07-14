@@ -1,6 +1,6 @@
 # Supabase Capacity Guardrails
 
-Last updated: 2026-05-29
+Last updated: 2026-07-14
 
 MBOP uses Supabase as the operational source of truth. Treat Supabase capacity as an operational dependency before adding broad syncs, large backfills, snapshot tables, or dashboard queries that scan large tables.
 
@@ -42,7 +42,9 @@ Warn the operator before running or adding work if any of these are true:
 - Supabase table editor, SQL editor, or API probes are timing out.
 - A task will write more than a few thousand snapshot rows in one run.
 - A task will repeatedly scan full snapshot/history tables.
-- A task will run Amazon FBA inventory, listing status, inventory planning, reconciliation, Keepa, Informed, and business value snapshots back-to-back.
+- A task will run Amazon FBA inventory, listing status, inventory planning,
+  reconciliation, Keepa, Informed, and other large snapshot/history writers
+  back-to-back.
 - Database size is approaching 6 GB, because the included project disk size is 8 GB.
 - A new feature adds unbounded raw payload/history storage.
 
@@ -62,7 +64,7 @@ Prefer upgrading compute when:
 Prefer optimization first when:
 
 - the issue came from a one-time backfill.
-- a sync writes duplicate snapshots with no new business value.
+- a sync writes duplicate snapshots with no new operational value.
 - a dashboard/API query performs avoidable full-table reads.
 - old raw snapshots/history can be retained less aggressively.
 

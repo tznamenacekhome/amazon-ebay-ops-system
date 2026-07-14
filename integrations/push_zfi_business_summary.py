@@ -196,9 +196,6 @@ def build_payload(
         "vw_latest_amazon_finance_balance_snapshot",
         "captured_at,total_amazon_cash,available_to_withdraw,in_transit_to_bank,deferred_or_reserved_cash,raw_financial_event_groups_json",
     )
-    latest_ynab_cash = fetch_latest_ynab_business_cash(supabase)
-    latest_business_value = fetch_latest_business_value(supabase)
-    business_value_history = fetch_business_value_history(supabase)
     order_problem_cases = fetch_order_problem_cases(supabase)
     order_problem_events = fetch_order_problem_events(supabase)
     reimbursement_rows = fetch_reimbursement_rows(supabase, start, end)
@@ -220,10 +217,8 @@ def build_payload(
     finance_captured_at = latest_finance.get("captured_at") if latest_finance else None
     source_timestamps = build_source_timestamps(
         finance=latest_finance,
-        business_value=latest_business_value,
         profitability=profitability,
         inventory_positions=inventory_positions,
-        ynab_cash=latest_ynab_cash,
         order_problem_cases=order_problem_cases,
         reimbursement_rows=reimbursement_rows,
     )
@@ -254,7 +249,7 @@ def build_payload(
     alerts = build_alerts(profit_rows, inventory_summary)
     generated_at = now_iso()
     windows = build_profitability_windows(profit_rows_with_dates, end, source_timestamps)
-    cash_position = build_cash_position(latest_finance, latest_ynab_cash, source_timestamps)
+    cash_position = build_cash_position(latest_finance, source_timestamps)
     payout_reconciliation = build_payout_reconciliation(latest_finance)
     inventory_capital = build_inventory_capital(inventory_positions, source_timestamps)
     loss_prevention = build_loss_prevention(
@@ -268,7 +263,6 @@ def build_payload(
     growth_summary = build_growth_summary(
         profit_rows_with_dates,
         all_purchases,
-        business_value_history,
     )
     sourcing_summary = build_sourcing_summary(
         profit_rows_with_dates,
@@ -428,39 +422,6 @@ def fetch_reporting_exclusions(supabase, item_ids: list[str]) -> set[str]:
             if row.get("item_id"):
                 excluded.add(str(row["item_id"]))
     return excluded
-
-
-def fetch_latest_business_value(supabase) -> dict[str, Any] | None:
-    response = (
-        supabase.table("business_value_snapshots")
-        .select("snapshot_date,captured_at,total_business_value,amazon_inventory_value,pre_amazon_inventory_value,amazon_cash_balance,amazon_cash_in_transit,cash_on_hand")
-        .order("snapshot_date", desc=True)
-        .limit(1)
-        .execute()
-    )
-    return (response.data or [None])[0]
-
-
-def fetch_business_value_history(supabase, limit: int = 400) -> list[dict[str, Any]]:
-    response = (
-        supabase.table("business_value_snapshots")
-        .select("snapshot_date,captured_at,total_business_value,amazon_inventory_value,pre_amazon_inventory_value,amazon_cash_balance,amazon_cash_in_transit,cash_on_hand")
-        .order("snapshot_date", desc=True)
-        .limit(limit)
-        .execute()
-    )
-    return list(reversed(response.data or []))
-
-
-def fetch_latest_ynab_business_cash(supabase) -> dict[str, Any] | None:
-    response = (
-        supabase.table("vw_latest_ynab_category_balance_snapshot")
-        .select("captured_at,balance_currency,category_name")
-        .eq("category_name", "Business")
-        .limit(1)
-        .execute()
-    )
-    return (response.data or [None])[0]
 
 
 def fetch_order_problem_cases(supabase) -> list[dict[str, Any]]:
@@ -638,31 +599,24 @@ def summarize_profit_window(
 
 def build_cash_position(
     finance: dict[str, Any] | None,
-    ynab_cash: dict[str, Any] | None,
     source_timestamps: dict[str, Any],
 ) -> dict[str, Any]:
     amazon_total = nullable_money((finance or {}).get("total_amazon_cash"))
     amazon_available = nullable_money((finance or {}).get("available_to_withdraw"))
     amazon_in_transit = nullable_money((finance or {}).get("in_transit_to_bank"))
     amazon_deferred = nullable_money((finance or {}).get("deferred_or_reserved_cash"))
-    ynab = nullable_money((ynab_cash or {}).get("balance_currency"))
-    available_business_cash = none_if_any_none([ynab, amazon_available, amazon_in_transit])
     warnings = []
     if finance is None:
         warnings.append("Amazon Finance snapshot is missing.")
-    if ynab_cash is None:
-        warnings.append("YNAB Business cash is unavailable in MBOP; ZFI should use its own YNAB source when ready.")
     return {
         "amazon_cash_total": amazon_total,
         "amazon_available_to_withdraw": amazon_available,
         "amazon_to_bank_in_transit": amazon_in_transit,
         "amazon_deferred_reserved_cash": amazon_deferred,
-        "ynab_business_cash": ynab,
-        "available_business_cash": available_business_cash,
         "payout_status_summary": payout_status_summary(finance),
         "source_timestamps": source_timestamps_for(
             source_timestamps,
-            ["amazon_finance_captured_at", "ynab_business_cash_captured_at"],
+            ["amazon_finance_captured_at"],
         ),
         "freshness_status": freshness_status(source_timestamps),
         "completeness_warnings": warnings,
@@ -671,27 +625,19 @@ def build_cash_position(
 
 def build_payout_reconciliation(finance: dict[str, Any] | None) -> dict[str, Any]:
     breakdown = nested_dict(finance, "raw_financial_event_groups_json", "inTransitBreakdown")
-    unmatched_ids = list_value(breakdown.get("unmatchedCompletedTransferGroupIds"))
-    matched_transfers = list_value(breakdown.get("ynabMatchedCompletedTransfers"))
+    completed_ids = list_value(breakdown.get("recentCompletedTransferGroupIds"))
     processing_amount = nullable_money(breakdown.get("processingTransferCash"))
-    unmatched_amount = nullable_money(breakdown.get("unmatchedCompletedTransferCash"))
-    matched_amount = nullable_money(breakdown.get("ynabMatchedCompletedTransferCash"))
+    completed_amount = nullable_money(breakdown.get("recentCompletedTransferCash"))
     warnings = []
     if finance is None:
         warnings.append("Amazon Finance snapshot is missing.")
-    warnings.append("YNAB Amazon deposits without matched payout are not separately modeled in MBOP yet.")
     return {
-        "payouts_in_transit_count": None if processing_amount is None else None,
+        "payouts_in_transit_count": None,
         "payouts_in_transit_amount": processing_amount,
-        "completed_payouts_not_matched_to_ynab_count": len(unmatched_ids),
-        "completed_payouts_not_matched_to_ynab_amount": unmatched_amount,
-        "completed_payouts_matched_to_ynab_count": len(matched_transfers),
-        "completed_payouts_matched_to_ynab_amount": matched_amount,
-        "ynab_amazon_deposits_without_matched_payout_count": None,
-        "ynab_amazon_deposits_without_matched_payout_amount": None,
+        "recent_completed_payout_count": len(completed_ids),
+        "recent_completed_payout_amount": completed_amount,
         "latest_payout_date": latest_payout_date(finance),
-        "latest_matched_deposit_date": latest_matched_deposit_date(matched_transfers),
-        "reconciliation_status": "needs_review" if unmatched_ids else "no_unmatched_completed_payouts",
+        "reconciliation_status": "amazon_only",
         "warnings": warnings,
     }
 
@@ -970,7 +916,6 @@ def format_top_seller(row: dict[str, Any]) -> dict[str, Any]:
 def build_growth_summary(
     profit_rows: list[dict[str, Any]],
     purchases: list[dict[str, Any]],
-    business_value_history: list[dict[str, Any]],
 ) -> dict[str, Any]:
     months: dict[str, dict[str, Any]] = {}
     for row in profit_rows:
@@ -988,16 +933,6 @@ def build_growth_summary(
             continue
         current = months.setdefault(key, base_month(key))
         current["inventory_spend"] += to_number(row.get("quantity")) * to_number(row.get("unit_cost"))
-    for row in business_value_history:
-        key = month_key(row.get("snapshot_date"))
-        if not key:
-            continue
-        current = months.setdefault(key, base_month(key))
-        current["ending_business_value"] = nullable_money(row.get("total_business_value"))
-        current["ending_inventory_value"] = none_if_any_none([
-            nullable_money(row.get("amazon_inventory_value")),
-            nullable_money(row.get("pre_amazon_inventory_value")),
-        ])
     formatted = []
     for row in sorted(months.values(), key=lambda value: value["month"], reverse=True)[:12]:
         units = to_number(row["units_sold"])
@@ -1008,8 +943,6 @@ def build_growth_summary(
             "revenue": money(row["revenue"]),
             "profit": money(profit),
             "inventory_spend": money(row["inventory_spend"]),
-            "ending_inventory_value": row["ending_inventory_value"],
-            "ending_business_value": row["ending_business_value"],
             "units_sold": int(units),
             "roi": round(profit / cogs, 4) if cogs else None,
             "average_profit_per_unit": money(profit / units) if units else None,
@@ -1023,8 +956,6 @@ def base_month(key: str) -> dict[str, Any]:
         "revenue": 0.0,
         "profit": 0.0,
         "inventory_spend": 0.0,
-        "ending_inventory_value": None,
-        "ending_business_value": None,
         "units_sold": 0,
         "cogs": 0.0,
     }
@@ -1251,18 +1182,13 @@ def sum_number(rows: list[dict[str, Any]], field: str) -> float:
 def build_source_timestamps(
     *,
     finance: dict[str, Any] | None,
-    business_value: dict[str, Any] | None,
     profitability: list[dict[str, Any]],
     inventory_positions: list[dict[str, Any]],
-    ynab_cash: dict[str, Any] | None,
     order_problem_cases: list[dict[str, Any]],
     reimbursement_rows: list[dict[str, Any]],
 ) -> dict[str, Any]:
     return {
         "amazon_finance_captured_at": (finance or {}).get("captured_at"),
-        "ynab_business_cash_captured_at": (ynab_cash or {}).get("captured_at"),
-        "business_value_snapshot_date": (business_value or {}).get("snapshot_date"),
-        "business_value_captured_at": (business_value or {}).get("captured_at"),
         "sales_profitability_updated_at": latest_value(
             row.get("updated_at") or row.get("calculated_at")
             for row in profitability
@@ -1334,17 +1260,15 @@ def payout_status_summary(finance: dict[str, Any] | None) -> dict[str, Any]:
     breakdown = nested_dict(finance, "raw_financial_event_groups_json", "inTransitBreakdown")
     return {
         "processing_transfer_cash": nullable_money(breakdown.get("processingTransferCash")),
-        "matched_completed_transfer_cash": nullable_money(breakdown.get("ynabMatchedCompletedTransferCash")),
-        "unmatched_completed_transfer_cash": nullable_money(breakdown.get("unmatchedCompletedTransferCash")),
-        "unmatched_completed_transfer_count": len(list_value(breakdown.get("unmatchedCompletedTransferGroupIds"))),
-        "matched_completed_transfer_count": len(list_value(breakdown.get("ynabMatchedCompletedTransfers"))),
+        "recent_completed_transfer_cash": nullable_money(breakdown.get("recentCompletedTransferCash")),
+        "recent_completed_transfer_count": len(list_value(breakdown.get("recentCompletedTransferGroupIds"))),
     }
 
 
 def latest_payout_date(finance: dict[str, Any] | None) -> str | None:
     breakdown = nested_dict(finance, "raw_financial_event_groups_json", "inTransitBreakdown")
     values: list[str] = []
-    for key in ("ynabMatchedCompletedTransfers", "processingTransfers", "unmatchedCompletedTransfers"):
+    for key in ("processingTransfers", "recentCompletedTransfers"):
         for row in list_value(breakdown.get(key)):
             if isinstance(row, dict):
                 values.extend(
@@ -1352,18 +1276,6 @@ def latest_payout_date(finance: dict[str, Any] | None) -> str | None:
                     for field in ("fundTransferDate", "postedDate", "date")
                     if row.get(field)
                 )
-    return latest_value(values)
-
-
-def latest_matched_deposit_date(rows: list[Any]) -> str | None:
-    values: list[str] = []
-    for row in rows:
-        if isinstance(row, dict):
-            values.extend(
-                str(row.get(field))
-                for field in ("ynabTransactionDate", "transaction_date", "date")
-                if row.get(field)
-            )
     return latest_value(values)
 
 

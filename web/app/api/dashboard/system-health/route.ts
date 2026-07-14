@@ -90,7 +90,6 @@ export async function GET(request: NextRequest) {
   const schedulerGroups = (health?.schedulerGroups ?? []) as SchedulerGroup[];
   const summary = health?.summary ?? {};
   const recentRuns = await readRecentRuns();
-  const failedJobs = Number(summary.failed ?? 0);
   const failedGroups = Number(summary.failedGroups ?? schedulerGroups.filter((group) => group.status === "failed").length);
   const blockedJobs = Number(summary.blocked ?? 0);
   const blockedGroups = Number(summary.blockedGroups ?? schedulerGroups.filter((group) => group.status === "blocked").length);
@@ -131,7 +130,6 @@ export async function GET(request: NextRequest) {
       lastSuccessfulDailyRunAt: latestSuccessfulGroup(recentRuns, [
         "daily",
         "finance-refresh",
-        "business-value-finalizer",
         "fba-inventory-daily",
         "fba-shipments",
         "reconciliation",

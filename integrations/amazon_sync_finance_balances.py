@@ -22,7 +22,6 @@ LOGGER = logging.getLogger("amazon_finance_balance_sync")
 DEFAULT_LOOKBACK_DAYS = 180
 DEFAULT_TRANSACTION_LOOKBACK_DAYS = 60
 DEFAULT_UNMATCHED_COMPLETED_TRANSFER_LOOKBACK_DAYS = 14
-COMPLETED_TRANSFER_MATCH_LAG_DAYS = 10
 BATCH_PAGE_LIMIT = 20
 
 
@@ -40,7 +39,6 @@ def main() -> int:
         supabase = get_supabase_client()
         snapshot = build_finance_snapshot(
             client,
-            supabase,
             lookback_days=args.lookback_days,
             transaction_lookback_days=args.transaction_lookback_days,
             unmatched_completed_transfer_lookback_days=(
@@ -97,8 +95,8 @@ def parse_args() -> argparse.Namespace:
         ),
         help=(
             "Review completed Amazon fund transfers this many days back and "
-            "keep only those without a matching YNAB Business deposit in "
-            "in-transit cash."
+            "store them as Amazon-only reference context. Completed transfers "
+            "are not counted as in-transit cash."
         ),
     )
     return parser.parse_args()
@@ -118,7 +116,6 @@ def get_supabase_client():
 
 def build_finance_snapshot(
     client: AmazonSPAPIClient,
-    supabase,
     *,
     lookback_days: int,
     transaction_lookback_days: int,
@@ -151,18 +148,11 @@ def build_finance_snapshot(
         for group in processing_transfer_groups
     )
 
-    ynab_start_date = ynab_transaction_start_date(completed_transfer_groups)
-    ynab_transactions = fetch_ynab_business_transactions(supabase, ynab_start_date)
-    ynab_matches, unmatched_completed_transfer_groups = match_completed_transfers_to_ynab(
-        completed_transfer_groups,
-        ynab_transactions,
-    )
-    ynab_matched_completed_transfer_cash = sum(match["amount"] for match in ynab_matches)
-    unmatched_completed_transfer_cash = sum(
+    recent_completed_transfer_cash = sum(
         money_amount(group.get("OriginalTotal"))
-        for group in unmatched_completed_transfer_groups
+        for group in completed_transfer_groups
     )
-    in_transit_to_bank = processing_transfer_cash + unmatched_completed_transfer_cash
+    in_transit_to_bank = processing_transfer_cash
     deferred_cash = sum(
         transaction_amount(transaction)
         for transaction in transactions
@@ -177,8 +167,8 @@ def build_finance_snapshot(
         "group total; Seller Central's withdrawable UI can differ if Amazon "
         "applies additional reserve/availability adjustments not exposed in "
         "these payloads. in_transit_to_bank includes Processing fund transfers "
-        "plus completed/succeeded transfers that do not yet have a matching "
-        "YNAB Business deposit by amount/date/payee."
+        "only. Completed/succeeded transfers are preserved as Amazon-only "
+        "reference context, but MBOP no longer reconciles them against YNAB."
     )
 
     return {
@@ -194,23 +184,17 @@ def build_finance_snapshot(
             "financialEventGroups": financial_event_groups,
             "inTransitBreakdown": {
                 "processingTransferCash": round(processing_transfer_cash, 2),
-                "ynabMatchedCompletedTransferCash": round(
-                    ynab_matched_completed_transfer_cash,
+                "recentCompletedTransferCash": round(
+                    recent_completed_transfer_cash,
                     2,
                 ),
-                "unmatchedCompletedTransferCash": round(
-                    unmatched_completed_transfer_cash,
-                    2,
-                ),
-                "unmatchedCompletedTransferLookbackDays": max(
+                "recentCompletedTransferLookbackDays": max(
                     unmatched_completed_transfer_lookback_days,
                     0,
                 ),
-                "ynabBusinessTransactionStartDate": ynab_start_date.isoformat(),
-                "ynabMatchedCompletedTransfers": ynab_matches,
-                "unmatchedCompletedTransferGroupIds": [
+                "recentCompletedTransferGroupIds": [
                     group.get("FinancialEventGroupId")
-                    for group in unmatched_completed_transfer_groups
+                    for group in completed_transfer_groups
                 ],
             },
         },
@@ -255,142 +239,6 @@ def is_completed_transfer(
         return False
 
     return transfer_date >= lookback_cutoff
-
-
-def ynab_transaction_start_date(groups: list[dict[str, Any]]) -> dt.date:
-    transfer_dates = [
-        transfer_date.date()
-        for group in groups
-        if (transfer_date := parse_amazon_datetime(group.get("FundTransferDate")))
-    ]
-    if not transfer_dates:
-        return dt.date.today() - dt.timedelta(
-            days=DEFAULT_UNMATCHED_COMPLETED_TRANSFER_LOOKBACK_DAYS + 1
-        )
-    return min(transfer_dates) - dt.timedelta(days=1)
-
-
-def fetch_ynab_business_transactions(
-    supabase,
-    start_date: dt.date,
-) -> list[dict[str, Any]]:
-    response = (
-        supabase.table("ynab_business_transactions")
-        .select(
-            "ynab_transaction_id,transaction_date,amount_currency,payee_name,"
-            "import_payee_name,import_payee_name_original,memo,account_name,deleted"
-        )
-        .gte("transaction_date", start_date.isoformat())
-        .eq("deleted", False)
-        .execute()
-    )
-    return response.data or []
-
-
-def match_completed_transfers_to_ynab(
-    completed_transfer_groups: list[dict[str, Any]],
-    ynab_transactions: list[dict[str, Any]],
-) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
-    matches: list[dict[str, Any]] = []
-    unmatched_groups: list[dict[str, Any]] = []
-    used_ynab_ids: set[str] = set()
-
-    for group in sorted(
-        completed_transfer_groups,
-        key=lambda value: parse_amazon_datetime(value.get("FundTransferDate"))
-        or dt.datetime.min.replace(tzinfo=dt.timezone.utc),
-    ):
-        amount = round(money_amount(group.get("OriginalTotal")), 2)
-        transfer_date = parse_amazon_datetime(group.get("FundTransferDate"))
-        if not transfer_date:
-            unmatched_groups.append(group)
-            continue
-
-        candidates = [
-            transaction
-            for transaction in ynab_transactions
-            if str(transaction.get("ynab_transaction_id")) not in used_ynab_ids
-            and is_ynab_amazon_deposit_match(
-                transaction,
-                transfer_amount=amount,
-                transfer_date=transfer_date.date(),
-            )
-        ]
-        if not candidates:
-            unmatched_groups.append(group)
-            continue
-
-        match = sorted(
-            candidates,
-            key=lambda transaction: (
-                abs(
-                    (
-                        parse_date(transaction.get("transaction_date"))
-                        or transfer_date.date()
-                    )
-                    - transfer_date.date()
-                ).days,
-                str(transaction.get("ynab_transaction_id") or ""),
-            ),
-        )[0]
-        used_ynab_ids.add(str(match.get("ynab_transaction_id")))
-        matches.append(
-            {
-                "financialEventGroupId": group.get("FinancialEventGroupId"),
-                "fundTransferDate": transfer_date.date().isoformat(),
-                "amount": amount,
-                "ynabTransactionId": match.get("ynab_transaction_id"),
-                "ynabTransactionDate": match.get("transaction_date"),
-                "ynabPayee": match.get("payee_name")
-                or match.get("import_payee_name")
-                or match.get("import_payee_name_original"),
-                "ynabAccount": match.get("account_name"),
-            }
-        )
-
-    return matches, unmatched_groups
-
-
-def is_ynab_amazon_deposit_match(
-    transaction: dict[str, Any],
-    *,
-    transfer_amount: float,
-    transfer_date: dt.date,
-) -> bool:
-    try:
-        ynab_amount = round(float(transaction.get("amount_currency") or 0), 2)
-    except (TypeError, ValueError):
-        return False
-
-    if abs(ynab_amount - transfer_amount) > 0.01:
-        return False
-
-    transaction_date = parse_date(transaction.get("transaction_date"))
-    if not transaction_date:
-        return False
-
-    if transaction_date < transfer_date - dt.timedelta(days=1):
-        return False
-    latest_match_date = transfer_date + dt.timedelta(
-        days=COMPLETED_TRANSFER_MATCH_LAG_DAYS,
-    )
-    if transaction_date > latest_match_date:
-        return False
-
-    return "amazon" in ynab_match_text(transaction)
-
-
-def ynab_match_text(transaction: dict[str, Any]) -> str:
-    return " ".join(
-        str(transaction.get(field) or "")
-        for field in (
-            "payee_name",
-            "import_payee_name",
-            "import_payee_name_original",
-            "memo",
-            "account_name",
-        )
-    ).lower()
 
 
 def fetch_transactions(
@@ -494,10 +342,7 @@ def print_summary(snapshot: dict[str, Any], *, write: bool) -> None:
     print(
         "In transit breakdown: "
         f"processing ${breakdown.get('processingTransferCash', 0):,.2f}; "
-        f"completed matched in YNAB "
-        f"${breakdown.get('ynabMatchedCompletedTransferCash', 0):,.2f}; "
-        f"completed not yet in YNAB "
-        f"${breakdown.get('unmatchedCompletedTransferCash', 0):,.2f}"
+        f"recent completed ${breakdown.get('recentCompletedTransferCash', 0):,.2f}"
     )
 
 

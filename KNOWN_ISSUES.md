@@ -2,7 +2,7 @@
 
 This file tracks active issues, monitor items, and deferred decisions for Midnight Blue Operations Platform (MBOP).
 
-Last reviewed: 2026-06-28
+Last reviewed: 2026-07-14
 
 # Active Issues
 
@@ -46,9 +46,9 @@ cadence or resource sizing only if real runtime data shows pressure.
 Status: ACTIVE / MONITORING
 
 Problem:
-The dashboard split now has live monitoring tabs for Overview, Financial,
-Operations, Inventory, Amazon, Growth, Sourcing, Loss Prevention, and System
-Health, but a few pieces are intentionally MVP-level.
+The dashboard split now has live operational monitoring tabs for Overview,
+Operations, Inventory, Amazon, Sourcing, Loss Prevention, and System Health,
+but a few pieces are intentionally MVP-level.
 
 Current gaps:
 - Some dashboard drill-downs open the owning workflow base route because the
@@ -111,9 +111,8 @@ Current mitigation:
 - `run_all_syncs.py` supports grouped core/daily runs, disabled jobs, and
   per-job runtime logging.
 - eBay buyer purchases, EasyPost tracking, order-problem return sync,
-  RevSeller enrichment, YNAB business transactions, and Amazon sales finance
-  syncs have been narrowed toward incremental or missing-data work where the
-  integration supports it.
+  RevSeller enrichment, and Amazon sales finance syncs have been narrowed
+  toward incremental or missing-data work where the integration supports it.
 - AWS EventBridge Scheduler now owns production cadence with staggered ECS
   scheduled tasks and Supabase-backed scheduler telemetry.
 - local Windows scheduled tasks have been retired and no matching `Amazon eBay
@@ -124,8 +123,8 @@ Current mitigation:
   open, Watch, and ROI-snoozed opportunities; Purchased / Offer Made rows stay
   available for purchase matching/enrichment.
 Recommended next mitigation:
-- Keep jobs that feed the same calculation, such as Business Inventory And Cash
-  Value, on the same cadence so freshness indicators stay meaningful.
+- Keep related operational jobs on compatible cadences so freshness indicators
+  stay meaningful.
 - Avoid scheduling exploratory/backfill-style syncs; keep those manual and
   resumable.
 - Continue observing EasyPost webhook deliveries before reducing scheduled
@@ -568,7 +567,8 @@ Problem:
 The System Health page previously did not reliably report every sync after direct `run_all_syncs.py` runs because some checks depended on schema fields or snapshot semantics that did not match the current database.
 
 Current mitigation:
-- Amazon FBA inventory, Amazon listing status, Amazon inventory planning, Informed repricing reports, and YNAB cash balance updated correctly from Supabase signal tables.
+- Amazon FBA inventory, Amazon listing status, Amazon inventory planning, and
+  Informed repricing reports update correctly from Supabase signal tables.
 - eBay buyer purchases now uses `import_batches.imported_at`.
 - RevSeller enrichment now uses the latest local `data/revseller_enrichment_diagnostics_*.csv` file as its run signal.
 - EasyPost shipments ignore null timestamp rows when selecting their latest signal.
@@ -583,7 +583,8 @@ Current mitigation:
   `blocked` records when a scheduled wake-up collision loses the scheduler
   lock, so System Health can show active progress and missed groups
   during/after a run.
-- Business value snapshot upserts now refresh `captured_at`.
+- Legacy business value snapshot freshness is no longer an active System
+  Health dependency after ZFI verification.
 - Inventory reconciliation is now included in `run_all_syncs.py` so its health expectation matches the orchestrator.
 
 Impact:

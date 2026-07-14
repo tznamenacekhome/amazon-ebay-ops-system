@@ -1,7 +1,14 @@
 # MBOP / ZFI Integration Principles
 
 Status: Phase A final
-Last updated: 2026-06-29
+Last updated: 2026-07-14
+
+## 2026-07-14 Verified Boundary Update
+
+Do not add new MBOP-owned YNAB integrations or business-value history jobs.
+ZFI owns those integrations and interpretations. MBOP integrations may compute
+and export operational facts, but should not rebuild financial-planning
+dashboards inside MBOP.
 
 ## Architecture Docs
 
@@ -197,14 +204,15 @@ User asks ZFI / Ask Zoltar a finance question
 ZFI should not duplicate MBOP operational tables by default. MBOP remains the
 operational source of truth and should never receive ZFI personal finance data.
 
-## Phase A Guardrails
+## Retirement Guardrails
 
-- Do not implement application code as part of Phase A documentation.
-- Do not remove dashboards or jobs.
-- Keep MBOP YNAB sync active temporarily for parallel comparison.
+- Do not reintroduce MBOP-owned YNAB sync jobs or business-value snapshot jobs.
 - Keep ZFI push outbound-only.
-- Keep Amazon payout/cash source collection in MBOP, but plan for ZFI to own
-  the broad finance view.
+- Keep Amazon payout/cash source collection in MBOP as operational evidence.
+- Keep broad financial-planning, cash-flow, tax, and business-value
+  interpretation in ZFI.
+- Historical Phase A guidance is complete and should not be treated as active
+  implementation instruction.
 
 # Architecture Review Rule
 

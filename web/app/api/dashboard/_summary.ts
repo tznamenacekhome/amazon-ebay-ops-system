@@ -4,7 +4,6 @@ export const supabase = createServerSupabaseClient();
 
 export const STALE_TRACKING_ORDER_AGE_DAYS = 14;
 export const STALE_TRACKING_LOOKBACK_DAYS = 90;
-export const BUSINESS_VALUE_HISTORY_START_DATE = "2026-05-30";
 
 export type DashboardPurchaseRow = {
   item_id: string | null;
@@ -24,16 +23,6 @@ export type DashboardPurchaseRow = {
   received_date: string | null;
   marketplace: "Amazon" | "eBay" | null;
   exclude_from_purchase_reporting?: boolean | null;
-};
-
-export type BusinessValueHistoryRow = {
-  snapshot_date: string;
-  total_business_value: number;
-  amazon_inventory_value: number;
-  pre_amazon_inventory_value: number;
-  amazon_cash_balance: number;
-  amazon_cash_in_transit: number;
-  cash_on_hand: number;
 };
 
 export type OrderProblemCaseRow = {
@@ -133,35 +122,6 @@ export async function fetchDashboardPurchaseRows() {
   }
 
   return hydrateReportingExclusions(rows);
-}
-
-export async function fetchBusinessValueHistory(limit = 30): Promise<BusinessValueHistoryRow[]> {
-  const { data, error } = await supabase
-    .from("business_value_snapshots")
-    .select(
-      "snapshot_date,total_business_value,amazon_inventory_value,pre_amazon_inventory_value," +
-        "amazon_cash_balance,amazon_cash_in_transit,cash_on_hand",
-    )
-    .gte("snapshot_date", BUSINESS_VALUE_HISTORY_START_DATE)
-    .order("snapshot_date", { ascending: false })
-    .limit(limit);
-
-  if (error) {
-    console.warn("Dashboard business value history lookup failed", error.message);
-    return [];
-  }
-
-  return ((data ?? []) as unknown as Array<Record<string, unknown>>)
-    .map((row) => ({
-      snapshot_date: String(row.snapshot_date ?? ""),
-      total_business_value: toNumber(row.total_business_value),
-      amazon_inventory_value: toNumber(row.amazon_inventory_value),
-      pre_amazon_inventory_value: toNumber(row.pre_amazon_inventory_value),
-      amazon_cash_balance: toNumber(row.amazon_cash_balance),
-      amazon_cash_in_transit: toNumber(row.amazon_cash_in_transit),
-      cash_on_hand: toNumber(row.cash_on_hand),
-    }))
-    .reverse();
 }
 
 export async function fetchOpenOrderProblemCases() {

@@ -1,5 +1,10 @@
 # MBOP Dashboard Split Requirements
 
+Status: historical/superseded as of 2026-07-14. Financial and Growth dashboard
+requirements below describe the pre-ZFI-retirement dashboard plan and are no
+longer active MBOP scope. Current dashboard tabs are Overview, Operations,
+Inventory, Amazon, Sourcing, Loss Prevention, and System Health.
+
 ## Project
 Midnight Blue Operations Platform (MBOP)
 

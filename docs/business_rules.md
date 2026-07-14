@@ -1,6 +1,6 @@
 # Business Rules
 
-Last updated: 2026-07-12
+Last updated: 2026-07-14
 
 ## Cost And Reporting
 
@@ -289,23 +289,20 @@ Carrier/status syncs must not downgrade workflow-owned statuses.
   sold units plus active inventory, opening-history boundary units, and explicit
   adjustments. It is a control process for close/tax confidence, not a scheduled
   external-data freshness sync.
-- Business value snapshots use MBOP outbound shipment cost only for shipment quantities still unresolved by Amazon receiving/availability data, and avoid double-counting Amazon-received shipment value.
+- ZFI owns ongoing business-value history. MBOP inventory value rollups may
+  still use MBOP outbound shipment cost only for shipment quantities still
+  unresolved by Amazon receiving/availability data, and must avoid
+  double-counting Amazon-received shipment value.
 - InventoryLab valuation files are audit-only and must not overwrite MBOP inventory, costs, shipment rows, or purchase items.
-- YNAB Business category balance is cash-on-hand context only.
+- YNAB business cash belongs in ZFI. MBOP must not reintroduce active YNAB
+  category balance or transaction syncs.
 - Amazon Finance cash is value that has moved from inventory into Amazon-held cash or Amazon-to-bank in-transit cash.
 - Amazon-to-bank in-transit cash includes transfers Amazon still marks
-  `Processing` plus completed/succeeded payout groups that do not yet have a
-  matching YNAB Business deposit transaction. This prevents business value from
-  dropping during the gap after Amazon completes a payout but before the YNAB
-  bank/cash transaction is present, without double-counting deposits that YNAB
-  already captured.
-- Business value snapshots are reporting snapshots only.
-- Business value snapshot dates and MBOP dashboard date-only displays are
-  Pacific Time business dates. Date-only strings must not be parsed as UTC
-  timestamps for display.
-- Dashboard cash/value freshness is limited by the oldest required cash/value
-  input: business value snapshot, Amazon Finance balance snapshot, or YNAB cash
-  snapshot.
+  `Processing`; completed/succeeded transfers are retained only as raw Amazon
+  Finance reference context.
+- Legacy MBOP business-value snapshots are historical comparison/migration data
+  only until cleanup. MBOP dashboard freshness no longer depends on YNAB or
+  business-value snapshots.
 - Amazon reserved inventory is normal Amazon processing and should not be
   surfaced as an operator problem by itself.
 - Amazon listing/catalog issue signals should be ignored when your FBA units are

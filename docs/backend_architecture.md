@@ -1,6 +1,6 @@
 # Backend Architecture
 
-Last updated: 2026-07-12
+Last updated: 2026-07-14
 
 ## Core Flow
 
@@ -42,12 +42,12 @@ external intelligence are separate domains.
 - Amazon SP-API snapshot tables own read-only Amazon inventory, listing, planning, and finance data.
 - Keepa tables own read-only catalog, offer, price-history, sales-rank, and competition intelligence.
 - Informed tables own read-only repricer report snapshots and advisory rule/price context.
-- YNAB tables own read-only category balance snapshots and Business-category
-  transaction history.
 - ZFI owns personal finance, household/business net worth, cash-flow planning,
-  tax classification, owner draws/contributions, and long-range financial
-  planning. MBOP may push summarized business-operational finance payloads to
-  ZFI Supabase, but MBOP must not query ZFI or import ZFI personal finance data.
+  tax classification, owner draws/contributions, YNAB integration, business
+  cash, long-range financial planning, and ongoing business value history. MBOP
+  may push summarized business-operational finance payloads to ZFI Supabase,
+  but MBOP must not query ZFI or import ZFI personal finance data. Legacy MBOP
+  YNAB tables are audit/comparison history only until cleanup.
 - eBay draft search-link sheet support is a spreadsheet utility, not a marketplace
   write workflow. See `docs/subsystems/ebay_draft_pricing.md`.
 - `inventory_positions` and reconciliation tables are derived and rebuildable; they do not replace workflow ownership.
@@ -67,13 +67,11 @@ designed.
   profitability, and inventory reconciliation. This group is intended for
   2x/day runs.
 - `daily`: Amazon FBA inventory, Amazon FBA shipments, Amazon listing status,
-  Amazon inventory planning, YNAB Business transactions/cash, Amazon finance
-  balances, 60-day Amazon sales finance refresh, daily sales profitability,
-  Informed Repricer reports, sourcing listing availability cleanup, Matching
-  Intelligence refresh, and the daily business value snapshot. YNAB runs before
-  Amazon finance so completed Amazon payouts already visible in YNAB are not
-  also counted as Amazon-to-bank in-transit cash; genuine unmatched payout gaps
-  still remain in transit. This group is intended for 1x/day runs.
+  Amazon inventory planning, Amazon finance balances, 60-day Amazon sales
+  finance refresh, daily sales profitability, Informed Repricer reports,
+  sourcing listing availability cleanup, and Matching Intelligence refresh.
+  YNAB sync and daily business-value snapshot jobs are retired from MBOP. This
+  group is intended for 1x/day runs.
 - `catalog`: sourcing listing availability cleanup and guarded Keepa
   active-Amazon stale refresh plus Matching Intelligence refresh. Keepa work is
   token-aware and can run daily or less often.
@@ -155,8 +153,8 @@ Independent integration failures are collected and reported while later syncs co
 
 `integrations/push_zfi_business_summary.py` is an outbound-only export to ZFI
 Supabase. It defaults to dry run for manual use, and production scheduler
-groups that refresh Amazon/SP-API sales, finance, inventory, shipment, or
-business-value source data run it with `--apply` as a nonblocking final push.
+groups that refresh Amazon/SP-API sales, finance, inventory, or shipment source
+data run it with `--apply` as a nonblocking final push.
 
 The orchestrator writes the latest per-job state to Supabase scheduler
 telemetry in cloud runs and to `logs/sync_health.json` for local/manual runs,
@@ -172,10 +170,10 @@ Health shows the missed work instead of appearing stale or silently successful.
 Each MBOP screen with a refresh control shows a nearby `Last updated` indicator.
 The frontend reads these values through `/api/screen-data-freshness`; it does
 not query Supabase directly. Most screens display the newest relevant source
-timestamp for that screen. Dashboard is stricter: because Business Inventory And
-Cash Value depends on multiple cash/value inputs, its freshness indicator shows
-the oldest of the required business value, Amazon cash, and YNAB cash snapshots
-so a fresh reconciliation run cannot hide stale cash data.
+timestamp for that screen. Dashboard is now operational-only. Its freshness
+indicators are based on MBOP operational source timestamps such as purchases,
+inventory, Amazon sales, Amazon finance, sourcing, and system-health telemetry;
+it no longer depends on MBOP-owned YNAB or business-value snapshots.
 
 Purchases freshness includes eBay purchase import batches, tracking updates,
 Order Problems case/event updates, and RevSeller enrichment diagnostics because
@@ -246,7 +244,8 @@ All external API integrations are read-only unless explicitly documented otherwi
   as a read-only Reports API source for 1-3 star feedback alerts.
 - Keepa token-spending calls are never triggered by frontend page loads.
 - Informed Listings Management upload/write paths are not used.
-- YNAB data is read-only cash/budget and transaction context only.
+- YNAB data belongs in ZFI. MBOP must not add new YNAB integrations or import
+  ZFI-owned YNAB data.
 - Sourcing marketplace integrations are read-only; MBOP does not purchase,
   bid, submit Best Offers, or create eBay actions automatically.
 
@@ -260,7 +259,7 @@ Backend/API layers own:
 - FBA grouping and cost aggregation
 - inventory value rollups
 - repricing recommendation tiers, buckets, target prices, and reasons
-- business value snapshots
+- ZFI summary export payloads
 
 Inventory value rollups treat saved current FBA shipment links as MBOP outbound-to-Amazon cost only while the shipment item has remaining outbound quantity. Once Amazon shipment sync shows units received or available, the received quantity is no longer projected as MBOP outbound inventory. InventoryLab snapshots remain audit context only and do not replace MBOP/Amazon source-of-truth tables.
 
@@ -293,19 +292,14 @@ no-charge Amazon replacements as
 `Replacement`, while fully refunded rows are classified as `refunded` from
 refund principal events even if the Amazon order status still says `Shipped`.
 
-## Business Cash Value
+## Amazon Cash Source Value
 
 Amazon cash valuation uses two Amazon Finance concepts:
 
 - Amazon-held cash: deferred transactions plus open financial event groups.
-- Amazon-to-bank in-transit cash: fund transfers still marked `Processing` plus
-  completed/succeeded fund transfers that do not yet have a matching YNAB
-  Business deposit transaction.
+- Amazon-to-bank in-transit cash: fund transfers still marked `Processing`.
 
-Completed payout matching uses the local `ynab_business_transactions` history,
-matching Amazon fund transfers to positive Business-category YNAB transactions
-by amount, date window, and Amazon payee/import text. Completed payouts remain
-in `in_transit_to_bank` only while no matching YNAB deposit is present. The
-unmatched-completed-payout review window defaults to 14 days and can be
-overridden with `AMAZON_UNMATCHED_COMPLETED_TRANSFER_LOOKBACK_DAYS` or
-`amazon_sync_finance_balances.py --unmatched-completed-transfer-lookback-days`.
+MBOP no longer reconciles completed Amazon transfers against MBOP-owned YNAB
+Business deposit history. Completed transfer IDs and amounts may remain in the
+raw Amazon Finance snapshot for audit/reference, but they are not counted as
+in-transit once Amazon reports them completed/succeeded.

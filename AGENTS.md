@@ -253,6 +253,10 @@ ZFI boundary:
   finance data into MBOP.
 - Keep ZFI auth, user tables, and service-role credentials separate from MBOP.
 - Do not expose ZFI service-role keys to frontend code.
+- MBOP no longer owns active YNAB sync, business-value snapshot production,
+  Financial dashboard, or Growth financial-planning dashboard surfaces.
+  Preserve operational profitability and Amazon payout/cash source data, but
+  keep finance planning and business-value history in ZFI.
 
 ---
 

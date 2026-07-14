@@ -62,10 +62,9 @@ const SCREEN_SOURCES: Record<ScreenKey, FreshnessSource[]> = {
     { label: "RevSeller", filePattern: /^revseller_enrichment_diagnostics_\d{8}_\d{6}\.csv$/ },
   ],
   dashboard: [
-    { label: "business value snapshot", table: "business_value_snapshots", column: "captured_at" },
     { label: "Amazon cash", table: "amazon_finance_balance_snapshots", column: "captured_at" },
-    { label: "YNAB cash", table: "ynab_category_balance_snapshots", column: "captured_at" },
-    { label: "YNAB Business transactions", table: "ynab_business_transactions", column: "synced_at" },
+    { label: "Amazon sales profitability", table: "amazon_sales_profitability", column: "updated_at" },
+    { label: "inventory positions", table: "inventory_positions", column: "updated_at" },
   ],
   receiving: [
     { label: "eBay purchases", table: "import_batches", column: "imported_at", equals: { source_name: "eBay Trading API Buyer Purchase Sync" } },

@@ -1,7 +1,16 @@
 # System Boundaries: MBOP Relative To ZFI
 
-Status: Phase A final
-Last updated: 2026-06-29
+Status: ZFI replacement verified
+Last updated: 2026-07-14
+
+## 2026-07-14 Verified Boundary Update
+
+ZFI replacement is verified. MBOP has retired active YNAB sync,
+business-value snapshot production, and the Financial/Growth planning
+dashboard surfaces. MBOP continues to publish operational business summaries to
+ZFI and continues to own resale operational facts such as sales/orders, COGS,
+fees, inventory value by workflow state, Amazon payout/cash source data, and
+sourcing profitability signals.
 
 ## Architecture Docs
 
@@ -129,14 +138,15 @@ MBOP should not own:
 
 MBOP should never receive ZFI personal finance data.
 
-## Temporary MBOP Ownership To Migrate To ZFI
+## Retired MBOP Financial Planning Ownership
 
-Some MBOP finance features exist today because MBOP bootstrapped early business
-visibility. They are transitional.
+Some MBOP finance features existed because MBOP bootstrapped early business
+visibility. The ZFI replacement has now been verified, so these features are no
+longer active MBOP responsibilities.
 
 ### YNAB
 
-Temporary MBOP items:
+Retired MBOP items:
 
 - `integrations/ynab_sync_cash_balance.py`
 - `integrations/ynab_sync_business_transactions.py`
@@ -147,17 +157,15 @@ Temporary MBOP items:
 
 Rules:
 
-- MBOP YNAB sync is temporary for parallel comparison only.
-- MBOP should eventually freeze/archive/remove YNAB sync only after ZFI
-  business finance is verified.
-- Do not remove YNAB jobs, tables, or dashboards during Phase A.
-- After verification, freeze MBOP YNAB jobs, mark MBOP YNAB features legacy,
-  then archive/remove only after confirming no MBOP operational workflow depends
-  on YNAB.
+- MBOP no longer runs active YNAB sync jobs.
+- ZFI owns YNAB integration, business cash, and YNAB transaction context.
+- Historical MBOP YNAB tables are legacy audit/comparison data only until the
+  prepared cleanup migration is applied.
+- MBOP must not read YNAB data from ZFI or import ZFI personal-finance data.
 
 ### Business Value History
 
-Temporary MBOP items:
+Retired MBOP items:
 
 - `integrations/business_value_snapshot.py`
 - `business_value_snapshots`
@@ -167,28 +175,29 @@ Temporary MBOP items:
 
 Rules:
 
-- MBOP should provide a one-time historical backfill of
-  `business_value_snapshots` to ZFI.
-- ZFI owns ongoing business value history after that backfill is verified.
+- MBOP no longer produces ongoing business-value snapshots.
+- Historical MBOP `business_value_snapshots` were a one-time migration source
+  for ZFI.
+- ZFI owns ongoing business value history after the verified backfill.
 - MBOP may continue to calculate current operational inputs such as inventory
   value and Amazon cash source components.
 
 ### Financial Dashboard Planning Surfaces
 
-Temporary MBOP areas:
+Retired MBOP areas:
 
 - Dashboard Financial cash/profit/payout/Schedule C areas.
 - Dashboard Overview business value summary.
 - Dashboard Growth business value and financial trend areas.
 - `web/app/api/dashboard/financial/route.ts`
-- `web/app/api/dashboard/overview/route.ts`
 - `web/app/api/dashboard/growth/route.ts`
 
 Rules:
 
 - Keep operational metrics needed for daily MBOP decisions.
-- Move/copy broader financial planning views to ZFI.
-- Do not remove MBOP dashboards until ZFI replacement views are verified.
+- Broader financial planning views now live in ZFI.
+- MBOP Dashboard Overview is operational-only.
+- Requests for removed dashboard tabs fall back to the normal dashboard default.
 
 ### Amazon Payout/Cash UI
 
@@ -310,11 +319,14 @@ Operational source-of-truth jobs:
 - `integrations/amazon_sync_inventory_planning.py`
 - `integrations/inventory_source_balance_audit.py`
 
-Temporary/financial-planning bridge jobs:
+Retired financial-planning bridge jobs:
 
 - `integrations/ynab_sync_cash_balance.py`
 - `integrations/ynab_sync_business_transactions.py`
 - `integrations/business_value_snapshot.py`
+
+Operational Amazon payout/cash source job:
+
 - `integrations/amazon_sync_finance_balances.py`
 
 ZFI outbound integration:
@@ -325,7 +337,7 @@ Orchestration:
 
 - `run_all_syncs.py`
   - current ZFI push groups include `amazon-sales-recent`, `finance-refresh`,
-    `business-value-finalizer`, `fba-inventory-daily`, and `fba-shipments`
+    `fba-inventory-daily`, and `fba-shipments`
   - ZFI push remains outbound-only and nonblocking; MBOP does not read ZFI
     personal finance data
 
@@ -375,7 +387,7 @@ Operational source-of-truth or operational derived data:
 - `vw_inventory_position_summary`
 - `vw_open_inventory_reconciliation_items`
 
-Temporary financial-planning data to migrate/de-emphasize:
+Retired financial-planning data, safe to remove after retention approval:
 
 - `ynab_category_balance_snapshots`
 - `ynab_business_transactions`
@@ -406,9 +418,8 @@ Operational MBOP routes:
 - `web/app/api/dashboard/system-health/route.ts`
 - `web/app/api/screen-data-freshness/route.ts`
 
-Financial-planning/dashboard routes to migrate or narrow after ZFI verification:
+Retired financial-planning/dashboard routes:
 
-- `web/app/api/dashboard/overview/route.ts`
 - `web/app/api/dashboard/financial/route.ts`
 - `web/app/api/dashboard/growth/route.ts`
 
@@ -426,7 +437,7 @@ Operational screens MBOP keeps:
 - `web/app/sourcing/page.tsx`
 - `web/app/system-health/page.tsx`
 
-Dashboard areas to move/copy/de-emphasize after ZFI verification:
+Retired dashboard areas:
 
 - Dashboard Overview business value summary.
 - Dashboard Financial cash/profit/payout/Schedule C areas.
@@ -485,9 +496,12 @@ roll into accounting and tax views.
 
 ## Migration Guidance
 
+Status: complete as of 2026-07-14. The phases below are retained as historical
+context; do not treat them as active implementation guidance.
+
 ### Phase 1: Parallel Operation
 
-- Keep MBOP YNAB sync active.
+- Historical only: MBOP YNAB sync remained active during the parallel period.
 - Keep MBOP financial dashboards available.
 - Push current summaries to ZFI.
 - Build ZFI business finance views.
@@ -512,9 +526,9 @@ roll into accounting and tax views.
 
 ### Phase 4: MBOP De-Emphasis
 
-- Freeze MBOP YNAB jobs.
-- Mark MBOP YNAB and business-value trend surfaces as legacy.
-- Narrow MBOP Financial dashboard to operational gaps only.
+- Completed: MBOP YNAB jobs are frozen/removed from active orchestration.
+- Completed: MBOP YNAB and business-value trend surfaces are retired.
+- Completed: MBOP dashboard is narrowed to operational views.
 - Remove Schedule C placeholder from MBOP.
 - Keep operational source routes and dashboards intact.
 

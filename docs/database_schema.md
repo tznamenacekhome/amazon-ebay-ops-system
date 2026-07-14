@@ -1,6 +1,6 @@
 # Database Schema Overview
 
-Last updated: 2026-07-12
+Last updated: 2026-07-14
 
 This document is a high-level map of MBOP's schema. SQL migrations remain the source of exact column definitions.
 
@@ -54,7 +54,10 @@ incomplete-item, cancellation, and refund-follow-up episodes over time.
 - `amazon_listing_snapshots`: point-in-time Listings Items status/issues/fulfillment availability.
 - `amazon_report_runs`: audit metadata for Amazon report requests/imports.
 - `amazon_inventory_planning_snapshots`: `GET_FBA_INVENTORY_PLANNING_DATA` rows for Amazon-native age buckets and inventory-health context.
-- `amazon_finance_balance_snapshots`: Amazon-held cash, available/open balance, deferred/reserved cash, and Amazon-to-bank in-transit cash.
+- `amazon_finance_balance_snapshots`: Amazon-held cash, available/open
+  balance, deferred/reserved cash, and Amazon-to-bank in-transit cash from
+  Amazon Finance source data. MBOP no longer reconciles these rows against
+  MBOP-owned YNAB data.
 - `amazon_account_health_snapshots`: manual Seller Central Account Health Rating snapshots for dashboard history.
 - `amazon_seller_feedback_snapshots`: manual Seller Central Feedback Manager star-rating/count snapshots.
 - `amazon_seller_feedback_items`: Seller Central / SP-API seller feedback rows with date, rating, order ID, and comment; dashboard alerts focus on 1-3 star feedback.
@@ -156,11 +159,10 @@ ASIN, Amazon title, and target sell price.
 - `inventory_reconciliation_event_items`: item-level reconciliation findings.
 - `inventorylab_active_inventory_backfill`: historical InventoryLab active-inventory cost/date context.
 - `inventorylab_inventory_valuation_snapshots`: InventoryLab valuation opening-balance snapshots for legacy Amazon FBA inventory.
-- `ynab_category_balance_snapshots`: YNAB Business category cash-balance snapshots.
-- `ynab_business_transactions`: read-only local copy of YNAB transactions
-  categorized as Business, currently backfilled from 2026-01-01 for future P&L,
-  Schedule C, and cash reconciliation features.
-- `business_value_snapshots`: daily backend-computed total business value rollups.
+- Legacy retired objects pending retention-approved cleanup:
+  `ynab_category_balance_snapshots`, `ynab_business_transactions`, and
+  `business_value_snapshots`. These are no longer active MBOP sources after ZFI
+  verification; see `sql/2026-07-14_retire_mbop_financial_legacy.sql`.
 
 ZFI is a separate application/repo with separate auth and its own Supabase
 database. MBOP does not store ZFI personal finance data. The manual
@@ -168,7 +170,10 @@ database. MBOP does not store ZFI personal finance data. The manual
 business-operational payloads into a ZFI-owned table documented in
 `docs/ZFI_INTEGRATION.md`.
 
-`business_value_snapshots.raw_rollup_json.amazon_outbound_value` includes MBOP outbound FBA shipment cost plus Amazon inbound cost not already covered by a saved MBOP outbound shipment ASIN.
+Legacy `business_value_snapshots.raw_rollup_json.amazon_outbound_value`
+included MBOP outbound FBA shipment cost plus Amazon inbound cost not already
+covered by a saved MBOP outbound shipment ASIN. That table is historical
+migration/audit context only.
 
 Inventory reconciliation tables are derived and additive. Workflow corrections must route through the workflow that owns the underlying state.
 
@@ -191,7 +196,10 @@ Inventory reconciliation tables are derived and additive. Workflow corrections m
 - `vw_latest_keepa_product_snapshot`
 - `vw_latest_informed_listing_snapshot`
 - `vw_latest_inventorylab_inventory_valuation`
-- `vw_latest_ynab_category_balance_snapshot`
 - `vw_latest_amazon_finance_balance_snapshot`
 - `vw_inventory_position_summary`
 - `vw_open_inventory_reconciliation_items`
+
+Retired pending cleanup:
+
+- `vw_latest_ynab_category_balance_snapshot`

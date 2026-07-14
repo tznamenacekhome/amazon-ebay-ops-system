@@ -209,7 +209,7 @@ const SCHEDULER_GROUPS: SchedulerGroupConfig[] = [
     expectedEveryHours: 4,
     criticalAfterHours: 12,
     description: "Refreshes recent Amazon orders, finance events, MF labels, and profitability.",
-    features: ["Sales Orders", "Financial dashboard", "Growth dashboard", "Profitability metrics"],
+    features: ["Sales Orders", "ZFI business summary", "Operational profitability data"],
     jobNames: [
       "Amazon sales orders",
       "Recent Amazon sales finances",
@@ -226,22 +226,9 @@ const SCHEDULER_GROUPS: SchedulerGroupConfig[] = [
     scheduleNames: ["mbop-finance-refresh-morning", "mbop-finance-refresh-afternoon", "mbop-finance-refresh-evening"],
     expectedEveryHours: 12,
     criticalAfterHours: 24,
-    description: "Refreshes YNAB, Amazon Finance, and the business value snapshot.",
-    features: ["Financial dashboard", "Business value trend", "Cash position"],
-    jobNames: ["YNAB Business transactions", "YNAB cash balance", "Amazon finance balances", "Business value snapshot"],
-  },
-  {
-    key: "business-value-finalizer",
-    label: "Business Value Finalizer",
-    domain: "Finance",
-    cadence: "Runs with finance refresh",
-    schedule: "Included in finance refresh and available as its own group",
-    scheduleNames: [],
-    expectedEveryHours: 24,
-    criticalAfterHours: 36,
-    description: "Creates the daily business value point after cash and inventory inputs settle.",
-    features: ["Financial dashboard", "Business value snapshot"],
-    jobNames: ["Business value snapshot"],
+    description: "Refreshes read-only Amazon Finance balances for operational payout visibility and ZFI export.",
+    features: ["Amazon payout/cash source data", "ZFI business summary"],
+    jobNames: ["Amazon finance balances", "ZFI business summary push"],
   },
   {
     key: "fba-inventory-daily",
@@ -652,64 +639,6 @@ const JOBS: JobConfig[] = [
     },
   },
   {
-    id: "ynab-cash-balance",
-    name: "YNAB cash balance",
-    command: "integrations/ynab_sync_cash_balance.py",
-    group: "daily",
-    blocking: true,
-    expectedEveryHours: 24,
-    criticalAfterHours: 36,
-    signal: async () => {
-      const row = await latestRow(
-        "ynab_category_balance_snapshots",
-        "captured_at",
-        "captured_at,balance_currency,category_name",
-      );
-      return {
-        lastRunAt: stringValue(row?.captured_at),
-        source: "ynab_category_balance_snapshots",
-        stats: [
-          { label: "Balance", value: formatCurrency(row?.balance_currency) },
-          { label: "Category", value: stringValue(row?.category_name) || "--" },
-        ],
-      };
-    },
-  },
-  {
-    id: "ynab-business-transactions",
-    name: "YNAB Business transactions",
-    command: "integrations/ynab_sync_business_transactions.py",
-    group: "daily",
-    blocking: true,
-    expectedEveryHours: 24,
-    criticalAfterHours: 36,
-    signal: async () => {
-      const [latestSynced, latestTransaction, countRow] = await Promise.all([
-        latestRow(
-          "ynab_business_transactions",
-          "synced_at",
-          "synced_at",
-        ),
-        latestRow(
-          "ynab_business_transactions",
-          "transaction_date",
-          "transaction_date,amount_currency,payee_name",
-        ),
-        exactCount("ynab_business_transactions", {}),
-      ]);
-
-      return {
-        lastRunAt: stringValue(latestSynced?.synced_at),
-        source: "ynab_business_transactions",
-        stats: [
-          { label: "Rows", value: formatCount(countRow) },
-          { label: "Latest txn", value: stringValue(latestTransaction?.transaction_date) || "--" },
-          { label: "Latest amount", value: formatCurrency(latestTransaction?.amount_currency) },
-        ],
-      };
-    },
-  },
-  {
     id: "keepa-products",
     name: "Keepa active products",
     command: "integrations/keepa_sync_products.py",
@@ -733,30 +662,6 @@ const JOBS: JobConfig[] = [
         stats: [
           { label: "Snapshot rows", value: formatCount(rows) },
           { label: "Tokens left", value: formatCount(row?.tokens_left) },
-        ],
-      };
-    },
-  },
-  {
-    id: "business-value",
-    name: "Business value snapshot",
-    command: "integrations/business_value_snapshot.py",
-    group: "daily",
-    blocking: true,
-    expectedEveryHours: 24,
-    criticalAfterHours: 36,
-    signal: async () => {
-      const row = await latestRow(
-        "business_value_snapshots",
-        "captured_at",
-        "captured_at,snapshot_date,total_business_value",
-      );
-      return {
-        lastRunAt: stringValue(row?.captured_at),
-        source: "business_value_snapshots",
-        stats: [
-          { label: "Snapshot date", value: stringValue(row?.snapshot_date) || "--" },
-          { label: "Business value", value: formatCurrency(row?.total_business_value) },
         ],
       };
     },
@@ -1171,7 +1076,6 @@ function scheduledPacificTimesForGroup(groupKey: string): PacificRunTime[] {
     case "amazon-sales-recent":
       return [{ hour: 4, minute: 30 }, ...hourlyTimes(7, 21, 0, 2)];
     case "finance-refresh":
-    case "business-value-finalizer":
       return [
         { hour: 6, minute: 30 },
         { hour: 14, minute: 0 },

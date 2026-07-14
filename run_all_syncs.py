@@ -246,22 +246,6 @@ JOBS: tuple[SyncJob, ...] = (
         timeout_seconds=60 * 60,
     ),
     SyncJob(
-        name="YNAB Business transactions",
-        command=static_command(
-            "integrations/ynab_sync_business_transactions.py",
-            "--incremental",
-            "--apply",
-        ),
-        groups=("daily", "dashboard", "finance-refresh"),
-        timeout_seconds=30 * 60,
-    ),
-    SyncJob(
-        name="YNAB cash balance",
-        command=static_command("integrations/ynab_sync_cash_balance.py", "--apply"),
-        groups=("daily", "dashboard", "finance-refresh"),
-        timeout_seconds=20 * 60,
-    ),
-    SyncJob(
         name="Amazon finance balances",
         command=static_command("integrations/amazon_sync_finance_balances.py", "--apply"),
         groups=("daily", "dashboard", "finance-refresh"),
@@ -340,12 +324,6 @@ JOBS: tuple[SyncJob, ...] = (
         timeout_seconds=60 * 60,
     ),
     SyncJob(
-        name="Business value snapshot",
-        command=static_command("integrations/business_value_snapshot.py", "--apply"),
-        groups=("daily", "dashboard", "fba", "finance-refresh", "business-value-finalizer"),
-        timeout_seconds=30 * 60,
-    ),
-    SyncJob(
         name="ZFI business summary push",
         command=static_command(
             "integrations/push_zfi_business_summary.py",
@@ -356,7 +334,6 @@ JOBS: tuple[SyncJob, ...] = (
         groups=(
             "amazon-sales-recent",
             "finance-refresh",
-            "business-value-finalizer",
             "fba-inventory-daily",
             "fba-shipments",
         ),
@@ -510,7 +487,6 @@ GROUPS = (
     "purchase-enrichment",
     "amazon-sales-recent",
     "finance-refresh",
-    "business-value-finalizer",
     "fba-inventory-daily",
     "fba-shipments",
     "repricing-catalog",
@@ -1086,8 +1062,6 @@ def infer_job_domain(job: SyncJob, group: str) -> str:
         return "amazon"
     if "ebay" in job_name:
         return "ebay"
-    if "ynab" in job_name:
-        return "ynab"
     if "revseller" in job_name:
         return "revseller"
     if "sourcing" in job_name:

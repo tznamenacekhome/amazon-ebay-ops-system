@@ -1,27 +1,22 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
 import type { ReactNode } from "react";
 
 export type DashboardView =
   | "overview"
-  | "financial"
   | "operations"
   | "inventory"
   | "amazon"
-  | "growth"
   | "sourcing"
   | "loss-prevention"
   | "system-health";
 
 const dashboardTabs: Array<{ view: DashboardView; label: string }> = [
   { view: "overview", label: "Overview" },
-  { view: "financial", label: "Financial" },
   { view: "operations", label: "Operations" },
   { view: "inventory", label: "Inventory" },
   { view: "amazon", label: "Amazon" },
-  { view: "growth", label: "Growth" },
   { view: "sourcing", label: "Sourcing" },
   { view: "loss-prevention", label: "Loss Prevention" },
   { view: "system-health", label: "System Health" },
@@ -183,160 +178,6 @@ export function CompactStatusTable({
   );
 }
 
-export function TrendSparkline({ points }: { points: Array<{ date: string; value: number }> }) {
-  const [activePointKey, setActivePointKey] = useState<string | null>(null);
-
-  if (points.length < 2) {
-    return <div className="py-8 text-center text-sm text-slate-500">Not enough history yet.</div>;
-  }
-
-  const width = 760;
-  const height = 220;
-  const margin = { top: 18, right: 22, bottom: 34, left: 82 };
-  const chartWidth = width - margin.left - margin.right;
-  const chartHeight = height - margin.top - margin.bottom;
-  const values = points.map((point) => Number(point.value ?? 0));
-  const min = Math.min(...values);
-  const max = Math.max(...values);
-  const padding = Math.max((max - min) * 0.12, max * 0.01, 1);
-  const yMin = Math.max(0, min - padding);
-  const yMax = max + padding;
-  const range = Math.max(yMax - yMin, 1);
-  const step = chartWidth / Math.max(points.length - 1, 1);
-  const coordinates = points.map((point, index) => {
-    const value = Number(point.value ?? 0);
-    return {
-      ...point,
-      value,
-      x: margin.left + index * step,
-      y: margin.top + chartHeight - ((value - yMin) / range) * chartHeight,
-    };
-  });
-  const path = coordinates
-    .map((point, index) => {
-      return `${index === 0 ? "M" : "L"} ${point.x.toFixed(1)} ${point.y.toFixed(1)}`;
-    })
-    .join(" ");
-  const yTicks = Array.from({ length: 5 }, (_, index) => {
-    const value = yMin + (range * index) / 4;
-    const y = margin.top + chartHeight - ((value - yMin) / range) * chartHeight;
-    return { value, y };
-  }).reverse();
-  const xTickIndexes = Array.from(new Set([0, Math.floor((points.length - 1) / 2), points.length - 1]));
-  const first = coordinates[0];
-  const last = coordinates[coordinates.length - 1];
-  const activePoint = coordinates.find((point) => pointKey(point) === activePointKey) ?? null;
-  const tooltip = activePoint ? tooltipPosition(activePoint.x, activePoint.y, width, height) : null;
-  const change = last.value - first.value;
-  const changePercent = first.value ? change / first.value : 0;
-
-  return (
-    <div className="space-y-2">
-      <div className="grid gap-2 text-xs text-slate-600 sm:grid-cols-3">
-        <div>
-          <div className="font-semibold uppercase tracking-wide text-slate-500">Latest</div>
-          <div className="text-sm font-semibold text-slate-950">{formatCompactMoney(last.value)}</div>
-        </div>
-        <div>
-          <div className="font-semibold uppercase tracking-wide text-slate-500">Range</div>
-          <div className="text-sm font-semibold text-slate-950">
-            {formatCompactMoney(min)} - {formatCompactMoney(max)}
-          </div>
-        </div>
-        <div>
-          <div className="font-semibold uppercase tracking-wide text-slate-500">Change</div>
-          <div className={`text-sm font-semibold ${change < 0 ? "text-rose-700" : "text-emerald-700"}`}>
-            {formatSignedMoney(change)} ({formatSignedPercent(changePercent)})
-          </div>
-        </div>
-      </div>
-      <svg
-        viewBox={`0 0 ${width} ${height}`}
-        className="h-56 w-full"
-        role="img"
-        aria-label="Total business value trend"
-        onMouseLeave={() => setActivePointKey(null)}
-      >
-        {yTicks.map((tick) => (
-          <g key={tick.value}>
-            <line x1={margin.left} x2={width - margin.right} y1={tick.y} y2={tick.y} stroke="#e2e8f0" />
-            <text x={margin.left - 10} y={tick.y + 4} textAnchor="end" className="fill-slate-500 text-[11px]">
-              {formatCompactMoney(tick.value)}
-            </text>
-          </g>
-        ))}
-        <line x1={margin.left} x2={margin.left} y1={margin.top} y2={height - margin.bottom} stroke="#cbd5e1" />
-        <line x1={margin.left} x2={width - margin.right} y1={height - margin.bottom} y2={height - margin.bottom} stroke="#cbd5e1" />
-        {xTickIndexes.map((index) => {
-          const point = coordinates[index];
-          return (
-            <g key={point.date}>
-              <line x1={point.x} x2={point.x} y1={height - margin.bottom} y2={height - margin.bottom + 5} stroke="#94a3b8" />
-              <text x={point.x} y={height - 10} textAnchor="middle" className="fill-slate-500 text-[11px]">
-                {formatChartDate(point.date)}
-              </text>
-            </g>
-          );
-        })}
-        <path d={path} fill="none" stroke="#0f172a" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" pointerEvents="none" />
-        {coordinates.map((point) => (
-          <g key={pointKey(point)}>
-            <circle
-              cx={point.x}
-              cy={point.y}
-              r={activePointKey === pointKey(point) ? 6 : 4}
-              fill="#ffffff"
-              stroke={activePointKey === pointKey(point) ? "#2563eb" : "#0f172a"}
-              strokeWidth="2"
-              pointerEvents="none"
-            />
-            <circle
-              cx={point.x}
-              cy={point.y}
-              r="14"
-              fill="transparent"
-              className="cursor-pointer"
-              tabIndex={0}
-              role="button"
-              aria-label={`${formatChartDate(point.date)}: ${formatCompactMoney(point.value)}`}
-              onMouseEnter={() => setActivePointKey(pointKey(point))}
-              onFocus={() => setActivePointKey(pointKey(point))}
-              onBlur={() => setActivePointKey(null)}
-            />
-          </g>
-        ))}
-        {activePoint && tooltip ? (
-          <g pointerEvents="none">
-            <line x1={activePoint.x} x2={activePoint.x} y1={margin.top} y2={height - margin.bottom} stroke="#93c5fd" strokeDasharray="4 4" />
-            <rect x={tooltip.x} y={tooltip.y} width={150} height={46} rx={6} fill="#0f172a" opacity="0.96" />
-            <text x={tooltip.x + 10} y={tooltip.y + 18} className="fill-white text-[12px] font-semibold">
-              {formatChartDate(activePoint.date)}
-            </text>
-            <text x={tooltip.x + 10} y={tooltip.y + 35} className="fill-slate-200 text-[12px]">
-              {formatCompactMoney(activePoint.value)}
-            </text>
-          </g>
-        ) : null}
-      </svg>
-    </div>
-  );
-}
-
-function pointKey(point: { date: string; value: number }) {
-  return `${point.date}-${point.value}`;
-}
-
-function tooltipPosition(x: number, y: number, width: number, height: number) {
-  const tooltipWidth = 150;
-  const tooltipHeight = 46;
-  const xOffset = x > width - tooltipWidth - 24 ? -tooltipWidth - 12 : 12;
-  const yOffset = y > height - tooltipHeight - 24 ? -tooltipHeight - 12 : 12;
-  return {
-    x: x + xOffset,
-    y: y + yOffset,
-  };
-}
-
 export function FreshnessBadge({ refreshedAt }: { refreshedAt: string | null | undefined }) {
   return (
     <div className="rounded-md border border-slate-200 bg-white px-2 py-1 text-xs text-slate-600">
@@ -372,45 +213,4 @@ function formatDateTime(value: string | null | undefined) {
     minute: "2-digit",
     timeZone: "America/Los_Angeles",
   }).format(date);
-}
-
-function formatChartDate(value: string | null | undefined) {
-  if (!value) return "--";
-  const dateOnlyMatch = value.match(/^(\d{4})-(\d{2})-(\d{2})$/);
-  if (dateOnlyMatch) {
-    const [, year, month, day] = dateOnlyMatch;
-    return new Intl.DateTimeFormat("en-US", {
-      month: "short",
-      day: "numeric",
-    }).format(new Date(Number(year), Number(month) - 1, Number(day)));
-  }
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-  return new Intl.DateTimeFormat("en-US", {
-    month: "short",
-    day: "numeric",
-    timeZone: "America/Los_Angeles",
-  }).format(date);
-}
-
-function formatCompactMoney(value: number) {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-    notation: "compact",
-    maximumFractionDigits: 1,
-  }).format(value);
-}
-
-function formatSignedMoney(value: number) {
-  const sign = value > 0 ? "+" : "";
-  return `${sign}${formatCompactMoney(value)}`;
-}
-
-function formatSignedPercent(value: number) {
-  const sign = value > 0 ? "+" : "";
-  return `${sign}${new Intl.NumberFormat("en-US", {
-    style: "percent",
-    maximumFractionDigits: 1,
-  }).format(value)}`;
 }

@@ -2,10 +2,22 @@
 
 **Document:** ZFI Financial UI PRD  
 **Version:** 2  
-**Last updated:** 2026-06-29
+**Last updated:** 2026-07-14
 **Purpose:** Define the ZoltarFI / ZFI business financial UI requirements and the migration boundary between MBOP and ZFI.
 
 ---
+
+## 2026-07-14 Implementation Status
+
+The MBOP-to-ZFI handoff described in this PRD has reached the retirement phase
+for MBOP legacy finance surfaces. MBOP has removed active YNAB sync,
+business-value snapshot production, Financial dashboard, and Growth
+financial-planning dashboard surfaces. ZFI is the ongoing owner of YNAB,
+business cash, business-value history, and financial planning.
+
+Earlier phase language in this PRD is retained as historical implementation
+context. Do not treat instructions to keep MBOP YNAB active or delay dashboard
+retirement as current guidance.
 
 ## 1. Summary
 

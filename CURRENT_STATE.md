@@ -2,6 +2,21 @@
 
 Last Updated: 2026-07-14
 
+## 2026-07-14 MBOP Finance Retirement
+
+- ZFI is now the owner of financial planning, YNAB, business cash, and ongoing
+  business-value history.
+- MBOP removed the Dashboard Financial and Growth tabs, retired active YNAB
+  sync scripts, and stopped MBOP business-value snapshot production.
+- `finance-refresh` now preserves Amazon Finance operational payout/cash source
+  data and ZFI summary export only; `business-value-finalizer` is no longer an
+  active scheduler group.
+- MBOP still owns operational profitability, sales/orders, COGS, fees,
+  inventory operational value, sourcing profitability signals, and
+  `integrations/push_zfi_business_summary.py`.
+- Cleanup SQL is prepared in
+  `sql/2026-07-14_retire_mbop_financial_legacy.sql` but was not applied.
+
 # Midnight Blue Operations Platform (MBOP)
 
 MBOP is the internal operations platform for Midnight Blue Enterprises, LLC.
@@ -67,7 +82,7 @@ Implemented:
 - System Health reads Supabase scheduler telemetry in cloud deployment while preserving existing domain freshness signals. It now includes AWS scheduler group rows, click-through detail drawers, last-success age, recent run history, and per-job metrics parsed from scheduler output.
 - The web app has been redeployed as `mbop-web-task:17` so all screens include logout, both `/system-health` and the Dashboard System Health tab render AWS scheduler group telemetry, the production EasyPost webhook validates a shared secret from AWS Secrets Manager, mutation routes enforce cloud-mode authorization/CSRF checks, and scheduler detail drawers show useful job metrics.
 - The scheduler image has been rebuilt and pushed so dynamic-date jobs use stable telemetry keys and job output is captured into `scheduler_run_jobs` counters/metadata.
-- AWS production scheduler groups are now explicit in `run_all_syncs.py`: `purchase-ingestion`, `purchase-tracking`, `returns-order-problems`, `purchase-enrichment`, `amazon-sales-recent`, `finance-refresh`, `business-value-finalizer`, `fba-inventory-daily`, `fba-shipments`, `reconciliation`, `repricing-catalog`, `sourcing-catalog`, `keepa-rolling-refresh`, and `fba-pricing`.
+- AWS production scheduler groups are now explicit in `run_all_syncs.py`: `purchase-ingestion`, `purchase-tracking`, `returns-order-problems`, `purchase-enrichment`, `amazon-sales-recent`, `finance-refresh`, `fba-inventory-daily`, `fba-shipments`, `reconciliation`, `repricing-catalog`, `sourcing-catalog`, `keepa-rolling-refresh`, and `fba-pricing`.
 - cloud web refresh actions route through AWS scheduler task launches instead
   of local laptop jobs; production behavior should be verified through ECS and
   the live Cognito-protected app
@@ -136,16 +151,13 @@ Status: IMPLEMENTED / MVP MONITORING TABS
 Implemented:
 - `/dashboard` remains the single top-level monitoring workspace in the compact
   left navigation.
-- Dashboard tabs are URL-addressable: Overview, Financial, Operations,
-  Inventory, Amazon, Growth, Sourcing, Loss Prevention, and System Health.
-- Focused dashboard APIs now exist for Overview, Financial, Operations,
-  Inventory, Amazon, Growth, Sourcing, Loss Prevention, and System Health.
+- Dashboard tabs are URL-addressable: Overview, Operations, Inventory, Amazon,
+  Sourcing, Loss Prevention, and System Health.
+- Focused dashboard APIs now exist for Overview, Operations, Inventory,
+  Amazon, Sourcing, Loss Prevention, and System Health.
 - Each implemented tab loads independently and reads backend-owned data only.
 - Dashboard page loads do not trigger external marketplace/API calls, Keepa
   token spending, sync jobs, or workflow state changes.
-- Financial dashboard summarizes profitability windows, cash position, Amazon
-  payout reconciliation, financial data completeness, and the future Schedule C
-  reporting placeholder from existing backend finance/profitability data.
 - ZFI is the go-forward owner for personal finance, business net worth,
   cash-flow planning, and tax classification. MBOP's outbound ZFI publisher,
   `integrations/push_zfi_business_summary.py`, now builds the expanded
@@ -157,15 +169,12 @@ Implemented:
 - Inventory dashboard summarizes inventory value/location, age buckets,
   capital at risk, concentration, and reconciliation attention from
   `inventory_positions` and reconciliation views.
-- Amazon dashboard summarizes sales/profitability, FBA/listing health,
-  repricing advisor rollups, top sellers, stale high-capital inventory,
-  Seller Central account health, lifetime Feedback Manager rating, and 1-3
-  star seller-feedback alert rows.
-- Overview and Financial dashboards display Amazon Funds Available from the
-  latest Amazon finance snapshot's `available_to_withdraw` value and link to
-  Seller Central Payments.
-- Growth dashboard summarizes revenue/profit/business value trends, monthly
-  inventory spend, and basic efficiency metrics.
+- Amazon dashboard summarizes FBA/listing health, repricing advisor rollups,
+  stale high-capital inventory, Seller Central account health, lifetime
+  Feedback Manager rating, and 1-3 star seller-feedback alert rows.
+- Financial planning widgets, Amazon Funds Available cards, and long-range
+  growth/business-value trend cards have moved out of MBOP dashboard surfaces
+  now that ZFI is verified.
 - Sourcing dashboard provides a manual replenishment research queue from
   existing sales/profit/inventory data with transparent scoring.
 - Loss Prevention dashboard summarizes open problem cases, estimated value at
@@ -326,7 +335,13 @@ Known follow-up:
 Status: AWS SCHEDULER LIVE / LOCAL TASKS RETIRED
 
 Implemented:
-- `run_all_syncs.py` runs eBay buyer purchase sync, sourcing purchase matching, EasyPost shipment sync, RevSeller enrichment with optional AI same-system review, guarded missing-title Keepa repair, Amazon FBA inventory, Amazon merchant listing import, Amazon FBA shipment sync, Amazon listing status, Amazon inventory planning, Amazon Finance, Informed Repricer reports, YNAB Business cash balance, guarded sourcing listing availability cleanup, guarded Keepa enrichment, and the daily business value snapshot
+- `run_all_syncs.py` runs eBay buyer purchase sync, sourcing purchase matching,
+  EasyPost shipment sync, RevSeller enrichment with optional AI same-system
+  review, guarded missing-title Keepa repair, Amazon FBA inventory, Amazon
+  merchant listing import, Amazon FBA shipment sync, Amazon listing status,
+  Amazon inventory planning, Amazon Finance, Informed Repricer reports,
+  guarded sourcing listing availability cleanup, guarded Keepa enrichment, and
+  ZFI business-summary export
 - `run_all_syncs.py` writes `running`, `ok`, `failed`, and lock-collision
   `blocked` records to Supabase scheduler telemetry in cloud runs and to
   `logs/sync_health.json` for local/manual context, allowing System Health
@@ -334,8 +349,6 @@ Implemented:
 - The AWS scheduler path captures each job's stdout/stderr summary and stores
   parsed counters plus descriptive metrics in `scheduler_run_jobs`, so System
   Health drawers can explain what each job changed.
-- `run_all_syncs.py` also stores YNAB Business-category transaction history
-  daily for future P&L, Schedule C, and cash reconciliation features
 - AWS EventBridge Scheduler now owns production scheduled execution through
   ECS/Fargate `mbop-scheduler-task:1`.
 - The legacy local Windows Task Scheduler path is retired. Catalog, Daily, AM,
@@ -378,11 +391,11 @@ Implemented:
   rules were updated
 - MBOP screens show a screen-specific `Last updated` timestamp near refresh
   controls using `/api/screen-data-freshness`
-- Dashboard freshness uses the oldest required cash/value input so stale Amazon
-  Finance, YNAB, or business value snapshots are visible
-- Amazon Finance balance snapshots now use YNAB Business transaction matching
-  for completed/succeeded payouts: completed Amazon transfers stay in
-  `in_transit_to_bank` only until a matching YNAB Business deposit is present
+- Dashboard freshness now uses operational MBOP source timestamps and no longer
+  depends on MBOP-owned YNAB or business-value snapshots
+- Amazon Finance balance snapshots no longer use MBOP YNAB transaction
+  matching; `in_transit_to_bank` is based on Amazon transfers still marked
+  `Processing`
 
 Recent validation:
 - direct all-sync execution completed successfully with exit code 0 after adding Amazon FBA inventory throttling safeguards
@@ -400,12 +413,10 @@ Recent validation:
 - Amazon inventory planning sync inserted 295 planning rows
 - Amazon Finance sync inserted a balance snapshot
 - Informed report sync inserted 968 listing snapshots
-- YNAB Business balance sync inserted a $3,231.24 snapshot
-- YNAB Business transaction sync backfilled 1,225 Business-category
-  transactions from 2026-01-01 forward
 - scheduled Keepa run selected 1 stale active-Amazon ASIN, inserted 1 snapshot, and spent 5 tokens
 - sourcing listing availability refresh checked 89 opportunities / 73 unique eBay item IDs and dismissed 12 unavailable listings with no API errors
-- business value snapshot upserted the 2026-05-27 daily value
+- Historical MBOP YNAB and business-value rows are retained only as legacy
+  audit/comparison data until cleanup SQL is approved and applied
 
 Remaining validation:
 - continue routine AWS scheduler monitoring in System Health and CloudWatch,
@@ -783,7 +794,7 @@ Current behavior:
 - canonical current inventory is defined as current Amazon FBA inventory plus MBOP purchase inventory that has not yet reached the Listed workflow state, plus current non-historical FBA shipment links on the way to Amazon
 - Amazon-bound purchase inventory with `current_status = listed` and no current FBA shipment link is treated as historical/sold-through in the derived purchase projection; current FBA shipment links are projected as `outbound_to_amazon`
 - dashboard Amazon FBA value prefers the latest InventoryLab valuation snapshot when available, while MBOP remains authoritative for received, ordered, and outbound inventory
-- business value snapshots use MBOP outbound shipment cost only for quantities still unresolved by Amazon receiving/availability data and avoid double-counting Amazon-received shipment value
+- inventory value rollups use MBOP outbound shipment cost only for quantities still unresolved by Amazon receiving/availability data and avoid double-counting Amazon-received shipment value
 - reconciliation currently compares MBOP Amazon-intended inventory to latest Amazon FBA inventory at ASIN level and surfaces Amazon listing issue/suppression signals
 - reconciliation ignores Amazon listing/catalog issue signals when Amazon still
   reports sellable FBA units for the ASIN; buyable inventory with catalog
@@ -858,7 +869,9 @@ Implemented:
 - dashboard now places Inventory Visibility first and removes the old top Total Units / Total Cost / Months row
 - inventory metrics focus on Canonical Units, Amazon FBA Sellable, and MBOP Cost Basis
 - Inventory Value By Location table with units and total cost for At Amazon FBA, On the way to Amazon FBA, Received, Ordered and not received yet, and Total
-- business inventory/cash value summary showing Amazon/current inbound inventory value, pre-Amazon purchased inventory value, Amazon cash, Amazon-to-bank in-transit cash, YNAB cash-on-hand from the Business category snapshot, and total business value
+- inventory value summary showing Amazon/current inbound inventory value,
+  pre-Amazon purchased inventory value, and Amazon Finance operational cash
+  source fields without MBOP-owned YNAB or business-value totals
 - open reconciliation findings moved off the main dashboard to `/inventory-reconciliation`
 - `/inventory-reconciliation` explains finding source and operator follow-up patterns for MBOP/Amazon quantity, stranded, suppressed, unsellable, and mapping issues
 - dashboard excludes Return Opened rows
@@ -866,13 +879,11 @@ Implemented:
 - dashboard excludes purchase items marked exclude_from_purchase_reporting once the reporting-exclusion SQL migration is applied
 - dashboard aggregation uses vw_purchases_dashboard.unit_cost multiplied by quantity
 - frontend only renders API-provided aggregates and does not recalculate landed cost
-- `integrations/ynab_sync_cash_balance.py` stores the read-only YNAB Business category balance in `ynab_category_balance_snapshots`
-- latest YNAB Business category snapshot currently reports $3,231.24 as cash on hand
 - `integrations/amazon_sync_finance_balances.py` stores read-only Amazon Finance cash snapshots in `amazon_finance_balance_snapshots`
-- latest Amazon Finance snapshot reports $2,979.69 Amazon cash, $2,232.84 Amazon-to-bank in-transit cash, $2,631.96 deferred/reserved cash, and $347.73 API open/available balance
-- `integrations/business_value_snapshot.py` stores one backend-computed business value snapshot per day in `business_value_snapshots`
-- latest business value snapshot for 2026-05-30 reports $28,627.77 total business value, including $5,980.36 of Amazon outbound/on-way value
-- clicking the Total row in the Business Inventory And Cash Value dashboard panel opens a modal with a business value history graph
+- Amazon Finance snapshots no longer use MBOP YNAB transaction matching;
+  `in_transit_to_bank` is Amazon Processing transfers only
+- MBOP business-value snapshot production and dashboard history graphs are
+  retired now that ZFI owns ongoing business-value history
 - Purchases workspace now has separate tabs for the normal editable purchases table and an Order Problems table
 - Purchases `Missing Data` filter keeps ASIN/sell-price/system/Amazon-title cleanup in the normal editable view
 - Purchases Order Problems tab shows delivery candidates, return/refund follow-up, missing-item/replacement follow-up, and cancellation refund confirmation with consolidated issue/status columns and current-filter stats

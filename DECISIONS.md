@@ -1,5 +1,25 @@
 # DECISIONS.md
 
+## Retire MBOP Financial Planning Layer After ZFI Verification
+
+Decision date: 2026-07-14
+
+ZFI now owns YNAB integration, business cash, business-value history,
+financial-planning views, and long-range finance interpretation. MBOP keeps
+operational financial facts only: sales/orders, COGS, fees, operational profit,
+inventory value by workflow state, Amazon payout/cash source data, and outbound
+summary pushes to ZFI.
+
+Consequences:
+
+- Remove active MBOP YNAB sync jobs and scripts.
+- Remove MBOP business-value snapshot production.
+- Remove Dashboard Financial and Growth tabs and their API routes.
+- Keep Sales Orders and sourcing operational profit/ROI views.
+- Keep `integrations/push_zfi_business_summary.py`.
+- Prepare, but do not apply automatically, SQL cleanup for exclusive legacy
+  objects after audit/retention confirmation.
+
 # Product Naming
 
 The tool is named Midnight Blue Operations Platform.
@@ -133,11 +153,12 @@ Implementation:
 - `/dashboard` renders the returned aggregates only
 - split dashboard tabs use focused API routes such as
   `/api/dashboard/inventory`, `/api/dashboard/amazon`,
-  `/api/dashboard/growth`, `/api/dashboard/sourcing`,
+  `/api/dashboard/sourcing`,
   `/api/dashboard/loss-prevention`, and `/api/dashboard/system-health`
-- `/dashboard` remains one top-level monitoring workspace; Financial,
-  Operations, Inventory, Amazon, Growth, Sourcing, Loss Prevention, and System
-  Health are tabs inside Dashboard, not separate left-nav entries
+- `/dashboard` remains one top-level monitoring workspace; Operations,
+  Inventory, Amazon, Sourcing, Loss Prevention, and System Health are tabs
+  inside Dashboard, not separate left-nav entries. The former Financial and
+  Growth tabs are retired after ZFI verification.
 
 Rule:
 Do not add frontend-only cost math or alternate landed-cost formulas to dashboard components.
@@ -256,16 +277,16 @@ Supabase queries.
 
 Reason:
 Different screens are fresh for different reasons. A single page load time or
-the newest related sync can be misleading, especially on Dashboard where a fresh
-inventory reconciliation can hide stale Amazon or YNAB cash data.
+the newest related sync can be misleading when a screen depends on multiple
+operational source timestamps.
 
 Implementation:
 - `/api/screen-data-freshness` reads lightweight timestamp signals from source
   tables and local sync files.
 - `web/app/DataFreshness.tsx` renders the shared indicator.
 - most screens show the newest relevant source timestamp.
-- Dashboard shows the oldest required cash/value input across business value,
-  Amazon Finance, and YNAB cash snapshots.
+- Dashboard uses operational MBOP source timestamps and no longer depends on
+  MBOP-owned YNAB or business-value snapshots.
 
 Rule:
 Do not show browser reload time as business data freshness. When a screen's data
@@ -960,6 +981,11 @@ Do not write InventoryLab valuation values into `purchase_items`. Treat the valu
 
 ## YNAB Business Category Is Cash On Hand
 
+Status:
+Superseded by "Retire MBOP Financial Planning Layer After ZFI Verification"
+on 2026-07-14. ZFI now owns YNAB integration and business cash. MBOP YNAB sync
+jobs and dashboard dependencies have been removed from active operation.
+
 Decision:
 Use the current available balance of the YNAB category named `Business` as MBOP's cash-on-hand dashboard value.
 
@@ -1002,10 +1028,9 @@ Implementation:
 - MBOP does not query ZFI and does not import ZFI personal finance data.
 - ZFI auth, user tables, and service-role credentials stay separate from MBOP.
 - Existing MBOP YNAB, business value, and Schedule C planning surfaces are
-  transitional/legacy once ZFI has replacement views.
-- MBOP YNAB sync is temporary until ZFI business finance is verified. Keep it
-  only for parallel comparison, then freeze/archive/remove it after
-  verification and operator confirmation.
+  retired after ZFI verification.
+- MBOP YNAB sync has been removed from active orchestration; do not
+  reintroduce it.
 
 ---
 
@@ -1054,6 +1079,12 @@ Seller Central account-health and feedback data must stay in Amazon-specific das
 ---
 
 ## Total Business Value Is Snapshotted Daily
+
+Status:
+Superseded by "Retire MBOP Financial Planning Layer After ZFI Verification"
+on 2026-07-14. Historical `business_value_snapshots` are retained only as
+migration/audit context until cleanup; ongoing business value history belongs
+in ZFI.
 
 Decision:
 Store one backend-computed total business value snapshot per day for trend reporting.

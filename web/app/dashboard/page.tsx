@@ -12,21 +12,13 @@ import {
   FreshnessBadge,
   MetricCard,
   MetricGrid,
-  TrendSparkline,
   type DashboardView,
 } from "./components";
 
 type OverviewData = {
   refreshedAt: string | null;
   metrics: {
-    totalBusinessValue: number | null;
-    amazonInventoryValue: number | null;
     preAmazonInventoryValue: number | null;
-    amazonCash: number | null;
-    amazonFundsAvailable: number | null;
-    sellerCentralPaymentsUrl: string;
-    amazonToBankInTransit: number | null;
-    ynabBusinessCash: number | null;
   };
   attention: Array<{
     label: string;
@@ -35,7 +27,6 @@ type OverviewData = {
     severity: "green" | "yellow" | "red" | "unknown";
     href: string;
   }>;
-  trend: Array<{ date: string; value: number }>;
   warnings?: string[];
 };
 
@@ -104,22 +95,18 @@ type DashboardPayload = Record<string, any>;
 
 const implementedViews = new Set<DashboardView>([
   "overview",
-  "financial",
   "operations",
   "inventory",
   "amazon",
-  "growth",
   "sourcing",
   "loss-prevention",
   "system-health",
 ]);
 const allViews = new Set<DashboardView>([
   "overview",
-  "financial",
   "operations",
   "inventory",
   "amazon",
-  "growth",
   "sourcing",
   "loss-prevention",
   "system-health",
@@ -220,11 +207,9 @@ function DashboardClient() {
       ) : null}
 
       {view === "overview" ? <OverviewPanel data={overviewData} loading={loading} /> : null}
-      {view === "financial" ? <FinancialPanel data={dashboardData.financial} loading={loading} /> : null}
       {view === "operations" ? <OperationsPanel data={operationsData} loading={loading} /> : null}
       {view === "inventory" ? <InventoryPanel data={dashboardData.inventory} loading={loading} /> : null}
       {view === "amazon" ? <AmazonPanel data={dashboardData.amazon} loading={loading} /> : null}
-      {view === "growth" ? <GrowthPanel data={dashboardData.growth} loading={loading} /> : null}
       {view === "sourcing" ? <SourcingPanel data={dashboardData.sourcing} loading={loading} /> : null}
       {view === "loss-prevention" ? <LossPreventionPanel data={dashboardData["loss-prevention"]} loading={loading} /> : null}
       {view === "system-health" ? <SystemHealthPanel data={dashboardData["system-health"]} loading={loading} /> : null}
@@ -236,20 +221,9 @@ function DashboardClient() {
 function OverviewPanel({ data, loading }: { data: OverviewData | null; loading: boolean }) {
   return (
     <div className="space-y-4">
-      <DashboardSection title="Business Value Summary" eyebrow="Overview">
+      <DashboardSection title="Inventory Snapshot" eyebrow="Overview">
         <MetricGrid>
-          <MetricCard label="Total Business Value" value={loading ? "--" : formatMoney(data?.metrics.totalBusinessValue)} />
-          <MetricCard label="Amazon Inventory" value={loading ? "--" : formatMoney(data?.metrics.amazonInventoryValue)} href="/dashboard?view=inventory" />
           <MetricCard label="Pre-Amazon Inventory" value={loading ? "--" : formatMoney(data?.metrics.preAmazonInventoryValue)} href="/dashboard?view=inventory" />
-          <MetricCard
-            label="Amazon Cash"
-            value={loading ? "--" : formatMoney(data?.metrics.amazonCash)}
-            detail={`Funds available: ${formatMoney(data?.metrics.amazonFundsAvailable)}`}
-            href={data?.metrics.sellerCentralPaymentsUrl ?? "/dashboard?view=financial"}
-            external={Boolean(data?.metrics.sellerCentralPaymentsUrl)}
-          />
-          <MetricCard label="Amazon to Bank" value={loading ? "--" : formatMoney(data?.metrics.amazonToBankInTransit)} href="/dashboard?view=financial" />
-          <MetricCard label="YNAB Business Cash" value={loading ? "--" : formatMoney(data?.metrics.ynabBusinessCash)} href="/dashboard?view=financial" />
         </MetricGrid>
       </DashboardSection>
 
@@ -274,9 +248,7 @@ function OverviewPanel({ data, loading }: { data: OverviewData | null; loading: 
           />
         </DashboardSection>
 
-        <DashboardSection title="Total Business Value Trend" eyebrow="Latest snapshots">
-          <TrendSparkline points={data?.trend ?? []} />
-        </DashboardSection>
+        <OperationsQuickLinks />
       </div>
 
       {data?.warnings?.length ? (
@@ -288,102 +260,19 @@ function OverviewPanel({ data, loading }: { data: OverviewData | null; loading: 
   );
 }
 
-function FinancialPanel({ data, loading }: { data: DashboardPayload | null; loading: boolean }) {
+function OperationsQuickLinks() {
   return (
-    <div className="space-y-4">
-      <MetricGrid>
-        <MetricCard label="30-Day Gross Sales" value={loading ? "--" : formatMoney(data?.summary?.grossSales30d)} />
-        <MetricCard label="30-Day Net Profit" value={loading ? "--" : formatMoney(data?.summary?.netProfit30d)} />
-        <MetricCard label="30-Day ROI" value={loading ? "--" : formatPercent(data?.summary?.roi30d)} />
-        <MetricCard label="YNAB Business Cash" value={loading ? "--" : formatMoney(data?.summary?.ynabBusinessCash)} />
-        <MetricCard
-          label="Amazon Cash"
-          value={loading ? "--" : formatMoney(data?.summary?.amazonCash)}
-          detail={`Funds available: ${formatMoney(data?.summary?.amazonFundsAvailable)}`}
-          href={href(data?.summary?.sellerCentralPaymentsUrl) ?? undefined}
-          external={Boolean(data?.summary?.sellerCentralPaymentsUrl)}
-        />
-        <MetricCard
-          label="Amazon Funds Available"
-          value={loading ? "--" : formatMoney(data?.summary?.amazonFundsAvailable)}
-          detail="Transferable now from Seller Central"
-          href={href(data?.summary?.sellerCentralPaymentsUrl) ?? undefined}
-          external={Boolean(data?.summary?.sellerCentralPaymentsUrl)}
-        />
-        <MetricCard label="Available Business Cash" value={loading ? "--" : formatMoney(data?.summary?.totalAvailableBusinessCash)} />
-      </MetricGrid>
-
-      <DashboardSection title="Profitability Summary" eyebrow="Amazon sales" action={<DrilldownLink href="/sales-orders">Open Sales Orders</DrilldownLink>}>
-        <CompactStatusTable
-          columns={["Period", "Sales", "Fees", "Fulfillment", "COGS", "Net", "ROI", "Avg / Unit", "Complete"]}
-          rows={asRows(data?.profitability).map((row) => ({
-            id: text(row.period),
-            href: "/sales-orders",
-            cells: [
-              text(row.label),
-              formatMoney(row.grossSales),
-              formatMoney(row.amazonFees),
-              formatMoney(row.fulfillmentCosts),
-              formatMoney(row.cogs),
-              formatMoney(row.netProfit),
-              formatPercent(row.roi),
-              formatMoney(row.averageProfitPerUnit),
-              `${formatNumber(row.completeRows)} / ${formatNumber(Number(row.completeRows ?? 0) + Number(row.excludedRows ?? 0))}`,
-            ],
-          }))}
-          emptyText={loading ? "Loading profitability..." : "No profitability rows."}
-        />
-      </DashboardSection>
-
-      <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-        <DashboardSection title="Cash Position" eyebrow="Latest snapshots">
-          <CompactStatusTable
-            columns={["Bucket", "Amount", "Detail"]}
-            rows={asRows(data?.cashPosition).map((row) => ({
-              id: text(row.id),
-              href: href(row.href),
-              external: Boolean(row.external),
-              cells: [text(row.label), formatMoney(row.value), text(row.detail)],
-            }))}
-            emptyText={loading ? "Loading cash..." : "No cash snapshot rows."}
-          />
-        </DashboardSection>
-
-        <DashboardSection title="Payout Reconciliation" eyebrow="Amazon to bank">
-          <CompactStatusTable
-            columns={["Metric", "Value"]}
-            rows={[
-              row("in-transit", "Amazon payouts in transit", formatMoney(data?.payoutReconciliation?.inTransitToBank)),
-              row("matched", "Completed payouts matched to YNAB", `${formatMoney(data?.payoutReconciliation?.completedPayoutsMatchedToYnab)} (${formatNumber(data?.payoutReconciliation?.matchedCompletedTransferCount)})`),
-              row("unmatched", "Completed payouts not matched to YNAB", `${formatMoney(data?.payoutReconciliation?.completedPayoutsNotMatchedToYnab)} (${formatNumber(data?.payoutReconciliation?.unmatchedCompletedTransferCount)})`),
-              row("ynab-missing", "YNAB Amazon-looking deposits not matched", "Tracked in finance snapshot reconciliation"),
-            ]}
-          />
-        </DashboardSection>
-      </div>
-
-      <div className="grid gap-4 xl:grid-cols-[1fr_0.8fr]">
-        <DashboardSection title="Financial Data Completeness" eyebrow="90-day sales rows">
-          <CompactStatusTable
-            columns={["Gap", "Rows", "Sales At Risk", "Action"]}
-            rows={asRows(data?.dataCompleteness).map((row) => ({
-              id: text(row.id),
-              href: href(row.drilldownUrl),
-              cells: [text(row.label), formatNumber(row.count), formatMoney(row.amountAtRisk), "Open"],
-            }))}
-          />
-        </DashboardSection>
-
-        <DashboardSection title="Schedule C" eyebrow="Future reporting">
-          <CompactStatusTable
-            columns={["Area", "Status"]}
-            rows={[
-              row("placeholder", "Tax category export", text(data?.scheduleC?.note) || "Reserved for future tax reporting."),
-            ]}
-          />
-        </DashboardSection>
-      </div>
-    </div>
+    <DashboardSection title="Operational Dashboards" eyebrow="Drill-downs">
+      <CompactStatusTable
+        columns={["Area", "Purpose"]}
+        rows={[
+          { id: "operations", href: "/dashboard?view=operations", cells: ["Operations", "Receiving, FBA prep, purchase cleanup, and workflow aging"] },
+          { id: "inventory", href: "/dashboard?view=inventory", cells: ["Inventory", "Inventory value by state, capital at risk, and reconciliation"] },
+          { id: "amazon", href: "/dashboard?view=amazon", cells: ["Amazon", "Seller account, listing health, FBA inventory, and repricing signals"] },
+          { id: "sourcing", href: "/dashboard?view=sourcing", cells: ["Sourcing", "Replenishment research and sourcing candidates"] },
+        ]}
+      />
+    </DashboardSection>
   );
 }
 
@@ -581,8 +470,6 @@ function AmazonPanel({ data, loading }: { data: DashboardPayload | null; loading
     <div className="space-y-4">
       <MetricGrid>
         <MetricCard label="30-Day Units Sold" value={loading ? "--" : formatNumber(data?.salesSummary?.unitsSold30d)} />
-        <MetricCard label="30-Day Revenue" value={loading ? "--" : formatMoney(data?.salesSummary?.revenue30d)} />
-        <MetricCard label="30-Day Net Profit" value={loading ? "--" : formatMoney(data?.salesSummary?.netProfit30d)} />
         <MetricCard label="FBA Sellable Units" value={loading ? "--" : formatNumber(data?.inventorySummary?.sellableUnits)} />
         <MetricCard label="Listing Issues" value={loading ? "--" : formatNumber(data?.inventorySummary?.strandedOrSuppressedCount)} href="/inventory-reconciliation" tone={toneFor(data?.inventorySummary?.strandedOrSuppressedCount ?? 0, 0, 5)} />
         <MetricCard label="Repricing Capital" value={loading ? "--" : formatMoney(data?.repricingSummary?.pricingCapital)} href="/repricing" />
@@ -652,21 +539,9 @@ function AmazonPanel({ data, loading }: { data: DashboardPayload | null; loading
           </div>
         </div>
       </DashboardSection>
-      <div className="grid gap-4 xl:grid-cols-2">
-        <DashboardSection title="Sales Performance" eyebrow="Amazon">
-          <CompactStatusTable columns={["Metric", "Value"]} rows={[
-            row("units7", "7-day units", formatNumber(data?.salesSummary?.unitsSold7d)),
-            row("units30", "30-day units", formatNumber(data?.salesSummary?.unitsSold30d)),
-            row("revenue", "30-day revenue", formatMoney(data?.salesSummary?.revenue30d)),
-            row("profit", "30-day net profit", formatMoney(data?.salesSummary?.netProfit30d)),
-            row("roi", "30-day ROI", formatPercent(data?.salesSummary?.roi30d)),
-            row("missing", "Missing COGS / fees / pending", `${formatNumber(data?.salesSummary?.missingCogsCount)} / ${formatNumber(data?.salesSummary?.missingFeesCount)} / ${formatNumber(data?.salesSummary?.pendingFeesCount)}`),
-          ]} />
-        </DashboardSection>
-        <DashboardSection title="Listing / Inventory Health" eyebrow="Issues">
-          <CompactStatusTable columns={["Issue", "Count", "Units", "Value", "Action"]} rows={asRows(data?.listingHealth).map((row) => ({ id: text(row.issueType), href: href(row.drilldownUrl), cells: [text(row.issueType), formatNumber(row.count), formatNumber(row.units), formatMoney(row.value), "Open"] }))} />
-        </DashboardSection>
-      </div>
+      <DashboardSection title="Listing / Inventory Health" eyebrow="Issues">
+        <CompactStatusTable columns={["Issue", "Count", "Units", "Value", "Action"]} rows={asRows(data?.listingHealth).map((row) => ({ id: text(row.issueType), href: href(row.drilldownUrl), cells: [text(row.issueType), formatNumber(row.count), formatNumber(row.units), formatMoney(row.value), "Open"] }))} />
+      </DashboardSection>
       <DashboardSection title="Repricing Summary" eyebrow="Advisor rollup" action={<DrilldownLink href="/repricing">Open Repricing</DrilldownLink>}>
         <MetricGrid>
           <MetricCard label="Pricing Candidates" value={formatNumber(data?.repricingSummary?.pricingRows)} />
@@ -676,46 +551,9 @@ function AmazonPanel({ data, loading }: { data: DashboardPayload | null; loading
           <MetricCard label="Snoozed" value={formatNumber(data?.repricingSummary?.snoozedRows)} />
         </MetricGrid>
       </DashboardSection>
-      <div className="grid gap-4 xl:grid-cols-2">
-        <DashboardSection title="Top Sellers" eyebrow="30-day profit">
-          <CompactStatusTable columns={["ASIN", "Title", "Units", "Revenue", "Profit", "ROI", "FBA"]} rows={asRows(data?.topSellers).map((row) => ({ id: text(row.asin), href: href(row.drilldownUrl), cells: [text(row.asin), <span key="title" className="block max-w-[260px] truncate">{text(row.title)}</span>, formatNumber(row.unitsSold30d), formatMoney(row.revenue30d), formatMoney(row.netProfit30d), formatPercent(row.roi30d), formatNumber(row.currentFbaUnits)] }))} />
-        </DashboardSection>
-        <DashboardSection title="Stale High-Capital Inventory" eyebrow="Repricing feed">
-          <CompactStatusTable columns={["ASIN", "Title", "Units", "Value", "Age", "Velocity", "Recommendation"]} rows={asRows(data?.staleInventory).map((row) => ({ id: text(row.asin || row.sellerSku), href: href(row.drilldownUrl), cells: [text(row.asin), <span key="title" className="block max-w-[260px] truncate">{text(row.title)}</span>, formatNumber(row.units), formatMoney(row.value), text(row.ageBucket) || "--", formatNumber(row.currentVelocity), text(row.recommendation)] }))} />
-        </DashboardSection>
-      </div>
-    </div>
-  );
-}
-
-function GrowthPanel({ data, loading }: { data: DashboardPayload | null; loading: boolean }) {
-  return (
-    <div className="space-y-4">
-      <MetricGrid>
-        <MetricCard label="Revenue Last 30 Days" value={loading ? "--" : formatMoney(data?.summary?.revenueLast30d)} />
-        <MetricCard label="Profit Last 30 Days" value={loading ? "--" : formatMoney(data?.summary?.profitLast30d)} />
-        <MetricCard label="ROI Last 90 Days" value={loading ? "--" : formatPercent(data?.summary?.roiLast90d)} />
-        <MetricCard label="Business Value" value={loading ? "--" : formatMoney(data?.summary?.businessValueCurrent)} />
-        <MetricCard label="Units Purchased 30d" value={loading ? "--" : formatNumber(data?.summary?.unitsPurchasedLast30d)} />
-        <MetricCard label="Units Sold 30d" value={loading ? "--" : formatNumber(data?.summary?.unitsSoldLast30d)} />
-      </MetricGrid>
-      <DashboardSection title="Month-by-Month Trend" eyebrow="Last 12 months">
-        <CompactStatusTable columns={["Month", "Revenue", "Profit", "Units Sold", "Units Purchased", "Inventory Spend", "Ending Business Value"]} rows={asRows(data?.monthlyTrends).map((row) => ({ id: text(row.yearMonth), cells: [text(row.yearMonth), formatMoney(row.revenue), formatMoney(row.netProfit), formatNumber(row.unitsSold), formatNumber(row.unitsPurchased), formatMoney(row.inventorySpend), formatMoney(row.endingBusinessValue)] }))} />
+      <DashboardSection title="Stale High-Capital Inventory" eyebrow="Repricing feed">
+        <CompactStatusTable columns={["ASIN", "Title", "Units", "Value", "Age", "Velocity", "Recommendation"]} rows={asRows(data?.staleInventory).map((row) => ({ id: text(row.asin || row.sellerSku), href: href(row.drilldownUrl), cells: [text(row.asin), <span key="title" className="block max-w-[260px] truncate">{text(row.title)}</span>, formatNumber(row.units), formatMoney(row.value), text(row.ageBucket) || "--", formatNumber(row.currentVelocity), text(row.recommendation)] }))} />
       </DashboardSection>
-      <div className="grid gap-4 xl:grid-cols-2">
-        <DashboardSection title="Efficiency Metrics" eyebrow="Recent performance">
-          <CompactStatusTable columns={["Metric", "Value"]} rows={[
-            row("buy", "Average buy cost 90d", formatMoney(data?.efficiency?.averageBuyCostLast90d)),
-            row("profit", "Average profit/unit 90d", formatMoney(data?.efficiency?.averageProfitPerUnitLast90d)),
-            row("roi", "Average ROI 90d", formatPercent(data?.efficiency?.averageRoiLast90d)),
-            row("p2r", "Purchase to received median", formatDays(data?.efficiency?.purchaseToReceivedMedianDays)),
-            row("r2l", "Received to listed median", formatDays(data?.efficiency?.receivedToListedMedianDays)),
-          ]} />
-        </DashboardSection>
-        <DashboardSection title="Growth Signals" eyebrow="Interpretation">
-          <CompactStatusTable columns={["Signal", "Current", "Previous", "Change", "Read"]} rows={asRows(data?.growthSignals).map((row) => ({ id: text(row.label), cells: [text(row.label), formatNumber(row.currentValue), formatNumber(row.previousValue), formatPercent(row.changePercent === null || row.changePercent === undefined ? null : Number(row.changePercent) / 100), text(row.interpretation)] }))} />
-        </DashboardSection>
-      </div>
     </div>
   );
 }
@@ -1010,10 +848,6 @@ function StagedPanel({ view }: { view: DashboardView }) {
   const copy: Record<DashboardView, { title: string; detail: string }> = {
     overview: { title: "Overview", detail: "" },
     operations: { title: "Operations", detail: "" },
-    financial: {
-      title: "Financial Dashboard",
-      detail: "Phase 2 will add profitability, cash position, payout reconciliation, and financial data completeness summaries.",
-    },
     inventory: {
       title: "Inventory Dashboard",
       detail: "Phase 2 will add inventory value by location, age, capital at risk, concentration risk, and reconciliation summary counts.",
@@ -1021,10 +855,6 @@ function StagedPanel({ view }: { view: DashboardView }) {
     amazon: {
       title: "Amazon Dashboard",
       detail: "Phase 3 will add Amazon sales, listing health, repricing summary, and inventory planning summaries.",
-    },
-    growth: {
-      title: "Growth Dashboard",
-      detail: "Growth dashboard is loading or unavailable.",
     },
     sourcing: {
       title: "Sourcing Dashboard",
@@ -1207,10 +1037,6 @@ function formatDateOnly(value: unknown) {
     year: "numeric",
     timeZone: "America/Los_Angeles",
   }).format(date);
-}
-
-function row(id: string, label: string, value: string) {
-  return { id, cells: [label, value] };
 }
 
 function asRows(value: unknown): DashboardPayload[] {

@@ -131,24 +131,22 @@ Status:
 Split monitoring workspace implemented / drill-down refinement remaining.
 
 Completed:
-- `/dashboard` is now a compact tabbed monitoring workspace with URL-addressed
-  Overview, Financial, Operations, Inventory, Amazon, Growth, Sourcing, Loss
+- `/dashboard` is now a compact operational monitoring workspace with
+  URL-addressed Overview, Operations, Inventory, Amazon, Sourcing, Loss
   Prevention, and System Health views.
 - focused `/api/dashboard/*` routes provide backend-owned aggregates for each
   tab without triggering external syncs, token spending, or workflow writes.
-- Overview shows business value KPIs, attention rows, and a scaled business
-  value trend with axes, dates, point markers, and value summary.
-- Financial shows profitability windows, cash position, Amazon Funds Available,
-  payout reconciliation, data completeness, and a Schedule C placeholder.
+- Overview shows operational attention rows and source freshness without
+  MBOP-owned business-value planning metrics.
 - Operations shows receiving/FBA prep queues, purchase cleanup, order-problem
   counts, workflow aging, and attention rows.
 - Inventory shows value by location/state/age, capital at risk, concentration,
   and reconciliation attention.
-- Amazon shows sales/profitability, FBA/listing health, repricing rollups, top
-  sellers, stale high-capital inventory, Seller Central account-health score,
-  Feedback Manager lifetime rating, and 1-3 star feedback alerts.
-- Growth, Sourcing, Loss Prevention, and System Health tabs are implemented
-  from existing backend data and Supabase-backed scheduler telemetry.
+- Amazon shows FBA/listing health, repricing rollups, stale high-capital
+  inventory, Seller Central account-health score, Feedback Manager lifetime
+  rating, and 1-3 star feedback alerts.
+- Sourcing, Loss Prevention, and System Health tabs are implemented from
+  existing backend data and Supabase-backed scheduler telemetry.
 - dashboard metadata hydration now pages through `purchase_items` instead of
   giant Supabase `IN` filters, preventing transient metadata lookup failures
   from reviving excluded purchase rows in cleanup counts.
@@ -156,8 +154,7 @@ Completed:
 
 Next steps:
 - add drill-down links from operational dashboard counts into Purchases, Receiving, and FBA filtered views
-- monitor Dashboard freshness against the oldest required cash/value input so
-  stale Amazon cash, YNAB cash, or business value snapshots are visible
+- monitor Dashboard freshness against operational source timestamps
 - add a safe capacity/IO source for System Health instead of placeholders
 - decide whether account health can be captured from an approved Amazon source;
   for now account-health score and lifetime feedback summary are manual
@@ -178,11 +175,13 @@ See `docs/architecture/README.md`,
 `docs/architecture/INTEGRATION_PRINCIPLES.md`.
 
 Foundation:
-- `ynab_business_transactions` stores YNAB transactions categorized as Business.
-- The initial backfill starts at 2026-01-01.
-- The daily scheduler refreshes the YNAB Business transaction copy once per day.
-- Amazon Finance balance snapshots now reconcile completed Amazon payouts
-  against YNAB Business deposit transactions before counting them as in transit.
+- ZFI now owns YNAB, business cash, business-value history, tax/reporting
+  categories, Schedule C support, owner draws/contributions, and household /
+  business planning views.
+- MBOP has retired active YNAB sync and daily business-value snapshot
+  production.
+- Amazon Finance balance snapshots preserve Amazon payout/cash source evidence
+  without MBOP-owned YNAB payout matching.
 - `integrations/push_zfi_business_summary.py` now publishes the expanded
   `business_finance_replacement_v2` payload to ZFI, preserving the original
   summary fields while adding profitability windows, cash position, payout
@@ -191,19 +190,13 @@ Foundation:
 
 Next steps:
 - keep MBOP item/order profitability, COGS diagnostics, inventory value, and
-  marketplace operational cash context while ZFI builds replacement finance
-  views from the expanded payload.
-- compare ZFI replacement values against MBOP Financial, Growth, Loss
-  Prevention, Inventory, Amazon, Sourcing, and Sales Orders summaries before
-  hiding or narrowing MBOP financial dashboard surfaces.
+  marketplace operational cash context as ZFI consumes the expanded payload.
 - add a future scoped operational drilldown API so ZFI/Ask Zoltar can link from
   financial summaries back to MBOP orders, purchase items, returns, inventory
   state details, COGS corrections, FBA shipments, shipping labels, and fee
   details without duplicating full MBOP operational tables in ZFI.
-- add payout reconciliation review/reporting so unmatched Amazon payouts and
-  unmatched Amazon-looking YNAB deposits are easy to inspect.
-- let ZFI own YNAB, tax/reporting categories, Schedule C support, owner
-  draws/contributions, and household/business planning views.
+- keep payout/cash reconciliation review in ZFI; MBOP owns the Amazon source
+  evidence only.
 
 ### Operational Drilldown From ZFI
 
@@ -520,7 +513,12 @@ Status:
 Superseded by AWS EventBridge Scheduler; local Windows tasks retired.
 
 Completed:
-- `run_all_syncs.py` now runs eBay buyer purchase sync, sourcing purchase matching, EasyPost shipment sync, read-only eBay Order Problems return/inquiry sync, RevSeller enrichment, Amazon FBA inventory, Amazon FBA shipment sync, Amazon listing status, Amazon inventory planning, Amazon Finance balances, Informed Repricer reports, YNAB Business cash balance/transactions, sourcing listing availability cleanup, guarded Keepa enrichment, and business value snapshots
+- `run_all_syncs.py` now runs eBay buyer purchase sync, sourcing purchase
+  matching, EasyPost shipment sync, read-only eBay Order Problems
+  return/inquiry sync, RevSeller enrichment, Amazon FBA inventory, Amazon FBA
+  shipment sync, Amazon listing status, Amazon inventory planning, Amazon
+  Finance balances, Informed Repricer reports, sourcing listing availability
+  cleanup, guarded Keepa enrichment, and ZFI business-summary export
 - legacy scheduler groups split freshness work into `core`, `daily`, and
   `catalog`; production AWS now uses the explicit cloud groups documented in
   `docs/aws/MBOP_AWS_SCHEDULER_PLAN.md`
@@ -543,8 +541,6 @@ Completed:
   and order items are already present
 - Amazon listing status supports stale-day filtering so normal runs can skip
   recently refreshed SKUs
-- YNAB Business transactions run incrementally with an overlap instead of
-  refetching transactions already stored in MBOP
 - inventory reconciliation can skip when source datasets have not changed, with
   a fail-open fallback when source freshness columns are unavailable
 - AWS EventBridge Scheduler now owns production cadence through
@@ -553,8 +549,8 @@ Completed:
   tasks no longer appear in the latest local Task Scheduler check
 
 Next steps:
-- split the dashboard refresh/value jobs into lighter operational and heavier
-  reporting paths, then optimize the reporting path separately
+- keep dashboard refresh paths operational-only and leave heavier financial
+  reporting paths in ZFI
 - add `purchase_items.updated_at` or an equivalent source-change ledger so
   inventory reconciliation skip-if-unchanged can avoid fail-open runs
 - monitor AWS scheduler logs for EasyPost webhook/polling behavior, eBay
@@ -564,12 +560,11 @@ Next steps:
 
 ## Dashboard Split
 
-Phase 1 implemented:
-- `/dashboard` now uses compact URL-addressable tabs:
-  Overview, Financial, Operations, Inventory, Amazon, Growth, and System Health
-- only Overview and Operations fetch live data in this phase
-- `/api/dashboard/overview` returns business value snapshot metrics, attention
-  summary rows, and a compact business value trend
+Implemented:
+- `/dashboard` now uses compact URL-addressable operational tabs: Overview,
+  Operations, Inventory, Amazon, Sourcing, Loss Prevention, and System Health
+- `/api/dashboard/overview` returns operational attention and source summary
+  data without MBOP-owned business-value or YNAB reads
 - `/api/dashboard/operations` returns receiving, FBA prep, purchase cleanup,
   order-problem, workflow-aging, and top-attention summaries
 - the left navigation keeps Dashboard as the single monitoring entry point; the
@@ -577,15 +572,7 @@ Phase 1 implemented:
 - dashboard React components render API-provided values and do not calculate
   landed cost, inventory value, workflow status, repricing tiers, or profit
 
-Remaining:
-- Phase 2: Financial and Inventory tabs with dedicated backend summaries
-- Phase 3: Amazon, Growth, and System Health tabs with scheduler/API health
-  rollups
-- replace remaining legacy `/api/dashboard/purchases` use once historical
-  purchase/month reporting has a focused destination
-
-Remaining phases MVP implemented:
-- Inventory, Amazon, Growth, Sourcing, Loss Prevention, and System Health tabs
+- Inventory, Amazon, Sourcing, Loss Prevention, and System Health tabs
   now have focused read-only API routes under `/api/dashboard/*`
 - dashboard tab list now includes Sourcing and Loss Prevention while preserving
   one top-level Dashboard left-nav entry
@@ -601,12 +588,10 @@ Still open:
   drill-downs that currently degrade to base routes
 - add safe Supabase capacity and disk IO signal sourcing for System Health
 
-Financial implemented:
-- `/api/dashboard/financial` summarizes existing Amazon sales profitability,
-  YNAB Business cash, Amazon cash balances, payout reconciliation, financial
-  data completeness, and the future Schedule C reporting placeholder
-- `/dashboard?view=financial` renders those API-provided values without
-  frontend landed-cost or profit recalculation
+Retired:
+- `/api/dashboard/financial`, `/api/dashboard/growth`,
+  `/dashboard?view=financial`, and `/dashboard?view=growth` are retired after
+  ZFI verification; removed dashboard tab params fall back to the default view.
 
 ---
 

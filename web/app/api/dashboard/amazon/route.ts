@@ -28,12 +28,6 @@ export async function GET(request: NextRequest) {
   const orderDateById = new Map(orders.map((order) => [order.amazon_order_id, order.purchase_date]));
   const profit30 = profitRows.filter((row) => (orderDateById.get(String(row.amazon_order_id ?? "")) ?? "") >= last30);
   const profit7 = profitRows.filter((row) => (orderDateById.get(String(row.amazon_order_id ?? "")) ?? "") >= last7);
-  const completed30 = profit30.filter((row) => String(row.data_status ?? "") === "complete");
-  const fbaUnitsByAsin = new Map<string, number>();
-  for (const row of fbaInventory) {
-    const asin = String(row.asin ?? "").toUpperCase();
-    if (asin) fbaUnitsByAsin.set(asin, (fbaUnitsByAsin.get(asin) ?? 0) + toNumber(row.fulfillable_quantity));
-  }
 
   return NextResponse.json({
     refreshedAt: newest([
@@ -68,10 +62,6 @@ export async function GET(request: NextRequest) {
     salesSummary: {
       unitsSold7d: sumQuantity(profit7),
       unitsSold30d: sumQuantity(profit30),
-      revenue30d: sumField(profit30, "sale_price"),
-      grossProfit30d: sumField(completed30, "net_profit") + sumField(completed30, "amazon_fees_excluding_fulfillment") + sumField(completed30, "fulfillment_cost"),
-      netProfit30d: sumField(completed30, "net_profit"),
-      roi30d: weightedRoi(completed30),
       missingCogsCount: profit30.filter((row) => String(row.data_status ?? "").includes("missing_cogs") || row.cogs === null).length,
       missingFeesCount: profit30.filter((row) => String(row.data_status ?? "").includes("missing_fees")).length,
       pendingFeesCount: profit30.filter((row) => String(row.data_status ?? "").includes("pending")).length,
@@ -101,7 +91,6 @@ export async function GET(request: NextRequest) {
       missingDataRows: toNumber(repricing?.summary?.by_tier?.["Needs Data"]),
       snoozedRows: toNumber(repricing?.summary?.snoozed_rows),
     },
-    topSellers: topSellers(profit30, fbaUnitsByAsin),
     staleInventory: (repricing?.rows ?? []).slice(0, 10).map((row: Record<string, unknown>) => ({
       asin: String(row.asin ?? ""),
       sellerSku: String(row.seller_sku ?? ""),
@@ -208,32 +197,8 @@ function accountHealthChanges(rows: Array<Record<string, unknown>>) {
   return changes.reverse().slice(0, 10);
 }
 
-function topSellers(rows: Awaited<ReturnType<typeof fetchSalesProfitabilityRows>>, fbaUnitsByAsin: Map<string, number>) {
-  const byAsin = new Map<string, { asin: string; sellerSku: string | null; title: string; unitsSold30d: number; revenue30d: number; netProfit30d: number; roiNumerator: number; roiDenominator: number; currentFbaUnits: number; drilldownUrl: string }>();
-  for (const row of rows) {
-    const asin = String(row.asin ?? "").toUpperCase();
-    if (!asin) continue;
-    const current = byAsin.get(asin) ?? { asin, sellerSku: row.seller_sku, title: row.title ?? "Untitled", unitsSold30d: 0, revenue30d: 0, netProfit30d: 0, roiNumerator: 0, roiDenominator: 0, currentFbaUnits: fbaUnitsByAsin.get(asin) ?? 0, drilldownUrl: `/sales-orders?search=${asin}` };
-    current.unitsSold30d += toNumber(row.quantity);
-    current.revenue30d += toNumber(row.sale_price);
-    current.netProfit30d += toNumber(row.net_profit);
-    if (row.roi !== null && row.cogs) {
-      current.roiNumerator += toNumber(row.roi) * toNumber(row.cogs);
-      current.roiDenominator += toNumber(row.cogs);
-    }
-    byAsin.set(asin, current);
-  }
-  return [...byAsin.values()].sort((left, right) => right.netProfit30d - left.netProfit30d).slice(0, 10).map((row) => ({ ...row, roi30d: row.roiDenominator ? row.roiNumerator / row.roiDenominator : null }));
-}
-
 function sumQuantity(rows: Array<{ quantity: number | null }>) { return rows.reduce((sum, row) => sum + toNumber(row.quantity), 0); }
-function sumField(rows: Array<Record<string, unknown>>, field: string) { return rows.reduce((sum, row) => sum + toNumber(row[field]), 0); }
 function sumRows(rows: Array<Record<string, unknown>>, field: string) { return rows.reduce((sum, row) => sum + toNumber(row[field]), 0); }
-function weightedRoi(rows: Array<{ roi: number | null; cogs: number | null }>) {
-  const denominator = rows.reduce((sum, row) => sum + toNumber(row.cogs), 0);
-  if (!denominator) return null;
-  return rows.reduce((sum, row) => sum + toNumber(row.roi) * toNumber(row.cogs), 0) / denominator;
-}
 function issue(severity: "high" | "medium" | "low", issueType: string, count: number, units: number | null, value: number | null, drilldownUrl: string) { return { severity, issueType, count, units, value, drilldownUrl }; }
 function latestOrderTimestamp(rows: Array<{ updated_at: string | null }>) { return newest(rows.map((row) => row.updated_at)); }
 function latestProfitTimestamp(rows: Array<{ updated_at: string | null; calculated_at: string | null }>) { return newest(rows.map((row) => row.updated_at ?? row.calculated_at)); }

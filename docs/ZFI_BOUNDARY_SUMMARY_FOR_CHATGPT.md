@@ -1,23 +1,34 @@
 # MBOP to ZFI Boundary Summary
 
-This note captures the current MBOP financial-reporting overlap and the proposed clean boundary with ZoltarFI / ZFI. It is intended as a shareable handoff for ChatGPT or future planning.
+## 2026-07-14 Status
 
-## Current Overlap
+The replacement is now verified. MBOP has removed active YNAB sync,
+business-value snapshot production, and the Financial/Growth planning
+dashboards. ZFI owns ongoing financial planning, YNAB, business cash, and
+business-value history. MBOP retains operational facts and outbound ZFI summary
+pushes.
 
-MBOP already has several finance/reporting surfaces that overlap with ZFI:
+This note now records the historical MBOP financial-reporting overlap and the
+clean boundary with ZoltarFI / ZFI. It is intended as a shareable handoff for
+ChatGPT or future planning.
+
+## Historical Overlap
+
+MBOP previously had several finance/reporting surfaces that overlapped with
+ZFI:
 
 | Area | Current MBOP files | What it does | Classification |
 |---|---|---|---|
-| Financial dashboard | `web/app/api/dashboard/financial/route.ts`, `web/app/dashboard/page.tsx` | 30/90/YTD sales, profit, ROI, cash, payout reconciliation, Schedule C placeholder | Partly keep operational, partly move to ZFI |
-| Business value snapshots | `integrations/business_value_snapshot.py`, `sql/2026-05-26_add_business_value_snapshots.sql` | Total business value from inventory + Amazon cash + YNAB cash | Move conceptually to ZFI, export from MBOP |
-| YNAB cash balance | `integrations/ynab_sync_cash_balance.py`, `sql/2026-05-26_add_ynab_cash_balance_snapshots.sql` | Pulls YNAB Business category cash into MBOP | Deprecated after ZFI exists |
-| YNAB transactions | `integrations/ynab_sync_business_transactions.py`, `sql/2026-06-03_add_ynab_business_transactions.sql` | Stores Business-category YNAB transaction history for future P&L, Schedule C, cash reconciliation | Move to ZFI |
+| Financial dashboard | `web/app/api/dashboard/financial/route.ts`, `web/app/dashboard/page.tsx` | 30/90/YTD sales, profit, ROI, cash, payout reconciliation, Schedule C placeholder | Retired from MBOP after ZFI verification |
+| Business value snapshots | `integrations/business_value_snapshot.py`, `sql/2026-05-26_add_business_value_snapshots.sql` | Total business value from inventory + Amazon cash + YNAB cash | Retired from MBOP; historical rows migrated/available for ZFI |
+| YNAB cash balance | `integrations/ynab_sync_cash_balance.py`, `sql/2026-05-26_add_ynab_cash_balance_snapshots.sql` | Pulled YNAB Business category cash into MBOP | Retired from MBOP; ZFI owns YNAB |
+| YNAB transactions | `integrations/ynab_sync_business_transactions.py`, `sql/2026-06-03_add_ynab_business_transactions.sql` | Stored Business-category YNAB transaction history for P&L, Schedule C, cash reconciliation planning | Retired from MBOP; ZFI owns YNAB |
 | Amazon finance balances | `integrations/amazon_sync_finance_balances.py`, `sql/2026-05-26_add_amazon_finance_balance_snapshots.sql` | Amazon-held cash, funds available, in-transit cash | Keep as operational source, export summary to ZFI |
 | Amazon sales profitability | `integrations/amazon_sales_profitability.py`, `web/app/api/sales-orders/route.ts` | Item/order revenue, fees, fulfillment, COGS, net profit, ROI | Keep in MBOP operationally, export aggregates |
 | Sales financial events | `sql/2026-05-31_add_amazon_sales_orders_foundation.sql` | Amazon order financial events, fees, refunds, shipping labels via Veeqo | Keep as operational/detail source |
-| Inventory value | `web/app/api/dashboard/inventory/route.ts`, `integrations/business_value_snapshot.py` | Inventory by operational state, value, aged capital | Keep operationally, export aggregates |
-| Growth dashboard | `web/app/api/dashboard/growth/route.ts` | Revenue/profit/business-value trends | Move long-range planning to ZFI, keep operational trend snippets if useful |
-| Tax/Schedule C planning | `ROADMAP.md`, `web/app/api/dashboard/financial/route.ts` | Future MBOP-owned P&L/Schedule C ideas | Move to ZFI |
+| Inventory value | `web/app/api/dashboard/inventory/route.ts` | Inventory by operational state, value, aged capital | Keep operationally, export aggregates |
+| Growth dashboard | `web/app/api/dashboard/growth/route.ts` | Revenue/profit/business-value trends | Retired from MBOP after ZFI verification |
+| Tax/Schedule C planning | `ROADMAP.md`, former financial dashboard route | Future MBOP-owned P&L/Schedule C ideas | ZFI owns |
 
 ## Proposed Boundary
 
@@ -97,9 +108,9 @@ Payload shape:
 }
 ```
 
-## Implementation Plan After Approval
+## Historical Implementation Plan
 
-Step 1: Add docs only:
+The original approval plan is complete/superseded:
 
 - `docs/ZFI_INTEGRATION.md`
 - Update existing docs where present: `CURRENT_STATE.md`, `DECISIONS.md`, `ROADMAP.md`, `KNOWN_ISSUES.md`, `AGENTS.md`
@@ -122,4 +133,6 @@ Step 3: Run local checks:
 
 ## Recommendation
 
-Do not make destructive removals right now. The first safe move is documentation plus a manual dry-run export/push job, while marking MBOP's YNAB/Schedule C/business-value-planning pieces as legacy-to-ZFI.
+Do not reintroduce MBOP-owned YNAB sync, business-value snapshot production, or
+Financial/Growth dashboard planning surfaces. Keep MBOP operational, and keep
+ZFI as the financial-planning owner.

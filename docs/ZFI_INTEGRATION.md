@@ -1,6 +1,16 @@
 # ZFI Integration
 
-Last updated: 2026-06-29
+Last updated: 2026-07-14
+
+## 2026-07-14 MBOP Retirement Update
+
+ZFI replacement is verified. MBOP no longer runs active YNAB sync jobs or daily
+business-value snapshot production, and the Dashboard Financial/Growth
+planning views have been removed. `integrations/push_zfi_business_summary.py`
+remains the supported outbound MBOP-to-ZFI integration for operational facts.
+
+Historical business-value backfill tooling remains available for audit or
+repeat migration needs, but ongoing business-value history belongs in ZFI.
 
 ## Purpose
 
@@ -41,8 +51,8 @@ ZFI owns:
 - long-range profitability, retirement, mortgage, HELOC, and household planning
 
 Legacy MBOP features such as YNAB cash snapshots, YNAB Business transactions,
-business value trend reporting, and Schedule C placeholders should be treated
-as transitional until ZFI replaces them.
+business value trend reporting, and Schedule C placeholders are retired now
+that ZFI replacement is verified.
 
 ## Security Rules
 
@@ -82,7 +92,6 @@ used by the payload:
 
 - `amazon-sales-recent`
 - `finance-refresh`
-- `business-value-finalizer`
 - `fba-inventory-daily`
 - `fba-shipments`
 
@@ -118,16 +127,16 @@ This backfill:
 
 - is one-time migration tooling, not ongoing sync
 - is not scheduled
-- does not disable MBOP YNAB
+- does not re-enable MBOP YNAB
 - does not remove or mutate MBOP `business_value_snapshots`
 - sets `source_system = 'mbop'`
 - sets `source_type = 'migrated_mbop_history'`
 - preserves original MBOP `snapshot_date`
 - preserves component values such as Amazon inventory, pre-Amazon inventory,
-  Amazon cash, Amazon cash in transit, YNAB cash on hand, and total business
-  value
+  Amazon cash, Amazon cash in transit, legacy YNAB cash on hand, and total
+  business value
 - maps MBOP inventory components into ZFI `inventory_value`
-- maps MBOP YNAB cash-on-hand into ZFI `business_cash`
+- maps legacy MBOP YNAB cash-on-hand into ZFI `business_cash`
 - maps MBOP Amazon cash in transit into ZFI `amazon_funds_in_transit`
 - preserves MBOP component values and `raw_rollup_json` inside ZFI
   `source_payload` and `raw_component_context`
@@ -288,13 +297,12 @@ Expanded dashboard-replacement sections:
   profit, net profit, ROI, average profit per unit, units sold, period source
   dates, timestamps, and completeness warnings.
 - `cash_position`: Amazon cash total, available-to-withdraw cash,
-  Amazon-to-bank in-transit cash, deferred/reserved cash, temporary MBOP YNAB
-  Business cash during the parallel period, available business cash, payout
-  status summary, source timestamps, freshness, and warnings.
-- `payout_reconciliation`: in-transit payout amount, completed payouts matched
-  or not matched to YNAB, latest payout/deposit dates where MBOP has them,
-  reconciliation status, and explicit warnings for values MBOP does not safely
-  model yet.
+  Amazon-to-bank in-transit cash, deferred/reserved cash, payout status summary,
+  source timestamps, freshness, and warnings. ZFI-owned YNAB cash is not read
+  back into MBOP.
+- `payout_reconciliation`: in-transit payout amount from Amazon Processing
+  transfers, latest payout dates where MBOP has them, source status, and
+  explicit warnings for values MBOP does not safely model yet.
 - `inventory_capital`: total, Amazon, and pre-Amazon inventory value; value by
   operational location; value by age bucket; capital-at-risk buckets; source
   timestamps; and warnings for missing or unavailable valuation concepts.
@@ -327,8 +335,8 @@ Expanded dashboard-replacement sections:
   missing fees, refunded, and cancelled rows are surfaced in alerts/confidence
   notes rather than silently blended into complete-profit totals.
 - Some replacement fields intentionally remain `null` with warnings until MBOP
-  has a backend-owned source. Examples include unrecoverable return fees,
-  listing-health dollar value, and YNAB Amazon deposits without matched payout.
+  has a backend-owned source. Examples include unrecoverable return fees and
+  listing-health dollar value. YNAB-owned deposit matching now belongs in ZFI.
 
 ## Operator Checklist
 

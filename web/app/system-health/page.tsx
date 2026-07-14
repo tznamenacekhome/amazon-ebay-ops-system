@@ -147,7 +147,6 @@ const AWS_GROUP_ORDER = [
   "purchase-enrichment",
   "amazon-sales-recent",
   "finance-refresh",
-  "business-value-finalizer",
   "fba-inventory-daily",
   "fba-shipments",
   "reconciliation",
