@@ -19,6 +19,25 @@ from sourcing_common import chunked, get_supabase_client, paginate_table, to_flo
 
 
 SOURCES = {"sourcing", "manual_matches", "purchases", "returns", "receiving", "all"}
+OPPORTUNITY_EVIDENCE_SELECT = "*,sourcing_ebay_candidates(*),sourcing_seed_asins(*)"
+PURCHASE_ITEM_EVIDENCE_COLUMNS = ",".join(
+    [
+        "item_id",
+        "asin",
+        "amazon_title",
+        "system",
+        "title",
+        "supplier_sku",
+        "supplier_listing_url",
+        "unit_cost",
+        "quantity",
+        "current_status",
+        "received_date",
+        "estimated_profit",
+        "created_at",
+        "verified_date",
+    ]
+)
 
 
 def main() -> int:
@@ -74,18 +93,21 @@ def build_sourcing_examples(supabase, limit: int | None) -> tuple[list[dict[str,
         order_column="created_at",
         desc=True,
     )
-    snapshots_by_action = {
-        row.get("action_id"): row
-        for row in paginate_table(
+    snapshots_by_action = fetch_listing_snapshots_by_action_ids(
+        supabase,
+        [row.get("action_id") for row in actions],
+    )
+    opportunities = rows_by_id(
+        fetch_opportunities_by_ids(
             supabase,
-            "sourcing_listing_snapshots",
-            "*",
-            order_column="captured_at",
-            desc=True,
-        )
-        if row.get("action_id")
-    }
-    opportunities = rows_by_id(paginate_table(supabase, "sourcing_opportunities", "*,sourcing_ebay_candidates(*),sourcing_seed_asins(*)"), "opportunity_id")
+            [
+                row.get("opportunity_id")
+                for row in actions
+                if row.get("opportunity_id") and row.get("action_id") not in snapshots_by_action
+            ],
+        ),
+        "opportunity_id",
+    )
 
     examples: list[dict[str, Any]] = []
     snapshots: list[dict[str, Any]] = []
@@ -182,7 +204,7 @@ def build_verified_purchase_item_examples(supabase, limit: int | None) -> tuple[
     rows = paginate_table(
         supabase,
         "purchase_items",
-        "*",
+        PURCHASE_ITEM_EVIDENCE_COLUMNS,
         max_rows=limit,
         order_column="created_at",
         desc=True,
@@ -278,7 +300,7 @@ def build_receiving_outcome_examples(supabase, limit: int | None) -> list[dict[s
 
 def build_purchase_match_examples(supabase, limit: int | None) -> list[dict[str, Any]]:
     rows = paginate_table(supabase, "sourcing_purchase_matches", "*", max_rows=limit, order_column="matched_at", desc=True)
-    opportunities = rows_by_id(paginate_table(supabase, "sourcing_opportunities", "*,sourcing_ebay_candidates(*),sourcing_seed_asins(*)"), "opportunity_id")
+    opportunities = rows_by_id(fetch_opportunities_by_ids(supabase, [row.get("opportunity_id") for row in rows]), "opportunity_id")
     examples = []
     for row in rows:
         opportunity = opportunities.get(row.get("opportunity_id")) or {}
@@ -311,7 +333,10 @@ def build_purchase_match_examples(supabase, limit: int | None) -> list[dict[str,
 
 def build_return_examples(supabase, limit: int | None) -> list[dict[str, Any]]:
     rows = paginate_table(supabase, "order_problem_cases", "*", max_rows=limit, order_column="created_at", desc=True)
-    purchase_items = rows_by_id(paginate_table(supabase, "purchase_items", "*"), "item_id")
+    purchase_items = rows_by_id(
+        fetch_purchase_items_by_ids(supabase, [row.get("purchase_item_id") for row in rows]),
+        "item_id",
+    )
     examples = []
     for row in rows:
         label, label_type, reason = label_for_return(row)
@@ -654,6 +679,56 @@ def rebuild_seller_intelligence(supabase) -> None:
 
 def count_return_reason(rows: list[dict[str, Any]], reason: str) -> int:
     return sum(1 for row in rows if row.get("return_reason") == reason or row.get("dismiss_reason") == reason)
+
+
+def fetch_listing_snapshots_by_action_ids(supabase, action_ids: list[Any]) -> dict[Any, dict[str, Any]]:
+    unique_ids = sorted({str(value) for value in action_ids if value})
+    snapshots_by_action: dict[Any, dict[str, Any]] = {}
+    for batch in chunk_values(unique_ids, 100):
+        response = (
+            supabase.table("sourcing_listing_snapshots")
+            .select("*")
+            .in_("action_id", batch)
+            .order("captured_at", desc=True)
+            .execute()
+        )
+        for row in response.data or []:
+            action_id = row.get("action_id")
+            if action_id and action_id not in snapshots_by_action:
+                snapshots_by_action[action_id] = row
+    return snapshots_by_action
+
+
+def fetch_opportunities_by_ids(supabase, opportunity_ids: list[Any]) -> list[dict[str, Any]]:
+    unique_ids = sorted({str(value) for value in opportunity_ids if value})
+    rows: list[dict[str, Any]] = []
+    for batch in chunk_values(unique_ids, 100):
+        response = (
+            supabase.table("sourcing_opportunities")
+            .select(OPPORTUNITY_EVIDENCE_SELECT)
+            .in_("opportunity_id", batch)
+            .execute()
+        )
+        rows.extend(response.data or [])
+    return rows
+
+
+def fetch_purchase_items_by_ids(supabase, item_ids: list[Any]) -> list[dict[str, Any]]:
+    unique_ids = sorted({str(value) for value in item_ids if value})
+    rows: list[dict[str, Any]] = []
+    for batch in chunk_values(unique_ids, 100):
+        response = (
+            supabase.table("purchase_items")
+            .select(PURCHASE_ITEM_EVIDENCE_COLUMNS)
+            .in_("item_id", batch)
+            .execute()
+        )
+        rows.extend(response.data or [])
+    return rows
+
+
+def chunk_values(values: list[Any], size: int) -> list[list[Any]]:
+    return [values[index : index + size] for index in range(0, len(values), size)]
 
 
 def rows_by_id(rows: list[dict[str, Any]], key: str) -> dict[Any, dict[str, Any]]:
