@@ -225,6 +225,37 @@ https://mbop.midnightblueenterprises.com/
 If logout redirects fail, verify the Cognito app client callback/logout URL
 lists and the hosted UI domain recorded in `MBOP_AWS_DEPLOYMENT.md`.
 
+## MBOP Google Login Allowlist
+
+MBOP production auth is Google OAuth through Cognito and ALB authentication.
+Google OAuth test users are not the authoritative MBOP access-control layer.
+Access is enforced by the Cognito pre-signup Lambda
+`mbop-cognito-pre-signup-allowlist`, which reads a comma-separated
+`MBOP_ALLOWED_EMAILS` environment variable.
+
+To replace the allowlist:
+
+```powershell
+.\scripts\update-cognito-allowlist.ps1 `
+  -AllowedEmail "tim.znamenacek@gmail.com","person@example.com"
+```
+
+Always include every account that should keep access. The script updates the
+Lambda environment and reattaches the Cognito pre-signup trigger.
+
+To verify current Cognito users:
+
+```powershell
+aws cognito-idp list-users `
+  --profile mbop-admin `
+  --region us-west-2 `
+  --user-pool-id us-west-2_IBxxtQ9xL
+```
+
+To remove an already-created user, disable or delete that Cognito user. The
+pre-signup Lambda blocks new unlisted users, but it does not retroactively
+remove existing sessions or existing Cognito users.
+
 ## CloudFront WAF Removal
 
 The static homepage CloudFront distribution currently has AWS WAF web ACL

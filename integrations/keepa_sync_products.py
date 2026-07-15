@@ -296,13 +296,7 @@ def collect_source_asins(supabase, *, source: str) -> tuple[list[str], dict[str,
         priority_by_asin[asin] = min(priority_by_asin.get(asin, priority), priority)
 
     if source in {"canonical", "amazon_active"}:
-        for row in fetch_all(
-            supabase,
-            "vw_latest_amazon_fba_inventory_snapshot",
-            "asin,total_quantity,fulfillable_quantity,inbound_working_quantity,"
-            "inbound_shipped_quantity,inbound_receiving_quantity,reserved_quantity,"
-            "unfulfillable_quantity",
-        ):
+        for row in fetch_latest_fba_inventory_rows(supabase):
             asin = clean_asin(row.get("asin"))
             if asin and current_quantity(row) > 0:
                 add_asin(asin, SOURCE_PRIORITY_LOW)
@@ -385,6 +379,28 @@ def collect_source_asins(supabase, *, source: str) -> tuple[list[str], dict[str,
             add_asin(row.get("asin"), SOURCE_PRIORITY_LOW)
 
     return sorted(asins), priority_by_asin
+
+
+def fetch_latest_fba_inventory_rows(supabase) -> list[dict[str, Any]]:
+    latest = (
+        supabase.table("amazon_fba_inventory_snapshots")
+        .select("captured_at")
+        .order("captured_at", desc=True)
+        .limit(1)
+        .execute()
+    )
+    captured_at = (latest.data or [{}])[0].get("captured_at")
+    if not captured_at:
+        return []
+
+    return fetch_all(
+        supabase,
+        "amazon_fba_inventory_snapshots",
+        "asin,total_quantity,fulfillable_quantity,inbound_working_quantity,"
+        "inbound_shipped_quantity,inbound_receiving_quantity,reserved_quantity,"
+        "unfulfillable_quantity",
+        filters={"captured_at": captured_at},
+    )
 
 
 def fetch_excluded_item_ids(
@@ -473,17 +489,21 @@ def filter_stale_keepa_asins(
     return sorted(selected, key=sort_key)
 
 
-def fetch_all(supabase, table: str, select: str) -> list[dict[str, Any]]:
+def fetch_all(
+    supabase,
+    table: str,
+    select: str,
+    *,
+    filters: dict[str, Any] | None = None,
+) -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
     offset = 0
 
     while True:
-        response = (
-            supabase.table(table)
-            .select(select)
-            .range(offset, offset + BATCH_SIZE - 1)
-            .execute()
-        )
+        query = supabase.table(table).select(select)
+        for column, value in (filters or {}).items():
+            query = query.eq(column, value)
+        response = query.range(offset, offset + BATCH_SIZE - 1).execute()
         data = response.data or []
         rows.extend(data)
         if len(data) < BATCH_SIZE:

@@ -107,6 +107,16 @@ type SourcingBatchRow = {
 };
 
 export async function GET(request: NextRequest) {
+  try {
+    return await getOpportunities(request);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Failed to load sourcing opportunities.";
+    console.error("Sourcing opportunities API failed", error);
+    return jsonNoStore({ error: message }, { status: 500 });
+  }
+}
+
+async function getOpportunities(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const status = searchParams.get("status") ?? "open";
   const type = searchParams.get("type") ?? "all";
@@ -136,54 +146,9 @@ export async function GET(request: NextRequest) {
     });
   }
 
-  let query = supabase
-    .from("sourcing_opportunities")
-    .select(
-      `
-      *,
-      sourcing_seed_asins (
-        amazon_title,
-        amazon_image_url,
-        seller_sku,
-        source_mode,
-        target_sale_price,
-        current_inventory_units,
-        monthly_velocity,
-        months_of_supply,
-        inventory_need_level,
-        last_sold_at
-      ),
-      sourcing_ebay_candidates (
-        ebay_item_id,
-        ebay_legacy_item_id,
-        ebay_item_web_url,
-        ebay_title,
-        ebay_image_url,
-        seller_username,
-        item_location_country,
-        condition,
-        buying_options,
-        price,
-        shipping_cost,
-        landed_cost,
-        available_quantity,
-        auction_end_time,
-        bid_count,
-        best_offer_enabled,
-        raw_ebay_json
-      )
-    `,
-    )
-    .order("score", { ascending: false })
-    .order("created_at", { ascending: false })
-    .limit(batchOpportunityIds ? Math.max(batchOpportunityIds.length, 1) : queryLimit);
-
-  if (status !== "all") query = query.eq("status", status);
-  if (type !== "all") query = query.eq("opportunity_type", type);
-  if (batchOpportunityIds) query = query.in("opportunity_id", batchOpportunityIds);
-  if (!batchOpportunityIds && runId) query = query.eq("sourcing_run_id", runId);
-  if (!batchOpportunityIds && !runId) query = query.in("sourcing_run_id", latestRunIds);
-  const { data, error } = await query;
+  const { data, error } = batchOpportunityIds
+    ? await fetchBatchOpportunities(batchOpportunityIds, status, type)
+    : await fetchRunOpportunities({ runId, latestRunIds, status, type, queryLimit });
   if (error) return jsonNoStore({ error: error.message }, { status: 500 });
 
   const rows = (data ?? []) as OpportunityRow[];
@@ -289,6 +254,107 @@ export async function GET(request: NextRequest) {
     opportunities,
     batch: latestBatch,
   });
+}
+
+const OPPORTUNITY_SELECT = `
+  *,
+  sourcing_seed_asins (
+    amazon_title,
+    amazon_image_url,
+    seller_sku,
+    source_mode,
+    target_sale_price,
+    current_inventory_units,
+    monthly_velocity,
+    months_of_supply,
+    inventory_need_level,
+    last_sold_at
+  ),
+  sourcing_ebay_candidates (
+    ebay_item_id,
+    ebay_legacy_item_id,
+    ebay_item_web_url,
+    ebay_title,
+    ebay_image_url,
+    seller_username,
+    item_location_country,
+    condition,
+    buying_options,
+    price,
+    shipping_cost,
+    landed_cost,
+    available_quantity,
+    auction_end_time,
+    bid_count,
+    best_offer_enabled,
+    raw_ebay_json
+  )
+`;
+
+type OpportunityQueryResult = {
+  data: OpportunityRow[] | null;
+  error: { message: string } | null;
+};
+
+async function fetchRunOpportunities({
+  runId,
+  latestRunIds,
+  status,
+  type,
+  queryLimit,
+}: {
+  runId: string | null;
+  latestRunIds: string[];
+  status: string;
+  type: string;
+  queryLimit: number;
+}): Promise<OpportunityQueryResult> {
+  let query = supabase
+    .from("sourcing_opportunities")
+    .select(OPPORTUNITY_SELECT)
+    .order("score", { ascending: false })
+    .order("created_at", { ascending: false })
+    .limit(queryLimit);
+
+  if (status !== "all") query = query.eq("status", status);
+  if (type !== "all") query = query.eq("opportunity_type", type);
+  if (runId) query = query.eq("sourcing_run_id", runId);
+  if (!runId) query = query.in("sourcing_run_id", latestRunIds);
+
+  const { data, error } = await query;
+  return { data: (data ?? null) as OpportunityRow[] | null, error };
+}
+
+async function fetchBatchOpportunities(
+  opportunityIds: string[],
+  status: string,
+  type: string,
+): Promise<OpportunityQueryResult> {
+  const rows: OpportunityRow[] = [];
+  for (let index = 0; index < opportunityIds.length; index += 75) {
+    const chunk = opportunityIds.slice(index, index + 75);
+    let query = supabase
+      .from("sourcing_opportunities")
+      .select(OPPORTUNITY_SELECT)
+      .in("opportunity_id", chunk)
+      .order("score", { ascending: false })
+      .order("created_at", { ascending: false });
+
+    if (status !== "all") query = query.eq("status", status);
+    if (type !== "all") query = query.eq("opportunity_type", type);
+
+    const { data, error } = await query;
+    if (error) return { data: null, error };
+    rows.push(...((data ?? []) as OpportunityRow[]));
+  }
+
+  rows.sort((left, right) => {
+    const scoreDelta = (right.score ?? Number.NEGATIVE_INFINITY) - (left.score ?? Number.NEGATIVE_INFINITY);
+    if (scoreDelta !== 0) return scoreDelta;
+    return (right.created_at ?? "").localeCompare(left.created_at ?? "");
+  });
+
+  return { data: rows, error: null };
 }
 
 async function fetchLatestSourcingBatches(runId: string | null, latestRunIds: string[]) {
