@@ -898,6 +898,13 @@ export default function ReceivingPage() {
                           </div>
                         </label>
 
+                        <div className="grid min-w-0 content-start gap-2 text-sm font-medium uppercase tracking-wide text-slate-500">
+                          Buy Price
+                          <div className="flex h-12 items-center rounded-lg border border-slate-200 bg-slate-50 px-3 text-base font-medium normal-case tracking-normal text-slate-900">
+                            {formatMoney(row.unit_cost)}
+                          </div>
+                        </div>
+
                         <div className="sm:col-span-3">
                           <div className="mb-2 text-sm font-medium uppercase tracking-wide text-slate-500">Image Clues</div>
                           <ImageClueButtons

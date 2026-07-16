@@ -17,6 +17,9 @@ Phase 1 is implemented as an initial usable workspace:
 - eBay Browse API candidate search writes/upserts `sourcing_ebay_candidates`.
 - Basic opportunity scoring writes `sourcing_opportunities`.
 - Operator actions record rows in `sourcing_actions` and update opportunity workflow status.
+- The bulk `Dismiss selected` modal includes `Block ASIN`, which records the
+  `asin_blocked` dismissal signal and blocks the selected Amazon ASINs from
+  future sourcing seed generation.
 - Settings are editable through `/api/sourcing/settings`.
 - Amazon images are populated from latest Amazon listing snapshots when available.
 - The opportunity detail drawer was removed after operator review; sourcing actions are handled directly from the table and lightweight dismiss modal.

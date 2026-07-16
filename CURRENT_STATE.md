@@ -1,6 +1,17 @@
 # CURRENT_STATE.md
 
-Last Updated: 2026-07-14
+Last Updated: 2026-07-16
+
+## 2026-07-16 Receiving And Sourcing Operator Updates
+
+- Receiving detail now shows buy price beside sell price so operators can make
+  quick margin checks while receiving.
+- Amazon Return Recovery keeps scanner focus on the search bar when the page
+  opens and after the receiving detail window is dismissed.
+- Sourcing bulk dismissal now includes a `Block ASIN` action inside the
+  `Dismiss selected` modal. It writes the existing `block_asin` action path,
+  records `asin_blocked`, and adds the selected ASINs to
+  `sourcing_blocked_asins` so future sourcing seed generation excludes them.
 
 ## 2026-07-14 MBOP Finance Retirement
 

@@ -30,7 +30,7 @@ This folder contains the Midnight Blue Operations Platform receiving workflow UI
 - Amazon title display may append the system label when the stored title omits the system.
 - System is shown in the item title area so operators can verify platform while receiving.
 - Quantity received, return flag, and marketplace are recorded per item.
-- ASIN and sell price are editable per item.
+- ASIN and sell price are editable per item, with buy price shown beside sell price for quick margin checks.
 - Amazon-bound received items require ASIN and sell price before save is enabled.
 - eBay marketplace items do not require Amazon title, ASIN, or sell price.
 - Keyboard shortcuts while detail is open: `Ctrl+Enter` / `Cmd+Enter` receives the order when validation passes, except while focus is in a form field or immediately after a scanner-opened detail view; `Escape` closes the detail view without receiving. Plain `Enter` is ignored so barcode scanner suffixes cannot receive an item.

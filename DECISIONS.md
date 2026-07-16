@@ -1,5 +1,24 @@
 # DECISIONS.md
 
+## ASIN Blocking Is A Product-Level Sourcing Control
+
+Decision date: 2026-07-16
+
+When an Amazon ASIN is known to be unsuitable for replenishment, operators block
+it from the Sourcing Workspace bulk `Dismiss selected` modal. This is distinct
+from dismissing a single eBay listing: `block_asin` records a dismissed sourcing
+action with `asin_blocked` and upserts the ASIN into `sourcing_blocked_asins`.
+
+Consequences:
+
+- Future sourcing seed generation excludes blocked ASINs.
+- Existing open/watch/ROI-snoozed opportunities for the same ASIN are dismissed.
+- Blocking an ASIN must not be treated as a failed eBay listing match or as
+  evidence that similar titles on other ASINs are invalid.
+- The single-row dismiss modal may still expose Block ASIN for one-off triage,
+  but bulk blocking belongs in `Dismiss selected` because operators often
+  discover bad ASINs while reviewing several selected opportunities.
+
 ## Retire MBOP Financial Planning Layer After ZFI Verification
 
 Decision date: 2026-07-14

@@ -660,6 +660,14 @@ No auto-exclusion in MVP.
 
 Operator actions for training and workflow.
 
+ASIN blocking is a product-level sourcing control, not a listing-level match
+failure. The Sourcing UI exposes it inside the bulk `Dismiss selected` modal
+for selected opportunities and the single-row dismiss modal for one-off triage.
+The API records a dismissed action with `dismiss_reason = asin_blocked`, writes
+the ASIN to `sourcing_blocked_asins`, and dismisses existing active
+opportunities for that ASIN. Future sourcing seed generation excludes rows in
+`sourcing_blocked_asins`.
+
 Suggested columns:
 - `action_id`
 - `opportunity_id`

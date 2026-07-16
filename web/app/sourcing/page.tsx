@@ -317,6 +317,10 @@ export default function SourcingPage() {
               rows={selectedRows}
               busy={actionBusyId === "bulk"}
               onClose={() => setBulkDismissOpen(false)}
+              onBlockAsins={async (notes, imageClues) => {
+                await bulkAct(selectedRows, () => ({ actionType: "block_asin", notes, imageClues }));
+                setBulkDismissOpen(false);
+              }}
               onDismiss={async (reason, notes, imageClues) => {
                 await bulkAct(selectedRows, () => ({ actionType: "dismiss", reason, notes, imageClues }));
                 setBulkDismissOpen(false);
@@ -753,15 +757,18 @@ function BulkDismissOpportunityDialog({
   rows,
   busy,
   onClose,
+  onBlockAsins,
   onDismiss,
 }: {
   rows: SourcingOpportunity[];
   busy: boolean;
   onClose: () => void;
+  onBlockAsins: (notes: string, imageClues: string[]) => Promise<void>;
   onDismiss: (reason: string, notes: string, imageClues: string[]) => Promise<void>;
 }) {
   const [notes, setNotes] = useState("");
   const [imageClues, setImageClues] = useState<string[]>([]);
+  const uniqueAsinCount = new Set(rows.map((row) => row.asin).filter(Boolean)).size;
 
   return (
     <div className="fixed inset-0 z-40 flex items-center justify-center bg-slate-950/20 p-4">
@@ -776,6 +783,25 @@ function BulkDismissOpportunityDialog({
             <textarea value={notes} onChange={(event) => setNotes(event.target.value)} className="mt-1 min-h-24 w-full rounded-md border border-slate-300 p-2 text-sm" />
           </label>
           <ImageClueButtons selected={imageClues} onChange={setImageClues} />
+          <div className="rounded-md border border-red-200 bg-red-50 p-3">
+            <div className="text-sm font-medium text-red-900">Block selected ASINs from sourcing</div>
+            <div className="mt-1 text-xs text-red-700">
+              Blocks {uniqueAsinCount} ASIN{uniqueAsinCount === 1 ? "" : "s"} and dismisses the selected opportunity rows.
+            </div>
+            <button
+              type="button"
+              disabled={busy || rows.length === 0}
+              onClick={() => {
+                if (window.confirm(`Block ${uniqueAsinCount} ASIN${uniqueAsinCount === 1 ? "" : "s"} from future sourcing?`)) {
+                  void onBlockAsins(notes, imageClues);
+                }
+              }}
+              className="mt-3 inline-flex h-9 items-center gap-2 rounded-md border border-red-300 bg-white px-3 text-sm font-medium text-red-700 hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <Ban className="h-4 w-4" />
+              Block ASIN
+            </button>
+          </div>
           <DismissReasonButtons
             busy={busy || rows.length === 0}
             onChoose={(reason) => void onDismiss(reason, notes, imageClues)}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { RefreshCw, Search, X } from "lucide-react";
 
 type QueueSummary = {
@@ -209,6 +209,7 @@ export default function AmazonReturnRecoveryPage() {
   const [detail, setDetail] = useState<DetailResponse | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailError, setDetailError] = useState<string | null>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const timeout = window.setTimeout(() => {
@@ -225,6 +226,15 @@ export default function AmazonReturnRecoveryPage() {
     }
     loadDetail(selectedId);
   }, [selectedId]);
+
+  useEffect(() => {
+    searchInputRef.current?.focus();
+  }, []);
+
+  function closeDetail() {
+    setSelectedId(null);
+    window.setTimeout(() => searchInputRef.current?.focus(), 0);
+  }
 
   async function loadQueue(query = searchText) {
     setLoading(true);
@@ -310,7 +320,7 @@ export default function AmazonReturnRecoveryPage() {
             <div className="relative max-w-3xl">
             <Search className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
             <input
-              autoFocus
+              ref={searchInputRef}
               value={searchText}
               onChange={(event) => setSearchText(event.target.value)}
               className="w-full rounded-md border border-slate-300 bg-white py-2 pl-9 pr-9 text-sm outline-none ring-blue-500 focus:ring-2"
@@ -435,7 +445,7 @@ export default function AmazonReturnRecoveryPage() {
           detail={detail}
           loading={detailLoading}
           error={detailError}
-          onClose={() => setSelectedId(null)}
+          onClose={closeDetail}
           onSaved={() => {
             if (selectedId) loadDetail(selectedId);
             loadQueue();
