@@ -1,8 +1,24 @@
 # Database Schema Overview
 
-Last updated: 2026-07-14
+Last updated: 2026-07-15
 
 This document is a high-level map of MBOP's schema. SQL migrations remain the source of exact column definitions.
+
+## Shared Supabase Project Boundary
+
+MBOP currently shares the same Supabase project with a separate
+`college_planner` application. MBOP is the canonical migration authority for the
+shared project, so `supabase/migrations` in this repository contains the full
+project migration history, including College Planner migrations.
+
+The projects are separated by schema and naming: MBOP operational objects live
+in the `public` schema unless specifically documented otherwise, while College
+Planner owns the `college_planner` schema. College Planner runtime code may use
+the database, but College Planner migrations are authored and deployed through
+this MBOP repository with `college_planner_` migration filenames.
+
+The current ownership inventory is maintained in
+`docs/shared_supabase_migration_ownership.md`.
 
 ## Core Purchase Workflow
 
@@ -115,6 +131,8 @@ Keepa and Informed data are advisory intelligence only.
   queue, recent Amazon sales, purchased-not-sent Amazon-bound items, or active
   listings, including Amazon title/image, target sale context, velocity,
   inventory need, queue position, and warning flags.
+- `sourcing_blocked_asins`: operator-maintained product-level blacklist for
+  ASINs that should be excluded from future sourcing seed generation.
 - `sourcing_ebay_candidates`: eBay Browse candidate listings with raw payload,
   buying options, item location, shipping quote state, price, landed cost,
   quantity, auction, and Best Offer metadata.

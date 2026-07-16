@@ -14,6 +14,9 @@ sourcing work.
 - Frontend displays backend/API diagnostics only.
 - Video game system/platform remains a hard boundary.
 - Business-only dismissals must not poison ASIN identity matching.
+- `asin_blocked` is a product-level sourcing blacklist signal: it means MBOP
+  should stop replenishment sourcing for that ASIN, not that a particular eBay
+  listing failed identity matching.
 - eBay-to-Amazon sourcing is still future work.
 
 ## Dismissal Taxonomy
@@ -27,7 +30,7 @@ Operator dismiss reasons:
   `packaging_damage`
 - Business / Sourcing: `roi_too_low`, `sales_velocity_too_low`,
   `too_much_competition`, `capital_better_used_elsewhere`,
-  `valid_product_poor_opportunity`
+  `valid_product_poor_opportunity`, `asin_blocked`
 - System: `no_longer_available`, `other`
 
 Notes are stored for every dismissal reason when entered. MBOP does not require

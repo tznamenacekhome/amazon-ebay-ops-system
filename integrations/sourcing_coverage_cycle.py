@@ -11,6 +11,7 @@ from build_sourcing_seed_asins import (
     build_full_listing_seeds,
     build_recent_sales_seeds,
     catalog_video_game_context,
+    fetch_blocked_asins,
     infer_platform_context,
     is_video_game_seed,
     latest_catalog_context_by_asin,
@@ -78,10 +79,13 @@ def build_purchased_not_sent_seeds(supabase, settings, limit: int) -> list[dict[
     )
     fba_links = fetch_fba_links_by_item_id(supabase, [str(row.get("item_id")) for row in rows if row.get("item_id")])
     catalog_by_asin = latest_catalog_context_by_asin(supabase)
+    blocked_asins = fetch_blocked_asins(supabase)
     seeds: list[dict[str, Any]] = []
     for row in rows:
         asin = clean_asin(row.get("asin"))
         if not asin:
+            continue
+        if asin in blocked_asins:
             continue
         purchase_date = purchase_order_date(row)
         if not purchase_date or parse_datetime(purchase_date) < cutoff:

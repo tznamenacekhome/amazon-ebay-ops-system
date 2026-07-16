@@ -4,6 +4,7 @@ import { buildListingSnapshot } from "../../../matchingIntelligence";
 import { requireAdminApiToken } from "../../../../_server";
 
 const actionStatus: Record<string, string> = {
+  block_asin: "dismissed",
   dismiss: "dismissed",
   watch: "watching",
   purchased: "purchased_pending_match",
@@ -11,6 +12,7 @@ const actionStatus: Record<string, string> = {
 };
 
 const actionRecordType: Record<string, string> = {
+  block_asin: "dismissed",
   dismiss: "dismissed",
   watch: "watching",
   purchased: "purchased",
@@ -28,7 +30,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   const imageClues = Array.isArray(body.imageClues)
     ? body.imageClues.map((value: unknown) => String(value)).filter(Boolean)
     : [];
-  const reason = body.reason ? String(body.reason) : null;
+  const reason = body.reason ? String(body.reason) : actionType === "block_asin" ? "asin_blocked" : null;
   const requiredMaxLandedCost = numberOrNull(body.requiredMaxLandedCost);
   const requiredRoiPercent = numberOrNull(body.requiredRoiPercent);
   const expectedPurchaseCost = numberOrNull(body.expectedPurchaseCost);
@@ -58,6 +60,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
   const rawActionContext = {
     actionType,
+    blockedAsin: actionType === "block_asin",
     previousStatus: opportunity.status,
     newStatus,
     requiredMaxLandedCost,
@@ -80,6 +83,24 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     raw_action_context: rawActionContext,
   }).select("*").single();
   if (actionError) return NextResponse.json({ error: actionError.message }, { status: 500 });
+
+  if (actionType === "block_asin") {
+    const { error: blockError } = await supabase.from("sourcing_blocked_asins").upsert(
+      {
+        asin: String(opportunity.asin ?? "").toUpperCase(),
+        reason,
+        notes,
+        source_opportunity_id: id,
+        source_action_id: action.action_id,
+        blocked_by: request.headers.get("x-amzn-oidc-identity") ?? "mbop",
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "asin" },
+    );
+    if (blockError) {
+      return NextResponse.json({ error: `Block ASIN failed: ${blockError.message}` }, { status: 500 });
+    }
+  }
 
   const event = actionRecordType[actionType] === "purchased" ? "purchased" : actionRecordType[actionType];
   const { data: snapshot, error: snapshotError } = await supabase
@@ -127,6 +148,14 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       .update(updatePayload)
       .eq("asin", opportunity.asin)
       .in("ebay_item_id", relatedEbayIds);
+  }
+
+  if (actionType === "block_asin") {
+    await supabase
+      .from("sourcing_opportunities")
+      .update(updatePayload)
+      .eq("asin", opportunity.asin)
+      .in("status", ["open", "rejected", "watching", "roi_snoozed"]);
   }
 
   return NextResponse.json({ opportunity: data });

@@ -302,6 +302,10 @@ export default function SourcingPage() {
               row={dismissRow}
               actionBusyId={actionBusyId}
               onClose={() => setDismissRow(null)}
+              onBlockAsin={async (notes, imageClues) => {
+                await act(dismissRow, { actionType: "block_asin", notes, imageClues });
+                setDismissRow(null);
+              }}
               onDismiss={async (reason, notes, imageClues) => {
                 await act(dismissRow, { actionType: "dismiss", reason, notes, imageClues });
                 setDismissRow(null);
@@ -688,11 +692,13 @@ function DismissOpportunityDialog({
   row,
   actionBusyId,
   onClose,
+  onBlockAsin,
   onDismiss,
 }: {
   row: SourcingOpportunity;
   actionBusyId: string | null;
   onClose: () => void;
+  onBlockAsin: (notes: string, imageClues: string[]) => Promise<void>;
   onDismiss: (reason: string, notes: string, imageClues: string[]) => Promise<void>;
 }) {
   const [notes, setNotes] = useState("");
@@ -705,6 +711,7 @@ function DismissOpportunityDialog({
         <div className="border-b border-slate-200 px-4 py-3">
           <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">Dismiss Opportunity</div>
           <div className="mt-1 text-sm font-medium text-slate-950">{row.ebayTitle}</div>
+          <div className="mt-1 font-mono text-xs text-slate-500">{row.asin}</div>
         </div>
         <div className="space-y-3 px-4 py-4">
           <label className="block text-sm font-medium text-slate-700">
@@ -712,6 +719,21 @@ function DismissOpportunityDialog({
             <textarea value={notes} onChange={(event) => setNotes(event.target.value)} className="mt-1 min-h-24 w-full rounded-md border border-slate-300 p-2 text-sm" />
           </label>
           <ImageClueButtons selected={imageClues} onChange={setImageClues} />
+          <div className="rounded-md border border-red-200 bg-red-50 p-3">
+            <div className="text-sm font-medium text-red-900">Block this ASIN from sourcing</div>
+            <div className="mt-1 text-xs text-red-700">
+              Use this when the Amazon ASIN itself should not be replenished, even if similar listings appear again.
+            </div>
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => void onBlockAsin(notes, imageClues)}
+              className="mt-3 inline-flex h-9 items-center gap-2 rounded-md border border-red-300 bg-white px-3 text-sm font-medium text-red-700 hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <Ban className="h-4 w-4" />
+              Block ASIN
+            </button>
+          </div>
           <DismissReasonButtons
             busy={busy}
             onChoose={(reason) => void onDismiss(reason, notes, imageClues)}

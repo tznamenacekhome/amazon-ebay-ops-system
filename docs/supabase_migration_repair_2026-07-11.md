@@ -20,7 +20,7 @@ existing unrelated remote-only migration, `20260711030000`, before this repair.
 The canonical Supabase CLI migration is now:
 
 ```text
-supabase/migrations/20260711000000_add_sourcing_progressive_batches.sql
+supabase/migrations/20260711000000_mbop_add_sourcing_progressive_batches.sql
 ```
 
 It mirrors the committed archive SQL:
@@ -80,7 +80,7 @@ remote 20260711000000
 
 The progressive sourcing batch migration is aligned.
 
-Remaining unrelated issue:
+Historical remaining unrelated issue at the time:
 
 ```text
 remote-only 20260711030000 college_planner_mvp_schema
@@ -92,8 +92,8 @@ was found in this repository. It was not repaired, reverted, or replaced because
 it is unrelated to MBOP progressive sourcing and was not safely attributable to
 this change.
 
-Because of that unrelated remote-only migration, `supabase db push --dry-run`
-still reports:
+At the time, because of that unrelated remote-only migration,
+`supabase db push --dry-run` still reported:
 
 ```text
 Remote migration versions not found in local migrations directory.
@@ -111,5 +111,26 @@ Passed:
 Supabase migration dry-run:
 
 - Progressive migration is repaired and aligned.
-- Full project dry-run remains blocked by unrelated remote-only
+- At the time, full project dry-run remained blocked by unrelated remote-only
   `20260711030000`.
+
+## 2026-07-15 Resolution
+
+MBOP is now the canonical migration authority for the shared Supabase project
+used by MBOP and College Planner. The actual SQL for College Planner remote
+migration `20260711030000` was recovered from
+`supabase_migrations.schema_migrations` and stored locally as:
+
+```text
+supabase/migrations/20260711030000_college_planner_mvp_schema.sql
+```
+
+The later College Planner migration `20260713010000` was also recovered and
+stored locally as:
+
+```text
+supabase/migrations/20260713010000_college_planner_add_course_catalog_description_metadata.sql
+```
+
+Current shared migration ownership rules and object inventory are documented in
+`docs/shared_supabase_migration_ownership.md`.

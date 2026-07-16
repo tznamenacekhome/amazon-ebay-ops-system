@@ -147,9 +147,44 @@ Production verification rule:
 
 ## SQL Change Workflow
 
-When a schema or migration SQL command is required, provide the SQL as the immediate next step for the operator to apply before continuing dependent development.
+MBOP is the canonical migration authority for the Supabase project shared by
+MBOP and College Planner. The MBOP `supabase/migrations` directory must contain
+the complete migration history for the shared project, including migrations that
+affect College Planner. College Planner may use the database at runtime, but its
+repository must not run `supabase migration new`, `supabase db push`,
+`supabase migration repair`, or any operation that changes the shared remote
+migration ledger.
 
-After the operator confirms the SQL was applied, resume implementation and verification.
+Application tables remain logically separate and must be clearly identified by
+schema, naming convention, and documentation: MBOP operational objects live in
+`public` unless specifically documented otherwise, while College Planner owns
+the `college_planner` schema.
+
+Every migration filename must include its owning application after the
+timestamp: `mbop_...`, `college_planner_...`, or `shared_...`. College Planner
+database changes must be added to the MBOP migration directory with a
+`college_planner_` filename. Before every `supabase db push`, run
+`supabase migration list` and reconcile the complete shared migration history.
+Already-applied migrations must never be edited or removed. Never delete,
+revert, or alter a migration owned by the other application.
+
+When a schema or migration SQL command is required, default to providing the
+SQL as the immediate next step for the operator to apply before continuing
+dependent development.
+
+Codex may apply schema SQL directly only when all of the following are true:
+- the operator explicitly asks Codex to apply the SQL
+- the exact SQL file or command has been shown or is committed in the repo
+- the target project/environment is verified before execution
+- the command uses the documented Supabase/AWS workflow for the project
+
+After the SQL is applied by either the operator or Codex, resume implementation
+and verification.
+
+Do not apply schema SQL directly to the linked database during normal
+development. When an emergency direct application is unavoidable, verify the
+entire migration against the remote schema and immediately reconcile the
+Supabase migration ledger in MBOP.
 
 ## Cost Calculation Rule
 

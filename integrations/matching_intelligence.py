@@ -29,6 +29,7 @@ BUSINESS_REASONS = {
     "capital_better_used_elsewhere",
     "valid_product_poor_opportunity",
     "not_worth_selling",
+    "asin_blocked",
 }
 AVAILABILITY_SYSTEM_REASONS = {"no_longer_available"}
 

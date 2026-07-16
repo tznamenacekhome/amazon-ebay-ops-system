@@ -8,6 +8,8 @@ import uuid
 from collections import defaultdict
 from typing import Any
 
+from postgrest.exceptions import APIError
+
 from sourcing_common import chunked, fetch_settings, get_supabase_client, paginate_table, to_float
 from system_detection import detect_system_from_title, normalize_system
 
@@ -134,6 +136,7 @@ def build_recent_sales_seeds(supabase, settings, limit: int) -> list[dict[str, A
     inventory_by_asin = latest_inventory_by_asin(supabase)
     planning_by_asin = latest_inventory_planning_by_asin(supabase)
     catalog_by_asin = latest_catalog_context_by_asin(supabase)
+    blocked_asins = fetch_blocked_asins(supabase)
 
     by_asin: dict[str, dict[str, Any]] = {}
     cutoff_60 = dt.datetime.now(dt.UTC) - dt.timedelta(days=60)
@@ -169,7 +172,16 @@ def build_recent_sales_seeds(supabase, settings, limit: int) -> list[dict[str, A
         if fees > 0:
             current["fee_samples"].append(round(fees / quantity, 2))
 
-    return finalize_seeds(by_asin.values(), inventory_by_asin, settings, limit, planning_by_asin, catalog_by_asin, supabase)
+    return finalize_seeds(
+        by_asin.values(),
+        inventory_by_asin,
+        settings,
+        limit,
+        planning_by_asin,
+        catalog_by_asin,
+        supabase,
+        blocked_asins=blocked_asins,
+    )
 
 
 def build_full_listing_seeds(supabase, settings, limit: int) -> list[dict[str, Any]]:
@@ -196,6 +208,7 @@ def build_full_listing_seeds(supabase, settings, limit: int) -> list[dict[str, A
     inventory_by_asin = latest_inventory_by_asin(supabase)
     planning_by_asin = latest_inventory_planning_by_asin(supabase)
     catalog_by_asin = latest_catalog_context_by_asin(supabase)
+    blocked_asins = fetch_blocked_asins(supabase)
 
     by_asin: dict[str, dict[str, Any]] = {}
     for row in listing_rows:
@@ -272,7 +285,16 @@ def build_full_listing_seeds(supabase, settings, limit: int) -> list[dict[str, A
             },
         }
 
-    return finalize_seeds(by_asin.values(), inventory_by_asin, settings, limit, planning_by_asin, catalog_by_asin, supabase)
+    return finalize_seeds(
+        by_asin.values(),
+        inventory_by_asin,
+        settings,
+        limit,
+        planning_by_asin,
+        catalog_by_asin,
+        supabase,
+        blocked_asins=blocked_asins,
+    )
 
 
 def keepa_catalog_price(keepa: dict[str, Any]) -> float:
@@ -489,10 +511,18 @@ def finalize_seeds(
     planning_by_asin: dict[str, dict[str, Any]],
     catalog_by_asin: dict[str, dict[str, Any]],
     supabase,
+    *,
+    blocked_asins: set[str] | None = None,
 ) -> list[dict[str, Any]]:
     seeds = []
     stale_stock_skipped = 0
+    blocked_skipped = 0
+    blocked_asins = blocked_asins or set()
     for row in rows:
+        asin = str(row.get("asin") or "").upper()
+        if asin in blocked_asins:
+            blocked_skipped += 1
+            continue
         velocity = to_float(row.get("units_sold_lookback"), 0) / max(settings.sales_lookback_days / 30, 1)
         inventory_units = inventory_by_asin.get(row["asin"], 0)
         planning = planning_by_asin.get(row["asin"]) or {}
@@ -552,7 +582,25 @@ def finalize_seeds(
         seed["amazon_image_url"] = image_by_asin.get(seed["asin"])
     if stale_stock_skipped:
         print(f"Skipped stale in-stock/no-30-day-sale ASINs: {stale_stock_skipped}")
+    if blocked_skipped:
+        print(f"Skipped blocked sourcing ASINs: {blocked_skipped}")
     return seeds
+
+
+def fetch_blocked_asins(supabase) -> set[str]:
+    try:
+        rows = paginate_table(supabase, "sourcing_blocked_asins", "asin")
+    except APIError as error:
+        if is_missing_blocked_asins_table(error):
+            return set()
+        raise
+    return {str(row.get("asin") or "").strip().upper() for row in rows if row.get("asin")}
+
+
+def is_missing_blocked_asins_table(error: APIError) -> bool:
+    payload = getattr(error, "args", [{}])[0]
+    text = str(payload)
+    return "sourcing_blocked_asins" in text and ("PGRST205" in text or "42P01" in text or "does not exist" in text)
 
 
 def stale_in_stock_no_recent_sales(asin: str, inventory_units: float, planning: dict[str, Any]) -> dict[str, Any]:
