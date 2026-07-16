@@ -1113,6 +1113,17 @@ function CoverageCyclePanel() {
         </table>
       </div>
 
+      {summary?.completedCycles?.length ? (
+        <div className="rounded-md border border-slate-200 bg-white p-3 shadow-sm">
+          <div className="mb-3 text-sm font-semibold text-slate-900">Completed Cycle History</div>
+          <div className="grid gap-3 xl:grid-cols-3">
+            {summary.completedCycles.map((completed) => (
+              <CompletedCycleCard key={completed.cycle?.coverage_cycle_id} summary={completed} />
+            ))}
+          </div>
+        </div>
+      ) : null}
+
       <div className="grid gap-4 xl:grid-cols-2">
         <div className="rounded-md border border-slate-200 bg-white shadow-sm">
           <div className="flex items-center justify-between border-b border-slate-200 px-3 py-2">
@@ -1203,16 +1214,68 @@ function CoverageCyclePanel() {
   );
 }
 
-type CoverageCycleSummary = {
+function CompletedCycleCard({ summary }: { summary: CoverageCycleSnapshot }) {
+  const cycle = summary.cycle;
+  const lastRun = summary.lastRun;
+  if (!cycle) return null;
+  return (
+    <div className="rounded-md border border-slate-200 p-3">
+      <div className="mb-2">
+        <div className="text-sm font-semibold text-slate-900">Cycle {cycle.cycle_number ?? cycle.coverage_cycle_id}</div>
+        <div className="text-xs text-slate-500">
+          {date(cycle.started_at)} - {date(cycle.completed_at)}
+        </div>
+      </div>
+      <div className="grid grid-cols-2 gap-2 text-xs">
+        <HistoryMetric label="Coverage" value={`${Math.round(cycle.completion_percentage ?? 0)}%`} />
+        <HistoryMetric label="Eligible" value={String(cycle.total_eligible_asins ?? 0)} />
+        <HistoryMetric label="Searched" value={String(cycle.searched_count ?? 0)} />
+        <HistoryMetric label="Remaining" value={String(cycle.remaining_count ?? 0)} />
+        <HistoryMetric label="Calls" value={String(lastRun?.api_call_count ?? 0)} />
+        <HistoryMetric label="Quota Left" value={String(lastRun?.ending_browse_quota_remaining ?? lastRun?.starting_browse_quota_remaining ?? 0)} />
+      </div>
+      <div className="mt-2 grid gap-1 text-xs text-slate-600">
+        <div>Stop: <span className="font-medium text-slate-800">{stopReasonLabel(lastRun?.stop_reason ?? cycle.last_stop_reason ?? "", lastRun)}</span></div>
+        <div>Reset: <span className="font-medium text-slate-800">{date(lastRun?.browse_quota_reset_at ?? cycle.last_quota_reset_at)}</span></div>
+      </div>
+      <div className="mt-3 space-y-2">
+        {summary.bucketSummary.map((bucket) => (
+          <div key={bucket.priorityBucket}>
+            <div className="mb-1 flex items-center justify-between gap-2 text-xs">
+              <span className="font-medium text-slate-700">{bucket.label}</span>
+              <span className="text-slate-500">{bucket.searched}/{bucket.total}</span>
+            </div>
+            <div className="h-2 rounded bg-slate-200">
+              <div className="h-2 rounded bg-emerald-600" style={{ width: `${Math.min(bucket.progress, 100)}%` }} />
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function HistoryMetric({ label: metricLabel, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded border border-slate-200 bg-slate-50 px-2 py-1">
+      <div className="font-semibold uppercase tracking-wide text-slate-500">{metricLabel}</div>
+      <div className="mt-0.5 font-medium text-slate-900">{value}</div>
+    </div>
+  );
+}
+
+type CoverageCycleSnapshot = {
   cycle: {
     coverage_cycle_id: string;
     cycle_number?: number | null;
     status?: string | null;
     started_at?: string | null;
+    completed_at?: string | null;
     completion_percentage?: number | null;
     total_eligible_asins?: number | null;
     searched_count?: number | null;
     remaining_count?: number | null;
+    last_run_id?: string | null;
     last_stop_reason?: string | null;
     last_quota_reset_at?: string | null;
   } | null;
@@ -1227,6 +1290,10 @@ type CoverageCycleSummary = {
   }>;
   lastRun: CoverageDailyRun | null;
   statusMessage: string | null;
+};
+
+type CoverageCycleSummary = CoverageCycleSnapshot & {
+  completedCycles?: CoverageCycleSnapshot[];
 };
 
 type CoverageCycleItem = {

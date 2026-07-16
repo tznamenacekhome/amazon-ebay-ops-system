@@ -34,8 +34,15 @@ class QueueBuildResult:
     counts: dict[str, int]
 
 
-def build_unified_priority_queue(supabase, settings=None, *, limit: int = 20000) -> QueueBuildResult:
+def build_unified_priority_queue(
+    supabase,
+    settings=None,
+    *,
+    limit: int = 20000,
+    exclude_asins: set[str] | None = None,
+) -> QueueBuildResult:
     settings = settings or fetch_settings(supabase)
+    exclude_asins = {clean_asin(asin) for asin in (exclude_asins or set()) if clean_asin(asin)}
     recent = build_recent_sales_seeds(supabase, settings, limit)
     purchased = build_purchased_not_sent_seeds(supabase, settings, limit)
     catalog = build_full_listing_seeds(supabase, settings, limit)
@@ -48,7 +55,7 @@ def build_unified_priority_queue(supabase, settings=None, *, limit: int = 20000)
     ):
         for seed in seeds:
             asin = clean_asin(seed.get("asin"))
-            if not asin or asin in by_asin:
+            if not asin or asin in by_asin or asin in exclude_asins:
                 continue
             by_asin[asin] = queue_row_from_seed(seed, priority)
 

@@ -26,6 +26,7 @@ from sourcing_coverage_cycle import (
     PRIORITY_PURCHASED_NOT_SENT,
     PRIORITY_RECENTLY_SOLD,
     build_unified_priority_queue,
+    clean_asin,
     refresh_cycle_metrics,
     seed_row_for_run,
 )
@@ -58,9 +59,16 @@ def main() -> int:
         print(f"Browse quota resets: {quota_snapshot.get('reset')}")
         return 0
 
-    cycle = get_or_create_active_cycle(supabase, settings, args.queue_limit)
-    added_count = refresh_active_cycle_queue(supabase, cycle["coverage_cycle_id"], settings, args.queue_limit)
     run_id = args.run_id or str(uuid.uuid4())
+    searched_asins_this_run: set[str] = set()
+    cycle = get_or_create_active_cycle(supabase, settings, args.queue_limit, searched_asins_this_run)
+    added_count = refresh_active_cycle_queue(
+        supabase,
+        cycle["coverage_cycle_id"],
+        settings,
+        args.queue_limit,
+        searched_asins_this_run,
+    )
     create_daily_run(supabase, run_id, cycle["coverage_cycle_id"], settings, quota_snapshot, args.browse_quota_reserve)
 
     batch = create_batch(supabase, run_id, 1, 0)
@@ -80,6 +88,7 @@ def main() -> int:
     stop_reason = "no_pending_asins"
     last_queue_position = None
     ebay_search_summary = empty_ebay_search_summary()
+    cycles_touched: list[dict[str, Any]] = []
 
     while True:
         remaining_budget = None if budget is None else max(budget - api_calls_used, 0)
@@ -93,8 +102,37 @@ def main() -> int:
             min(args.seed_chunk_size, remaining_budget) if remaining_budget is not None else args.seed_chunk_size,
         )
         if not pending:
-            stop_reason = "cycle_completed"
-            break
+            cycle_metrics = refresh_cycle_metrics(
+                supabase,
+                cycle["coverage_cycle_id"],
+                run_id=run_id,
+                stop_reason="cycle_completed",
+            )
+            cycles_touched.append(
+                {
+                    "coverage_cycle_id": cycle["coverage_cycle_id"],
+                    "status": "completed",
+                    "searched_count": cycle_metrics.get("searched_count"),
+                    "remaining_count": cycle_metrics.get("remaining_count"),
+                }
+            )
+            if args.single_chunk:
+                stop_reason = "manual_chunk_limit"
+                break
+            next_cycle = create_new_cycle(
+                supabase,
+                settings,
+                args.queue_limit,
+                searched_asins_this_run,
+                created_from="run_daily_catalog_sourcing_continuation",
+            )
+            if not next_cycle:
+                stop_reason = "cycle_completed"
+                break
+            cycle = next_cycle
+            added_count += int(cycle.get("total_eligible_asins") or 0)
+            last_queue_position = None
+            continue
 
         mark_items_status(supabase, [row["cycle_item_id"] for row in pending], "searching")
         insert_seed_rows(supabase, pending, run_id, cycle["coverage_cycle_id"])
@@ -122,6 +160,7 @@ def main() -> int:
         searched_items = pending[:searched_this_chunk]
         searched_total += searched_this_chunk
         api_calls_used += calls_this_chunk
+        searched_asins_this_run.update(clean_asin(row.get("asin")) for row in searched_items if clean_asin(row.get("asin")))
         last_queue_position = searched_items[-1]["queue_position"] if searched_items else last_queue_position
 
         run_python(["integrations/score_sourcing_opportunities.py", "--run-id", run_id, "--update-existing"])
@@ -173,6 +212,7 @@ def main() -> int:
         last_queue_position=last_queue_position,
         added_count=added_count,
         ebay_search_summary=ebay_search_summary,
+        cycles_touched=cycles_touched,
     )
     print("Daily catalog sourcing")
     print("----------------------")
@@ -198,7 +238,7 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def get_or_create_active_cycle(supabase, settings, queue_limit: int) -> dict[str, Any]:
+def get_or_create_active_cycle(supabase, settings, queue_limit: int, exclude_asins: set[str] | None = None) -> dict[str, Any]:
     response = (
         supabase.table("sourcing_coverage_cycles")
         .select("*")
@@ -209,7 +249,23 @@ def get_or_create_active_cycle(supabase, settings, queue_limit: int) -> dict[str
     )
     if response.data:
         return response.data[0]
-    queue = build_unified_priority_queue(supabase, settings, limit=queue_limit)
+    cycle = create_new_cycle(supabase, settings, queue_limit, exclude_asins, created_from="run_daily_catalog_sourcing")
+    if not cycle:
+        raise RuntimeError("No eligible ASINs found for a new sourcing coverage cycle.")
+    return cycle
+
+
+def create_new_cycle(
+    supabase,
+    settings,
+    queue_limit: int,
+    exclude_asins: set[str] | None = None,
+    *,
+    created_from: str,
+) -> dict[str, Any] | None:
+    queue = build_unified_priority_queue(supabase, settings, limit=queue_limit, exclude_asins=exclude_asins)
+    if not queue.rows:
+        return None
     cycle_response = (
         supabase.table("sourcing_coverage_cycles")
         .insert(
@@ -220,7 +276,10 @@ def get_or_create_active_cycle(supabase, settings, queue_limit: int) -> dict[str
                 "priority_2_count": queue.counts[PRIORITY_PURCHASED_NOT_SENT],
                 "priority_3_count": queue.counts[PRIORITY_CATALOG_REMAINING],
                 "remaining_count": len(queue.rows),
-                "raw_metrics_json": {"created_from": "run_daily_catalog_sourcing"},
+                "raw_metrics_json": {
+                    "created_from": created_from,
+                    "excluded_same_run_asins": len(exclude_asins or set()),
+                },
             }
         )
         .execute()
@@ -231,8 +290,14 @@ def get_or_create_active_cycle(supabase, settings, queue_limit: int) -> dict[str
     return cycle
 
 
-def refresh_active_cycle_queue(supabase, cycle_id: str, settings, queue_limit: int) -> int:
-    queue = build_unified_priority_queue(supabase, settings, limit=queue_limit)
+def refresh_active_cycle_queue(
+    supabase,
+    cycle_id: str,
+    settings,
+    queue_limit: int,
+    exclude_asins: set[str] | None = None,
+) -> int:
+    queue = build_unified_priority_queue(supabase, settings, limit=queue_limit, exclude_asins=exclude_asins)
     existing = {
         str(row.get("asin") or "").upper(): row
         for row in paginate_cycle_item_keys(supabase, cycle_id)
@@ -382,6 +447,7 @@ def finish_daily_run(
     last_queue_position: int | None = None,
     added_count: int = 0,
     ebay_search_summary: dict[str, Any] | None = None,
+    cycles_touched: list[dict[str, Any]] | None = None,
 ) -> None:
     metrics = refresh_cycle_metrics(supabase, cycle_id, run_id=run_id, stop_reason=stop_reason)
     bucket = fetch_bucket_progress(supabase, cycle_id)
@@ -419,6 +485,7 @@ def finish_daily_run(
                 "ending_quota": end_quota,
                 "quota_reserve": reserve,
                 "bucket_progress": bucket,
+                "cycles_touched": cycles_touched or [],
             }
         },
     }

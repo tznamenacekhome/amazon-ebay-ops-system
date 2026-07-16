@@ -1,5 +1,26 @@
 # DECISIONS.md
 
+## Daily Sourcing Uses Remaining Quota Across Coverage Cycles
+
+Decision date: 2026-07-16
+
+When daily catalog sourcing completes the active coverage cycle but still has
+usable eBay Browse budget, it should immediately create the next coverage cycle
+and continue searching. The daily job must keep a same-run ASIN exclusion set so
+an ASIN searched earlier in that job is not searched again in the continuation
+cycle.
+
+Consequences:
+
+- Remaining eBay quota can be used after a cycle completes.
+- Coverage-cycle history remains meaningful because each cycle is still stored
+  separately.
+- The UI must show recent completed cycles so operators can see why a run
+  continued past a cycle boundary.
+- Advisory refreshes after sourcing, such as Matching Intelligence refresh,
+  should not mark the sourcing-catalog scheduler group failed when daily
+  sourcing itself succeeded.
+
 ## ASIN Blocking Is A Product-Level Sourcing Control
 
 Decision date: 2026-07-16

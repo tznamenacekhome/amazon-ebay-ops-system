@@ -20,6 +20,7 @@ from dotenv import load_dotenv
 LOGGER = logging.getLogger("keepa_client")
 DEFAULT_ENDPOINT = "https://api.keepa.com"
 DEFAULT_TIMEOUT_SECONDS = 45
+TRANSIENT_REQUEST_ATTEMPTS = 3
 
 
 class KeepaAPIError(RuntimeError):
@@ -102,11 +103,31 @@ class KeepaClient:
         safe_params = {key: value for key, value in request_params.items() if key != "key"}
         LOGGER.info("Keepa GET /%s params=%s", path.lstrip("/"), safe_params)
 
-        response = self.session.get(
-            url,
-            params=request_params,
-            timeout=DEFAULT_TIMEOUT_SECONDS,
-        )
+        response = None
+        for attempt in range(1, TRANSIENT_REQUEST_ATTEMPTS + 1):
+            try:
+                response = self.session.get(
+                    url,
+                    params=request_params,
+                    timeout=DEFAULT_TIMEOUT_SECONDS,
+                )
+                break
+            except (requests.Timeout, requests.ConnectionError) as error:
+                if attempt >= TRANSIENT_REQUEST_ATTEMPTS:
+                    raise KeepaAPIError(f"Keepa request failed after retries: {error}") from error
+                sleep_seconds = min(2 ** attempt, 10)
+                LOGGER.warning(
+                    "Keepa GET /%s transient failure on attempt %s/%s: %s; retrying in %ss",
+                    path.lstrip("/"),
+                    attempt,
+                    TRANSIENT_REQUEST_ATTEMPTS,
+                    error,
+                    sleep_seconds,
+                )
+                time.sleep(sleep_seconds)
+
+        if response is None:
+            raise KeepaAPIError("Keepa request did not return a response.")
 
         if response.status_code == 429:
             raise KeepaAPIError("Keepa token/rate limit reached: HTTP 429")

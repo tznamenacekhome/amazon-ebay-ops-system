@@ -369,6 +369,7 @@ JOBS: tuple[SyncJob, ...] = (
             "1",
         ),
         groups=("core", "daily", "catalog", "purchases", "sourcing-catalog"),
+        blocking=False,
         timeout_seconds=30 * 60,
     ),
     SyncJob(
@@ -595,7 +596,7 @@ def main() -> int:
                 started_at=started_at,
                 error_summary="; ".join(nonblocking_failures),
             )
-            return 2
+            return 0
 
         print("\nSync group completed successfully.")
         print(now_iso())

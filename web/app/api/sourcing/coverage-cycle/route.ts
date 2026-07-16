@@ -21,20 +21,40 @@ export async function GET() {
     .maybeSingle();
 
   if (error) return noStoreJson({ error: error.message }, { status: 500 });
-  if (!cycle) return noStoreJson({ cycle: null, bucketSummary: [], lastRun: null });
+  if (!cycle) return noStoreJson({ cycle: null, bucketSummary: [], lastRun: null, completedCycles: [] });
 
-  const [itemsResult, lastRunResult] = await Promise.all([
-    fetchCycleItems(supabase, cycle.coverage_cycle_id),
-    supabase
-      .from("sourcing_runs")
-      .select("*")
-      .eq("coverage_cycle_id", cycle.coverage_cycle_id)
-      .order("started_at", { ascending: false })
-      .limit(1)
-      .maybeSingle(),
-  ]);
-  if (itemsResult.error) return noStoreJson({ error: itemsResult.error.message }, { status: 500 });
-  if (lastRunResult.error) return noStoreJson({ error: lastRunResult.error.message }, { status: 500 });
+  const completedResult = await supabase
+    .from("sourcing_coverage_cycles")
+    .select("*")
+    .eq("status", "completed")
+    .neq("coverage_cycle_id", cycle.coverage_cycle_id)
+    .order("completed_at", { ascending: false })
+    .limit(3);
+  if (completedResult.error) return noStoreJson({ error: completedResult.error.message }, { status: 500 });
+
+  let currentSummary;
+  let completedCycles;
+  try {
+    [currentSummary, completedCycles] = await Promise.all([
+      buildCycleSummary(supabase, cycle),
+      Promise.all((completedResult.data ?? []).map((row) => buildCycleSummary(supabase, row))),
+    ]);
+  } catch (summaryError) {
+    const message = summaryError instanceof Error ? summaryError.message : "Failed to build coverage cycle summary.";
+    return noStoreJson({ error: message }, { status: 500 });
+  }
+
+  return noStoreJson({
+    ...currentSummary,
+    completedCycles,
+  });
+}
+
+async function buildCycleSummary(supabase: ReturnType<typeof createServerSupabaseClient>, cycle: Record<string, unknown>) {
+  const cycleId = String(cycle.coverage_cycle_id ?? "");
+  const [itemsResult, lastRunResult] = await Promise.all([fetchCycleItems(supabase, cycleId), fetchLastRun(supabase, cycle)]);
+  if (itemsResult.error) throw new Error(itemsResult.error.message);
+  if (lastRunResult.error) throw new Error(lastRunResult.error.message);
 
   const items = itemsResult.data;
   const bucketSummary = buckets.map(([bucket, label]) => {
@@ -55,12 +75,31 @@ export async function GET() {
     };
   });
 
-  return noStoreJson({
+  return {
     cycle,
     bucketSummary,
     lastRun: lastRunResult.data ?? null,
     statusMessage: statusMessage(cycle, bucketSummary),
-  });
+  };
+}
+
+async function fetchLastRun(supabase: ReturnType<typeof createServerSupabaseClient>, cycle: Record<string, unknown>) {
+  const lastRunId = cycle.last_run_id ? String(cycle.last_run_id) : "";
+  if (lastRunId) {
+    return supabase
+      .from("sourcing_runs")
+      .select("*")
+      .eq("sourcing_run_id", lastRunId)
+      .maybeSingle();
+  }
+
+  return supabase
+    .from("sourcing_runs")
+    .select("*")
+    .eq("coverage_cycle_id", String(cycle.coverage_cycle_id ?? ""))
+    .order("started_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
 }
 
 async function fetchCycleItems(supabase: ReturnType<typeof createServerSupabaseClient>, cycleId: string) {

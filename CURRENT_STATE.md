@@ -2,6 +2,33 @@
 
 Last Updated: 2026-07-16
 
+## 2026-07-16 Sourcing Cycle Continuation
+
+- Daily catalog sourcing now continues into a new coverage cycle immediately
+  after the active cycle completes when the same job still has Browse-call
+  budget remaining.
+- A daily job run keeps an in-memory ASIN exclusion set so the continuation
+  cycle does not search the same ASIN twice in that run.
+- The Coverage Cycle screen now shows the current cycle plus the last three
+  completed cycles with the same headline coverage, quota, stop-reason, and
+  priority-bucket stats.
+- `Matching intelligence refresh` is nonblocking scheduler work. Failures still
+  appear in job telemetry, but they no longer mark the sourcing-catalog group
+  failed after daily sourcing and availability refresh succeed.
+- Scheduler groups with only nonblocking failures now finish as `degraded` in
+  telemetry while returning process exit code 0, so advisory job failures do not
+  make ECS/EventBridge report the whole scheduled task as failed.
+- CloudWatch review of the July 16 failures found transient external/runtime
+  causes rather than business-rule failures: Keepa FBA prep pricing timed out on
+  a Keepa `/product` read, Amazon listing status hit Supabase/Postgres statement
+  timeout `57014`, inventory reconciliation hit Supabase/Postgres statement
+  timeout `57014`, and the sourcing-catalog follow-up path also saw transient
+  Supabase Cloudflare 521/525/schema-cache errors. The affected read paths now
+  retry transient timeouts/connectivity failures before failing safely. Amazon
+  listing status and inventory reconciliation also avoid the expensive latest
+  FBA inventory distinct-view scan by reading the base snapshot rows for the
+  latest shared `captured_at` run.
+
 ## 2026-07-16 Receiving And Sourcing Operator Updates
 
 - Receiving detail now shows buy price beside sell price so operators can make

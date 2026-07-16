@@ -10,6 +10,7 @@ from __future__ import annotations
 import argparse
 import logging
 import os
+import time
 from collections import defaultdict
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -21,6 +22,7 @@ from supabase import create_client
 LOGGER = logging.getLogger("inventory_reconcile")
 BATCH_SIZE = 500
 ITEM_LOOKUP_BATCH_SIZE = 100
+TRANSIENT_SUPABASE_ATTEMPTS = 3
 DERIVATION_VERSION = "inventory_state_v1"
 LATEST_FBA_INVENTORY_COLUMNS = (
     "seller_sku,marketplace_id,asin,fnsku,product_name,"
@@ -71,11 +73,7 @@ def main() -> int:
         fba_item_links = fetch_fba_item_links(supabase)
         amazon_skus = fetch_amazon_skus(supabase)
         inventorylab_backfill = fetch_inventorylab_backfill(supabase)
-        amazon_snapshots = fetch_all(
-            supabase,
-            "vw_latest_amazon_fba_inventory_snapshot",
-            LATEST_FBA_INVENTORY_COLUMNS,
-        )
+        amazon_snapshots = fetch_latest_fba_inventory_snapshots(supabase)
         amazon_listing_snapshots = fetch_all(
             supabase,
             "vw_latest_amazon_listing_snapshot",
@@ -227,7 +225,11 @@ def fetch_all(
         query = supabase.table(table).select(select)
         if order_by:
             query = query.order(order_by)
-        response = query.range(offset, offset + BATCH_SIZE - 1).execute()
+        response = execute_supabase_page_with_retries(
+            query.range(offset, offset + BATCH_SIZE - 1),
+            table=table,
+            offset=offset,
+        )
         data = response.data or []
         rows.extend(data)
 
@@ -235,6 +237,76 @@ def fetch_all(
             return rows
 
         offset += BATCH_SIZE
+
+
+def fetch_latest_fba_inventory_snapshots(supabase) -> list[dict[str, Any]]:
+    latest_response = (
+        supabase.table("amazon_fba_inventory_snapshots")
+        .select("captured_at")
+        .order("captured_at", desc=True)
+        .limit(1)
+        .execute()
+    )
+    latest_captured_at = (latest_response.data or [{}])[0].get("captured_at")
+    if not latest_captured_at:
+        return []
+
+    rows: list[dict[str, Any]] = []
+    offset = 0
+    while True:
+        query = (
+            supabase.table("amazon_fba_inventory_snapshots")
+            .select(LATEST_FBA_INVENTORY_COLUMNS)
+            .eq("captured_at", latest_captured_at)
+            .order("seller_sku")
+        )
+        response = execute_supabase_page_with_retries(
+            query.range(offset, offset + BATCH_SIZE - 1),
+            table="amazon_fba_inventory_snapshots",
+            offset=offset,
+        )
+        data = response.data or []
+        rows.extend(data)
+        if len(data) < BATCH_SIZE:
+            return rows
+        offset += BATCH_SIZE
+
+
+def execute_supabase_page_with_retries(query, *, table: str, offset: int):
+    for attempt in range(1, TRANSIENT_SUPABASE_ATTEMPTS + 1):
+        try:
+            return query.execute()
+        except Exception as error:  # noqa: BLE001 - Supabase client wraps transient HTTP/DB errors
+            if not is_transient_supabase_error(error) or attempt >= TRANSIENT_SUPABASE_ATTEMPTS:
+                raise
+            sleep_seconds = min(2 ** attempt, 10)
+            LOGGER.warning(
+                "Transient Supabase read failure for %s offset=%s on attempt %s/%s: %s; retrying in %ss",
+                table,
+                offset,
+                attempt,
+                TRANSIENT_SUPABASE_ATTEMPTS,
+                error,
+                sleep_seconds,
+            )
+            time.sleep(sleep_seconds)
+
+
+def is_transient_supabase_error(error: Exception) -> bool:
+    text = str(error).lower()
+    transient_terms = (
+        "statement timeout",
+        "code': '57014",
+        'code": "57014',
+        "pgrst002",
+        "schema cache",
+        "error code 521",
+        "error code 522",
+        "error code 525",
+        "web server is down",
+        "ssl handshake failed",
+    )
+    return any(term in text for term in transient_terms)
 
 
 def fetch_item_meta(

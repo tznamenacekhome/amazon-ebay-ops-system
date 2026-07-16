@@ -75,8 +75,21 @@ Current implementation notes:
   durable ASIN pass. Priority order is recently sold in the last 90 days,
   purchased Amazon-bound items not yet sent to Amazon, then the remaining
   eligible catalog.
+- When a daily catalog sourcing job finishes the active coverage cycle while
+  Browse quota remains, it immediately creates and starts the next coverage
+  cycle. The runner carries an in-memory ASIN exclusion set for the whole daily
+  job, so an ASIN searched earlier in the same job is not searched again after
+  the cycle rolls over.
 - The Coverage Cycle tab shows cycle progress, priority-bucket progress, queue
-  rows, and recent `daily_catalog_sourcing` runs from backend API routes.
+  rows, recent `daily_catalog_sourcing` runs, and the last three completed
+  coverage cycles with the same summary stats shown for the current cycle.
+- Matching intelligence refresh is advisory for the sourcing-catalog scheduler
+  group. Its failure is recorded in scheduler telemetry, but it no longer marks
+  the whole sourcing-catalog group failed after the quota-spending sourcing job
+  and listing availability refresh have already completed. Scheduler groups
+  with only nonblocking failures record `degraded` telemetry and return process
+  exit code 0 so ECS/EventBridge does not classify advisory failures as failed
+  tasks.
 - The opportunity detail drawer was removed after operator review.
 - Table actions handle watch, purchased/offer made, and dismiss directly; table dismiss uses a modal for dismiss reason and notes.
 - Auction type cells link to Gixen and copy the eBay item number to the clipboard.

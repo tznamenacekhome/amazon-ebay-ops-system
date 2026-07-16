@@ -24,6 +24,7 @@ from amazon_spapi_client import AmazonSPAPIClient, AmazonSPAPIError
 
 LOGGER = logging.getLogger("amazon_listing_status_sync")
 BATCH_SIZE = 500
+TRANSIENT_SUPABASE_ATTEMPTS = 3
 DEFAULT_INCLUDED_DATA = [
     "summaries",
     "issues",
@@ -212,14 +213,7 @@ def fetch_amazon_skus(
             marketplace_id=marketplace_id,
         ), stale_days)
 
-    snapshots = fetch_all(
-        supabase,
-        "vw_latest_amazon_fba_inventory_snapshot",
-        "seller_sku,marketplace_id,total_quantity,fulfillable_quantity,"
-        "inbound_working_quantity,inbound_shipped_quantity,inbound_receiving_quantity,"
-        "reserved_quantity,unfulfillable_quantity",
-        marketplace_id=marketplace_id,
-    )
+    snapshots = fetch_latest_fba_inventory_snapshots(supabase, marketplace_id)
     active_skus = {
         row.get("seller_sku")
         for row in snapshots
@@ -239,6 +233,46 @@ def fetch_amazon_skus(
         )
         rows.extend(response.data or [])
     return filter_stale_skus(rows, stale_days)
+
+
+def fetch_latest_fba_inventory_snapshots(supabase, marketplace_id: str) -> list[dict[str, Any]]:
+    latest_response = (
+        supabase.table("amazon_fba_inventory_snapshots")
+        .select("captured_at")
+        .eq("marketplace_id", marketplace_id)
+        .order("captured_at", desc=True)
+        .limit(1)
+        .execute()
+    )
+    latest_captured_at = (latest_response.data or [{}])[0].get("captured_at")
+    if not latest_captured_at:
+        return []
+
+    rows: list[dict[str, Any]] = []
+    offset = 0
+    select = (
+        "seller_sku,marketplace_id,total_quantity,fulfillable_quantity,"
+        "inbound_working_quantity,inbound_shipped_quantity,inbound_receiving_quantity,"
+        "reserved_quantity,unfulfillable_quantity"
+    )
+    while True:
+        query = (
+            supabase.table("amazon_fba_inventory_snapshots")
+            .select(select)
+            .eq("marketplace_id", marketplace_id)
+            .eq("captured_at", latest_captured_at)
+            .order("seller_sku")
+        )
+        response = execute_supabase_page_with_retries(
+            query.range(offset, offset + BATCH_SIZE - 1),
+            table="amazon_fba_inventory_snapshots",
+            offset=offset,
+        )
+        data = response.data or []
+        rows.extend(data)
+        if len(data) < BATCH_SIZE:
+            return rows
+        offset += BATCH_SIZE
 
 
 def filter_stale_skus(rows: list[dict[str, Any]], stale_days: int | None) -> list[dict[str, Any]]:
@@ -277,12 +311,53 @@ def fetch_all(
         query = supabase.table(table).select(select)
         if marketplace_id:
             query = query.eq("marketplace_id", marketplace_id)
-        response = query.range(offset, offset + BATCH_SIZE - 1).execute()
+        response = execute_supabase_page_with_retries(
+            query.range(offset, offset + BATCH_SIZE - 1),
+            table=table,
+            offset=offset,
+        )
         data = response.data or []
         rows.extend(data)
         if len(data) < BATCH_SIZE:
             return rows
         offset += BATCH_SIZE
+
+
+def execute_supabase_page_with_retries(query, *, table: str, offset: int):
+    for attempt in range(1, TRANSIENT_SUPABASE_ATTEMPTS + 1):
+        try:
+            return query.execute()
+        except Exception as error:  # noqa: BLE001 - Supabase client wraps transient HTTP/DB errors
+            if not is_transient_supabase_error(error) or attempt >= TRANSIENT_SUPABASE_ATTEMPTS:
+                raise
+            sleep_seconds = min(2 ** attempt, 10)
+            LOGGER.warning(
+                "Transient Supabase read failure for %s offset=%s on attempt %s/%s: %s; retrying in %ss",
+                table,
+                offset,
+                attempt,
+                TRANSIENT_SUPABASE_ATTEMPTS,
+                error,
+                sleep_seconds,
+            )
+            time.sleep(sleep_seconds)
+
+
+def is_transient_supabase_error(error: Exception) -> bool:
+    text = str(error).lower()
+    transient_terms = (
+        "statement timeout",
+        "code': '57014",
+        'code": "57014',
+        "pgrst002",
+        "schema cache",
+        "error code 521",
+        "error code 522",
+        "error code 525",
+        "web server is down",
+        "ssl handshake failed",
+    )
+    return any(term in text for term in transient_terms)
 
 
 def build_listing_snapshot(

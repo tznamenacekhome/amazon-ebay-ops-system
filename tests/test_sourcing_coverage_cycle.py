@@ -1,6 +1,7 @@
 import sys
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "integrations"))
@@ -11,6 +12,7 @@ from sourcing_coverage_cycle import (  # noqa: E402
     PRIORITY_RECENTLY_SOLD,
     is_purchased_not_yet_sent_to_amazon,
     is_video_game_seed,
+    build_unified_priority_queue,
     queue_row_from_seed,
     queue_sort_key,
 )
@@ -138,6 +140,34 @@ class SourcingCoverageCycleTests(unittest.TestCase):
             },
         ):
             self.assertIs(is_video_game_seed(seed), False)
+
+    def test_unified_priority_queue_excludes_same_run_asins(self):
+        recent_seed = {
+            "asin": "B000TEST01",
+            "amazon_title": "Recently Sold Game",
+            "last_sold_at": "2026-07-10T00:00:00+00:00",
+            "inventory_need_level": "critical",
+            "raw_context_json": {},
+        }
+        catalog_seed = {
+            "asin": "B000TEST02",
+            "amazon_title": "Catalog Game",
+            "last_sold_at": "2026-07-09T00:00:00+00:00",
+            "inventory_need_level": "high",
+            "raw_context_json": {},
+        }
+
+        with (
+            patch("sourcing_coverage_cycle.fetch_settings", return_value=object()),
+            patch("sourcing_coverage_cycle.build_recent_sales_seeds", return_value=[recent_seed]),
+            patch("sourcing_coverage_cycle.build_purchased_not_sent_seeds", return_value=[]),
+            patch("sourcing_coverage_cycle.build_full_listing_seeds", return_value=[catalog_seed]),
+        ):
+            queue = build_unified_priority_queue(object(), exclude_asins={"B000TEST01"})
+
+        self.assertEqual([row["asin"] for row in queue.rows], ["B000TEST02"])
+        self.assertEqual(queue.counts[PRIORITY_RECENTLY_SOLD], 0)
+        self.assertEqual(queue.counts[PRIORITY_CATALOG_REMAINING], 1)
 
 
 if __name__ == "__main__":
