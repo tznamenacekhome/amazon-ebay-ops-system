@@ -440,7 +440,7 @@ function ReplenishmentTable({
               <th className="w-36 px-3 py-2">Amazon</th>
               <th className="w-[26rem] px-2 py-2">Opportunity</th>
               <th className="w-24 px-2 py-2">Cost</th>
-              <th className="w-24 px-2 py-2">Last Sold</th>
+              <th className="w-32 px-2 py-2">Last Sold</th>
               <th className="w-24 px-2 py-2">Keepa 90</th>
               <th className="w-24 px-2 py-2">Keepa Now</th>
               <th className="w-24 px-2 py-2">Profit</th>
@@ -509,6 +509,16 @@ function ReplenishmentTable({
                   <td className="px-2 py-2 whitespace-nowrap">
                     <div className="font-medium">{money(row.lastSalePrice)}</div>
                     <div className="text-xs text-slate-500">{dateOnly(row.lastSoldAt)}</div>
+                    <div className="mt-1 text-[11px] leading-tight text-slate-500">
+                      <span>{salesCountPrefix(row)}{row.unitsSold90d ?? 0}</span>
+                      <span className="text-slate-400"> / </span>
+                      <span>{row.unitsSold120d ?? 0}</span>
+                      <span className="text-slate-400"> / </span>
+                      <span>{row.unitsSold365d ?? 0}</span>
+                    </div>
+                    <div className="text-[10px] uppercase leading-tight text-slate-400">
+                      90 / 120 / 365{row.salesCountSource === "keepa_rank_drops" ? " est" : ""}
+                    </div>
                   </td>
                   <td className="px-2 py-2 whitespace-nowrap">
                     <div className="font-medium">{money(row.keepaAvg90Price)}</div>
@@ -1262,6 +1272,10 @@ function HistoryMetric({ label: metricLabel, value }: { label: string; value: st
       <div className="mt-0.5 font-medium text-slate-900">{value}</div>
     </div>
   );
+}
+
+function salesCountPrefix(row: SourcingOpportunity) {
+  return row.salesCountSource === "keepa_rank_drops" ? "~" : "";
 }
 
 type CoverageCycleSnapshot = {

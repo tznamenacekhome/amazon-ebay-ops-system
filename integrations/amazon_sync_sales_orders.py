@@ -35,6 +35,7 @@ def main() -> int:
     )
     logging.getLogger("httpx").setLevel(logging.WARNING)
     load_dotenv()
+    load_dotenv(".env.local")
 
     try:
         client = AmazonSPAPIClient.from_env()
@@ -138,6 +139,12 @@ def parse_args() -> argparse.Namespace:
         help="Delay between getOrderItems calls to stay under Amazon Orders API quotas.",
     )
     parser.add_argument(
+        "--order-page-delay-seconds",
+        type=float,
+        default=1.0,
+        help="Delay between listOrders pages to stay under Amazon Orders API quotas.",
+    )
+    parser.add_argument(
         "--skip-unchanged-order-items",
         action=argparse.BooleanOptionalAction,
         default=True,
@@ -170,6 +177,7 @@ def fetch_orders(client: AmazonSPAPIClient, args: argparse.Namespace) -> list[di
             created_after=args.created_after,
             created_before=args.created_before,
             max_pages=args.max_pages,
+            page_delay_seconds=args.order_page_delay_seconds,
         )
     )
     if args.limit is not None:

@@ -45,3 +45,12 @@ SQL change workflow:
   ledger in MBOP.
 - After SQL is applied by either the operator or Codex, continue implementation
   and verification.
+
+Cloud login workflow:
+- Prefer `scripts/login-cloud-tools.ps1` when both AWS and Supabase CLI access
+  may be needed for deployment or production verification.
+- The script must first probe the current AWS SSO profile with
+  `aws sts get-caller-identity` and the Supabase CLI with
+  `supabase projects list`; it should only invoke interactive login when the
+  existing session is invalid.
+- Use `-SkipAws` or `-SkipSupabase` when only one toolchain is needed.

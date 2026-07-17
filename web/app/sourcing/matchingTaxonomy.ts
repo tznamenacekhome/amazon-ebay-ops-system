@@ -7,6 +7,7 @@ export const dismissReasonGroups = [
       ["wrong_edition_version", "Wrong Edition / Version"],
       ["non_north_american_version", "Non-North-American Version"],
       ["digital_item", "Digital Item"],
+      ["nfr", "NFR"],
     ],
   },
   {

@@ -1,5 +1,29 @@
 # DECISIONS.md
 
+## Opportunity Sales History Uses Exact Seller Sales Before Demand Estimates
+
+Decision date: 2026-07-16
+
+Sourcing Opportunities should show exact MBOP seller sales history when Amazon
+seller order rows exist for the same ASIN. Exact fields come from
+`amazon_sales_order_items` joined to `amazon_sales_orders`: last sale price,
+last sale date, and 90/120/365-day unit counts. If exact seller sales are not
+available for the ASIN, the UI may show seed context or Keepa demand estimates,
+but those estimates must remain labeled as estimates and must not be presented
+as MBOP sales.
+
+Consequences:
+
+- New-to-catalog ASINs can still be valid sourcing opportunities without exact
+  MBOP sales rows.
+- Older catalog ASINs may have zero 90/120/365-day exact sales even when Keepa
+  shows current marketplace demand.
+- Amazon order-date report imports are the preferred historical backfill path
+  for exact sales coverage because they avoid high-volume per-order
+  `getOrderItems` throttling.
+- Report imports must stay in Amazon-specific sales tables and must not write to
+  purchases, receiving, sourcing rules, or marketplace matching corrections.
+
 ## Daily Sourcing Uses Remaining Quota Across Coverage Cycles
 
 Decision date: 2026-07-16

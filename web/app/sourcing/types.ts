@@ -39,6 +39,10 @@ export type SourcingOpportunity = {
   monthsOfSupply: number | null;
   inventoryNeedLevel: string | null;
   lastSoldAt: string | null;
+  unitsSold90d: number;
+  unitsSold120d: number;
+  unitsSold365d: number;
+  salesCountSource: "amazon_orders" | "seed" | "keepa_rank_drops" | null;
   opportunityType: string | null;
   status: string | null;
   estimatedProfit: number | null;

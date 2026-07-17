@@ -20,15 +20,44 @@ function Invoke-SupabaseCli {
   }
 }
 
+function Test-AwsCliLogin {
+  param([string]$Profile)
+
+  $identity = aws sts get-caller-identity --profile $Profile --output json 2>$null
+  if ($LASTEXITCODE -ne 0 -or -not $identity) {
+    return $null
+  }
+  return $identity | ConvertFrom-Json
+}
+
+function Test-SupabaseCliLogin {
+  $output = npx.cmd --yes supabase@latest projects list 2>$null
+  if ($LASTEXITCODE -ne 0) {
+    return $false
+  }
+  return $true
+}
+
 if (-not $SkipAws) {
   Write-Host "== AWS ==" -ForegroundColor Cyan
-  $awsArgs = @{ Profile = $AwsProfile }
-  if ($AwsRootFallback) {
-    $awsArgs.RootFallback = $true
-  }
-  & (Join-Path $PSScriptRoot "aws-login.ps1") @awsArgs
-  if ($LASTEXITCODE -ne 0) {
-    throw "AWS login failed."
+  $identity = Test-AwsCliLogin -Profile $AwsProfile
+  if ($identity) {
+    Write-Host "AWS login already valid." -ForegroundColor Green
+    Write-Host "Profile: $AwsProfile"
+    Write-Host "Account: $($identity.Account)"
+    Write-Host "ARN:     $($identity.Arn)"
+    Write-Host ""
+    Write-Host "Use this profile for deploy/status commands:"
+    Write-Host "  `$env:AWS_PROFILE = `"$AwsProfile`""
+  } else {
+    $awsArgs = @{ Profile = $AwsProfile }
+    if ($AwsRootFallback) {
+      $awsArgs.RootFallback = $true
+    }
+    & (Join-Path $PSScriptRoot "aws-login.ps1") @awsArgs
+    if ($LASTEXITCODE -ne 0) {
+      throw "AWS login failed."
+    }
   }
 }
 
@@ -36,14 +65,21 @@ if (-not $SkipSupabase) {
   Write-Host ""
   Write-Host "== Supabase CLI ==" -ForegroundColor Cyan
 
-  if ($SupabaseAccessToken) {
-    Invoke-SupabaseCli -Arguments @("login", "--token", $SupabaseAccessToken)
+  $supabaseLoggedIn = Test-SupabaseCliLogin
+  if ($supabaseLoggedIn) {
+    Write-Host "Supabase login already valid." -ForegroundColor Green
   } else {
-    Invoke-SupabaseCli -Arguments @("login")
+    if ($SupabaseAccessToken) {
+      Invoke-SupabaseCli -Arguments @("login", "--token", $SupabaseAccessToken)
+    } else {
+      Invoke-SupabaseCli -Arguments @("login")
+    }
+
+    Write-Host ""
+    Write-Host "Supabase login verified." -ForegroundColor Green
   }
 
   Write-Host ""
-  Write-Host "Supabase login verified." -ForegroundColor Green
   Invoke-SupabaseCli -Arguments @("projects", "list")
 
   $projectRefPath = Join-Path $repoRoot "supabase\.temp\project-ref"

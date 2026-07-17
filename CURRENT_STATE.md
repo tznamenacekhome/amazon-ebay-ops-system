@@ -2,6 +2,29 @@
 
 Last Updated: 2026-07-16
 
+## 2026-07-16 Opportunity Sales History And Cloud Login
+
+- The Sourcing Opportunities screen now enriches each ASIN with exact Amazon
+  seller sales context when present: last sale price, last sale date, and
+  90/120/365-day unit counts from `amazon_sales_order_items` joined to
+  `amazon_sales_orders`.
+- When exact MBOP seller sales are unavailable for an ASIN, opportunities fall
+  back to seed context and Keepa sales-rank-drop demand estimates. Keepa demand
+  is displayed as estimated rather than represented as an exact MBOP sale.
+- Amazon SP-API order-date report import is available through
+  `integrations/amazon_sync_sales_order_report.py`. It imports Amazon's
+  `GET_FLAT_FILE_ALL_ORDERS_DATA_BY_ORDER_DATE_GENERAL` report in date chunks,
+  ignores location/PII-style fields, and upserts only Amazon-specific
+  `amazon_sales_orders` and `amazon_sales_order_items` rows.
+- SP-API report history has been imported for 2024-01-01 through 2026-07-17.
+  Current missing exact sales history on opportunity ASINs reflects valid
+  business cases such as new-to-catalog ASINs or very old ASINs rather than a
+  failed recent SP-API import.
+- The opportunity dismiss modal now includes `NFR` as a dismiss reason, stored
+  as `dismiss_reason = 'nfr'`.
+- `scripts/login-cloud-tools.ps1` now checks existing AWS SSO and Supabase CLI
+  sessions before invoking interactive login sequences.
+
 ## 2026-07-16 Sourcing Cycle Continuation
 
 - Daily catalog sourcing now continues into a new coverage cycle immediately

@@ -29,6 +29,7 @@ LOG_DIR = ROOT_DIR / "logs"
 DEFAULT_STATE_FILE = LOG_DIR / "amazon_sales_backfill_state.json"
 DEFAULT_LOG_FILE = LOG_DIR / "amazon_sales_backfill.log"
 DEFAULT_CHUNK_DAYS = 3
+DEFAULT_ORDER_PAGE_DELAY_SECONDS = 6.0
 DEFAULT_ORDER_ITEM_DELAY_SECONDS = 2.5
 DEFAULT_ORDER_FINANCE_DELAY_SECONDS = 1.5
 DEFAULT_PHASE_DELAY_SECONDS = 10.0
@@ -36,6 +37,7 @@ DEFAULT_CHUNK_DELAY_SECONDS = 60.0
 MIN_START_DATE = "2025-01-01"
 AMAZON_ORDER_RETRIEVAL_DELAY_MINUTES = 5
 PHASES = ("orders", "finances", "veeqo", "profitability")
+ORDER_ONLY_PHASES = ("orders",)
 
 
 def main() -> int:
@@ -43,6 +45,7 @@ def main() -> int:
     LOG_DIR.mkdir(parents=True, exist_ok=True)
     configure_logging(args.log_file)
     load_dotenv(ROOT_DIR / ".env")
+    load_dotenv(ROOT_DIR / ".env.local")
 
     state_path = Path(args.state_file)
     if args.status:
@@ -57,8 +60,9 @@ def main() -> int:
         state = new_state(args)
     state["last_run_apply"] = bool(args.apply)
     state["last_run_started_at"] = utc_now()
+    state["phases"] = list(active_phases(args))
 
-    chunks = build_chunks(args.start_date, args.end_date, args.chunk_days)
+    chunks = build_chunks(args.start_date, args.end_date, args.chunk_days, active_phases(args))
     state["chunks"] = merge_chunks(state.get("chunks", []), chunks)
     save_state(state_path, state)
 
@@ -115,6 +119,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--status", action="store_true", help="Print progress from state file.")
     parser.add_argument("--apply", action="store_true", help="Write to Supabase.")
     parser.add_argument(
+        "--order-page-delay-seconds",
+        type=float,
+        default=DEFAULT_ORDER_PAGE_DELAY_SECONDS,
+    )
+    parser.add_argument(
         "--order-item-delay-seconds",
         type=float,
         default=DEFAULT_ORDER_ITEM_DELAY_SECONDS,
@@ -138,6 +147,11 @@ def parse_args() -> argparse.Namespace:
         "--skip-veeqo",
         action="store_true",
         help="Skip Veeqo label lookup phase.",
+    )
+    parser.add_argument(
+        "--orders-only",
+        action="store_true",
+        help="Only backfill Amazon sales orders and order items.",
     )
     parser.add_argument(
         "--supabase-probe-attempts",
@@ -172,9 +186,14 @@ def new_state(args: argparse.Namespace) -> dict[str, Any]:
         "start_date": args.start_date,
         "end_date": args.end_date,
         "chunk_days": args.chunk_days,
+        "phases": list(active_phases(args)),
         "apply": bool(args.apply),
         "chunks": [],
     }
+
+
+def active_phases(args: argparse.Namespace) -> tuple[str, ...]:
+    return ORDER_ONLY_PHASES if args.orders_only else PHASES
 
 
 def load_state(path: Path) -> dict[str, Any]:
@@ -191,7 +210,7 @@ def save_state(path: Path, state: dict[str, Any]) -> None:
     temp_path.replace(path)
 
 
-def build_chunks(start_date: str, end_date: str, chunk_days: int) -> list[dict[str, Any]]:
+def build_chunks(start_date: str, end_date: str, chunk_days: int, phases: tuple[str, ...] = PHASES) -> list[dict[str, Any]]:
     if chunk_days < 1:
         raise ValueError("--chunk-days must be at least 1")
     start = parse_day(start_date)
@@ -222,7 +241,7 @@ def build_chunks(start_date: str, end_date: str, chunk_days: int) -> list[dict[s
                 "status": "pending",
                 "phases": {
                     phase: {"status": "pending", "attempts": 0}
-                    for phase in PHASES
+                    for phase in phases
                 },
             }
         )
@@ -251,7 +270,7 @@ def run_chunk(
     chunk["started_at"] = chunk.get("started_at") or utc_now()
     save_state(state_path, state)
 
-    for phase in PHASES:
+    for phase in active_phases(args):
         if phase == "veeqo" and args.skip_veeqo:
             mark_phase_skipped(chunk, phase)
             save_state(state_path, state)
@@ -324,6 +343,8 @@ def phase_command(args: argparse.Namespace, chunk: dict[str, Any], phase: str) -
             chunk["end"],
             "--order-item-delay-seconds",
             str(args.order_item_delay_seconds),
+            "--order-page-delay-seconds",
+            str(args.order_page_delay_seconds),
             *apply_flag,
         ]
     if phase == "finances":
