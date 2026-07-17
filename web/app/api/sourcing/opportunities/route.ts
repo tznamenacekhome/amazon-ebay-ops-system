@@ -68,9 +68,6 @@ type KeepaPriceContext = {
   currentPrice: number | null;
   currentPriceLabel: string | null;
   imageUrl: string | null;
-  estimatedSales90d: number | null;
-  estimatedSales120d: number | null;
-  estimatedSales365d: number | null;
 };
 
 type LastSaleContext = {
@@ -79,7 +76,7 @@ type LastSaleContext = {
   unitsSold90d: number;
   unitsSold120d: number;
   unitsSold365d: number;
-  salesCountSource: "amazon_orders" | "seed" | "keepa_rank_drops";
+  salesCountSource: "amazon_orders";
 };
 
 type AmazonProfitabilitySaleRow = {
@@ -182,20 +179,7 @@ async function getOpportunities(request: NextRequest) {
       );
       const originalCurrency = getOriginalCurrency(rawEbay);
       const targetSalePrice = row.target_sale_price ?? row.sourcing_seed_asins?.target_sale_price ?? null;
-      const salesContext = lastSaleByAsin.get(row.asin.toUpperCase()) ?? null;
-      const seedLastSale = row.sourcing_seed_asins?.last_sold_at
-        ? {
-            salePrice: row.sourcing_seed_asins?.target_sale_price ?? null,
-            soldAt: row.sourcing_seed_asins.last_sold_at,
-            unitsSold90d: row.sourcing_seed_asins.units_sold_90d ?? (row.sourcing_seed_asins.last_sold_at >= daysAgoIso(90) ? 1 : 0),
-            unitsSold120d: row.sourcing_seed_asins.units_sold_90d ?? (row.sourcing_seed_asins.last_sold_at >= daysAgoIso(120) ? 1 : 0),
-            unitsSold365d: row.sourcing_seed_asins.units_sold_90d ?? (row.sourcing_seed_asins.last_sold_at >= daysAgoIso(365) ? 1 : 0),
-            salesCountSource: "seed" as const,
-          }
-        : null;
-      const keepaContext = keepaByAsin.get(row.asin.toUpperCase()) ?? null;
-      const keepaDemand = keepaDemandContext(keepaContext);
-      const lastSale = mergeLastSaleContext(mergeLastSaleContext(salesContext, seedLastSale), keepaDemand);
+      const lastSale = lastSaleByAsin.get(row.asin.toUpperCase()) ?? null;
       const landedCost = row.sourcing_ebay_candidates?.landed_cost ?? null;
       const conservativeProfit = conservativeDisplayedProfit(targetSalePrice, landedCost, row.profit);
       return {
@@ -718,9 +702,6 @@ async function fetchKeepaPriceContextByAsin(asins: string[]) {
         const newCurrent = centsToDollars(row.new_price_current_cents);
         const buyBoxAvg90 = centsToDollars(row.buy_box_price_avg90_cents);
         const newAvg90 = keepaStatsCentsToDollars(row.raw_keepa_json, "avg90", 1);
-        const salesRankDrops90 = keepaStatsNumber(row.raw_keepa_json, "salesRankDrops90");
-        const salesRankDrops180 = keepaStatsNumber(row.raw_keepa_json, "salesRankDrops180");
-        const salesRankDrops365 = keepaStatsNumber(row.raw_keepa_json, "salesRankDrops365");
         byAsin.set(asin, {
           avg90Price: buyBoxAvg90 ?? newAvg90,
           avg90Label: buyBoxAvg90 !== null ? "Buy Box avg" : newAvg90 !== null ? "New avg" : null,
@@ -734,9 +715,6 @@ async function fetchKeepaPriceContextByAsin(asins: string[]) {
                   ? "New Current"
                   : null,
           imageUrl: keepaImageUrl(row.raw_keepa_json),
-          estimatedSales90d: salesRankDrops90,
-          estimatedSales120d: estimateKeepaSalesRankDrops120(salesRankDrops90, salesRankDrops180),
-          estimatedSales365d: salesRankDrops365,
         });
       }
     }
@@ -792,9 +770,9 @@ async function fetchLastSaleContextByAsin(asins: string[]) {
   const orderIds = [...new Set(orderItemRows.map((row) => row.amazon_order_id).filter(Boolean))] as string[];
   const orderById = await fetchAmazonOrderContextById(orderIds);
   const priceByAsinOrder = await fetchProfitabilityUnitPriceByAsinOrder(uniqueAsins);
-  const cutoff90 = daysAgoIso(90);
-  const cutoff120 = daysAgoIso(120);
-  const cutoff365 = daysAgoIso(365);
+  const cutoff90 = soldSinceIso(90);
+  const cutoff120 = soldSinceIso(120);
+  const cutoff365 = soldSinceIso(365);
 
   for (const row of orderItemRows) {
     const asin = row.asin?.toUpperCase();
@@ -876,41 +854,6 @@ async function fetchAmazonOrderContextById(orderIds: string[]) {
   return byId;
 }
 
-function mergeLastSaleContext(primary: LastSaleContext | null, fallback: LastSaleContext | null) {
-  if (!primary) return fallback;
-  if (!fallback) return primary;
-  const unitsSold90d = primary.unitsSold90d || fallback.unitsSold90d;
-  const unitsSold120d = primary.unitsSold120d || fallback.unitsSold120d;
-  const unitsSold365d = primary.unitsSold365d || fallback.unitsSold365d;
-  const salesCountSource = primary.unitsSold90d || primary.unitsSold120d || primary.unitsSold365d
-    ? primary.salesCountSource
-    : fallback.salesCountSource;
-  return {
-    salePrice: primary.salePrice ?? fallback.salePrice,
-    soldAt: primary.soldAt ?? fallback.soldAt,
-    unitsSold90d,
-    unitsSold120d,
-    unitsSold365d,
-    salesCountSource,
-  };
-}
-
-function keepaDemandContext(keepa: KeepaPriceContext | null): LastSaleContext | null {
-  if (!keepa) return null;
-  const unitsSold90d = keepa.estimatedSales90d ?? 0;
-  const unitsSold120d = keepa.estimatedSales120d ?? 0;
-  const unitsSold365d = keepa.estimatedSales365d ?? 0;
-  if (!unitsSold90d && !unitsSold120d && !unitsSold365d) return null;
-  return {
-    salePrice: null,
-    soldAt: null,
-    unitsSold90d,
-    unitsSold120d,
-    unitsSold365d,
-    salesCountSource: "keepa_rank_drops",
-  };
-}
-
 function salesUnitQuantity(quantityOrdered: number | null | undefined, quantityShipped: number | null | undefined) {
   const ordered = typeof quantityOrdered === "number" && quantityOrdered > 0 ? quantityOrdered : null;
   const shipped = typeof quantityShipped === "number" && quantityShipped > 0 ? quantityShipped : null;
@@ -921,7 +864,7 @@ function isCancelledAmazonOrder(status: string | null) {
   return status?.toLowerCase() === "canceled" || status?.toLowerCase() === "cancelled";
 }
 
-function daysAgoIso(days: number) {
+function soldSinceIso(days: number) {
   const date = new Date();
   date.setUTCDate(date.getUTCDate() - days);
   return date.toISOString();
@@ -945,23 +888,6 @@ function keepaStatsCentsToDollars(rawKeepa: unknown, statsKey: "avg90" | "curren
   if (!Array.isArray(values)) return null;
   const cents = values[index];
   return typeof cents === "number" && cents >= 0 ? cents / 100 : null;
-}
-
-function keepaStatsNumber(rawKeepa: unknown, statsKey: string) {
-  if (!rawKeepa || typeof rawKeepa !== "object") return null;
-  const stats = (rawKeepa as { stats?: unknown }).stats;
-  if (!stats || typeof stats !== "object") return null;
-  const value = (stats as Record<string, unknown>)[statsKey];
-  return typeof value === "number" && value >= 0 ? value : null;
-}
-
-function estimateKeepaSalesRankDrops120(drops90: number | null, drops180: number | null) {
-  if (drops90 === null && drops180 === null) return null;
-  if (drops90 !== null && drops180 !== null) {
-    return Math.round(drops90 + Math.max(drops180 - drops90, 0) / 3);
-  }
-  if (drops90 !== null) return Math.round(drops90 * (120 / 90));
-  return drops180;
 }
 
 function listingImageUrl(rawListing: unknown) {

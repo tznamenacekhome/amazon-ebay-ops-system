@@ -42,7 +42,7 @@ export type SourcingOpportunity = {
   unitsSold90d: number;
   unitsSold120d: number;
   unitsSold365d: number;
-  salesCountSource: "amazon_orders" | "seed" | "keepa_rank_drops" | null;
+  salesCountSource: "amazon_orders" | null;
   opportunityType: string | null;
   status: string | null;
   estimatedProfit: number | null;
