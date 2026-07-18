@@ -371,6 +371,39 @@ def load_revseller_rows():
     return cleaned_rows
 
 
+def is_transient_gspread_error(exc) -> bool:
+    response = getattr(exc, "response", None)
+    status_code = getattr(response, "status_code", None)
+    if status_code in {500, 502, 503, 504}:
+        return True
+    return any(f"[{status}]" in str(exc) for status in (500, 502, 503, 504))
+
+
+def load_revseller_rows_with_retries(*, attempts=3, delay_seconds=5):
+    last_error = None
+    for attempt in range(1, attempts + 1):
+        try:
+            return load_revseller_rows()
+        except Exception as exc:
+            last_error = exc
+            if not is_transient_gspread_error(exc) or attempt >= attempts:
+                break
+            print(
+                "RevSeller sheet load failed with a transient Google error; "
+                f"retrying in {delay_seconds} seconds ({attempt}/{attempts})..."
+            )
+            time.sleep(delay_seconds)
+
+    if last_error and is_transient_gspread_error(last_error):
+        print(
+            "RevSeller sheet load skipped after transient Google errors; "
+            "manual match memory and catalog backup matching will continue."
+        )
+        return []
+
+    raise last_error or RuntimeError("RevSeller sheet load failed.")
+
+
 def load_manual_match_rows(supabase):
     try:
         response = (
@@ -410,6 +443,120 @@ def load_manual_match_rows(supabase):
                 "source": "manual_ui",
             }
         )
+
+    return rows
+
+
+def paginate_supabase_table(supabase, table_name, columns, *, page_size=1000, max_rows=20000):
+    rows = []
+    offset = 0
+    while offset < max_rows:
+        response = (
+            supabase.table(table_name)
+            .select(columns)
+            .range(offset, min(offset + page_size - 1, max_rows - 1))
+            .execute()
+        )
+        batch = response.data or []
+        rows.extend(batch)
+        if len(batch) < page_size:
+            break
+        offset += page_size
+    return rows
+
+
+def catalog_match_row(asin, title, target_price, source):
+    asin = normalize_asin(asin)
+    raw_title = clean_catalog_title(title)
+    if not asin or not raw_title:
+        return None
+
+    norm_title = normalize_title(raw_title)
+    if not norm_title:
+        return None
+
+    catalog_system = detect_system_from_title(raw_title)
+    index_systems = list(
+        dict.fromkeys(
+            system
+            for system in [catalog_system, *detected_systems_from_title(raw_title)]
+            if system
+        )
+    )
+    if not index_systems:
+        return None
+
+    return [
+        {
+            "asin": asin,
+            "raw_title": raw_title,
+            "amazon_title": raw_title,
+            "normalized_title": norm_title,
+            "system": system,
+            "target_price": target_price,
+            "row_date": date.min,
+            "source": source,
+        }
+        for system in index_systems
+    ]
+
+
+def load_catalog_match_rows(supabase):
+    """Build a conservative same-system backup match index from local catalog data."""
+    rows = []
+    seen = set()
+
+    keepa_prices_by_asin = {}
+    try:
+        keepa_rows = paginate_supabase_table(
+            supabase,
+            "vw_latest_keepa_product_snapshot",
+            (
+                "asin,title,buy_box_price_avg90_cents,buy_box_price_current_cents,"
+                "new_fba_price_current_cents,new_price_current_cents"
+            ),
+            max_rows=20000,
+        )
+    except Exception as exc:
+        print(f"Catalog backup Keepa rows skipped: {exc}")
+        keepa_rows = []
+
+    for row in keepa_rows:
+        asin = normalize_asin(row.get("asin"))
+        if not asin:
+            continue
+        target_price = highest_money(
+            cents_to_money(row.get("buy_box_price_avg90_cents")),
+            cents_to_money(row.get("buy_box_price_current_cents")),
+            cents_to_money(row.get("new_fba_price_current_cents")),
+            cents_to_money(row.get("new_price_current_cents")),
+        )
+        keepa_prices_by_asin[asin] = target_price
+        for match_row in catalog_match_row(asin, row.get("title"), target_price, "keepa_catalog") or []:
+            key = (match_row["asin"], match_row["normalized_title"], match_row["system"], match_row["source"])
+            if key not in seen:
+                rows.append(match_row)
+                seen.add(key)
+
+    try:
+        listing_rows = paginate_supabase_table(
+            supabase,
+            "vw_latest_amazon_listing_snapshot",
+            "asin,product_name",
+            max_rows=20000,
+        )
+    except Exception as exc:
+        print(f"Catalog backup Amazon listing rows skipped: {exc}")
+        listing_rows = []
+
+    for row in listing_rows:
+        asin = normalize_asin(row.get("asin"))
+        target_price = keepa_prices_by_asin.get(asin)
+        for match_row in catalog_match_row(asin, row.get("product_name"), target_price, "amazon_listing_catalog") or []:
+            key = (match_row["asin"], match_row["normalized_title"], match_row["system"], match_row["source"])
+            if key not in seen:
+                rows.append(match_row)
+                seen.add(key)
 
     return rows
 
@@ -541,7 +688,7 @@ def fetch_purchase_items(supabase):
     return all_items
 
 
-def fill_existing_asin_metadata(supabase, match_rows):
+def fill_existing_asin_metadata(supabase, match_rows, *, dry_run=False):
     """Fill missing title/target price for rows that already have a reviewed ASIN."""
     candidates = fetch_existing_asin_metadata_candidates(supabase)
     if not candidates:
@@ -585,7 +732,8 @@ def fill_existing_asin_metadata(supabase, match_rows):
                 updates["target_price"] = str(target_price)
 
         if updates:
-            supabase.table("purchase_items").update(updates).eq("item_id", item["item_id"]).execute()
+            if not dry_run:
+                supabase.table("purchase_items").update(updates).eq("item_id", item["item_id"]).execute()
             updated += 1
 
     return {"candidates": len(candidates), "updated": updated}
@@ -1019,6 +1167,7 @@ def write_diagnostics(diagnostic_rows):
         "ai_reason",
         "matched_asin",
         "matched_title",
+        "matched_source",
         "matched_target_price",
     ]
 
@@ -1036,6 +1185,7 @@ def parse_args():
     parser.add_argument("--ai-model", default=os.getenv("OPENAI_MATCHING_MODEL", DEFAULT_AI_MODEL))
     parser.add_argument("--ai-confidence-threshold", type=str, default=str(AI_CONFIDENCE_THRESHOLD))
     parser.add_argument("--ai-review-limit", type=int, default=AI_REVIEW_LIMIT)
+    parser.add_argument("--dry-run", action="store_true", help="Report matches without updating purchase_items.")
     return parser.parse_args()
 
 
@@ -1052,19 +1202,23 @@ def main():
     print("Starting RevSeller sheet enrichment...")
     print(f"ALLOW_REENRICHMENT: {ALLOW_REENRICHMENT}")
     print(f"AI review enabled: {args.ai_review}")
+    print(f"Dry run: {args.dry_run}")
 
     supabase = get_supabase_client()
     ai_client = build_ai_client(args)
 
-    revseller_rows = load_revseller_rows()
+    revseller_rows = load_revseller_rows_with_retries()
     print(f"RevSeller usable rows loaded: {len(revseller_rows)}")
     manual_match_rows = load_manual_match_rows(supabase)
     print(f"Manual match rows loaded: {len(manual_match_rows)}")
-    match_rows = revseller_rows + manual_match_rows
-    existing_asin_metadata = fill_existing_asin_metadata(supabase, match_rows)
+    catalog_match_rows = load_catalog_match_rows(supabase)
+    print(f"Catalog backup match rows loaded: {len(catalog_match_rows)}")
+    match_rows = revseller_rows + manual_match_rows + catalog_match_rows
+    existing_asin_metadata = fill_existing_asin_metadata(supabase, match_rows, dry_run=args.dry_run)
     print(
         "Existing ASIN metadata repair: "
-        f"{existing_asin_metadata['updated']} updated from "
+        f"{existing_asin_metadata['updated']} "
+        f"{'would update' if args.dry_run else 'updated'} from "
         f"{existing_asin_metadata['candidates']} candidate rows"
     )
 
@@ -1112,11 +1266,13 @@ def main():
         "skipped_no_match": 0,
         "skipped_no_detected_system": 0,
         "updated": 0,
+        "would_update": 0,
         "errors": 0,
     }
 
     diagnostic_rows = []
     ai_reviews_used = 0
+    matched_source_counts = defaultdict(int)
 
     for item in purchase_items:
         matched_row, status = match_purchase_item(
@@ -1191,9 +1347,16 @@ def main():
                     "ai_reason": (ai_decision or {}).get("reason"),
                     "matched_asin": matched_row.get("asin"),
                     "matched_title": matched_row.get("raw_title"),
+                    "matched_source": matched_row.get("source"),
                     "matched_target_price": matched_row.get("target_price"),
                 }
             )
+
+        matched_source_counts[matched_row.get("source") or "unknown"] += 1
+
+        if args.dry_run:
+            counts["would_update"] += 1
+            continue
 
         try:
             update_purchase_item(
@@ -1215,6 +1378,11 @@ def main():
 
     for key, value in counts.items():
         print(f"{key}: {value}")
+
+    if matched_source_counts:
+        print("\nMatched sources:")
+        for key, value in sorted(matched_source_counts.items()):
+            print(f"{key}: {value}")
 
 
 if __name__ == "__main__":

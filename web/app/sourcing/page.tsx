@@ -1175,49 +1175,51 @@ function CoverageCyclePanel() {
 
         <div className="rounded-md border border-slate-200 bg-white shadow-sm">
           <div className="border-b border-slate-200 px-3 py-2 text-sm font-semibold">Daily Runs</div>
-          <table className="w-full text-left text-xs">
-            <thead className="bg-slate-50 uppercase tracking-wide text-slate-500">
-              <tr>
-                <th className="px-3 py-2">Date</th>
-                <th className="px-3 py-2 text-right">Quota Start</th>
-                <th className="px-3 py-2 text-right">Calls</th>
-                <th className="px-3 py-2 text-right">Search</th>
-                <th className="px-3 py-2 text-right">Detail</th>
-                <th className="px-3 py-2 text-right">Retries</th>
-                <th className="px-3 py-2 text-right">ASINs</th>
-                <th className="px-3 py-2 text-right">Filtered</th>
-                <th className="px-3 py-2 text-right">Resolved</th>
-                <th className="px-3 py-2 text-right">Changed</th>
-                <th className="px-3 py-2 text-right">Opps</th>
-                <th className="px-3 py-2">Stop</th>
-              </tr>
-            </thead>
-            <tbody>
-              {runs.map((run) => {
-                const search = ebaySearchSummary(run);
-                return (
-                  <tr key={run.sourcing_run_id} className="border-t border-slate-100 align-top">
-                    <td className="px-3 py-2">{date(run.started_at)}</td>
-                    <td className="px-3 py-2 text-right">{run.starting_browse_quota_remaining ?? "--"}</td>
-                    <td className="px-3 py-2 text-right">{run.api_call_count ?? 0}</td>
-                    <td className="px-3 py-2 text-right">{numberMetric(search, "search_call_count")}</td>
-                    <td className="px-3 py-2 text-right">{numberMetric(search, "detail_call_count")}</td>
-                    <td className="px-3 py-2 text-right">{numberMetric(search, "retry_http_attempt_count")}</td>
-                    <td className="px-3 py-2 text-right">{run.asins_searched_this_run ?? 0}</td>
-                    <td className="px-3 py-2 text-right">{numberMetric(search, "summary_filtered_count") + numberMetric(search, "summary_profitability_filtered_count")}</td>
-                    <td className="px-3 py-2 text-right">{numberMetric(search, "detail_calls_missing_data_resolved_count")}</td>
-                    <td className="px-3 py-2 text-right">{numberMetric(search, "detail_calls_changed_decision_count")}</td>
-                    <td className="px-3 py-2 text-right">{run.opportunity_count ?? 0}</td>
-                    <td className="px-3 py-2">
-                      <div>{stopReasonLabel(run.stop_reason ?? run.status ?? "", run)}</div>
-                      <DetailReasonBreakdown summary={search} />
-                    </td>
-                  </tr>
-                );
-              })}
-              {!runs.length ? <tr><td colSpan={12} className="px-3 py-6 text-center text-slate-500">No daily sourcing runs found.</td></tr> : null}
-            </tbody>
-          </table>
+          <div className="overflow-x-auto">
+            <table className="min-w-[760px] w-full text-left text-xs">
+              <thead className="bg-slate-50 uppercase tracking-wide text-slate-500">
+                <tr>
+                  <th className="px-3 py-2">Date</th>
+                  <th className="px-3 py-2 text-right">Quota Start</th>
+                  <th className="px-3 py-2 text-right">Calls</th>
+                  <th className="px-3 py-2 text-right">Search</th>
+                  <th className="px-3 py-2 text-right">Detail</th>
+                  <th className="px-3 py-2 text-right">Retries</th>
+                  <th className="px-3 py-2 text-right">ASINs</th>
+                  <th className="px-3 py-2 text-right">Filtered</th>
+                  <th className="px-3 py-2 text-right">Resolved</th>
+                  <th className="px-3 py-2 text-right">Changed</th>
+                  <th className="px-3 py-2 text-right">Opps</th>
+                  <th className="px-3 py-2">Stop</th>
+                </tr>
+              </thead>
+              <tbody>
+                {runs.map((run) => {
+                  const search = ebaySearchSummary(run);
+                  return (
+                    <tr key={run.sourcing_run_id} className="border-t border-slate-100 align-top">
+                      <td className="px-3 py-2">{date(run.started_at)}</td>
+                      <td className="px-3 py-2 text-right">{run.starting_browse_quota_remaining ?? "--"}</td>
+                      <td className="px-3 py-2 text-right">{run.api_call_count ?? 0}</td>
+                      <td className="px-3 py-2 text-right">{numberMetric(search, "search_call_count")}</td>
+                      <td className="px-3 py-2 text-right">{numberMetric(search, "detail_call_count")}</td>
+                      <td className="px-3 py-2 text-right">{numberMetric(search, "retry_http_attempt_count")}</td>
+                      <td className="px-3 py-2 text-right">{run.asins_searched_this_run ?? 0}</td>
+                      <td className="px-3 py-2 text-right">{numberMetric(search, "summary_filtered_count") + numberMetric(search, "summary_profitability_filtered_count")}</td>
+                      <td className="px-3 py-2 text-right">{numberMetric(search, "detail_calls_missing_data_resolved_count")}</td>
+                      <td className="px-3 py-2 text-right">{numberMetric(search, "detail_calls_changed_decision_count")}</td>
+                      <td className="px-3 py-2 text-right">{run.opportunity_count ?? 0}</td>
+                      <td className="px-3 py-2">
+                        <div>{stopReasonLabel(run.stop_reason ?? run.status ?? "", run)}</div>
+                        <DetailReasonBreakdown summary={search} />
+                      </td>
+                    </tr>
+                  );
+                })}
+                {!runs.length ? <tr><td colSpan={12} className="px-3 py-6 text-center text-slate-500">No daily sourcing runs found.</td></tr> : null}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
     </div>

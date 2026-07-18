@@ -160,6 +160,36 @@ Pending rows are excluded from deterministic and AI matching, and rows marked
 `exclude_from_purchase_reporting` are skipped the same way they are skipped by
 the default Purchases list.
 
+## Local Catalog Backup Matching
+
+If RevSeller rows and manual match memory do not produce a match, RevSeller
+enrichment builds a backup index from already-stored local catalog intelligence:
+
+- `vw_latest_amazon_listing_snapshot`
+- `vw_latest_keepa_product_snapshot`
+
+This backup is deliberately conservative:
+
+- it uses the same normalized title, compact title, condition-variant, and
+  token-set matching paths as RevSeller rows
+- it requires a recognized same-system/platform key
+- it does not call Amazon catalog APIs or fetch new Keepa product data during
+  the matching pass
+- it does not override rows with an existing ASIN
+- it does not change cost, status, quantity, marketplace, or receiving/FBA
+  workflow state
+
+The backup improves ASIN coverage when a valid catalog ASIN exists locally but
+has not appeared in the RevSeller worksheet. Diagnostics and run output include
+matched source counts such as `revseller`, `manual_ui`, `amazon_listing_catalog`,
+and `keepa_catalog`.
+
+`integrations/sync_revseller_sheet.py --dry-run` reports would-be ASIN updates
+and metadata repairs without updating `purchase_items`. Google Sheets transient
+`5xx` errors are retried; after repeated transient failures, the job continues
+with manual match memory and local catalog backup rows rather than failing
+before unmatched purchase rows are scanned.
+
 ## Legacy Purchases Sheet Backfill
 
 Historical spreadsheet data can be imported with:

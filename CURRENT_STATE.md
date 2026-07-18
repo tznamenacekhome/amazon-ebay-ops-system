@@ -1,6 +1,29 @@
 # CURRENT_STATE.md
 
-Last Updated: 2026-07-16
+Last Updated: 2026-07-17
+
+## 2026-07-17 Purchase Matching Backup And Coverage Table Layout
+
+- RevSeller enrichment remains the primary scheduled ASIN enrichment path for
+  unmatched purchase items. It still loads the RevSeller Google Sheet and
+  operator-confirmed `manual_item_matches`.
+- `integrations/sync_revseller_sheet.py` now builds a conservative backup
+  same-system match index from local Amazon listing snapshots and Keepa catalog
+  snapshots. The backup is used only after RevSeller/manual matching misses and
+  still requires recognized platform/system alignment before assigning an ASIN.
+- RevSeller sheet loading retries transient Google Sheets `5xx` failures. If
+  Google returns repeated transient failures, the enrichment run continues with
+  manual match memory and the local catalog backup instead of failing before it
+  can scan unmatched purchase rows.
+- `sync_revseller_sheet.py --dry-run` verifies RevSeller/manual/catalog match
+  coverage without updating `purchase_items`; metadata repair also respects
+  dry-run mode.
+- A live enrichment run on 2026-07-17 loaded 638 usable RevSeller rows, 14
+  manual match rows, and 2,878 backup catalog rows; it scanned 10 open
+  unmatched purchase items, updated 2 via the backup catalog path, and repaired
+  metadata on 1 already-matched item.
+- Coverage Cycle -> Daily Runs is horizontally contained so the expanded eBay
+  Browse diagnostic columns no longer run off the right edge of the screen.
 
 ## 2026-07-16 Opportunity Sales History And Cloud Login
 
@@ -8,9 +31,9 @@ Last Updated: 2026-07-16
   seller sales context when present: last sale price, last sale date, and
   90/120/365-day unit counts from `amazon_sales_order_items` joined to
   `amazon_sales_orders`.
-- When exact MBOP seller sales are unavailable for an ASIN, opportunities fall
-  back to seed context and Keepa sales-rank-drop demand estimates. Keepa demand
-  is displayed as estimated rather than represented as an exact MBOP sale.
+- When exact MBOP seller sales are unavailable for an ASIN, the Last Sold
+  column stays seller-sales-only: no Keepa estimates are displayed as seller
+  sales, and the 90/120/365-day unit counts show `0 / 0 / 0`.
 - Amazon SP-API order-date report import is available through
   `integrations/amazon_sync_sales_order_report.py`. It imports Amazon's
   `GET_FLAT_FILE_ALL_ORDERS_DATA_BY_ORDER_DATE_GENERAL` report in date chunks,

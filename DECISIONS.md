@@ -1,5 +1,28 @@
 # DECISIONS.md
 
+## Purchase ASIN Matching May Use Local Catalog Backup After RevSeller
+
+Decision date: 2026-07-17
+
+RevSeller worksheet rows and operator-confirmed manual match memory remain the
+preferred sources for purchase-item ASIN enrichment. When those sources miss,
+the enrichment job may use existing local Amazon listing snapshots and Keepa
+catalog snapshots as a backup match index, but only through the same
+same-system/platform matching gates used by RevSeller matching.
+
+Consequences:
+
+- The backup process improves coverage for valid catalog ASINs that are absent
+  from the RevSeller worksheet.
+- The backup process must not call Amazon catalog APIs or Keepa product fetches
+  during the purchases matching pass; it uses already-stored local snapshots.
+- The backup process must not match across systems, invent ASINs, change item
+  cost, change workflow status, or override an existing different ASIN.
+- Transient Google Sheets failures should not prevent the job from using
+  manual match memory and local catalog backup rows.
+- Operators can run `integrations/sync_revseller_sheet.py --dry-run` to inspect
+  match coverage without modifying `purchase_items`.
+
 ## Opportunity Sales History Uses Exact Seller Sales Before Demand Estimates
 
 Decision date: 2026-07-16

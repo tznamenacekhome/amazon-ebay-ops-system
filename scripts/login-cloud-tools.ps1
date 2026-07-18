@@ -23,19 +23,35 @@ function Invoke-SupabaseCli {
 function Test-AwsCliLogin {
   param([string]$Profile)
 
-  $identity = aws sts get-caller-identity --profile $Profile --output json 2>$null
-  if ($LASTEXITCODE -ne 0 -or -not $identity) {
+  $previousErrorActionPreference = $ErrorActionPreference
+  try {
+    $ErrorActionPreference = "Continue"
+    $identity = & aws sts get-caller-identity --profile $Profile --output json 2>$null
+    if ($LASTEXITCODE -ne 0 -or -not $identity) {
+      return $null
+    }
+    return $identity | ConvertFrom-Json
+  } catch {
     return $null
+  } finally {
+    $ErrorActionPreference = $previousErrorActionPreference
   }
-  return $identity | ConvertFrom-Json
 }
 
 function Test-SupabaseCliLogin {
-  $output = npx.cmd --yes supabase@latest projects list 2>$null
-  if ($LASTEXITCODE -ne 0) {
+  $previousErrorActionPreference = $ErrorActionPreference
+  try {
+    $ErrorActionPreference = "Continue"
+    $output = & npx.cmd --yes supabase@latest projects list 2>$null
+    if ($LASTEXITCODE -ne 0) {
+      return $false
+    }
+    return $true
+  } catch {
     return $false
+  } finally {
+    $ErrorActionPreference = $previousErrorActionPreference
   }
-  return $true
 }
 
 if (-not $SkipAws) {
