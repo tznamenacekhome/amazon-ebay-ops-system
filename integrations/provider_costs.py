@@ -774,6 +774,7 @@ def parse_args() -> argparse.Namespace:
 
 def get_supabase_client():
     load_dotenv()
+    load_dotenv(".env.local")
     return create_client(os.environ["SUPABASE_URL"], os.environ["SUPABASE_SERVICE_ROLE_KEY"])
 
 
