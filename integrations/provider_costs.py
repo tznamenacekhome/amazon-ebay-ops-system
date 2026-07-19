@@ -112,6 +112,18 @@ def calculated_month_periods(today: dt.date | None = None) -> tuple[BillingPerio
     )
 
 
+def aws_month_periods(*, months_back: int, today: dt.date | None = None) -> list[BillingPeriod]:
+    today = today or utc_now().date()
+    current_start = month_start(today)
+    periods: list[BillingPeriod] = []
+    for offset in range(months_back - 1, -1, -1):
+        start = add_months(current_start, -offset)
+        end = add_months(start, 1)
+        status = "current" if start == current_start else "completed"
+        periods.append(BillingPeriod(start, end, status, "calendar_month", "api"))
+    return periods
+
+
 def dollar_variance(current: Any, previous: Any) -> Decimal | None:
     current_money = money(current)
     previous_money = money(previous)
@@ -156,8 +168,9 @@ def reconcile_easypost_wallet(
 
 
 class ProviderCostSync:
-    def __init__(self, supabase_client):
+    def __init__(self, supabase_client, *, aws_months_back: int = 2):
         self.supabase = supabase_client
+        self.aws_months_back = max(1, min(aws_months_back, 12))
 
     def sync_all(self, providers: Iterable[str] = PROVIDERS) -> dict[str, str]:
         results: dict[str, str] = {}
@@ -187,7 +200,7 @@ class ProviderCostSync:
             budgets = boto3.client("budgets", region_name=os.getenv("AWS_COST_REGION", "us-east-1"))
             account_id = aws_account_id()
             current, previous = calendar_month_periods()
-            periods = [previous, current]
+            periods = aws_month_periods(months_back=self.aws_months_back)
             period_ids: dict[str, str] = {}
             for period in periods:
                 query_end = min(period.end, utc_now().date() + dt.timedelta(days=1))
@@ -207,14 +220,15 @@ class ProviderCostSync:
                     provider_reported_total=period_total,
                     metadata={"aws_metric": AWS_COST_METRIC},
                 )
-                period_ids[period.status] = period_id
+                if period.status not in period_ids:
+                    period_ids[period.status] = period_id
                 rows = aws_line_items(period_id, period, response)
                 records_read += len(rows)
                 records_written += self.replace_period_line_items(period_id, rows)
                 self.store_raw_payload("aws", account_id, f"cost-explorer-{period.start}", response)
 
             forecast_total = fetch_aws_forecast(ce, current)
-            if forecast_total is not None:
+            if forecast_total is not None and "current" in period_ids:
                 self.update_period_forecast(period_ids["current"], forecast_total)
             budget_rows = fetch_aws_budgets(budgets, account_id)
             for row in budget_rows:
@@ -880,6 +894,12 @@ def safe_error(exc: Exception) -> str:
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Sync provider-native cost data for MBOP.")
     parser.add_argument("--provider", choices=(*PROVIDERS, "all"), default="all")
+    parser.add_argument(
+        "--aws-months-back",
+        type=int,
+        default=int(os.getenv("AWS_COST_MONTHS_BACK", "2")),
+        help="Number of AWS calendar months to sync, including the current month. Max 12.",
+    )
     parser.add_argument("--list", action="store_true", help="List providers without making API or database calls.")
     return parser.parse_args()
 
@@ -897,7 +917,7 @@ def main() -> int:
         for provider in PROVIDERS:
             print(f"- {provider}")
         return 0
-    sync = ProviderCostSync(get_supabase_client())
+    sync = ProviderCostSync(get_supabase_client(), aws_months_back=args.aws_months_back)
     providers = PROVIDERS if args.provider == "all" else (args.provider,)
     results = sync.sync_all(providers)
     for provider, status in results.items():

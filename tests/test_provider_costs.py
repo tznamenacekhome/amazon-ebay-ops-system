@@ -5,6 +5,7 @@ from decimal import Decimal
 
 from integrations.provider_costs import (
     average_tracker_cost,
+    aws_month_periods,
     calendar_month_periods,
     calculated_month_periods,
     dollar_variance,
@@ -25,6 +26,18 @@ def test_aws_calendar_month_boundaries_are_exclusive():
     assert previous.start == dt.date(2026, 6, 1)
     assert previous.end == dt.date(2026, 7, 1)
     assert previous.status == "completed"
+
+
+def test_aws_month_periods_can_backfill_12_calendar_months():
+    periods = aws_month_periods(months_back=12, today=dt.date(2026, 7, 19))
+
+    assert len(periods) == 12
+    assert periods[0].start == dt.date(2025, 8, 1)
+    assert periods[0].end == dt.date(2025, 9, 1)
+    assert periods[-1].start == dt.date(2026, 7, 1)
+    assert periods[-1].end == dt.date(2026, 8, 1)
+    assert periods[-1].status == "current"
+    assert all(period.cycle_type == "calendar_month" for period in periods)
 
 
 def test_calculated_provider_periods_mark_calculated_calendar_month():

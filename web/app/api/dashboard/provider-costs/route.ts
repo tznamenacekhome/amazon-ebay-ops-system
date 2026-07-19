@@ -188,11 +188,16 @@ function buildProvider(
 
 function serializePeriod(period: PeriodRow) {
   const totalCost = period.finalized_total ?? period.provider_reported_total ?? period.calculated_total ?? null;
+  const periodUnavailable = period.period_status === "unavailable" || period.billing_cycle_type === "unavailable";
   return {
     id: period.provider_billing_period_id,
     periodStart: period.period_start,
     periodEnd: period.period_end,
-    periodLabel: period.period_start && period.period_end ? `${formatShortDate(period.period_start)} - ${formatShortDate(period.period_end)} excl.` : "Unavailable",
+    periodLabel: periodUnavailable
+      ? "Unavailable"
+      : period.period_start && period.period_end
+        ? `${formatShortDate(period.period_start)} - ${formatShortDate(period.period_end)} excl.`
+        : "Unavailable",
     billingCycleType: period.billing_cycle_type,
     periodStatus: period.period_status,
     coverageStatus: period.coverage_status,

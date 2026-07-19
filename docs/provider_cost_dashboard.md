@@ -53,6 +53,12 @@ Run one provider:
 .\.venv\Scripts\python.exe integrations\provider_costs.py --provider easypost
 ```
 
+Backfill AWS history, up to the latest 12 calendar months:
+
+```powershell
+.\.venv\Scripts\python.exe integrations\provider_costs.py --provider aws --aws-months-back 12
+```
+
 Scheduler group:
 
 ```powershell
@@ -77,6 +83,8 @@ Collected when credentials allow:
 - accessible AWS Budgets values
 
 Billing cycle: calendar month, `[first day, first day of next month)`.
+The scheduled run syncs the current and previous month by default; manual
+backfills can sync up to 12 months with `--aws-months-back`.
 
 Required Python dependency: `boto3`.
 
@@ -97,7 +105,8 @@ Environment:
 
 Supabase uses only official Management API/account data when configured. If the
 organization billing anchor or monetary totals are not automatically returned,
-the dashboard leaves Supabase totals unavailable instead of guessing.
+the dashboard marks the billing cycle unavailable instead of treating Supabase
+as calendar-month billed.
 
 Collected when available:
 
@@ -136,7 +145,8 @@ Collected/calculated:
 - tracker fee totals by carrier from automatically collected tracker records
 - optional EasyPost wallet balance when returned by the EasyPost API
 
-Billing/usage period: calculated calendar month, clearly marked as calculated.
+Billing/usage period: calculated calendar month for tracker usage aggregation,
+clearly marked as calculated.
 
 Tracker pricing is isolated in `integrations/provider_costs.py` with effective
 date and source notes. Wallet funding is not counted as tracker expense.
