@@ -58,9 +58,11 @@ for legacy/manual compatibility.
   - persists batch membership and funnel summary
 - Added `POST /api/sourcing/runs/[runId]/continue` to start the next batch for
   the same run.
-- Updated `/api/sourcing/opportunities` so completed batches, when present, are
-  the default Replenishment view. Existing runs still display through the older
-  latest-run fallback when no batch tables/rows exist.
+- Updated `/api/sourcing/opportunities` to use completed batches as durable
+  presentation history. As of 2026-07-19, completed batches are no longer the
+  default Replenishment limiting scope: `All Open` combines still-open
+  actionable opportunities across current and prior runs, while `New This Run`
+  preserves the newest completed batch view.
 - Added a compact Replenishment batch status strip with:
   - batch number
   - current batch count
@@ -84,6 +86,11 @@ The persisted batch funnel currently includes:
 - hard-blocked opportunities
 - profitability rejects
 - review/watch count
+
+Coverage Cycle `Opportunities Presented` is derived from unique
+`sourcing_opportunity_batch_items.opportunity_id` values in completed batches
+for the cycle. It is distinct from raw candidates, scored opportunities, and
+the current open actionable queue count.
 
 The migration and runner also persist:
 

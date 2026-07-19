@@ -471,6 +471,12 @@ Implemented:
   available
 - scheduled Keepa enrichment is capped to 10 stale active-Amazon ASINs, uses stock/offers without history, and skips calls unless at least 100 Keepa tokens are available
 - scheduled sourcing listing availability checks open, Watch, and ROI-snoozed sourcing opportunities once per day and dismisses ended/sold-out/missing eBay listings with `no_longer_available`; Purchased / Offer Made rows are intentionally skipped so purchase matching/enrichment can still run
+- Sourcing Replenishment now defaults to the full currently open actionable
+  queue across current and prior sourcing runs. The former newest-completed-batch
+  view remains available as `New This Run`, and the API exposes first/last
+  presentation metadata derived from `sourcing_opportunity_batch_items`.
+- Coverage Cycle summaries now show `Opportunities Presented`, counted as
+  unique opportunity IDs in completed batch membership for the cycle.
 - sourcing availability refresh now sends the buyer contextual ZIP header and
   preserves stored shipping quote data when eBay detail payloads omit
   `shippingOptions`; sourcing display/scoring trusts stored shipping cost before

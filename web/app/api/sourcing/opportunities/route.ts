@@ -49,6 +49,7 @@ type OpportunityRow = {
     auction_end_time: string | null;
     bid_count: number | null;
     best_offer_enabled: boolean | null;
+    listing_status: string | null;
     raw_ebay_json: unknown;
   } | null;
 };
@@ -120,6 +121,19 @@ type SourcingBatchRow = {
   completed_at: string | null;
 };
 
+type PresentationMetadata = {
+  firstPresentedAt: string | null;
+  lastPresentedAt: string | null;
+  originatingRunId: string | null;
+  latestPresentedRunId: string | null;
+  originatingCycleId: string | null;
+  latestPresentedCycleId: string | null;
+  isNewThisRun: boolean;
+  presentationCount: number;
+};
+
+type OpportunityScope = "all_open" | "new_this_run" | "prior_unreviewed";
+
 export async function GET(request: NextRequest) {
   try {
     return await getOpportunities(request);
@@ -135,43 +149,51 @@ async function getOpportunities(request: NextRequest) {
   const status = searchParams.get("status") ?? "open";
   const type = searchParams.get("type") ?? "all";
   const runId = searchParams.get("runId");
+  const scope = parseScope(searchParams.get("scope"), runId);
   const sourceMode = searchParams.get("sourceMode") ?? "all";
   const queryText = (searchParams.get("q") ?? "").trim();
   const limit = Math.min(toNumber(searchParams.get("limit"), 100), 250);
-  const queryLimit = Math.min(Math.max(limit * 5, 500), 1000);
+  const queryLimit = Math.min(Math.max(limit * 20, 1000), 5000);
   const latestRunIds = runId ? [] : await fetchLatestSourcingRunIds(sourceMode);
   const latestBatches = await fetchLatestSourcingBatches(runId, latestRunIds);
   const latestBatch = latestBatches[0] ?? null;
-  const batchOpportunityIds = latestBatches.length ? await fetchBatchOpportunityIds(latestBatches.map((batch) => batch.batch_id)) : null;
-  if (!runId && latestRunIds.length === 0) {
+  const latestBatchOpportunityIds = latestBatch ? await fetchBatchOpportunityIds([latestBatch.batch_id]) : null;
+  if ((scope === "new_this_run" || scope === "prior_unreviewed") && !latestBatch) {
     return jsonNoStore({
       refreshedAt: new Date().toISOString(),
-      summary: { total: 0, buyNow: 0, bestOffer: 0, auction: 0, multiUnit: 0 },
+      scope,
+      summary: emptySummary(),
       opportunities: [],
       batch: null,
     });
   }
-  if (latestBatch && batchOpportunityIds?.length === 0) {
+  if ((scope === "new_this_run" || scope === "prior_unreviewed") && latestBatch && latestBatchOpportunityIds?.length === 0) {
     return jsonNoStore({
       refreshedAt: new Date().toISOString(),
-      summary: { total: 0, buyNow: 0, bestOffer: 0, auction: 0, multiUnit: 0 },
+      scope,
+      summary: emptySummary(),
       opportunities: [],
       batch: latestBatch,
     });
   }
 
-  const { data, error } = batchOpportunityIds
-    ? await fetchBatchOpportunities(batchOpportunityIds, status, type)
+  const { data, error } = scope === "new_this_run" && latestBatchOpportunityIds
+    ? await fetchBatchOpportunities(latestBatchOpportunityIds, status, type)
     : await fetchRunOpportunities({ runId, latestRunIds, status, type, queryLimit });
   if (error) return jsonNoStore({ error: error.message }, { status: 500 });
 
   const rows = (data ?? []) as OpportunityRow[];
+  const presentationByOpportunityId = await fetchPresentationMetadataByOpportunityId(
+    rows.map((row) => row.opportunity_id),
+    new Set(latestBatchOpportunityIds ?? []),
+  );
   const keepaByAsin = await fetchKeepaPriceContextByAsin(rows.map((row) => row.asin));
   const amazonImageByAsin = await fetchAmazonImageFallbackByAsin(rows.map((row) => row.asin), keepaByAsin);
   const lastSaleByAsin = await fetchLastSaleContextByAsin(rows.map((row) => row.asin));
 
   const mappedRows = rows
     .map((row) => {
+      const presentation = presentationByOpportunityId.get(row.opportunity_id) ?? emptyPresentationMetadata();
       const rawEbay = row.sourcing_ebay_candidates?.raw_ebay_json;
       const shippingQuoteStatus = getShippingQuoteStatus(
         rawEbay,
@@ -214,6 +236,7 @@ async function getOpportunities(request: NextRequest) {
         auctionEndAt: row.sourcing_ebay_candidates?.auction_end_time ?? null,
         bidCount: row.sourcing_ebay_candidates?.bid_count ?? null,
         bestOfferEnabled: row.sourcing_ebay_candidates?.best_offer_enabled ?? false,
+        listingStatus: row.sourcing_ebay_candidates?.listing_status ?? null,
         targetSalePrice,
         lastSalePrice: lastSale?.salePrice ?? null,
         keepaAvg90Price: keepaByAsin.get(row.asin)?.avg90Price ?? null,
@@ -243,26 +266,32 @@ async function getOpportunities(request: NextRequest) {
         aiFlags: mergeFlags(row.ai_flags, diagnosticFlags(row.matching_diagnostics_json)),
         matchingDiagnostics: row.matching_diagnostics_json ?? null,
         createdAt: row.created_at,
+        firstPresentedAt: presentation.firstPresentedAt,
+        lastPresentedAt: presentation.lastPresentedAt,
+        originatingRunId: presentation.originatingRunId,
+        latestPresentedRunId: presentation.latestPresentedRunId,
+        originatingCycleId: presentation.originatingCycleId,
+        latestPresentedCycleId: presentation.latestPresentedCycleId,
+        isNewThisRun: presentation.isNewThisRun,
+        presentationCount: presentation.presentationCount,
       };
     })
     .filter((row) => {
+      if (scope === "prior_unreviewed" && row.isNewThisRun) return false;
+      if (row.status === "open" && row.listingStatus === "ended") return false;
       if (sourceMode !== "all" && row.sourceMode !== sourceMode) return false;
       if (!queryText) return true;
       const haystack = `${row.asin} ${row.amazonTitle} ${row.ebayTitle}`.toLowerCase();
       return haystack.includes(queryText.toLowerCase());
     });
 
-  const opportunities = groupByAsinPriority(dedupeExactEbayListings(mappedRows)).slice(0, limit);
+  const sortedRows = groupByAsinPriority(dedupeExactEbayListings(mappedRows));
+  const opportunities = sortedRows.slice(0, limit);
 
   return jsonNoStore({
     refreshedAt: new Date().toISOString(),
-    summary: {
-      total: opportunities.length,
-      buyNow: opportunities.filter((row) => row.opportunityType === "buy_now").length,
-      bestOffer: opportunities.filter((row) => row.opportunityType === "best_offer").length,
-      auction: opportunities.filter((row) => row.opportunityType === "auction").length,
-      multiUnit: opportunities.filter((row) => row.opportunityType === "multi_unit").length,
-    },
+    scope,
+    summary: summarizeMappedRows(sortedRows, opportunities.length),
     opportunities,
     batch: latestBatch,
   });
@@ -300,6 +329,7 @@ const OPPORTUNITY_SELECT = `
     auction_end_time,
     bid_count,
     best_offer_enabled,
+    listing_status,
     raw_ebay_json
   )
 `;
@@ -332,7 +362,7 @@ async function fetchRunOpportunities({
   if (status !== "all") query = query.eq("status", status);
   if (type !== "all") query = query.eq("opportunity_type", type);
   if (runId) query = query.eq("sourcing_run_id", runId);
-  if (!runId) query = query.in("sourcing_run_id", latestRunIds);
+  if (!runId && status !== "open" && latestRunIds.length) query = query.in("sourcing_run_id", latestRunIds);
 
   const { data, error } = await query;
   return { data: (data ?? null) as OpportunityRow[] | null, error };
@@ -409,6 +439,103 @@ async function fetchBatchOpportunityIds(batchIds: string[]) {
     throw new Error(`Sourcing batch items: ${error.message}`);
   }
   return (data ?? []).map((row) => row.opportunity_id).filter(Boolean) as string[];
+}
+
+async function fetchPresentationMetadataByOpportunityId(opportunityIds: string[], latestBatchOpportunityIds: Set<string>) {
+  const uniqueIds = [...new Set(opportunityIds.filter(Boolean))];
+  const byOpportunityId = new Map<string, PresentationMetadata>();
+  if (!uniqueIds.length) return byOpportunityId;
+
+  const items: Array<{ opportunity_id: string | null; sourcing_run_id: string | null; presented_at: string | null }> = [];
+  for (let index = 0; index < uniqueIds.length; index += 100) {
+    const chunk = uniqueIds.slice(index, index + 100);
+    const { data, error } = await supabase
+      .from("sourcing_opportunity_batch_items")
+      .select("opportunity_id,sourcing_run_id,presented_at")
+      .in("opportunity_id", chunk)
+      .order("presented_at", { ascending: true });
+    if (error) {
+      if (isMissingBatchTableError(error.message)) return byOpportunityId;
+      throw new Error(`Sourcing presentation metadata: ${error.message}`);
+    }
+    items.push(...((data ?? []) as Array<{ opportunity_id: string | null; sourcing_run_id: string | null; presented_at: string | null }>));
+  }
+
+  const runIds = [...new Set(items.map((item) => item.sourcing_run_id).filter(Boolean))] as string[];
+  const cycleByRunId = await fetchCycleIdsByRunId(runIds);
+
+  for (const item of items) {
+    if (!item.opportunity_id) continue;
+    const current = byOpportunityId.get(item.opportunity_id) ?? emptyPresentationMetadata();
+    const presentedAt = item.presented_at ?? null;
+    const runId = item.sourcing_run_id ?? null;
+    const cycleId = runId ? cycleByRunId.get(runId) ?? null : null;
+    current.presentationCount += 1;
+    current.isNewThisRun = current.isNewThisRun || latestBatchOpportunityIds.has(item.opportunity_id);
+    if (!current.firstPresentedAt || (presentedAt && presentedAt < current.firstPresentedAt)) {
+      current.firstPresentedAt = presentedAt;
+      current.originatingRunId = runId;
+      current.originatingCycleId = cycleId;
+    }
+    if (!current.lastPresentedAt || (presentedAt && presentedAt > current.lastPresentedAt)) {
+      current.lastPresentedAt = presentedAt;
+      current.latestPresentedRunId = runId;
+      current.latestPresentedCycleId = cycleId;
+    }
+    byOpportunityId.set(item.opportunity_id, current);
+  }
+
+  return byOpportunityId;
+}
+
+async function fetchCycleIdsByRunId(runIds: string[]) {
+  const byRunId = new Map<string, string | null>();
+  for (let index = 0; index < runIds.length; index += 100) {
+    const chunk = runIds.slice(index, index + 100);
+    const { data, error } = await supabase
+      .from("sourcing_runs")
+      .select("sourcing_run_id,coverage_cycle_id")
+      .in("sourcing_run_id", chunk);
+    if (error) throw new Error(`Sourcing run cycle metadata: ${error.message}`);
+    for (const row of (data ?? []) as Array<{ sourcing_run_id: string | null; coverage_cycle_id: string | null }>) {
+      if (row.sourcing_run_id) byRunId.set(row.sourcing_run_id, row.coverage_cycle_id ?? null);
+    }
+  }
+  return byRunId;
+}
+
+function emptyPresentationMetadata(): PresentationMetadata {
+  return {
+    firstPresentedAt: null,
+    lastPresentedAt: null,
+    originatingRunId: null,
+    latestPresentedRunId: null,
+    originatingCycleId: null,
+    latestPresentedCycleId: null,
+    isNewThisRun: false,
+    presentationCount: 0,
+  };
+}
+
+function parseScope(value: string | null, runId: string | null): OpportunityScope {
+  if (runId) return "new_this_run";
+  if (value === "new_this_run" || value === "prior_unreviewed") return value;
+  return "all_open";
+}
+
+function emptySummary() {
+  return { total: 0, returned: 0, buyNow: 0, bestOffer: 0, auction: 0, multiUnit: 0 };
+}
+
+function summarizeMappedRows(rows: Array<{ opportunityType: string | null }>, returned: number) {
+  return {
+    total: rows.length,
+    returned,
+    buyNow: rows.filter((row) => row.opportunityType === "buy_now").length,
+    bestOffer: rows.filter((row) => row.opportunityType === "best_offer").length,
+    auction: rows.filter((row) => row.opportunityType === "auction").length,
+    multiUnit: rows.filter((row) => row.opportunityType === "multi_unit").length,
+  };
 }
 
 function isMissingBatchTableError(message: string) {

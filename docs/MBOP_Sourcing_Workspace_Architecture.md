@@ -102,6 +102,12 @@ Current implementation notes:
   `Shown` column uses the latest completed batch count, while the message can
   say `Scored N; shown M` so rejected/non-actionable scored rows are not
   confused with buyable opportunities.
+- Replenishment defaults to `All Open`, the full current actionable queue across
+  runs/cycles. The newest completed batch view is preserved as `New This Run`;
+  batch membership is no longer the default limiting scope.
+- Coverage Cycle summaries show `Opportunities Presented`, derived from unique
+  `sourcing_opportunity_batch_items.opportunity_id` values in completed batches
+  for all runs in the cycle.
 - Quota stops such as `ebay_out_of_quota`, `ebay_rate_limited`, and
   `quota_reserve_reached` are displayed as "Out of quota" rather than failed
   sourcing jobs.
@@ -868,6 +874,7 @@ Use Next.js API routes.
 Query params:
 - mode
 - status
+- scope
 - opportunityType
 - search
 - asin
@@ -883,6 +890,12 @@ Returns:
 - paginated opportunity rows
 - summary counts
 - current settings snapshot
+
+Default scope is `all_open`, which returns still-open actionable rows from
+current and prior sourcing runs before applying the established exact eBay
+listing dedupe and score/recency/ASIN grouping order. `scope=new_this_run`
+returns the newest completed batch only, and `scope=prior_unreviewed` returns
+open rows not included in the newest completed batch.
 
 ---
 

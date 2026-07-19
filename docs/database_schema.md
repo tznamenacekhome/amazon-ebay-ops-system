@@ -149,7 +149,9 @@ Keepa and Informed data are advisory intelligence only.
   displayed as "Out of quota".
 - `sourcing_opportunity_batch_items`: stable membership of opportunities
   presented in each progressive sourcing batch so later batches do not repeat
-  rows already shown to the operator.
+  rows already shown to the operator. Coverage Cycle `Opportunities Presented`
+  is derived from unique opportunity IDs in these rows for completed batches
+  associated with the cycle's sourcing runs.
 - `sourcing_actions`: operator action history for dismiss, watch, ROI snooze,
   and purchased/offer-made workflows.
 - `sourcing_purchase_matches`: links sourced opportunities to imported eBay

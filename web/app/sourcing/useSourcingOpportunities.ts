@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import type { SourcingBatch, SourcingOpportunity } from "./types";
 
-export function useSourcingOpportunities(status: string, type: string, searchText: string, sourceMode: string) {
+export function useSourcingOpportunities(status: string, type: string, searchText: string, sourceMode: string, scope = "all_open") {
   const [rows, setRows] = useState<SourcingOpportunity[]>([]);
   const [summary, setSummary] = useState<Record<string, number>>({});
   const [batch, setBatch] = useState<SourcingBatch | null>(null);
@@ -15,6 +15,7 @@ export function useSourcingOpportunities(status: string, type: string, searchTex
     setError(null);
     try {
       const params = new URLSearchParams({ status, type, limit: "150" });
+      params.set("scope", scope);
       if (sourceMode !== "all") params.set("sourceMode", sourceMode);
       if (searchText.trim()) params.set("q", searchText.trim());
       params.set("_", String(Date.now()));
@@ -29,7 +30,7 @@ export function useSourcingOpportunities(status: string, type: string, searchTex
     } finally {
       setLoading(false);
     }
-  }, [searchText, sourceMode, status, type]);
+  }, [scope, searchText, sourceMode, status, type]);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect

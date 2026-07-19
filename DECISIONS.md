@@ -515,6 +515,18 @@ This remains advisory Amazon-to-eBay replenishment sourcing only. MBOP must not
 auto-purchase, bid, submit offers, or add eBay-to-Amazon sourcing through this
 workflow.
 
+Replenishment review defaults to the full open actionable sourcing queue, not
+the newest completed batch.
+
+- Completed batch membership records what MBOP presented to the operator and
+  remains authoritative for `New This Run`, history, diagnostics, and coverage
+  cycle `Opportunities Presented`.
+- The default `All Open` queue includes still-open opportunities from current
+  and prior runs, deduplicates by exact eBay listing identity, and reuses the
+  established score, recency, and ASIN grouping order.
+- Latest-batch absence is not an availability signal and must not dismiss or
+  hide an otherwise open opportunity.
+
 Production deployment note:
 As of the 2026-07-14 deployment verification, the production
 `mbop-sourcing-catalog` EventBridge schedule targets digest-pinned

@@ -52,7 +52,11 @@ export async function GET() {
 
 async function buildCycleSummary(supabase: ReturnType<typeof createServerSupabaseClient>, cycle: Record<string, unknown>) {
   const cycleId = String(cycle.coverage_cycle_id ?? "");
-  const [itemsResult, lastRunResult] = await Promise.all([fetchCycleItems(supabase, cycleId), fetchLastRun(supabase, cycle)]);
+  const [itemsResult, lastRunResult, opportunitiesPresented] = await Promise.all([
+    fetchCycleItems(supabase, cycleId),
+    fetchLastRun(supabase, cycle),
+    fetchOpportunitiesPresented(supabase, cycleId),
+  ]);
   if (itemsResult.error) throw new Error(itemsResult.error.message);
   if (lastRunResult.error) throw new Error(lastRunResult.error.message);
 
@@ -79,6 +83,7 @@ async function buildCycleSummary(supabase: ReturnType<typeof createServerSupabas
     cycle,
     bucketSummary,
     lastRun: lastRunResult.data ?? null,
+    opportunitiesPresented,
     statusMessage: statusMessage(cycle, bucketSummary),
   };
 }
@@ -125,6 +130,59 @@ async function fetchCycleItems(supabase: ReturnType<typeof createServerSupabaseC
     if (batch.length < 1000) return { data: rows, error: null };
     start += 1000;
   }
+}
+
+async function fetchOpportunitiesPresented(supabase: ReturnType<typeof createServerSupabaseClient>, cycleId: string) {
+  const { data: runs, error: runError } = await supabase
+    .from("sourcing_runs")
+    .select("sourcing_run_id")
+    .eq("coverage_cycle_id", cycleId);
+  if (runError) throw new Error(runError.message);
+  const runIds = (runs ?? []).map((row) => row.sourcing_run_id).filter(Boolean) as string[];
+  if (!runIds.length) return { total: 0, buyNow: 0, bestOffer: 0, auction: 0, multiUnit: 0 };
+
+  const { data: batches, error: batchError } = await supabase
+    .from("sourcing_opportunity_batches")
+    .select("batch_id")
+    .in("sourcing_run_id", runIds)
+    .eq("status", "completed");
+  if (batchError) {
+    if (isMissingBatchTableError(batchError.message)) return { total: 0, buyNow: 0, bestOffer: 0, auction: 0, multiUnit: 0 };
+    throw new Error(batchError.message);
+  }
+  const batchIds = (batches ?? []).map((row) => row.batch_id).filter(Boolean) as string[];
+  if (!batchIds.length) return { total: 0, buyNow: 0, bestOffer: 0, auction: 0, multiUnit: 0 };
+
+  const byOpportunityId = new Map<string, string | null>();
+  for (let index = 0; index < batchIds.length; index += 100) {
+    const chunk = batchIds.slice(index, index + 100);
+    const { data, error } = await supabase
+      .from("sourcing_opportunity_batch_items")
+      .select("opportunity_id,opportunity_type")
+      .in("batch_id", chunk);
+    if (error) {
+      if (isMissingBatchTableError(error.message)) return { total: 0, buyNow: 0, bestOffer: 0, auction: 0, multiUnit: 0 };
+      throw new Error(error.message);
+    }
+    for (const row of data ?? []) {
+      if (row.opportunity_id && !byOpportunityId.has(row.opportunity_id)) {
+        byOpportunityId.set(row.opportunity_id, row.opportunity_type ?? null);
+      }
+    }
+  }
+
+  const types = [...byOpportunityId.values()];
+  return {
+    total: byOpportunityId.size,
+    buyNow: types.filter((value) => value === "buy_now").length,
+    bestOffer: types.filter((value) => value === "best_offer").length,
+    auction: types.filter((value) => value === "auction").length,
+    multiUnit: types.filter((value) => value === "multi_unit").length,
+  };
+}
+
+function isMissingBatchTableError(message: string) {
+  return message.includes("sourcing_opportunity_batches") || message.includes("sourcing_opportunity_batch_items");
 }
 
 function statusMessage(cycle: Record<string, unknown>, bucketSummary: Array<{ label: string; remaining: number }>) {

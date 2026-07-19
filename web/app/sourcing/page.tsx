@@ -34,6 +34,7 @@ export default function SourcingPage() {
   const [status, setStatus] = useState("open");
   const [type, setType] = useState("all");
   const [sourceMode, setSourceMode] = useState("all");
+  const [scope, setScope] = useState("all_open");
   const [searchText, setSearchText] = useState("");
   const effectiveStatus =
     activeTab === "Watchlist"
@@ -46,6 +47,7 @@ export default function SourcingPage() {
     type,
     searchText,
     sourceMode,
+    activeTab === "Replenishment" ? scope : "all_open",
   );
   const [actionBusyId, setActionBusyId] = useState<string | null>(null);
   const [dismissRow, setDismissRow] = useState<SourcingOpportunity | null>(null);
@@ -211,7 +213,7 @@ export default function SourcingPage() {
       ) : (
         <>
           <div className="mb-3 grid grid-cols-2 gap-3 md:grid-cols-5">
-            <Metric label="Open Rows" value={summary.total ?? visibleRows.length} />
+            <Metric label={activeTab === "Replenishment" ? "Actionable Rows" : "Open Rows"} value={summary.total ?? visibleRows.length} />
             <Metric label="Buy Now" value={summary.buyNow ?? 0} />
             <Metric label="Best Offer" value={summary.bestOffer ?? 0} />
             <Metric label="Auction" value={summary.auction ?? 0} />
@@ -231,6 +233,17 @@ export default function SourcingPage() {
                 placeholder="Search ASIN, Amazon title, or eBay title"
               />
             </div>
+            {activeTab === "Replenishment" ? (
+              <select
+                value={scope}
+                onChange={(event) => setScope(event.target.value)}
+                className="h-9 rounded-md border border-slate-300 bg-white px-2 text-sm"
+              >
+                <option value="all_open">All Open</option>
+                <option value="new_this_run">New This Run</option>
+                <option value="prior_unreviewed">Prior Unreviewed</option>
+              </select>
+            ) : null}
             {activeTab === "Replenishment" ? (
               <select
                 value={status}
@@ -490,6 +503,9 @@ function ReplenishmentTable({
                   </td>
                   <td className="px-2 py-2">
                     <div className="font-medium text-slate-950">{row.ebayTitle}</div>
+                    <div className="mt-1 flex flex-wrap gap-1">
+                      <PresentationBadge row={row} />
+                    </div>
                     <div className="mt-1 text-sm text-slate-600">
                       <span>{row.amazonTitle}</span>{" "}
                       <Link href={row.amazonUrl} target="_blank" className="font-medium text-blue-700 hover:underline">
@@ -663,6 +679,23 @@ function CostCell({ row }: { row: SourcingOpportunity }) {
       </div>
       {originalCostLabel ? <div className="text-xs text-slate-500">{originalCostLabel}</div> : null}
     </div>
+  );
+}
+
+function PresentationBadge({ row }: { row: SourcingOpportunity }) {
+  const labelText = row.isNewThisRun ? "New This Run" : "Previously Presented";
+  const dateText = row.lastPresentedAt ?? row.firstPresentedAt;
+  return (
+    <>
+      <span
+        className={`rounded px-1.5 py-0.5 text-[11px] font-medium ${
+          row.isNewThisRun ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-600"
+        }`}
+      >
+        {labelText}
+      </span>
+      {dateText ? <span className="rounded bg-slate-50 px-1.5 py-0.5 text-[11px] text-slate-500">{dateOnly(dateText)}</span> : null}
+    </>
   );
 }
 
@@ -948,6 +981,7 @@ function SourcingHistory() {
   }
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     void loadHistory();
   }, []);
 
@@ -1049,7 +1083,9 @@ function CoverageCyclePanel() {
   }
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     void load();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   if (loading) return <div className="rounded-md border border-slate-200 bg-white p-6 text-sm text-slate-500">Loading coverage cycle...</div>;
@@ -1071,11 +1107,12 @@ function CoverageCyclePanel() {
             Refresh
           </button>
         </div>
-        <div className="grid grid-cols-2 gap-3 md:grid-cols-6">
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-7">
           <Metric label="Coverage" value={Math.round(cycle.completion_percentage ?? 0)} />
           <Metric label="Eligible ASINs" value={cycle.total_eligible_asins ?? 0} />
           <Metric label="Searched" value={cycle.searched_count ?? 0} />
           <Metric label="Remaining" value={cycle.remaining_count ?? 0} />
+          <Metric label="Opportunities Presented" value={summary?.opportunitiesPresented?.total ?? 0} />
           <Metric label="Calls Today" value={lastRun?.api_call_count ?? 0} />
           <Metric label="Quota Left" value={lastRun?.ending_browse_quota_remaining ?? lastRun?.starting_browse_quota_remaining ?? 0} />
         </div>
@@ -1243,6 +1280,7 @@ function CompletedCycleCard({ summary }: { summary: CoverageCycleSnapshot }) {
         <HistoryMetric label="Eligible" value={String(cycle.total_eligible_asins ?? 0)} />
         <HistoryMetric label="Searched" value={String(cycle.searched_count ?? 0)} />
         <HistoryMetric label="Remaining" value={String(cycle.remaining_count ?? 0)} />
+        <HistoryMetric label="Opportunities Presented" value={String(summary.opportunitiesPresented?.total ?? 0)} />
         <HistoryMetric label="Calls" value={String(lastRun?.api_call_count ?? 0)} />
         <HistoryMetric label="Quota Left" value={String(lastRun?.ending_browse_quota_remaining ?? lastRun?.starting_browse_quota_remaining ?? 0)} />
       </div>
@@ -1301,6 +1339,13 @@ type CoverageCycleSnapshot = {
     nextItem: { asin: string; amazonTitle: string | null; queuePosition: number | null } | null;
   }>;
   lastRun: CoverageDailyRun | null;
+  opportunitiesPresented?: {
+    total: number;
+    buyNow: number;
+    bestOffer: number;
+    auction: number;
+    multiUnit: number;
+  };
   statusMessage: string | null;
 };
 

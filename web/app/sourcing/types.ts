@@ -57,6 +57,15 @@ export type SourcingOpportunity = {
   aiFlags: string[];
   matchingDiagnostics: unknown;
   createdAt: string | null;
+  listingStatus?: string | null;
+  firstPresentedAt?: string | null;
+  lastPresentedAt?: string | null;
+  originatingRunId?: string | null;
+  latestPresentedRunId?: string | null;
+  originatingCycleId?: string | null;
+  latestPresentedCycleId?: string | null;
+  isNewThisRun?: boolean;
+  presentationCount?: number;
 };
 
 export type SourcingSettings = {
