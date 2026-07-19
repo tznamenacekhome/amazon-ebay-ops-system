@@ -10,6 +10,7 @@ from integrations.provider_costs import (
     dollar_variance,
     easypost_line_items,
     reconcile_easypost_wallet,
+    supabase_monthly_run_rate_estimate,
     tracker_fee_for_carrier,
     unavailable_supabase_periods,
 )
@@ -73,6 +74,50 @@ def test_supabase_periods_do_not_invent_billing_anchor_or_totals():
     assert previous.status == "unavailable"
     assert current.cycle_type == "unavailable"
     assert current.source == "api"
+
+
+def test_supabase_run_rate_uses_only_api_returned_addon_prices():
+    estimate = supabase_monthly_run_rate_estimate(
+        [
+            {
+                "metric_name": "billing_addons",
+                "project_or_resource_id": "project-ref",
+                "raw_metadata": {
+                    "selected_addons": [
+                        {
+                            "type": "compute_instance",
+                            "variant": {
+                                "id": "ci_small",
+                                "name": "Small",
+                                "price": {
+                                    "type": "usage",
+                                    "amount": 0.0206,
+                                    "interval": "hourly",
+                                    "description": "$0.0206/hour (~$15/month)",
+                                },
+                            },
+                        },
+                        {
+                            "type": "custom_domain",
+                            "variant": {
+                                "id": "cd_default",
+                                "name": "Custom Domain",
+                                "price": {
+                                    "type": "fixed",
+                                    "amount": 10,
+                                    "interval": "monthly",
+                                    "description": "$10/month",
+                                },
+                            },
+                        },
+                    ]
+                },
+            }
+        ]
+    )
+
+    assert estimate["total"] == Decimal("25.0380")
+    assert [row["variant_id"] for row in estimate["line_items"]] == ["ci_small", "cd_default"]
 
 
 def test_easypost_line_items_aggregate_without_labels_or_postage():

@@ -226,7 +226,7 @@ class ProviderCostSync:
             raise
 
     def sync_supabase(self) -> None:
-        run_id = self.start_run("supabase", source_type="api")
+        run_id = self.start_run("supabase", source_type="calculated")
         records_read = 0
         records_written = 0
         try:
@@ -235,22 +235,7 @@ class ProviderCostSync:
             project_ref = os.getenv("SUPABASE_PROJECT_REF") or infer_supabase_project_ref(os.getenv("SUPABASE_URL"))
             account_id = org_slug or project_ref or "default"
             current, previous = unavailable_supabase_periods()
-            for period in (previous, current):
-                self.upsert_period(
-                    provider="supabase",
-                    external_account_id=account_id,
-                    period=period,
-                    currency=None,
-                    coverage_status="unavailable",
-                    metadata={
-                        "cost_unavailable_reason": (
-                            "Supabase billing-cycle dates and monetary totals were not returned "
-                            "by an automatically available provider API in this MVP run."
-                        )
-                    },
-                )
-                records_written += 1
-
+            snapshots: list[dict[str, Any]] = []
             if token:
                 snapshots = fetch_supabase_management_snapshots(token, org_slug=org_slug, project_ref=project_ref)
                 records_read += len(snapshots)
@@ -269,6 +254,33 @@ class ProviderCostSync:
                         "raw_metadata": {"reason": "SUPABASE_ACCESS_TOKEN not configured"},
                     }
                 )
+                records_written += 1
+
+            estimate = supabase_monthly_run_rate_estimate(snapshots)
+            for period in (previous, current):
+                period_id = self.upsert_period(
+                    provider="supabase",
+                    external_account_id=account_id,
+                    period=period,
+                    currency=USD if estimate["total"] is not None else None,
+                    coverage_status="partial" if estimate["total"] is not None else "unavailable",
+                    forecast_total=estimate["total"] if period.status == "unavailable" and period.start == current.start else None,
+                    metadata={
+                        "cost_unavailable_reason": (
+                            "Supabase invoice totals, credits, discounts, taxes, and actual billing-cycle "
+                            "charges were not returned by the Management API in this MVP run."
+                        ),
+                        "estimate_note": (
+                            "forecast_total is a calculated monthly run-rate from Supabase Management API "
+                            "billing/addons price metadata for selected project add-ons, not an invoice total."
+                            if estimate["total"] is not None
+                            else None
+                        ),
+                    },
+                )
+                if estimate["line_items"] and period.start == current.start:
+                    rows = supabase_estimate_line_items(period_id, current, estimate["line_items"])
+                    records_written += self.replace_period_line_items(period_id, rows)
                 records_written += 1
             self.finish_run(run_id, status="ok", records_read=records_read, records_written=records_written)
         except Exception as exc:
@@ -643,6 +655,7 @@ def infer_supabase_project_ref(url: str | None) -> str | None:
 def fetch_supabase_management_snapshots(token: str, *, org_slug: str | None, project_ref: str | None) -> list[dict[str, Any]]:
     headers = {"Authorization": f"Bearer {token}", "Accept": "application/json"}
     rows: list[dict[str, Any]] = []
+    project_refs: list[str] = []
     if org_slug:
         org = supabase_api_get(f"https://api.supabase.com/v1/organizations/{org_slug}", headers)
         rows.append(supabase_snapshot("organization", org_slug, org))
@@ -650,12 +663,17 @@ def fetch_supabase_management_snapshots(token: str, *, org_slug: str | None, pro
         for project in normalize_supabase_collection(projects):
             ref = project.get("ref") or project.get("id")
             rows.append(supabase_snapshot("project", str(ref or "unknown"), project))
+            if ref:
+                project_refs.append(str(ref))
     elif project_ref:
         project = supabase_api_get(f"https://api.supabase.com/v1/projects/{project_ref}", headers)
         rows.append(supabase_snapshot("project", project_ref, project))
-    if project_ref:
-        addons = supabase_api_get(f"https://api.supabase.com/v1/projects/{project_ref}/billing/addons", headers)
-        rows.append(supabase_snapshot("billing_addons", project_ref, addons))
+        project_refs.append(project_ref)
+    if project_ref and project_ref not in project_refs:
+        project_refs.append(project_ref)
+    for ref in project_refs:
+        addons = supabase_api_get(f"https://api.supabase.com/v1/projects/{ref}/billing/addons", headers)
+        rows.append(supabase_snapshot("billing_addons", ref, addons))
     return rows
 
 
@@ -693,6 +711,100 @@ def supabase_snapshot(metric_name: str, resource_id: str, payload: Any) -> dict[
         "provider_record_id": f"supabase:{metric_name}:{resource_id}",
         "raw_metadata": sanitize_payload(payload if isinstance(payload, dict) else {"payload": payload}),
     }
+
+
+def supabase_monthly_run_rate_estimate(snapshots: list[dict[str, Any]]) -> dict[str, Any]:
+    """Calculate only selected add-on run-rate values returned by Supabase APIs.
+
+    This is deliberately not an invoice or billing-cycle total. Supabase invoice
+    totals, credits, taxes, discounts, plan subscription fees, overage usage, and
+    billing-cycle anchors are not exposed by the Management API data collected
+    here, so this function only preserves reproducible configured add-on prices.
+    """
+    line_items: list[dict[str, Any]] = []
+    for snapshot in snapshots:
+        if snapshot.get("metric_name") != "billing_addons":
+            continue
+        project_ref = snapshot.get("project_or_resource_id") or "unknown"
+        metadata = snapshot.get("raw_metadata") or {}
+        for selected in metadata.get("selected_addons") or []:
+            if not isinstance(selected, dict):
+                continue
+            variant = selected.get("variant") if isinstance(selected.get("variant"), dict) else {}
+            price = variant.get("price") if isinstance(variant.get("price"), dict) else {}
+            amount = money(price.get("amount"))
+            interval = str(price.get("interval") or "").lower()
+            price_type = str(price.get("type") or "").lower()
+            if amount is None:
+                continue
+            monthly_cost = None
+            quantity = Decimal("1")
+            unit = "month"
+            if interval == "monthly":
+                monthly_cost = amount
+            elif interval == "hourly":
+                quantity = Decimal("730")
+                unit = "hour"
+                monthly_cost = amount * quantity
+            if monthly_cost is None:
+                continue
+            line_items.append(
+                {
+                    "project_ref": project_ref,
+                    "addon_type": selected.get("type") or "unknown",
+                    "variant_id": variant.get("id") or "unknown",
+                    "variant_name": variant.get("name") or variant.get("id") or "Unknown",
+                    "price_type": price_type,
+                    "interval": interval,
+                    "unit_price": amount,
+                    "quantity": quantity,
+                    "unit": unit,
+                    "monthly_cost": money(monthly_cost) or Decimal("0"),
+                    "price_description": price.get("description"),
+                }
+            )
+    total = sum((row["monthly_cost"] for row in line_items), Decimal("0"))
+    return {
+        "total": money(total) if line_items else None,
+        "line_items": line_items,
+    }
+
+
+def supabase_estimate_line_items(
+    period_id: str,
+    period: BillingPeriod,
+    line_items: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    for item in line_items:
+        rows.append(
+            {
+                "provider_billing_period_id": period_id,
+                "provider": "supabase",
+                "category": "configured_addon_run_rate",
+                "subcategory": str(item["addon_type"]),
+                "service": f"{item['variant_name']} ({item['variant_id']})",
+                "project_or_resource_id": str(item["project_ref"]),
+                "usage_type": f"{item['price_type']}_{item['interval']}",
+                "quantity": str(item["quantity"]),
+                "unit": str(item["unit"]),
+                "unit_price": str(item["unit_price"]),
+                "cost": str(item["monthly_cost"]),
+                "source": "calculated",
+                "provider_record_id": (
+                    f"supabase:{period.start}:{item['project_ref']}:"
+                    f"{item['addon_type']}:{item['variant_id']}"
+                ),
+                "usage_start": period.start.isoformat(),
+                "usage_end": period.end.isoformat(),
+                "raw_metadata": {
+                    "not_invoice_total": True,
+                    "calculation": "Supabase API price amount multiplied by 730 hours for hourly add-ons; monthly fixed add-ons use API price amount.",
+                    "price_description": item.get("price_description"),
+                },
+            }
+        )
+    return rows
 
 
 def fetch_easypost_wallet_balance() -> Decimal | None:

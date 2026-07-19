@@ -105,6 +105,9 @@ Collected when available:
 - project metadata
 - billing add-on/config payloads
 - API availability/error state
+- selected billing add-on price metadata
+- calculated monthly run-rate for selected add-ons when Supabase returns price
+  amount and interval metadata
 
 Environment:
 
@@ -114,7 +117,11 @@ Environment:
 
 Known limitation: Supabase monetary totals are omitted until an official API
 returns them or until maintainable pricing inputs plus automatically collected
-usage are sufficient for reproducible calculation.
+usage are sufficient for reproducible calculation. Current Supabase monetary
+display is a selected add-on monthly run-rate estimate only; it is not an
+invoice total and does not include organization plan fees, credits, discounts,
+taxes, billing-cycle proration, or usage overages that are not returned by the
+collected API payloads.
 
 ## EasyPost
 
