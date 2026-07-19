@@ -271,6 +271,8 @@ NON_GAME_CATEGORY_IDS = {
 
 GAME_SOFTWARE_CATEGORY_IDS = {"139973"}
 
+UNSUPPORTED_CANDIDATE_SYSTEMS = {"DS"}
+
 NON_GAME_CATEGORY_TERMS = {
     "accessories",
     "action figures",
@@ -616,7 +618,11 @@ def platform_rule(
 
     result = "unknown"
     reason = "No platform signal available"
-    if seed_system and not ebay_systems:
+    unsupported_systems = [system for system in ebay_systems if system in UNSUPPORTED_CANDIDATE_SYSTEMS]
+    if unsupported_systems:
+        result = "blocked"
+        reason = f"unsupported sourcing platform: {', '.join(unsupported_systems)}"
+    elif seed_system and not ebay_systems:
         result = "review"
         reason = "Candidate listing has no detectable platform"
     elif seed_system and ebay_systems and xbox_one_series_compatible(seed_system, ebay_systems):

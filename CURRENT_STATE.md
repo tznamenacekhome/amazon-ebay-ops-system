@@ -477,6 +477,8 @@ Implemented:
   presentation metadata derived from `sourcing_opportunity_batch_items`.
 - Coverage Cycle summaries now show `Opportunities Presented`, counted as
   unique opportunity IDs in completed batch membership for the cycle.
+- Sourcing scoring now hard-blocks Nintendo DS candidate listings, including
+  mixed DS/3DS listings, while preserving Nintendo 3DS as an eligible platform.
 - sourcing availability refresh now sends the buyer contextual ZIP header and
   preserves stored shipping quote data when eBay detail payloads omit
   `shippingOptions`; sourcing display/scoring trusts stored shipping cost before

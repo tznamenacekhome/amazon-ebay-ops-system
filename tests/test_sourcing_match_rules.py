@@ -28,7 +28,7 @@ def seed(title: str, system: str | None = None) -> dict:
 def candidate(
     title: str,
     *,
-    platform: str | None = None,
+    platform: str | list[str] | None = None,
     game_name: str | None = None,
     category_id: str = "139973",
     category_name: str = "Video Games",
@@ -87,6 +87,27 @@ class SourcingMatchRuleTests(unittest.TestCase):
             seed("Wii Party", "Wii"),
         )
         self.assert_blocked(diagnostics, "platform mismatch")
+
+    def test_3ds_seed_blocks_ds_listing(self) -> None:
+        diagnostics = evaluate_static_match_rules(
+            candidate("Mario Kart DS Nintendo DS Brand New", platform="Nintendo DS"),
+            seed("Mario Kart 7", "3DS"),
+        )
+        self.assert_blocked(diagnostics, "unsupported sourcing platform")
+
+    def test_3ds_seed_blocks_mixed_3ds_ds_listing(self) -> None:
+        diagnostics = evaluate_static_match_rules(
+            candidate("Professor Layton 3DS DS Compatible Bundle", platform=["Nintendo 3DS", "Nintendo DS"]),
+            seed("Professor Layton and the Miracle Mask", "3DS"),
+        )
+        self.assert_blocked(diagnostics, "unsupported sourcing platform")
+
+    def test_3ds_listing_still_passes(self) -> None:
+        diagnostics = evaluate_static_match_rules(
+            candidate("Super Mario 3D Land Nintendo 3DS Brand New", platform="Nintendo 3DS"),
+            seed("Super Mario 3D Land", "3DS"),
+        )
+        self.assertNotEqual("Blocked", diagnostics["recommendation"])
 
     def test_game_vs_controller_accessory_blocks(self) -> None:
         diagnostics = evaluate_static_match_rules(

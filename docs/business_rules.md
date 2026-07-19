@@ -80,6 +80,9 @@ Carrier/status syncs must not downgrade workflow-owned statuses.
   and must not add unapproved aliases. DS, original Xbox, and GameCube are not
   searched by the replenishment sourcing workflow. Wii and Wii U are separate
   platforms; a Wii seed must not accept a Wii U eBay result.
+- Nintendo 3DS is eligible, but Nintendo DS is not sold through this sourcing
+  workflow. Sourcing must hard-block any eBay candidate with Nintendo DS
+  platform evidence, including mixed DS/3DS listings.
 - Xbox One and Xbox Series X/S physical releases may be cross-generation for
   this workflow. Sourcing matching must not hard-block an otherwise plausible
   candidate solely because one side says Xbox One and the other says Xbox
