@@ -252,6 +252,13 @@ JOBS: tuple[SyncJob, ...] = (
         timeout_seconds=30 * 60,
     ),
     SyncJob(
+        name="Provider costs",
+        command=static_command("integrations/provider_costs.py", "--provider", "all"),
+        groups=("daily", "dashboard", "finance-refresh", "provider-costs"),
+        blocking=False,
+        timeout_seconds=30 * 60,
+    ),
+    SyncJob(
         name="Amazon missing-fee sales finances",
         command=lambda: [
             "integrations/amazon_sync_sales_finances.py",
@@ -488,6 +495,7 @@ GROUPS = (
     "purchase-enrichment",
     "amazon-sales-recent",
     "finance-refresh",
+    "provider-costs",
     "fba-inventory-daily",
     "fba-shipments",
     "repricing-catalog",

@@ -100,6 +100,7 @@ const implementedViews = new Set<DashboardView>([
   "amazon",
   "sourcing",
   "loss-prevention",
+  "provider-costs",
   "system-health",
 ]);
 const allViews = new Set<DashboardView>([
@@ -109,6 +110,7 @@ const allViews = new Set<DashboardView>([
   "amazon",
   "sourcing",
   "loss-prevention",
+  "provider-costs",
   "system-health",
 ]);
 
@@ -212,6 +214,7 @@ function DashboardClient() {
       {view === "amazon" ? <AmazonPanel data={dashboardData.amazon} loading={loading} /> : null}
       {view === "sourcing" ? <SourcingPanel data={dashboardData.sourcing} loading={loading} /> : null}
       {view === "loss-prevention" ? <LossPreventionPanel data={dashboardData["loss-prevention"]} loading={loading} /> : null}
+      {view === "provider-costs" ? <ProviderCostsPanel data={dashboardData["provider-costs"]} loading={loading} /> : null}
       {view === "system-health" ? <SystemHealthPanel data={dashboardData["system-health"]} loading={loading} /> : null}
       {!implementedViews.has(view) ? <StagedPanel view={view} /> : null}
     </main>
@@ -609,6 +612,98 @@ function LossPreventionPanel({ data, loading }: { data: DashboardPayload | null;
   );
 }
 
+function ProviderCostsPanel({ data, loading }: { data: DashboardPayload | null; loading: boolean }) {
+  const providers = asRows(data?.providers);
+  return (
+    <div className="space-y-4">
+      <DashboardSection title="Provider Cost Summary" eyebrow="Independent billing periods">
+        <CompactStatusTable
+          columns={["Provider", "Billing Period", "Current", "Forecast", "Previous", "Dollar Variance", "Source", "Last Updated", "Coverage"]}
+          rows={asRows(data?.summary).map((row) => ({
+            id: text(row.provider),
+            cells: [
+              text(row.provider),
+              text(row.period) || "Unavailable",
+              formatMoneyWithCurrency(row.currentCycleCost, text(row.currency) || "USD"),
+              formatMoneyWithCurrency(row.forecastTotal, text(row.currency) || "USD"),
+              formatMoneyWithCurrency(row.previousCompletedCost, text(row.currency) || "USD"),
+              <span key="variance" title={text(row.varianceLabel)}>{formatSignedMoney(row.dollarVariance, text(row.currency) || "USD")}</span>,
+              sourceLabel(text(row.source)),
+              formatDateShort(text(row.lastUpdated)),
+              `${text(row.coverageStatus) || "unavailable"} / ${text(row.status) || "unknown"}`,
+            ],
+          }))}
+          emptyText={loading ? "Loading provider costs..." : "No provider cost sync data found."}
+        />
+        <div className="mt-2 text-xs text-slate-500">
+          Provider periods are not combined because AWS, Supabase, and EasyPost may use different billing cycles.
+        </div>
+      </DashboardSection>
+
+      <div className="grid gap-4 xl:grid-cols-3">
+        {providers.map((provider) => (
+          <ProviderCostSection key={text(provider.provider)} provider={provider} loading={loading} />
+        ))}
+        {!providers.length && !loading ? (
+          <DashboardSection title="Provider Costs" eyebrow="Unavailable">
+            <div className="text-sm text-slate-500">Run the provider-cost sync after applying the schema migration.</div>
+          </DashboardSection>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
+function ProviderCostSection({ provider, loading }: { provider: DashboardPayload; loading: boolean }) {
+  const current = provider.currentPeriod ?? {};
+  const currency = text(current.currency) || "USD";
+  return (
+    <DashboardSection
+      title={text(provider.label) || "Provider"}
+      eyebrow={`${text(current.periodStatus) || "unavailable"} / ${sourceLabel(text(current.source))}`}
+    >
+      <div className="space-y-3">
+        {text(provider.errorSummary) ? (
+          <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">{text(provider.errorSummary)}</div>
+        ) : null}
+        {text(current.unavailableReason) ? (
+          <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600">{text(current.unavailableReason)}</div>
+        ) : null}
+        <div className="grid grid-cols-2 gap-2">
+          <MetricCard label="Current" value={loading ? "--" : formatMoneyWithCurrency(current.currentCycleCost ?? current.totalCost, currency)} detail={text(current.periodLabel)} />
+          <MetricCard label="Forecast" value={loading ? "--" : formatMoneyWithCurrency(current.forecastTotal, currency)} detail={text(current.coverageStatus) || "unavailable"} />
+          <MetricCard label="Previous" value={loading ? "--" : formatMoneyWithCurrency(provider.previousPeriod?.totalCost, currency)} detail={text(provider.previousPeriod?.periodLabel)} />
+          <MetricCard label="Variance" value={loading ? "--" : formatSignedMoney(provider.dollarVariance, currency)} detail={text(provider.varianceLabel)} />
+        </div>
+        <CompactStatusTable
+          columns={["Category", "Service", "Qty", "Cost"]}
+          rows={asRows(provider.breakdown).map((row) => ({
+            id: `${text(row.category)}-${text(row.service)}`,
+            cells: [text(row.category), text(row.service), `${formatNumber(row.quantity)} ${text(row.unit)}`, formatMoneyWithCurrency(row.cost, currency)],
+          }))}
+          emptyText={loading ? "Loading breakdown..." : "No nonzero cost breakdown rows."}
+        />
+        <CompactStatusTable
+          columns={["Period", "Status", "Cost", "Source"]}
+          rows={asRows(provider.history).map((row) => ({
+            id: text(row.id),
+            cells: [text(row.periodLabel), text(row.periodStatus), formatMoneyWithCurrency(row.totalCost, text(row.currency) || currency), sourceLabel(text(row.source))],
+          }))}
+          emptyText={loading ? "Loading history..." : "No history yet."}
+        />
+        <CompactStatusTable
+          columns={["Metric", "Value", "Updated"]}
+          rows={asRows(provider.usageSnapshots).slice(0, 6).map((row) => ({
+            id: `${text(row.metricName)}-${text(row.capturedAt)}`,
+            cells: [text(row.metricName), usageValue(row), formatDateShort(text(row.capturedAt))],
+          }))}
+          emptyText={loading ? "Loading usage..." : "No usage/config snapshots."}
+        />
+      </div>
+    </DashboardSection>
+  );
+}
+
 function SystemHealthPanel({ data, loading }: { data: DashboardPayload | null; loading: boolean }) {
   const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
   const groups = asRows(data?.schedulerGroups);
@@ -864,6 +959,10 @@ function StagedPanel({ view }: { view: DashboardView }) {
       title: "Loss Prevention Dashboard",
       detail: "Loss Prevention dashboard is loading or unavailable.",
     },
+    "provider-costs": {
+      title: "Provider Costs Dashboard",
+      detail: "Provider Costs dashboard is loading or unavailable.",
+    },
     "system-health": {
       title: "System Health Dashboard",
       detail: "Phase 3 will move technical freshness, scheduler, API guardrail, and Supabase health summaries into this dashboard tab.",
@@ -973,6 +1072,37 @@ function formatMoney(value: unknown) {
     currency: "USD",
     maximumFractionDigits: 0,
   }).format(Number(value));
+}
+
+function formatMoneyWithCurrency(value: unknown, currency: string) {
+  if (value === null || value === undefined || Number.isNaN(Number(value))) return "--";
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: currency || "USD",
+    maximumFractionDigits: Math.abs(Number(value)) < 10 ? 2 : 0,
+  }).format(Number(value));
+}
+
+function formatSignedMoney(value: unknown, currency: string) {
+  if (value === null || value === undefined || Number.isNaN(Number(value))) return "--";
+  const numberValue = Number(value);
+  const formatted = formatMoneyWithCurrency(Math.abs(numberValue), currency);
+  if (formatted === "--") return "--";
+  return `${numberValue >= 0 ? "+" : "-"}${formatted}`;
+}
+
+function sourceLabel(value: string) {
+  if (value === "api") return "API";
+  if (value === "report") return "Report";
+  if (value === "calculated") return "Calculated";
+  return "API";
+}
+
+function usageValue(row: DashboardPayload) {
+  if (row.metricValue === null || row.metricValue === undefined) return text(row.status) || "Available";
+  const unit = text(row.metricUnit);
+  if (unit === "USD") return formatMoneyWithCurrency(row.metricValue, "USD");
+  return `${formatNumber(row.metricValue)}${unit ? ` ${unit}` : ""}`;
 }
 
 function formatPercent(value: unknown) {

@@ -1,6 +1,32 @@
 # CURRENT_STATE.md
 
-Last Updated: 2026-07-17
+Last Updated: 2026-07-19
+
+## 2026-07-19 Provider Cost Dashboard MVP
+
+- The Provider Costs dashboard tab is implemented at
+  `/dashboard?view=provider-costs` with a server API route at
+  `/api/dashboard/provider-costs`.
+- Provider-cost storage is normalized in
+  `provider_billing_periods`, `provider_cost_line_items`,
+  `provider_usage_snapshots`, `provider_cost_sync_runs`, and
+  `provider_raw_payloads`.
+- Migration `20260719000000_mbop_provider_cost_dashboard.sql` has been applied
+  to the linked Supabase project `froeucjkcepuhgwisped`.
+- `integrations/provider_costs.py` collects provider-native data for AWS,
+  Supabase, and EasyPost without bank/credit-card data, manual invoices, or
+  manual cost entry.
+- AWS uses Cost Explorer `NetUnblendedCost` by calendar month, service
+  breakdown, forecast, and accessible budget values.
+- Supabase stores automatically available Management API/config snapshots but
+  leaves monetary totals unavailable unless Supabase returns them or reliable
+  pricing inputs plus usage make them reproducibly calculable.
+- EasyPost is limited to standalone tracker usage. Tracker fees are calculated
+  from automatically collected EasyPost tracker IDs already stored in MBOP, and
+  wallet funding is not counted as tracker expense.
+- `run_all_syncs.py --group provider-costs` runs the provider-cost sync; the
+  job is also included in `finance-refresh`.
+- Documentation lives in `docs/provider_cost_dashboard.md`.
 
 ## 2026-07-17 Purchase Matching Backup And Coverage Table Layout
 

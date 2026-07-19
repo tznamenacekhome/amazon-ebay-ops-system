@@ -1,5 +1,30 @@
 # DECISIONS.md
 
+## Provider Costs Use Provider-Native Sources Only
+
+Decision date: 2026-07-19
+
+The MBOP Provider Costs dashboard may display monetary values only when they
+come from supported provider APIs, provider-generated reports, or reproducible
+calculations over automatically collected provider/MBOP records. It must not
+use bank transactions, credit-card transactions, Plaid-style financial account
+feeds, manual invoice uploads, or manual provider-cost entries.
+
+Consequences:
+
+- AWS cost collection uses Cost Explorer for the MVP, with
+  `NetUnblendedCost` as the selected service-breakdown and period-total metric.
+- Supabase totals remain unavailable when the provider does not return billing
+  period dates or monetary totals and maintainable pricing-plus-usage inputs
+  are not sufficient for a reproducible calculation.
+- EasyPost is tracker-only for MBOP. Wallet funding is displayed, when
+  available, as wallet movement and never as tracker expense.
+- Provider billing periods stay independent; the dashboard must not display a
+  combined current-cycle total across AWS, Supabase, and EasyPost.
+- The dashboard shows dollar variance only, never percentage variance, and it
+  labels partial current-cycle comparisons as current-cycle comparisons rather
+  than finalized variance.
+
 ## Purchase ASIN Matching May Use Local Catalog Backup After RevSeller
 
 Decision date: 2026-07-17

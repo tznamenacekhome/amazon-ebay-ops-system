@@ -10,6 +10,7 @@ export type DashboardView =
   | "amazon"
   | "sourcing"
   | "loss-prevention"
+  | "provider-costs"
   | "system-health";
 
 const dashboardTabs: Array<{ view: DashboardView; label: string }> = [
@@ -19,6 +20,7 @@ const dashboardTabs: Array<{ view: DashboardView; label: string }> = [
   { view: "amazon", label: "Amazon" },
   { view: "sourcing", label: "Sourcing" },
   { view: "loss-prevention", label: "Loss Prevention" },
+  { view: "provider-costs", label: "Provider Costs" },
   { view: "system-health", label: "System Health" },
 ];
 
