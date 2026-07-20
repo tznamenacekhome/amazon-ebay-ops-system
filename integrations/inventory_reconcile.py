@@ -292,6 +292,25 @@ def execute_supabase_page_with_retries(query, *, table: str, offset: int):
             time.sleep(sleep_seconds)
 
 
+def execute_supabase_write_with_retries(action, *, label: str):
+    for attempt in range(1, TRANSIENT_SUPABASE_ATTEMPTS + 1):
+        try:
+            return action()
+        except Exception as error:  # noqa: BLE001 - Supabase client wraps transient HTTP/DB errors
+            if not is_transient_supabase_error(error) or attempt >= TRANSIENT_SUPABASE_ATTEMPTS:
+                raise
+            sleep_seconds = min(2 ** attempt, 10)
+            LOGGER.warning(
+                "Transient Supabase write failure for %s on attempt %s/%s: %s; retrying in %ss",
+                label,
+                attempt,
+                TRANSIENT_SUPABASE_ATTEMPTS,
+                error,
+                sleep_seconds,
+            )
+            time.sleep(sleep_seconds)
+
+
 def is_transient_supabase_error(error: Exception) -> bool:
     text = str(error).lower()
     transient_terms = (
@@ -1008,13 +1027,18 @@ def reconciliation_item(
 
 
 def replace_current_positions(supabase, positions: list[dict[str, Any]]) -> None:
-    supabase.table("inventory_reconciliation_event_items").update(
-        {"resolution_status": "deferred"}
-    ).eq("resolution_status", "open").execute()
-    delete_current_positions(supabase)
-
-    for chunk in chunks(positions, BATCH_SIZE):
-        supabase.table("inventory_positions").insert(chunk).execute()
+    response = execute_supabase_write_with_retries(
+        lambda: supabase.rpc(
+            "replace_inventory_positions_current",
+            {
+                "positions": positions,
+                "position_derivation_version": DERIVATION_VERSION,
+            },
+        ).execute(),
+        label="replace_inventory_positions_current",
+    )
+    inserted_count = response.data
+    LOGGER.info("Inventory positions replaced by database RPC: %s", inserted_count)
 
 
 def delete_current_positions(supabase) -> None:
@@ -1044,10 +1068,11 @@ def delete_current_positions(supabase) -> None:
 
 def write_reconciliation_event(supabase, reconciliation: dict[str, Any]) -> None:
     summary = reconciliation["summary"]
-    response = (
-        supabase.table("inventory_reconciliation_events")
+    response = execute_supabase_write_with_retries(
+        lambda: supabase.table("inventory_reconciliation_events")
         .insert(summary)
-        .execute()
+        .execute(),
+        label="inventory_reconciliation_events insert",
     )
     event_id = response.data[0]["inventory_reconciliation_event_id"]
     items = [
@@ -1056,7 +1081,10 @@ def write_reconciliation_event(supabase, reconciliation: dict[str, Any]) -> None
     ]
 
     for chunk in chunks(items, BATCH_SIZE):
-        supabase.table("inventory_reconciliation_event_items").insert(chunk).execute()
+        execute_supabase_write_with_retries(
+            lambda chunk=chunk: supabase.table("inventory_reconciliation_event_items").insert(chunk).execute(),
+            label="inventory_reconciliation_event_items insert",
+        )
 
 
 def normalize_status(value: Any) -> str:

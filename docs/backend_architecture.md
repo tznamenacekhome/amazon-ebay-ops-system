@@ -168,6 +168,13 @@ opening-history boundary adjustments, and other explicit adjustments. It is
 manual/on-demand after the AWS scheduler migration; the legacy local monthly
 Windows task has been removed.
 
+`integrations/inventory_reconcile.py` refreshes the derived current
+`inventory_positions` snapshot through the Supabase RPC
+`replace_inventory_positions_current`. The RPC performs the open finding
+deferment, current-position delete, and replacement insert server-side with an
+extended local statement timeout so scheduled reconciliation avoids fragile
+PostgREST chunked delete/insert loops under Supabase IO pressure.
+
 Independent integration failures are collected and reported while later syncs continue running. This prevents one external API failure from blocking unrelated freshness work.
 
 `integrations/push_zfi_business_summary.py` is an outbound-only export to ZFI
