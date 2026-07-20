@@ -87,7 +87,11 @@ $taskDefinition = aws ecs describe-task-definition `
 $newTaskDefinition = $taskDefinition.taskDefinition
 Remove-TaskDefinitionRuntimeFields $newTaskDefinition
 if ($TaskRoleArn) {
-  $newTaskDefinition.taskRoleArn = $TaskRoleArn
+  if ($newTaskDefinition.PSObject.Properties.Name -contains "taskRoleArn") {
+    $newTaskDefinition.taskRoleArn = $TaskRoleArn
+  } else {
+    $newTaskDefinition | Add-Member -NotePropertyName taskRoleArn -NotePropertyValue $TaskRoleArn
+  }
 }
 
 $container = $newTaskDefinition.containerDefinitions |

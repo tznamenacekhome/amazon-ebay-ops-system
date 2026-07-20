@@ -233,7 +233,7 @@ The execution role is not enough for this; attach the provider-cost role as the
 ECS task `taskRoleArn`, for example with:
 
 ```powershell
-.\scripts\deploy-scheduler.ps1 -TaskRoleArn arn:aws:iam::297464765814:role/<scheduler-provider-cost-role>
+.\scripts\deploy-scheduler.ps1 -TaskRoleArn arn:aws:iam::297464765814:role/mbop-scheduler-task-role
 ```
 
 Current execution role:
