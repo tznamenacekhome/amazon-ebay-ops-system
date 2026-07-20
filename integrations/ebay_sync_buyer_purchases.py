@@ -34,6 +34,7 @@ WORKFLOW_LOCKED_STATUSES = {
 }
 
 load_dotenv()
+load_dotenv(".env.local", override=True)
 
 client_id = os.environ["EBAY_CLIENT_ID"].strip()
 client_secret = os.environ["EBAY_CLIENT_SECRET"].strip()
@@ -421,6 +422,57 @@ def purchase_has_tracking(purchase_id):
     return any(has_usable_tracking_number(row.get("tracking_number")) for row in item_result.data or [])
 
 
+def purchase_tracking_numbers(purchase_id):
+    tracking_numbers = set()
+
+    shipment_result = (
+        supabase.table("inbound_shipments")
+        .select("tracking_number")
+        .eq("purchase_id", purchase_id)
+        .limit(100)
+        .execute()
+    )
+    for row in shipment_result.data or []:
+        tracking_number = clean_tracking_value(row.get("tracking_number"))
+        if tracking_number:
+            tracking_numbers.add(tracking_number)
+
+    item_result = (
+        supabase.table("purchase_items")
+        .select("tracking_number")
+        .eq("purchase_id", purchase_id)
+        .limit(100)
+        .execute()
+    )
+    for row in item_result.data or []:
+        tracking_number = clean_tracking_value(row.get("tracking_number"))
+        if tracking_number:
+            tracking_numbers.add(tracking_number)
+
+    return tracking_numbers
+
+
+def clean_tracking_value(value):
+    tracking_number = str(value or "").strip()
+    return tracking_number if has_usable_tracking_number(tracking_number) else None
+
+
+def purchase_has_all_tracking(purchase_id, tracking_candidates):
+    candidate_tracking = {
+        tracking_number
+        for tracking_number in (
+            clean_tracking_value(candidate.get("tracking_number"))
+            for candidate in tracking_candidates
+        )
+        if tracking_number
+    }
+
+    if not candidate_tracking:
+        return purchase_has_tracking(purchase_id)
+
+    return candidate_tracking.issubset(purchase_tracking_numbers(purchase_id))
+
+
 def fetch_no_tracking_order_ids(days_back, limit):
     cutoff = (
         datetime.now(ZoneInfo(LOCAL_TIMEZONE)) - timedelta(days=max(days_back, 1))
@@ -539,21 +591,34 @@ def order_has_shipped_time(order):
 
 
 def extract_tracking(order):
+    candidates = extract_tracking_candidates(order)
+    if candidates:
+        return candidates[0]
+    return {"tracking_number": None, "carrier": None}
+
+
+def extract_tracking_candidates(order):
+    candidates = []
+    seen = set()
+
     for elem in order.iter():
-        if strip_namespace(elem.tag) == "ShipmentTrackingDetails":
-            tracking = child_text(elem, "ShipmentTrackingNumber")
-            carrier = child_text(elem, "ShippingCarrierUsed")
+        if strip_namespace(elem.tag) != "ShipmentTrackingDetails":
+            continue
 
-            if tracking:
-                return {
-                    "tracking_number": tracking.strip(),
-                    "carrier": carrier,
-                }
+        tracking = child_text(elem, "ShipmentTrackingNumber")
+        carrier = child_text(elem, "ShippingCarrierUsed")
+        tracking_number = (tracking or "").strip()
 
-    return {
-        "tracking_number": None,
-        "carrier": None,
-    }
+        if not tracking_number or tracking_number in seen:
+            continue
+
+        candidates.append({
+            "tracking_number": tracking_number,
+            "carrier": carrier,
+        })
+        seen.add(tracking_number)
+
+    return candidates
 
 
 def extract_delivery_dates(order):
@@ -859,7 +924,7 @@ def upsert_inbound_shipment(purchase_id, tracking, dates):
     return result.data[0]["inbound_shipment_id"]
 
 
-def link_shipment_item(shipment_id, item_id, quantity):
+def link_shipment_item(shipment_id, item_id, quantity, notes="Linked from eBay Trading API buyer purchase sync"):
     if not shipment_id or not item_id:
         return
 
@@ -881,7 +946,7 @@ def link_shipment_item(shipment_id, item_id, quantity):
         "quantity_expected_in_package": quantity,
         "quantity_received_from_package": None,
         "received_verified": False,
-        "notes": "Linked from eBay Trading API buyer purchase sync",
+        "notes": notes,
     }).execute()
 
 
@@ -1123,15 +1188,16 @@ def upsert_purchase(order, import_batch_id, access_token):
         return "skipped_missing_order_id"
 
     existing_purchase = get_existing_purchase(order_id)
+    tracking_candidates = extract_tracking_candidates(order)
 
     if (
         SKIP_EXISTING_ORDERS_WITH_TRACKING
         and existing_purchase
-        and purchase_has_tracking(existing_purchase["purchase_id"])
+        and purchase_has_all_tracking(existing_purchase["purchase_id"], tracking_candidates)
     ):
         return "skipped_existing_with_tracking"
 
-    tracking = extract_tracking(order)
+    tracking = tracking_candidates[0] if tracking_candidates else extract_tracking(order)
     dates = extract_delivery_dates(order)
     raw_order = element_to_dict(order)
     seller_shipped = order_has_shipped_time(order)
@@ -1166,11 +1232,18 @@ def upsert_purchase(order, import_batch_id, access_token):
 
         purchase_id = purchase_result.data[0]["purchase_id"]
 
-    shipment_id = upsert_inbound_shipment(
-        purchase_id=purchase_id,
-        tracking=tracking,
-        dates=dates,
-    )
+    shipment_ids = [
+        shipment_id
+        for shipment_id in (
+            upsert_inbound_shipment(
+                purchase_id=purchase_id,
+                tracking=tracking_candidate,
+                dates=dates,
+            )
+            for tracking_candidate in (tracking_candidates or [tracking])
+        )
+        if shipment_id
+    ]
 
     existing_items = get_existing_purchase_items(purchase_id)
     used_item_ids = set()
@@ -1204,11 +1277,21 @@ def upsert_purchase(order, import_batch_id, access_token):
             ).execute()
             item_id = item_result.data[0]["item_id"]
 
-        link_shipment_item(
-            shipment_id=shipment_id,
-            item_id=item_id,
-            quantity=item_payload["quantity"],
-        )
+        for shipment_id in shipment_ids:
+            link_shipment_item(
+                shipment_id=shipment_id,
+                item_id=item_id,
+                quantity=(
+                    item_payload["quantity"]
+                    if len(shipment_ids) == 1
+                    else None
+                ),
+                notes=(
+                    "Linked from eBay Trading API buyer purchase sync"
+                    if len(shipment_ids) == 1
+                    else "Linked from eBay Trading API multi-package shipment sync; package quantity unknown"
+                ),
+            )
 
         return "updated" if existing_purchase else "inserted"
 
@@ -1229,11 +1312,17 @@ def upsert_purchase(order, import_batch_id, access_token):
             ebay_cancelled=ebay_cancelled,
         )
 
-        link_shipment_item(
-            shipment_id=shipment_id,
-            item_id=item_id,
-            quantity=quantity,
-        )
+        for shipment_id in shipment_ids:
+            link_shipment_item(
+                shipment_id=shipment_id,
+                item_id=item_id,
+                quantity=quantity if len(shipment_ids) == 1 else None,
+                notes=(
+                    "Linked from eBay Trading API buyer purchase sync"
+                    if len(shipment_ids) == 1
+                    else "Linked from eBay Trading API multi-package shipment sync; package quantity unknown"
+                ),
+            )
 
     return "updated" if existing_purchase else "inserted"
 

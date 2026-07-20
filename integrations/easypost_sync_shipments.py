@@ -32,6 +32,7 @@ INVALID_TRACKING_VALUES = {
 
 
 load_dotenv()
+load_dotenv(".env.local", override=True)
 
 client = easypost.EasyPostClient(
     os.environ["EASYPOST_API_KEY"]
@@ -674,10 +675,39 @@ def switch_purchase_to_shipment(context, shipment, tracker):
     return switched
 
 
-def resolve_alternate_tracking_if_needed(shipment, tracker, remaining_new_trackers):
-    if tracker_has_activity(tracker):
-        return 0
+def link_purchase_items_to_shipment(context, shipment, notes):
+    shipment_id = shipment.get("inbound_shipment_id")
+    if not shipment_id:
+        return
 
+    for item in context["items"]:
+        item_id = item.get("item_id")
+        if not item_id:
+            continue
+
+        existing_link = (
+            supabase.table("inbound_shipment_items")
+            .select("inbound_shipment_item_id")
+            .eq("inbound_shipment_id", shipment_id)
+            .eq("item_id", item_id)
+            .limit(1)
+            .execute()
+        )
+
+        if existing_link.data:
+            continue
+
+        supabase.table("inbound_shipment_items").insert({
+            "inbound_shipment_id": shipment_id,
+            "item_id": item_id,
+            "quantity_expected_in_package": None,
+            "quantity_received_from_package": None,
+            "received_verified": False,
+            "notes": notes,
+        }).execute()
+
+
+def resolve_alternate_tracking_if_needed(shipment, tracker, remaining_new_trackers):
     purchase_id = shipment.get("purchase_id")
     if not purchase_id:
         return 0
@@ -685,19 +715,34 @@ def resolve_alternate_tracking_if_needed(shipment, tracker, remaining_new_tracke
     context = fetch_purchase_tracking_context(purchase_id)
     candidates = extract_tracking_candidates(context["purchase"].get("raw_import_json"))
 
-    if len(candidates) <= total_units(context["items"]):
+    if len(candidates) <= 1:
+        if tracker_has_activity(tracker):
+            return 0
         return 0
 
     created = 0
     current_tracking = clean_tracking_number(shipment.get("tracking_number") or "")
+    has_multiple_package_tracking = len(candidates) > 1
 
     # eBay often appends replacement tracking after a dead label, so check newest first.
     for candidate in reversed(candidates):
         tracking_number = candidate["tracking_number"]
         if tracking_number == current_tracking:
+            if has_multiple_package_tracking:
+                link_purchase_items_to_shipment(
+                    context,
+                    shipment,
+                    "Linked from EasyPost multi-package tracking discovery; package quantity unknown",
+                )
             continue
 
         alternate_shipment = ensure_inbound_shipment(purchase_id, candidate)
+        if has_multiple_package_tracking:
+            link_purchase_items_to_shipment(
+                context,
+                alternate_shipment,
+                "Linked from EasyPost multi-package tracking discovery; package quantity unknown",
+            )
         alternate_tracker_id = alternate_shipment.get("easypost_tracker_id")
 
         if alternate_tracker_id:
@@ -719,6 +764,9 @@ def resolve_alternate_tracking_if_needed(shipment, tracker, remaining_new_tracke
             ).execute()
 
         update_shipment(alternate_shipment, alternate_tracker)
+
+        if has_multiple_package_tracking:
+            continue
 
         if tracker_has_activity(alternate_tracker):
             switched = switch_purchase_to_shipment(
