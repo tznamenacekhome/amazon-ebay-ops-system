@@ -11,6 +11,7 @@ import argparse
 import logging
 import os
 import time
+import uuid
 from collections import defaultdict
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -1027,18 +1028,24 @@ def reconciliation_item(
 
 
 def replace_current_positions(supabase, positions: list[dict[str, Any]]) -> None:
+    snapshot_token = f"{DERIVATION_VERSION}:{utc_now_iso()}:{uuid.uuid4()}"
     response = execute_supabase_write_with_retries(
         lambda: supabase.rpc(
             "replace_inventory_positions_current",
             {
                 "positions": positions,
                 "position_derivation_version": DERIVATION_VERSION,
+                "new_snapshot_token": snapshot_token,
             },
         ).execute(),
         label="replace_inventory_positions_current",
     )
     inserted_count = response.data
-    LOGGER.info("Inventory positions replaced by database RPC: %s", inserted_count)
+    LOGGER.info(
+        "Inventory positions replaced by database RPC: inserted=%s snapshot=%s",
+        inserted_count,
+        snapshot_token,
+    )
 
 
 def delete_current_positions(supabase) -> None:

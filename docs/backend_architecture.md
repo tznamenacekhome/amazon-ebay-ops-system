@@ -170,10 +170,12 @@ Windows task has been removed.
 
 `integrations/inventory_reconcile.py` refreshes the derived current
 `inventory_positions` snapshot through the Supabase RPC
-`replace_inventory_positions_current`. The RPC performs the open finding
-deferment, current-position delete, and replacement insert server-side with an
-extended local statement timeout so scheduled reconciliation avoids fragile
-PostgREST chunked delete/insert loops under Supabase IO pressure.
+`replace_inventory_positions_current`. The RPC inserts a new snapshot token,
+marks the new rows current, and retires older current rows instead of deleting
+them. Consumers must filter to `inventory_positions.is_current = true` unless
+they are intentionally auditing historical snapshots. This avoids fragile
+PostgREST chunked delete loops and foreign-key cleanup under Supabase IO
+pressure.
 
 Independent integration failures are collected and reported while later syncs continue running. This prevents one external API failure from blocking unrelated freshness work.
 

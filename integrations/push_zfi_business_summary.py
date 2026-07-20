@@ -190,6 +190,7 @@ def build_payload(
         supabase,
         "inventory_positions",
         "inventory_position_id,asin,seller_sku,title,system,inventory_state,marketplace_intent,quantity,total_cost,unit_cost,effective_at,updated_at",
+        filters=lambda query: query.eq("is_current", True),
     )
     latest_finance = fetch_latest_row(
         supabase,

@@ -835,6 +835,7 @@ async function fetchInventoryPositionValueRows() {
     const { data, error } = await supabase
       .from("inventory_positions")
       .select("inventory_state,asin,total_cost")
+      .eq("is_current", true)
       .range(offset, offset + pageSize - 1);
 
     if (error) {

@@ -390,7 +390,8 @@ export async function GET() {
         fetchAll<InventoryPositionRow>(
           "inventory_positions",
           "asin,seller_sku,quantity,unit_cost,total_cost,effective_at,inventory_state," +
-            "physical_location,marketplace_intent,listing_channel"
+            "physical_location,marketplace_intent,listing_channel",
+          (query) => query.eq("is_current", true)
         ),
         fetchAll<SnoozeRow>(
           "amazon_repricing_advisor_snoozes",
@@ -499,16 +500,22 @@ export async function POST(request: Request) {
   }
 }
 
-async function fetchAll<T>(table: string, select: string): Promise<T[]> {
+async function fetchAll<T>(
+  table: string,
+  select: string,
+  filter?: (query: any) => any
+): Promise<T[]> {
   const rows: T[] = [];
   const pageSize = 1000;
   let offset = 0;
 
   while (true) {
-    const { data, error } = await supabase
+    let query = supabase
       .from(table)
       .select(select)
       .range(offset, offset + pageSize - 1);
+    if (filter) query = filter(query);
+    const { data, error } = await query;
 
     if (error) throw new Error(`${table}: ${error.message}`);
 

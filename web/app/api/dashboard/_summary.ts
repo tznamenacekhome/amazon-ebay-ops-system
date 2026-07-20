@@ -153,6 +153,7 @@ export async function fetchInventoryPositions() {
         "inventory_position_id,purchase_item_id,asin,seller_sku,title,system,quantity,unit_cost,total_cost," +
           "inventory_state,physical_location,marketplace_intent,operational_status,needs_reconciliation,effective_at,updated_at",
       )
+      .eq("is_current", true)
       .range(offset, offset + pageSize - 1);
     if (error) {
       console.warn("Dashboard inventory positions lookup failed", error.message);
