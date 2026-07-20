@@ -10,6 +10,7 @@ const ROOT_DIR = path.resolve(process.cwd(), "..");
 
 type ReceivingUpdate = {
   item_id: string;
+  package_link_id?: string | null;
   quantity_received: number;
   return_pending: boolean;
   marketplace: "Amazon" | "eBay" | null;
@@ -26,7 +27,7 @@ export async function GET() {
   let request = supabase
     .from("vw_purchases_dashboard")
     .select("*")
-    .in("current_status", ["delivered", "shipped_no_tracking"])
+    .in("current_status", ["delivered", "partially_delivered", "shipped_no_tracking"])
     .order("order_date", { ascending: false });
 
   if (excludedItemIds.length > 0) {
@@ -39,10 +40,16 @@ export async function GET() {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  const rows = (data ?? []).map((row) => ({
+  const dashboardRows = (data ?? []).map((row) => ({
     ...row,
     ebay_title: row.title,
   }));
+  const packageRows = await fetchReceivingPackageRows(excludedItemIds);
+  const packageItemIds = new Set(packageRows.map((row) => row.item_id).filter(Boolean));
+  const rows = [
+    ...dashboardRows.filter((row) => !packageItemIds.has(row.item_id)),
+    ...packageRows,
+  ];
   const itemIds = rows
     .map((row) => row.item_id)
     .filter((itemId): itemId is string => typeof itemId === "string");
@@ -57,6 +64,7 @@ export async function GET() {
   );
 
   const purchases = await fetchPurchaseMeta(purchaseIds);
+  const packages = await fetchInboundPackages(itemIds);
 
   const purchaseMetaById = new Map(
     (purchases ?? []).map((purchase) => [
@@ -76,9 +84,14 @@ export async function GET() {
     rows.flatMap((row) => {
       const item = itemMetaById.get(row.item_id);
       const ebayListingUrl = getEbayListingUrl(item);
+      const inboundPackages = packages.get(row.item_id) ?? [];
 
       return [{
         ...row,
+        inbound_packages: inboundPackages,
+        package_count: inboundPackages.length,
+        packages_delivered: inboundPackages.filter((pkg) => normalizeText(pkg.normalized_status) === "delivered" || pkg.delivered_date).length,
+        packages_open: inboundPackages.filter((pkg) => normalizeText(pkg.resolution_status) === "open").length,
         amazon_title: item?.amazon_title ?? row.amazon_title ?? null,
         marketplace: item?.marketplace ?? null,
         received_date: item?.received_date ?? null,
@@ -95,6 +108,129 @@ export async function GET() {
       }];
     })
   );
+}
+
+async function fetchReceivingPackageRows(excludedItemIds: string[]) {
+  let request = supabase
+    .from("inbound_shipment_items")
+    .select(
+      [
+        "inbound_shipment_item_id",
+        "quantity_expected_in_package",
+        "quantity_received_from_package",
+        "received_verified",
+        "resolution_status",
+        "inbound_shipments(inbound_shipment_id,purchase_id,tracking_number,carrier,carrier_status,normalized_status,shipment_status,estimated_delivery_date,delivered_date,tracking_url)",
+        "purchase_items(item_id,purchase_id,title,amazon_title,quantity,unit_cost,asin,target_price,system,current_status,condition,supplier_sku,supplier_listing_url,raw_import_json,marketplace,received_date,purchases(supplier_order_id,order_date,total_order_cost,order_status,raw_import_json))",
+      ].join(",")
+    )
+    .eq("resolution_status", "open")
+    .not("inbound_shipments.delivered_date", "is", null)
+    .limit(1000);
+
+  if (excludedItemIds.length > 0) {
+    request = request.not("item_id", "in", `(${excludedItemIds.join(",")})`);
+  }
+
+  const { data, error } = await request;
+  if (error) {
+    console.warn("Receiving package lookup failed", error.message);
+    return [];
+  }
+
+  return (data ?? []).flatMap((link: any) => {
+    const item = link.purchase_items;
+    const shipment = link.inbound_shipments;
+    if (!item || !shipment) return [];
+    const purchase = item.purchases ?? {};
+
+    return [{
+      purchase_id: item.purchase_id,
+      item_id: item.item_id,
+      supplier_order_id: purchase.supplier_order_id ?? null,
+      order_date: purchase.order_date ?? null,
+      supplier: "eBay",
+      order_status: purchase.order_status ?? null,
+      title: item.title,
+      ebay_title: item.title,
+      amazon_title: item.amazon_title,
+      asin: item.asin,
+      system: item.system,
+      quantity: item.quantity,
+      unit_cost: item.unit_cost,
+      sell_price: item.target_price,
+      target_price: item.target_price,
+      current_status:
+        normalizeText(shipment.normalized_status) === "delivered"
+          ? "delivered"
+          : item.current_status,
+      tracking_number: shipment.tracking_number,
+      original_tracking_number: null,
+      package_tracking_number: shipment.tracking_number,
+      package_link_id: link.inbound_shipment_item_id,
+      package_status: shipment.normalized_status ?? shipment.shipment_status,
+      package_delivered_date: shipment.delivered_date,
+      package_quantity_expected: link.quantity_expected_in_package,
+      package_quantity_received: link.quantity_received_from_package,
+      package_resolution_status: link.resolution_status,
+      carrier: shipment.carrier,
+      carrier_status: shipment.carrier_status,
+      normalized_status: shipment.normalized_status,
+      shipment_status: shipment.shipment_status,
+      delivery_status: shipment.normalized_status,
+      estimated_delivery_date: shipment.estimated_delivery_date,
+      delivered_date: shipment.delivered_date,
+      marketplace: item.marketplace,
+      received_date: item.received_date,
+      supplier_sku: item.supplier_sku,
+      supplier_listing_url: item.supplier_listing_url,
+    }];
+  });
+}
+
+async function fetchInboundPackages(itemIds: string[]) {
+  const byItem = new Map<string, any[]>();
+  const uniqueItemIds = Array.from(new Set(itemIds));
+  for (let index = 0; index < uniqueItemIds.length; index += 100) {
+    const chunk = uniqueItemIds.slice(index, index + 100);
+    const { data, error } = await supabase
+      .from("inbound_shipment_items")
+      .select(
+        "inbound_shipment_item_id,item_id,quantity_expected_in_package,quantity_received_from_package,received_verified,resolution_status,resolution_reason," +
+          "inbound_shipments(inbound_shipment_id,tracking_number,carrier,normalized_status,carrier_status,estimated_delivery_date,delivered_date,tracking_url)"
+      )
+      .in("item_id", chunk);
+
+    if (error) {
+      console.warn("Receiving package summary lookup failed", error.message);
+      continue;
+    }
+
+    for (const link of data ?? []) {
+      const shipment = (link as any).inbound_shipments ?? {};
+      const itemId = (link as any).item_id;
+      if (!itemId || !shipment) continue;
+      const rows = byItem.get(itemId) ?? [];
+      rows.push({
+        inbound_shipment_id: shipment.inbound_shipment_id,
+        inbound_shipment_item_id: (link as any).inbound_shipment_item_id,
+        tracking_number: shipment.tracking_number,
+        carrier: shipment.carrier,
+        normalized_status: shipment.normalized_status,
+        carrier_status: shipment.carrier_status,
+        estimated_delivery_date: shipment.estimated_delivery_date,
+        delivered_date: shipment.delivered_date,
+        tracking_url: shipment.tracking_url,
+        quantity_expected_in_package: (link as any).quantity_expected_in_package,
+        quantity_received_from_package: (link as any).quantity_received_from_package,
+        received_verified: (link as any).received_verified,
+        resolution_status: (link as any).resolution_status,
+        resolution_reason: (link as any).resolution_reason,
+      });
+      byItem.set(itemId, rows);
+    }
+  }
+  return byItem;
 }
 
 async function fetchExcludedItemIds() {
@@ -299,14 +435,53 @@ async function receiveItem(update: ReceivingUpdate, receivedDate: string) {
     quantityReceived > 0 &&
     quantityReceived < expectedQuantity &&
     !hasReceivedItemException(update);
+  const hasOtherOpenPackages =
+    update.package_link_id && quantityReceived > 0 && quantityReceived < expectedQuantity
+      ? await hasOpenPackageLinksForItem(source.item_id, update.package_link_id)
+      : false;
 
   if (
-    (!requiresReturnEpisode || isPartialMissingEpisode) &&
+    (!requiresReturnEpisode || isPartialMissingEpisode || hasOtherOpenPackages) &&
     quantityReceived > 0 &&
     marketplace === "Amazon" &&
     (!asin || sellPrice === null)
   ) {
     throw new Error("ASIN and sell price are required for Amazon received items");
+  }
+
+  if (hasOtherOpenPackages) {
+    const remainingQuantity = expectedQuantity - quantityReceived;
+
+    const { data, error } = await supabase
+      .from("purchase_items")
+      .update({
+        quantity: quantityReceived,
+        current_status: "received",
+        marketplace,
+        asin: marketplace === "Amazon" ? asin : source.asin,
+        target_price: marketplace === "Amazon" ? sellPrice : source.target_price,
+        received_date: receivedDate,
+      })
+      .eq("item_id", source.item_id)
+      .select()
+      .single();
+
+    if (error) throw new Error(error.message);
+
+    const packageSplit = await createPackageQuantitySplit(
+      {
+        ...source,
+        asin: marketplace === "Amazon" ? asin : source.asin,
+        target_price: marketplace === "Amazon" ? sellPrice : source.target_price,
+      },
+      remainingQuantity,
+      await deriveOpenPackageStatusForItem(source.item_id, update.package_link_id)
+    );
+    await moveOpenPackageLinksToSplit(source.item_id, packageSplit.item_id, update.package_link_id);
+    await updateShipmentReceipt(source.item_id, quantityReceived, true, update.package_link_id);
+    await closeExtraTrackingIfPurchaseFullyAccounted(source.purchase_id);
+    await recordReceivingOutcome(source, update, quantityReceived, marketplace, asin, sellPrice);
+    return data;
   }
 
   if (isPartialMissingEpisode) {
@@ -337,7 +512,7 @@ async function receiveItem(update: ReceivingUpdate, receivedDate: string) {
       remainingQuantity
     );
 
-    await splitShipmentReceipt(source.item_id, problemSplit.item_id, quantityReceived, remainingQuantity);
+    await splitShipmentReceipt(source.item_id, problemSplit.item_id, quantityReceived, remainingQuantity, update.package_link_id);
     await recordReceivingOutcome(source, update, quantityReceived, marketplace, asin, sellPrice);
     await openReceivingProblemEpisode(
       {
@@ -353,7 +528,7 @@ async function receiveItem(update: ReceivingUpdate, receivedDate: string) {
     return data;
   }
 
-  await updateShipmentReceipt(source.item_id, quantityReceived, !requiresReturnEpisode);
+  await updateShipmentReceipt(source.item_id, quantityReceived, !requiresReturnEpisode, update.package_link_id);
 
   if (requiresReturnEpisode) {
     const { data, error } = await supabase
@@ -420,6 +595,7 @@ async function receiveItem(update: ReceivingUpdate, receivedDate: string) {
     );
   }
 
+  await closeExtraTrackingIfPurchaseFullyAccounted(source.purchase_id);
   await recordReceivingOutcome(source, update, quantityReceived, marketplace, asin, sellPrice);
   return data;
 }
@@ -914,17 +1090,147 @@ async function createProblemQuantitySplit(
   return data as { item_id: string };
 }
 
+async function createPackageQuantitySplit(
+  source: {
+    item_id: string;
+    purchase_id: string;
+    title: string | null;
+    amazon_title: string | null;
+    unit_cost: number | null;
+    asin: string | null;
+    target_price: number | null;
+    system: string | null;
+    condition: string | null;
+    supplier_listing_url: string | null;
+    import_batch_id: string | null;
+    raw_import_json: unknown;
+    manual_title_override: boolean | null;
+    manual_unit_cost_override: boolean | null;
+    tracking_number: string | null;
+  },
+  quantity: number,
+  status: string
+) {
+  const { data, error } = await supabase
+    .from("purchase_items")
+    .insert({
+      purchase_id: source.purchase_id,
+      title: source.title,
+      amazon_title: source.amazon_title,
+      quantity,
+      unit_cost: source.unit_cost,
+      asin: source.asin,
+      target_price: source.target_price,
+      system: source.system,
+      condition: source.condition,
+      supplier_listing_url: source.supplier_listing_url,
+      import_batch_id: source.import_batch_id,
+      raw_import_json: source.raw_import_json,
+      current_status: status,
+      tracking_number: source.tracking_number,
+      marketplace: null,
+      received_date: null,
+      manual_title_override: source.manual_title_override ?? false,
+      manual_unit_cost_override: source.manual_unit_cost_override ?? false,
+      manual_split_child: true,
+      manual_split_parent_item_id: source.item_id,
+    })
+    .select("item_id")
+    .single();
+
+  if (error) throw new Error(error.message);
+  return data as { item_id: string };
+}
+
+async function hasOpenPackageLinksForItem(itemId: string, excludePackageLinkId?: string | null) {
+  let request: any = supabase
+    .from("inbound_shipment_items")
+    .select("inbound_shipment_item_id")
+    .eq("item_id", itemId)
+    .eq("resolution_status", "open")
+    .limit(1);
+
+  if (excludePackageLinkId) {
+    request = request.neq("inbound_shipment_item_id", excludePackageLinkId);
+  }
+
+  const { data, error } = await request;
+  if (error) {
+    console.warn("Failed to check open package links", error.message);
+    return false;
+  }
+
+  return (data ?? []).length > 0;
+}
+
+async function deriveOpenPackageStatusForItem(itemId: string, excludePackageLinkId?: string | null) {
+  let request: any = supabase
+    .from("inbound_shipment_items")
+    .select("inbound_shipment_item_id,inbound_shipments(normalized_status,shipment_status,delivered_date)")
+    .eq("item_id", itemId)
+    .eq("resolution_status", "open");
+
+  if (excludePackageLinkId) {
+    request = request.neq("inbound_shipment_item_id", excludePackageLinkId);
+  }
+
+  const { data, error } = await request;
+  if (error) {
+    console.warn("Failed to derive open package status", error.message);
+    return "multi_package_in_transit";
+  }
+
+  const statuses: string[] = (data ?? []).map((link: any) => normalizeText(
+    link.inbound_shipments?.normalized_status ?? link.inbound_shipments?.shipment_status
+  ));
+  if (statuses.some((status) => status === "delivered")) return "partially_delivered";
+  if (statuses.some((status) => status === "out_for_delivery")) return "out_for_delivery";
+  if (statuses.some((status) => status === "available_for_pickup")) return "available_for_pickup";
+  if (statuses.some((status) => status === "in_transit")) return "multi_package_in_transit";
+  return "multi_package_in_transit";
+}
+
+async function moveOpenPackageLinksToSplit(
+  sourceItemId: string,
+  splitItemId: string,
+  excludePackageLinkId?: string | null
+) {
+  let request: any = supabase
+    .from("inbound_shipment_items")
+    .update({
+      item_id: splitItemId,
+      notes: "Moved to remaining package split after partial package receipt",
+    })
+    .eq("item_id", sourceItemId)
+    .eq("resolution_status", "open");
+
+  if (excludePackageLinkId) {
+    request = request.neq("inbound_shipment_item_id", excludePackageLinkId);
+  }
+
+  const { error } = await request;
+  if (error) {
+    console.warn("Failed to move open package links to split item", error.message);
+  }
+}
+
 async function splitShipmentReceipt(
   sourceItemId: string,
   splitItemId: string,
   quantityReceived: number,
-  problemQuantity: number
+  problemQuantity: number,
+  packageLinkId?: string | null
 ) {
-  const { data, error } = await supabase
+  let lookup: any = supabase
     .from("inbound_shipment_items")
     .select("inbound_shipment_item_id,inbound_shipment_id,notes")
-    .eq("item_id", sourceItemId)
-    .limit(1);
+    .eq("item_id", sourceItemId);
+
+  lookup = packageLinkId
+    ? lookup.eq("inbound_shipment_item_id", packageLinkId)
+    : lookup.limit(1);
+
+  const { data, error } = await lookup;
 
   if (error) {
     console.warn("Failed to look up inbound shipment split", error.message);
@@ -947,6 +1253,10 @@ async function splitShipmentReceipt(
       quantity_expected_in_package: quantityReceived,
       quantity_received_from_package: quantityReceived,
       received_verified: true,
+      resolution_status: "received",
+      resolved_at: new Date().toISOString(),
+      resolution_reason: "Partial quantity received from package",
+      resolved_by: "operator",
     })
     .eq("inbound_shipment_item_id", existing.inbound_shipment_item_id);
 
@@ -961,6 +1271,10 @@ async function splitShipmentReceipt(
     quantity_expected_in_package: problemQuantity,
     quantity_received_from_package: 0,
     received_verified: false,
+    resolution_status: "return_pending",
+    resolved_at: new Date().toISOString(),
+    resolution_reason: "Split from partial receiving exception",
+    resolved_by: "operator",
     notes: existing.notes || "Split from partial receiving exception",
   });
 
@@ -972,18 +1286,100 @@ async function splitShipmentReceipt(
 async function updateShipmentReceipt(
   itemId: string,
   quantityReceived: number,
-  receivedVerified: boolean
+  receivedVerified: boolean,
+  packageLinkId?: string | null
 ) {
-  const { error } = await supabase
+  let request: any = supabase
     .from("inbound_shipment_items")
     .update({
       quantity_received_from_package: quantityReceived,
       received_verified: receivedVerified,
-    })
-    .eq("item_id", itemId);
+      resolution_status: receivedVerified ? "received" : "open",
+      resolved_at: receivedVerified ? new Date().toISOString() : null,
+      resolution_reason: receivedVerified ? "Received by operator" : null,
+      resolved_by: receivedVerified ? "operator" : null,
+    });
+
+  request = packageLinkId
+    ? request.eq("inbound_shipment_item_id", packageLinkId)
+    : request.eq("item_id", itemId);
+
+  const { error } = await request;
 
   if (error) {
     console.warn("Failed to update inbound shipment receipt", error.message);
+  }
+}
+
+async function closeExtraTrackingIfPurchaseFullyAccounted(purchaseId: string) {
+  const { data: items, error: itemError } = await supabase
+    .from("purchase_items")
+    .select("item_id,current_status,quantity")
+    .eq("purchase_id", purchaseId);
+
+  if (itemError) {
+    console.warn("Failed to check purchase receiving completion", itemError.message);
+    return;
+  }
+
+  const activeItems = (items ?? []).filter((item: any) =>
+    !["cancelled", "return_pending", "return_opened"].includes(normalizeText(item.current_status))
+  );
+  const allAccounted = activeItems.length > 0 && activeItems.every((item: any) =>
+    ["received", "listed"].includes(normalizeText(item.current_status))
+  );
+
+  if (!allAccounted) return;
+
+  const itemIds = activeItems.map((item: any) => item.item_id).filter(Boolean);
+  if (!itemIds.length) return;
+
+  const { error: closeError } = await supabase
+    .from("inbound_shipment_items")
+    .update({
+      resolution_status: "closed_fully_received_elsewhere",
+      resolved_at: new Date().toISOString(),
+      resolution_reason: "All ordered units for purchase were received elsewhere",
+      resolved_by: "system",
+    })
+    .in("item_id", itemIds)
+    .eq("resolution_status", "open")
+    .or("received_verified.is.null,received_verified.eq.false");
+
+  if (closeError) {
+    console.warn("Failed to close extra package links", closeError.message);
+  }
+
+  await resolvePackageProblemCasesForFullyReceivedPurchase(purchaseId);
+}
+
+async function resolvePackageProblemCasesForFullyReceivedPurchase(purchaseId: string) {
+  const now = new Date().toISOString();
+  const { data: cases, error } = await supabase
+    .from("order_problem_cases")
+    .select("problem_case_id,notes")
+    .eq("purchase_id", purchaseId)
+    .eq("is_open", true)
+    .eq("problem_type", "missing_items");
+
+  if (error) {
+    console.warn("Failed to look up package problem cases for closure", error.message);
+    return;
+  }
+
+  for (const problemCase of cases ?? []) {
+    const { error: updateError } = await supabase
+      .from("order_problem_cases")
+      .update({
+        workflow_state: "closed_no_action",
+        is_open: false,
+        needs_response: false,
+        resolved_reason: "no_action",
+        closed_at: now,
+        notes: appendCaseNotes((problemCase as any).notes, "Closed automatically because all ordered units were received elsewhere."),
+      })
+      .eq("problem_case_id", (problemCase as any).problem_case_id);
+    if (updateError) console.warn("Failed to close fully received package problem", updateError.message);
   }
 }
 

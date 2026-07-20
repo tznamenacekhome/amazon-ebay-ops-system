@@ -25,10 +25,29 @@ external intelligence are separate domains.
   foundation for improving Amazon-to-eBay replenishment matching and must not
   launch eBay-to-Amazon sourcing by itself.
 - Receiving owns physical verification, received quantities, return-pending decisions, marketplace assignment, received dates, and the transition to `received`.
+- Multi-package eBay orders use `inbound_shipments` plus
+  `inbound_shipment_items` as package-level receiving rows. A package row can
+  be received independently of the purchase item as a whole. If only some units
+  are received while other package links remain open, MBOP splits the received
+  quantity into a `received` purchase item and keeps the remaining quantity on
+  a separate in-transit/delivered package row instead of opening a missing-item
+  problem.
+- If a seller attaches extra tracking numbers but all ordered units are later
+  received, MBOP closes the remaining open package links as
+  `closed_fully_received_elsewhere` and removes open missing-item problem cases
+  for that purchase.
+- When one eBay order contains multiple different games and multiple tracking
+  numbers, package links are intentionally treated as ambiguous until
+  receiving. MBOP does not infer which game was in which package from tracking
+  alone; the operator verifies quantities per package row.
 - Order Problems owns return/refund follow-up, eBay return/case metadata,
   cancelled-refund follow-up, missing-item/replacement follow-up, and local
   operator action history in `order_problem_cases` and `order_problem_events`.
 - Amazon FBA shipment prep owns grouping received Amazon-bound items for export, shipment ID assignment, and moving included units to `listed`.
+- Send to Amazon only sees `received` Amazon-bound purchase item quantities.
+  Units still in transit, partially delivered, or tied to unresolved package
+  links remain in Receiving/Order Problems and do not enter FBA prep until
+  verified.
 - Amazon Return Recovery owns Amazon customer returns/removals returned to the
   business, reimbursement-review evidence, manual inspection/disposition, and
   non-purchase routing back into FBA through `fba_shipment_source_items`.

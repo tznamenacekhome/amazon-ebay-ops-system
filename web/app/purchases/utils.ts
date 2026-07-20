@@ -6,6 +6,8 @@ export const OPERATIONAL_STATUS_OPTIONS = [
   { value: "shipped_no_tracking", label: "Shipped (No Tracking)" },
   { value: "awaiting_carrier_scan", label: "Awaiting Carrier Scan" },
   { value: "in_transit", label: "In Transit" },
+  { value: "partially_delivered", label: "Partially Delivered" },
+  { value: "multi_package_in_transit", label: "Multi-Package In Transit" },
   { value: "available_for_pickup", label: "Out for Pickup / Pickup Available" },
   { value: "out_for_delivery", label: "Out for Delivery" },
   { value: "delivered", label: "Delivered" },

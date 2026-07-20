@@ -75,3 +75,53 @@ def derive_purchase_item_status(
         return "shipped_no_tracking"
 
     return "no_tracking"
+
+
+def derive_purchase_item_status_from_shipments(current_status=None, shipments=None, seller_shipped=False, ebay_cancelled=False):
+    item_status = normalize_status(current_status)
+    if item_status in WORKFLOW_LOCKED_STATUSES:
+        return item_status
+    if ebay_cancelled:
+        return "cancelled"
+
+    active_shipments = []
+    for shipment in shipments or []:
+        resolution_status = normalize_status(shipment.get("resolution_status"))
+        if resolution_status in {"closed_fully_received_elsewhere", "received", "return_pending"}:
+            continue
+        tracking_number = shipment.get("tracking_number")
+        if not has_usable_tracking_number(tracking_number):
+            continue
+        active_shipments.append(shipment)
+
+    if not active_shipments:
+        return "shipped_no_tracking" if seller_shipped else "no_tracking"
+
+    statuses = {
+        normalize_status(
+            shipment.get("normalized_status")
+            or shipment.get("carrier_status")
+            or shipment.get("shipment_status")
+        )
+        for shipment in active_shipments
+    }
+    delivered_count = sum(
+        1
+        for shipment in active_shipments
+        if normalize_status(shipment.get("normalized_status") or shipment.get("carrier_status") or shipment.get("shipment_status")) == "delivered"
+        or shipment.get("delivered_date")
+    )
+
+    if delivered_count == len(active_shipments):
+        return "delivered"
+    if delivered_count > 0:
+        return "partially_delivered"
+    if statuses & {"exception", "return_to_sender"}:
+        return "exception"
+    if "out_for_delivery" in statuses:
+        return "out_for_delivery"
+    if "available_for_pickup" in statuses:
+        return "available_for_pickup"
+    if "in_transit" in statuses:
+        return "multi_package_in_transit" if len(active_shipments) > 1 else "in_transit"
+    return "awaiting_carrier_scan"

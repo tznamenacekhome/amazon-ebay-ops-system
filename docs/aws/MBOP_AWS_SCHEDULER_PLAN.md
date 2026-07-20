@@ -218,7 +218,23 @@ The task execution role needs ECR pull, CloudWatch Logs write, and Secrets Manag
 
 Add `kms:Decrypt` only if the secrets use a customer-managed KMS key.
 
-The task role can remain minimal until a workflow needs AWS API writes beyond logs and secret injection.
+The task role can remain minimal until a workflow needs AWS API writes beyond
+logs and secret injection. Provider-cost sync is now one of those workflows:
+`integrations/provider_costs.py` uses boto3 for Cost Explorer, Budgets, and STS.
+The scheduler task definition therefore needs a dedicated application task role
+before AWS provider costs can run in production. Minimum read permissions:
+
+- `ce:GetCostAndUsage`
+- `ce:GetCostForecast`
+- `budgets:DescribeBudgets`
+- `sts:GetCallerIdentity`
+
+The execution role is not enough for this; attach the provider-cost role as the
+ECS task `taskRoleArn`, for example with:
+
+```powershell
+.\scripts\deploy-scheduler.ps1 -TaskRoleArn arn:aws:iam::297464765814:role/<scheduler-provider-cost-role>
+```
 
 Current execution role:
 

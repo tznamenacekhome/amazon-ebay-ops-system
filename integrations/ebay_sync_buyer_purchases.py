@@ -938,6 +938,14 @@ def link_shipment_item(shipment_id, item_id, quantity, notes="Linked from eBay T
     )
 
     if existing.data:
+        if quantity is None:
+            supabase.table("inbound_shipment_items").update({
+                "quantity_expected_in_package": None,
+                "notes": notes,
+            }).eq(
+                "inbound_shipment_item_id",
+                existing.data[0]["inbound_shipment_item_id"],
+            ).execute()
         return
 
     supabase.table("inbound_shipment_items").insert({

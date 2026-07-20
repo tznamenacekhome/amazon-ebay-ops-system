@@ -4,6 +4,7 @@ param(
   [string]$RepositoryUri = "297464765814.dkr.ecr.us-west-2.amazonaws.com/mbop-scheduler",
   [string]$TaskDefinitionFamily = "mbop-scheduler-task",
   [string]$ContainerName = "mbop-scheduler",
+  [string]$TaskRoleArn = "",
   [switch]$AllowDirty
 )
 
@@ -85,6 +86,9 @@ $taskDefinition = aws ecs describe-task-definition `
 
 $newTaskDefinition = $taskDefinition.taskDefinition
 Remove-TaskDefinitionRuntimeFields $newTaskDefinition
+if ($TaskRoleArn) {
+  $newTaskDefinition.taskRoleArn = $TaskRoleArn
+}
 
 $container = $newTaskDefinition.containerDefinitions |
   Where-Object { $_.name -eq $ContainerName } |

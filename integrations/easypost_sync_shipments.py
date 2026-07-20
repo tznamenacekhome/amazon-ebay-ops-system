@@ -7,9 +7,9 @@ import easypost
 from supabase import create_client
 
 try:
-    from status_logic import derive_purchase_item_status
+    from status_logic import derive_purchase_item_status, derive_purchase_item_status_from_shipments
 except ImportError:
-    from integrations.status_logic import derive_purchase_item_status
+    from integrations.status_logic import derive_purchase_item_status, derive_purchase_item_status_from_shipments
 
 
 MAX_NEW_TRACKERS_PER_RUN = 10
@@ -473,22 +473,15 @@ def update_linked_purchase_item_statuses(shipment_id, shipment_payload):
 
     items = (
         supabase.table("purchase_items")
-        .select("item_id,current_status,tracking_number")
+        .select("item_id,current_status,tracking_number,purchase_id")
         .in_("item_id", item_ids)
         .execute()
     )
 
     for item in items.data or []:
-        if clean_tracking_number(item.get("tracking_number") or "") != clean_tracking_number(
-            shipment_payload.get("tracking_number") or ""
-        ):
-            continue
-
-        next_status = derive_purchase_item_status(
+        next_status = derive_purchase_item_status_from_shipments(
             current_status=item.get("current_status"),
-            tracking_number=item.get("tracking_number"),
-            carrier_status=shipment_payload.get("normalized_status"),
-            delivered_date=shipment_payload.get("delivered_date"),
+            shipments=fetch_item_shipments(item["item_id"]),
             seller_shipped=True,
         )
 
@@ -501,6 +494,25 @@ def update_linked_purchase_item_statuses(shipment_id, shipment_payload):
             .eq("item_id", item["item_id"])
             .execute()
         )
+
+
+def fetch_item_shipments(item_id):
+    links = (
+        supabase.table("inbound_shipment_items")
+        .select(
+            "resolution_status,"
+            "inbound_shipments(tracking_number,normalized_status,carrier_status,shipment_status,delivered_date)"
+        )
+        .eq("item_id", item_id)
+        .execute()
+    )
+    shipments = []
+    for link in links.data or []:
+        shipment = link.get("inbound_shipments") or {}
+        if not shipment:
+            continue
+        shipments.append({**shipment, "resolution_status": link.get("resolution_status")})
+    return shipments
 
 
 def tracker_has_activity(tracker):

@@ -12,7 +12,6 @@ import {
   formatMoney,
   getDisplayDeliveryDate,
   getOperationalStatus,
-  rowKey,
 } from "../purchases/utils";
 import {
   cleanTrackingScanValue,
@@ -178,7 +177,7 @@ export default function ReceivingPage() {
       const nextDrafts: Record<string, ReceivingDraft> = {};
 
       for (const groupRow of groupRows) {
-        nextDrafts[rowKey(groupRow)] = {
+        nextDrafts[receivingRowKey(groupRow)] = {
           quantityReceived: String(groupRow.quantity ?? 1),
           returnPending: false,
           marketplace: "Amazon",
@@ -226,7 +225,7 @@ export default function ReceivingPage() {
     if (!selectedRow) return "";
 
     for (const row of detailRows) {
-      const draft = drafts[rowKey(row)];
+      const draft = drafts[receivingRowKey(row)];
       const marketplace = draft?.marketplace ?? "Amazon";
       const returnPending = draft?.returnPending ?? false;
       const expectedQuantity = Number(row.quantity ?? 1);
@@ -278,10 +277,11 @@ export default function ReceivingPage() {
     if (saving) return;
 
     const items = detailRows.map((row) => {
-      const draft = drafts[rowKey(row)];
+      const draft = drafts[receivingRowKey(row)];
       const expectedQuantity = Number(row.quantity ?? 1);
       return {
         item_id: row.item_id,
+        package_link_id: row.package_link_id ?? null,
         quantity_received: parseQuantityReceived(
           draft?.quantityReceived,
           expectedQuantity
@@ -399,7 +399,7 @@ export default function ReceivingPage() {
   ]);
 
   function updateDraft(row: PurchaseRow, patch: Partial<ReceivingDraft>) {
-    const key = rowKey(row);
+    const key = receivingRowKey(row);
     const defaultDraft: ReceivingDraft = {
       quantityReceived: String(row.quantity ?? 1),
       returnPending: false,
@@ -610,7 +610,7 @@ export default function ReceivingPage() {
                 const status = getOperationalStatus(row);
                 return (
                   <tr
-                    key={rowKey(row)}
+                    key={receivingRowKey(row)}
                     onClick={() => openDetail(row)}
                     className="cursor-pointer border-t border-slate-100 align-top hover:bg-slate-50"
                   >
@@ -637,7 +637,12 @@ export default function ReceivingPage() {
                     </td>
                     <td className="px-2 py-2">{row.carrier || ""}</td>
                     <td className="break-all px-2 py-2 text-xs">
-                      {row.tracking_number || "--"}
+                      <div>{row.tracking_number || "--"}</div>
+                      {Number(row.package_count ?? 0) > 1 && (
+                        <div className="mt-1 text-[11px] font-medium text-slate-500">
+                          {row.packages_delivered ?? 0}/{row.package_count} packages delivered
+                        </div>
+                      )}
                     </td>
                     <td className="whitespace-nowrap px-2 py-2">
                       {formatDate(getDisplayDeliveryDate(row))}
@@ -668,7 +673,12 @@ export default function ReceivingPage() {
                   <div className="break-all">
                     Tracking: {selectedRow.tracking_number || "--"}
                   </div>
-                  <div>Items: {detailRows.length}</div>
+                  <div>
+                    Items: {detailRows.length}
+                    {Number(selectedRow.package_count ?? 0) > 1
+                      ? ` | Packages: ${selectedRow.packages_delivered ?? 0}/${selectedRow.package_count} delivered`
+                      : ""}
+                  </div>
                 </div>
               </div>
 
@@ -684,7 +694,7 @@ export default function ReceivingPage() {
             <div className="flex-1 overflow-y-auto p-5">
               <div className="grid gap-4">
                 {detailRows.map((row) => {
-                  const key = rowKey(row);
+                  const key = receivingRowKey(row);
                   const ebayListingUrl = row.ebay_listing_url || getEbayListingUrl(row);
                   const amazonDisplayTitle = getAmazonDisplayTitle(row);
                   const expectedQuantity = Number(row.quantity ?? 1);
@@ -755,6 +765,12 @@ export default function ReceivingPage() {
                         <div className="mt-3 text-sm text-slate-500">
                           Expected: {row.quantity ?? 1}
                         </div>
+                        {row.package_link_id && (
+                          <div className="mt-2 text-sm text-slate-500">
+                            Package: {row.package_tracking_number || row.tracking_number || "--"} |{" "}
+                            {formatStatus(row.package_status || row.delivery_status)}
+                          </div>
+                        )}
                       </div>
 
                       <div className="grid min-w-0 gap-4 sm:grid-cols-[120px_minmax(150px,1fr)_140px]">
@@ -1155,6 +1171,17 @@ function hasSameTrackingNumber(left?: string | null, right?: string | null) {
   return !!normalizedLeft && normalizedLeft === normalizedRight;
 }
 
+function receivingRowKey(row: PurchaseRow) {
+  return row.package_link_id || row.item_id || row.purchase_id || row.supplier_order_id || "";
+}
+
+function formatStatus(value?: string | null) {
+  if (!value) return "--";
+  return value
+    .replace(/[_-]+/g, " ")
+    .replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
 function trackingMatchesScan(
   normalizedTracking: string,
   normalizedSearch: string,
@@ -1163,13 +1190,14 @@ function trackingMatchesScan(
   if (!normalizedTracking) return false;
   if (trackingCandidates.has(normalizedTracking)) return true;
 
-  return (
-    normalizedTracking.length >= 8 &&
-    (normalizedSearch.includes(normalizedTracking) ||
-      [...trackingCandidates].some((candidate) =>
-        candidate.includes(normalizedTracking)
-      ))
-  );
+  if (normalizedSearch.length > normalizedTracking.length) {
+    return (
+      normalizedTracking.length >= 12 &&
+      normalizedSearch.endsWith(normalizedTracking)
+    );
+  }
+
+  return false;
 }
 
 const imageClueOptions = [

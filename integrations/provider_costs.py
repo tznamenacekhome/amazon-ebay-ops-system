@@ -494,6 +494,7 @@ class ProviderCostSync:
                 "source": "calculated",
                 "period_start": period.start.isoformat(),
                 "period_end": period.end.isoformat(),
+                "provider_record_id": f"easypost:{period.start}:standalone_tracker_count",
                 "raw_metadata": {"tracker_only": True},
             },
             {
@@ -505,6 +506,7 @@ class ProviderCostSync:
                 "source": "calculated",
                 "period_start": period.start.isoformat(),
                 "period_end": period.end.isoformat(),
+                "provider_record_id": f"easypost:{period.start}:tracker_fee_total",
                 "raw_metadata": {"funding_not_expense": True},
             },
         ]
@@ -519,6 +521,7 @@ class ProviderCostSync:
                     "source": "api",
                     "period_start": period.start.isoformat(),
                     "period_end": period.end.isoformat(),
+                    "provider_record_id": f"easypost:{period.start}:wallet_balance",
                     "raw_metadata": {"wallet_balance_is_not_tracker_expense": True},
                 }
             )

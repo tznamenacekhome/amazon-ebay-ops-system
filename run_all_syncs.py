@@ -814,10 +814,16 @@ def telemetry_client():
 
 
 def telemetry_safe(action: Callable[[], None]) -> None:
-    try:
-        action()
-    except Exception as error:  # noqa: BLE001 - telemetry must not break sync jobs.
-        print(f"WARNING: scheduler telemetry write failed: {error}")
+    last_error: Exception | None = None
+    for attempt in range(1, 4):
+        try:
+            action()
+            return
+        except Exception as error:  # noqa: BLE001 - telemetry must not break sync jobs.
+            last_error = error
+            if attempt < 3:
+                time.sleep(attempt * 2)
+    print(f"WARNING: scheduler telemetry write failed after retries: {last_error}")
 
 
 def start_scheduler_run(*, run_id: str, group: str, jobs: list[SyncJob], started_at: str) -> None:

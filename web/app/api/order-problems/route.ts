@@ -48,6 +48,9 @@ type DashboardRow = {
   estimated_delivery_date: string | null;
   delivered_date: string | null;
   carrier_tracking?: CarrierTracking | null;
+  package_link_id?: string | null;
+  package_tracking_number?: string | null;
+  package_resolution_status?: string | null;
 };
 
 type ProblemCase = {
@@ -260,7 +263,10 @@ function parseProblemQuery(url: URL): ProblemQuery {
 }
 
 async function seedDerivedProblemCases() {
-  const candidateRows = await fetchDerivedCandidateRows();
+  const candidateRows = [
+    ...(await fetchDerivedCandidateRows()),
+    ...(await fetchPackageProblemCandidateRows()),
+  ];
   const initialSeeds = dedupeSeeds(candidateRows.map(candidateSeedForRow).filter(Boolean) as ProblemSeed[]);
   const terminalStatusSeedItemIds = await fetchTerminalStatusSeedItemIds(
     initialSeeds.map((seed) => seed.item_id),
@@ -412,6 +418,78 @@ async function fetchDerivedCandidateRows() {
   return Array.from(byItemId.values());
 }
 
+async function fetchPackageProblemCandidateRows() {
+  const { data, error } = await supabase
+    .from("inbound_shipment_items")
+    .select(
+      [
+        "inbound_shipment_item_id",
+        "resolution_status",
+        "inbound_shipments(purchase_id,tracking_number,carrier,normalized_status,carrier_status,estimated_delivery_date,delivered_date,tracking_url,last_tracking_sync,last_checkpoint_time,tracking_events_json)",
+        "purchase_items(item_id,purchase_id,title,system,asin,target_price,unit_cost,quantity,current_status,supplier_listing_url,purchases(supplier_order_id,order_date))",
+      ].join(","),
+    )
+    .eq("resolution_status", "open")
+    .limit(1000);
+
+  if (error) throw new Error(`package order problem candidates: ${error.message}`);
+
+  const byItemId = new Map<string, DashboardRow>();
+  for (const link of data ?? []) {
+    const shipment = (link as any).inbound_shipments;
+    const item = (link as any).purchase_items;
+    if (!shipment || !item) continue;
+
+    const currentStatus = normalizeStatus(item.current_status);
+    if (["received", "listed", "cancelled", "return_opened", "return_pending"].includes(currentStatus)) {
+      continue;
+    }
+
+    const packageRow: DashboardRow = {
+      item_id: item.item_id,
+      purchase_id: item.purchase_id,
+      order_date: item.purchases?.order_date ?? null,
+      supplier: "eBay",
+      supplier_order_id: item.purchases?.supplier_order_id ?? null,
+      title: item.title,
+      system: item.system,
+      asin: item.asin,
+      sell_price: item.target_price,
+      target_price: item.target_price,
+      unit_cost: item.unit_cost,
+      quantity: item.quantity,
+      current_status: item.current_status,
+      tracking_number: shipment.tracking_number,
+      supplier_listing_url: item.supplier_listing_url,
+      carrier: shipment.carrier,
+      delivery_status: shipment.normalized_status,
+      estimated_delivery_date: shipment.estimated_delivery_date,
+      delivered_date: shipment.delivered_date,
+      package_link_id: (link as any).inbound_shipment_item_id,
+      package_tracking_number: shipment.tracking_number,
+      package_resolution_status: (link as any).resolution_status,
+      carrier_tracking: {
+        tracking_number: shipment.tracking_number,
+        carrier: shipment.carrier,
+        normalized_status: shipment.normalized_status,
+        carrier_status: shipment.carrier_status,
+        estimated_delivery_date: shipment.estimated_delivery_date,
+        delivered_date: shipment.delivered_date,
+        tracking_url: shipment.tracking_url,
+        last_tracking_sync: shipment.last_tracking_sync,
+        last_checkpoint_time: shipment.last_checkpoint_time,
+        tracking_events_json: shipment.tracking_events_json,
+      },
+    };
+
+    if (shouldIncludeDerivedCandidate(packageRow)) {
+      byItemId.set(packageRow.item_id, packageRow);
+    }
+  }
+
+  return Array.from(byItemId.values());
+}
+
 function queryDashboard() {
   return dynamicFrom("vw_purchases_dashboard")
     .select(
@@ -464,7 +542,15 @@ function candidateSeedForRow(row: DashboardRow): ProblemSeed | null {
   if (["no_tracking", "shipped_no_tracking", "awaiting_carrier_scan"].includes(status) || !hasUsableTrackingNumber(row.tracking_number)) {
     return seed(row, "derived_order_problem", "stale_tracking_candidate", "candidate", "Check eBay order details and ask seller for a usable shipment update.");
   }
-  return seed(row, "derived_order_problem", "late_delivery_candidate", "candidate", "Delivery estimate has passed; check tracking and seller communication.");
+  return seed(
+    row,
+    "derived_order_problem",
+    "late_delivery_candidate",
+    "candidate",
+    row.package_tracking_number
+      ? `Package ${row.package_tracking_number} is late/stale; check tracking and seller communication.`
+      : "Delivery estimate has passed; check tracking and seller communication.",
+  );
 }
 
 function shouldIncludeDerivedCandidate(row: DashboardRow) {

@@ -14,6 +14,17 @@ export type PurchaseRow = {
   target_price?: number | null;
   tracking_number?: string | null;
   original_tracking_number?: string | null;
+  package_tracking_number?: string | null;
+  package_link_id?: string | null;
+  package_status?: string | null;
+  package_delivered_date?: string | null;
+  package_quantity_expected?: number | null;
+  package_quantity_received?: number | null;
+  package_resolution_status?: string | null;
+  package_count?: number | null;
+  packages_delivered?: number | null;
+  packages_open?: number | null;
+  inbound_packages?: InboundPackage[];
   supplier_sku?: string | null;
   supplier_listing_url?: string | null;
   ebay_listing_url?: string | null;
@@ -94,6 +105,23 @@ export type PurchaseRow = {
   problem_escalated_at?: string | null;
   problem_closed_at?: string | null;
   problem_events?: ProblemEvent[];
+};
+
+export type InboundPackage = {
+  inbound_shipment_id?: string;
+  inbound_shipment_item_id?: string | null;
+  tracking_number?: string | null;
+  carrier?: string | null;
+  normalized_status?: string | null;
+  carrier_status?: string | null;
+  estimated_delivery_date?: string | null;
+  delivered_date?: string | null;
+  tracking_url?: string | null;
+  quantity_expected_in_package?: number | null;
+  quantity_received_from_package?: number | null;
+  received_verified?: boolean | null;
+  resolution_status?: string | null;
+  resolution_reason?: string | null;
 };
 
 export type ProblemEvent = {

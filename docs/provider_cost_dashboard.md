@@ -101,6 +101,13 @@ Environment:
 - optional `AWS_ACCOUNT_ID`
 - optional `AWS_COST_REGION` (defaults to `us-east-1`)
 
+Production scheduler note: the ECS scheduler task must have an application
+`taskRoleArn` with these Cost Explorer, Budgets, and STS read permissions. The
+execution role only pulls images, writes logs, and reads Secrets Manager
+secrets; it does not provide boto3 credentials to `integrations/provider_costs.py`.
+Deploy scheduler revisions with `scripts/deploy-scheduler.ps1 -TaskRoleArn <arn>`
+once the scheduler provider-cost role exists.
+
 ## Supabase
 
 Supabase uses only official Management API/account data when configured. If the
