@@ -1,6 +1,6 @@
 # MBOP AWS Deployment
 
-Last updated: 2026-07-14
+Last updated: 2026-07-20
 
 This document records the AWS production state for MBOP as inspected from AWS
 CLI. Live AWS state remains the highest authority; run
@@ -8,14 +8,14 @@ CLI. Live AWS state remains the highest authority; run
 
 ## Current Live State
 
-Verified from AWS CLI on 2026-06-28:
+Verified from AWS CLI on 2026-07-20:
 
 - Region: `us-west-2`
 - Account: `297464765814`
 - Runtime: ECS/Fargate
 - ECS cluster: `mbop-cluster1`
 - ECS web service: `mbop-web-service`
-- Current web task definition: `mbop-web-task:29`
+- Current web task definition: inspect with `scripts/aws-web-status.ps1`
 - Current web container: `mbop-web`
 - Web task size: `0.5 vCPU / 1 GiB`
 - Web container port: `3103`
@@ -277,9 +277,17 @@ Status: enabled
 ```
 
 The route is POST-only. A GET smoke check through the public domain should
-return `405`, not a Cognito redirect. The route now rejects a bare static token:
-webhook calls must pass EasyPost HMAC headers or the internal token plus
-timestamp/signature headers.
+return `405`, not a Cognito redirect. The route accepts EasyPost HMAC V2
+headers, EasyPost raw-body `X-Hmac-Signature`, or the configured
+`X-MBOP-Webhook-Token` static outbound header. The live EasyPost webhook is
+configured with that static header because EasyPost custom webhook headers are
+static values.
+
+On 2026-07-20, EasyPost disabled the production webhook after repeated failed
+POST responses. Root cause: MBOP rejected the live static-token webhook calls
+because the route required either EasyPost HMAC V2 headers or an internal
+timestamp/signature token scheme. The route now accepts the live static token
+header and the documented EasyPost raw-body HMAC header.
 
 Verification on 2026-06-20:
 

@@ -187,19 +187,26 @@ async function updateLinkedPurchaseItemStatuses(
 }
 
 function validateEasyPostSignature(request: Request, rawBody: string) {
-  const hmacError = validateHmacSignature(request, rawBody);
-  if (!hmacError) return null;
+  const validators = [
+    validateHmacV2Signature,
+    validateRawBodyHmacSignature,
+    validateTokenSignature,
+    validateStaticToken,
+  ];
 
-  const tokenError = validateTokenSignature(request, rawBody);
-  if (!tokenError) return null;
+  const errors = validators.map((validator) => validator(request, rawBody));
+  if (errors.some((error) => error === null)) return null;
 
-  if (webhookSecret) return hmacError;
-  if (webhookToken) return tokenError;
+  console.warn("EasyPost webhook validation failed", errors.filter(Boolean).join("; "));
+
+  if (webhookSecret || webhookToken) {
+    return "Invalid EasyPost webhook authentication";
+  }
 
   return "Missing EasyPost webhook authentication configuration";
 }
 
-function validateHmacSignature(request: Request, rawBody: string) {
+function validateHmacV2Signature(request: Request, rawBody: string) {
   if (!webhookSecret) return "Missing EasyPost HMAC configuration";
 
   const timestamp = request.headers.get("x-timestamp");
@@ -216,6 +223,20 @@ function validateHmacSignature(request: Request, rawBody: string) {
   const signatureValue = signature.replace(/^hmac-sha256-hex=/i, "");
   const stringToSign = `${timestamp}${request.method.toUpperCase()}${path}${rawBody}`;
   return validateHexHmac(signatureValue, stringToSign, webhookSecret);
+}
+
+function validateRawBodyHmacSignature(request: Request, rawBody: string) {
+  if (!webhookSecret) return "Missing EasyPost HMAC configuration";
+
+  const signature = request.headers.get("x-hmac-signature");
+
+  if (!signature) return "Missing EasyPost raw-body HMAC header";
+
+  return validateHexHmac(
+    signature.replace(/^hmac-sha256-hex=/i, ""),
+    rawBody,
+    webhookSecret,
+  );
 }
 
 function validateTokenSignature(request: Request, rawBody: string) {
@@ -242,6 +263,15 @@ function validateTokenSignature(request: Request, rawBody: string) {
     stringToSign,
     webhookTokenSigningSecret,
   );
+}
+
+function validateStaticToken(request: Request) {
+  if (!webhookToken) return "Missing EasyPost token configuration";
+
+  const provided = request.headers.get("x-mbop-webhook-token") ?? "";
+  if (!safeEqualText(provided, webhookToken)) return "Invalid EasyPost webhook token";
+
+  return null;
 }
 
 function validateTimestamp(timestamp: string) {

@@ -191,9 +191,13 @@ Operational notes:
 - The route is POST-only; unauthenticated GET should return `405`.
 - The EasyPost outbound header token and HMAC secret are stored in
   `/mbop/prod/easypost/webhook-token`.
-- Bare static-token webhook auth is not accepted. EasyPost deliveries must use
-  HMAC headers, or an internal relay must send the token plus timestamp and
-  HMAC signature headers.
+- The route accepts EasyPost HMAC V2 headers, EasyPost raw-body
+  `X-Hmac-Signature`, or the configured static outbound header
+  `X-MBOP-Webhook-Token`.
+- If EasyPost disables the webhook for repeated failures, first confirm the
+  EasyPost webhook custom header still matches `/mbop/prod/easypost/webhook-token`,
+  then run a smoke POST through the production domain before re-enabling it in
+  EasyPost.
 - If the secret name or ARN changes, register a new `mbop-web-task` revision and
   redeploy the web service.
 - Keep scheduled EasyPost polling until real EasyPost-originated
