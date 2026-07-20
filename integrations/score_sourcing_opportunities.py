@@ -248,12 +248,22 @@ def fetch_candidates(supabase, run_id: str) -> list[dict[str, Any]]:
 def fetch_run_rows(supabase, table_name: str, run_id: str, page_size: int = 1000) -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
     start = 0
+    order_column_by_table = {
+        "sourcing_seed_asins": "seed_id",
+        "sourcing_ebay_candidates": "candidate_id",
+    }
+    order_column = order_column_by_table.get(table_name)
     while True:
         end = start + page_size - 1
-        response = (
+        query = (
             supabase.table(table_name)
             .select("*")
             .eq("sourcing_run_id", run_id)
+        )
+        if order_column:
+            query = query.order(order_column)
+        response = (
+            query
             .range(start, end)
             .execute()
         )
