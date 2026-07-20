@@ -74,6 +74,9 @@ Carrier/status syncs must not downgrade workflow-owned statuses.
   merchandise, digital/service items, incomplete products, foreign regions,
   sequel/year conflicts, and edition/version conflicts as backend-owned
   diagnostics and hard blocks where confidence is high.
+- Annual sports/game matching must not treat a release year as a sequel/year
+  conflict when the candidate also contains the same game number as the Amazon
+  title, such as `Tiger Woods PGA Tour 10` with release year `2009`.
 - Possible game-plus-accessory bundles should route to Review instead of being
   blindly hard-blocked unless the listing clearly lacks the game.
 - eBay sourcing search uses one approved platform-aware search suffix per ASIN

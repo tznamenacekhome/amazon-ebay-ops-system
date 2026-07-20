@@ -866,6 +866,7 @@ def numeric_identity_rule(amazon_title: str, ebay_title: str, evidence: dict[str
         shared_title_tokens
         and amazon_numbers["numbers"]
         and ebay_numbers["years"]
+        and amazon_numbers["numbers"].isdisjoint(ebay_numbers["numbers"])
         and amazon_numbers["numbers"].isdisjoint({year[-2:].lstrip("0") or "0" for year in ebay_numbers["years"]})
     ):
         return {

@@ -238,6 +238,14 @@ class SourcingMatchRuleTests(unittest.TestCase):
         )
         self.assert_blocked(diagnostics, "numeric")
 
+    def test_matching_annual_game_number_is_not_blocked_by_release_year(self) -> None:
+        diagnostics = evaluate_static_match_rules(
+            candidate("Tiger Woods PGA Tour 10 (Microsoft Xbox 360, 2009) Brand New Factory Sealed", platform="Microsoft Xbox 360"),
+            seed("Tiger Woods PGA Tour 10 - Xbox 360", "Xbox 360"),
+        )
+        self.assertNotEqual("Blocked", diagnostics["recommendation"])
+        self.assertFalse(any("numeric" in reason.casefold() for reason in diagnostics["hard_blocks"]))
+
     def test_cable_pedal_drum_sticks_block(self) -> None:
         diagnostics = evaluate_static_match_rules(
             candidate("Rock Band Drum Sticks Pedal Cable Set", category_name="Video Game Accessories"),
