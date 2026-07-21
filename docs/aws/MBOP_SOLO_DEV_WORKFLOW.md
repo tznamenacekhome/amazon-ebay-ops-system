@@ -69,10 +69,25 @@ Then deploy:
 .\scripts\deploy-web.ps1
 ```
 
+For small, low-risk web changes where you only need to start the rollout and
+keep working, use:
+
+```powershell
+.\scripts\deploy-web.ps1 -NoWait
+```
+
+That still builds the Docker image, pushes it to ECR, registers a digest-pinned
+task definition, and updates ECS. It skips only the blocking ECS stability wait.
+Run `.\scripts\aws-web-status.ps1` afterward before treating production as
+verified.
+
 Local `npm run build` is useful as a compile/type check, but it is not the
 production test for MBOP. The production app runs on ECS/Fargate behind
-ALB/Cognito. After deploy, use `.\scripts\aws-web-status.ps1` and browser
-verification at `https://mbop.midnightblueenterprises.com`.
+ALB/Cognito. For tiny web/API changes, the Docker build inside
+`deploy-web.ps1` is usually enough compile validation; avoid running a separate
+local `npm run build` unless the change is risky or you want faster local
+feedback before deploying. After deploy, use `.\scripts\aws-web-status.ps1` and
+browser verification at `https://mbop.midnightblueenterprises.com`.
 
 The deploy script:
 
@@ -84,7 +99,7 @@ The deploy script:
 6. Preserves the existing ECS task definition settings and secrets.
 7. Forces `CLOUD_DEPLOYMENT=true` and `LOCAL_SYNC_ENABLED=false`.
 8. Updates `mbop-web-service`.
-9. Waits for ECS to stabilize.
+9. Waits for ECS to stabilize unless `-NoWait` is supplied.
 
 ## Troubleshooting Login
 

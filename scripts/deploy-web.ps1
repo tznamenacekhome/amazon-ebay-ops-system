@@ -5,7 +5,8 @@ param(
   [string]$Service = "mbop-web-service",
   [string]$RepositoryUri = "297464765814.dkr.ecr.us-west-2.amazonaws.com/mbop-web",
   [string]$ContainerName = "mbop-web",
-  [switch]$AllowDirty
+  [switch]$AllowDirty,
+  [switch]$NoWait
 )
 
 $ErrorActionPreference = "Stop"
@@ -153,14 +154,22 @@ aws ecs update-service `
   --task-definition $newTaskDefinitionArn `
   --output json | Out-Null
 
-Write-Host "Waiting for ECS service to stabilize..." -ForegroundColor Cyan
-aws ecs wait services-stable `
-  --profile $Profile `
-  --region $Region `
-  --cluster $Cluster `
-  --services $Service
+if ($NoWait) {
+  Write-Host "Skipping ECS stability wait because -NoWait was supplied." -ForegroundColor Yellow
+  Write-Host "Check rollout later with: .\scripts\aws-web-status.ps1" -ForegroundColor Yellow
+} else {
+  Write-Host "Waiting for ECS service to stabilize..." -ForegroundColor Cyan
+  aws ecs wait services-stable `
+    --profile $Profile `
+    --region $Region `
+    --cluster $Cluster `
+    --services $Service
+}
 
 Write-Host ""
 Write-Host "Deploy complete." -ForegroundColor Green
 Write-Host "Live app: https://mbop.midnightblueenterprises.com"
 Write-Host "Deployed SHA: $gitSha"
+if ($NoWait) {
+  Write-Host "Rollout may still be in progress." -ForegroundColor Yellow
+}

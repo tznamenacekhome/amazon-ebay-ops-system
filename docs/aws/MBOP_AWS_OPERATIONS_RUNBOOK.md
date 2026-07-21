@@ -30,7 +30,10 @@ For web changes, a local build is only a compile/type check. It does not prove
 production behavior because MBOP runs behind ALB/Cognito on ECS/Fargate. When a
 change must be verified in production, deploy with `.\scripts\deploy-web.ps1`,
 confirm service stability with `.\scripts\aws-web-status.ps1`, then verify in
-the browser at `https://mbop.midnightblueenterprises.com`.
+the browser at `https://mbop.midnightblueenterprises.com`. For small
+iterations, `.\scripts\deploy-web.ps1 -NoWait` starts the ECS rollout without
+blocking on the stability wait; always run `.\scripts\aws-web-status.ps1`
+before considering the production rollout complete.
 
 1. Build the web image from `web/`.
 2. Push it to the ECR repository used by `mbop-web-task`.

@@ -23,15 +23,14 @@ ENV PORT=3000
 ENV MBOP_BUILD_SHA=$MBOP_BUILD_SHA
 ENV NEXT_PUBLIC_MBOP_BUILD_SHA=$MBOP_BUILD_SHA
 
-COPY package.json package-lock.json ./
+RUN addgroup -S nodejs && adduser -S nextjs -G nodejs
+
+COPY --chown=nextjs:nodejs package.json package-lock.json ./
 RUN npm ci --omit=dev && npm cache clean --force
 
-COPY --from=builder /app/.next ./.next
-COPY --from=builder /app/public ./public
-COPY --from=builder /app/scripts ./scripts
-
-RUN addgroup -S nodejs && adduser -S nextjs -G nodejs \
-  && chown -R nextjs:nodejs /app
+COPY --chown=nextjs:nodejs --from=builder /app/.next ./.next
+COPY --chown=nextjs:nodejs --from=builder /app/public ./public
+COPY --chown=nextjs:nodejs --from=builder /app/scripts ./scripts
 
 USER nextjs
 EXPOSE 3000
