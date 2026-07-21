@@ -120,8 +120,8 @@ async function fetchReceivingPackageRows(excludedItemIds: string[]) {
         "quantity_received_from_package",
         "received_verified",
         "resolution_status",
-        "inbound_shipments(inbound_shipment_id,purchase_id,tracking_number,carrier,carrier_status,normalized_status,shipment_status,estimated_delivery_date,delivered_date,tracking_url)",
-        "purchase_items(item_id,purchase_id,title,amazon_title,quantity,unit_cost,asin,target_price,system,current_status,condition,supplier_sku,supplier_listing_url,raw_import_json,marketplace,received_date,purchases(supplier_order_id,order_date,total_order_cost,order_status,raw_import_json))",
+        "inbound_shipments!inner(inbound_shipment_id,purchase_id,tracking_number,carrier,carrier_status,normalized_status,shipment_status,estimated_delivery_date,delivered_date,tracking_url)",
+        "purchase_items!inner(item_id,purchase_id,title,amazon_title,quantity,unit_cost,asin,target_price,system,current_status,condition,supplier_sku,supplier_listing_url,raw_import_json,marketplace,received_date,purchases(supplier_order_id,order_date,total_order_cost,order_status,raw_import_json))",
       ].join(",")
     )
     .eq("resolution_status", "open")
