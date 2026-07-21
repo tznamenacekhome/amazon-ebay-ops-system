@@ -205,15 +205,36 @@ export default function ReceivingPage() {
 
   useEffect(() => {
     const normalizedSearch = searchText.trim();
+    const matchedRow = filteredRows.length === 1 ? filteredRows[0] : null;
+    const selectedKey = selectedRow ? receivingRowKey(selectedRow) : "";
+    const matchedKey = matchedRow ? receivingRowKey(matchedRow) : "";
+
     if (
       normalizedSearch &&
-      filteredRows.length === 1 &&
-      lastAutoOpenedSearch.current !== normalizedSearch
+      matchedRow &&
+      (
+        lastAutoOpenedSearch.current !== normalizedSearch ||
+        selectedKey !== matchedKey
+      )
     ) {
-      openDetail(filteredRows[0]);
+      openDetail(matchedRow);
       lastAutoOpenedSearch.current = normalizedSearch;
     }
-  }, [filteredRows, openDetail, searchText]);
+  }, [filteredRows, openDetail, searchText, selectedRow]);
+
+  useEffect(() => {
+    const normalizedSearch = searchText.trim();
+    if (
+      selectedRow &&
+      normalizedSearch &&
+      isLikelyTrackingScan(searchText) &&
+      filteredRows.length === 0
+    ) {
+      setSelectedRow(null);
+      setDrafts({});
+      detailOpenedAt.current = 0;
+    }
+  }, [filteredRows.length, searchText, selectedRow]);
 
   const detailRows = useMemo(() => {
     if (!selectedRow) return [];
