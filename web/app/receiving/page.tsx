@@ -15,6 +15,7 @@ import {
 } from "../purchases/utils";
 import {
   cleanTrackingScanValue,
+  isLikelyTrackingScan,
   normalizeTrackingScan,
 } from "./trackingScan";
 
@@ -119,6 +120,7 @@ export default function ReceivingPage() {
       trackingScan.candidates.map((candidate) => candidate.toUpperCase())
     );
     const normalizedSearch = trackingScan.normalizedInput.toUpperCase();
+    const likelyTrackingScan = isLikelyTrackingScan(searchText);
     if (!needle) return rows;
 
     return rows.filter((row) => {
@@ -141,6 +143,10 @@ export default function ReceivingPage() {
 
       if (normalizedOrder && normalizedSearch && normalizedOrder === normalizedSearch) {
         return true;
+      }
+
+      if (likelyTrackingScan) {
+        return false;
       }
 
       return [
@@ -178,7 +184,7 @@ export default function ReceivingPage() {
 
       for (const groupRow of groupRows) {
         nextDrafts[receivingRowKey(groupRow)] = {
-          quantityReceived: String(groupRow.quantity ?? 1),
+          quantityReceived: defaultQuantityReceivedDraft(groupRow),
           returnPending: false,
           marketplace: "Amazon",
           asin: groupRow.asin || "",
@@ -401,7 +407,7 @@ export default function ReceivingPage() {
   function updateDraft(row: PurchaseRow, patch: Partial<ReceivingDraft>) {
     const key = receivingRowKey(row);
     const defaultDraft: ReceivingDraft = {
-      quantityReceived: String(row.quantity ?? 1),
+      quantityReceived: defaultQuantityReceivedDraft(row),
       returnPending: false,
       marketplace: "Amazon",
       asin: row.asin || "",
@@ -1110,6 +1116,14 @@ function formatPriceDraft(value?: number | null) {
 function parseQuantityReceived(value: string | undefined, fallback: number) {
   if (value === undefined || value.trim() === "") return fallback;
   return Number(value);
+}
+
+function defaultQuantityReceivedDraft(row: PurchaseRow) {
+  if (row.package_link_id && row.package_quantity_expected === null) {
+    return "0";
+  }
+
+  return String(row.package_quantity_expected ?? row.quantity ?? 1);
 }
 
 function getProblemQuantity(

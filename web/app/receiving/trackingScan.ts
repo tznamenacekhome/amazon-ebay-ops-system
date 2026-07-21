@@ -39,6 +39,19 @@ export function normalizeTrackingScan(
   return { raw, normalizedInput, candidates };
 }
 
+export function isLikelyTrackingScan(input?: string | null) {
+  const raw = String(input ?? "").trim();
+  const normalizedInput = cleanTrackingScanValue(raw);
+  if (!normalizedInput) return false;
+  if (/^\d{2}-\d{5}-\d{5}$/.test(raw)) return false;
+
+  const upperInput = normalizedInput.toUpperCase();
+  if (upperInput.includes("1Z")) return true;
+  if (!/^\d+$/.test(normalizedInput)) return false;
+
+  return normalizedInput.length >= 12;
+}
+
 export function cleanTrackingScanValue(input?: string | null) {
   return String(input ?? "")
     .trim()
