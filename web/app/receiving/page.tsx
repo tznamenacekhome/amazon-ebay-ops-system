@@ -62,6 +62,7 @@ export default function ReceivingPage() {
   const [error, setError] = useState<string | null>(null);
   const [searchText, setSearchText] = useState("");
   const [selectedRow, setSelectedRow] = useState<PurchaseRow | null>(null);
+  const [scanRows, setScanRows] = useState<PurchaseRow[]>([]);
   const [drafts, setDrafts] = useState<Record<string, ReceivingDraft>>({});
   const [sortColumn, setSortColumn] = useState<SortColumn>("date");
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
@@ -113,6 +114,52 @@ export default function ReceivingPage() {
     searchInputRef.current?.focus();
   }, []);
 
+  useEffect(() => {
+    const normalizedSearch = searchText.trim();
+
+    if (!normalizedSearch || !isLikelyTrackingScan(normalizedSearch)) {
+      setScanRows([]);
+      return;
+    }
+
+    const controller = new AbortController();
+    const timeoutId = window.setTimeout(async () => {
+      try {
+        const response = await fetch(
+          `/api/receiving?scan=${encodeURIComponent(normalizedSearch)}`,
+          { cache: "no-store", signal: controller.signal }
+        );
+
+        if (!response.ok) return;
+
+        setScanRows(await response.json());
+      } catch (err) {
+        if ((err as Error).name !== "AbortError") {
+          console.warn("Receiving scan lookup failed", err);
+        }
+      }
+    }, 120);
+
+    return () => {
+      controller.abort();
+      window.clearTimeout(timeoutId);
+    };
+  }, [searchText]);
+
+  const searchableRows = useMemo(() => {
+    if (scanRows.length === 0) return rows;
+
+    const byKey = new Map<string, PurchaseRow>();
+    for (const row of rows) {
+      byKey.set(receivingRowKey(row), row);
+    }
+    for (const row of scanRows) {
+      byKey.set(receivingRowKey(row), row);
+    }
+
+    return Array.from(byKey.values());
+  }, [rows, scanRows]);
+
   const filteredRows = useMemo(() => {
     const needle = searchText.trim().toLowerCase();
     const trackingScan = normalizeTrackingScan(searchText);
@@ -123,7 +170,7 @@ export default function ReceivingPage() {
     const likelyTrackingScan = isLikelyTrackingScan(searchText);
     if (!needle) return rows;
 
-    return rows.filter((row) => {
+    return searchableRows.filter((row) => {
       const normalizedTracking = cleanTrackingScanValue(
         row.tracking_number
       ).toUpperCase();
@@ -163,7 +210,7 @@ export default function ReceivingPage() {
         .filter(Boolean)
         .some((value) => String(value).toLowerCase().includes(needle));
     });
-  }, [rows, searchText]);
+  }, [rows, searchText, searchableRows]);
 
   const sortedRows = useMemo(() => {
     return [...filteredRows].sort((left, right) => {

@@ -3,6 +3,7 @@ import { spawn } from "child_process";
 import path from "path";
 import { createServerSupabaseClient, isCloudDeployment, isLocalJobExecutionEnabled, requireAdminApiToken } from "../_server";
 import { runSchedulerGroupTask } from "../_awsScheduler";
+import { normalizeTrackingScan } from "../../receiving/trackingScan";
 
 const supabase = createServerSupabaseClient();
 const RECEIVING_CONFIRMATION_TOKEN = "operator_receive_v2";
@@ -22,8 +23,15 @@ type ReceivingUpdate = {
   receiving_notes?: string | null;
 };
 
-export async function GET() {
+export async function GET(httpRequest: Request) {
   const excludedItemIds = await fetchExcludedItemIds();
+  const scan = new URL(httpRequest.url).searchParams.get("scan");
+
+  if (scan) {
+    const scanRows = await fetchReceivingScanRows(scan, excludedItemIds);
+    return NextResponse.json(scanRows);
+  }
+
   let request = supabase
     .from("vw_purchases_dashboard")
     .select("*")
@@ -139,6 +147,61 @@ async function fetchReceivingPackageRows(excludedItemIds: string[]) {
   }
 
   return (data ?? []).flatMap((link: any) => {
+    return mapReceivingPackageRow(link);
+  });
+}
+
+async function fetchReceivingScanRows(scan: string, excludedItemIds: string[]) {
+  const trackingCandidates = normalizeTrackingScan(scan).candidates;
+  if (trackingCandidates.length === 0) return [];
+
+  const { data: shipments, error: shipmentError } = await supabase
+    .from("inbound_shipments")
+    .select("inbound_shipment_id")
+    .in("tracking_number", trackingCandidates)
+    .not("delivered_date", "is", null);
+
+  if (shipmentError) {
+    console.warn("Receiving scan shipment lookup failed", shipmentError.message);
+    return [];
+  }
+
+  const shipmentIds = (shipments ?? [])
+    .map((shipment) => shipment.inbound_shipment_id)
+    .filter(Boolean);
+
+  if (shipmentIds.length === 0) return [];
+
+  let request = supabase
+    .from("inbound_shipment_items")
+    .select(
+      [
+        "inbound_shipment_item_id",
+        "quantity_expected_in_package",
+        "quantity_received_from_package",
+        "received_verified",
+        "resolution_status",
+        "inbound_shipments!inner(inbound_shipment_id,purchase_id,tracking_number,carrier,carrier_status,normalized_status,shipment_status,estimated_delivery_date,delivered_date,tracking_url)",
+        "purchase_items!inner(item_id,purchase_id,title,amazon_title,quantity,unit_cost,asin,target_price,system,current_status,condition,supplier_sku,supplier_listing_url,raw_import_json,marketplace,received_date,purchases(supplier_order_id,order_date,total_order_cost,order_status,raw_import_json))",
+      ].join(",")
+    )
+    .eq("resolution_status", "open")
+    .in("inbound_shipment_id", shipmentIds);
+
+  if (excludedItemIds.length > 0) {
+    request = request.not("item_id", "in", `(${excludedItemIds.join(",")})`);
+  }
+
+  const { data, error } = await request.limit(100);
+  if (error) {
+    console.warn("Receiving scan package lookup failed", error.message);
+    return [];
+  }
+
+  return (data ?? []).flatMap((link: any) => mapReceivingPackageRow(link));
+}
+
+function mapReceivingPackageRow(link: any) {
     const item = link.purchase_items;
     const shipment = link.inbound_shipments;
     if (!item || !shipment) return [];
@@ -185,7 +248,6 @@ async function fetchReceivingPackageRows(excludedItemIds: string[]) {
       supplier_sku: item.supplier_sku,
       supplier_listing_url: item.supplier_listing_url,
     }];
-  });
 }
 
 async function fetchInboundPackages(itemIds: string[]) {
