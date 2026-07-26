@@ -9,7 +9,7 @@ The Amazon FBA workspace prepares Received Amazon-bound purchase items for Inven
 - Rows without ASIN are excluded because the shipment list is grouped by ASIN.
 - The frontend reads through `/api/fba-shipments`; it does not talk directly to Supabase.
 - Cost values use backend-provided `vw_purchases_dashboard.unit_cost`.
-- Prep pricing compares the stored sell price with latest Amazon sales, Keepa buy box intelligence, and cached Amazon Product Fees estimates before shipment creation.
+- Prep pricing compares the stored sell price with latest Amazon sales, Keepa price intelligence, the operator's current Amazon listing price/quantity when in stock, and cached Amazon Product Fees estimates before shipment creation.
 - Pricing refresh is explicit. The Prep Queue `Update Pricing` button runs the `fba-pricing` sync group instead of refreshing prices on page load. The Keepa step is a lightweight stats refresh sized to cover the full received FBA-prep page population, subject to available Keepa tokens; it does not request offer/stock enrichment because this page only needs cached Buy Box, low-FBA, and current new-price fields.
 - The Prep Queue shows the oldest pricing cache timestamp across the visible received FBA prep rows.
 - Top metrics show ASIN count, unit count, total cost, total sell value, total
@@ -26,10 +26,12 @@ The Amazon FBA workspace prepares Received Amazon-bound purchase items for Inven
 - Supplier is the distinct supplier list for the grouped row.
 - Sell price uses the highest non-null target sell price in the group.
 - Sell price is editable from the grouped table. Saving updates the grouped received `purchase_items.target_price` rows before shipment creation.
-- Pricing columns show Buy Price, editable Sell Price, Last Sold Price/date, current Keepa Buy Box with low-FBA/current-new fallback, Keepa 90-day Buy Box average, Amazon estimated fees, and net Profit/ROI against Buy Price.
+- Pricing columns show Buy Price, editable Sell Price, My Price/in-stock quantity, Last Sold Price/date, Current Price, Keepa 90-day Buy Box average, Amazon estimated fees, and net Profit/ROI against Buy Price.
+- My Price is read from current `amazon_skus` rows for the ASIN. It shows the lowest active in-stock listing price and total in-stock units; fulfillment icons mark FBA/MF and whether the displayed price matches the current Buy Box.
+- Current Price falls back in this order: current Buy Box, current FBA new price, current merchant/new price, then stacked `Used Only` when no new-offer price is available. Fulfillment icons mark the price source and Buy Box state.
 - Amazon return-recovery candidates can appear in the Prep Queue. If their source row has no system, the API fills it from MBOP purchase catalog records first, then Amazon SKU product names, then stored Keepa title/category context.
 - Profit/ROI deducts cached Amazon estimated fees. After a sell price edit, MBOP reuses the cached non-referral fee components and recalculates the referral fee from the cached referral percentage, so Profit/ROI updates immediately after save without another Amazon call.
-- Sell Price is visually flagged when it is below Last Sold, current Buy Box,
+- Sell Price is visually flagged when it is below Last Sold, Current Price,
   and Keepa 90-day Buy Box average.
 - ASIN values link to the Amazon detail page.
 - Clicking an ASIN marks the row with a session-persistent highlight so the

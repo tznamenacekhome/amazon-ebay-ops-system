@@ -42,8 +42,16 @@ type FbaRow = {
   last_sold_price: number | null;
   last_sold_at: string | null;
   current_buy_box_price: number | null;
+  current_price: number | null;
+  current_price_source: "buy_box" | "fba" | "mf" | "used_only" | null;
+  current_price_fulfillment: "fba" | "mf" | null;
+  current_price_is_buy_box: boolean;
   low_fba_new_price_current: number | null;
   new_price_current: number | null;
+  my_price: number | null;
+  my_quantity: number;
+  my_price_fulfillment: "fba" | "mf" | null;
+  my_price_is_buy_box: boolean;
   buy_box_price_avg90: number | null;
   profit_per_unit: number | null;
   roi: number | null;
@@ -664,7 +672,7 @@ export default function FbaPage() {
       </section>
 
       <section className="overflow-x-auto rounded-lg border border-slate-200 bg-white shadow-sm">
-        <table className="min-w-[1500px] w-full text-left text-sm">
+        <table className="min-w-[1640px] w-full text-left text-sm">
           <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
             <tr>
               <th className="w-10 px-3 py-2" />
@@ -673,8 +681,9 @@ export default function FbaPage() {
               <th className="px-3 py-2">System</th>
               <th className="px-3 py-2 text-right">Buy Price</th>
               <th className="px-3 py-2 text-right">Sell Price</th>
+              <th className="px-3 py-2 text-right">My Price</th>
               <th className="px-3 py-2 text-right">Last Sold</th>
-              <th className="px-3 py-2 text-right">Current Buy Box</th>
+              <th className="px-3 py-2 text-right">Current Price</th>
               <th className="px-3 py-2 text-right">90D Buy Box</th>
               <th className="px-3 py-2 text-right">Profit / ROI</th>
               <th className="px-3 py-2 text-right">Qty</th>
@@ -685,13 +694,13 @@ export default function FbaPage() {
           <tbody>
             {loading ? (
               <tr>
-                <td className="px-3 py-8 text-center text-slate-500" colSpan={13}>
+                <td className="px-3 py-8 text-center text-slate-500" colSpan={14}>
                   Loading FBA candidates...
                 </td>
               </tr>
             ) : !data?.rows.length ? (
               <tr>
-                <td className="px-3 py-8 text-center text-slate-500" colSpan={13}>
+                <td className="px-3 py-8 text-center text-slate-500" colSpan={14}>
                   No Received Amazon inventory is ready for FBA.
                 </td>
               </tr>
@@ -799,25 +808,27 @@ export default function FbaPage() {
                       ) : null}
                     </td>
                     <td className="whitespace-nowrap px-3 py-2 text-right">
+                      <PriceWithFulfillmentIcon
+                        price={row.my_price}
+                        fulfillment={row.my_price_fulfillment}
+                        isBuyBox={row.my_price_is_buy_box}
+                      />
+                      {row.my_quantity > 0 ? (
+                        <div className="text-xs text-slate-500">
+                          {formatNumber(row.my_quantity)} in stock
+                        </div>
+                      ) : (
+                        <div className="text-xs text-slate-400">not in stock</div>
+                      )}
+                    </td>
+                    <td className="whitespace-nowrap px-3 py-2 text-right">
                       <div>{formatMoney(row.last_sold_price)}</div>
                       <div className="text-xs text-slate-500">
                         {formatDate(row.last_sold_at)}
                       </div>
                     </td>
                     <td className="whitespace-nowrap px-3 py-2 text-right">
-                      <div>{formatMoney(row.current_buy_box_price)}</div>
-                      {row.current_buy_box_price === null && row.low_fba_new_price_current !== null ? (
-                        <div className="text-xs text-slate-500">
-                          FBA low {formatMoney(row.low_fba_new_price_current)}
-                        </div>
-                      ) : null}
-                      {row.current_buy_box_price === null &&
-                      row.low_fba_new_price_current === null &&
-                      row.new_price_current !== null ? (
-                        <div className="text-xs text-slate-500">
-                          New {formatMoney(row.new_price_current)}
-                        </div>
-                      ) : null}
+                      <CurrentPriceCell row={row} />
                     </td>
                     <td className="whitespace-nowrap px-3 py-2 text-right">
                       {formatMoney(row.buy_box_price_avg90)}
@@ -839,7 +850,7 @@ export default function FbaPage() {
 
                   {expandedAsin === row.asin && (
                     <tr className="border-t border-slate-100 bg-slate-50">
-                      <td colSpan={13} className="px-3 py-3">
+                      <td colSpan={14} className="px-3 py-3">
                         <DetailTable
                           details={row.details}
                           quantityDrafts={quantityDrafts}
@@ -1192,6 +1203,73 @@ function formatPriceDraft(value?: number | null) {
   return Number(value).toFixed(2);
 }
 
+function CurrentPriceCell({ row }: { row: FbaRow }) {
+  if (row.current_price_source === "used_only") {
+    return (
+      <div className="inline-flex min-w-[80px] flex-col items-end text-xs font-semibold uppercase leading-tight text-slate-500">
+        <span>Used</span>
+        <span>Only</span>
+      </div>
+    );
+  }
+
+  return (
+    <PriceWithFulfillmentIcon
+      price={row.current_price}
+      fulfillment={row.current_price_fulfillment}
+      isBuyBox={row.current_price_is_buy_box}
+    />
+  );
+}
+
+function PriceWithFulfillmentIcon({
+  price,
+  fulfillment,
+  isBuyBox,
+}: {
+  price: number | null;
+  fulfillment: "fba" | "mf" | null;
+  isBuyBox: boolean;
+}) {
+  const icon = fulfillmentIcon(fulfillment, isBuyBox);
+
+  return (
+    <div className="inline-flex min-w-[112px] items-center justify-end gap-1.5">
+      <span className="font-medium text-slate-900">{formatMoney(price)}</span>
+      {icon ? (
+        <img
+          src={icon.src}
+          alt={icon.alt}
+          title={icon.alt}
+          width={40}
+          height={26}
+          className="h-[26px] w-[40px] shrink-0"
+        />
+      ) : null}
+    </div>
+  );
+}
+
+function fulfillmentIcon(fulfillment: "fba" | "mf" | null, isBuyBox: boolean) {
+  if (fulfillment === "fba") {
+    return isBuyBox
+      ? {
+          src: "/icons/fulfillment/fba-buy-box.svg",
+          alt: "Fulfilled by Amazon, in Buy Box",
+        }
+      : { src: "/icons/fulfillment/fba.svg", alt: "Fulfilled by Amazon" };
+  }
+  if (fulfillment === "mf") {
+    return isBuyBox
+      ? {
+          src: "/icons/fulfillment/mf-buy-box.svg",
+          alt: "Merchant fulfilled, in Buy Box",
+        }
+      : { src: "/icons/fulfillment/mf.svg", alt: "Merchant fulfilled" };
+  }
+  return null;
+}
+
 function formatProfitRoi(row: FbaRow, draft?: string) {
   const sellPrice = Number(String(draft ?? "").trim());
   const effectiveSellPrice = Number.isFinite(sellPrice) ? sellPrice : row.sell_price;
@@ -1227,7 +1305,7 @@ function sellPriceBelowReferences(row: FbaRow, draft?: string) {
   const effectiveSellPrice = Number.isFinite(sellPrice) ? sellPrice : row.sell_price;
   const references = [
     row.last_sold_price,
-    row.current_buy_box_price,
+    row.current_price,
     row.buy_box_price_avg90,
   ];
 

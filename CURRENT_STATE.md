@@ -469,7 +469,7 @@ Implemented:
   for ASIN-bearing purchase rows from stored Keepa snapshots first, and only
   calls Keepa for up to 25 remaining candidates when at least 25 tokens are
   available
-- scheduled Keepa enrichment is capped to 10 stale active-Amazon ASINs, uses stock/offers without history, and skips calls unless at least 100 Keepa tokens are available
+- scheduled Keepa enrichment is centralized in the catalog-priority refresh, capped to 25 stale ASINs per run, and uses lightweight stats-only calls with no history, rating, offers, or stock
 - scheduled sourcing listing availability checks open, Watch, and ROI-snoozed sourcing opportunities once per day and dismisses ended/sold-out/missing eBay listings with `no_longer_available`; Purchased / Offer Made rows are intentionally skipped so purchase matching/enrichment can still run
 - Sourcing Replenishment now defaults to the full currently open actionable
   queue across current and prior sourcing runs. The former newest-completed-batch
@@ -748,8 +748,8 @@ Latest validation:
 - small write inserted 5 Keepa product snapshots and 0 history rows
 - plan-only mode selected 409 canonical ASINs with 285 Keepa tokens available, so a broad sync was intentionally not run yet
 - follow-up missing-only writes inserted 303 additional Keepa snapshots with 0 failures and no normalized history rows
-- scheduled stale-refresh mode now keeps active-Amazon Keepa snapshots fresh without broad token-spending runs
-- scheduled active-Amazon Keepa run currently uses `--limit 10 --batch-size 10 --stale-days 7 --min-tokens 100 --offers 20 --stock --no-history --write`
+- scheduled stale-refresh mode now keeps priority Keepa snapshots fresh without broad token-spending runs
+- scheduled catalog-priority Keepa run currently uses `--source catalog_priority --limit 25 --batch-size 25 --stale-days 7 --min-tokens 25 --no-history --no-rating --write`
 - latest scheduled Keepa write selected 1 stale active-Amazon ASIN, inserted 1 snapshot, and spent 5 tokens
 
 Boundary:

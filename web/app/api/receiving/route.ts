@@ -8,6 +8,13 @@ import { normalizeTrackingScan } from "../../receiving/trackingScan";
 const supabase = createServerSupabaseClient();
 const RECEIVING_CONFIRMATION_TOKEN = "operator_receive_v2";
 const ROOT_DIR = path.resolve(process.cwd(), "..");
+const RECEIVING_CLOSED_ITEM_STATUSES = [
+  "cancelled",
+  "listed",
+  "received",
+  "return_opened",
+  "return_pending",
+];
 
 type ReceivingUpdate = {
   item_id: string;
@@ -134,6 +141,7 @@ async function fetchReceivingPackageRows(excludedItemIds: string[]) {
     )
     .eq("resolution_status", "open")
     .not("inbound_shipments.delivered_date", "is", null)
+    .not("purchase_items.current_status", "in", `(${RECEIVING_CLOSED_ITEM_STATUSES.join(",")})`)
     .limit(1000);
 
   if (excludedItemIds.length > 0) {
@@ -186,6 +194,7 @@ async function fetchReceivingScanRows(scan: string, excludedItemIds: string[]) {
       ].join(",")
     )
     .eq("resolution_status", "open")
+    .not("purchase_items.current_status", "in", `(${RECEIVING_CLOSED_ITEM_STATUSES.join(",")})`)
     .in("inbound_shipment_id", shipmentIds);
 
   if (excludedItemIds.length > 0) {
@@ -801,10 +810,8 @@ async function startReceivedPricingRefresh(results: unknown[]) {
     "20",
     "--min-tokens",
     "1",
-    "--offers",
-    "20",
-    "--stock",
     "--no-history",
+    "--no-rating",
     "--write",
   ].join(" ");
   const feeCommand = [

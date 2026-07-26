@@ -307,7 +307,7 @@ Smoke validation completed:
 
 ## Keepa Guardrails
 
-Current deep `offers=20` plus `stock` mode costs roughly 9.8 tokens per ASIN for active listings. Keepa refills at about 5 tokens/minute with a 300-token cap.
+Historical deep `offers=20` plus `stock` mode cost roughly 9.8 tokens per ASIN for active listings. MBOP no longer uses that mode for routine Keepa jobs. Keepa refills at about 5 tokens/minute with a 300-token cap.
 
 Current scheduler-safe defaults:
 

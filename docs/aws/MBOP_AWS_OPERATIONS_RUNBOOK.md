@@ -156,7 +156,15 @@ Required web task role permissions:
     {
       "Effect": "Allow",
       "Action": "iam:PassRole",
-      "Resource": "arn:aws:iam::297464765814:role/ecsTaskExecutionRole"
+      "Resource": [
+        "arn:aws:iam::297464765814:role/ecsTaskExecutionRole",
+        "arn:aws:iam::297464765814:role/mbop-scheduler-task-role"
+      ],
+      "Condition": {
+        "StringEquals": {
+          "iam:PassedToService": "ecs-tasks.amazonaws.com"
+        }
+      }
     }
   ]
 }

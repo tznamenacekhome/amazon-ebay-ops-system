@@ -222,14 +222,14 @@ export default function ReceivingPage() {
   const openDetail = useCallback(
     (row: PurchaseRow) => {
       const groupRows = hasUsableTrackingNumber(row.tracking_number)
-        ? rows.filter((candidate) =>
+        ? searchableRows.filter((candidate) =>
             hasSameTrackingNumber(candidate.tracking_number, row.tracking_number)
           )
-        : rows.filter((candidate) => candidate.purchase_id === row.purchase_id);
+        : searchableRows.filter((candidate) => candidate.purchase_id === row.purchase_id);
 
       const nextDrafts: Record<string, ReceivingDraft> = {};
 
-      for (const groupRow of groupRows) {
+      for (const groupRow of groupRows.length ? groupRows : [row]) {
         nextDrafts[receivingRowKey(groupRow)] = {
           quantityReceived: defaultQuantityReceivedDraft(groupRow),
           returnPending: false,
@@ -247,7 +247,7 @@ export default function ReceivingPage() {
       detailOpenedAt.current = Date.now();
       setSelectedRow(row);
     },
-    [rows]
+    [searchableRows]
   );
 
   useEffect(() => {
@@ -286,14 +286,14 @@ export default function ReceivingPage() {
   const detailRows = useMemo(() => {
     if (!selectedRow) return [];
 
-    if (hasUsableTrackingNumber(selectedRow.tracking_number)) {
-      return rows.filter(
+    const matchedRows = hasUsableTrackingNumber(selectedRow.tracking_number)
+      ? searchableRows.filter(
         (row) => hasSameTrackingNumber(row.tracking_number, selectedRow.tracking_number)
-      );
-    }
+      )
+      : searchableRows.filter((row) => row.purchase_id === selectedRow.purchase_id);
 
-    return rows.filter((row) => row.purchase_id === selectedRow.purchase_id);
-  }, [rows, selectedRow]);
+    return matchedRows.length ? matchedRows : [selectedRow];
+  }, [searchableRows, selectedRow]);
 
   const receivingValidationMessage = useMemo(() => {
     if (!selectedRow) return "";

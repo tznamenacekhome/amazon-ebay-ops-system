@@ -483,7 +483,10 @@ EventBridge Scheduler role:
 arn:aws:iam::297464765814:role/mbopEventBridgeSchedulerEcsRole
 ```
 
-This role can run `mbop-scheduler-task:*` on `mbop-cluster1` and pass `ecsTaskExecutionRole`.
+This role can run `mbop-scheduler-task:*` on `mbop-cluster1` and pass both
+`ecsTaskExecutionRole` and `mbop-scheduler-task-role`. Reapply the policy with
+`.\scripts\ensure-scheduler-launch-role-policy.ps1` after scheduler IAM role
+changes.
 
 Scheduler sizing note:
 

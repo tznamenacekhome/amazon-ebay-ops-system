@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="40" height="26" viewBox="0 0 40 26" fill="none">
+  <title>Merchant Fulfilled</title>
+  <g transform="translate(5 8)">
+    <rect width="30" height="18" rx="4" fill="#232F3E"/>
+    <rect x="0" y="4" width="2.5" height="10" rx="1.25" fill="#FF9900"/>
+    <g fill="white" transform="translate(7.45 14.2) scale(.014 -.014)">
+      <path d="M722 396V0H550V373Q550 421 523 421Q494 421 468 369V0H297V373Q297 421 270 421Q241 421 215 369V0H43V533H195L206 473Q235 513 268.5 532Q302 551 344 551Q382 551 411 530Q440 509 455 470Q484 511 518.5 531Q553 551 597 551Q653 551 687.5 509Q722 467 722 396Z"/>
+      <path d="M241 575V533H348L329 413H241V0H67V413H1V533H67V574Q67 659 118 710Q169 761 267 761Q342 761 408 727L362 617Q326 635 292 635Q265 635 253 621Q241 607 241 575Z" transform="translate(741)"/>
+    </g>
+  </g>
+</svg>

@@ -27,6 +27,24 @@ type KeepaPriceRow = {
   new_price_current_cents: number | null;
 };
 
+type AmazonSkuListingRow = {
+  asin: string | null;
+  seller_sku: string | null;
+  fulfillment_channel: string | null;
+  listing_status: string | null;
+  item_status: string | null;
+  listing_price: number | null;
+  landed_price: number | null;
+  total_quantity: number | null;
+  fulfillable_quantity: number | null;
+  inbound_working_quantity: number | null;
+  inbound_shipped_quantity: number | null;
+  inbound_receiving_quantity: number | null;
+  reserved_quantity: number | null;
+  unfulfillable_quantity: number | null;
+  updated_at: string | null;
+};
+
 type KeepaSystemRow = {
   asin: string | null;
   title: string | null;
@@ -303,6 +321,7 @@ export async function GET(request: NextRequest) {
     const systemFallbacks = await fetchSystemFallbacks(asins);
     const preferredMskus = await fetchPreferredFbaMskus(asins);
     const keepaPrices = await fetchKeepaPrices(asins);
+    const myListings = await fetchMyListings(asins);
     const lastSoldPrices = await fetchLastSoldPrices(asins);
     const candidatesWithFallbacks = candidates.map((candidate) => ({
       ...candidate,
@@ -316,6 +335,7 @@ export async function GET(request: NextRequest) {
         titleFallbacks,
         preferredMskus,
         keepaPrices,
+        myListings,
         lastSoldPrices,
         feeEstimates
       )
@@ -1376,6 +1396,12 @@ function groupCandidates(
     new_price_current: number | null;
     updated_at: string | null;
   }>,
+  myListings: Map<string, {
+    price: number | null;
+    quantity: number;
+    fulfillment_channel: "fba" | "mf" | null;
+    updated_at: string | null;
+  }>,
   lastSoldPrices: Map<string, LastSoldRow>,
   feeEstimates: Map<string, {
     listing_price: number;
@@ -1403,8 +1429,16 @@ function groupCandidates(
     last_sold_price: number | null;
     last_sold_at: string | null;
     current_buy_box_price: number | null;
+    current_price: number | null;
+    current_price_source: "buy_box" | "fba" | "mf" | "used_only" | null;
+    current_price_fulfillment: "fba" | "mf" | null;
+    current_price_is_buy_box: boolean;
     low_fba_new_price_current: number | null;
     new_price_current: number | null;
+    my_price: number | null;
+    my_quantity: number;
+    my_price_fulfillment: "fba" | "mf" | null;
+    my_price_is_buy_box: boolean;
     buy_box_price_avg90: number | null;
     amazon_fee_estimate: number | null;
     amazon_fee_estimate_basis_price: number | null;
@@ -1436,8 +1470,16 @@ function groupCandidates(
       last_sold_price: null,
       last_sold_at: null,
       current_buy_box_price: null,
+      current_price: null,
+      current_price_source: null,
+      current_price_fulfillment: null,
+      current_price_is_buy_box: false,
       low_fba_new_price_current: null,
       new_price_current: null,
+      my_price: null,
+      my_quantity: 0,
+      my_price_fulfillment: null,
+      my_price_is_buy_box: false,
       buy_box_price_avg90: null,
       amazon_fee_estimate: null,
       amazon_fee_estimate_basis_price: null,
@@ -1490,6 +1532,8 @@ function groupCandidates(
       new Set(group.details.map((detail) => detail.supplier).filter(Boolean))
     ) as string[];
     const keepa = keepaPrices.get(group.asin);
+    const myListing = myListings.get(group.asin);
+    const currentPrice = currentPriceContext(keepa);
     const lastSold = lastSoldPrices.get(group.asin);
     const feeEstimate =
       group.sell_price === null ? undefined : feeEstimates.get(group.asin);
@@ -1514,8 +1558,21 @@ function groupCandidates(
       last_sold_price: lastSold?.price ?? null,
       last_sold_at: lastSold?.sold_at ?? null,
       current_buy_box_price: keepa?.buy_box_price_current ?? null,
+      current_price: currentPrice.price,
+      current_price_source: currentPrice.source,
+      current_price_fulfillment: currentPrice.fulfillment,
+      current_price_is_buy_box: currentPrice.is_buy_box,
       low_fba_new_price_current: keepa?.low_fba_new_price_current ?? null,
       new_price_current: keepa?.new_price_current ?? null,
+      my_price: myListing?.price ?? null,
+      my_quantity: myListing?.quantity ?? 0,
+      my_price_fulfillment: myListing?.fulfillment_channel ?? null,
+      my_price_is_buy_box:
+        myListing?.price !== null &&
+        myListing?.price !== undefined &&
+        keepa?.buy_box_price_current !== null &&
+        keepa?.buy_box_price_current !== undefined &&
+        Math.abs(myListing.price - keepa.buy_box_price_current) < 0.01,
       buy_box_price_avg90: keepa?.buy_box_price_avg90 ?? null,
       amazon_fee_estimate: feeEstimate?.adjusted_total_fees_estimate ?? null,
       amazon_fee_estimate_basis_price: feeEstimate?.listing_price ?? null,
@@ -1600,6 +1657,156 @@ async function fetchKeepaPrices(asins: string[]) {
   }
 
   return prices;
+}
+
+async function fetchMyListings(asins: string[]) {
+  const listings = new Map<string, {
+    price: number | null;
+    quantity: number;
+    fulfillment_channel: "fba" | "mf" | null;
+    updated_at: string | null;
+  }>();
+  const chunkSize = 200;
+
+  for (let index = 0; index < asins.length; index += chunkSize) {
+    const chunk = asins.slice(index, index + chunkSize);
+    const { data, error } = await supabase
+      .from("amazon_skus")
+      .select(
+        [
+          "asin",
+          "seller_sku",
+          "fulfillment_channel",
+          "listing_status",
+          "item_status",
+          "listing_price",
+          "landed_price",
+          "total_quantity",
+          "fulfillable_quantity",
+          "inbound_working_quantity",
+          "inbound_shipped_quantity",
+          "inbound_receiving_quantity",
+          "reserved_quantity",
+          "unfulfillable_quantity",
+          "updated_at",
+        ].join(",")
+      )
+      .in("asin", chunk);
+
+    if (error) {
+      console.warn("FBA my listing lookup failed", error.message);
+      continue;
+    }
+
+    for (const row of (data ?? []) as unknown as AmazonSkuListingRow[]) {
+      const asin = normalizeAsin(row.asin);
+      if (!asin || isInactiveListing(row)) continue;
+
+      const quantity = listingQuantity(row);
+      if (quantity <= 0) continue;
+
+      const price = toNumber(row.landed_price) ?? toNumber(row.listing_price);
+      const fulfillment = fulfillmentKind(row.fulfillment_channel);
+      const existing = listings.get(asin);
+
+      if (!existing) {
+        listings.set(asin, {
+          price,
+          quantity,
+          fulfillment_channel: fulfillment,
+          updated_at: row.updated_at,
+        });
+        continue;
+      }
+
+      existing.quantity += quantity;
+      if (
+        price !== null &&
+        (existing.price === null ||
+          price < existing.price ||
+          (Math.abs(price - existing.price) < 0.01 &&
+            existing.fulfillment_channel !== "fba" &&
+            fulfillment === "fba"))
+      ) {
+        existing.price = price;
+        existing.fulfillment_channel = fulfillment;
+        existing.updated_at = row.updated_at ?? existing.updated_at;
+      }
+    }
+  }
+
+  return listings;
+}
+
+function currentPriceContext(
+  keepa:
+    | {
+        buy_box_price_current: number | null;
+        low_fba_new_price_current: number | null;
+        new_price_current: number | null;
+      }
+    | undefined
+) {
+  const buyBox = keepa?.buy_box_price_current ?? null;
+  const fba = keepa?.low_fba_new_price_current ?? null;
+  const mf = keepa?.new_price_current ?? null;
+
+  if (buyBox !== null) {
+    return {
+      price: buyBox,
+      source: "buy_box" as const,
+      fulfillment: fba !== null && Math.abs(fba - buyBox) < 0.01 ? ("fba" as const) : ("mf" as const),
+      is_buy_box: true,
+    };
+  }
+
+  if (fba !== null) {
+    return {
+      price: fba,
+      source: "fba" as const,
+      fulfillment: "fba" as const,
+      is_buy_box: false,
+    };
+  }
+
+  if (mf !== null) {
+    return {
+      price: mf,
+      source: "mf" as const,
+      fulfillment: "mf" as const,
+      is_buy_box: false,
+    };
+  }
+
+  return {
+    price: null,
+    source: "used_only" as const,
+    fulfillment: null,
+    is_buy_box: false,
+  };
+}
+
+function listingQuantity(row: AmazonSkuListingRow) {
+  const fulfillable = toNumber(row.fulfillable_quantity);
+  if (fulfillable !== null) return Math.max(0, Math.floor(fulfillable));
+  const total = toNumber(row.total_quantity);
+  return total === null ? 0 : Math.max(0, Math.floor(total));
+}
+
+function fulfillmentKind(value: string | null) {
+  const normalized = cleanString(value)?.toLowerCase() ?? "";
+  if (["amazon", "amazon_na", "afn", "fba"].includes(normalized)) return "fba" as const;
+  if (["merchant", "merchant_na", "mfn", "mf"].includes(normalized)) return "mf" as const;
+  return null;
+}
+
+function isInactiveListing(row: AmazonSkuListingRow) {
+  const status = [row.listing_status, row.item_status]
+    .map((value) => cleanString(value)?.toLowerCase() ?? "")
+    .filter(Boolean);
+  return status.some((value) =>
+    ["inactive", "deleted", "closed", "suppressed", "incomplete"].includes(value)
+  );
 }
 
 async function fetchFeeEstimates(

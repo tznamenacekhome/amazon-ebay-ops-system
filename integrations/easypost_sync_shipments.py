@@ -696,6 +696,14 @@ def link_purchase_items_to_shipment(context, shipment, notes):
         item_id = item.get("item_id")
         if not item_id:
             continue
+        if normalize_status(item.get("current_status")) in {
+            "cancelled",
+            "listed",
+            "received",
+            "return_opened",
+            "return_pending",
+        }:
+            continue
 
         existing_link = (
             supabase.table("inbound_shipment_items")
