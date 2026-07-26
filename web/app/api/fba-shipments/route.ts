@@ -24,6 +24,13 @@ type KeepaPriceRow = {
   buy_box_price_current_cents: number | null;
   buy_box_price_avg90_cents: number | null;
   new_fba_price_current_cents: number | null;
+  new_price_current_cents: number | null;
+};
+
+type KeepaSystemRow = {
+  asin: string | null;
+  title: string | null;
+  category_tree_json: unknown;
 };
 
 type LastSoldRow = {
@@ -293,14 +300,19 @@ export async function GET(request: NextRequest) {
 
     const asins = Array.from(new Set(candidates.map((candidate) => candidate.asin)));
     const titleFallbacks = await fetchAmazonTitleFallbacks(asins);
+    const systemFallbacks = await fetchSystemFallbacks(asins);
     const preferredMskus = await fetchPreferredFbaMskus(asins);
     const keepaPrices = await fetchKeepaPrices(asins);
     const lastSoldPrices = await fetchLastSoldPrices(asins);
-    const feeEstimates = await fetchFeeEstimates(candidates);
+    const candidatesWithFallbacks = candidates.map((candidate) => ({
+      ...candidate,
+      system: candidate.system || systemFallbacks.get(candidate.asin) || null,
+    }));
+    const feeEstimates = await fetchFeeEstimates(candidatesWithFallbacks);
 
     return NextResponse.json(
       groupCandidates(
-        candidates,
+        candidatesWithFallbacks,
         titleFallbacks,
         preferredMskus,
         keepaPrices,
@@ -1239,6 +1251,84 @@ async function fetchAmazonTitleFallbacks(asins: string[]) {
   return titleByAsin;
 }
 
+async function fetchSystemFallbacks(asins: string[]) {
+  const systemByAsin = new Map<string, string>();
+  const chunkSize = 500;
+
+  const setSystem = (asinValue: string | null | undefined, systemValue?: string | null) => {
+    const asin = normalizeAsin(asinValue);
+    const system = normalizeSystem(systemValue);
+    if (asin && system && !systemByAsin.has(asin)) {
+      systemByAsin.set(asin, system);
+    }
+  };
+
+  for (let index = 0; index < asins.length; index += chunkSize) {
+    const chunk = asins.slice(index, index + chunkSize);
+    const { data, error } = await supabase
+      .from("purchase_items")
+      .select("asin,system")
+      .in("asin", chunk)
+      .not("system", "is", null);
+
+    if (error) {
+      console.warn("FBA system purchase fallback lookup failed", error.message);
+      continue;
+    }
+
+    for (const item of data ?? []) {
+      setSystem(item.asin, item.system);
+    }
+  }
+
+  for (let index = 0; index < asins.length; index += chunkSize) {
+    const chunk = asins.slice(index, index + chunkSize);
+    const { data, error } = await supabase
+      .from("amazon_skus")
+      .select("asin,product_name")
+      .in("asin", chunk)
+      .not("product_name", "is", null);
+
+    if (error) {
+      console.warn("FBA system Amazon SKU fallback lookup failed", error.message);
+      continue;
+    }
+
+    for (const item of data ?? []) {
+      setSystem(item.asin, item.product_name);
+    }
+  }
+
+  for (let index = 0; index < asins.length; index += chunkSize) {
+    const chunk = asins.slice(index, index + chunkSize);
+    const { data, error } = await supabase
+      .from("vw_latest_keepa_product_snapshot")
+      .select("asin,title,category_tree_json")
+      .in("asin", chunk);
+
+    if (error) {
+      console.warn("FBA system Keepa fallback lookup failed", error.message);
+      continue;
+    }
+
+    for (const row of (data ?? []) as KeepaSystemRow[]) {
+      const categoryNames = Array.isArray(row.category_tree_json)
+        ? row.category_tree_json
+            .map((category) =>
+              category && typeof category === "object" && "name" in category
+                ? String((category as { name?: unknown }).name ?? "")
+                : ""
+            )
+            .filter(Boolean)
+            .join(" ")
+        : "";
+      setSystem(row.asin, [row.title, categoryNames].filter(Boolean).join(" "));
+    }
+  }
+
+  return systemByAsin;
+}
+
 async function fetchPreferredFbaMskus(asins: string[]) {
   const mskuByAsin = new Map<string, string>();
   const chunkSize = 500;
@@ -1283,6 +1373,7 @@ function groupCandidates(
     buy_box_price_current: number | null;
     buy_box_price_avg90: number | null;
     low_fba_new_price_current: number | null;
+    new_price_current: number | null;
     updated_at: string | null;
   }>,
   lastSoldPrices: Map<string, LastSoldRow>,
@@ -1313,6 +1404,7 @@ function groupCandidates(
     last_sold_at: string | null;
     current_buy_box_price: number | null;
     low_fba_new_price_current: number | null;
+    new_price_current: number | null;
     buy_box_price_avg90: number | null;
     amazon_fee_estimate: number | null;
     amazon_fee_estimate_basis_price: number | null;
@@ -1345,6 +1437,7 @@ function groupCandidates(
       last_sold_at: null,
       current_buy_box_price: null,
       low_fba_new_price_current: null,
+      new_price_current: null,
       buy_box_price_avg90: null,
       amazon_fee_estimate: null,
       amazon_fee_estimate_basis_price: null,
@@ -1422,6 +1515,7 @@ function groupCandidates(
       last_sold_at: lastSold?.sold_at ?? null,
       current_buy_box_price: keepa?.buy_box_price_current ?? null,
       low_fba_new_price_current: keepa?.low_fba_new_price_current ?? null,
+      new_price_current: keepa?.new_price_current ?? null,
       buy_box_price_avg90: keepa?.buy_box_price_avg90 ?? null,
       amazon_fee_estimate: feeEstimate?.adjusted_total_fees_estimate ?? null,
       amazon_fee_estimate_basis_price: feeEstimate?.listing_price ?? null,
@@ -1473,6 +1567,7 @@ async function fetchKeepaPrices(asins: string[]) {
     buy_box_price_current: number | null;
     buy_box_price_avg90: number | null;
     low_fba_new_price_current: number | null;
+    new_price_current: number | null;
     updated_at: string | null;
   }>();
   const chunkSize = 200;
@@ -1482,7 +1577,7 @@ async function fetchKeepaPrices(asins: string[]) {
     const { data, error } = await supabase
       .from("vw_latest_keepa_product_snapshot")
       .select(
-        "asin,captured_at,buy_box_price_current_cents,buy_box_price_avg90_cents,new_fba_price_current_cents"
+        "asin,captured_at,buy_box_price_current_cents,buy_box_price_avg90_cents,new_fba_price_current_cents,new_price_current_cents"
       )
       .in("asin", chunk);
 
@@ -1498,6 +1593,7 @@ async function fetchKeepaPrices(asins: string[]) {
         buy_box_price_current: centsToDollars(row.buy_box_price_current_cents),
         buy_box_price_avg90: centsToDollars(row.buy_box_price_avg90_cents),
         low_fba_new_price_current: centsToDollars(row.new_fba_price_current_cents),
+        new_price_current: centsToDollars(row.new_price_current_cents),
         updated_at: row.captured_at,
       });
     }
@@ -1853,6 +1949,63 @@ async function createReceivedRemainderSplit(
 
 function normalizeAsin(value?: string | null) {
   return value ? value.trim().toUpperCase() : "";
+}
+
+const SYSTEM_ALIASES: Record<string, string[]> = {
+  "Switch 2": ["nintendo switch 2", "switch 2"],
+  Switch: ["nintendo switch", "switch"],
+  "3DS": ["nintendo 3ds", "3ds"],
+  DS: ["nintendo ds", "ds"],
+  "Wii U": ["nintendo wii u", "wii u", "wiiu"],
+  Wii: ["nintendo wii", "wii"],
+  Gamecube: ["gamecube", "game cube", "nintendo gamecube"],
+  "Nintendo 64": ["nintendo 64", "n64"],
+  "Super Nintendo": ["super nintendo", "snes"],
+  NES: ["nes", "nintendo entertainment system"],
+  "PS 5": ["playstation 5", "ps5", "ps 5"],
+  "PS 4": ["playstation 4", "ps4", "ps 4"],
+  "PS 3": ["playstation 3", "ps3", "ps 3"],
+  "PS 2": ["playstation 2", "ps2", "ps 2"],
+  PS: ["playstation", "ps1", "psx"],
+  PSP: ["psp", "playstation portable"],
+  "PS Vita": ["playstation vita", "ps vita", "vita"],
+  "Xbox Series X": ["xbox series x", "series x"],
+  "Xbox Series S": ["xbox series s", "series s"],
+  "Xbox One": ["xbox one", "xbone", "xb1"],
+  "Xbox 360": ["xbox 360", "360"],
+  Xbox: ["original xbox", "xbox"],
+  PC: ["pc", "windows pc", "windows", "mac"],
+};
+
+function normalizeSystem(value?: string | null) {
+  if (!value) return null;
+  const text = normalizeAlias(value);
+
+  for (const [canonical, aliases] of Object.entries(SYSTEM_ALIASES)) {
+    if (aliases.some((alias) => text === normalizeAlias(alias))) {
+      return canonical;
+    }
+  }
+
+  for (const [canonical, aliases] of Object.entries(SYSTEM_ALIASES)) {
+    if (
+      aliases.some((alias) =>
+        new RegExp(`\\b${escapeRegExp(normalizeAlias(alias))}\\b`).test(text)
+      )
+    ) {
+      return canonical;
+    }
+  }
+
+  return null;
+}
+
+function normalizeAlias(value: string) {
+  return value.toLowerCase().replace(/[^a-z0-9]+/g, " ").replace(/\s+/g, " ").trim();
+}
+
+function escapeRegExp(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
 function observedConditionFromRaw(value: unknown) {

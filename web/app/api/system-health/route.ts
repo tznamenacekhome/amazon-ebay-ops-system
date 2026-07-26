@@ -296,17 +296,17 @@ const SCHEDULER_GROUPS: SchedulerGroupConfig[] = [
     jobNames: ["Sourcing listing availability", "Matching intelligence refresh"],
   },
   {
-    key: "keepa-rolling-refresh",
-    label: "Keepa Rolling Refresh",
+    key: "keepa-catalog-priority",
+    label: "Keepa Catalog Priority",
     domain: "Catalog",
-    cadence: "Every 8 hours",
-    schedule: "1:10 AM, 9:10 AM, 5:10 PM PT",
-    scheduleNames: ["mbop-keepa-rolling-refresh"],
-    expectedEveryHours: 10,
-    criticalAfterHours: 24,
-    description: "Token-aware Keepa refresh for stale active Amazon products.",
-    features: ["Purchases enrichment", "Repricing advisor", "FBA prep pricing"],
-    jobNames: ["Keepa active products"],
+    cadence: "Every 5 minutes",
+    schedule: "Every 5 minutes",
+    scheduleNames: ["mbop-keepa-catalog-priority"],
+    expectedEveryHours: 1,
+    criticalAfterHours: 3,
+    description: "Token-paced Keepa refresh for purchase enrichment, sourcing opportunities, and remaining catalog ASINs.",
+    features: ["Purchases enrichment", "Sourcing workspace", "Repricing advisor", "FBA prep pricing"],
+    jobNames: ["Keepa catalog priority refresh"],
   },
   {
     key: "fba-pricing",
@@ -639,8 +639,8 @@ const JOBS: JobConfig[] = [
     },
   },
   {
-    id: "keepa-products",
-    name: "Keepa active products",
+    id: "keepa-catalog-priority",
+    name: "Keepa catalog priority refresh",
     command: "integrations/keepa_sync_products.py",
     group: "catalog",
     blocking: true,
@@ -1096,12 +1096,8 @@ function scheduledPacificTimesForGroup(groupKey: string): PacificRunTime[] {
       return [{ hour: 21, minute: 30 }];
     case "sourcing-catalog":
       return [{ hour: 22, minute: 0 }];
-    case "keepa-rolling-refresh":
-      return [
-        { hour: 1, minute: 10 },
-        { hour: 9, minute: 10 },
-        { hour: 17, minute: 10 },
-      ];
+    case "keepa-catalog-priority":
+      return everyFiveMinutes();
     default:
       return [];
   }
@@ -1111,6 +1107,16 @@ function hourlyTimes(startHour: number, endHour: number, minute: number, step = 
   const times: PacificRunTime[] = [];
   for (let hour = startHour; hour <= endHour; hour += step) {
     times.push({ hour, minute });
+  }
+  return times;
+}
+
+function everyFiveMinutes(): PacificRunTime[] {
+  const times: PacificRunTime[] = [];
+  for (let hour = 0; hour <= 23; hour += 1) {
+    for (let minute = 0; minute < 60; minute += 5) {
+      times.push({ hour, minute });
+    }
   }
   return times;
 }

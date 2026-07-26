@@ -26,6 +26,7 @@ KEEPA_EPOCH_SECONDS = 1293840000
 SOURCE_PRIORITY_HIGH = 0
 SOURCE_PRIORITY_MEDIUM = 1
 SOURCE_PRIORITY_LOW = 2
+BLOCKED_CATALOG_STATUSES = {"cancelled", "return_opened", "return_pending"}
 
 CSV_AMAZON = 0
 CSV_NEW = 1
@@ -181,10 +182,13 @@ def main() -> int:
             domain_id=client.config.domain_id,
             max_points_per_metric=args.max_history_points,
         )
+        updated_purchase_titles = update_missing_purchase_titles(supabase, snapshot_rows)
         LOGGER.info("Keepa product sync complete.")
         LOGGER.info("Product snapshots inserted: %s", inserted_snapshots)
         LOGGER.info("History points inserted: %s", inserted_history)
+        LOGGER.info("Purchase titles updated: %s", updated_purchase_titles)
         LOGGER.info("Failures: %s", failures)
+        print(f"Purchase titles updated: {updated_purchase_titles}")
         return 0
     except KeepaAPIError as error:
         LOGGER.error("Keepa sync failed safely: %s", error)
@@ -301,7 +305,23 @@ def collect_source_asins(supabase, *, source: str) -> tuple[list[str], dict[str,
             if asin and current_quantity(row) > 0:
                 add_asin(asin, SOURCE_PRIORITY_LOW)
 
-    if source in {"received_fba_prep", "catalog_priority"}:
+    if source == "catalog_priority":
+        for row in fetch_all(
+            supabase,
+            "purchase_items",
+            "item_id,asin,amazon_title,current_status,exclude_from_purchase_reporting",
+        ):
+            asin = clean_asin(row.get("asin"))
+            status = clean_text(row.get("current_status"))
+            if (
+                asin
+                and not clean_text(row.get("amazon_title"))
+                and row.get("exclude_from_purchase_reporting") is not True
+                and status not in BLOCKED_CATALOG_STATUSES
+            ):
+                add_asin(asin, SOURCE_PRIORITY_HIGH)
+
+    if source == "received_fba_prep":
         for row in fetch_all(
             supabase,
             "purchase_items",
@@ -334,17 +354,6 @@ def collect_source_asins(supabase, *, source: str) -> tuple[list[str], dict[str,
                 priority = SOURCE_PRIORITY_LOW if source == "catalog_priority" else SOURCE_PRIORITY_MEDIUM
                 add_asin(asin, priority)
 
-    if source == "catalog_priority":
-        for row in fetch_all(
-            supabase,
-            "purchase_items",
-            "asin,current_status,exclude_from_purchase_reporting",
-        ):
-            status = clean_text(row.get("current_status"))
-            should_include = status not in {"listed", "cancelled", "return_opened", "return_pending"}
-            if should_include and row.get("exclude_from_purchase_reporting") is not True:
-                add_asin(row.get("asin"), SOURCE_PRIORITY_LOW)
-
     if source in {"sourcing_active", "catalog_priority"}:
         for row in fetch_all(
             supabase,
@@ -357,6 +366,15 @@ def collect_source_asins(supabase, *, source: str) -> tuple[list[str], dict[str,
                 add_asin(asin, SOURCE_PRIORITY_MEDIUM)
 
     if source == "catalog_priority":
+        for row in fetch_all(
+            supabase,
+            "purchase_items",
+            "asin,current_status,exclude_from_purchase_reporting",
+        ):
+            status = clean_text(row.get("current_status"))
+            if row.get("exclude_from_purchase_reporting") is not True and status not in BLOCKED_CATALOG_STATUSES:
+                add_asin(row.get("asin"), SOURCE_PRIORITY_LOW)
+
         for row in fetch_all(
             supabase,
             "amazon_skus",
@@ -379,6 +397,39 @@ def collect_source_asins(supabase, *, source: str) -> tuple[list[str], dict[str,
             add_asin(row.get("asin"), SOURCE_PRIORITY_LOW)
 
     return sorted(asins), priority_by_asin
+
+
+def update_missing_purchase_titles(
+    supabase,
+    snapshot_rows: list[dict[str, Any]],
+) -> int:
+    title_by_asin = {
+        asin: title
+        for row in snapshot_rows
+        if (asin := clean_asin(row.get("asin"))) and (title := clean_text(row.get("title")))
+    }
+    updated = 0
+
+    for asin, title in title_by_asin.items():
+        response = (
+            supabase.table("purchase_items")
+            .select("item_id,current_status,exclude_from_purchase_reporting")
+            .eq("asin", asin)
+            .is_("amazon_title", "null")
+            .execute()
+        )
+        rows = response.data or []
+        for row in rows:
+            status = clean_text(row.get("current_status"))
+            if row.get("exclude_from_purchase_reporting") is True or status in BLOCKED_CATALOG_STATUSES:
+                continue
+            supabase.table("purchase_items").update({"amazon_title": title}).eq(
+                "item_id",
+                row["item_id"],
+            ).execute()
+            updated += 1
+
+    return updated
 
 
 def fetch_latest_fba_inventory_rows(supabase) -> list[dict[str, Any]]:

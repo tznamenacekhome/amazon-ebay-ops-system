@@ -96,7 +96,7 @@ These group names are now accepted by `run_all_syncs.py`:
 - `purchase-ingestion`: eBay buyer purchases, sourcing purchase matching
 - `purchase-tracking`: EasyPost inbound purchase shipments
 - `returns-order-problems`: eBay order problem returns/inquiries, EasyPost order problem returns
-- `purchase-enrichment`: RevSeller enrichment, Keepa missing purchase titles
+- `purchase-enrichment`: RevSeller enrichment
 - `amazon-sales-recent`: Amazon sales orders, recent finances, Veeqo labels, profitability, ZFI business summary push
 - `finance-refresh`: Amazon finance balances, ZFI business summary push
 - `fba-inventory-daily`: Amazon FBA inventory, Amazon inventory planning, ZFI business summary push
@@ -105,9 +105,9 @@ These group names are now accepted by `run_all_syncs.py`:
 - `repricing-catalog`: Amazon listing status, Informed repricing reports
 - `sourcing-catalog`: unified daily catalog sourcing, sourcing listing availability,
   Matching Intelligence refresh
-- `keepa-rolling-refresh`: Keepa active products
-- `keepa-catalog-priority`: fast lightweight Keepa refresh for Send to Amazon,
-  active sourcing opportunities, then broader known catalog ASINs
+- `keepa-catalog-priority`: the only scheduled Keepa token-spending group.
+  It enriches purchases first, then active sourcing opportunities, then the
+  remaining non-blocked catalog ASINs oldest Keepa snapshot first.
 - `fba-pricing`: Keepa FBA prep pricing, Amazon Product Fees estimates
 
 Manual/audit groups remain manual-only initially:
@@ -142,7 +142,6 @@ mbop-fba-shipments-active-window: cron(40 8,12,16,20 ? * * *)
 mbop-reconciliation: cron(0 21 ? * * *)
 mbop-repricing-catalog: cron(30 21 ? * * *)
 mbop-sourcing-catalog: cron(10 0 ? * * *)
-mbop-keepa-rolling-refresh: cron(10 1,9,17 ? * * *)
 mbop-keepa-catalog-priority: rate(5 minutes)
 ```
 
@@ -252,6 +251,15 @@ arn:aws:iam::297464765814:role/mbopEventBridgeSchedulerEcsRole
 
 The schedules are created and enabled. A one-time EventBridge Scheduler smoke test launched an ECS task successfully and auto-deleted after completion.
 
+The EventBridge Scheduler launch role must pass both ECS roles used by the
+scheduler task definition:
+
+- `arn:aws:iam::297464765814:role/ecsTaskExecutionRole`
+- `arn:aws:iam::297464765814:role/mbop-scheduler-task-role`
+
+Reapply this policy with `.\scripts\ensure-scheduler-launch-role-policy.ps1`
+after changing scheduler task roles.
+
 Live verification on 2026-06-21/2026-06-22 found 18 enabled `mbop-*`
 EventBridge schedules targeting ECS `runTask`.
 
@@ -293,7 +301,7 @@ Smoke validation completed:
   `returns-order-problems`, `purchase-enrichment`, `amazon-sales-recent`,
   `finance-refresh`, `fba-inventory-daily`, `fba-shipments`,
   `reconciliation`, `repricing-catalog`, `sourcing-catalog`, and
-  `keepa-rolling-refresh`.
+  `keepa-catalog-priority`.
 - ECS one-off expanded ZFI payload smoke run on `mbop-scheduler-task:4`:
   passed on 2026-06-28 with `ZFI business summary pushed`.
 
@@ -313,19 +321,18 @@ keepa-catalog-priority:
   --no-history
   --no-rating
 
-keepa-rolling-refresh:
-  --batch-size 10
-  --limit 10
-  --min-tokens 150
-
 fba-pricing:
-  --batch-size 10
-  --limit 10
-  --min-tokens 150
+  --source received_fba_prep
+  --batch-size 20
+  --limit 100
+  --min-tokens 100
+  --no-history
+  --no-rating
 ```
 
 The fast `keepa-catalog-priority` schedule is stats-only and omits rating,
 offer, stock, and history payloads. It is intended to track the observed
 5-token/minute Keepa refill rate: 25 ASINs every 5 minutes, skipping ASINs with
-snapshots newer than 7 days. Deep `offers`/`stock` mode remains reserved for
-slower selected candidate/pricing workflows.
+snapshots newer than 7 days. It is the only scheduled Keepa API caller. The
+manual/on-demand `fba-pricing` group remains available from the Send to Amazon
+screen for occasional FBA prep pricing refreshes.

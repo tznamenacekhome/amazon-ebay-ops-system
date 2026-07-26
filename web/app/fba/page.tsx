@@ -43,6 +43,7 @@ type FbaRow = {
   last_sold_at: string | null;
   current_buy_box_price: number | null;
   low_fba_new_price_current: number | null;
+  new_price_current: number | null;
   buy_box_price_avg90: number | null;
   profit_per_unit: number | null;
   roi: number | null;
@@ -808,6 +809,13 @@ export default function FbaPage() {
                       {row.current_buy_box_price === null && row.low_fba_new_price_current !== null ? (
                         <div className="text-xs text-slate-500">
                           FBA low {formatMoney(row.low_fba_new_price_current)}
+                        </div>
+                      ) : null}
+                      {row.current_buy_box_price === null &&
+                      row.low_fba_new_price_current === null &&
+                      row.new_price_current !== null ? (
+                        <div className="text-xs text-slate-500">
+                          New {formatMoney(row.new_price_current)}
                         </div>
                       ) : null}
                     </td>

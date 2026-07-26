@@ -129,6 +129,8 @@ JOBS: tuple[SyncJob, ...] = (
         ),
         groups=("core", "purchases", "dashboard", "purchase-enrichment"),
         blocking=False,
+        enabled=False,
+        disabled_reason="Consolidated into the Keepa catalog priority refresh queue.",
         timeout_seconds=20 * 60,
     ),
     SyncJob(
@@ -400,6 +402,8 @@ JOBS: tuple[SyncJob, ...] = (
             "--write",
         ),
         groups=("catalog", "repricing", "keepa-rolling-refresh"),
+        enabled=False,
+        disabled_reason="Background Keepa token spending is centralized in keepa-catalog-priority.",
         timeout_seconds=45 * 60,
     ),
     SyncJob(
@@ -422,6 +426,8 @@ JOBS: tuple[SyncJob, ...] = (
         ),
         groups=("catalog", "sourcing-catalog", "keepa-rolling-refresh"),
         blocking=False,
+        enabled=False,
+        disabled_reason="Background Keepa token spending is centralized in keepa-catalog-priority.",
         timeout_seconds=30 * 60,
     ),
     SyncJob(

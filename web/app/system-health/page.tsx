@@ -152,7 +152,7 @@ const AWS_GROUP_ORDER = [
   "reconciliation",
   "repricing-catalog",
   "sourcing-catalog",
-  "keepa-rolling-refresh",
+  "keepa-catalog-priority",
   "fba-pricing",
 ];
 
