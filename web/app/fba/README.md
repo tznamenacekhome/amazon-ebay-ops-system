@@ -10,7 +10,7 @@ The Amazon FBA workspace prepares Received Amazon-bound purchase items for Inven
 - The frontend reads through `/api/fba-shipments`; it does not talk directly to Supabase.
 - Cost values use backend-provided `vw_purchases_dashboard.unit_cost`.
 - Prep pricing compares the stored sell price with latest Amazon sales, Keepa buy box intelligence, and cached Amazon Product Fees estimates before shipment creation.
-- Pricing refresh is explicit. The Prep Queue `Update Pricing` button runs the small `fba-pricing` sync group instead of refreshing prices on page load.
+- Pricing refresh is explicit. The Prep Queue `Update Pricing` button runs the `fba-pricing` sync group instead of refreshing prices on page load. The Keepa step is a lightweight stats refresh sized to cover the full received FBA-prep page population, subject to available Keepa tokens; it does not request offer/stock enrichment because this page only needs cached Buy Box and low-FBA pricing fields.
 - The Prep Queue shows the oldest pricing cache timestamp across the visible received FBA prep rows.
 - Top metrics show ASIN count, unit count, total cost, total sell value, total
   profit, and total ROI. The shipment-entry row still shows selected units/cost
