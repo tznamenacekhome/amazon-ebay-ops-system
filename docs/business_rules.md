@@ -144,6 +144,10 @@ Carrier/status syncs must not downgrade workflow-owned statuses.
   spend the available daily eBay Browse budget, subject to any configured
   reserve, and store all qualifying opportunities found. Quota exhaustion or
   quota-reserve stops are normal "Out of quota" outcomes, not failed jobs.
+- The daily catalog sourcing runner treats its local Browse call count as a
+  checkpoint, not as final quota authority. If the local counter reaches the
+  effective budget while eligible ASINs remain, it must refresh live eBay
+  Developer Analytics quota and continue when usable `buy.browse` quota remains.
 - Coverage-cycle batch membership must not re-present opportunities already
   assigned to prior batches unless the operator action/workflow explicitly
   returns the row to an open sourcing state.

@@ -116,8 +116,11 @@ using backend category/product-group/platform evidence before persistence; the
 frontend only reads the saved queue state. Coverage-cycle API routes page
 through the full queue when summarizing buckets so the UI totals match durable
 cycle metrics. If eBay Browse quota is exhausted or the configured reserve is
-reached, the run completes with an "Out of quota" stop reason instead of being
-treated as a failed job. The frontend renders saved backend cycle/batch/quota
+reached, the runner refreshes live eBay quota before stopping when eligible
+ASINs remain; if usable quota still exists, it extends the effective run budget
+and continues the cycle. True quota stops complete with an "Out of quota" stop
+reason instead of being treated as failed jobs. The frontend renders saved
+backend cycle/batch/quota
 diagnostics and does not calculate matching, profitability, or queue eligibility
 in React.
 

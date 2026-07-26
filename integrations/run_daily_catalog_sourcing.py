@@ -89,12 +89,21 @@ def main() -> int:
     last_queue_position = None
     ebay_search_summary = empty_ebay_search_summary()
     cycles_touched: list[dict[str, Any]] = []
+    quota_refreshes: list[dict[str, Any]] = []
 
     while True:
         remaining_budget = None if budget is None else max(budget - api_calls_used, 0)
         if remaining_budget == 0:
-            stop_reason = "quota_reserve_reached"
-            break
+            budget, remaining_budget = refresh_budget_from_live_quota(
+                args.browse_quota_reserve,
+                api_calls_used,
+                budget,
+                quota_refreshes,
+                reason="parent_budget_exhausted",
+            )
+            if remaining_budget == 0:
+                stop_reason = "quota_reserve_reached"
+                break
 
         pending = fetch_pending_cycle_items(
             supabase,
@@ -170,8 +179,17 @@ def main() -> int:
         if searched_this_chunk < len(pending):
             mark_items_status(supabase, [row["cycle_item_id"] for row in pending[searched_this_chunk:]], "retryable_failed")
         if search_summary.get("stop_reason") == "ebay_out_of_quota":
-            stop_reason = "quota_reserve_reached"
-            break
+            budget, remaining_budget = refresh_budget_from_live_quota(
+                args.browse_quota_reserve,
+                api_calls_used,
+                budget,
+                quota_refreshes,
+                reason="child_budget_exhausted",
+            )
+            if remaining_budget == 0:
+                stop_reason = "quota_reserve_reached"
+                break
+            continue
         if search_summary.get("rate_limited"):
             stop_reason = "ebay_rate_limited"
             break
@@ -213,6 +231,7 @@ def main() -> int:
         added_count=added_count,
         ebay_search_summary=ebay_search_summary,
         cycles_touched=cycles_touched,
+        quota_refreshes=quota_refreshes,
     )
     print("Daily catalog sourcing")
     print("----------------------")
@@ -433,6 +452,47 @@ def create_daily_run(supabase, run_id: str, cycle_id: str, settings, quota: dict
     ).execute()
 
 
+def refresh_budget_from_live_quota(
+    reserve: int,
+    api_calls_used: int,
+    current_budget: int | None,
+    quota_refreshes: list[dict[str, Any]],
+    *,
+    reason: str,
+) -> tuple[int | None, int | None]:
+    quota = fetch_browse_quota()
+    live_budget = browse_call_budget(quota, reserve)
+    snapshot = quota_summary(quota)
+    if live_budget is None:
+        quota_refreshes.append(
+            {
+                "reason": reason,
+                "checked_at": now_iso(),
+                "live_quota": snapshot,
+                "previous_effective_budget": current_budget,
+                "new_effective_budget": None,
+                "remaining_budget": None,
+            }
+        )
+        return None, None
+
+    new_budget = api_calls_used + live_budget
+    if current_budget is not None:
+        new_budget = max(current_budget, new_budget)
+    remaining_budget = max(new_budget - api_calls_used, 0)
+    quota_refreshes.append(
+        {
+            "reason": reason,
+            "checked_at": now_iso(),
+            "live_quota": snapshot,
+            "previous_effective_budget": current_budget,
+            "new_effective_budget": new_budget,
+            "remaining_budget": remaining_budget,
+        }
+    )
+    return new_budget, remaining_budget
+
+
 def finish_daily_run(
     supabase,
     run_id: str,
@@ -448,6 +508,7 @@ def finish_daily_run(
     added_count: int = 0,
     ebay_search_summary: dict[str, Any] | None = None,
     cycles_touched: list[dict[str, Any]] | None = None,
+    quota_refreshes: list[dict[str, Any]] | None = None,
 ) -> None:
     metrics = refresh_cycle_metrics(supabase, cycle_id, run_id=run_id, stop_reason=stop_reason)
     bucket = fetch_bucket_progress(supabase, cycle_id)
@@ -484,6 +545,7 @@ def finish_daily_run(
                 "starting_quota": quota_summary(quota),
                 "ending_quota": end_quota,
                 "quota_reserve": reserve,
+                "quota_refreshes": quota_refreshes or [],
                 "bucket_progress": bucket,
                 "cycles_touched": cycles_touched or [],
             }
