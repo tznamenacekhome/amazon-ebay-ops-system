@@ -643,7 +643,16 @@ def rebuild_seller_intelligence(supabase) -> None:
 
     rows = []
     for seller, seller_examples in by_seller.items():
-        condition_returns = sum(1 for row in seller_examples if row.get("return_reason") in PRODUCT_CONDITION_RETURN_REASONS or row.get("match_label") in {"non_match", "condition_problem"})
+        return_examples = [
+            row
+            for row in seller_examples
+            if row.get("source_table") == "order_problem_cases"
+        ]
+        condition_returns = sum(
+            1
+            for row in return_examples
+            if row.get("return_reason") in PRODUCT_CONDITION_RETURN_REASONS
+        )
         status, reason, score = seller_status_from_counts(condition_returns)
         opportunities = len({row.get("opportunity_id") for row in seller_examples if row.get("opportunity_id")})
         purchases = sum(1 for row in seller_examples if row.get("later_purchase_matched") or row.get("operator_action") in {"purchased", "purchase_matched"})
@@ -652,15 +661,15 @@ def rebuild_seller_intelligence(supabase) -> None:
             {
                 "seller_username": seller,
                 "product_condition_return_count": condition_returns,
-                "return_count": sum(1 for row in seller_examples if row.get("source_table") == "order_problem_cases"),
-                "wrong_product_return_count": count_return_reason(seller_examples, "wrong_product"),
-                "wrong_platform_return_count": count_return_reason(seller_examples, "wrong_platform"),
-                "wrong_edition_return_count": count_return_reason(seller_examples, "wrong_edition_version"),
-                "non_na_return_count": count_return_reason(seller_examples, "non_north_american_version"),
-                "incomplete_product_return_count": count_return_reason(seller_examples, "incomplete_product"),
-                "missing_shrink_wrap_return_count": count_return_reason(seller_examples, "missing_shrink_wrap"),
-                "suspected_reseal_return_count": count_return_reason(seller_examples, "suspected_reseal"),
-                "packaging_damage_return_count": count_return_reason(seller_examples, "packaging_damage"),
+                "return_count": len(return_examples),
+                "wrong_product_return_count": count_return_reason(return_examples, "wrong_product"),
+                "wrong_platform_return_count": count_return_reason(return_examples, "wrong_platform"),
+                "wrong_edition_return_count": count_return_reason(return_examples, "wrong_edition_version"),
+                "non_na_return_count": count_return_reason(return_examples, "non_north_american_version"),
+                "incomplete_product_return_count": count_return_reason(return_examples, "incomplete_product"),
+                "missing_shrink_wrap_return_count": count_return_reason(return_examples, "missing_shrink_wrap"),
+                "suspected_reseal_return_count": count_return_reason(return_examples, "suspected_reseal"),
+                "packaging_damage_return_count": count_return_reason(return_examples, "packaging_damage"),
                 "opportunity_count": opportunities,
                 "purchase_conversion_count": purchases,
                 "purchase_conversion_rate": round(purchases / opportunities, 4) if opportunities else None,
@@ -678,7 +687,7 @@ def rebuild_seller_intelligence(supabase) -> None:
 
 
 def count_return_reason(rows: list[dict[str, Any]], reason: str) -> int:
-    return sum(1 for row in rows if row.get("return_reason") == reason or row.get("dismiss_reason") == reason)
+    return sum(1 for row in rows if row.get("return_reason") == reason)
 
 
 def fetch_listing_snapshots_by_action_ids(supabase, action_ids: list[Any]) -> dict[Any, dict[str, Any]]:
