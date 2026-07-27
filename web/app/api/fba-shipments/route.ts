@@ -1538,7 +1538,7 @@ function groupCandidates(
     ) as string[];
     const keepa = keepaPrices.get(group.asin);
     const myListing = myListings.get(group.asin);
-    const currentPrice = currentPriceContext(keepa, myListing);
+    const currentPrice = currentPriceContext(keepa);
     const lastSold = lastSoldPrices.get(group.asin);
     const feeEstimate =
       group.sell_price === null ? undefined : feeEstimates.get(group.asin);
@@ -1691,13 +1691,6 @@ async function fetchMyListings(asins: string[]) {
           "item_status",
           "listing_price",
           "landed_price",
-          "total_quantity",
-          "fulfillable_quantity",
-          "inbound_working_quantity",
-          "inbound_shipped_quantity",
-          "inbound_receiving_quantity",
-          "reserved_quantity",
-          "unfulfillable_quantity",
           "updated_at",
         ].join(",")
       )
@@ -1815,12 +1808,6 @@ function currentPriceContext(
         low_fba_new_price_current: number | null;
         new_price_current: number | null;
       }
-    | undefined,
-  myListing:
-    | {
-        price: number | null;
-        fulfillment_channel: "fba" | "mf" | null;
-      }
     | undefined
 ) {
   const buyBox = keepa?.buy_box_price_current ?? null;
@@ -1831,7 +1818,11 @@ function currentPriceContext(
     return {
       price: buyBox,
       source: "buy_box" as const,
-      fulfillment: keepa?.buy_box_is_fba === true ? ("fba" as const) : ("mf" as const),
+      fulfillment:
+        keepa?.buy_box_is_fba === true ||
+        (keepa?.buy_box_is_fba === null && fba !== null && Math.abs(fba - buyBox) < 0.01)
+          ? ("fba" as const)
+          : ("mf" as const),
       is_buy_box: true,
     };
   }
@@ -1846,17 +1837,10 @@ function currentPriceContext(
   }
 
   if (mf !== null) {
-    const ownListingMatchesCurrent =
-      myListing?.price !== null &&
-      myListing?.price !== undefined &&
-      Math.abs(myListing.price - mf) < 0.01;
     return {
       price: mf,
       source: "mf" as const,
-      fulfillment:
-        ownListingMatchesCurrent && myListing?.fulfillment_channel
-          ? myListing.fulfillment_channel
-          : ("mf" as const),
+      fulfillment: "mf" as const,
       is_buy_box: false,
     };
   }
@@ -1900,7 +1884,8 @@ function inventoryQuantity(row: {
 
 function keepaBoolean(rawKeepa: unknown, key: string) {
   const stats = keepaStats(rawKeepa);
-  const value = lastValue((stats?.[key] as unknown[]) ?? undefined);
+  const rawValue = stats?.[key];
+  const value = Array.isArray(rawValue) ? lastValue(rawValue) : rawValue;
   if (typeof value === "boolean") return value;
   if (typeof value === "number") return value === 1;
   if (typeof value === "string") {
