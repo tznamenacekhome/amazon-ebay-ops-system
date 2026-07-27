@@ -1840,7 +1840,7 @@ function currentPriceContext(
     return {
       price: mf,
       source: "mf" as const,
-      fulfillment: "mf" as const,
+      fulfillment: null,
       is_buy_box: false,
     };
   }

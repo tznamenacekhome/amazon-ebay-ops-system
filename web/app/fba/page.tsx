@@ -808,11 +808,7 @@ export default function FbaPage() {
                       ) : null}
                     </td>
                     <td className="whitespace-nowrap px-3 py-2 text-right">
-                      <PriceWithFulfillmentIcon
-                        price={row.my_price}
-                        fulfillment={row.my_price_fulfillment}
-                        isBuyBox={row.my_price_is_buy_box}
-                      />
+                      <div className="font-medium text-slate-900">{formatMoney(row.my_price)}</div>
                       {row.my_quantity > 0 ? (
                         <div className="text-xs text-slate-500">
                           {formatNumber(row.my_quantity)} in stock
