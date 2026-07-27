@@ -706,7 +706,7 @@ export default function FbaPage() {
               </tr>
             ) : !filteredPrepRows.length ? (
               <tr>
-                <td className="px-3 py-8 text-center text-slate-500" colSpan={13}>
+                <td className="px-3 py-8 text-center text-slate-500" colSpan={14}>
                   No FBA candidates match search.
                 </td>
               </tr>

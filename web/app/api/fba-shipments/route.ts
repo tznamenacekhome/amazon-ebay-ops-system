@@ -3,6 +3,8 @@ import { createServerSupabaseClient, requireAdminApiToken } from "../_server";
 
 const supabase = createServerSupabaseClient();
 
+export const dynamic = "force-dynamic";
+
 type DashboardRow = {
   item_id: string;
   purchase_id: string;
@@ -1536,7 +1538,7 @@ function groupCandidates(
     ) as string[];
     const keepa = keepaPrices.get(group.asin);
     const myListing = myListings.get(group.asin);
-    const currentPrice = currentPriceContext(keepa);
+    const currentPrice = currentPriceContext(keepa, myListing);
     const lastSold = lastSoldPrices.get(group.asin);
     const feeEstimate =
       group.sell_price === null ? undefined : feeEstimates.get(group.asin);
@@ -1711,9 +1713,8 @@ async function fetchMyListings(asins: string[]) {
       if (!asin || isInactiveListing(row)) continue;
 
       const quantity = inventoryQuantityByAsin.get(asin) ?? listingQuantity(row);
-      if (quantity <= 0) continue;
-
       const price = toNumber(row.landed_price) ?? toNumber(row.listing_price);
+      if (quantity <= 0 && price === null) continue;
       const fulfillment = fulfillmentKind(row.fulfillment_channel);
       const existing = listings.get(asin);
 
@@ -1814,6 +1815,12 @@ function currentPriceContext(
         low_fba_new_price_current: number | null;
         new_price_current: number | null;
       }
+    | undefined,
+  myListing:
+    | {
+        price: number | null;
+        fulfillment_channel: "fba" | "mf" | null;
+      }
     | undefined
 ) {
   const buyBox = keepa?.buy_box_price_current ?? null;
@@ -1839,10 +1846,17 @@ function currentPriceContext(
   }
 
   if (mf !== null) {
+    const ownListingMatchesCurrent =
+      myListing?.price !== null &&
+      myListing?.price !== undefined &&
+      Math.abs(myListing.price - mf) < 0.01;
     return {
       price: mf,
       source: "mf" as const,
-      fulfillment: "mf" as const,
+      fulfillment:
+        ownListingMatchesCurrent && myListing?.fulfillment_channel
+          ? myListing.fulfillment_channel
+          : ("mf" as const),
       is_buy_box: false,
     };
   }
