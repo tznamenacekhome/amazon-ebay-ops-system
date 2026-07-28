@@ -673,11 +673,11 @@ export default function FbaPage() {
       </section>
 
       <section className="overflow-x-auto rounded-lg border border-slate-200 bg-white shadow-sm">
-        <table className="w-[1582px] table-fixed text-left text-sm">
+        <table className="w-[1562px] table-fixed text-left text-sm">
           <colgroup>
             <col className="w-8" />
             <col className="w-[115px]" />
-            <col className="w-[340px]" />
+            <col className="w-[300px]" />
             <col className="w-[60px]" />
             <col className="w-[85px]" />
             <col className="w-[90px]" />
@@ -688,7 +688,7 @@ export default function FbaPage() {
             <col className="w-[105px]" />
             <col className="w-[45px]" />
             <col className="w-[120px]" />
-            <col className="w-[180px]" />
+            <col className="w-[200px]" />
           </colgroup>
           <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
             <tr>
@@ -1260,8 +1260,12 @@ function PriceWithFulfillmentIcon({
   return (
     <div className="flex items-center justify-end gap-1.5">
       <span className="font-medium text-slate-900">{formatMoney(price)}</span>
-      {isBuyBox || icon ? (
-        <span className="flex min-w-[34px] flex-col items-center gap-1">
+      <span
+        className={`flex min-w-[34px] flex-col items-center gap-0.5 ${
+          isBuyBox || icon ? "" : "invisible"
+        }`}
+        aria-hidden={isBuyBox || icon ? undefined : "true"}
+      >
           {isBuyBox ? (
             <Crown
               aria-label="In Buy Box"
@@ -1279,8 +1283,7 @@ function PriceWithFulfillmentIcon({
               className="h-[22px] w-[34px] shrink-0"
             />
           ) : null}
-        </span>
-      ) : null}
+      </span>
     </div>
   );
 }
