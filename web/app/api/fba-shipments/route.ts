@@ -1396,9 +1396,11 @@ function groupCandidates(
     buy_box_price_current: number | null;
     buy_box_price_avg90: number | null;
     buy_box_is_fba: boolean | null;
+    buy_box_is_used: boolean | null;
     new_price_avg90: number | null;
     low_fba_new_price_current: number | null;
     new_price_current: number | null;
+    low_fbm_new_price_current: number | null;
     updated_at: string | null;
   }>,
   myListings: Map<string, {
@@ -1629,9 +1631,11 @@ async function fetchKeepaPrices(asins: string[]) {
     buy_box_price_current: number | null;
     buy_box_price_avg90: number | null;
     buy_box_is_fba: boolean | null;
+    buy_box_is_used: boolean | null;
     new_price_avg90: number | null;
     low_fba_new_price_current: number | null;
     new_price_current: number | null;
+    low_fbm_new_price_current: number | null;
     updated_at: string | null;
   }>();
   const chunkSize = 200;
@@ -1639,27 +1643,42 @@ async function fetchKeepaPrices(asins: string[]) {
   for (let index = 0; index < asins.length; index += chunkSize) {
     const chunk = asins.slice(index, index + chunkSize);
     const { data, error } = await supabase
-      .from("vw_latest_keepa_product_snapshot")
+      .from("keepa_product_snapshots")
       .select(
         "asin,captured_at,buy_box_price_current_cents,buy_box_price_avg90_cents,new_fba_price_current_cents,new_price_current_cents,raw_keepa_json"
       )
-      .in("asin", chunk);
+      .in("asin", chunk)
+      .order("captured_at", { ascending: false })
+      .limit(1000);
 
     if (error) {
       console.warn("FBA Keepa price lookup failed", error.message);
       continue;
     }
 
+    const latestByAsin = new Map<string, KeepaPriceRow>();
+    const latestOfferByAsin = new Map<string, KeepaPriceRow>();
     for (const row of (data ?? []) as KeepaPriceRow[]) {
       const asin = normalizeAsin(row.asin);
       if (!asin) continue;
+      if (!latestByAsin.has(asin)) latestByAsin.set(asin, row);
+      if (!latestOfferByAsin.has(asin) && hasKeepaOfferData(row.raw_keepa_json)) {
+        latestOfferByAsin.set(asin, row);
+      }
+    }
+
+    for (const asin of chunk) {
+      const row = latestOfferByAsin.get(asin) ?? latestByAsin.get(asin);
+      if (!row) continue;
       prices.set(asin, {
         buy_box_price_current: centsToDollars(row.buy_box_price_current_cents),
         buy_box_price_avg90: centsToDollars(row.buy_box_price_avg90_cents),
         buy_box_is_fba: keepaBoolean(row.raw_keepa_json, "buyBoxIsFBA"),
+        buy_box_is_used: keepaBoolean(row.raw_keepa_json, "buyBoxIsUsed"),
         new_price_avg90: keepaStatsCentsToDollars(row.raw_keepa_json, "avg90", 1),
         low_fba_new_price_current: centsToDollars(row.new_fba_price_current_cents),
         new_price_current: centsToDollars(row.new_price_current_cents),
+        low_fbm_new_price_current: keepaStatsCentsToDollars(row.raw_keepa_json, "current", 7),
         updated_at: row.captured_at,
       });
     }
@@ -1805,14 +1824,15 @@ function currentPriceContext(
     | {
         buy_box_price_current: number | null;
         buy_box_is_fba: boolean | null;
+        buy_box_is_used: boolean | null;
         low_fba_new_price_current: number | null;
-        new_price_current: number | null;
+        low_fbm_new_price_current: number | null;
       }
     | undefined
 ) {
-  const buyBox = keepa?.buy_box_price_current ?? null;
+  const buyBox = keepa?.buy_box_is_used === true ? null : keepa?.buy_box_price_current ?? null;
   const fba = keepa?.low_fba_new_price_current ?? null;
-  const mf = keepa?.new_price_current ?? null;
+  const mf = keepa?.low_fbm_new_price_current ?? null;
 
   if (buyBox !== null) {
     return {
@@ -1840,7 +1860,7 @@ function currentPriceContext(
     return {
       price: mf,
       source: "mf" as const,
-      fulfillment: null,
+      fulfillment: "mf" as const,
       is_buy_box: false,
     };
   }
@@ -1880,6 +1900,16 @@ function inventoryQuantity(row: {
     row.reserved_quantity,
     row.unfulfillable_quantity,
   ].reduce<number>((sum, value) => sum + Math.max(0, Math.floor(toNumber(value) ?? 0)), 0);
+}
+
+function hasKeepaOfferData(rawKeepa: unknown) {
+  if (!rawKeepa || typeof rawKeepa !== "object") return false;
+  const product = rawKeepa as { offers?: unknown; offersSuccessful?: unknown };
+  if (Array.isArray(product.offers) && product.offers.length > 0) return true;
+  if (product.offersSuccessful === true) return true;
+  const stats = keepaStats(rawKeepa);
+  const retrievedOfferCount = stats?.retrievedOfferCount;
+  return typeof retrievedOfferCount === "number" && retrievedOfferCount >= 0;
 }
 
 function keepaBoolean(rawKeepa: unknown, key: string) {

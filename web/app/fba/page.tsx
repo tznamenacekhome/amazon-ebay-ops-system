@@ -673,11 +673,14 @@ export default function FbaPage() {
       </section>
 
       <section className="overflow-x-auto rounded-lg border border-slate-200 bg-white shadow-sm">
-        <table className="w-[1562px] table-fixed text-left text-sm">
+        <table
+          className="min-w-[1562px] max-w-[1880px] table-fixed text-left text-sm"
+          style={{ width: "clamp(1562px, calc(100vw - 96px), 1880px)" }}
+        >
           <colgroup>
             <col className="w-8" />
             <col className="w-[115px]" />
-            <col className="w-[300px]" />
+            <col />
             <col className="w-[60px]" />
             <col className="w-[85px]" />
             <col className="w-[90px]" />
@@ -1261,7 +1264,7 @@ function PriceWithFulfillmentIcon({
     <div className="flex items-center justify-end gap-1.5">
       <span className="font-medium text-slate-900">{formatMoney(price)}</span>
       <span
-        className={`flex min-w-[34px] flex-col items-center gap-0.5 ${
+        className={`flex min-w-[34px] flex-col items-center gap-px ${
           isBuyBox || icon ? "" : "invisible"
         }`}
         aria-hidden={isBuyBox || icon ? undefined : "true"}

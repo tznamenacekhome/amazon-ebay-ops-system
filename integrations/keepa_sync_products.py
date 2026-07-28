@@ -337,6 +337,8 @@ def collect_source_asins(supabase, *, source: str) -> tuple[list[str], dict[str,
                 and row.get("exclude_from_purchase_reporting") is not True
             ):
                 add_asin(asin, SOURCE_PRIORITY_HIGH)
+        for asin in fetch_return_recovery_fba_asins(supabase):
+            add_asin(asin, SOURCE_PRIORITY_HIGH)
 
     if source in {"canonical", "purchase_pre_listed"}:
         purchase_rows = fetch_all(
@@ -366,6 +368,9 @@ def collect_source_asins(supabase, *, source: str) -> tuple[list[str], dict[str,
                 add_asin(asin, SOURCE_PRIORITY_MEDIUM)
 
     if source == "catalog_priority":
+        for asin in fetch_return_recovery_fba_asins(supabase):
+            add_asin(asin, SOURCE_PRIORITY_HIGH)
+
         for row in fetch_all(
             supabase,
             "purchase_items",
@@ -397,6 +402,25 @@ def collect_source_asins(supabase, *, source: str) -> tuple[list[str], dict[str,
             add_asin(row.get("asin"), SOURCE_PRIORITY_LOW)
 
     return sorted(asins), priority_by_asin
+
+
+def fetch_return_recovery_fba_asins(supabase) -> list[str]:
+    rows = fetch_all(
+        supabase,
+        "amazon_return_recovery_cases",
+        "asin,workflow_state,decision",
+        filters={
+            "workflow_state": "ready_to_send_back_to_amazon",
+            "decision": "send_back_to_amazon",
+        },
+    )
+    return sorted(
+        {
+            asin
+            for row in rows
+            if (asin := clean_asin(row.get("asin")))
+        }
+    )
 
 
 def update_missing_purchase_titles(
