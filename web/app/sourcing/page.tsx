@@ -546,6 +546,7 @@ function ReplenishmentTable({
                       price={row.keepaCurrentPrice}
                       fulfillment={row.keepaCurrentPriceFulfillment}
                       isBuyBox={row.keepaCurrentPriceIsBuyBox}
+                      noData={!row.keepaCurrentPriceSource || row.keepaCurrentPriceSource === "no_data"}
                       usedOnly={row.keepaCurrentPriceSource === "used_only"}
                       formatMoney={money}
                     />

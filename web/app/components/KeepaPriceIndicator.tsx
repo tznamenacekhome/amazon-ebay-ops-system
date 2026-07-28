@@ -9,14 +9,28 @@ export function KeepaPriceIndicator({
   fulfillment,
   isBuyBox,
   formatMoney,
+  noData = false,
   usedOnly = false,
 }: {
   price: number | null;
   fulfillment: KeepaFulfillment;
   isBuyBox: boolean;
   formatMoney: (value?: number | null) => string;
+  noData?: boolean;
   usedOnly?: boolean;
 }) {
+  if (noData) {
+    return (
+      <div className="flex items-center justify-end">
+        <span className="text-xs font-semibold uppercase leading-tight text-slate-500">
+          No
+          <br />
+          Data
+        </span>
+      </div>
+    );
+  }
+
   if (usedOnly) {
     return (
       <div className="flex items-center justify-end">

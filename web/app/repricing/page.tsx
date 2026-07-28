@@ -123,7 +123,7 @@ type AdvisorRow = {
   informed_repricing_note: string;
   current_list_price: number | null;
   keepa_current_price: number | null;
-  keepa_current_price_source: "buy_box" | "fba" | "mf" | "used_only" | null;
+  keepa_current_price_source: "buy_box" | "fba" | "mf" | "used_only" | "no_data" | null;
   keepa_current_price_fulfillment: "fba" | "mf" | null;
   keepa_current_price_is_buy_box: boolean;
   keepa_buy_box_price: number | null;
@@ -559,6 +559,7 @@ export default function RepricingPage() {
                             price={row.keepa_current_price}
                             fulfillment={row.keepa_current_price_fulfillment}
                             isBuyBox={row.keepa_current_price_is_buy_box}
+                            noData={!row.keepa_current_price_source || row.keepa_current_price_source === "no_data"}
                             usedOnly={row.keepa_current_price_source === "used_only"}
                             formatMoney={formatMoney}
                           />

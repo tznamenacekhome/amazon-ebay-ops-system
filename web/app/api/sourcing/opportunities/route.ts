@@ -68,7 +68,7 @@ type KeepaPriceContext = {
   avg90Label: string | null;
   currentPrice: number | null;
   currentPriceLabel: string | null;
-  currentPriceSource: "buy_box" | "fba" | "mf" | "used_only" | null;
+  currentPriceSource: "buy_box" | "fba" | "mf" | "used_only" | "no_data" | null;
   currentPriceFulfillment: "fba" | "mf" | null;
   currentPriceIsBuyBox: boolean;
   imageUrl: string | null;
@@ -246,7 +246,7 @@ async function getOpportunities(request: NextRequest) {
         keepaAvg90Label: keepaByAsin.get(row.asin)?.avg90Label ?? null,
         keepaCurrentPrice: keepaByAsin.get(row.asin)?.currentPrice ?? null,
         keepaCurrentPriceLabel: keepaByAsin.get(row.asin)?.currentPriceLabel ?? null,
-        keepaCurrentPriceSource: keepaByAsin.get(row.asin)?.currentPriceSource ?? null,
+        keepaCurrentPriceSource: keepaByAsin.get(row.asin)?.currentPriceSource ?? "no_data",
         keepaCurrentPriceFulfillment: keepaByAsin.get(row.asin)?.currentPriceFulfillment ?? null,
         keepaCurrentPriceIsBuyBox: keepaByAsin.get(row.asin)?.currentPriceIsBuyBox ?? false,
         currentInventoryUnits: row.sourcing_seed_asins?.current_inventory_units ?? null,
@@ -841,6 +841,7 @@ async function fetchKeepaPriceContextByAsin(asins: string[]) {
           buyBoxIsFba: keepaBoolean(row.raw_keepa_json, "buyBoxIsFBA"),
           lowFbaCurrent,
           lowFbmCurrent,
+          usedCurrent: keepaStatsCentsToDollars(row.raw_keepa_json, "current", 2),
         });
         byAsin.set(asin, {
           avg90Price: buyBoxAvg90 ?? newAvg90,
@@ -865,6 +866,7 @@ function keepaCurrentPriceContext(input: {
   buyBoxIsFba: boolean | null;
   lowFbaCurrent: number | null;
   lowFbmCurrent: number | null;
+  usedCurrent: number | null;
 }) {
   const buyBox = input.buyBoxIsUsed === true ? null : input.buyBoxCurrent;
   if (buyBox !== null) {
@@ -897,8 +899,8 @@ function keepaCurrentPriceContext(input: {
   }
   return {
     price: null,
-    label: "Used Only",
-    source: "used_only" as const,
+    label: input.usedCurrent !== null || input.buyBoxIsUsed === true ? "Used Only" : "No Data",
+    source: input.usedCurrent !== null || input.buyBoxIsUsed === true ? ("used_only" as const) : ("no_data" as const),
     fulfillment: null,
     isBuyBox: false,
   };

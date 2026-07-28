@@ -44,7 +44,7 @@ type FbaRow = {
   last_sold_at: string | null;
   current_buy_box_price: number | null;
   current_price: number | null;
-  current_price_source: "buy_box" | "fba" | "mf" | "used_only" | null;
+  current_price_source: "buy_box" | "fba" | "mf" | "used_only" | "no_data" | null;
   current_price_fulfillment: "fba" | "mf" | null;
   current_price_is_buy_box: boolean;
   low_fba_new_price_current: number | null;
@@ -1237,6 +1237,7 @@ function CurrentPriceCell({ row }: { row: FbaRow }) {
       price={row.current_price}
       fulfillment={row.current_price_fulfillment}
       isBuyBox={row.current_price_is_buy_box}
+      noData={!row.current_price_source || row.current_price_source === "no_data"}
       usedOnly={row.current_price_source === "used_only"}
       formatMoney={formatMoney}
     />

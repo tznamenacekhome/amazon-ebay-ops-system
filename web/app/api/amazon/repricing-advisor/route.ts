@@ -296,7 +296,7 @@ type AdvisorRow = {
   informed_repricing_note: string;
   current_list_price: number | null;
   keepa_current_price: number | null;
-  keepa_current_price_source: "buy_box" | "fba" | "mf" | "used_only" | null;
+  keepa_current_price_source: "buy_box" | "fba" | "mf" | "used_only" | "no_data" | null;
   keepa_current_price_fulfillment: "fba" | "mf" | null;
   keepa_current_price_is_buy_box: boolean;
   keepa_buy_box_price: number | null;
@@ -1201,12 +1201,17 @@ function buildCompetitionContext(
 }
 
 function keepaCurrentPriceContext(keepa?: KeepaRow) {
+  if (!keepa) {
+    return { price: null, source: "no_data" as const, fulfillment: null, isBuyBox: false };
+  }
+
   const stats = asRecord(keepa?.raw_keepa_json)?.stats;
   const buyBoxIsUsed = toOptionalBoolean(asRecord(stats)?.buyBoxIsUsed);
   const buyBoxIsFba = toOptionalBoolean(asRecord(stats)?.buyBoxIsFBA);
   const buyBox = buyBoxIsUsed === true ? null : centsToDollars(keepa?.buy_box_price_current_cents);
   const fba = centsToDollars(keepa?.new_fba_price_current_cents);
   const mf = keepaStatsCentsToDollars(keepa?.raw_keepa_json, "current", 7);
+  const used = keepaStatsCentsToDollars(keepa?.raw_keepa_json, "current", 2);
 
   if (buyBox !== null) {
     return {
@@ -1222,7 +1227,12 @@ function keepaCurrentPriceContext(keepa?: KeepaRow) {
   if (mf !== null) {
     return { price: mf, source: "mf" as const, fulfillment: "mf" as const, isBuyBox: false };
   }
-  return { price: null, source: "used_only" as const, fulfillment: null, isBuyBox: false };
+  return {
+    price: null,
+    source: used !== null || buyBoxIsUsed === true ? ("used_only" as const) : ("no_data" as const),
+    fulfillment: null,
+    isBuyBox: false,
+  };
 }
 
 function firstKeepaProduct(raw: unknown): Record<string, unknown> | null {

@@ -1401,6 +1401,7 @@ function groupCandidates(
     low_fba_new_price_current: number | null;
     new_price_current: number | null;
     low_fbm_new_price_current: number | null;
+    used_price_current: number | null;
     updated_at: string | null;
   }>,
   myListings: Map<string, {
@@ -1437,7 +1438,7 @@ function groupCandidates(
     last_sold_at: string | null;
     current_buy_box_price: number | null;
     current_price: number | null;
-    current_price_source: "buy_box" | "fba" | "mf" | "used_only" | null;
+    current_price_source: "buy_box" | "fba" | "mf" | "used_only" | "no_data" | null;
     current_price_fulfillment: "fba" | "mf" | null;
     current_price_is_buy_box: boolean;
     low_fba_new_price_current: number | null;
@@ -1636,6 +1637,7 @@ async function fetchKeepaPrices(asins: string[]) {
     low_fba_new_price_current: number | null;
     new_price_current: number | null;
     low_fbm_new_price_current: number | null;
+    used_price_current: number | null;
     updated_at: string | null;
   }>();
   const chunkSize = 200;
@@ -1679,6 +1681,7 @@ async function fetchKeepaPrices(asins: string[]) {
         low_fba_new_price_current: centsToDollars(row.new_fba_price_current_cents),
         new_price_current: centsToDollars(row.new_price_current_cents),
         low_fbm_new_price_current: keepaStatsCentsToDollars(row.raw_keepa_json, "current", 7),
+        used_price_current: keepaStatsCentsToDollars(row.raw_keepa_json, "current", 2),
         updated_at: row.captured_at,
       });
     }
@@ -1827,9 +1830,19 @@ function currentPriceContext(
         buy_box_is_used: boolean | null;
         low_fba_new_price_current: number | null;
         low_fbm_new_price_current: number | null;
+        used_price_current: number | null;
       }
     | undefined
 ) {
+  if (!keepa) {
+    return {
+      price: null,
+      source: "no_data" as const,
+      fulfillment: null,
+      is_buy_box: false,
+    };
+  }
+
   const buyBox = keepa?.buy_box_is_used === true ? null : keepa?.buy_box_price_current ?? null;
   const fba = keepa?.low_fba_new_price_current ?? null;
   const mf = keepa?.low_fbm_new_price_current ?? null;
@@ -1870,7 +1883,10 @@ function currentPriceContext(
 
   return {
     price: null,
-    source: "used_only" as const,
+    source:
+      keepa.used_price_current !== null || keepa.buy_box_is_used === true
+        ? ("used_only" as const)
+        : ("no_data" as const),
     fulfillment: null,
     is_buy_box: false,
   };
