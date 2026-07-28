@@ -673,23 +673,39 @@ export default function FbaPage() {
       </section>
 
       <section className="overflow-x-auto rounded-lg border border-slate-200 bg-white shadow-sm">
-        <table className="min-w-[1540px] w-full text-left text-sm">
+        <table className="w-full min-w-[1560px] table-fixed text-left text-sm">
+          <colgroup>
+            <col className="w-9" />
+            <col className="w-[110px]" />
+            <col />
+            <col className="w-[70px]" />
+            <col className="w-[95px]" />
+            <col className="w-[95px]" />
+            <col className="w-[105px]" />
+            <col className="w-[105px]" />
+            <col className="w-[110px]" />
+            <col className="w-[105px]" />
+            <col className="w-[115px]" />
+            <col className="w-[50px]" />
+            <col className="w-[100px]" />
+            <col className="w-[150px]" />
+          </colgroup>
           <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
             <tr>
-              <th className="w-10 px-3 py-2" />
-              <th className="w-[112px] px-3 py-2">ASIN</th>
-              <th className="w-[330px] px-3 py-2">Title</th>
-              <th className="px-3 py-2">System</th>
-              <th className="px-3 py-2 text-right">Buy Price</th>
-              <th className="px-3 py-2 text-right">Sell Price</th>
-              <th className="px-3 py-2 text-right">My Price</th>
-              <th className="px-3 py-2 text-right">Last Sold</th>
-              <th className="px-3 py-2 text-right">Current Price</th>
-              <th className="px-3 py-2 text-right">90D Buy Box</th>
-              <th className="px-3 py-2 text-right">Profit / ROI</th>
-              <th className="px-3 py-2 text-right">Qty</th>
-              <th className="px-3 py-2">Purchase Date</th>
-              <th className="px-3 py-2">Supplier</th>
+              <th className="px-2 py-2 align-middle" />
+              <th className="whitespace-nowrap px-3 py-2 align-middle">ASIN</th>
+              <th className="min-w-[300px] px-3 py-2 align-middle">Title</th>
+              <th className="whitespace-nowrap px-2 py-2 text-center align-middle">System</th>
+              <th className="whitespace-nowrap px-2 py-2 text-right align-middle">Buy Price</th>
+              <th className="whitespace-nowrap px-2 py-2 text-right align-middle">Sell Price</th>
+              <th className="whitespace-nowrap px-2 py-2 text-right align-middle">My Price</th>
+              <th className="whitespace-nowrap px-2 py-2 text-right align-middle">Last Sold</th>
+              <th className="whitespace-nowrap px-2 py-2 text-right align-middle">Current Price</th>
+              <th className="whitespace-nowrap px-2 py-2 text-right align-middle">90D Buy Box</th>
+              <th className="whitespace-nowrap px-2 py-2 text-right align-middle">Profit / ROI</th>
+              <th className="whitespace-nowrap px-2 py-2 text-center align-middle">Qty</th>
+              <th className="whitespace-nowrap px-2 py-2 align-middle">Purchase Date</th>
+              <th className="px-2 py-2 align-middle">Supplier</th>
             </tr>
           </thead>
           <tbody>
@@ -721,13 +737,13 @@ export default function FbaPage() {
                 return (
                 <Fragment key={row.asin}>
                   <tr
-                    className={`border-t align-top ${
+                    className={`border-t align-middle ${
                       isLastOpened
                         ? "border-amber-200 bg-amber-50/80 ring-1 ring-inset ring-amber-200"
                         : "border-slate-100"
                     }`}
                   >
-                    <td className="px-3 py-2">
+                    <td className="px-2 py-2 align-middle">
                       <button
                         onClick={() =>
                           setExpandedAsin((current) =>
@@ -745,7 +761,7 @@ export default function FbaPage() {
                         )}
                       </button>
                     </td>
-                    <td className="whitespace-nowrap px-3 py-2 font-medium">
+                    <td className="whitespace-nowrap px-3 py-2 align-middle font-medium">
                       <a
                         href={amazonAsinUrl(row.asin)}
                         target="_blank"
@@ -756,7 +772,7 @@ export default function FbaPage() {
                         {row.asin}
                       </a>
                     </td>
-                    <td className="w-[330px] max-w-[330px] whitespace-normal break-words px-3 py-2 font-medium leading-snug">
+                    <td className="min-w-[300px] whitespace-normal break-words px-3 py-2 align-middle font-medium leading-snug">
                       {row.title ? (
                         row.title
                       ) : (
@@ -765,11 +781,11 @@ export default function FbaPage() {
                         </span>
                       )}
                     </td>
-                    <td className="px-3 py-2">{row.system || "--"}</td>
-                    <td className="whitespace-nowrap px-3 py-2 text-right">
+                    <td className="whitespace-nowrap px-2 py-2 text-center align-middle">{row.system || "--"}</td>
+                    <td className="whitespace-nowrap px-2 py-2 text-right align-middle">
                       {formatMoney(row.cost_per_unit)}
                     </td>
-                    <td className="whitespace-nowrap px-3 py-2 text-right">
+                    <td className="whitespace-nowrap px-2 py-2 text-right align-middle">
                       <input
                         value={sellPriceDrafts[row.asin] ?? ""}
                         onChange={(event) =>
@@ -788,7 +804,7 @@ export default function FbaPage() {
                             event.currentTarget.blur();
                           }
                         }}
-                        className={`h-9 w-24 rounded-md border px-2 text-right font-medium ${
+                        className={`h-9 w-full rounded-md border px-2 text-right font-medium ${
                           isSellPriceBelowReferences
                             ? "border-amber-400 bg-amber-50 text-amber-950"
                             : "border-slate-300"
@@ -808,7 +824,7 @@ export default function FbaPage() {
                         <div className="text-xs text-slate-500">saving</div>
                       ) : null}
                     </td>
-                    <td className="whitespace-nowrap px-3 py-2 text-right">
+                    <td className="whitespace-nowrap px-2 py-2 text-right align-middle">
                       <div className="font-medium text-slate-900">{formatMoney(row.my_price)}</div>
                       {row.my_quantity > 0 ? (
                         <div className="text-xs text-slate-500">
@@ -818,31 +834,31 @@ export default function FbaPage() {
                         <div className="text-xs text-slate-400">not in stock</div>
                       )}
                     </td>
-                    <td className="whitespace-nowrap px-3 py-2 text-right">
+                    <td className="whitespace-nowrap px-2 py-2 text-right align-middle">
                       <div>{formatMoney(row.last_sold_price)}</div>
                       <div className="text-xs text-slate-500">
                         {formatDate(row.last_sold_at)}
                       </div>
                     </td>
-                    <td className="whitespace-nowrap px-3 py-2 text-right">
+                    <td className="whitespace-nowrap px-2 py-2 text-right align-middle">
                       <CurrentPriceCell row={row} />
                     </td>
-                    <td className="whitespace-nowrap px-3 py-2 text-right">
+                    <td className="whitespace-nowrap px-2 py-2 text-right align-middle">
                       {formatMoney(row.buy_box_price_avg90)}
                     </td>
-                    <td className="whitespace-nowrap px-3 py-2 text-right">
+                    <td className="whitespace-nowrap px-2 py-2 text-right align-middle">
                       {formatProfitRoi(row, sellPriceDrafts[row.asin])}
                       <div className="text-xs text-slate-500">
                         Fees {formatMoney(row.amazon_fee_estimate)}
                       </div>
                     </td>
-                    <td className="px-3 py-2 text-right font-semibold">
+                    <td className="whitespace-nowrap px-2 py-2 text-center align-middle font-semibold">
                       {formatNumber(row.quantity)}
                     </td>
-                    <td className="whitespace-nowrap px-3 py-2">
+                    <td className="whitespace-nowrap px-2 py-2 align-middle">
                       {formatDate(row.purchase_date)}
                     </td>
-                    <td className="px-3 py-2">{row.supplier || "--"}</td>
+                    <td className="px-2 py-2 align-middle">{row.supplier || "--"}</td>
                   </tr>
 
                   {expandedAsin === row.asin && (
@@ -1203,12 +1219,11 @@ function formatPriceDraft(value?: number | null) {
 function CurrentPriceCell({ row }: { row: FbaRow }) {
   if (row.current_price_source === "used_only") {
     return (
-      <div className="inline-grid min-w-[128px] grid-cols-[64px_56px] items-center justify-end gap-2">
-        <span className="flex flex-col items-end text-xs font-semibold uppercase leading-tight text-slate-500">
+      <div className="flex flex-col items-end">
+        <span className="flex flex-col items-center text-xs font-semibold uppercase leading-tight text-slate-500">
           <span>Used</span>
           <span>Only</span>
         </span>
-        <span aria-hidden="true" />
       </div>
     );
   }
@@ -1234,27 +1249,29 @@ function PriceWithFulfillmentIcon({
   const icon = fulfillmentIcon(fulfillment);
 
   return (
-    <div className="inline-grid min-w-[128px] grid-cols-[64px_56px] items-center justify-end gap-2">
-      <span className="text-right font-medium text-slate-900">{formatMoney(price)}</span>
-      <span className="inline-flex items-center justify-start gap-2">
-        {isBuyBox ? (
-          <Crown
-            aria-label="In Buy Box"
-            className="h-3.5 w-3.5 shrink-0 text-amber-500"
-            strokeWidth={2.4}
-          />
-        ) : null}
-        {icon ? (
-          <img
-            src={icon.src}
-            alt={icon.alt}
-            title={icon.alt}
-            width={40}
-            height={26}
-            className="h-[22px] w-[34px] shrink-0"
-          />
-        ) : null}
-      </span>
+    <div className="flex flex-col items-end">
+      <span className="font-medium text-slate-900">{formatMoney(price)}</span>
+      {isBuyBox || icon ? (
+        <span className="mt-1.5 flex flex-col items-center gap-1">
+          {isBuyBox ? (
+            <Crown
+              aria-label="In Buy Box"
+              className="h-3.5 w-3.5 shrink-0 text-amber-500"
+              strokeWidth={2.4}
+            />
+          ) : null}
+          {icon ? (
+            <img
+              src={icon.src}
+              alt={icon.alt}
+              title={icon.alt}
+              width={40}
+              height={26}
+              className="h-[22px] w-[34px] shrink-0"
+            />
+          ) : null}
+        </span>
+      ) : null}
     </div>
   );
 }
