@@ -5,7 +5,6 @@ import {
   Check,
   ChevronDown,
   ChevronRight,
-  Crown,
   Download,
   PackageOpen,
   RefreshCw,
@@ -16,6 +15,7 @@ import {
 import { runOnDemandRefresh, type RefreshNotice } from "../syncRefresh";
 import { DataFreshness } from "../DataFreshness";
 import { mutationHeaders } from "../mutationHeaders";
+import { KeepaPriceIndicator } from "../components/KeepaPriceIndicator";
 
 type FbaDetail = {
   item_id: string;
@@ -1232,73 +1232,15 @@ function formatPriceDraft(value?: number | null) {
 }
 
 function CurrentPriceCell({ row }: { row: FbaRow }) {
-  if (row.current_price_source === "used_only") {
-    return (
-      <div className="flex items-center justify-end">
-        <span className="text-xs font-semibold uppercase text-slate-500">Used Only</span>
-      </div>
-    );
-  }
-
   return (
-    <PriceWithFulfillmentIcon
+    <KeepaPriceIndicator
       price={row.current_price}
       fulfillment={row.current_price_fulfillment}
       isBuyBox={row.current_price_is_buy_box}
+      usedOnly={row.current_price_source === "used_only"}
+      formatMoney={formatMoney}
     />
   );
-}
-
-function PriceWithFulfillmentIcon({
-  price,
-  fulfillment,
-  isBuyBox,
-}: {
-  price: number | null;
-  fulfillment: "fba" | "mf" | null;
-  isBuyBox: boolean;
-}) {
-  const icon = fulfillmentIcon(fulfillment);
-
-  return (
-    <div className="flex items-center justify-end gap-1.5">
-      <span className="font-medium text-slate-900">{formatMoney(price)}</span>
-      <span
-        className={`flex min-w-[34px] flex-col items-center gap-px ${
-          isBuyBox || icon ? "" : "invisible"
-        }`}
-        aria-hidden={isBuyBox || icon ? undefined : "true"}
-      >
-          {isBuyBox ? (
-            <Crown
-              aria-label="In Buy Box"
-              className="h-3.5 w-3.5 shrink-0 text-amber-500"
-              strokeWidth={2.4}
-            />
-          ) : null}
-          {icon ? (
-            <img
-              src={icon.src}
-              alt={icon.alt}
-              title={icon.alt}
-              width={40}
-              height={26}
-              className="h-[22px] w-[34px] shrink-0"
-            />
-          ) : null}
-      </span>
-    </div>
-  );
-}
-
-function fulfillmentIcon(fulfillment: "fba" | "mf" | null) {
-  if (fulfillment === "fba") {
-    return { src: "/icons/fulfillment/fba.svg", alt: "Fulfilled by Amazon" };
-  }
-  if (fulfillment === "mf") {
-    return { src: "/icons/fulfillment/mf.svg", alt: "Merchant fulfilled" };
-  }
-  return null;
 }
 
 function formatProfitRoi(row: FbaRow, draft?: string) {

@@ -10,6 +10,8 @@ purchases, purchase_items, and Amazon seller workflow ownership.
 from __future__ import annotations
 
 import argparse
+import hashlib
+import json
 import logging
 import os
 from datetime import datetime, timedelta, timezone
@@ -65,10 +67,20 @@ def main() -> int:
         supabase = get_supabase_client()
         captured_at = utc_now_iso()
         asins, priority_by_asin = collect_source_asins(supabase, source=args.source)
+        cycle_state: dict[str, Any] | None = None
+        eligible_asins = list(asins)
+        if args.cycle_progress and args.source == "catalog_priority":
+            cycle_state = build_catalog_cycle_state(
+                supabase,
+                eligible_asins,
+                priority_by_asin=priority_by_asin,
+                captured_at=captured_at,
+            )
+            asins = cycle_state["remaining_asins"]
         if args.missing_only:
             existing_asins = fetch_existing_keepa_asins(supabase)
             asins = [asin for asin in asins if asin not in existing_asins]
-        if args.stale_days is not None:
+        if args.stale_days is not None and cycle_state is None:
             asins = filter_stale_keepa_asins(
                 supabase,
                 asins,
@@ -101,7 +113,25 @@ def main() -> int:
             )
             print_plan_summary(asins, token_status_before)
             print(f"Skipped: Keepa tokens below minimum threshold ({tokens_left} < {args.min_tokens}).")
+            if cycle_state is not None and args.write:
+                cycle_state = finalize_catalog_cycle_state(cycle_state, inserted_asins=[])
+                print_cycle_summary(cycle_state)
+                print_metadata_json(cycle_state, selected=0, rows_read=0)
             return 0
+
+        if args.adaptive_limit:
+            adaptive_limit = max(1, tokens_left // max(args.estimated_tokens_per_asin, 1))
+            if args.limit is not None:
+                adaptive_limit = min(args.limit, adaptive_limit)
+            if adaptive_limit < len(asins):
+                LOGGER.info(
+                    "Adaptive Keepa limit selected %s ASIN(s) from %s using tokens_left=%s estimate=%s.",
+                    adaptive_limit,
+                    len(asins),
+                    tokens_left,
+                    args.estimated_tokens_per_asin,
+                )
+                asins = asins[:adaptive_limit]
 
         if args.plan_only:
             print_plan_summary(asins, token_status_before)
@@ -121,6 +151,7 @@ def main() -> int:
                     stats_days=args.stats_days,
                     history=not args.no_history,
                     offers=args.offers,
+                    only_live_offers=args.only_live_offers,
                     stock=args.stock,
                     rating=not args.no_rating,
                     wait=True,
@@ -163,12 +194,14 @@ def main() -> int:
         print_summary(
             write=args.write,
             selected=len(asins),
+            eligible=len(eligible_asins),
             rows_read=rows_read,
             snapshots=len(snapshot_rows),
             history_points=len(history_rows),
             missing_products=missing_products,
             failures=failures,
             token_status_before=token_status_before,
+            cycle_state=cycle_state,
         )
 
         if not args.write:
@@ -183,6 +216,13 @@ def main() -> int:
             max_points_per_metric=args.max_history_points,
         )
         updated_purchase_titles = update_missing_purchase_titles(supabase, snapshot_rows)
+        if cycle_state is not None:
+            cycle_state = finalize_catalog_cycle_state(
+                cycle_state,
+                inserted_asins=[row["asin"] for row in snapshot_rows if row.get("asin")],
+            )
+            print_cycle_summary(cycle_state)
+            print_metadata_json(cycle_state, selected=len(asins), rows_read=rows_read)
         LOGGER.info("Keepa product sync complete.")
         LOGGER.info("Product snapshots inserted: %s", inserted_snapshots)
         LOGGER.info("History points inserted: %s", inserted_history)
@@ -250,6 +290,27 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--stats-days", type=int, default=90, help="Keepa stats window in days.")
     parser.add_argument("--offers", type=int, default=None, help="Optional Keepa offers parameter.")
+    parser.add_argument(
+        "--only-live-offers",
+        action="store_true",
+        help="Ask Keepa to return only live offers when --offers is used.",
+    )
+    parser.add_argument(
+        "--adaptive-limit",
+        action="store_true",
+        help="Reduce selected ASINs using current Keepa token balance and --estimated-tokens-per-asin.",
+    )
+    parser.add_argument(
+        "--estimated-tokens-per-asin",
+        type=int,
+        default=10,
+        help="Token estimate used by --adaptive-limit.",
+    )
+    parser.add_argument(
+        "--cycle-progress",
+        action="store_true",
+        help="For catalog_priority, select ASINs not yet refreshed in the current catalog cycle and emit cycle telemetry.",
+    )
     parser.add_argument(
         "--stock",
         action="store_true",
@@ -564,6 +625,146 @@ def filter_stale_keepa_asins(
     return sorted(selected, key=sort_key)
 
 
+def build_catalog_cycle_state(
+    supabase,
+    asins: list[str],
+    *,
+    priority_by_asin: dict[str, int],
+    captured_at: str,
+) -> dict[str, Any]:
+    eligible_asins = sorted({asin for asin in asins if asin})
+    eligible_set = set(eligible_asins)
+    previous = fetch_latest_keepa_cycle_metadata(supabase)
+    previous_cycle = previous.get("keepa_catalog_cycle") if isinstance(previous, dict) else None
+    previous_remaining = []
+    if isinstance(previous_cycle, dict):
+        previous_remaining = [
+            asin
+            for asin in previous_cycle.get("remaining_asins_after") or []
+            if isinstance(asin, str) and asin in eligible_set
+        ]
+
+    previous_eligible = (
+        to_int(previous_cycle.get("eligible_count"), default=None)
+        if isinstance(previous_cycle, dict)
+        else None
+    )
+    previous_start = (
+        clean_text(previous_cycle.get("cycle_started_at"))
+        if isinstance(previous_cycle, dict)
+        else None
+    )
+    previous_remaining_count = (
+        to_int(previous_cycle.get("remaining_after"), default=None)
+        if isinstance(previous_cycle, dict)
+        else None
+    )
+
+    if (
+        previous_start
+        and previous_eligible == len(eligible_set)
+        and previous_remaining
+        and previous_remaining_count
+        and previous_remaining_count > 0
+    ):
+        cycle_started_at = previous_start
+        remaining = previous_remaining
+        covered_before = max(len(eligible_set) - len(remaining), 0)
+    else:
+        cycle_started_at = captured_at
+        latest_by_asin = fetch_latest_snapshot_by_asin(supabase, eligible_asins)
+
+        def sort_key(asin: str) -> tuple[int, int, str, str]:
+            latest_at = latest_by_asin.get(asin)
+            return (
+                priority_by_asin.get(asin, SOURCE_PRIORITY_LOW),
+                1 if latest_at else 0,
+                latest_at or "",
+                asin,
+            )
+
+        remaining = sorted(eligible_asins, key=sort_key)
+        covered_before = 0
+    cycle_hash = hashlib.sha1(cycle_started_at.encode("utf-8")).hexdigest()[:8]
+    cycle_id = f"keepa-{cycle_started_at[:10].replace('-', '')}-{cycle_hash}"
+    return {
+        "cycle_id": cycle_id,
+        "cycle_started_at": cycle_started_at,
+        "eligible_count": len(eligible_set),
+        "covered_before": covered_before,
+        "remaining_before": len(remaining),
+        "remaining_asins": remaining,
+    }
+
+
+def finalize_catalog_cycle_state(cycle_state: dict[str, Any], *, inserted_asins: list[str]) -> dict[str, Any]:
+    inserted = {asin for asin in inserted_asins if asin}
+    remaining_before = [
+        asin
+        for asin in cycle_state.get("remaining_asins") or []
+        if isinstance(asin, str)
+    ]
+    remaining_after = [asin for asin in remaining_before if asin not in inserted]
+    eligible = to_int(cycle_state.get("eligible_count"), default=0) or 0
+    covered_after = max(eligible - len(remaining_after), 0)
+    return {
+        **cycle_state,
+        "run_covered_count": len(inserted),
+        "covered_after": covered_after,
+        "remaining_after": len(remaining_after),
+        "remaining_asins_after": remaining_after,
+    }
+
+
+def fetch_latest_snapshot_by_asin(supabase, asins: list[str]) -> dict[str, str]:
+    latest: dict[str, str] = {}
+    for chunk in chunks(sorted(set(asins)), 200):
+        response = (
+            supabase.table("vw_latest_keepa_product_snapshot")
+            .select("asin,captured_at")
+            .in_("asin", chunk)
+            .execute()
+        )
+        for row in response.data or []:
+            asin = clean_asin(row.get("asin"))
+            if asin:
+                latest[asin] = clean_text(row.get("captured_at")) or ""
+    return latest
+
+
+def fetch_latest_keepa_cycle_metadata(supabase) -> dict[str, Any]:
+    try:
+        response = (
+            supabase.table("scheduler_run_jobs")
+            .select("metadata,started_at")
+            .eq("job_name", "Keepa catalog priority refresh")
+            .order("started_at", desc=True)
+            .limit(20)
+            .execute()
+        )
+    except Exception:
+        return {}
+
+    for row in response.data or []:
+        metadata = row.get("metadata")
+        if isinstance(metadata, dict) and isinstance(metadata.get("keepa_catalog_cycle"), dict):
+            return metadata
+    return {}
+
+
+def has_offer_data(raw_keepa: Any) -> bool:
+    if not isinstance(raw_keepa, dict):
+        return False
+    offers = raw_keepa.get("offers")
+    stats = raw_keepa.get("stats") if isinstance(raw_keepa.get("stats"), dict) else {}
+    return bool(
+        (isinstance(offers, list) and offers)
+        or stats.get("buyBoxSellerId")
+        or stats.get("sellerIdsLowestFBA")
+        or stats.get("sellerIdsLowestFBM")
+    )
+
+
 def fetch_all(
     supabase,
     table: str,
@@ -702,15 +903,18 @@ def print_summary(
     *,
     write: bool,
     selected: int,
+    eligible: int,
     rows_read: int,
     snapshots: int,
     history_points: int,
     missing_products: int,
     failures: int,
     token_status_before: dict[str, Any],
+    cycle_state: dict[str, Any] | None,
 ) -> None:
     print("Keepa product sync write" if write else "Keepa product sync dry run")
     print("---------------------------")
+    print(f"Eligible ASINs: {eligible}")
     print(f"ASINs selected: {selected}")
     print(f"Products returned: {rows_read}")
     print(f"Snapshot rows prepared: {snapshots}")
@@ -718,6 +922,37 @@ def print_summary(
     print(f"Missing products: {missing_products}")
     print(f"Failures: {failures}")
     print(f"Tokens before: {token_status_before.get('tokens_left')}")
+    if cycle_state:
+        print(f"Cycle eligible ASINs: {cycle_state.get('eligible_count')}")
+        print(f"Cycle covered before: {cycle_state.get('covered_before')}")
+        print(f"Cycle remaining before: {cycle_state.get('remaining_before')}")
+
+
+def print_cycle_summary(cycle_state: dict[str, Any]) -> None:
+    print(f"Run ASINs covered: {cycle_state.get('run_covered_count')}")
+    print(f"Cycle covered after: {cycle_state.get('covered_after')}")
+    print(f"Cycle remaining after: {cycle_state.get('remaining_after')}")
+
+
+def print_metadata_json(cycle_state: dict[str, Any], *, selected: int, rows_read: int) -> None:
+    cycle = {
+        key: value
+        for key, value in cycle_state.items()
+        if key not in {"remaining_asins"}
+    }
+    cycle["asins_selected"] = selected
+    cycle["run_covered"] = rows_read
+    metadata = {
+        "keepa_catalog_cycle": cycle,
+        "metrics": [
+            {"label": "Run ASINs covered", "value": rows_read},
+            {"label": "Cycle eligible ASINs", "value": cycle_state.get("eligible_count") or 0},
+            {"label": "Cycle covered after", "value": cycle_state.get("covered_after") or 0},
+            {"label": "Cycle remaining after", "value": cycle_state.get("remaining_after") or 0},
+            {"label": "ASINs selected", "value": selected},
+        ],
+    }
+    print(f"METADATA_JSON: {json.dumps(metadata, sort_keys=True)}")
 
 
 def print_plan_summary(asins: list[str], token_status_before: dict[str, Any]) -> None:

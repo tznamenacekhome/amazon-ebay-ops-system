@@ -437,11 +437,16 @@ JOBS: tuple[SyncJob, ...] = (
             "--limit",
             "25",
             "--batch-size",
-            "25",
-            "--stale-days",
-            "7",
+            "5",
             "--min-tokens",
-            "25",
+            "10",
+            "--offers",
+            "20",
+            "--only-live-offers",
+            "--adaptive-limit",
+            "--estimated-tokens-per-asin",
+            "10",
+            "--cycle-progress",
             "--no-history",
             "--no-rating",
             "--write",
@@ -462,6 +467,9 @@ JOBS: tuple[SyncJob, ...] = (
             "20",
             "--min-tokens",
             "100",
+            "--offers",
+            "20",
+            "--only-live-offers",
             "--no-history",
             "--no-rating",
             "--write",
@@ -966,7 +974,7 @@ def finish_scheduler_job(
                 "retry_count": counters["retry_count"],
                 "rate_limit_count": counters["rate_limit_count"],
                 "log_bytes": log_bytes,
-                "metadata": {"metrics": metrics.get("metrics", []) if metrics else []},
+                "metadata": scheduler_job_metadata(metrics),
             }
         ).eq("run_id", run_id).eq("job_name", job.name).eq("command", " ".join(command)).execute()
 
@@ -988,8 +996,17 @@ def combined_process_output(stdout: str | bytes | None, stderr: str | bytes | No
 def parse_job_metrics(output: str) -> dict[str, object]:
     raw_metrics: list[dict[str, object]] = []
     counters: dict[str, int] = defaultdict(int)
+    metadata: dict[str, object] = {}
 
     for line in output.splitlines():
+        if line.startswith("METADATA_JSON:"):
+            try:
+                parsed = json.loads(line.replace("METADATA_JSON:", "", 1).strip())
+                if isinstance(parsed, dict):
+                    metadata.update(parsed)
+            except json.JSONDecodeError:
+                pass
+            continue
         parsed = parse_metric_line(line)
         if not parsed:
             continue
@@ -1009,7 +1026,22 @@ def parse_job_metrics(output: str) -> dict[str, object]:
         "retry_count": counters["retry_count"],
         "rate_limit_count": counters["rate_limit_count"],
         "metrics": raw_metrics[:40],
+        "metadata": metadata,
     }
+
+
+def scheduler_job_metadata(metrics: dict[str, object] | None) -> dict[str, object]:
+    if not metrics:
+        return {"metrics": []}
+    extra = metrics.get("metadata")
+    metadata = extra.copy() if isinstance(extra, dict) else {}
+    parsed_metrics = metadata.get("metrics")
+    output_metrics = metrics.get("metrics", [])
+    if isinstance(parsed_metrics, list):
+        metadata["metrics"] = parsed_metrics
+    else:
+        metadata["metrics"] = output_metrics if isinstance(output_metrics, list) else []
+    return metadata
 
 
 def parse_metric_line(line: str) -> tuple[str, int] | None:

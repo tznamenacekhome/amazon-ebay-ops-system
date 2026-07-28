@@ -295,6 +295,10 @@ type AdvisorRow = {
   informed_min_price_gap_to_buy_box_pct: number | null;
   informed_repricing_note: string;
   current_list_price: number | null;
+  keepa_current_price: number | null;
+  keepa_current_price_source: "buy_box" | "fba" | "mf" | "used_only" | null;
+  keepa_current_price_fulfillment: "fba" | "mf" | null;
+  keepa_current_price_is_buy_box: boolean;
   keepa_buy_box_price: number | null;
   keepa_buy_box_avg30: number | null;
   keepa_buy_box_avg90: number | null;
@@ -577,7 +581,7 @@ function buildAdvisorRows(
   snoozeBySku: Map<string, SnoozeRow>
 ): AdvisorRow[] {
   return inventoryRows
-    .map((inventory) => {
+    .map<AdvisorRow | null>((inventory) => {
       const sellerSku = cleanText(inventory.seller_sku);
       const marketplaceId = cleanText(inventory.marketplace_id);
       if (!sellerSku || !marketplaceId) return null;
@@ -651,6 +655,7 @@ function buildAdvisorRows(
         toOptionalNumber(inventoryLab?.list_price) ??
         null;
       const keepaBuyBoxPrice = centsToDollars(keepa?.buy_box_price_current_cents);
+      const keepaCurrentPrice = keepaCurrentPriceContext(keepa);
       const competition = buildCompetitionContext(keepa, keepaBuyBoxPrice, itemCondition, {
         sellerId: AMAZON_SELLER_ID,
         currentPrice: currentListPrice,
@@ -807,6 +812,10 @@ function buildAdvisorRows(
         ),
         informed_repricing_note: informedNote,
         current_list_price: currentListPrice,
+        keepa_current_price: keepaCurrentPrice.price,
+        keepa_current_price_source: keepaCurrentPrice.source,
+        keepa_current_price_fulfillment: keepaCurrentPrice.fulfillment,
+        keepa_current_price_is_buy_box: keepaCurrentPrice.isBuyBox,
         keepa_buy_box_price: keepaBuyBoxPrice,
         keepa_buy_box_avg30: centsToDollars(keepa?.buy_box_price_avg30_cents),
         keepa_buy_box_avg90: centsToDollars(keepa?.buy_box_price_avg90_cents),
@@ -1189,6 +1198,31 @@ function buildCompetitionContext(
     },
     offers: sortedOffers,
   };
+}
+
+function keepaCurrentPriceContext(keepa?: KeepaRow) {
+  const stats = asRecord(keepa?.raw_keepa_json)?.stats;
+  const buyBoxIsUsed = toOptionalBoolean(asRecord(stats)?.buyBoxIsUsed);
+  const buyBoxIsFba = toOptionalBoolean(asRecord(stats)?.buyBoxIsFBA);
+  const buyBox = buyBoxIsUsed === true ? null : centsToDollars(keepa?.buy_box_price_current_cents);
+  const fba = centsToDollars(keepa?.new_fba_price_current_cents);
+  const mf = keepaStatsCentsToDollars(keepa?.raw_keepa_json, "current", 7);
+
+  if (buyBox !== null) {
+    return {
+      price: buyBox,
+      source: "buy_box" as const,
+      fulfillment: buyBoxIsFba === true ? ("fba" as const) : buyBoxIsFba === false ? ("mf" as const) : null,
+      isBuyBox: true,
+    };
+  }
+  if (fba !== null) {
+    return { price: fba, source: "fba" as const, fulfillment: "fba" as const, isBuyBox: false };
+  }
+  if (mf !== null) {
+    return { price: mf, source: "mf" as const, fulfillment: "mf" as const, isBuyBox: false };
+  }
+  return { price: null, source: "used_only" as const, fulfillment: null, isBuyBox: false };
 }
 
 function firstKeepaProduct(raw: unknown): Record<string, unknown> | null {
@@ -1820,6 +1854,13 @@ function bucketSort(bucket: AmazonAgeBucket | null) {
 function centsToDollars(value?: number | null) {
   const cents = toOptionalNumber(value);
   return cents === null || cents <= 0 ? null : roundMoney(cents / 100);
+}
+
+function keepaStatsCentsToDollars(rawKeepa: unknown, statsKey: string, index: number) {
+  const stats = asRecord(rawKeepa)?.stats;
+  const values = asRecord(stats)?.[statsKey];
+  if (!Array.isArray(values)) return null;
+  return centsToDollars(toOptionalNumber(values[index]));
 }
 
 function toNumber(value: unknown, defaultValue: number) {

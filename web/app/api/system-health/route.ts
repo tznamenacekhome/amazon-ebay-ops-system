@@ -950,7 +950,7 @@ function buildSchedulerGroupSummaries(
       lastSuccessAt,
       hoursSinceLastRun,
       hoursSinceLastSuccess,
-      latestRun,
+      latestRun: recentGroupRuns[0] ?? latestRun,
       recentRuns: recentGroupRuns,
       jobs: configuredJobs,
       stats: [

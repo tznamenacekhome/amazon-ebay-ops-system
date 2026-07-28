@@ -74,6 +74,7 @@ type SchedulerRunJob = {
   retryCount: number | null;
   rateLimitCount: number | null;
   logBytes: number | null;
+  metadata?: Record<string, unknown>;
 };
 
 type SchedulerGroup = {
@@ -589,6 +590,7 @@ function SchedulerGroupDrawer({ group, onClose }: { group: SchedulerGroup; onClo
   const lastRuns = group.recentRuns.slice(0, 10);
   const successfulRuns = lastRuns.filter((run) => run.status === "ok").length;
   const latestStats = group.latestRun?.stats ?? [];
+  const keepaCycle = keepaCatalogCycle(group);
 
   return (
     <div className="fixed inset-0 z-50">
@@ -666,6 +668,53 @@ function SchedulerGroupDrawer({ group, onClose }: { group: SchedulerGroup; onClo
               </div>
             </div>
           </section>
+
+          {keepaCycle ? (
+            <section className="mt-5">
+              <div className="flex items-center justify-between gap-3">
+                <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-500">Catalog Cycle</h3>
+                <span className="rounded-md bg-slate-100 px-2 py-1 font-mono text-xs text-slate-600">
+                  {keepaCycle.cycleId}
+                </span>
+              </div>
+              <div className="mt-2 grid gap-2 md:grid-cols-4">
+                <MetricTile label="Cycle Started" value={formatPacificDateTime(keepaCycle.startedAt)} compact />
+                <MetricTile
+                  label="Eligible ASINs"
+                  value={formatNumber(keepaCycle.eligibleCount)}
+                  compact
+                />
+                <MetricTile
+                  label="Covered"
+                  value={`${formatNumber(keepaCycle.coveredAfter)} / ${formatNumber(keepaCycle.eligibleCount)}`}
+                  compact
+                />
+                <MetricTile
+                  label="Remaining"
+                  value={formatNumber(keepaCycle.remainingAfter)}
+                  compact
+                />
+              </div>
+              <div className="mt-3 rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700">
+                <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
+                  <span>
+                    Last 5-minute run covered{" "}
+                    <strong className="text-slate-950">{formatNumber(keepaCycle.runCovered)}</strong> ASINs.
+                  </span>
+                  <span>
+                    Selected{" "}
+                    <strong className="text-slate-950">{formatNumber(keepaCycle.asinsSelected)}</strong>.
+                  </span>
+                </div>
+                {keepaCycle.runCovered === 0 ? (
+                  <div className="mt-2 text-xs text-amber-800">
+                    This usually means the 5-minute cadence did not refill enough Keepa tokens to complete another
+                    offer-enriched ASIN. Increase the interval or lower the per-run estimate if this repeats.
+                  </div>
+                ) : null}
+              </div>
+            </section>
+          ) : null}
 
           <section className="mt-5">
             <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-500">Jobs In This Group</h3>
@@ -766,6 +815,37 @@ function MetricPills({ stats, empty }: { stats: Array<{ label: string; value: st
       ))}
     </div>
   );
+}
+
+function keepaCatalogCycle(group: SchedulerGroup) {
+  if (group.key !== "keepa-catalog-priority") return null;
+  const job = group.latestRun?.jobs?.find((runJob) => runJob.jobName === "Keepa catalog priority refresh");
+  const metadata = job?.metadata;
+  const cycle = metadataRecord(metadata?.keepa_catalog_cycle);
+  if (!cycle) return null;
+
+  return {
+    cycleId: stringRecordValue(cycle.cycle_id) || "--",
+    startedAt: stringRecordValue(cycle.cycle_started_at) || null,
+    eligibleCount: numberRecordValue(cycle.eligible_count),
+    coveredAfter: numberRecordValue(cycle.covered_after),
+    remainingAfter: numberRecordValue(cycle.remaining_after),
+    runCovered: numberRecordValue(cycle.run_covered),
+    asinsSelected: numberRecordValue(cycle.asins_selected),
+  };
+}
+
+function metadataRecord(value: unknown): Record<string, unknown> | null {
+  return value && typeof value === "object" && !Array.isArray(value) ? (value as Record<string, unknown>) : null;
+}
+
+function stringRecordValue(value: unknown) {
+  return typeof value === "string" ? value : "";
+}
+
+function numberRecordValue(value: unknown) {
+  const number = Number(value);
+  return Number.isFinite(number) ? number : null;
 }
 
 function schedulerJobSummary(group: SchedulerGroup) {

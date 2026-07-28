@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { RefreshCw, X } from "lucide-react";
 import { runOnDemandRefresh, type RefreshNotice } from "../syncRefresh";
 import { DataFreshness } from "../DataFreshness";
 import { mutationHeaders } from "../mutationHeaders";
+import { KeepaPriceIndicator } from "../components/KeepaPriceIndicator";
 
 type RecommendationTier =
   | "Healthy"
@@ -121,6 +122,10 @@ type AdvisorRow = {
   informed_min_price_gap_to_buy_box_pct: number | null;
   informed_repricing_note: string;
   current_list_price: number | null;
+  keepa_current_price: number | null;
+  keepa_current_price_source: "buy_box" | "fba" | "mf" | "used_only" | null;
+  keepa_current_price_fulfillment: "fba" | "mf" | null;
+  keepa_current_price_is_buy_box: boolean;
   keepa_buy_box_price: number | null;
   keepa_buy_box_avg30: number | null;
   keepa_buy_box_avg90: number | null;
@@ -547,7 +552,18 @@ export default function RepricingPage() {
                     <td className="w-[220px] px-3 py-2">
                       <PriceLine label="Cost" value={formatMoney(row.cost_basis)} detail={row.cost_source ?? "--"} />
                       <PriceLine label="Current" value={formatMoney(row.current_list_price)} />
-                      <PriceLine label="Buy Box" value={formatMoney(row.keepa_buy_box_price)} />
+                      <PriceLine
+                        label="Keepa Now"
+                        valueNode={
+                          <KeepaPriceIndicator
+                            price={row.keepa_current_price}
+                            fulfillment={row.keepa_current_price_fulfillment}
+                            isBuyBox={row.keepa_current_price_is_buy_box}
+                            usedOnly={row.keepa_current_price_source === "used_only"}
+                            formatMoney={formatMoney}
+                          />
+                        }
+                      />
                       <PriceLine label="90 avg" value={formatMoney(row.keepa_buy_box_avg90)} />
                       <div className="mt-2 rounded border border-blue-200 bg-blue-50 px-2 py-1">
                         <div className="flex items-baseline justify-between gap-3">
@@ -791,14 +807,24 @@ function FulfillmentPill({ fulfillment }: { fulfillment: CompetitionOffer["fulfi
   );
 }
 
-function PriceLine({ label, value, detail }: { label: string; value: string; detail?: string }) {
+function PriceLine({
+  label,
+  value,
+  valueNode,
+  detail,
+}: {
+  label: string;
+  value?: string;
+  valueNode?: ReactNode;
+  detail?: string;
+}) {
   return (
     <div className="mb-1 flex items-baseline justify-between gap-3">
       <span className="text-xs font-medium text-slate-500">{label}</span>
-      <span className="text-right font-medium text-slate-900">
-        {value}
+      <div className="text-right font-medium text-slate-900">
+        {valueNode ?? value}
         {detail ? <span className="ml-1 text-xs font-normal text-slate-500">({detail})</span> : null}
-      </span>
+      </div>
     </div>
   );
 }

@@ -68,6 +68,9 @@ type KeepaPriceContext = {
   avg90Label: string | null;
   currentPrice: number | null;
   currentPriceLabel: string | null;
+  currentPriceSource: "buy_box" | "fba" | "mf" | "used_only" | null;
+  currentPriceFulfillment: "fba" | "mf" | null;
+  currentPriceIsBuyBox: boolean;
   imageUrl: string | null;
 };
 
@@ -243,6 +246,9 @@ async function getOpportunities(request: NextRequest) {
         keepaAvg90Label: keepaByAsin.get(row.asin)?.avg90Label ?? null,
         keepaCurrentPrice: keepaByAsin.get(row.asin)?.currentPrice ?? null,
         keepaCurrentPriceLabel: keepaByAsin.get(row.asin)?.currentPriceLabel ?? null,
+        keepaCurrentPriceSource: keepaByAsin.get(row.asin)?.currentPriceSource ?? null,
+        keepaCurrentPriceFulfillment: keepaByAsin.get(row.asin)?.currentPriceFulfillment ?? null,
+        keepaCurrentPriceIsBuyBox: keepaByAsin.get(row.asin)?.currentPriceIsBuyBox ?? false,
         currentInventoryUnits: row.sourcing_seed_asins?.current_inventory_units ?? null,
         monthlyVelocity: row.sourcing_seed_asins?.monthly_velocity ?? null,
         monthsOfSupply: row.sourcing_seed_asins?.months_of_supply ?? null,
@@ -826,21 +832,24 @@ async function fetchKeepaPriceContextByAsin(asins: string[]) {
       if (asin) {
         const buyBoxCurrent = centsToDollars(row.buy_box_price_current_cents);
         const lowFbaCurrent = centsToDollars(row.new_fba_price_current_cents);
-        const newCurrent = centsToDollars(row.new_price_current_cents);
+        const lowFbmCurrent = keepaStatsCentsToDollars(row.raw_keepa_json, "current", 7);
         const buyBoxAvg90 = centsToDollars(row.buy_box_price_avg90_cents);
         const newAvg90 = keepaStatsCentsToDollars(row.raw_keepa_json, "avg90", 1);
+        const current = keepaCurrentPriceContext({
+          buyBoxCurrent,
+          buyBoxIsUsed: keepaBoolean(row.raw_keepa_json, "buyBoxIsUsed"),
+          buyBoxIsFba: keepaBoolean(row.raw_keepa_json, "buyBoxIsFBA"),
+          lowFbaCurrent,
+          lowFbmCurrent,
+        });
         byAsin.set(asin, {
           avg90Price: buyBoxAvg90 ?? newAvg90,
           avg90Label: buyBoxAvg90 !== null ? "Buy Box avg" : newAvg90 !== null ? "New avg" : null,
-          currentPrice: buyBoxCurrent ?? lowFbaCurrent ?? newCurrent,
-          currentPriceLabel:
-            buyBoxCurrent !== null
-              ? "Buy Box"
-              : lowFbaCurrent !== null
-                ? "Low FBA New"
-                : newCurrent !== null
-                  ? "New Current"
-                  : null,
+          currentPrice: current.price,
+          currentPriceLabel: current.label,
+          currentPriceSource: current.source,
+          currentPriceFulfillment: current.fulfillment,
+          currentPriceIsBuyBox: current.isBuyBox,
           imageUrl: keepaImageUrl(row.raw_keepa_json),
         });
       }
@@ -848,6 +857,60 @@ async function fetchKeepaPriceContextByAsin(asins: string[]) {
   }
 
   return byAsin;
+}
+
+function keepaCurrentPriceContext(input: {
+  buyBoxCurrent: number | null;
+  buyBoxIsUsed: boolean | null;
+  buyBoxIsFba: boolean | null;
+  lowFbaCurrent: number | null;
+  lowFbmCurrent: number | null;
+}) {
+  const buyBox = input.buyBoxIsUsed === true ? null : input.buyBoxCurrent;
+  if (buyBox !== null) {
+    return {
+      price: buyBox,
+      label: "Buy Box",
+      source: "buy_box" as const,
+      fulfillment:
+        input.buyBoxIsFba === true ? ("fba" as const) : input.buyBoxIsFba === false ? ("mf" as const) : null,
+      isBuyBox: true,
+    };
+  }
+  if (input.lowFbaCurrent !== null) {
+    return {
+      price: input.lowFbaCurrent,
+      label: "Low FBA New",
+      source: "fba" as const,
+      fulfillment: "fba" as const,
+      isBuyBox: false,
+    };
+  }
+  if (input.lowFbmCurrent !== null) {
+    return {
+      price: input.lowFbmCurrent,
+      label: "Low MF New",
+      source: "mf" as const,
+      fulfillment: "mf" as const,
+      isBuyBox: false,
+    };
+  }
+  return {
+    price: null,
+    label: "Used Only",
+    source: "used_only" as const,
+    fulfillment: null,
+    isBuyBox: false,
+  };
+}
+
+function keepaBoolean(rawKeepa: unknown, key: string) {
+  if (!rawKeepa || typeof rawKeepa !== "object") return null;
+  const stats = (rawKeepa as { stats?: unknown }).stats;
+  if (!stats || typeof stats !== "object") return null;
+  const value = (stats as Record<string, unknown>)[key];
+  if (typeof value === "boolean") return value;
+  return null;
 }
 
 async function fetchAmazonImageFallbackByAsin(asins: string[], keepaByAsin: Map<string, KeepaPriceContext>) {

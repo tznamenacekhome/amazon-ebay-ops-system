@@ -15,6 +15,7 @@ import type { SourcingBatch, SourcingOpportunity, SourcingRun, SourcingSettings 
 import { useSourcingOpportunities } from "./useSourcingOpportunities";
 import { dismissReasonGroups } from "./matchingTaxonomy";
 import { mutationHeaders } from "../mutationHeaders";
+import { KeepaPriceIndicator } from "../components/KeepaPriceIndicator";
 
 const tabs = ["Replenishment", "Coverage Cycle", "Watchlist", "Purchased Pending Match", "Sourcing History", "Matching Intelligence", "Settings"] as const;
 const opportunityTypes = ["all", "buy_now", "multi_unit", "best_offer", "auction", "watch"] as const;
@@ -541,7 +542,13 @@ function ReplenishmentTable({
                     <div className="text-xs text-slate-500">{row.keepaAvg90Label ?? "--"}</div>
                   </td>
                   <td className="px-2 py-2 whitespace-nowrap">
-                    <div className="font-medium">{money(row.keepaCurrentPrice)}</div>
+                    <KeepaPriceIndicator
+                      price={row.keepaCurrentPrice}
+                      fulfillment={row.keepaCurrentPriceFulfillment}
+                      isBuyBox={row.keepaCurrentPriceIsBuyBox}
+                      usedOnly={row.keepaCurrentPriceSource === "used_only"}
+                      formatMoney={money}
+                    />
                     <div className="text-xs text-slate-500">{row.keepaCurrentPriceLabel ?? "--"}</div>
                   </td>
                   <td className="px-2 py-2 whitespace-nowrap">

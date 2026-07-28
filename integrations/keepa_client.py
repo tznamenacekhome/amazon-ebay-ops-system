@@ -72,6 +72,7 @@ class KeepaClient:
         stats_days: int = 90,
         history: bool = True,
         offers: int | None = None,
+        only_live_offers: bool = False,
         stock: bool = False,
         rating: bool = True,
         wait: bool = True,
@@ -92,6 +93,8 @@ class KeepaClient:
         }
         if offers is not None:
             params["offers"] = offers
+        if only_live_offers:
+            params["only-live-offers"] = 1
         if stock:
             params["stock"] = 1
 
