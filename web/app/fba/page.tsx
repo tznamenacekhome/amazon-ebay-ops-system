@@ -673,28 +673,28 @@ export default function FbaPage() {
       </section>
 
       <section className="overflow-x-auto rounded-lg border border-slate-200 bg-white shadow-sm">
-        <table className="w-full min-w-[1560px] table-fixed text-left text-sm">
+        <table className="w-[1527px] table-fixed text-left text-sm">
           <colgroup>
-            <col className="w-9" />
-            <col className="w-[110px]" />
-            <col />
-            <col className="w-[70px]" />
-            <col className="w-[95px]" />
-            <col className="w-[95px]" />
-            <col className="w-[105px]" />
-            <col className="w-[105px]" />
-            <col className="w-[110px]" />
-            <col className="w-[105px]" />
+            <col className="w-8" />
             <col className="w-[115px]" />
-            <col className="w-[50px]" />
+            <col className="w-[340px]" />
+            <col className="w-[60px]" />
+            <col className="w-[85px]" />
+            <col className="w-[90px]" />
+            <col className="w-[95px]" />
+            <col className="w-[95px]" />
+            <col className="w-[120px]" />
             <col className="w-[100px]" />
+            <col className="w-[105px]" />
+            <col className="w-[45px]" />
+            <col className="w-[95px]" />
             <col className="w-[150px]" />
           </colgroup>
           <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
             <tr>
-              <th className="px-2 py-2 align-middle" />
-              <th className="whitespace-nowrap px-3 py-2 align-middle">ASIN</th>
-              <th className="min-w-[300px] px-3 py-2 align-middle">Title</th>
+              <th className="sticky left-0 z-30 bg-slate-50 px-2 py-2 align-middle" />
+              <th className="sticky left-8 z-30 whitespace-nowrap bg-slate-50 px-3 py-2 align-middle">ASIN</th>
+              <th className="sticky left-[147px] z-30 bg-slate-50 px-3 py-2 align-middle shadow-[3px_0_5px_-4px_rgba(15,23,42,0.6)]">Title</th>
               <th className="whitespace-nowrap px-2 py-2 text-center align-middle">System</th>
               <th className="whitespace-nowrap px-2 py-2 text-right align-middle">Buy Price</th>
               <th className="whitespace-nowrap px-2 py-2 text-right align-middle">Sell Price</th>
@@ -743,7 +743,11 @@ export default function FbaPage() {
                         : "border-slate-100"
                     }`}
                   >
-                    <td className="px-2 py-2 align-middle">
+                    <td
+                      className={`sticky left-0 z-20 px-2 py-2 align-middle ${
+                        isLastOpened ? "bg-amber-50" : "bg-white"
+                      }`}
+                    >
                       <button
                         onClick={() =>
                           setExpandedAsin((current) =>
@@ -761,7 +765,11 @@ export default function FbaPage() {
                         )}
                       </button>
                     </td>
-                    <td className="whitespace-nowrap px-3 py-2 align-middle font-medium">
+                    <td
+                      className={`sticky left-8 z-20 whitespace-nowrap px-3 py-2 align-middle font-medium ${
+                        isLastOpened ? "bg-amber-50" : "bg-white"
+                      }`}
+                    >
                       <a
                         href={amazonAsinUrl(row.asin)}
                         target="_blank"
@@ -772,7 +780,11 @@ export default function FbaPage() {
                         {row.asin}
                       </a>
                     </td>
-                    <td className="min-w-[300px] whitespace-normal break-words px-3 py-2 align-middle font-medium leading-snug">
+                    <td
+                      className={`sticky left-[147px] z-20 whitespace-normal break-words px-3 py-2 align-middle font-medium leading-snug shadow-[3px_0_5px_-4px_rgba(15,23,42,0.6)] ${
+                        isLastOpened ? "bg-amber-50" : "bg-white"
+                      }`}
+                    >
                       {row.title ? (
                         row.title
                       ) : (
@@ -1219,11 +1231,8 @@ function formatPriceDraft(value?: number | null) {
 function CurrentPriceCell({ row }: { row: FbaRow }) {
   if (row.current_price_source === "used_only") {
     return (
-      <div className="flex flex-col items-end">
-        <span className="flex flex-col items-center text-xs font-semibold uppercase leading-tight text-slate-500">
-          <span>Used</span>
-          <span>Only</span>
-        </span>
+      <div className="flex items-center justify-end">
+        <span className="text-xs font-semibold uppercase text-slate-500">Used Only</span>
       </div>
     );
   }
@@ -1249,28 +1258,24 @@ function PriceWithFulfillmentIcon({
   const icon = fulfillmentIcon(fulfillment);
 
   return (
-    <div className="flex flex-col items-end">
+    <div className="flex items-center justify-end gap-1.5">
       <span className="font-medium text-slate-900">{formatMoney(price)}</span>
-      {isBuyBox || icon ? (
-        <span className="mt-1.5 flex flex-col items-center gap-1">
-          {isBuyBox ? (
-            <Crown
-              aria-label="In Buy Box"
-              className="h-3.5 w-3.5 shrink-0 text-amber-500"
-              strokeWidth={2.4}
-            />
-          ) : null}
-          {icon ? (
-            <img
-              src={icon.src}
-              alt={icon.alt}
-              title={icon.alt}
-              width={40}
-              height={26}
-              className="h-[22px] w-[34px] shrink-0"
-            />
-          ) : null}
-        </span>
+      {isBuyBox ? (
+        <Crown
+          aria-label="In Buy Box"
+          className="h-3.5 w-3.5 shrink-0 text-amber-500"
+          strokeWidth={2.4}
+        />
+      ) : null}
+      {icon ? (
+        <img
+          src={icon.src}
+          alt={icon.alt}
+          title={icon.alt}
+          width={40}
+          height={26}
+          className="h-[22px] w-[34px] shrink-0"
+        />
       ) : null}
     </div>
   );
