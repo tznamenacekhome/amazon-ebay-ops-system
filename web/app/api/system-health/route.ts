@@ -126,6 +126,20 @@ type SchedulerJobRunRecord = {
   metadata: Record<string, unknown>;
 };
 
+type KeepaCatalogCycleSummary = {
+  cycleId: string;
+  status: "running" | "complete";
+  cycleStartedAt: string | null;
+  latestRunAt: string | null;
+  durationSeconds: number | null;
+  eligibleCount: number | null;
+  coveredCount: number | null;
+  remainingCount: number | null;
+  runCount: number;
+  lastRunCoveredCount: number | null;
+  lastRunSelectedCount: number | null;
+};
+
 type SchedulerGroupSummary = SchedulerGroupConfig & {
   status: HealthStatus;
   nextRunAt: string | null;
@@ -144,6 +158,7 @@ type SchedulerGroupSummary = SchedulerGroupConfig & {
     message: string | null;
   }>;
   stats: Array<{ label: string; value: string }>;
+  keepaCatalogCycles?: KeepaCatalogCycleSummary[];
 };
 
 const SCHEDULER_GROUPS: SchedulerGroupConfig[] = [
@@ -299,8 +314,8 @@ const SCHEDULER_GROUPS: SchedulerGroupConfig[] = [
     key: "keepa-catalog-priority",
     label: "Keepa Catalog Priority",
     domain: "Catalog",
-    cadence: "Every 5 minutes",
-    schedule: "Every 5 minutes",
+    cadence: "Every 30 minutes",
+    schedule: "Every 30 minutes",
     scheduleNames: ["mbop-keepa-catalog-priority"],
     expectedEveryHours: 1,
     criticalAfterHours: 3,
@@ -953,6 +968,8 @@ function buildSchedulerGroupSummaries(
       latestRun: recentGroupRuns[0] ?? latestRun,
       recentRuns: recentGroupRuns,
       jobs: configuredJobs,
+      keepaCatalogCycles:
+        group.key === "keepa-catalog-priority" ? keepaCatalogCycleSummaries(configuredJobRuns) : undefined,
       stats: [
         { label: "Schedules", value: formatCount(group.scheduleNames.length) },
         { label: "Recent runs", value: formatCount(displayRuns.length) },
@@ -965,6 +982,66 @@ function buildSchedulerGroupSummaries(
       ],
     };
   });
+}
+
+function keepaCatalogCycleSummaries(jobRuns: SchedulerJobRunRecord[]): KeepaCatalogCycleSummary[] {
+  const cycleRuns = jobRuns
+    .filter((run) => run.jobName === "Keepa catalog priority refresh")
+    .map((run) => {
+      const cycle = objectValue(run.metadata.keepa_catalog_cycle);
+      const cycleId = stringValue(cycle.cycle_id);
+      if (!cycleId) return null;
+      const latestRunAt = run.finishedAt || run.startedAt;
+      return {
+        cycleId,
+        cycleStartedAt: stringValue(cycle.cycle_started_at) || null,
+        latestRunAt,
+        eligibleCount: numberValue(cycle.eligible_count),
+        coveredAfter: numberValue(cycle.covered_after),
+        remainingAfter: numberValue(cycle.remaining_after),
+        runCoveredCount: numberValue(cycle.run_covered_count) ?? numberValue(cycle.run_covered),
+        runSelectedCount: numberValue(cycle.asins_selected),
+        timestamp: latestRunAt ? Date.parse(latestRunAt) : 0,
+      };
+    })
+    .filter((run): run is NonNullable<typeof run> => Boolean(run));
+
+  const byCycle = groupBy(cycleRuns, (run) => run.cycleId);
+
+  return Array.from(byCycle.entries())
+    .map(([cycleId, runs]) => {
+      const sortedRuns = [...runs].sort((a, b) => b.timestamp - a.timestamp);
+      const latest = sortedRuns[0];
+      const latestRunAt = latest.latestRunAt;
+      const cycleStartedAt = latest.cycleStartedAt ?? sortedRuns.find((run) => run.cycleStartedAt)?.cycleStartedAt ?? null;
+      const remainingCount = latest.remainingAfter;
+      const status: KeepaCatalogCycleSummary["status"] = remainingCount === 0 ? "complete" : "running";
+      const durationSeconds = durationBetweenSeconds(cycleStartedAt, status === "complete" ? latestRunAt : new Date().toISOString());
+
+      return {
+        cycleId,
+        status,
+        cycleStartedAt,
+        latestRunAt,
+        durationSeconds,
+        eligibleCount: latest.eligibleCount,
+        coveredCount: latest.coveredAfter,
+        remainingCount,
+        runCount: runs.length,
+        lastRunCoveredCount: latest.runCoveredCount,
+        lastRunSelectedCount: latest.runSelectedCount,
+      };
+    })
+    .sort((a, b) => Date.parse(b.latestRunAt ?? "") - Date.parse(a.latestRunAt ?? ""))
+    .slice(0, 4);
+}
+
+function durationBetweenSeconds(start: string | null, end: string | null): number | null {
+  if (!start || !end) return null;
+  const startedAt = Date.parse(start);
+  const endedAt = Date.parse(end);
+  if (!Number.isFinite(startedAt) || !Number.isFinite(endedAt) || endedAt < startedAt) return null;
+  return Math.max(0, (endedAt - startedAt) / 1000);
 }
 
 function deriveRunsFromJobTelemetry(
@@ -1097,7 +1174,7 @@ function scheduledPacificTimesForGroup(groupKey: string): PacificRunTime[] {
     case "sourcing-catalog":
       return [{ hour: 22, minute: 0 }];
     case "keepa-catalog-priority":
-      return everyFiveMinutes();
+      return everyThirtyMinutes();
     default:
       return [];
   }
@@ -1111,10 +1188,10 @@ function hourlyTimes(startHour: number, endHour: number, minute: number, step = 
   return times;
 }
 
-function everyFiveMinutes(): PacificRunTime[] {
+function everyThirtyMinutes(): PacificRunTime[] {
   const times: PacificRunTime[] = [];
   for (let hour = 0; hour <= 23; hour += 1) {
-    for (let minute = 0; minute < 60; minute += 5) {
+    for (let minute = 0; minute < 60; minute += 30) {
       times.push({ hour, minute });
     }
   }
@@ -1549,7 +1626,7 @@ async function readSchedulerJobRuns(): Promise<SchedulerJobRunRecord[]> {
       retryCount: numberValue(row.retry_count),
       rateLimitCount: numberValue(row.rate_limit_count),
       logBytes: numberValue(row.log_bytes),
-      metadata: objectValue(row.metadata),
+      metadata: schedulerJobMetadataForApi(row.metadata),
     });
   }
 
@@ -1751,6 +1828,18 @@ function numberValue(value: unknown): number | null {
 
 function objectValue(value: unknown): Record<string, unknown> {
   return value && typeof value === "object" && !Array.isArray(value) ? (value as Record<string, unknown>) : {};
+}
+
+function schedulerJobMetadataForApi(value: unknown): Record<string, unknown> {
+  const metadata = { ...objectValue(value) };
+  const cycle = objectValue(metadata.keepa_catalog_cycle);
+  if (Object.keys(cycle).length) {
+    const safeCycle = { ...cycle };
+    delete safeCycle.remaining_asins_after;
+    delete safeCycle.remaining_asins;
+    metadata.keepa_catalog_cycle = safeCycle;
+  }
+  return metadata;
 }
 
 function isLocalRunRecord(value: unknown): value is LocalRunRecord {

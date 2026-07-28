@@ -142,7 +142,7 @@ mbop-fba-shipments-active-window: cron(40 8,12,16,20 ? * * *)
 mbop-reconciliation: cron(0 21 ? * * *)
 mbop-repricing-catalog: cron(30 21 ? * * *)
 mbop-sourcing-catalog: cron(10 0 ? * * *)
-mbop-keepa-catalog-priority: rate(5 minutes)
+mbop-keepa-catalog-priority: rate(30 minutes)
 ```
 
 Most schedules use the default scheduler task size of `512 CPU / 1024 MB`.
@@ -314,10 +314,14 @@ Current scheduler-safe defaults:
 ```text
 keepa-catalog-priority:
   --source catalog_priority
-  --batch-size 25
+  --batch-size 5
   --limit 25
-  --stale-days 7
-  --min-tokens 25
+  --min-tokens 10
+  --offers 20
+  --only-live-offers
+  --adaptive-limit
+  --estimated-tokens-per-asin 10
+  --cycle-progress
   --no-history
   --no-rating
 
@@ -330,9 +334,10 @@ fba-pricing:
   --no-rating
 ```
 
-The fast `keepa-catalog-priority` schedule is stats-only and omits rating,
-offer, stock, and history payloads. It is intended to track the observed
-5-token/minute Keepa refill rate: 25 ASINs every 5 minutes, skipping ASINs with
-snapshots newer than 7 days. It is the only scheduled Keepa API caller. The
+The `keepa-catalog-priority` schedule captures live new-offer pricing data and
+omits rating, stock, and history payloads. It runs every 30 minutes because the
+offer-enriched call often processes only 1-3 ASINs after a 5-minute token refill.
+Cycle progress is recorded so System Health can show progress through a full
+eligible-catalog pass. It is the only scheduled Keepa API caller. The
 manual/on-demand `fba-pricing` group remains available from the Send to Amazon
 screen for occasional FBA prep pricing refreshes.

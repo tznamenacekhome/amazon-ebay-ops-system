@@ -5,7 +5,7 @@ param(
   [string]$TemplateScheduleName = "mbop-keepa-rolling-refresh",
   [string]$GroupName = "default",
   [string]$TaskDefinitionArn,
-  [string]$ScheduleExpression = "rate(5 minutes)"
+  [string]$ScheduleExpression = "rate(30 minutes)"
 )
 
 $ErrorActionPreference = "Stop"
@@ -67,7 +67,7 @@ if ($exists) {
     --flexible-time-window "file://$windowFile" `
     --target "file://$targetFile" `
     --state ENABLED `
-    --description "Fast priority Keepa refresh for Send to Amazon, sourcing opportunities, and back catalog." | Out-Null
+    --description "Priority Keepa refresh for Send to Amazon, sourcing opportunities, and back catalog." | Out-Null
 } else {
   Write-Host "Creating $ScheduleName" -ForegroundColor Cyan
   aws scheduler create-schedule `
@@ -79,7 +79,7 @@ if ($exists) {
     --flexible-time-window "file://$windowFile" `
     --target "file://$targetFile" `
     --state ENABLED `
-    --description "Fast priority Keepa refresh for Send to Amazon, sourcing opportunities, and back catalog." | Out-Null
+    --description "Priority Keepa refresh for Send to Amazon, sourcing opportunities, and back catalog." | Out-Null
 }
 
 Write-Host "Schedule ready: $ScheduleName $ScheduleExpression -> $TaskDefinitionArn" -ForegroundColor Green
