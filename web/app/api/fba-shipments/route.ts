@@ -1835,14 +1835,17 @@ function currentPriceContext(
   const mf = keepa?.low_fbm_new_price_current ?? null;
 
   if (buyBox !== null) {
+    const buyBoxFulfillment =
+      keepa?.buy_box_is_fba === true
+        ? ("fba" as const)
+        : keepa?.buy_box_is_fba === false
+          ? ("mf" as const)
+          : null;
+
     return {
       price: buyBox,
       source: "buy_box" as const,
-      fulfillment:
-        keepa?.buy_box_is_fba === true ||
-        (keepa?.buy_box_is_fba === null && fba !== null && Math.abs(fba - buyBox) < 0.01)
-          ? ("fba" as const)
-          : ("mf" as const),
+      fulfillment: buyBoxFulfillment,
       is_buy_box: true,
     };
   }
