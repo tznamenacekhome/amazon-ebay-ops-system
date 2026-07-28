@@ -805,6 +805,8 @@ function SchedulerGroupTable({
 function DashboardSchedulerGroupDrawer({ group, onClose }: { group: DashboardPayload; onClose: () => void }) {
   const jobs = asRows(group.jobs);
   const runs = asRows(group.recentRuns).slice(0, 10);
+  const isKeepaCatalogPriority = text(group.group) === "keepa-catalog-priority";
+  const keepaCatalogCycles = asRows(group.keepaCatalogCycles).slice(0, 4);
   const features = Array.isArray(group.features) ? group.features.map(text).filter(Boolean) : [];
   const scheduleNames = Array.isArray(group.scheduleNames) ? group.scheduleNames.map(text).filter(Boolean) : [];
   const successfulRuns = runs.filter((run) => text(run.status) === "ok").length;
@@ -830,20 +832,77 @@ function DashboardSchedulerGroupDrawer({ group, onClose }: { group: DashboardPay
         </div>
 
         <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
-          <div className="grid gap-3 md:grid-cols-3">
-            <DrawerMetric label="Last Success" value={formatDateShort(text(group.lastSuccessAt))} />
-            <DrawerMetric label="Last Attempt" value={formatDateShort(text(group.lastRunAt))} />
-            <DrawerMetric label="Latest Runtime" value={formatDurationShort(group.runtimeSeconds)} />
-          </div>
+          {!isKeepaCatalogPriority ? (
+            <div className="grid gap-3 md:grid-cols-3">
+              <DrawerMetric label="Last Success" value={formatDateShort(text(group.lastSuccessAt))} />
+              <DrawerMetric label="Last Attempt" value={formatDateShort(text(group.lastRunAt))} />
+              <DrawerMetric label="Latest Runtime" value={formatDurationShort(group.runtimeSeconds)} />
+            </div>
+          ) : null}
+
+          {isKeepaCatalogPriority ? (
+            <section>
+              <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-500">Catalog Cycles</h3>
+              <div className="mt-2 overflow-hidden rounded-lg border border-slate-200">
+                <table className="w-full text-left text-sm">
+                  <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
+                    <tr>
+                      <th className="px-3 py-2">Cycle</th>
+                      <th className="px-3 py-2">Status</th>
+                      <th className="px-3 py-2">Started</th>
+                      <th className="px-3 py-2 text-right">Covered</th>
+                      <th className="px-3 py-2 text-right">Remaining</th>
+                      <th className="px-3 py-2 text-right">Last Run</th>
+                      <th className="px-3 py-2 text-right">Duration</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {keepaCatalogCycles.length ? (
+                      keepaCatalogCycles.map((cycle) => (
+                        <tr key={text(cycle.cycleId)} className="border-t border-slate-100 align-middle">
+                          <td className="px-3 py-2 font-mono text-xs text-slate-700">{shortId(text(cycle.cycleId))}</td>
+                          <td className="px-3 py-2 text-slate-700">{text(cycle.status)}</td>
+                          <td className="whitespace-nowrap px-3 py-2 text-slate-700">{formatDateShort(text(cycle.cycleStartedAt))}</td>
+                          <td className="whitespace-nowrap px-3 py-2 text-right text-slate-700">
+                            {formatNumber(cycle.coveredCount)} / {formatNumber(cycle.eligibleCount)}
+                          </td>
+                          <td className="whitespace-nowrap px-3 py-2 text-right text-slate-700">{formatNumber(cycle.remainingCount)}</td>
+                          <td className="whitespace-nowrap px-3 py-2 text-right text-slate-700">
+                            {formatNumber(cycle.lastRunCoveredCount)}
+                            <span className="text-slate-400"> / </span>
+                            {formatNumber(cycle.lastRunSelectedCount)}
+                          </td>
+                          <td className="whitespace-nowrap px-3 py-2 text-right text-slate-700">
+                            {formatDurationShort(cycle.durationSeconds)}
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td className="px-3 py-6 text-center text-slate-500" colSpan={7}>
+                          No Keepa cycle telemetry recorded yet.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+              <div className="mt-2 text-xs text-slate-500">
+                Last Run shows ASINs covered / ASINs selected for the latest run in that cycle.
+              </div>
+            </section>
+          ) : null}
 
           <section className="mt-5">
             <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-500">What This Updates</h3>
             <p className="mt-2 text-sm leading-6 text-slate-700">{text(group.description) || "No description recorded."}</p>
-            <div className="mt-3 flex flex-wrap gap-2">
-              {features.length ? features.map((feature) => (
-                <span key={feature} className="rounded-md border border-slate-200 bg-slate-50 px-2 py-1 text-xs text-slate-700">{feature}</span>
-              )) : <span className="text-xs text-slate-500">No feature mapping recorded.</span>}
-            </div>
+            {!isKeepaCatalogPriority ? (
+              <div className="mt-3 flex flex-wrap gap-2">
+                {features.length ? features.map((feature) => (
+                  <span key={feature} className="rounded-md border border-slate-200 bg-slate-50 px-2 py-1 text-xs text-slate-700">{feature}</span>
+                )) : <span className="text-xs text-slate-500">No feature mapping recorded.</span>}
+              </div>
+            ) : null}
           </section>
 
           <section className="mt-5 grid gap-4 md:grid-cols-2">

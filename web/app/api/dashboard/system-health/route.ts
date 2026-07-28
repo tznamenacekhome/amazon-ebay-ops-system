@@ -57,6 +57,19 @@ type SchedulerGroup = {
     blocking: boolean;
     message: string | null;
   }>;
+  keepaCatalogCycles?: Array<{
+    cycleId: string;
+    status: "running" | "complete";
+    cycleStartedAt: string | null;
+    latestRunAt: string | null;
+    durationSeconds: number | null;
+    eligibleCount: number | null;
+    coveredCount: number | null;
+    remainingCount: number | null;
+    runCount: number;
+    lastRunCoveredCount: number | null;
+    lastRunSelectedCount: number | null;
+  }>;
 };
 
 type RecentRun = {
@@ -179,6 +192,7 @@ export async function GET(request: NextRequest) {
         recentRuns: group.recentRuns ?? [],
         jobs: group.jobs,
         stats: (group as SchedulerGroup & { stats?: Array<{ label: string; value: string }> }).stats ?? [],
+        keepaCatalogCycles: group.keepaCatalogCycles ?? [],
         jobsOk: group.jobs.filter((job) => job.status === "ok").length,
         jobsFailed: group.jobs.filter((job) => job.status === "failed").length,
         jobsRunning: group.jobs.filter((job) => job.status === "running").length,
