@@ -673,7 +673,7 @@ export default function FbaPage() {
       </section>
 
       <section className="overflow-x-auto rounded-lg border border-slate-200 bg-white shadow-sm">
-        <table className="w-[1527px] table-fixed text-left text-sm">
+        <table className="w-[1582px] table-fixed text-left text-sm">
           <colgroup>
             <col className="w-8" />
             <col className="w-[115px]" />
@@ -687,8 +687,8 @@ export default function FbaPage() {
             <col className="w-[100px]" />
             <col className="w-[105px]" />
             <col className="w-[45px]" />
-            <col className="w-[95px]" />
-            <col className="w-[150px]" />
+            <col className="w-[120px]" />
+            <col className="w-[180px]" />
           </colgroup>
           <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
             <tr>
@@ -704,8 +704,8 @@ export default function FbaPage() {
               <th className="whitespace-nowrap px-2 py-2 text-right align-middle">90D Buy Box</th>
               <th className="whitespace-nowrap px-2 py-2 text-right align-middle">Profit / ROI</th>
               <th className="whitespace-nowrap px-2 py-2 text-center align-middle">Qty</th>
-              <th className="whitespace-nowrap px-2 py-2 align-middle">Purchase Date</th>
-              <th className="px-2 py-2 align-middle">Supplier</th>
+              <th className="whitespace-nowrap px-3 py-2 align-middle">Purchase Date</th>
+              <th className="whitespace-nowrap px-3 py-2 align-middle">Supplier</th>
             </tr>
           </thead>
           <tbody>
@@ -867,10 +867,10 @@ export default function FbaPage() {
                     <td className="whitespace-nowrap px-2 py-2 text-center align-middle font-semibold">
                       {formatNumber(row.quantity)}
                     </td>
-                    <td className="whitespace-nowrap px-2 py-2 align-middle">
+                    <td className="whitespace-nowrap px-3 py-2 align-middle">
                       {formatDate(row.purchase_date)}
                     </td>
-                    <td className="px-2 py-2 align-middle">{row.supplier || "--"}</td>
+                    <td className="px-3 py-2 align-middle">{row.supplier || "--"}</td>
                   </tr>
 
                   {expandedAsin === row.asin && (
@@ -1260,22 +1260,26 @@ function PriceWithFulfillmentIcon({
   return (
     <div className="flex items-center justify-end gap-1.5">
       <span className="font-medium text-slate-900">{formatMoney(price)}</span>
-      {isBuyBox ? (
-        <Crown
-          aria-label="In Buy Box"
-          className="h-3.5 w-3.5 shrink-0 text-amber-500"
-          strokeWidth={2.4}
-        />
-      ) : null}
-      {icon ? (
-        <img
-          src={icon.src}
-          alt={icon.alt}
-          title={icon.alt}
-          width={40}
-          height={26}
-          className="h-[22px] w-[34px] shrink-0"
-        />
+      {isBuyBox || icon ? (
+        <span className="flex min-w-[34px] flex-col items-center gap-1">
+          {isBuyBox ? (
+            <Crown
+              aria-label="In Buy Box"
+              className="h-3.5 w-3.5 shrink-0 text-amber-500"
+              strokeWidth={2.4}
+            />
+          ) : null}
+          {icon ? (
+            <img
+              src={icon.src}
+              alt={icon.alt}
+              title={icon.alt}
+              width={40}
+              height={26}
+              className="h-[22px] w-[34px] shrink-0"
+            />
+          ) : null}
+        </span>
       ) : null}
     </div>
   );
