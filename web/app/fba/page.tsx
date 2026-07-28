@@ -5,6 +5,7 @@ import {
   Check,
   ChevronDown,
   ChevronRight,
+  Crown,
   Download,
   PackageOpen,
   RefreshCw,
@@ -672,12 +673,12 @@ export default function FbaPage() {
       </section>
 
       <section className="overflow-x-auto rounded-lg border border-slate-200 bg-white shadow-sm">
-        <table className="min-w-[1640px] w-full text-left text-sm">
+        <table className="min-w-[1540px] w-full text-left text-sm">
           <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
             <tr>
               <th className="w-10 px-3 py-2" />
-              <th className="px-3 py-2">ASIN</th>
-              <th className="px-3 py-2">Title</th>
+              <th className="w-[112px] px-3 py-2">ASIN</th>
+              <th className="w-[330px] px-3 py-2">Title</th>
               <th className="px-3 py-2">System</th>
               <th className="px-3 py-2 text-right">Buy Price</th>
               <th className="px-3 py-2 text-right">Sell Price</th>
@@ -755,7 +756,7 @@ export default function FbaPage() {
                         {row.asin}
                       </a>
                     </td>
-                    <td className="px-3 py-2 font-medium">
+                    <td className="w-[330px] max-w-[330px] whitespace-normal break-words px-3 py-2 font-medium leading-snug">
                       {row.title ? (
                         row.title
                       ) : (
@@ -1202,9 +1203,12 @@ function formatPriceDraft(value?: number | null) {
 function CurrentPriceCell({ row }: { row: FbaRow }) {
   if (row.current_price_source === "used_only") {
     return (
-      <div className="inline-flex min-w-[80px] flex-col items-end text-xs font-semibold uppercase leading-tight text-slate-500">
-        <span>Used</span>
-        <span>Only</span>
+      <div className="inline-grid min-w-[128px] grid-cols-[64px_56px] items-center justify-end gap-2">
+        <span className="flex flex-col items-end text-xs font-semibold uppercase leading-tight text-slate-500">
+          <span>Used</span>
+          <span>Only</span>
+        </span>
+        <span aria-hidden="true" />
       </div>
     );
   }
@@ -1227,41 +1231,40 @@ function PriceWithFulfillmentIcon({
   fulfillment: "fba" | "mf" | null;
   isBuyBox: boolean;
 }) {
-  const icon = fulfillmentIcon(fulfillment, isBuyBox);
+  const icon = fulfillmentIcon(fulfillment);
 
   return (
-    <div className="inline-flex min-w-[112px] items-center justify-end gap-1.5">
-      <span className="font-medium text-slate-900">{formatMoney(price)}</span>
-      {icon ? (
-        <img
-          src={icon.src}
-          alt={icon.alt}
-          title={icon.alt}
-          width={40}
-          height={26}
-          className="h-[26px] w-[40px] shrink-0"
-        />
-      ) : null}
+    <div className="inline-grid min-w-[128px] grid-cols-[64px_56px] items-center justify-end gap-2">
+      <span className="text-right font-medium text-slate-900">{formatMoney(price)}</span>
+      <span className="inline-flex items-center justify-start gap-2">
+        {isBuyBox ? (
+          <Crown
+            aria-label="In Buy Box"
+            className="h-3.5 w-3.5 shrink-0 text-amber-500"
+            strokeWidth={2.4}
+          />
+        ) : null}
+        {icon ? (
+          <img
+            src={icon.src}
+            alt={icon.alt}
+            title={icon.alt}
+            width={40}
+            height={26}
+            className="h-[22px] w-[34px] shrink-0"
+          />
+        ) : null}
+      </span>
     </div>
   );
 }
 
-function fulfillmentIcon(fulfillment: "fba" | "mf" | null, isBuyBox: boolean) {
+function fulfillmentIcon(fulfillment: "fba" | "mf" | null) {
   if (fulfillment === "fba") {
-    return isBuyBox
-      ? {
-          src: "/icons/fulfillment/fba-buy-box.svg",
-          alt: "Fulfilled by Amazon, in Buy Box",
-        }
-      : { src: "/icons/fulfillment/fba.svg", alt: "Fulfilled by Amazon" };
+    return { src: "/icons/fulfillment/fba.svg", alt: "Fulfilled by Amazon" };
   }
   if (fulfillment === "mf") {
-    return isBuyBox
-      ? {
-          src: "/icons/fulfillment/mf-buy-box.svg",
-          alt: "Merchant fulfilled, in Buy Box",
-        }
-      : { src: "/icons/fulfillment/mf.svg", alt: "Merchant fulfilled" };
+    return { src: "/icons/fulfillment/mf.svg", alt: "Merchant fulfilled" };
   }
   return null;
 }
