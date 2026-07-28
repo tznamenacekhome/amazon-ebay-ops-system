@@ -116,7 +116,14 @@ def main() -> int:
             if cycle_state is not None and args.write:
                 cycle_state = finalize_catalog_cycle_state(cycle_state, inserted_asins=[])
                 print_cycle_summary(cycle_state)
-                print_metadata_json(cycle_state, selected=0, rows_read=0)
+                print_metadata_json(
+                    cycle_state,
+                    selected=0,
+                    rows_read=0,
+                    token_status_before=token_status_before,
+                    token_cost_total=0,
+                    tokens_left_after=tokens_left,
+                )
             return 0
 
         if args.adaptive_limit:
@@ -143,6 +150,8 @@ def main() -> int:
         rows_read = 0
         missing_products = 0
         failures = 0
+        token_cost_total = 0
+        tokens_left_after: int | None = None
 
         for chunk in chunks(asins, args.batch_size):
             try:
@@ -162,6 +171,8 @@ def main() -> int:
                 continue
 
             products = payload.get("products") or []
+            token_cost_total += to_int(payload.get("tokenFlowReduction"), default=0) or 0
+            tokens_left_after = to_int(payload.get("tokensLeft"), default=tokens_left_after)
             rows_read += len(products)
             seen_asins = {clean_asin(product.get("asin")) for product in products}
             missing_products += len([asin for asin in chunk if clean_asin(asin) not in seen_asins])
@@ -201,6 +212,8 @@ def main() -> int:
             missing_products=missing_products,
             failures=failures,
             token_status_before=token_status_before,
+            token_cost_total=token_cost_total,
+            tokens_left_after=tokens_left_after,
             cycle_state=cycle_state,
         )
 
@@ -222,7 +235,14 @@ def main() -> int:
                 inserted_asins=[row["asin"] for row in snapshot_rows if row.get("asin")],
             )
             print_cycle_summary(cycle_state)
-            print_metadata_json(cycle_state, selected=len(asins), rows_read=rows_read)
+            print_metadata_json(
+                cycle_state,
+                selected=len(asins),
+                rows_read=rows_read,
+                token_status_before=token_status_before,
+                token_cost_total=token_cost_total,
+                tokens_left_after=tokens_left_after,
+            )
         LOGGER.info("Keepa product sync complete.")
         LOGGER.info("Product snapshots inserted: %s", inserted_snapshots)
         LOGGER.info("History points inserted: %s", inserted_history)
@@ -910,6 +930,8 @@ def print_summary(
     missing_products: int,
     failures: int,
     token_status_before: dict[str, Any],
+    token_cost_total: int,
+    tokens_left_after: int | None,
     cycle_state: dict[str, Any] | None,
 ) -> None:
     print("Keepa product sync write" if write else "Keepa product sync dry run")
@@ -922,6 +944,8 @@ def print_summary(
     print(f"Missing products: {missing_products}")
     print(f"Failures: {failures}")
     print(f"Tokens before: {token_status_before.get('tokens_left')}")
+    print(f"Keepa tokens used: {token_cost_total}")
+    print(f"Tokens after: {tokens_left_after}")
     if cycle_state:
         print(f"Cycle eligible ASINs: {cycle_state.get('eligible_count')}")
         print(f"Cycle covered before: {cycle_state.get('covered_before')}")
@@ -934,7 +958,15 @@ def print_cycle_summary(cycle_state: dict[str, Any]) -> None:
     print(f"Cycle remaining after: {cycle_state.get('remaining_after')}")
 
 
-def print_metadata_json(cycle_state: dict[str, Any], *, selected: int, rows_read: int) -> None:
+def print_metadata_json(
+    cycle_state: dict[str, Any],
+    *,
+    selected: int,
+    rows_read: int,
+    token_status_before: dict[str, Any],
+    token_cost_total: int,
+    tokens_left_after: int | None,
+) -> None:
     cycle = {
         key: value
         for key, value in cycle_state.items()
@@ -942,10 +974,16 @@ def print_metadata_json(cycle_state: dict[str, Any], *, selected: int, rows_read
     }
     cycle["asins_selected"] = selected
     cycle["run_covered"] = rows_read
+    cycle["tokens_before"] = to_int(token_status_before.get("tokens_left"), default=None)
+    cycle["tokens_after"] = tokens_left_after
+    cycle["tokens_used"] = token_cost_total
     metadata = {
         "keepa_catalog_cycle": cycle,
         "metrics": [
             {"label": "Run ASINs covered", "value": rows_read},
+            {"label": "Keepa tokens used", "value": token_cost_total},
+            {"label": "Tokens before", "value": to_int(token_status_before.get("tokens_left"), default=0) or 0},
+            {"label": "Tokens after", "value": tokens_left_after or 0},
             {"label": "Cycle eligible ASINs", "value": cycle_state.get("eligible_count") or 0},
             {"label": "Cycle covered after", "value": cycle_state.get("covered_after") or 0},
             {"label": "Cycle remaining after", "value": cycle_state.get("remaining_after") or 0},

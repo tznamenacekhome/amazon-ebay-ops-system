@@ -836,6 +836,7 @@ async function fetchKeepaPriceContextByAsin(asins: string[]) {
         const buyBoxAvg90 = centsToDollars(row.buy_box_price_avg90_cents);
         const newAvg90 = keepaStatsCentsToDollars(row.raw_keepa_json, "avg90", 1);
         const current = keepaCurrentPriceContext({
+          hasOfferData: hasKeepaOfferData(row.raw_keepa_json),
           buyBoxCurrent,
           buyBoxIsUsed: keepaBoolean(row.raw_keepa_json, "buyBoxIsUsed"),
           buyBoxIsFba: keepaBoolean(row.raw_keepa_json, "buyBoxIsFBA"),
@@ -861,6 +862,7 @@ async function fetchKeepaPriceContextByAsin(asins: string[]) {
 }
 
 function keepaCurrentPriceContext(input: {
+  hasOfferData: boolean;
   buyBoxCurrent: number | null;
   buyBoxIsUsed: boolean | null;
   buyBoxIsFba: boolean | null;
@@ -897,6 +899,15 @@ function keepaCurrentPriceContext(input: {
       isBuyBox: false,
     };
   }
+  if (!input.hasOfferData) {
+    return {
+      price: null,
+      label: "No Data",
+      source: "no_data" as const,
+      fulfillment: null,
+      isBuyBox: false,
+    };
+  }
   return {
     price: null,
     label: input.usedCurrent !== null || input.buyBoxIsUsed === true ? "Used Only" : "No Data",
@@ -904,6 +915,26 @@ function keepaCurrentPriceContext(input: {
     fulfillment: null,
     isBuyBox: false,
   };
+}
+
+function hasKeepaOfferData(rawKeepa: unknown) {
+  if (!rawKeepa || typeof rawKeepa !== "object") return false;
+  const record = rawKeepa as Record<string, unknown>;
+  const offers = record.offers;
+  const stats = record.stats && typeof record.stats === "object" ? (record.stats as Record<string, unknown>) : {};
+  return Boolean(
+    (Array.isArray(offers) && offers.length > 0) ||
+      hasKeepaOfferValue(stats.buyBoxSellerId) ||
+      hasKeepaOfferValue(stats.sellerIdsLowestFBA) ||
+      hasKeepaOfferValue(stats.sellerIdsLowestFBM),
+  );
+}
+
+function hasKeepaOfferValue(value: unknown): boolean {
+  if (Array.isArray(value)) return value.some(hasKeepaOfferValue);
+  if (typeof value === "string") return value.trim() !== "" && value !== "-1";
+  if (typeof value === "number") return Number.isFinite(value) && value > 0;
+  return false;
 }
 
 function keepaBoolean(rawKeepa: unknown, key: string) {

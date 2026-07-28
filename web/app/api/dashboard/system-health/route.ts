@@ -69,6 +69,7 @@ type SchedulerGroup = {
     runCount: number;
     lastRunCoveredCount: number | null;
     lastRunSelectedCount: number | null;
+    lastRunTokensUsed: number | null;
   }>;
 };
 

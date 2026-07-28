@@ -138,6 +138,7 @@ type KeepaCatalogCycleSummary = {
   runCount: number;
   lastRunCoveredCount: number | null;
   lastRunSelectedCount: number | null;
+  lastRunTokensUsed: number | null;
 };
 
 type SchedulerGroupSummary = SchedulerGroupConfig & {
@@ -1001,6 +1002,7 @@ function keepaCatalogCycleSummaries(jobRuns: SchedulerJobRunRecord[]): KeepaCata
         remainingAfter: numberValue(cycle.remaining_after),
         runCoveredCount: numberValue(cycle.run_covered_count) ?? numberValue(cycle.run_covered),
         runSelectedCount: numberValue(cycle.asins_selected),
+        tokensUsed: numberValue(cycle.tokens_used),
         timestamp: latestRunAt ? Date.parse(latestRunAt) : 0,
       };
     })
@@ -1030,6 +1032,7 @@ function keepaCatalogCycleSummaries(jobRuns: SchedulerJobRunRecord[]): KeepaCata
         runCount: runs.length,
         lastRunCoveredCount: latest.runCoveredCount,
         lastRunSelectedCount: latest.runSelectedCount,
+        lastRunTokensUsed: latest.tokensUsed,
       };
     })
     .sort((a, b) => Date.parse(b.latestRunAt ?? "") - Date.parse(a.latestRunAt ?? ""))

@@ -320,7 +320,7 @@ keepa-catalog-priority:
   --offers 20
   --only-live-offers
   --adaptive-limit
-  --estimated-tokens-per-asin 10
+  --estimated-tokens-per-asin 4
   --cycle-progress
   --no-history
   --no-rating

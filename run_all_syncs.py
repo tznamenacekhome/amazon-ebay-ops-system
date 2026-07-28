@@ -445,7 +445,7 @@ JOBS: tuple[SyncJob, ...] = (
             "--only-live-offers",
             "--adaptive-limit",
             "--estimated-tokens-per-asin",
-            "10",
+            "4",
             "--cycle-progress",
             "--no-history",
             "--no-rating",

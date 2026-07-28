@@ -89,6 +89,7 @@ type KeepaCatalogCycle = {
   runCount: number;
   lastRunCoveredCount: number | null;
   lastRunSelectedCount: number | null;
+  lastRunTokensUsed: number | null;
 };
 
 type SchedulerGroup = {
@@ -678,9 +679,14 @@ function SchedulerGroupDrawer({ group, onClose }: { group: SchedulerGroup; onClo
                             {formatNumber(cycle.remainingCount)}
                           </td>
                           <td className="whitespace-nowrap px-3 py-2 text-right text-slate-700">
-                            {formatNumber(cycle.lastRunCoveredCount)}
-                            <span className="text-slate-400"> / </span>
-                            {formatNumber(cycle.lastRunSelectedCount)}
+                            <div>
+                              {formatNumber(cycle.lastRunCoveredCount)}
+                              <span className="text-slate-400"> / </span>
+                              {formatNumber(cycle.lastRunSelectedCount)}
+                            </div>
+                            <span className="mt-1 inline-flex rounded-md border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-[11px] text-slate-600">
+                              Tokens {formatNumber(cycle.lastRunTokensUsed)}
+                            </span>
                           </td>
                           <td className="whitespace-nowrap px-3 py-2 text-right text-slate-700">
                             {formatDuration(cycle.durationSeconds)}
