@@ -696,6 +696,11 @@ def build_catalog_cycle_state(
         if isinstance(previous_cycle, dict)
         else 0
     ) or 0
+    previous_token_tracked_asins = (
+        to_int(previous_cycle.get("cycle_token_tracked_asins_after"), default=0)
+        if isinstance(previous_cycle, dict)
+        else 0
+    ) or 0
 
     if (
         previous_start
@@ -710,6 +715,7 @@ def build_catalog_cycle_state(
     else:
         cycle_started_at = captured_at
         previous_cycle_tokens_used = 0
+        previous_token_tracked_asins = 0
         latest_by_asin = fetch_latest_snapshot_by_asin(supabase, eligible_asins)
 
         def sort_key(asin: str) -> tuple[int, int, str, str]:
@@ -733,6 +739,7 @@ def build_catalog_cycle_state(
         "remaining_before": len(remaining),
         "remaining_asins": remaining,
         "cycle_tokens_used_before": previous_cycle_tokens_used,
+        "cycle_token_tracked_asins_before": previous_token_tracked_asins,
     }
 
 
@@ -753,9 +760,11 @@ def finalize_catalog_cycle_state(
     covered_after = max(eligible - len(remaining_after), 0)
     cycle_tokens_used_before = to_int(cycle_state.get("cycle_tokens_used_before"), default=0) or 0
     cycle_tokens_used_after = cycle_tokens_used_before + max(tokens_used, 0)
+    tracked_asins_before = to_int(cycle_state.get("cycle_token_tracked_asins_before"), default=0) or 0
+    tracked_asins_after = tracked_asins_before + len(inserted)
     cycle_tokens_per_asin = (
-        round(cycle_tokens_used_after / covered_after, 2)
-        if covered_after > 0
+        round(cycle_tokens_used_after / tracked_asins_after, 2)
+        if tracked_asins_after > 0
         else None
     )
     return {
@@ -766,6 +775,7 @@ def finalize_catalog_cycle_state(
         "remaining_after": len(remaining_after),
         "remaining_asins_after": remaining_after,
         "cycle_tokens_used_after": cycle_tokens_used_after,
+        "cycle_token_tracked_asins_after": tracked_asins_after,
         "cycle_tokens_per_asin": cycle_tokens_per_asin,
     }
 
