@@ -70,6 +70,8 @@ type SchedulerGroup = {
     lastRunCoveredCount: number | null;
     lastRunSelectedCount: number | null;
     lastRunTokensUsed: number | null;
+    cycleTokensUsed: number | null;
+    cycleTokensPerAsin: number | null;
   }>;
 };
 

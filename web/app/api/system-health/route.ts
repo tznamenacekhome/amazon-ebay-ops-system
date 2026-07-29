@@ -139,6 +139,8 @@ type KeepaCatalogCycleSummary = {
   lastRunCoveredCount: number | null;
   lastRunSelectedCount: number | null;
   lastRunTokensUsed: number | null;
+  cycleTokensUsed: number | null;
+  cycleTokensPerAsin: number | null;
 };
 
 type SchedulerGroupSummary = SchedulerGroupConfig & {
@@ -1002,7 +1004,9 @@ function keepaCatalogCycleSummaries(jobRuns: SchedulerJobRunRecord[]): KeepaCata
         remainingAfter: numberValue(cycle.remaining_after),
         runCoveredCount: numberValue(cycle.run_covered_count) ?? numberValue(cycle.run_covered),
         runSelectedCount: numberValue(cycle.asins_selected),
-        tokensUsed: numberValue(cycle.tokens_used),
+        tokensUsed: numberValue(cycle.run_tokens_used) ?? numberValue(cycle.tokens_used),
+        cycleTokensUsed: numberValue(cycle.cycle_tokens_used_after),
+        cycleTokensPerAsin: numberValue(cycle.cycle_tokens_per_asin),
         timestamp: latestRunAt ? Date.parse(latestRunAt) : 0,
       };
     })
@@ -1033,6 +1037,8 @@ function keepaCatalogCycleSummaries(jobRuns: SchedulerJobRunRecord[]): KeepaCata
         lastRunCoveredCount: latest.runCoveredCount,
         lastRunSelectedCount: latest.runSelectedCount,
         lastRunTokensUsed: latest.tokensUsed,
+        cycleTokensUsed: latest.cycleTokensUsed,
+        cycleTokensPerAsin: latest.cycleTokensPerAsin,
       };
     })
     .sort((a, b) => Date.parse(b.latestRunAt ?? "") - Date.parse(a.latestRunAt ?? ""))
@@ -1677,7 +1683,7 @@ function metadataMetricStatsForJobRuns(runs: SchedulerJobRunRecord[]) {
   }
 
   return [...totals.entries()]
-    .filter(([, value]) => value > 0)
+    .filter(([label, value]) => value > 0 || label === "Keepa tokens used")
     .slice(0, 8)
     .map(([label, value]) => ({ label, value: formatCount(value) }));
 }

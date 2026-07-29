@@ -90,6 +90,8 @@ type KeepaCatalogCycle = {
   lastRunCoveredCount: number | null;
   lastRunSelectedCount: number | null;
   lastRunTokensUsed: number | null;
+  cycleTokensUsed: number | null;
+  cycleTokensPerAsin: number | null;
 };
 
 type SchedulerGroup = {
@@ -685,7 +687,13 @@ function SchedulerGroupDrawer({ group, onClose }: { group: SchedulerGroup; onClo
                               {formatNumber(cycle.lastRunSelectedCount)}
                             </div>
                             <span className="mt-1 inline-flex rounded-md border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-[11px] text-slate-600">
-                              Tokens {formatNumber(cycle.lastRunTokensUsed)}
+                              Run tokens {formatNumber(cycle.lastRunTokensUsed)}
+                            </span>
+                            <span className="ml-1 mt-1 inline-flex rounded-md border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-[11px] text-slate-600">
+                              Cycle {formatNumber(cycle.cycleTokensUsed)}
+                            </span>
+                            <span className="ml-1 mt-1 inline-flex rounded-md border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-[11px] text-slate-600">
+                              Avg {formatDecimal(cycle.cycleTokensPerAsin)}
                             </span>
                           </td>
                           <td className="whitespace-nowrap px-3 py-2 text-right text-slate-700">
@@ -1011,6 +1019,14 @@ function formatDuration(seconds?: number | null) {
 function formatNumber(value?: number | null) {
   if (value === null || value === undefined || Number.isNaN(Number(value))) return "--";
   return Number(value).toLocaleString("en-US");
+}
+
+function formatDecimal(value?: number | null, maximumFractionDigits = 2) {
+  if (value === null || value === undefined || Number.isNaN(Number(value))) return "--";
+  return Number(value).toLocaleString("en-US", {
+    minimumFractionDigits: 0,
+    maximumFractionDigits,
+  });
 }
 
 function shortRunId(value?: string | null) {

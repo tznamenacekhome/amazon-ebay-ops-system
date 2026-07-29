@@ -874,7 +874,13 @@ function DashboardSchedulerGroupDrawer({ group, onClose }: { group: DashboardPay
                               {formatNumber(cycle.lastRunSelectedCount)}
                             </div>
                             <span className="mt-1 inline-flex rounded-md border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-[11px] text-slate-600">
-                              Tokens {formatNumber(cycle.lastRunTokensUsed)}
+                              Run tokens {formatNumber(cycle.lastRunTokensUsed)}
+                            </span>
+                            <span className="ml-1 mt-1 inline-flex rounded-md border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-[11px] text-slate-600">
+                              Cycle {formatNumber(cycle.cycleTokensUsed)}
+                            </span>
+                            <span className="ml-1 mt-1 inline-flex rounded-md border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-[11px] text-slate-600">
+                              Avg {formatDecimal(cycle.cycleTokensPerAsin, 2)}
                             </span>
                           </td>
                           <td className="whitespace-nowrap px-3 py-2 text-right text-slate-700">
