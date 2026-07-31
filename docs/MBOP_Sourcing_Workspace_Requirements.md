@@ -154,8 +154,8 @@ Include:
 - Auctions
 
 Item location:
-- US and Canada
-- Items outside US/Canada must never be shown as open opportunities.
+- US only
+- Items outside the US must never be shown as open opportunities.
 
 Delivery country:
 - US

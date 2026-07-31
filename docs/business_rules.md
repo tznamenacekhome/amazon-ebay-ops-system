@@ -56,7 +56,7 @@ Carrier/status syncs must not downgrade workflow-owned statuses.
 - Sourcing opportunities are advisory and must remain separate from Purchases
   until an eBay buyer purchase has been imported and matched.
 - Sourcing search and scoring must hard-exclude items outside the configured
-  item-location countries, currently US and Canada.
+  item-location countries, currently US only.
 - Excluded sourcing keywords, such as Steam, message delivery, DLC, promo, VPN,
   and disc-only signals, must prevent rows from appearing as open opportunities
   even when Best Offer or auction math would otherwise look profitable.

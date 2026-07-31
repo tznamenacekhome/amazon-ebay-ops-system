@@ -74,7 +74,7 @@ def fetch_settings(supabase) -> SourcingSettings:
         inventory_need_months_threshold=to_float(row.get("inventory_need_months_threshold"), 2),
         buyer_zip=clean_text(row.get("buyer_zip")) or "93022",
         buyer_country=clean_text(row.get("buyer_country")) or "US",
-        item_location_countries=list(row.get("item_location_countries") or ["US", "CA"]),
+        item_location_countries=list(row.get("item_location_countries") or ["US"]),
         delivery_country=clean_text(row.get("delivery_country")) or "US",
         best_offer_min_ask_percent=to_float(row.get("best_offer_min_ask_percent"), 60),
         excluded_keywords=list(row.get("excluded_keywords") or DEFAULT_EXCLUDED_KEYWORDS),

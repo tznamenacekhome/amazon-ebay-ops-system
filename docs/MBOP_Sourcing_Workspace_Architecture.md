@@ -479,7 +479,7 @@ Suggested columns:
 - `inventory_need_months_threshold numeric default 2`
 - `buyer_zip text default '93022'`
 - `buyer_country text default 'US'`
-- `item_location_countries text[] default ['US','CA']`
+- `item_location_countries text[] default ['US']`
 - `delivery_country text default 'US'`
 - `best_offer_min_ask_percent numeric default 60`
 - `excluded_keywords text[]`

@@ -465,7 +465,7 @@ def evaluate_static_match_rules(
         "result": "pass",
     }
     if allowed_countries and country and country not in allowed_countries:
-        reason = "non-US/Canada item location"
+        reason = "non-US item location"
         location["result"] = "blocked"
         hard_blocks.append(reason)
         flags.append(f"Blocked: {reason}")

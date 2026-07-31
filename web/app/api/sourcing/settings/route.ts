@@ -40,7 +40,7 @@ export async function PATCH(request: NextRequest) {
     buyer_zip: String(body.buyer_zip ?? body.buyerZip ?? "93022"),
     buyer_country: String(body.buyer_country ?? body.buyerCountry ?? "US"),
     item_location_countries: normalizeArray(
-      body.item_location_countries ?? body.itemLocationCountries ?? ["US", "CA"],
+      body.item_location_countries ?? body.itemLocationCountries ?? ["US"],
     ),
     delivery_country: String(body.delivery_country ?? body.deliveryCountry ?? "US"),
     best_offer_min_ask_percent: toNumber(
