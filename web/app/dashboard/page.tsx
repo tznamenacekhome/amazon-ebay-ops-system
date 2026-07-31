@@ -843,8 +843,18 @@ function DashboardSchedulerGroupDrawer({ group, onClose }: { group: DashboardPay
           {isKeepaCatalogPriority ? (
             <section>
               <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-500">Catalog Cycles</h3>
-              <div className="mt-2 overflow-hidden rounded-lg border border-slate-200">
-                <table className="w-full text-left text-sm">
+              <div className="mt-2 overflow-x-auto rounded-lg border border-slate-200">
+                <table className="min-w-[900px] table-fixed text-left text-sm">
+                  <colgroup>
+                    <col className="w-[120px]" />
+                    <col className="w-[90px]" />
+                    <col className="w-[150px]" />
+                    <col className="w-[130px]" />
+                    <col className="w-[120px]" />
+                    <col className="w-[145px]" />
+                    <col className="w-[130px]" />
+                    <col className="w-[105px]" />
+                  </colgroup>
                   <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
                     <tr>
                       <th className="px-3 py-2">Cycle</th>
@@ -852,7 +862,8 @@ function DashboardSchedulerGroupDrawer({ group, onClose }: { group: DashboardPay
                       <th className="px-3 py-2">Started</th>
                       <th className="px-3 py-2 text-right">Covered</th>
                       <th className="px-3 py-2 text-right">Remaining</th>
-                      <th className="px-3 py-2 text-right">Last Run</th>
+                      <th className="px-3 py-2 text-right">Cycle Tokens Used</th>
+                      <th className="px-3 py-2 text-right">Avg Tokens / ASIN</th>
                       <th className="px-3 py-2 text-right">Duration</th>
                     </tr>
                   </thead>
@@ -860,37 +871,27 @@ function DashboardSchedulerGroupDrawer({ group, onClose }: { group: DashboardPay
                     {keepaCatalogCycles.length ? (
                       keepaCatalogCycles.map((cycle) => (
                         <tr key={text(cycle.cycleId)} className="border-t border-slate-100 align-middle">
-                          <td className="px-3 py-2 font-mono text-xs text-slate-700">{shortId(text(cycle.cycleId))}</td>
-                          <td className="px-3 py-2 text-slate-700">{text(cycle.status)}</td>
-                          <td className="whitespace-nowrap px-3 py-2 text-slate-700">{formatDateShort(text(cycle.cycleStartedAt))}</td>
-                          <td className="whitespace-nowrap px-3 py-2 text-right text-slate-700">
+                          <td className="whitespace-nowrap px-3 py-3 font-mono text-xs text-slate-700">{shortId(text(cycle.cycleId))}</td>
+                          <td className="whitespace-nowrap px-3 py-3 text-slate-700">{text(cycle.status)}</td>
+                          <td className="whitespace-nowrap px-3 py-3 text-slate-700">{formatDateShort(text(cycle.cycleStartedAt))}</td>
+                          <td className="whitespace-nowrap px-3 py-3 text-right tabular-nums text-slate-700">
                             {formatNumber(cycle.coveredCount)} / {formatNumber(cycle.eligibleCount)}
                           </td>
-                          <td className="whitespace-nowrap px-3 py-2 text-right text-slate-700">{formatNumber(cycle.remainingCount)}</td>
-                          <td className="whitespace-nowrap px-3 py-2 text-right text-slate-700">
-                            <div>
-                              {formatNumber(cycle.lastRunCoveredCount)}
-                              <span className="text-slate-400"> / </span>
-                              {formatNumber(cycle.lastRunSelectedCount)}
-                            </div>
-                            <span className="mt-1 inline-flex rounded-md border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-[11px] text-slate-600">
-                              Run tokens {formatNumber(cycle.lastRunTokensUsed)}
-                            </span>
-                            <span className="ml-1 mt-1 inline-flex rounded-md border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-[11px] text-slate-600">
-                              Cycle {formatNumber(cycle.cycleTokensUsed)}
-                            </span>
-                            <span className="ml-1 mt-1 inline-flex rounded-md border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-[11px] text-slate-600">
-                              Avg {formatDecimal(cycle.cycleTokensPerAsin, 2)}
-                            </span>
+                          <td className="whitespace-nowrap px-3 py-3 text-right tabular-nums text-slate-700">{formatNumber(cycle.remainingCount)}</td>
+                          <td className="whitespace-nowrap px-3 py-3 text-right tabular-nums font-medium text-slate-800">
+                            {formatNumber(cycle.cycleTokensUsed)}
                           </td>
-                          <td className="whitespace-nowrap px-3 py-2 text-right text-slate-700">
+                          <td className="whitespace-nowrap px-3 py-3 text-right tabular-nums text-slate-700">
+                            {formatDecimal(cycle.cycleTokensPerAsin, 2)}
+                          </td>
+                          <td className="whitespace-nowrap px-3 py-3 text-right tabular-nums text-slate-700">
                             {formatDurationShort(cycle.durationSeconds)}
                           </td>
                         </tr>
                       ))
                     ) : (
                       <tr>
-                        <td className="px-3 py-6 text-center text-slate-500" colSpan={7}>
+                        <td className="px-3 py-6 text-center text-slate-500" colSpan={8}>
                           No Keepa cycle telemetry recorded yet.
                         </td>
                       </tr>
@@ -899,7 +900,7 @@ function DashboardSchedulerGroupDrawer({ group, onClose }: { group: DashboardPay
                 </table>
               </div>
               <div className="mt-2 text-xs text-slate-500">
-                Last Run shows ASINs covered / ASINs selected for the latest run in that cycle.
+                Cycle Tokens Used is the cumulative Keepa token spend recorded so far for that catalog cycle.
               </div>
             </section>
           ) : null}
