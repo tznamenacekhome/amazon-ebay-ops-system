@@ -399,6 +399,56 @@ def get_existing_purchase(order_id):
     return None
 
 
+def get_existing_purchase_by_transaction_line_ids(line_ids):
+    cleaned_line_ids = [
+        str(line_id or "").strip()
+        for line_id in line_ids
+        if str(line_id or "").strip()
+    ]
+    if not cleaned_line_ids:
+        return None
+
+    result = (
+        supabase.table("purchase_items")
+        .select("purchase_id,purchases(purchase_id,order_date,supplier_order_id)")
+        .in_("supplier_sku", cleaned_line_ids)
+        .limit(5)
+        .execute()
+    )
+
+    for row in result.data or []:
+        purchase = row.get("purchases") or {}
+        supplier_order_id = str(purchase.get("supplier_order_id") or "").strip()
+        if supplier_order_id and supplier_order_id in cleaned_line_ids:
+            return {
+                "purchase_id": purchase.get("purchase_id") or row.get("purchase_id"),
+                "order_date": purchase.get("order_date"),
+                "supplier_order_id": supplier_order_id,
+            }
+
+    for row in result.data or []:
+        purchase = row.get("purchases") or {}
+        return {
+            "purchase_id": purchase.get("purchase_id") or row.get("purchase_id"),
+            "order_date": purchase.get("order_date"),
+            "supplier_order_id": purchase.get("supplier_order_id"),
+        }
+
+    return None
+
+
+def get_existing_purchase_for_order(order, order_id, transactions):
+    line_ids = [
+        transaction_line_id(transaction)
+        for transaction in transactions
+        if transaction_line_id(transaction)
+    ]
+    line_match = get_existing_purchase_by_transaction_line_ids(line_ids)
+    if line_match:
+        return line_match
+    return get_existing_purchase(order_id)
+
+
 def purchase_has_tracking(purchase_id):
     shipment_result = (
         supabase.table("inbound_shipments")
@@ -1195,7 +1245,8 @@ def upsert_purchase(order, import_batch_id, access_token):
     if not order_id:
         return "skipped_missing_order_id"
 
-    existing_purchase = get_existing_purchase(order_id)
+    transactions = extract_transactions(order)
+    existing_purchase = get_existing_purchase_for_order(order, order_id, transactions)
     tracking_candidates = extract_tracking_candidates(order)
 
     if (
@@ -1256,7 +1307,6 @@ def upsert_purchase(order, import_batch_id, access_token):
     existing_items = get_existing_purchase_items(purchase_id)
     used_item_ids = set()
 
-    transactions = extract_transactions(order)
     calculated_unit_costs = transaction_unit_costs(order, transactions)
 
     if not transactions:
