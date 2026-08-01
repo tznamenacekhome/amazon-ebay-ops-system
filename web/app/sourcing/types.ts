@@ -37,6 +37,9 @@ export type SourcingOpportunity = {
   keepaCurrentPriceSource: "buy_box" | "fba" | "mf" | "used_only" | "no_data" | null;
   keepaCurrentPriceFulfillment: "fba" | "mf" | null;
   keepaCurrentPriceIsBuyBox: boolean;
+  myPrice: number | null;
+  myQuantity: number;
+  myPriceFulfillment: "fba" | "mf" | null;
   currentInventoryUnits: number | null;
   monthlyVelocity: number | null;
   monthsOfSupply: number | null;

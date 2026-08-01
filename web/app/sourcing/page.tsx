@@ -427,7 +427,7 @@ function ReplenishmentTable({
         <table className="min-w-[112rem] table-fixed text-left text-sm">
           <thead className="sticky top-0 z-10 bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
             <tr>
-              <th colSpan={14} className="border-b border-slate-200 bg-white px-2 py-2">
+              <th colSpan={15} className="border-b border-slate-200 bg-white px-2 py-2">
                 <div className="flex flex-wrap items-center gap-2 normal-case tracking-normal">
                   <span className="text-sm font-medium text-slate-700">{selectedCount} selected</span>
                   {!purchasedMode ? (
@@ -457,6 +457,7 @@ function ReplenishmentTable({
               <th className="w-32 px-2 py-2">Last Sold</th>
               <th className="w-24 px-2 py-2">Keepa 90</th>
               <th className="w-24 px-2 py-2">Keepa Now</th>
+              <th className="w-24 px-2 py-2">My Price</th>
               <th className="w-24 px-2 py-2">Profit</th>
               <th className="w-16 px-2 py-2">ROI</th>
               <th className="w-24 px-2 py-2">Velocity</th>
@@ -467,9 +468,9 @@ function ReplenishmentTable({
           </thead>
           <tbody className="divide-y divide-slate-100">
             {loading ? (
-              <tr><td colSpan={14} className="px-3 py-8 text-center text-slate-500">Loading sourcing rows...</td></tr>
+              <tr><td colSpan={15} className="px-3 py-8 text-center text-slate-500">Loading sourcing rows...</td></tr>
             ) : rows.length === 0 ? (
-              <tr><td colSpan={14} className="px-3 py-8 text-center text-slate-500">No sourcing rows found for this view.</td></tr>
+              <tr><td colSpan={15} className="px-3 py-8 text-center text-slate-500">No sourcing rows found for this view.</td></tr>
             ) : (
               rows.map((row) => (
                 <tr key={row.opportunityId} className="align-top hover:bg-slate-50">
@@ -551,6 +552,14 @@ function ReplenishmentTable({
                       formatMoney={money}
                     />
                     <div className="text-xs text-slate-500">{row.keepaCurrentPriceLabel ?? "--"}</div>
+                  </td>
+                  <td className="px-2 py-2 whitespace-nowrap">
+                    <div className="font-medium text-slate-900">{money(row.myPrice)}</div>
+                    {row.myQuantity > 0 ? (
+                      <div className="text-xs text-slate-500">{row.myQuantity} in stock</div>
+                    ) : (
+                      <div className="text-xs text-slate-400">not in stock</div>
+                    )}
                   </td>
                   <td className="px-2 py-2 whitespace-nowrap">
                     <div className={

@@ -329,7 +329,7 @@ export async function GET(request: NextRequest) {
       keepaPrices,
       myListings,
       lastSoldPrices,
-      feeEstimates,
+      skuPrices,
     ] = await Promise.all([
       fetchAmazonTitleFallbacks(asins),
       fetchSystemFallbacks(asins),
@@ -337,8 +337,9 @@ export async function GET(request: NextRequest) {
       fetchKeepaPrices(asins),
       fetchMyListings(asins),
       fetchLastSoldPrices(asins),
-      fetchFeeEstimates(candidates),
+      fetchSkuPrices(asins),
     ]);
+    const feeEstimates = await fetchFeeEstimates(candidates, myListings, skuPrices);
     const candidatesWithFallbacks = candidates.map((candidate) => ({
       ...candidate,
       system: candidate.system || systemFallbacks.get(candidate.asin) || null,
@@ -351,6 +352,7 @@ export async function GET(request: NextRequest) {
         preferredMskus,
         keepaPrices,
         myListings,
+        skuPrices,
         lastSoldPrices,
         feeEstimates
       )
@@ -1422,6 +1424,7 @@ function groupCandidates(
     fulfillment_channel: "fba" | "mf" | null;
     updated_at: string | null;
   }>,
+  skuPrices: Map<string, number>,
   lastSoldPrices: Map<string, LastSoldRow>,
   feeEstimates: Map<string, {
     listing_price: number;
@@ -1555,16 +1558,18 @@ function groupCandidates(
     const myListing = myListings.get(group.asin);
     const currentPrice = currentPriceContext(keepa);
     const lastSold = lastSoldPrices.get(group.asin);
+    const hasReturnRecoveryDetail = group.details.some((detail) => detail.source_type === "amazon_return_recovery");
+    const effectiveSellPrice = group.sell_price ?? (hasReturnRecoveryDetail ? myListing?.price ?? skuPrices.get(group.asin) ?? null : null);
     const feeEstimate =
-      group.sell_price === null ? undefined : feeEstimates.get(group.asin);
+      effectiveSellPrice === null ? undefined : feeEstimates.get(group.asin);
     const costPerUnit =
       group.cost_quantity > 0 ? group.total_cost / group.cost_quantity : null;
     const profitPerUnit =
-      group.sell_price !== null &&
+      effectiveSellPrice !== null &&
       costPerUnit !== null &&
       feeEstimate?.adjusted_total_fees_estimate !== null &&
       feeEstimate?.adjusted_total_fees_estimate !== undefined
-        ? group.sell_price -
+        ? effectiveSellPrice -
           costPerUnit -
           feeEstimate.adjusted_total_fees_estimate
         : null;
@@ -1575,6 +1580,7 @@ function groupCandidates(
     return {
       ...group,
       cost_per_unit: costPerUnit,
+      sell_price: effectiveSellPrice,
       last_sold_price: lastSold?.price ?? null,
       last_sold_at: lastSold?.sold_at ?? null,
       current_buy_box_price: keepa?.buy_box_price_current ?? null,
@@ -1772,6 +1778,39 @@ async function fetchMyListings(asins: string[]) {
   }
 
   return listings;
+}
+
+async function fetchSkuPrices(asins: string[]) {
+  const prices = new Map<string, number>();
+  const chunkSize = 200;
+
+  for (let index = 0; index < asins.length; index += chunkSize) {
+    const chunk = asins.slice(index, index + chunkSize);
+    const { data, error } = await supabase
+      .from("amazon_skus")
+      .select("asin,listing_price,landed_price,updated_at")
+      .in("asin", chunk);
+
+    if (error) {
+      console.warn("FBA SKU price fallback lookup failed", error.message);
+      continue;
+    }
+
+    for (const row of (data ?? []) as unknown as Array<{
+      asin: string | null;
+      listing_price: number | string | null;
+      landed_price: number | string | null;
+    }>) {
+      const asin = normalizeAsin(row.asin);
+      if (!asin) continue;
+      const price = toNumber(row.landed_price) ?? toNumber(row.listing_price);
+      if (price === null) continue;
+      const current = prices.get(asin);
+      prices.set(asin, current === undefined ? price : Math.min(current, price));
+    }
+  }
+
+  return prices;
 }
 
 async function fetchLatestFbaInventoryQuantityByAsin(asins: string[]) {
@@ -1992,13 +2031,20 @@ function isInactiveListing(row: AmazonSkuListingRow) {
 }
 
 async function fetchFeeEstimates(
-  candidates: Array<{ asin: string; sell_price: number | null }>
+  candidates: Array<{ asin: string; sell_price: number | null; source_type?: string | null }>,
+  myListings?: Map<string, { price: number | null }>,
+  skuPrices?: Map<string, number>
 ) {
   const sellPriceByAsin = new Map<string, number>();
   for (const candidate of candidates) {
-    if (candidate.sell_price === null) continue;
+    const fallbackPrice =
+      candidate.source_type === "amazon_return_recovery"
+        ? myListings?.get(candidate.asin)?.price ?? skuPrices?.get(candidate.asin) ?? null
+        : null;
+    const candidatePrice = candidate.sell_price ?? fallbackPrice;
+    if (candidatePrice === null) continue;
     const current = sellPriceByAsin.get(candidate.asin);
-    const sellPrice = Math.round(candidate.sell_price * 100) / 100;
+    const sellPrice = Math.round(candidatePrice * 100) / 100;
     sellPriceByAsin.set(
       candidate.asin,
       current === undefined ? sellPrice : Math.max(current, sellPrice)
@@ -2447,7 +2493,7 @@ function toNumber(value?: number | string | null) {
 
 function centsToDollars(value?: number | string | null) {
   const cents = toNumber(value);
-  return cents === null ? null : Math.round(cents) / 100;
+  return cents === null || cents <= 0 ? null : Math.round(cents) / 100;
 }
 
 function roundMoney(value: number) {

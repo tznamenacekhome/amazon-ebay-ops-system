@@ -63,6 +63,23 @@ type KeepaSnapshotRow = {
   raw_keepa_json: unknown;
 };
 
+type AmazonSkuListingRow = {
+  asin: string | null;
+  fulfillment_channel: string | null;
+  listing_status: string | null;
+  item_status: string | null;
+  listing_price: number | null;
+  landed_price: number | null;
+  total_quantity: number | null;
+  fulfillable_quantity: number | null;
+  inbound_working_quantity: number | null;
+  inbound_shipped_quantity: number | null;
+  inbound_receiving_quantity: number | null;
+  reserved_quantity: number | null;
+  unfulfillable_quantity: number | null;
+  updated_at: string | null;
+};
+
 type KeepaPriceContext = {
   avg90Price: number | null;
   avg90Label: string | null;
@@ -72,6 +89,12 @@ type KeepaPriceContext = {
   currentPriceFulfillment: "fba" | "mf" | null;
   currentPriceIsBuyBox: boolean;
   imageUrl: string | null;
+};
+
+type MyListingContext = {
+  price: number | null;
+  quantity: number;
+  fulfillment: "fba" | "mf" | null;
 };
 
 type LastSaleContext = {
@@ -191,6 +214,7 @@ async function getOpportunities(request: NextRequest) {
     new Set(latestBatchOpportunityIds ?? []),
   );
   const keepaByAsin = await fetchKeepaPriceContextByAsin(rows.map((row) => row.asin));
+  const myListingByAsin = await fetchMyListingContextByAsin(rows.map((row) => row.asin));
   const amazonImageByAsin = await fetchAmazonImageFallbackByAsin(rows.map((row) => row.asin), keepaByAsin);
   const lastSaleByAsin = await fetchLastSaleContextByAsin(rows.map((row) => row.asin));
 
@@ -205,6 +229,7 @@ async function getOpportunities(request: NextRequest) {
       const originalCurrency = getOriginalCurrency(rawEbay);
       const targetSalePrice = row.target_sale_price ?? row.sourcing_seed_asins?.target_sale_price ?? null;
       const lastSale = lastSaleByAsin.get(row.asin.toUpperCase()) ?? null;
+      const myListing = myListingByAsin.get(row.asin.toUpperCase()) ?? null;
       const landedCost = row.sourcing_ebay_candidates?.landed_cost ?? null;
       const conservativeProfit = conservativeDisplayedProfit(targetSalePrice, landedCost, row.profit);
       return {
@@ -249,6 +274,9 @@ async function getOpportunities(request: NextRequest) {
         keepaCurrentPriceSource: keepaByAsin.get(row.asin)?.currentPriceSource ?? "no_data",
         keepaCurrentPriceFulfillment: keepaByAsin.get(row.asin)?.currentPriceFulfillment ?? null,
         keepaCurrentPriceIsBuyBox: keepaByAsin.get(row.asin)?.currentPriceIsBuyBox ?? false,
+        myPrice: myListing?.price ?? null,
+        myQuantity: myListing?.quantity ?? 0,
+        myPriceFulfillment: myListing?.fulfillment ?? null,
         currentInventoryUnits: row.sourcing_seed_asins?.current_inventory_units ?? null,
         monthlyVelocity: row.sourcing_seed_asins?.monthly_velocity ?? null,
         monthsOfSupply: row.sourcing_seed_asins?.months_of_supply ?? null,
@@ -861,6 +889,114 @@ async function fetchKeepaPriceContextByAsin(asins: string[]) {
   return byAsin;
 }
 
+async function fetchMyListingContextByAsin(asins: string[]) {
+  const uniqueAsins = [...new Set(asins.map((asin) => asin?.toUpperCase()).filter(Boolean))];
+  const inventoryQuantityByAsin = await fetchLatestFbaInventoryQuantityByAsin(uniqueAsins);
+  const byAsin = new Map<string, MyListingContext>();
+
+  for (let index = 0; index < uniqueAsins.length; index += 200) {
+    const chunk = uniqueAsins.slice(index, index + 200);
+    const { data, error } = await supabase
+      .from("amazon_skus")
+      .select(
+        [
+          "asin",
+          "fulfillment_channel",
+          "listing_status",
+          "item_status",
+          "listing_price",
+          "landed_price",
+          "total_quantity",
+          "fulfillable_quantity",
+          "inbound_working_quantity",
+          "inbound_shipped_quantity",
+          "inbound_receiving_quantity",
+          "reserved_quantity",
+          "unfulfillable_quantity",
+          "updated_at",
+        ].join(",")
+      )
+      .in("asin", chunk);
+
+    if (error) throw new Error(`Amazon SKU listings: ${error.message}`);
+
+    for (const row of (data ?? []) as unknown as AmazonSkuListingRow[]) {
+      const asin = row.asin?.toUpperCase();
+      if (!asin || isInactiveListing(row)) continue;
+
+      const quantity = inventoryQuantityByAsin.get(asin) ?? listingQuantity(row);
+      const price = toNumber(row.landed_price) ?? toNumber(row.listing_price);
+      if (quantity <= 0 && price === null) continue;
+
+      const fulfillment = fulfillmentKind(row.fulfillment_channel);
+      const existing = byAsin.get(asin);
+      if (!existing) {
+        byAsin.set(asin, { price, quantity, fulfillment });
+        continue;
+      }
+
+      existing.quantity = Math.max(existing.quantity, quantity);
+      if (
+        price !== null &&
+        (existing.price === null ||
+          price < existing.price ||
+          (Math.abs(price - existing.price) < 0.01 &&
+            existing.fulfillment !== "fba" &&
+            fulfillment === "fba"))
+      ) {
+        existing.price = price;
+        existing.fulfillment = fulfillment;
+      }
+    }
+  }
+
+  return byAsin;
+}
+
+async function fetchLatestFbaInventoryQuantityByAsin(asins: string[]) {
+  const quantityByAsin = new Map<string, number>();
+  const latest = await supabase
+    .from("amazon_fba_inventory_snapshots")
+    .select("captured_at")
+    .order("captured_at", { ascending: false })
+    .limit(1);
+
+  if (latest.error) throw new Error(`FBA inventory latest snapshot: ${latest.error.message}`);
+
+  const capturedAt = latest.data?.[0]?.captured_at;
+  if (!capturedAt) return quantityByAsin;
+
+  for (let index = 0; index < asins.length; index += 200) {
+    const chunk = asins.slice(index, index + 200);
+    const { data, error } = await supabase
+      .from("amazon_fba_inventory_snapshots")
+      .select(
+        [
+          "asin",
+          "total_quantity",
+          "fulfillable_quantity",
+          "inbound_working_quantity",
+          "inbound_shipped_quantity",
+          "inbound_receiving_quantity",
+          "reserved_quantity",
+          "unfulfillable_quantity",
+        ].join(",")
+      )
+      .eq("captured_at", capturedAt)
+      .in("asin", chunk);
+
+    if (error) throw new Error(`FBA inventory quantities: ${error.message}`);
+
+    for (const row of (data ?? []) as unknown as AmazonSkuListingRow[]) {
+      const asin = row.asin?.toUpperCase();
+      if (!asin) continue;
+      quantityByAsin.set(asin, (quantityByAsin.get(asin) ?? 0) + inventoryQuantity(row));
+    }
+  }
+
+  return quantityByAsin;
+}
+
 function keepaCurrentPriceContext(input: {
   hasOfferData: boolean;
   buyBoxCurrent: number | null;
@@ -935,6 +1071,51 @@ function hasKeepaOfferValue(value: unknown): boolean {
   if (typeof value === "string") return value.trim() !== "" && value !== "-1";
   if (typeof value === "number") return Number.isFinite(value) && value > 0;
   return false;
+}
+
+function listingQuantity(row: AmazonSkuListingRow) {
+  const fulfillable = toNumber(row.fulfillable_quantity);
+  if (fulfillable !== null) return Math.max(0, Math.floor(fulfillable));
+  const total = toNumber(row.total_quantity);
+  return total === null ? 0 : Math.max(0, Math.floor(total));
+}
+
+function inventoryQuantity(row: {
+  total_quantity?: number | string | null;
+  fulfillable_quantity?: number | string | null;
+  inbound_working_quantity?: number | string | null;
+  inbound_shipped_quantity?: number | string | null;
+  inbound_receiving_quantity?: number | string | null;
+  reserved_quantity?: number | string | null;
+  unfulfillable_quantity?: number | string | null;
+}) {
+  const total = toNumber(row.total_quantity);
+  if (total !== null) return Math.max(0, Math.floor(total));
+
+  return [
+    row.fulfillable_quantity,
+    row.inbound_working_quantity,
+    row.inbound_shipped_quantity,
+    row.inbound_receiving_quantity,
+    row.reserved_quantity,
+    row.unfulfillable_quantity,
+  ].reduce<number>((sum, value) => sum + Math.max(0, Math.floor(toNumber(value) ?? 0)), 0);
+}
+
+function fulfillmentKind(value: string | null) {
+  const normalized = String(value ?? "").trim().toLowerCase();
+  if (["amazon", "amazon_na", "afn", "fba"].includes(normalized)) return "fba" as const;
+  if (["merchant", "merchant_na", "mfn", "mf"].includes(normalized)) return "mf" as const;
+  return null;
+}
+
+function isInactiveListing(row: AmazonSkuListingRow) {
+  const status = [row.listing_status, row.item_status]
+    .map((value) => String(value ?? "").trim().toLowerCase())
+    .filter(Boolean);
+  return status.some((value) =>
+    ["inactive", "deleted", "closed", "suppressed", "incomplete"].includes(value)
+  );
 }
 
 function keepaBoolean(rawKeepa: unknown, key: string) {
@@ -1100,7 +1281,7 @@ function unitSalePrice(salePrice: number | null | undefined, quantity: number | 
 }
 
 function centsToDollars(value: number | null | undefined) {
-  return typeof value === "number" ? value / 100 : null;
+  return typeof value === "number" && value > 0 ? value / 100 : null;
 }
 
 function keepaStatsCentsToDollars(rawKeepa: unknown, statsKey: "avg90" | "current", index: number) {
@@ -1110,7 +1291,7 @@ function keepaStatsCentsToDollars(rawKeepa: unknown, statsKey: "avg90" | "curren
   const values = (stats as Record<string, unknown>)[statsKey];
   if (!Array.isArray(values)) return null;
   const cents = values[index];
-  return typeof cents === "number" && cents >= 0 ? cents / 100 : null;
+  return typeof cents === "number" && cents > 0 ? cents / 100 : null;
 }
 
 function listingImageUrl(rawListing: unknown) {
