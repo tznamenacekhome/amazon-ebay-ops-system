@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 import type { SourcingBatch, SourcingOpportunity, SourcingRun, SourcingSettings } from "./types";
 import { useSourcingOpportunities } from "./useSourcingOpportunities";
-import { dismissReasonGroups } from "./matchingTaxonomy";
+import { dismissReasons } from "./matchingTaxonomy";
 import { mutationHeaders } from "../mutationHeaders";
 import { KeepaPriceIndicator } from "../components/KeepaPriceIndicator";
 
@@ -768,31 +768,25 @@ function DismissOpportunityDialog({
           <div className="mt-1 text-sm font-medium text-slate-950">{row.ebayTitle}</div>
           <div className="mt-1 font-mono text-xs text-slate-500">{row.asin}</div>
         </div>
-        <div className="space-y-3 px-4 py-4">
-          <label className="block text-sm font-medium text-slate-700">
-            Notes
-            <textarea value={notes} onChange={(event) => setNotes(event.target.value)} className="mt-1 min-h-24 w-full rounded-md border border-slate-300 p-2 text-sm" />
-          </label>
-          <ImageClueButtons selected={imageClues} onChange={setImageClues} />
-          <div className="rounded-md border border-red-200 bg-red-50 p-3">
-            <div className="text-sm font-medium text-red-900">Block this ASIN from sourcing</div>
-            <div className="mt-1 text-xs text-red-700">
-              Use this when the Amazon ASIN itself should not be replenished, even if similar listings appear again.
-            </div>
-            <button
-              type="button"
-              disabled={busy}
-              onClick={() => void onBlockAsin(notes, imageClues)}
-              className="mt-3 inline-flex h-9 items-center gap-2 rounded-md border border-red-300 bg-white px-3 text-sm font-medium text-red-700 hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              <Ban className="h-4 w-4" />
-              Block ASIN
-            </button>
-          </div>
+        <div className="space-y-3 px-4 py-3">
           <DismissReasonButtons
             busy={busy}
             onChoose={(reason) => void onDismiss(reason, notes, imageClues)}
           />
+          <ImageClueButtons selected={imageClues} onChange={setImageClues} />
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => void onBlockAsin(notes, imageClues)}
+            className="inline-flex h-9 items-center gap-2 rounded-md border border-red-300 bg-white px-3 text-sm font-medium text-red-700 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <Ban className="h-4 w-4" />
+            Block ASIN
+          </button>
+          <label className="block text-sm font-medium text-slate-700">
+            Notes
+            <textarea value={notes} onChange={(event) => setNotes(event.target.value)} className="mt-1 min-h-12 w-full rounded-md border border-slate-300 p-2 text-sm" />
+          </label>
         </div>
         <div className="flex justify-end gap-2 border-t border-slate-200 px-4 py-3">
           <button onClick={onClose} disabled={busy} className="rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-700 hover:bg-slate-50">
@@ -828,35 +822,29 @@ function BulkDismissOpportunityDialog({
           <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">Dismiss Selected</div>
           <div className="mt-1 text-sm font-medium text-slate-950">{rows.length} sourcing rows selected</div>
         </div>
-        <div className="space-y-3 px-4 py-4">
-          <label className="block text-sm font-medium text-slate-700">
-            Notes
-            <textarea value={notes} onChange={(event) => setNotes(event.target.value)} className="mt-1 min-h-24 w-full rounded-md border border-slate-300 p-2 text-sm" />
-          </label>
-          <ImageClueButtons selected={imageClues} onChange={setImageClues} />
-          <div className="rounded-md border border-red-200 bg-red-50 p-3">
-            <div className="text-sm font-medium text-red-900">Block selected ASINs from sourcing</div>
-            <div className="mt-1 text-xs text-red-700">
-              Blocks {uniqueAsinCount} ASIN{uniqueAsinCount === 1 ? "" : "s"} and dismisses the selected opportunity rows.
-            </div>
-            <button
-              type="button"
-              disabled={busy || rows.length === 0}
-              onClick={() => {
-                if (window.confirm(`Block ${uniqueAsinCount} ASIN${uniqueAsinCount === 1 ? "" : "s"} from future sourcing?`)) {
-                  void onBlockAsins(notes, imageClues);
-                }
-              }}
-              className="mt-3 inline-flex h-9 items-center gap-2 rounded-md border border-red-300 bg-white px-3 text-sm font-medium text-red-700 hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              <Ban className="h-4 w-4" />
-              Block ASIN
-            </button>
-          </div>
+        <div className="space-y-3 px-4 py-3">
           <DismissReasonButtons
             busy={busy || rows.length === 0}
             onChoose={(reason) => void onDismiss(reason, notes, imageClues)}
           />
+          <ImageClueButtons selected={imageClues} onChange={setImageClues} />
+          <button
+            type="button"
+            disabled={busy || rows.length === 0 || uniqueAsinCount === 0}
+            onClick={() => {
+              if (window.confirm(`Block ${uniqueAsinCount} ASIN${uniqueAsinCount === 1 ? "" : "s"} from future sourcing?`)) {
+                void onBlockAsins(notes, imageClues);
+              }
+            }}
+            className="inline-flex h-9 items-center gap-2 rounded-md border border-red-300 bg-white px-3 text-sm font-medium text-red-700 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <Ban className="h-4 w-4" />
+            Block ASIN
+          </button>
+          <label className="block text-sm font-medium text-slate-700">
+            Notes
+            <textarea value={notes} onChange={(event) => setNotes(event.target.value)} className="mt-1 min-h-12 w-full rounded-md border border-slate-300 p-2 text-sm" />
+          </label>
         </div>
         <div className="flex justify-end gap-2 border-t border-slate-200 px-4 py-3">
           <button onClick={onClose} disabled={busy} className="rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-700 hover:bg-slate-50">
@@ -878,23 +866,16 @@ function DismissReasonButtons({
   return (
     <div>
       <div className="mb-2 text-sm font-medium text-slate-700">Choose reason to dismiss</div>
-      <div className="space-y-3">
-        {dismissReasonGroups.map((group) => (
-          <div key={group.label}>
-            <div className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-500">{group.label}</div>
-            <div className="grid gap-2 sm:grid-cols-2">
-              {group.reasons.map(([value, reasonLabel]) => (
-                <button
-                  key={value}
-                  disabled={busy}
-                  onClick={() => onChoose(value)}
-                  className="rounded-md border border-slate-300 bg-white px-3 py-2 text-left text-sm font-medium text-slate-700 hover:border-red-200 hover:bg-red-50 hover:text-red-700 disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  {reasonLabel}
-                </button>
-              ))}
-            </div>
-          </div>
+      <div className="grid gap-2 sm:grid-cols-2">
+        {dismissReasons.map(([value, reasonLabel]) => (
+          <button
+            key={value}
+            disabled={busy}
+            onClick={() => onChoose(value)}
+            className="rounded-md border border-slate-300 bg-white px-3 py-2 text-left text-sm font-medium text-slate-700 hover:border-red-200 hover:bg-red-50 hover:text-red-700 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {reasonLabel}
+          </button>
         ))}
       </div>
     </div>
