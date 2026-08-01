@@ -54,7 +54,29 @@ def main() -> int:
     args = parse_args()
     supabase = get_supabase_client()
     settings = fetch_settings(supabase)
-    token = get_access_token()
+    try:
+        token = get_access_token()
+    except EbayTransientError as error:
+        print(f"eBay sourcing search paused: {error}", flush=True)
+        supabase.table("sourcing_runs").update(
+            {
+                "status": "running",
+                "raw_summary_json": {
+                    "ebay_search": {
+                        **error.metrics,
+                        "rate_limited": False,
+                        "stop_reason": "ebay_transient_error",
+                        "message": str(error),
+                        "offset": args.offset,
+                        "requested_seed_count": 0,
+                        "searched_seed_count": 0,
+                        "max_api_calls": args.max_api_calls,
+                        "video_games_category_id": EBAY_US_VIDEO_GAMES_CATEGORY_ID,
+                    }
+                },
+            }
+        ).eq("sourcing_run_id", args.run_id).execute()
+        return 0
     seeds = fetch_seeds(supabase, args.run_id, args.limit, args.offset)
     keepa_prices_by_asin = fetch_keepa_price_context_by_asin(supabase, [row.get("asin") for row in seeds])
     matching_context = fetch_matching_context(supabase)
@@ -64,6 +86,8 @@ def main() -> int:
     searched_seed_count = 0
     rate_limited = False
     rate_limit_message = None
+    transient_error = False
+    transient_error_message = None
 
     for index, seed in enumerate(seeds, start=1):
         queries = search_queries_for_seed(seed)
@@ -84,6 +108,12 @@ def main() -> int:
                 rate_limited = True
                 rate_limit_message = str(error)
                 print(f"eBay sourcing search paused: {rate_limit_message}", flush=True)
+                break
+            except EbayTransientError as error:
+                add_metrics(metrics, error.metrics)
+                transient_error = True
+                transient_error_message = str(error)
+                print(f"eBay sourcing search paused: {transient_error_message}", flush=True)
                 break
             for item in items:
                 if args.max_api_calls is not None and total_browse_calls(metrics) >= args.max_api_calls:
@@ -133,6 +163,12 @@ def main() -> int:
                         rate_limit_message = str(error)
                         print(f"eBay sourcing search paused: {rate_limit_message}", flush=True)
                         break
+                    except EbayTransientError as error:
+                        add_metrics(metrics, error.metrics)
+                        transient_error = True
+                        transient_error_message = str(error)
+                        print(f"eBay sourcing search paused: {transient_error_message}", flush=True)
+                        break
                     final_row = map_item(seed, detail_item)
                     final_decision = candidate_decision(
                         final_row,
@@ -165,10 +201,10 @@ def main() -> int:
                 ebay_item_id = str(final_row.get("ebay_item_id") or "")
                 if ebay_item_id:
                     rows_by_item_id[ebay_item_id] = final_row
-            if rate_limited:
+            if rate_limited or transient_error:
                 break
             time.sleep(args.pause_seconds)
-        if rate_limited:
+        if rate_limited or transient_error:
             break
         if not queries:
             metrics["skipped_unsourced_seed_count"] += 1
@@ -207,8 +243,10 @@ def main() -> int:
                     if rate_limited and "quota budget exhausted" in str(rate_limit_message or "")
                     else "ebay_rate_limited"
                     if rate_limited
+                    else "ebay_transient_error"
+                    if transient_error
                     else None,
-                    "message": rate_limit_message,
+                    "message": rate_limit_message or transient_error_message,
                     "offset": args.offset,
                     "requested_seed_count": len(seeds),
                     "searched_seed_count": searched_seed_count,
@@ -578,21 +616,51 @@ def mark_detail_reason_retained(metrics: dict[str, Any], record: dict[str, Any])
 
 def get_access_token() -> str:
     credentials = f"{required_env('EBAY_CLIENT_ID')}:{required_env('EBAY_CLIENT_SECRET')}"
-    response = requests.post(
-        "https://api.ebay.com/identity/v1/oauth2/token",
-        headers={
-            "Content-Type": "application/x-www-form-urlencoded",
-            "Authorization": f"Basic {base64.b64encode(credentials.encode()).decode()}",
-        },
-        data={
-            "grant_type": "refresh_token",
-            "refresh_token": required_env("EBAY_REFRESH_TOKEN"),
-            "scope": "https://api.ebay.com/oauth/api_scope",
-        },
-        timeout=30,
-    )
-    response.raise_for_status()
-    return response.json()["access_token"]
+    last_response: requests.Response | None = None
+    last_error: requests.RequestException | None = None
+    metrics = empty_call_metrics()
+    for attempt in range(1, MAX_HTTP_RETRIES + 1):
+        metrics["search_call_count"] += 1
+        try:
+            response = requests.post(
+                "https://api.ebay.com/identity/v1/oauth2/token",
+                headers={
+                    "Content-Type": "application/x-www-form-urlencoded",
+                    "Authorization": f"Basic {base64.b64encode(credentials.encode()).decode()}",
+                },
+                data={
+                    "grant_type": "refresh_token",
+                    "refresh_token": required_env("EBAY_REFRESH_TOKEN"),
+                    "scope": "https://api.ebay.com/oauth/api_scope",
+                },
+                timeout=30,
+            )
+            last_response = response
+            if response.ok:
+                return response.json()["access_token"]
+            if response.status_code != 429 and response.status_code < 500:
+                response.raise_for_status()
+            if response.status_code == 429:
+                metrics["rate_limited_http_attempt_count"] += 1
+            else:
+                metrics["failed_search_call_count"] += 1
+        except requests.RequestException as error:
+            last_error = error
+            metrics["failed_search_call_count"] += 1
+        if attempt == MAX_HTTP_RETRIES:
+            break
+        metrics["retry_http_attempt_count"] += 1
+        sleep_seconds = retry_after_seconds(last_response, attempt)
+        print(
+            f"eBay OAuth token retry {attempt}/{MAX_HTTP_RETRIES - 1} in {sleep_seconds:.1f}s.",
+            flush=True,
+        )
+        time.sleep(sleep_seconds)
+
+    if last_error is not None:
+        raise EbayTransientError(f"eBay OAuth token request failed after {MAX_HTTP_RETRIES} attempts: {last_error}", metrics)
+    status = last_response.status_code if last_response is not None else "unknown"
+    raise EbayTransientError(f"eBay OAuth token request returned {status} after {MAX_HTTP_RETRIES} attempts", metrics)
 
 
 def search_ebay(token: str, query: str, settings, limit: int) -> tuple[list[dict[str, Any]], dict[str, int]]:
@@ -704,36 +772,53 @@ class EbayRateLimitedError(RuntimeError):
         self.metrics = metrics or empty_call_metrics()
 
 
+class EbayTransientError(RuntimeError):
+    def __init__(self, message: str, metrics: dict[str, int] | None = None):
+        super().__init__(message)
+        self.metrics = metrics or empty_call_metrics()
+
+
 def get_with_retries(url: str, *, call_type: str, **kwargs) -> tuple[requests.Response, dict[str, int]]:
     last_response: requests.Response | None = None
+    last_error: requests.RequestException | None = None
     metrics = empty_call_metrics()
     for attempt in range(1, MAX_HTTP_RETRIES + 1):
-        response = requests.get(url, **kwargs)
         metrics[f"{call_type}_call_count"] += 1
-        last_response = response
-        if response.status_code != 429:
-            if not response.ok:
+        try:
+            response = requests.get(url, **kwargs)
+            last_response = response
+            if response.status_code != 429 and response.status_code < 500:
+                if not response.ok:
+                    metrics[f"failed_{call_type}_call_count"] += 1
+                return response, metrics
+            if response.status_code == 429:
+                metrics["rate_limited_http_attempt_count"] += 1
+            else:
                 metrics[f"failed_{call_type}_call_count"] += 1
-            return response, metrics
-        metrics["rate_limited_http_attempt_count"] += 1
+        except requests.RequestException as error:
+            last_error = error
+            metrics[f"failed_{call_type}_call_count"] += 1
         if attempt == MAX_HTTP_RETRIES:
             break
         metrics["retry_http_attempt_count"] += 1
-        sleep_seconds = retry_after_seconds(response, attempt)
+        sleep_seconds = retry_after_seconds(last_response, attempt)
         print(
-            f"eBay Browse rate limited (429). Retry {attempt}/{MAX_HTTP_RETRIES - 1} in {sleep_seconds:.1f}s.",
+            f"eBay Browse {call_type} retry {attempt}/{MAX_HTTP_RETRIES - 1} in {sleep_seconds:.1f}s.",
             flush=True,
         )
         time.sleep(sleep_seconds)
-    assert last_response is not None
-    if last_response.status_code == 429:
+    if last_response is not None and last_response.status_code == 429:
         metrics[f"failed_{call_type}_call_count"] += 1
         raise EbayRateLimitedError(f"eBay Browse returned 429 after {MAX_HTTP_RETRIES} attempts", metrics)
-    return last_response, metrics
+    if last_error is not None:
+        raise EbayTransientError(f"eBay Browse request failed after {MAX_HTTP_RETRIES} attempts: {last_error}", metrics)
+    if last_response is not None:
+        raise EbayTransientError(f"eBay Browse returned {last_response.status_code} after {MAX_HTTP_RETRIES} attempts", metrics)
+    raise EbayTransientError(f"eBay Browse request failed after {MAX_HTTP_RETRIES} attempts", metrics)
 
 
-def retry_after_seconds(response: requests.Response, attempt: int) -> float:
-    retry_after = response.headers.get("Retry-After")
+def retry_after_seconds(response: requests.Response | None, attempt: int) -> float:
+    retry_after = response.headers.get("Retry-After") if response is not None else None
     if retry_after:
         try:
             return min(max(float(retry_after), 1.0), 90.0)

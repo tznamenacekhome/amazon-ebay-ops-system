@@ -160,11 +160,26 @@ def main() -> int:
         ]
         if remaining_budget is not None:
             search_step.extend(["--max-api-calls", str(remaining_budget)])
-        run_python(search_step)
+        search_failed = False
+        try:
+            run_python(search_step)
+        except subprocess.CalledProcessError as error:
+            search_failed = True
+            print(f"Daily catalog sourcing search chunk failed: {error}", flush=True)
 
         search_summary = fetch_ebay_search_summary(supabase, run_id)
+        if search_summary.get("offset") != offset:
+            search_summary = {
+                **empty_ebay_search_summary(),
+                "offset": offset,
+                "requested_seed_count": search_limit,
+                "searched_seed_count": 0,
+                "api_call_count": 0,
+                "stop_reason": "ebay_child_failed",
+                "message": f"Search chunk failed before writing a summary at offset {offset}",
+            }
         merge_ebay_search_summary(ebay_search_summary, search_summary)
-        searched_this_chunk = int_value(search_summary.get("searched_seed_count"), search_limit)
+        searched_this_chunk = min(int_value(search_summary.get("searched_seed_count"), 0), search_limit)
         calls_this_chunk = int_value(search_summary.get("api_call_count"), searched_this_chunk)
         searched_items = pending[:searched_this_chunk]
         searched_total += searched_this_chunk
@@ -172,12 +187,16 @@ def main() -> int:
         searched_asins_this_run.update(clean_asin(row.get("asin")) for row in searched_items if clean_asin(row.get("asin")))
         last_queue_position = searched_items[-1]["queue_position"] if searched_items else last_queue_position
 
-        run_python(["integrations/score_sourcing_opportunities.py", "--run-id", run_id, "--update-existing"])
-        update_cycle_items_after_chunk(supabase, run_id, searched_items, calls_this_chunk)
+        if searched_this_chunk > 0:
+            run_python(["integrations/score_sourcing_opportunities.py", "--run-id", run_id, "--update-existing"])
+            update_cycle_items_after_chunk(supabase, run_id, searched_items, calls_this_chunk)
         refresh_cycle_metrics(supabase, cycle["coverage_cycle_id"], run_id=run_id)
 
         if searched_this_chunk < len(pending):
             mark_items_status(supabase, [row["cycle_item_id"] for row in pending[searched_this_chunk:]], "retryable_failed")
+        if search_failed:
+            stop_reason = str(search_summary.get("stop_reason") or "ebay_child_failed")
+            break
         if search_summary.get("stop_reason") == "ebay_out_of_quota":
             budget, remaining_budget = refresh_budget_from_live_quota(
                 args.browse_quota_reserve,
@@ -192,6 +211,9 @@ def main() -> int:
             continue
         if search_summary.get("rate_limited"):
             stop_reason = "ebay_rate_limited"
+            break
+        if search_summary.get("stop_reason") == "ebay_transient_error":
+            stop_reason = "ebay_transient_error"
             break
         if args.single_chunk:
             stop_reason = "manual_chunk_limit"
