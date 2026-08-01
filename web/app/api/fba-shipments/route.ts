@@ -277,8 +277,11 @@ export async function GET(request: NextRequest) {
     const rows = await fetchReceivedRows();
     const itemIds = rows.map((row) => row.item_id).filter(Boolean);
     const purchaseIds = rows.map((row) => row.purchase_id).filter(Boolean);
-    const itemMeta = await fetchItemMeta(itemIds);
-    const purchaseMeta = await fetchPurchaseMeta(purchaseIds);
+    const [itemMeta, purchaseMeta, returnCandidates] = await Promise.all([
+      fetchItemMeta(itemIds),
+      fetchPurchaseMeta(purchaseIds),
+      fetchReturnRecoveryFbaCandidates(),
+    ]);
 
     const metaByItemId = new Map(itemMeta.map((item) => [item.item_id, item]));
     const supplierByPurchaseId = new Map(
@@ -316,21 +319,30 @@ export async function GET(request: NextRequest) {
         },
       ];
     });
-    const returnCandidates = await fetchReturnRecoveryFbaCandidates();
     const candidates = [...purchaseCandidates, ...returnCandidates];
 
     const asins = Array.from(new Set(candidates.map((candidate) => candidate.asin)));
-    const titleFallbacks = await fetchAmazonTitleFallbacks(asins);
-    const systemFallbacks = await fetchSystemFallbacks(asins);
-    const preferredMskus = await fetchPreferredFbaMskus(asins);
-    const keepaPrices = await fetchKeepaPrices(asins);
-    const myListings = await fetchMyListings(asins);
-    const lastSoldPrices = await fetchLastSoldPrices(asins);
+    const [
+      titleFallbacks,
+      systemFallbacks,
+      preferredMskus,
+      keepaPrices,
+      myListings,
+      lastSoldPrices,
+      feeEstimates,
+    ] = await Promise.all([
+      fetchAmazonTitleFallbacks(asins),
+      fetchSystemFallbacks(asins),
+      fetchPreferredFbaMskus(asins),
+      fetchKeepaPrices(asins),
+      fetchMyListings(asins),
+      fetchLastSoldPrices(asins),
+      fetchFeeEstimates(candidates),
+    ]);
     const candidatesWithFallbacks = candidates.map((candidate) => ({
       ...candidate,
       system: candidate.system || systemFallbacks.get(candidate.asin) || null,
     }));
-    const feeEstimates = await fetchFeeEstimates(candidatesWithFallbacks);
 
     return NextResponse.json(
       groupCandidates(

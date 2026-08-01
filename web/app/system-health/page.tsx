@@ -651,25 +651,25 @@ function SchedulerGroupDrawer({ group, onClose }: { group: SchedulerGroup; onClo
             <section className="mt-5">
               <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-500">Catalog Cycles</h3>
               <div className="mt-2 overflow-x-auto rounded-lg border border-slate-200">
-                <table className="min-w-[900px] table-fixed text-left text-sm">
+                <table className="min-w-[800px] table-fixed text-left text-sm">
                   <colgroup>
-                    <col className="w-[120px]" />
+                    <col className="w-[110px]" />
+                    <col className="w-[82px]" />
+                    <col className="w-[138px]" />
+                    <col className="w-[128px]" />
+                    <col className="w-[125px]" />
+                    <col className="w-[94px]" />
+                    <col className="w-[118px]" />
                     <col className="w-[90px]" />
-                    <col className="w-[150px]" />
-                    <col className="w-[130px]" />
-                    <col className="w-[120px]" />
-                    <col className="w-[145px]" />
-                    <col className="w-[130px]" />
-                    <col className="w-[105px]" />
                   </colgroup>
                   <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
                     <tr>
                       <th className="px-3 py-2">Cycle</th>
                       <th className="px-3 py-2">Status</th>
                       <th className="px-3 py-2">Started</th>
-                      <th className="px-3 py-2 text-right">Covered</th>
-                      <th className="px-3 py-2 text-right">Remaining</th>
-                      <th className="px-3 py-2 text-right">Cycle Tokens Used</th>
+                      <th className="px-3 py-2 text-right">ASINs Covered</th>
+                      <th className="px-3 py-2 text-right">ASINs Remaining</th>
+                      <th className="px-3 py-2 text-right">Tokens</th>
                       <th className="px-3 py-2 text-right">Avg Tokens / ASIN</th>
                       <th className="px-3 py-2 text-right">Duration</th>
                     </tr>
@@ -713,7 +713,7 @@ function SchedulerGroupDrawer({ group, onClose }: { group: SchedulerGroup; onClo
                 </table>
               </div>
               <div className="mt-2 text-xs text-slate-500">
-                Cycle Tokens Used is the cumulative Keepa token spend recorded so far for that catalog cycle.
+                Tokens is the cumulative Keepa token spend recorded so far for that catalog cycle.
               </div>
             </section>
           ) : null}

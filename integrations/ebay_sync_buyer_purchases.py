@@ -636,6 +636,18 @@ def get_order_status(order):
     return child_text(order, "OrderStatus")
 
 
+def get_checkout_status(order):
+    checkout = find_first(order, "CheckoutStatus")
+    return child_text(checkout, "Status") if checkout is not None else None
+
+
+def order_is_incomplete_unpaid_checkout(order):
+    checkout_status = (get_checkout_status(order) or "").strip().lower()
+    amount_paid = parse_money(child_text(order, "AmountPaid"))
+    has_tracking = bool(extract_tracking_candidates(order))
+    return checkout_status == "incomplete" and amount_paid <= Decimal("0.00") and not has_tracking
+
+
 def order_has_shipped_time(order):
     return find_first(order, "ShippedTime") is not None
 
@@ -1245,6 +1257,10 @@ def upsert_purchase(order, import_batch_id, access_token):
     if not order_id:
         return "skipped_missing_order_id"
 
+    if order_is_incomplete_unpaid_checkout(order):
+        print(f"Skipping incomplete unpaid eBay checkout order {order_id}")
+        return "skipped_incomplete_unpaid_checkout"
+
     transactions = extract_transactions(order)
     existing_purchase = get_existing_purchase_for_order(order, order_id, transactions)
     tracking_candidates = extract_tracking_candidates(order)
@@ -1421,6 +1437,7 @@ def main():
     updated = 0
     skipped_existing_with_tracking = 0
     skipped_missing_order_id = 0
+    skipped_incomplete_unpaid_checkout = 0
     skipped_other = 0
 
     for index, order in enumerate(orders, start=1):
@@ -1434,6 +1451,8 @@ def main():
             skipped_existing_with_tracking += 1
         elif result == "skipped_missing_order_id":
             skipped_missing_order_id += 1
+        elif result == "skipped_incomplete_unpaid_checkout":
+            skipped_incomplete_unpaid_checkout += 1
         else:
             skipped_other += 1
 
@@ -1446,6 +1465,7 @@ def main():
     print(f"Updated: {updated}")
     print(f"Skipped existing with tracking: {skipped_existing_with_tracking}")
     print(f"Skipped missing order id: {skipped_missing_order_id}")
+    print(f"Skipped incomplete unpaid checkout: {skipped_incomplete_unpaid_checkout}")
     print(f"Skipped other: {skipped_other}")
 
 

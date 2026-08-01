@@ -586,6 +586,7 @@ def write_rows(supabase, examples: list[dict[str, Any]], snapshots: list[dict[st
             example["listing_snapshot_id"] = snapshots_by_source[source_key].get("listing_snapshot_id")
         normalize_example_defaults(example)
     clear_missing_snapshot_references(supabase, examples)
+    clear_missing_purchase_item_references(supabase, examples)
 
     for batch in chunked(examples, 250):
         supabase.table("matching_intelligence_examples").insert(batch).execute()
@@ -606,6 +607,27 @@ def clear_missing_snapshot_references(supabase, examples: list[dict[str, Any]]) 
         snapshot_id = row.get("listing_snapshot_id")
         if snapshot_id and str(snapshot_id) not in valid_ids:
             row["listing_snapshot_id"] = None
+
+
+def clear_missing_purchase_item_references(supabase, examples: list[dict[str, Any]]) -> None:
+    purchase_item_ids = sorted({row.get("purchase_item_id") for row in examples if row.get("purchase_item_id")})
+    valid_ids: set[str] = set()
+    for batch in [purchase_item_ids[index : index + 100] for index in range(0, len(purchase_item_ids), 100)]:
+        response = (
+            supabase.table("purchase_items")
+            .select("item_id")
+            .in_("item_id", batch)
+            .execute()
+        )
+        valid_ids.update(str(row.get("item_id")) for row in response.data or [])
+    cleared = 0
+    for row in examples:
+        purchase_item_id = row.get("purchase_item_id")
+        if purchase_item_id and str(purchase_item_id) not in valid_ids:
+            row["purchase_item_id"] = None
+            cleared += 1
+    if cleared:
+        print(f"Cleared stale purchase item references: {cleared}")
 
 
 def normalize_example_defaults(example: dict[str, Any]) -> None:
