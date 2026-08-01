@@ -906,13 +906,6 @@ async function fetchMyListingContextByAsin(asins: string[]) {
           "item_status",
           "listing_price",
           "landed_price",
-          "total_quantity",
-          "fulfillable_quantity",
-          "inbound_working_quantity",
-          "inbound_shipped_quantity",
-          "inbound_receiving_quantity",
-          "reserved_quantity",
-          "unfulfillable_quantity",
           "updated_at",
         ].join(",")
       )
