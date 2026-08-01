@@ -218,11 +218,15 @@ def clean_tracking_number(value):
     return tracking_number
 
 
-def normalize_carrier(value):
+def normalize_carrier(value, tracking_number=None):
     if not value:
         return None
 
     carrier = value.strip()
+    tracking = (tracking_number or "").strip().upper()
+
+    if carrier.lower() == "dhl ecommerce america" and tracking.startswith("EECA") and tracking.endswith("US0"):
+        return "USPS"
 
     mapping = {
         "us postal service": "USPS",
@@ -325,6 +329,14 @@ def is_carrier_credential_error(error):
     return "Credentials not found for the specified carrier" in str(error)
 
 
+def is_unsupported_carrier_error(error):
+    message = str(error).lower()
+    return (
+        "carrier you have provided is not supported" in message
+        or "carrier is entered correctly" in message
+    )
+
+
 def wait_for_easypost_slot():
     global last_easypost_request_at
 
@@ -383,7 +395,7 @@ def normalize_status(status):
 def create_tracker(tracking_number, carrier=None):
     payload = {"tracking_code": tracking_number}
 
-    normalized_carrier = normalize_carrier(carrier)
+    normalized_carrier = normalize_carrier(carrier, tracking_number)
 
     if normalized_carrier:
         payload["carrier"] = normalized_carrier
@@ -391,7 +403,11 @@ def create_tracker(tracking_number, carrier=None):
     try:
         return call_easypost(lambda: client.tracker.create(**payload))
     except Exception as error:
-        if not normalized_carrier or not is_carrier_credential_error(error):
+        should_retry_without_carrier = (
+            is_carrier_credential_error(error)
+            or is_unsupported_carrier_error(error)
+        )
+        if not normalized_carrier or not should_retry_without_carrier:
             raise
 
         print(
