@@ -88,6 +88,11 @@ type SaveItem = {
   quantity_to_send: number;
 };
 
+type SkippedSaveItem = {
+  item_id: string;
+  reason: "already_saved" | "ebay_marketplace";
+};
+
 type ReturnRecoveryCaseRow = {
   amazon_return_recovery_case_id: string;
   workflow_state: string | null;
@@ -853,23 +858,36 @@ export async function POST(request: Request) {
   }
 
   try {
-    const returnCasesById = await validateReturnRecoverySaveItems(requestedItems);
+    const existingShipment = await fetchShipmentByCode(shipmentCode);
+    const existingLinked = existingShipment
+      ? await fetchExistingShipmentLinks(existingShipment.fba_shipment_id)
+      : { purchaseItemIds: new Set<string>(), returnCaseIds: new Set<string>() };
+    const {
+      itemsToSave,
+      skippedItems,
+      returnCasesById,
+    } = await prepareSaveItems(requestedItems, existingLinked);
 
-    const { data: shipment, error: shipmentError } = await supabase
-      .from("fba_shipments")
-      .insert({
-        shipment_code: shipmentCode,
-        workflow_status: "finalized",
-        finalized_at: new Date().toISOString(),
-      })
-      .select("fba_shipment_id,shipment_code")
-      .single();
+    if (itemsToSave.length === 0) {
+      if (existingShipment && skippedItems.some((item) => item.reason === "already_saved")) {
+        return NextResponse.json({
+          success: true,
+          shipment: existingShipment,
+          items: [],
+          skipped_items: skippedItems,
+        });
+      }
+      return NextResponse.json(
+        { error: "At least one eligible unit must be included in the shipment", skipped_items: skippedItems },
+        { status: 400 }
+      );
+    }
 
-    if (shipmentError) throw new Error(shipmentError.message);
+    const shipment = existingShipment ?? (await createFbaShipment(shipmentCode));
 
     const savedItems = [];
 
-    for (const requestedItem of requestedItems) {
+    for (const requestedItem of itemsToSave) {
       const returnCaseId = parseReturnRecoveryItemId(requestedItem.item_id);
       const savedItem = returnCaseId
         ? await listReturnRecoveryItem(
@@ -890,6 +908,7 @@ export async function POST(request: Request) {
       success: true,
       shipment,
       items: savedItems,
+      skipped_items: skippedItems,
     });
   } catch (error) {
     return NextResponse.json(
@@ -897,6 +916,143 @@ export async function POST(request: Request) {
       { status: 500 }
     );
   }
+}
+
+async function fetchShipmentByCode(shipmentCode: string) {
+  const { data, error } = await supabase
+    .from("fba_shipments")
+    .select("fba_shipment_id,shipment_code")
+    .eq("shipment_code", shipmentCode)
+    .maybeSingle();
+
+  if (error) throw new Error(error.message);
+  return data as { fba_shipment_id: string; shipment_code: string } | null;
+}
+
+async function createFbaShipment(shipmentCode: string) {
+  const { data, error } = await supabase
+    .from("fba_shipments")
+    .insert({
+      shipment_code: shipmentCode,
+      workflow_status: "finalized",
+      finalized_at: new Date().toISOString(),
+    })
+    .select("fba_shipment_id,shipment_code")
+    .single();
+
+  if (error) {
+    if (error.message.toLowerCase().includes("duplicate")) {
+      const existing = await fetchShipmentByCode(shipmentCode);
+      if (existing) return existing;
+    }
+    throw new Error(error.message);
+  }
+  return data as { fba_shipment_id: string; shipment_code: string };
+}
+
+async function fetchExistingShipmentLinks(fbaShipmentId: string) {
+  const [itemsResponse, sourcesResponse] = await Promise.all([
+    supabase
+      .from("fba_shipment_items")
+      .select("item_id")
+      .eq("fba_shipment_id", fbaShipmentId)
+      .eq("included", true),
+    supabase
+      .from("fba_shipment_source_items")
+      .select("source_row_id")
+      .eq("fba_shipment_id", fbaShipmentId)
+      .eq("included", true),
+  ]);
+
+  if (itemsResponse.error) throw new Error(itemsResponse.error.message);
+  if (
+    sourcesResponse.error &&
+    !isMissingBridgeTableError(sourcesResponse.error.message)
+  ) {
+    throw new Error(sourcesResponse.error.message);
+  }
+
+  return {
+    purchaseItemIds: new Set(
+      ((itemsResponse.data ?? []) as Array<{ item_id: string | null }>)
+        .map((row) => row.item_id)
+        .filter((value): value is string => Boolean(value))
+    ),
+    returnCaseIds: new Set(
+      ((sourcesResponse.data ?? []) as Array<{ source_row_id: string | null }>)
+        .map((row) => row.source_row_id)
+        .filter((value): value is string => Boolean(value))
+    ),
+  };
+}
+
+async function prepareSaveItems(
+  requestedItems: SaveItem[],
+  existingLinked: { purchaseItemIds: Set<string>; returnCaseIds: Set<string> }
+) {
+  const skippedItems: SkippedSaveItem[] = [];
+  const purchaseItems: SaveItem[] = [];
+  const returnItems: SaveItem[] = [];
+
+  for (const item of requestedItems) {
+    const returnCaseId = parseReturnRecoveryItemId(item.item_id);
+    if (returnCaseId) {
+      if (existingLinked.returnCaseIds.has(returnCaseId)) {
+        skippedItems.push({ item_id: item.item_id, reason: "already_saved" });
+      } else {
+        returnItems.push(item);
+      }
+      continue;
+    }
+
+    if (existingLinked.purchaseItemIds.has(item.item_id)) {
+      skippedItems.push({ item_id: item.item_id, reason: "already_saved" });
+    } else {
+      purchaseItems.push(item);
+    }
+  }
+
+  const filteredPurchaseItems = await filterEligiblePurchaseSaveItems(purchaseItems, skippedItems);
+  const returnCasesById = await validateReturnRecoverySaveItems(returnItems);
+
+  return {
+    itemsToSave: [...filteredPurchaseItems, ...returnItems],
+    skippedItems,
+    returnCasesById,
+  };
+}
+
+async function filterEligiblePurchaseSaveItems(
+  requestedItems: SaveItem[],
+  skippedItems: SkippedSaveItem[]
+) {
+  if (!requestedItems.length) return [];
+
+  const itemIds = Array.from(new Set(requestedItems.map((item) => item.item_id)));
+  const { data, error } = await supabase
+    .from("purchase_items")
+    .select("item_id,current_status,marketplace")
+    .in("item_id", itemIds);
+
+  if (error) throw new Error(error.message);
+
+  const rowsByItemId = new Map(
+    ((data ?? []) as Array<{
+      item_id: string;
+      current_status: string | null;
+      marketplace: "Amazon" | "eBay" | null;
+    }>).map((row) => [row.item_id, row])
+  );
+
+  return requestedItems.flatMap((item) => {
+    const row = rowsByItemId.get(item.item_id);
+    if (!row) throw new Error("Purchase item was not found for FBA shipment.");
+    if (row.marketplace === "eBay") {
+      skippedItems.push({ item_id: item.item_id, reason: "ebay_marketplace" });
+      return [];
+    }
+    return [item];
+  });
 }
 
 async function validateReturnRecoverySaveItems(requestedItems: SaveItem[]) {
