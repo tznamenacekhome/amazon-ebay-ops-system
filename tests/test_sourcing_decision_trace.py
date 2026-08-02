@@ -38,17 +38,17 @@ class SourcingDecisionTraceTest(unittest.TestCase):
 
         self.assertEqual(enriched["presentationDecision"]["primaryReason"]["code"], "profitability")
 
-    def test_historical_rejected_without_block_gets_explainable_reason(self):
+    def test_current_open_row_has_no_exclusion_reason(self):
         enriched = enrich_sourcing_diagnostics(
             {"recommendation": "Strong Match", "historical_positive_count": 1},
-            status="rejected",
+            status="open",
             opportunity_type="buy_now",
             profit=20.0,
             roi_percent=80.0,
         )
 
-        self.assertEqual(enriched["presentationDecision"]["primaryReason"]["code"], "duplicate_history")
-        self.assertFalse(enriched["presentationDecision"]["eligible"])
+        self.assertIsNone(enriched["presentationDecision"]["primaryReason"])
+        self.assertTrue(enriched["presentationDecision"]["eligible"])
 
     def test_platform_beats_profitability_by_priority(self):
         enriched = enrich_sourcing_diagnostics(

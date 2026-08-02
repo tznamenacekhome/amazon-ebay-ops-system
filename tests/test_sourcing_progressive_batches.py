@@ -10,7 +10,7 @@ sys.path.insert(0, str(ROOT / "integrations"))
 
 from run_sourcing_workflow import choose_batch_opportunities, fetch_ebay_search_summary, is_presentable_opportunity, summarize_funnel_from_rows  # noqa: E402
 from ebay_api_limits import browse_call_budget, parse_browse_quota  # noqa: E402
-from score_sourcing_opportunities import required_offer_percent, suggested_max_bid, suggested_offer  # noqa: E402
+from score_sourcing_opportunities import required_offer_percent, score_candidate, suggested_max_bid, suggested_offer  # noqa: E402
 
 
 class SourcingProgressiveBatchTests(unittest.TestCase):
@@ -142,6 +142,52 @@ class SourcingProgressiveBatchTests(unittest.TestCase):
         candidate = {"best_offer_enabled": True, "price": 20, "shipping_cost": 5}
 
         self.assertIsNone(suggested_offer(candidate, 16, settings))
+
+    def test_best_offer_with_valid_offer_price_scores_open(self):
+        settings = SimpleNamespace(
+            best_offer_min_ask_percent=60,
+            excluded_keywords=[],
+            item_location_countries=["US"],
+            min_profit_dollars=5,
+            min_roi_percent=30,
+        )
+        candidate = {
+            "sourcing_run_id": "run-1",
+            "seed_id": "seed-1",
+            "candidate_id": "candidate-1",
+            "asin": "BTEST12345",
+            "ebay_title": "Test Game Xbox One",
+            "buying_options": ["FIXED_PRICE"],
+            "best_offer_enabled": True,
+            "price": 70,
+            "shipping_cost": 0,
+            "landed_cost": 70,
+            "available_quantity": 1,
+            "item_location_country": "US",
+            "raw_ebay_json": {
+                "categories": [{"categoryId": "139973", "categoryName": "Video Games"}],
+                "localizedAspects": [
+                    {"name": "Platform", "value": "Microsoft Xbox One"},
+                    {"name": "Game Name", "value": "Test Game"},
+                ],
+            },
+        }
+        seed = {
+            "asin": "BTEST12345",
+            "amazon_title": "Test Game - Xbox One",
+            "target_sale_price": 100,
+            "target_sale_price_source": "test",
+            "inventory_need_level": "high",
+            "monthly_velocity": 1,
+            "months_of_supply": 0,
+            "raw_context_json": {"estimated_fee_cost": 0},
+        }
+
+        scored = score_candidate(candidate, seed, settings, {}, {}, {})
+
+        self.assertIsNotNone(scored)
+        self.assertEqual(scored["opportunity_type"], "best_offer")
+        self.assertEqual(scored["status"], "open")
 
     def test_suggested_max_bid_subtracts_shipping_from_landed_cap(self):
         candidate = {"shipping_cost": 7.5}

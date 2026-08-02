@@ -416,13 +416,14 @@ def score_candidate(
         shipping_unknown,
         has_excluded_keyword or has_hard_block or is_review_or_non_match,
     )
+    is_presentable_type = opportunity_type in {"buy_now", "multi_unit", "best_offer", "auction"}
     potential_without_shipping = shipping_unknown and item_price > 0 and item_price <= max_profitable_landed_cost
     status = (
         "open"
         if not has_excluded_keyword
         and not has_hard_block
         and not is_review_or_non_match
-        and passes
+        and is_presentable_type
         else "rejected"
     )
     score = opportunity_score(seed, profit, roi, quantity_available, opportunity_type)

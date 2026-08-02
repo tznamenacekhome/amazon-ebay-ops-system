@@ -102,10 +102,9 @@ def enrich_sourcing_diagnostics(
         profit=profit,
         roi_percent=roi_percent,
     )
-    primary = reasons[0] if reasons else None
-    if primary is None and status == "rejected" and eligible:
-        primary = reason("current_rules_would_present")
-        reasons = [primary]
+    primary = None if eligible else reasons[0] if reasons else None
+    if eligible:
+        reasons = []
     elif primary is None and status == "rejected":
         primary = reason("unknown_rejection")
         reasons = [primary]
@@ -171,14 +170,17 @@ def build_decision_trace(
     if listing_status and str(listing_status).lower() not in {"active", "live"}:
         trace.append(trace_row("Listing availability", "opportunity_context", "fail", f"Listing status is {listing_status}.", "unavailable_listing"))
 
+    final_recommendation = recommendation(diagnostics)
     if profit is None or roi_percent is None:
         trace.append(trace_row("Profitability", "opportunity_context", "fail", "Profit or ROI could not be calculated.", "profitability"))
-    elif status == "rejected" and opportunity_type == "no_profitable_source_found":
-        trace.append(trace_row("Profitability", "opportunity_context", "fail", f"Estimated profit ${profit} and ROI {roi_percent}% did not qualify.", "profitability"))
+    elif status == "rejected" and (
+        opportunity_type == "no_profitable_source_found"
+        or (opportunity_type in PRESENTABLE_TYPES and final_recommendation in PRESENTABLE_RECOMMENDATIONS)
+    ):
+        trace.append(trace_row("Profitability", "opportunity_context", "fail", f"Estimated profit ${profit} and ROI {roi_percent}% did not qualify at the current ask/terms.", "profitability"))
     else:
         trace.append(trace_row("Profitability", "opportunity_context", "pass", f"Estimated profit ${profit} and ROI {roi_percent}%."))
 
-    final_recommendation = recommendation(diagnostics)
     if final_recommendation in PRESENTABLE_RECOMMENDATIONS:
         trace.append(trace_row("Final recommendation", "final_recommendation", "pass", f"Final recommendation is {final_recommendation}."))
     elif final_recommendation == "Blocked":
@@ -189,7 +191,7 @@ def build_decision_trace(
     if opportunity_type not in PRESENTABLE_TYPES:
         trace.append(trace_row("Presentation gate", "opportunity_context", "fail", f"Opportunity type is {opportunity_type or 'not available'}.", "profitability"))
     elif status != "open":
-        trace.append(trace_row("Presentation gate", "opportunity_context", "fail", f"Opportunity status is {status or 'not available'}.", "duplicate_history"))
+        trace.append(trace_row("Presentation gate", "opportunity_context", "fail", f"Opportunity status is {status or 'not available'}."))
     else:
         trace.append(trace_row("Presentation gate", "opportunity_context", "pass", "Opportunity is open and presentable."))
     return trace
