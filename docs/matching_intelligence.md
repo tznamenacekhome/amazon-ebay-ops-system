@@ -154,6 +154,9 @@ Amazon-to-eBay sourcing now consumes Matching Intelligence during scoring:
   each row in addition to flattened flags
 - the Matching Intelligence UI includes image clue counts and a near-miss
   review queue for title-similar dismissed/condition examples
+- sourcing presentation has a final stored-diagnostic eligibility gate:
+  hard-blocked `open` opportunities must not be inserted into presentation
+  batches or returned by the default opportunities API visibility path
 
 Rule quality can be reviewed with:
 

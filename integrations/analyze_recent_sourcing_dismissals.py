@@ -146,6 +146,18 @@ def main() -> int:
     if args.reason:
         requested = {normalize_reason(value) for value in args.reason}
         rows = [row for row in rows if normalize_reason(row.get("dismiss_reason")) in requested]
+    if args.rule_miss_class:
+        requested = {normalize_filter_value(value) for value in args.rule_miss_class}
+        rows = [row for row in rows if normalize_filter_value(row.get("rule_miss_class")) in requested]
+    if args.action_id:
+        requested = {str(value) for value in args.action_id}
+        rows = [row for row in rows if str(row.get("action_id")) in requested]
+    if args.opportunity_id:
+        requested = {str(value) for value in args.opportunity_id}
+        rows = [row for row in rows if str(row.get("opportunity_id")) in requested]
+    if args.candidate_id:
+        requested = {str(value) for value in args.candidate_id}
+        rows = [row for row in rows if str(row.get("candidate_id")) in requested]
 
     summary = build_summary(rows, excluded, args.limit)
     write_csv(args.csv, rows)
@@ -161,6 +173,10 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--limit", type=int, default=1000)
     parser.add_argument("--since-days", type=int)
     parser.add_argument("--reason", action="append", help="Limit analysis to one or more dismiss reasons.")
+    parser.add_argument("--rule-miss-class", action="append", help="Limit rows to one or more rule miss classifications.")
+    parser.add_argument("--action-id", action="append", help="Limit rows to one or more sourcing action IDs.")
+    parser.add_argument("--opportunity-id", action="append", help="Limit rows to one or more sourcing opportunity IDs.")
+    parser.add_argument("--candidate-id", action="append", help="Limit rows to one or more sourcing candidate IDs.")
     parser.add_argument("--csv", type=Path, default=DEFAULT_CSV)
     parser.add_argument("--json", type=Path)
     parser.add_argument("--report", type=Path, default=DEFAULT_REPORT)
@@ -251,6 +267,16 @@ def enrich_actions(supabase, actions: list[dict[str, Any]]) -> dict[str, dict[st
     )
     run_ids = ids(list(opportunities.values()) + list(candidates.values()) + list(snapshots_by_action.values()), "sourcing_run_id")
     runs = fetch_by_ids(supabase, "sourcing_runs", "sourcing_run_id", run_ids, "*")
+    batch_items_by_opportunity = fetch_latest_by_key(
+        supabase,
+        "sourcing_opportunity_batch_items",
+        "opportunity_id",
+        opportunity_ids,
+        "*",
+        "created_at",
+    )
+    batch_ids = ids(list(batch_items_by_opportunity.values()), "batch_id")
+    batches = fetch_by_ids(supabase, "sourcing_opportunity_batches", "batch_id", batch_ids, "*")
     return {
         "opportunities": opportunities,
         "candidates": candidates,
@@ -258,6 +284,8 @@ def enrich_actions(supabase, actions: list[dict[str, Any]]) -> dict[str, dict[st
         "snapshots_by_action": snapshots_by_action,
         "examples_by_action": examples_by_action,
         "runs": runs,
+        "batch_items_by_opportunity": batch_items_by_opportunity,
+        "batches": batches,
     }
 
 
@@ -309,6 +337,8 @@ def analyze_action(action: dict[str, Any], evidence: dict[str, dict[str, dict[st
     seed = opportunity.get("sourcing_seed_asins") or evidence["seeds"].get(str(opportunity.get("seed_id") or candidate.get("seed_id") or "")) or {}
     snapshot = evidence["snapshots_by_action"].get(str(action.get("action_id") or "")) or {}
     example = evidence["examples_by_action"].get(str(action.get("action_id") or "")) or {}
+    batch_item = evidence["batch_items_by_opportunity"].get(str(action.get("opportunity_id") or "")) or {}
+    batch = evidence["batches"].get(str(batch_item.get("batch_id") or "")) or {}
     candidate_for_rules = merge_candidate(candidate, snapshot, action)
     seed_for_rules = merge_seed(seed, snapshot, action)
     diagnostics = evaluate_static_match_rules(
@@ -337,6 +367,7 @@ def analyze_action(action: dict[str, Any], evidence: dict[str, dict[str, dict[st
         "ebay_title": candidate_for_rules.get("ebay_title"),
         "ebay_description_present": bool(fields["description"]),
         "ebay_condition": candidate_for_rules.get("condition") or snapshot.get("ebay_condition"),
+        "item_location_country": candidate_for_rules.get("item_location_country") or snapshot.get("item_location_country"),
         "ebay_category": "; ".join(fields["category_names"]),
         "ebay_category_ids": "; ".join(fields["category_ids"]),
         "ebay_primary_image_url": fields["primary_image_url"],
@@ -356,6 +387,15 @@ def analyze_action(action: dict[str, Any], evidence: dict[str, dict[str, dict[st
         "presentation_hard_blocks": "; ".join(nested(stored_diagnostics, "static_rules", "hard_blocks") or stored_diagnostics.get("hard_blocks") or []),
         "presentation_warnings": "; ".join(nested(stored_diagnostics, "static_rules", "warnings") or stored_diagnostics.get("warnings") or []),
         "source_run_id": opportunity.get("sourcing_run_id") or candidate.get("sourcing_run_id") or snapshot.get("sourcing_run_id"),
+        "run_created_at": (evidence["runs"].get(str(opportunity.get("sourcing_run_id") or candidate.get("sourcing_run_id") or snapshot.get("sourcing_run_id") or "")) or {}).get("created_at"),
+        "opportunity_status": opportunity.get("status"),
+        "opportunity_type": opportunity.get("opportunity_type"),
+        "opportunity_created_at": opportunity.get("created_at"),
+        "opportunity_updated_at": opportunity.get("updated_at"),
+        "batch_id": batch_item.get("batch_id"),
+        "batch_sequence": batch.get("batch_sequence"),
+        "batch_status": batch.get("status"),
+        "batch_created_at": batch.get("started_at") or batch_item.get("created_at"),
         "seller_username": candidate.get("seller_username") or snapshot.get("seller_username") or example.get("ebay_seller_username"),
         "source_table": "sourcing_actions",
         "opportunity_id": action.get("opportunity_id"),
@@ -603,6 +643,7 @@ def write_csv(path: Path, rows: list[dict[str, Any]]) -> None:
         "ebay_item_id",
         "ebay_title",
         "ebay_condition",
+        "item_location_country",
         "ebay_category",
         "ebay_category_ids",
         "seller_username",
@@ -617,9 +658,21 @@ def write_csv(path: Path, rows: list[dict[str, Any]]) -> None:
         "current_recommendation",
         "current_hard_blocks",
         "current_warnings",
+        "presentation_hard_blocks",
+        "presentation_warnings",
         "pattern",
         "rule_miss_class",
         "evidence_dependency",
+        "source_run_id",
+        "run_created_at",
+        "opportunity_status",
+        "opportunity_type",
+        "opportunity_created_at",
+        "opportunity_updated_at",
+        "batch_id",
+        "batch_sequence",
+        "batch_status",
+        "batch_created_at",
         "opportunity_id",
         "candidate_id",
         "snapshot_id",
@@ -935,6 +988,10 @@ def game_name_or_subtitle_conflict(amazon_title: str, game_names: list[str]) -> 
 
 def normalize_reason(value: Any) -> str:
     return str(value or "").strip().lower().replace("-", "_").replace(" ", "_")
+
+
+def normalize_filter_value(value: Any) -> str:
+    return re.sub(r"[^a-z0-9]+", "_", str(value or "").strip().casefold()).strip("_")
 
 
 def normalize_title(value: Any) -> str:

@@ -305,7 +305,7 @@ def select_unbatched_open_opportunities(supabase, run_id: str, target: int) -> l
     limit = target * 5 if target else 5000
     response = (
         supabase.table("sourcing_opportunities")
-        .select("opportunity_id,asin,ebay_item_id,score,opportunity_type,created_at")
+        .select("opportunity_id,asin,ebay_item_id,score,status,opportunity_type,ai_flags,matching_diagnostics_json,created_at")
         .eq("sourcing_run_id", run_id)
         .eq("status", "open")
         .in_("opportunity_type", ["buy_now", "multi_unit", "best_offer", "auction"])
@@ -324,9 +324,7 @@ def choose_batch_opportunities(rows: list[dict[str, Any]], batched_ids: set[str]
         opportunity_id = str(row.get("opportunity_id") or "")
         if not opportunity_id or opportunity_id in batched_ids:
             continue
-        if row.get("status") not in {None, "open"}:
-            continue
-        if row.get("opportunity_type") not in {None, "buy_now", "multi_unit", "best_offer", "auction"}:
+        if not is_presentable_opportunity(row):
             continue
         ebay_key = clean_ebay_key(row.get("ebay_item_id"))
         if ebay_key and ebay_key in seen_ebay_ids:
@@ -337,6 +335,25 @@ def choose_batch_opportunities(rows: list[dict[str, Any]], batched_ids: set[str]
         if target and len(selected) >= target:
             break
     return selected
+
+
+def is_presentable_opportunity(row: dict[str, Any]) -> bool:
+    if row.get("status") not in {None, "open"}:
+        return False
+    if row.get("opportunity_type") not in {None, "buy_now", "multi_unit", "best_offer", "auction"}:
+        return False
+    if has_blocked_flag(row):
+        return False
+    diagnostics = row.get("matching_diagnostics_json") or {}
+    if isinstance(diagnostics, dict):
+        recommendation = str(diagnostics.get("recommendation") or nested_diagnostic(diagnostics, "static_rules", "recommendation") or "")
+        if recommendation == "Blocked":
+            return False
+        hard_blocks = list(diagnostics.get("hard_blocks") or [])
+        hard_blocks.extend(nested_diagnostic(diagnostics, "static_rules", "hard_blocks") or [])
+        if hard_blocks:
+            return False
+    return True
 
 
 def batched_opportunity_ids(supabase, run_id: str) -> set[str]:
@@ -421,7 +438,19 @@ def has_blocked_flag(row: dict[str, Any]) -> bool:
     diagnostics = row.get("matching_diagnostics_json") or {}
     if isinstance(diagnostics, dict):
         flags.extend(diagnostics.get("flags") or [])
+        static_rules = diagnostics.get("static_rules") or {}
+        if isinstance(static_rules, dict):
+            flags.extend(static_rules.get("flags") or [])
     return any(str(flag).startswith("Blocked:") for flag in flags)
+
+
+def nested_diagnostic(value: dict[str, Any], *keys: str) -> Any:
+    current: Any = value
+    for key in keys:
+        if not isinstance(current, dict):
+            return None
+        current = current.get(key)
+    return current
 
 
 def update_batch_progress(

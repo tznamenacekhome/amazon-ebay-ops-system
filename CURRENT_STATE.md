@@ -1,6 +1,25 @@
 # CURRENT_STATE.md
 
-Last Updated: 2026-07-19
+Last Updated: 2026-08-01
+
+## 2026-08-01 Sourcing Hard-Block Presentation Gate
+
+- The latest 1,000 sourcing dismissal audit was followed by a narrow
+  existing-rule-miss investigation in
+  `docs/sourcing_existing_rule_miss_investigation_2026-08-01.md`.
+- The current-rule-miss set reproduced as 122 rows. The confirmed defect was
+  presentation enforcement: stale `open` opportunities with stored hard-block
+  diagnostics could still be selected into batches or returned through the
+  default opportunities API path.
+- `integrations/run_sourcing_workflow.py` now applies one final stored
+  diagnostic eligibility gate before batch insertion.
+- `/api/sourcing/opportunities` also filters stale open rows whose stored
+  diagnostics already contain hard blocks.
+- No new matching rule terms, AI, image analysis, UI changes, production
+  rescoring, or deployment were part of this sprint.
+- Dry-run safety validation found zero current open opportunities but did find
+  existing current-rule hard blocks among positive-status rows; broader
+  matching-rule changes should wait for a separate positive-fixture review.
 
 ## 2026-07-19 Provider Cost Dashboard MVP
 

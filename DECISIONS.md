@@ -1,5 +1,24 @@
 # DECISIONS.md
 
+# Sourcing Presentation Must Honor Final Hard Blocks
+
+Decision date: 2026-08-01
+
+Sourcing hard-block diagnostics are authoritative at the presentation boundary.
+An `open` opportunity must not enter `sourcing_opportunity_batch_items` or be
+returned by the default opportunities API visibility path when its stored
+diagnostics already contain a hard block or `Blocked` recommendation.
+
+Consequences:
+
+- Batch selection cannot rely only on `status = open` and profitable
+  `opportunity_type`.
+- The API must not rely only on UI filtering to hide backend hard blocks.
+- This gate does not introduce new matching terms or broaden rule coverage; it
+  enforces deterministic diagnostics already written by backend scoring.
+- Positive-status rows remain preserved and require separate review before any
+  broader matching-rule deployment.
+
 ## Provider Costs Use Provider-Native Sources Only
 
 Decision date: 2026-07-19

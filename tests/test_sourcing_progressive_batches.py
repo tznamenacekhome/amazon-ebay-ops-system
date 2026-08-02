@@ -8,7 +8,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "integrations"))
 
-from run_sourcing_workflow import choose_batch_opportunities, fetch_ebay_search_summary, summarize_funnel_from_rows  # noqa: E402
+from run_sourcing_workflow import choose_batch_opportunities, fetch_ebay_search_summary, is_presentable_opportunity, summarize_funnel_from_rows  # noqa: E402
 from ebay_api_limits import browse_call_budget, parse_browse_quota  # noqa: E402
 from score_sourcing_opportunities import required_offer_percent, suggested_max_bid, suggested_offer  # noqa: E402
 
@@ -48,6 +48,54 @@ class SourcingProgressiveBatchTests(unittest.TestCase):
         selected = choose_batch_opportunities(rows, set(), 0)
 
         self.assertEqual([row["opportunity_id"] for row in selected], ["first", "second"])
+
+    def test_choose_batch_opportunities_skips_stale_open_rows_with_final_hard_blocks(self):
+        rows = [
+            {
+                "opportunity_id": "blocked-static",
+                "status": "open",
+                "opportunity_type": "buy_now",
+                "ebay_item_id": "1",
+                "matching_diagnostics_json": {"static_rules": {"hard_blocks": ["digital/download listing: download"]}},
+            },
+            {
+                "opportunity_id": "blocked-flag",
+                "status": "open",
+                "opportunity_type": "best_offer",
+                "ebay_item_id": "2",
+                "ai_flags": ["Blocked: eBay category is not Video Games software"],
+            },
+            {
+                "opportunity_id": "blocked-recommendation",
+                "status": "open",
+                "opportunity_type": "auction",
+                "ebay_item_id": "3",
+                "matching_diagnostics_json": {"recommendation": "Blocked"},
+            },
+            {
+                "opportunity_id": "valid",
+                "status": "open",
+                "opportunity_type": "buy_now",
+                "ebay_item_id": "4",
+                "matching_diagnostics_json": {"recommendation": "Probable Match", "static_rules": {"hard_blocks": []}},
+            },
+        ]
+
+        selected = choose_batch_opportunities(rows, set(), 0)
+
+        self.assertEqual([row["opportunity_id"] for row in selected], ["valid"])
+
+    def test_presentable_opportunity_allows_valid_non_blocked_row(self):
+        self.assertTrue(
+            is_presentable_opportunity(
+                {
+                    "opportunity_id": "valid",
+                    "status": "open",
+                    "opportunity_type": "buy_now",
+                    "matching_diagnostics_json": {"recommendation": "Probable Match"},
+                }
+            )
+        )
 
     def test_parse_browse_quota_from_analytics_payload(self):
         quota = parse_browse_quota(

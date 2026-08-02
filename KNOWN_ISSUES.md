@@ -2,9 +2,41 @@
 
 This file tracks active issues, monitor items, and deferred decisions for Midnight Blue Operations Platform (MBOP).
 
-Last reviewed: 2026-07-14
+Last reviewed: 2026-08-01
 
 # Active Issues
+
+## Sourcing Positive Fixture Review Before Rule Expansion
+
+Status: ACTIVE / SAFETY REVIEW NEEDED
+
+Problem:
+The 2026-08-01 existing-rule-miss investigation found that current
+deterministic rules would hard-block some non-open positive-status sourcing
+rows in dry-run: 11 `purchased_pending_match` rows and 23
+`matched_to_purchase` rows.
+
+Impact:
+The final presentation gate is still safe for stale `open` rows because it
+honors already-written hard-block diagnostics before presentation. However,
+broader matching-rule expansion or production rescoring should not proceed
+until the positive-status hard-block examples are reviewed and converted into
+fixtures or documented exceptions.
+
+Current mitigation:
+- No production rescoring or deployment was performed during the 2026-08-01
+  investigation.
+- The new gate applies before presentation of `open` opportunities and does not
+  modify positive-status rows.
+- Regression tests cover the presentation gate, post-detail hard blocks, exact
+  historical negative memory, and valid non-blocked opportunities.
+
+Recommended next mitigation:
+- Export and review the 34 positive-status current-rule hard-block examples.
+- Add fixtures for any valid positives before changing deterministic rule
+  coverage or running a production rescore.
+
+---
 
 ## AWS Scheduler Production Monitoring
 

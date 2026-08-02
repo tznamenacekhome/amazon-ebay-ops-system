@@ -19,6 +19,7 @@ from ebay_sourcing_search import (  # noqa: E402
     search_queries_for_seed,
     should_reject_summary,
 )
+from score_sourcing_opportunities import matching_diagnostics_for_candidate  # noqa: E402
 from sourcing_match_rules import evaluate_static_match_rules  # noqa: E402
 
 
@@ -209,6 +210,43 @@ class EbaySourcingSearchTests(unittest.TestCase):
         self.assertTrue(record["success"])
         self.assertIn("shipping_cost", record["fields_populated"])
         self.assertEqual(record2["outcome"], "cache_hit")
+
+    def test_post_detail_game_name_conflict_blocks_candidate(self) -> None:
+        summary_candidate = mapped_candidate("Mario Kart 8 Deluxe Switch", price=10)
+        summary_decision = candidate_decision(summary_candidate, seed("Mario Kart 8 Deluxe", "Switch"), settings(), {}, {})
+        self.assertFalse(should_reject_summary(summary_decision))
+
+        detail_candidate = mapped_candidate("Mario Kart 8 Deluxe Switch", price=10)
+        detail_candidate["raw_ebay_json"]["localizedAspects"].append({"name": "Game Name", "value": "Sonic Frontiers"})
+        detail_decision = candidate_decision(detail_candidate, seed("Mario Kart 8 Deluxe", "Switch"), settings(), {}, {})
+
+        self.assertTrue(should_reject_summary(detail_decision))
+        self.assertIn("game name", "; ".join(detail_decision["hard_blocks"]).casefold())
+
+    def test_exact_historical_negative_memory_blocks_candidate(self) -> None:
+        candidate = mapped_candidate("Mario Kart 8 Deluxe Switch")
+        diagnostics = matching_diagnostics_for_candidate(
+            candidate,
+            seed("Mario Kart 8 Deluxe", "Switch"),
+            {
+                "examples_by_key": {
+                    ("B000TEST", "v1|123|0"): [
+                        {
+                            "match_label": "non_match",
+                            "dismiss_reason": "wrong_product",
+                            "created_at": "2026-08-01T00:00:00+00:00",
+                        }
+                    ]
+                },
+                "examples_by_asin": {},
+                "sellers": {},
+            },
+            settings(),
+        )
+
+        self.assertEqual(diagnostics["recommendation"], "Blocked")
+        self.assertFalse(diagnostics["hard_rule_pass"])
+        self.assertTrue(any("historical non_match" in flag for flag in diagnostics["flags"]))
 
     def test_xbox_one_and_series_cross_generation_is_not_blocked(self) -> None:
         diagnostics = evaluate_static_match_rules(

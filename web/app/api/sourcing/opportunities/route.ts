@@ -209,16 +209,17 @@ async function getOpportunities(request: NextRequest) {
   if (error) return jsonNoStore({ error: error.message }, { status: 500 });
 
   const rows = (data ?? []) as OpportunityRow[];
+  const eligibleRows = rows.filter(isPresentationEligibleOpportunity);
   const presentationByOpportunityId = await fetchPresentationMetadataByOpportunityId(
-    rows.map((row) => row.opportunity_id),
+    eligibleRows.map((row) => row.opportunity_id),
     new Set(latestBatchOpportunityIds ?? []),
   );
-  const keepaByAsin = await fetchKeepaPriceContextByAsin(rows.map((row) => row.asin));
-  const myListingByAsin = await fetchMyListingContextByAsin(rows.map((row) => row.asin));
-  const amazonImageByAsin = await fetchAmazonImageFallbackByAsin(rows.map((row) => row.asin), keepaByAsin);
-  const lastSaleByAsin = await fetchLastSaleContextByAsin(rows.map((row) => row.asin));
+  const keepaByAsin = await fetchKeepaPriceContextByAsin(eligibleRows.map((row) => row.asin));
+  const myListingByAsin = await fetchMyListingContextByAsin(eligibleRows.map((row) => row.asin));
+  const amazonImageByAsin = await fetchAmazonImageFallbackByAsin(eligibleRows.map((row) => row.asin), keepaByAsin);
+  const lastSaleByAsin = await fetchLastSaleContextByAsin(eligibleRows.map((row) => row.asin));
 
-  const mappedRows = rows
+  const mappedRows = eligibleRows
     .map((row) => {
       const presentation = presentationByOpportunityId.get(row.opportunity_id) ?? emptyPresentationMetadata();
       const rawEbay = row.sourcing_ebay_candidates?.raw_ebay_json;
@@ -570,6 +571,38 @@ function summarizeMappedRows(rows: Array<{ opportunityType: string | null }>, re
     auction: rows.filter((row) => row.opportunityType === "auction").length,
     multiUnit: rows.filter((row) => row.opportunityType === "multi_unit").length,
   };
+}
+
+function isPresentationEligibleOpportunity(row: OpportunityRow) {
+  if (row.status !== "open") return true;
+  if (hasBlockedDiagnostic(row.matching_diagnostics_json)) return false;
+  return !(row.ai_flags ?? []).some((flag) => String(flag).startsWith("Blocked:"));
+}
+
+function hasBlockedDiagnostic(value: unknown): boolean {
+  if (!isRecord(value)) return false;
+  if (String(value.recommendation ?? "") === "Blocked") return true;
+  if (hasValues(value.hard_blocks)) return true;
+  if (hasBlockedFlags(value.flags)) return true;
+  const staticRules = value.static_rules;
+  if (isRecord(staticRules)) {
+    if (String(staticRules.recommendation ?? "") === "Blocked") return true;
+    if (hasValues(staticRules.hard_blocks)) return true;
+    if (hasBlockedFlags(staticRules.flags)) return true;
+  }
+  return false;
+}
+
+function hasValues(value: unknown): boolean {
+  return Array.isArray(value) && value.length > 0;
+}
+
+function hasBlockedFlags(value: unknown): boolean {
+  return Array.isArray(value) && value.some((flag) => String(flag).startsWith("Blocked:"));
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
 function isMissingBatchTableError(message: string) {
