@@ -18,9 +18,13 @@ read-only audit:
 | `B00D8S4GRY` | `Just Dance 2014 - PlayStation 4 [video game]` | `NEW Just Dance 2015 ( Sony Playstation 4, PS4, 2014 )` | Purchased/matched, not receiving-confirmed | Safe block. eBay title and item-specific Game Name identify `Just Dance 2015`; `2014` appears as release-year metadata. |
 | `B00D8S4GRY` | `Just Dance 2014 - PlayStation 4 [video game]` | `NEW Just Dance 2015 ( Sony Playstation 4, PS4, 2014 )` | Purchase-item positive, not received/listed/sold | Weak positive evidence. Treat as a likely historical mis-match until receiving/listing/sale evidence proves otherwise. |
 
-Conclusion: the remaining 4 rows are weak or likely incorrect positive
-evidence, not proven numeric false positives. Deployment is acceptable without
-production rescoring.
+Post-deployment operator review confirmed all 4 rows were historical purchase
+mistakes rather than valid matches. They are not numeric false-positive
+validation failures and should be retained as negative identity training
+examples.
+
+Conclusion: deployment was acceptable without treating these rows as blocker
+false positives.
 
 ## What Is Being Deployed
 
@@ -85,12 +89,28 @@ Deployment commands:
 .\scripts\aws-web-status.ps1
 ```
 
+## Post-Deployment Training Update
+
+The 4 operator-confirmed mistakes were seeded into
+`matching_intelligence_examples` as `non_match` / `negative_identity` examples
+with `dismiss_reason = wrong_edition_version`.
+
+Seed command:
+
+```powershell
+.\.venv\Scripts\python.exe integrations\seed_numeric_identity_review_negatives.py --write
+```
+
+The seed uses source table `operator_positive_conflict_review` so future
+matching-intelligence rebuilds do not erase the reviewed examples.
+
 ## Remaining Risks
 
 - The deployment changes future scoring and presentation behavior, but it does
   not rescore existing opportunities. A separate operator-approved rescore is
   required to rewrite stored diagnostics for existing rows.
-- The Just Dance purchase-item positive remains a weak historical positive
-  until receiving/listing/sale evidence confirms or disproves the match.
+- Existing positive examples from the historical mistakes may still exist from
+  purchase/action history. Scoring will now also have exact negative memory for
+  the same ASIN/eBay keys.
 - Numeric family coverage remains deliberately conservative; additional
   franchises should be added only with positive-safety review and fixtures.

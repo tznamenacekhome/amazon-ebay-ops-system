@@ -15,8 +15,9 @@ The 2026-08-01 existing-rule-miss investigation found that current
 deterministic rules would hard-block some non-open positive-status sourcing
 rows in dry-run: 11 `purchased_pending_match` rows and 23
 `matched_to_purchase` rows. The 2026-08-02 context-aware numeric identity
-sprint reduced numeric false positives sharply, but still found 4 current
-positive-status rows that the revised numeric rule would hard-block.
+sprint reduced numeric false positives sharply. The 4 remaining numeric
+positive-status rows were manually reviewed after deployment and confirmed as
+historical purchase mistakes, not valid matches.
 
 Impact:
 The final presentation gate is still safe for stale `open` rows because it
@@ -32,14 +33,13 @@ Current mitigation:
   modify positive-status rows.
 - Regression tests cover the presentation gate, post-detail hard blocks, exact
   historical negative memory, and valid non-blocked opportunities.
-- No production rescoring, database writes, or deployment was performed during
-  the 2026-08-02 numeric identity sprint.
+- The 4 reviewed numeric conflicts were seeded as `non_match` /
+  `negative_identity` examples from source table
+  `operator_positive_conflict_review`.
 
 Recommended next mitigation:
-- Review the 4 revised numeric positive-status conflicts exported in
-  `tmp/numeric-sprint-positive-conflicts-2026-08-02.csv`, then either confirm
-  them as valid blocks or add fixtures/documented exceptions before deployment
-  and production rescoring.
+- Continue positive-safety review before broader Game Name, edition-family,
+  short-title, image-analysis, AI, or production-rescore changes.
 - Add fixtures for any valid positives before changing deterministic rule
   coverage or running a production rescore.
 

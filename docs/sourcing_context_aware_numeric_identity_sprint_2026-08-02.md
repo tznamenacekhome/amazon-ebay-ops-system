@@ -77,6 +77,11 @@ conflicts:
 - Two `Rock Band 3` vs base `Rock Band` rows.
 - Two `Just Dance 2014` vs `Just Dance 2015` rows.
 
+Post-deployment operator review confirmed all 4 rows were historical purchase
+mistakes rather than valid matches. They are not numeric false-positive
+validation failures and were converted into additional negative identity
+training examples.
+
 False blocks eliminated:
 
 - Platform-number disagreements such as `PlayStation 3` vs `PS3`.
@@ -124,8 +129,6 @@ Current open opportunities, read-only:
 
 ## Deployment Recommendation
 
-Do not deploy automatically. The implementation is narrow and locally
-validated, but the 4 revised numeric positive-status conflicts should be
-operator-reviewed before deployment and before any production rescore. If those
-4 rows are confirmed as valid identity conflicts, this change is a good
-candidate for deployment with a separately approved sourcing rescore plan.
+Post-deployment status: deployed after operator review confirmed the 4 revised
+numeric positive-status conflicts were historical purchase mistakes. Existing
+opportunities were not production-rescored as part of deployment.
