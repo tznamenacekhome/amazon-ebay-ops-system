@@ -21,6 +21,8 @@ Current mitigation:
 - No AI, image analysis, marketplace action, or rule mutation is triggered from
   a single operator response.
 - Production reprocessing is scoped to current open/unreviewed rows.
+- Closest Excluded is gated against presentation/action history before ranking,
+  so the quality-control queue only shows never-presented exclusions.
 
 ## Sourcing Positive Fixture Review Before Rule Expansion
 
@@ -138,9 +140,11 @@ drawer.
 Current mitigation:
 - Backend scoring owns all match decisions and diagnostics.
 - The API returns the backend diagnostics payload without adding frontend match
-logic.
+  logic.
+- Single-row Replenishment dismissal opens the backend-provided diagnostic
+  comparison automatically, including row-level operator feedback capture.
 - `docs/sourcing_matching_quality_sprint_2026-07-11.md` records the latest
-deterministic quality pass and rescore.
+  deterministic quality pass and rescore.
 
 Recommended next mitigation:
 - Add a compact per-opportunity diagnostics drawer that renders

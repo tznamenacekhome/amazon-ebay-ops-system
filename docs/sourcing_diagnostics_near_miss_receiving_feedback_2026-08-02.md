@@ -16,6 +16,9 @@ marketplace actions, historical reopening, and unrelated shipment-sync edits.
 
 - Sourcing dismissal dialog now has an expandable `Matching Diagnostics`
   panel.
+- Single-row Replenishment dismissals now open the panel automatically in the
+  wide dialog; bulk dismissal remains compact and diagnostics are not shown for
+  multiple selected rows.
 - The panel renders backend-provided `diagnosticComparison` data and does not
   duplicate matching logic in React.
 - Operators can mark individual assumptions as incorrect or select
@@ -28,6 +31,9 @@ marketplace actions, historical reopening, and unrelated shipment-sync edits.
 - Closest Excluded rows support `Mark Valid`, `Confirm`, and
   `Open Diagnostics`; these store matching-intelligence evidence only and do
   not purchase, bid, offer, message, or reopen historical rows.
+- Closest Excluded now excludes rows with presentation batch membership,
+  operator action history, actioned terminal/watch statuses, or the same
+  ASIN/eBay listing identity as a previously presented row.
 - Receiving now includes `Sourcing False Positive` as an outcome and exposes
   compact failed-element toggles.
 
@@ -108,6 +114,9 @@ The API ranks excluded candidates on the backend using stored evidence:
 The result is capped at 50 rows and includes total qualifying count in the
 normal opportunities summary. Obvious low-review-value rows such as exact
 historical negatives and no-longer-available exclusions are filtered out.
+Rows are gated against `sourcing_opportunity_batch_items`, `sourcing_actions`,
+and same-ASIN eBay listing identity before ranking so the tab remains
+never-presented only.
 
 ## Receiving False Positive
 

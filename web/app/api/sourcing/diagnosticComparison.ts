@@ -43,6 +43,12 @@ export function buildDiagnosticComparison({
   const hardBlocks = stringArray(staticRules.hard_blocks ?? objectValue(diagnostics).hard_blocks);
   const warnings = stringArray(staticRules.warnings ?? objectValue(diagnostics).warnings ?? objectValue(diagnostics).flags)
     .filter((value) => !value.startsWith("Blocked:"));
+  const amazonTitle = firstText(seed.amazon_title, opportunity.amazon_title);
+  const amazonSystem = firstText(seed.system, objectValue(seed.raw_context_json).inferred_system, platformRule.amazon_system);
+  const amazonImage = firstText(seed.amazon_image_url, opportunity.amazon_image_url);
+  const asin = firstText(opportunity.asin, seed.asin);
+  const amazonEdition = firstText(editionRule.amazon, editionRule.amazon_edition, objectValue(seed.raw_context_json).edition);
+  const amazonRegion = firstText(regionRule.amazon, objectValue(seed.raw_context_json).region);
 
   return {
     version: "diagnostic_comparison_v1",
@@ -51,26 +57,26 @@ export function buildDiagnosticComparison({
     warnings,
     evidenceSummary: evidenceSummary(diagnostics, titleOverlap),
     rows: [
-      row("core_game_identity", "Core game identity", textValue(seed.amazon_title), textValue(candidate.ebay_title), textValue(titleOverlap.shared_title_tokens)),
-      row("full_title", "Full title", textValue(seed.amazon_title), textValue(candidate.ebay_title), "Title evidence"),
-      row("platform_system", "Platform/system", textValue(seed.system), textValue(aspects.Platform ?? platformRule.ebay_system), textValue(platformRule.result)),
+      row("core_game_identity", "Core game identity", amazonTitle, textValue(candidate.ebay_title), textValue(titleOverlap.shared_title_tokens)),
+      row("full_title", "Full title", amazonTitle, textValue(candidate.ebay_title), "Title evidence"),
+      row("platform_system", "Platform/system", amazonSystem, textValue(aspects.Platform ?? platformRule.ebay_system), textValue(platformRule.result)),
       row("installment_number", "Installment/sequel number", identityText(numeric, "amazon"), identityText(numeric, "ebay"), textValue(numeric.comparison)),
-      row("edition_version", "Edition/version", textValue(editionRule.amazon), textValue(editionRule.ebay), textValue(editionRule.result)),
-      row("region", "Region", textValue(regionRule.amazon), textValue(aspects["Region Code"] ?? aspects.Region ?? regionRule.ebay), textValue(regionRule.result)),
+      row("edition_version", "Edition/version", amazonEdition, textValue(editionRule.ebay), textValue(editionRule.result)),
+      row("region", "Region", amazonRegion, textValue(aspects["Region Code"] ?? aspects.Region ?? regionRule.ebay), textValue(regionRule.result)),
       row("game_name", "eBay Game Name item specific", null, textValue(aspects["Game Name"]), "eBay item specific"),
       row("category", "Category", null, textValue(categoryName(rawEbay) ?? categoryRule.ebay), textValue(categoryRule.result)),
       row("format_type", "Format/type", null, textValue(aspects.Format ?? aspects.Type ?? candidate.condition), "eBay item specifics"),
       row("release_year", "Release year", null, textValue(aspects["Release Year"]), "eBay item specific"),
-      row("package_bundle_contents", "Package/bundle contents", null, textValue(aspects.Features ?? aspects["Custom Bundle"] ?? aspects.Bundle), "eBay item specifics"),
+      row("package_bundle_contents", "Package/bundle contents", firstText(objectValue(seed.raw_context_json).package_contents, "Standard physical software expected"), textValue(aspects.Features ?? aspects["Custom Bundle"] ?? aspects.Bundle), "eBay item specifics"),
       row("completeness", "Completeness", null, textValue(incompleteRule.result), textValue(incompleteRule.reason)),
       row("digital_physical", "Digital versus physical", "Physical resale expected", textValue(digitalRule.result), textValue(digitalRule.reason)),
       row("item_location", "Item location", null, textValue(candidate.item_location_country ?? objectValue(rawEbay.itemLocation).country), "eBay item location"),
-      row("seller_listing_photo_consistency", "Seller listing/photo consistency", null, imageCount(rawEbay), "Photos available for operator review"),
+      row("seller_listing_photo_consistency", "Seller listing/photo consistency", amazonImage, imageCount(rawEbay), "Photos available for operator review"),
       row("final_recommendation", "Final recommendation", null, recommendation, "Backend scoring recommendation"),
       row("hard_blocks", "Hard-block reasons", null, hardBlocks.join("; ") || null, "Backend hard blocks"),
       row("warnings", "Warnings", null, warnings.join("; ") || null, "Backend warnings"),
       row("confidence_summary", "Confidence/evidence summary", null, evidenceSummary(diagnostics, titleOverlap), "Backend diagnostics"),
-      row("opportunity_context", "Opportunity context", textValue(opportunity.asin), textValue(candidate.ebay_item_id), "ASIN and eBay identity"),
+      row("opportunity_context", "Opportunity context", asin, textValue(candidate.ebay_item_id), "ASIN and eBay identity"),
     ],
   };
 }
@@ -90,6 +96,14 @@ function textValue(value: unknown): string | null {
   }
   const text = String(value ?? "").trim();
   return text || null;
+}
+
+function firstText(...values: unknown[]): string | null {
+  for (const value of values) {
+    const text = textValue(value);
+    if (text) return text;
+  }
+  return null;
 }
 
 function stringArray(value: unknown): string[] {

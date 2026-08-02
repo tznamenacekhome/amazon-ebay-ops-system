@@ -299,7 +299,13 @@ export default function SourcingPage() {
             onAction={act}
             onBulkWatch={() => void bulkAct(selectedRows, watchPayload)}
             onBulkPurchased={() => void bulkAct(selectedRows, (row) => ({ actionType: "purchased", expectedPurchaseCost: row.landedCost ?? undefined }))}
-            onBulkDismiss={() => setBulkDismissOpen(true)}
+            onBulkDismiss={() => {
+              if (selectedRows.length === 1) {
+                setDismissRow(selectedRows[0]);
+                return;
+              }
+              setBulkDismissOpen(true);
+            }}
             onToggleSelected={(row) => {
               setSelectedIds((current) => {
                 const next = new Set(current);
@@ -321,8 +327,10 @@ export default function SourcingPage() {
           />
           {dismissRow ? (
             <DismissOpportunityDialog
+              key={dismissRow.opportunityId}
               row={dismissRow}
               actionBusyId={actionBusyId}
+              initialDiagnosticsOpen={activeTab === "Replenishment" || activeTab === "Closest Excluded"}
               onClose={() => setDismissRow(null)}
               onBlockAsin={async (notes, imageClues) => {
                 await act(dismissRow, { actionType: "block_asin", notes, imageClues });
@@ -515,9 +523,11 @@ function ReplenishmentTable({
                   </td>
                   <td className="px-2 py-2">
                     <div className="font-medium text-slate-950">{row.ebayTitle}</div>
-                    <div className="mt-1 flex flex-wrap gap-1">
-                      <PresentationBadge row={row} />
-                    </div>
+                    {!closestExcludedMode ? (
+                      <div className="mt-1 flex flex-wrap gap-1">
+                        <PresentationBadge row={row} />
+                      </div>
+                    ) : null}
                     <div className="mt-1 text-sm text-slate-600">
                       <span>{row.amazonTitle}</span>{" "}
                       <Link href={row.amazonUrl} target="_blank" className="font-medium text-blue-700 hover:underline">
@@ -794,12 +804,14 @@ function AmountLine({ label: lineLabel, row, amountUsd }: { label: string; row: 
 function DismissOpportunityDialog({
   row,
   actionBusyId,
+  initialDiagnosticsOpen,
   onClose,
   onBlockAsin,
   onDismiss,
 }: {
   row: SourcingOpportunity;
   actionBusyId: string | null;
+  initialDiagnosticsOpen: boolean;
   onClose: () => void;
   onBlockAsin: (notes: string, imageClues: string[]) => Promise<void>;
   onDismiss: (
@@ -811,7 +823,7 @@ function DismissOpportunityDialog({
 }) {
   const [notes, setNotes] = useState("");
   const [imageClues, setImageClues] = useState<string[]>([]);
-  const [diagnosticsOpen, setDiagnosticsOpen] = useState(false);
+  const [diagnosticsOpen, setDiagnosticsOpen] = useState(initialDiagnosticsOpen);
   const [allAssumptionsCorrect, setAllAssumptionsCorrect] = useState(false);
   const [incorrectRows, setIncorrectRows] = useState<string[]>([]);
   const busy = actionBusyId === row.opportunityId;

@@ -160,6 +160,11 @@ type PresentationMetadata = {
 };
 
 type OpportunityScope = "all_open" | "new_this_run" | "prior_unreviewed" | "closest_excluded";
+type ClosestExcludedContext = {
+  presentationByOpportunityId: Map<string, PresentationMetadata>;
+  actionedOpportunityIds: Set<string>;
+  presentedListingKeys: Set<string>;
+};
 
 export async function GET(request: NextRequest) {
   try {
@@ -216,16 +221,21 @@ async function getOpportunities(request: NextRequest) {
   if (error) return jsonNoStore({ error: error.message }, { status: 500 });
 
   const rows = (data ?? []) as OpportunityRow[];
+  const closestExcludedContext = scope === "closest_excluded"
+    ? await buildClosestExcludedContext(rows)
+    : null;
   const qualifyingClosestExcludedRows = scope === "closest_excluded"
-    ? rows.filter(isClosestExcludedCandidate)
+    ? rows.filter((row) => isClosestExcludedCandidate(row, closestExcludedContext))
     : [];
   const eligibleRows = scope === "closest_excluded"
     ? qualifyingClosestExcludedRows
     : rows.filter(isPresentationEligibleOpportunity);
-  const presentationByOpportunityId = await fetchPresentationMetadataByOpportunityId(
-    eligibleRows.map((row) => row.opportunity_id),
-    new Set(latestBatchOpportunityIds ?? []),
-  );
+  const presentationByOpportunityId = scope === "closest_excluded"
+    ? new Map<string, PresentationMetadata>()
+    : await fetchPresentationMetadataByOpportunityId(
+        eligibleRows.map((row) => row.opportunity_id),
+        new Set(latestBatchOpportunityIds ?? []),
+      );
   const keepaByAsin = await fetchKeepaPriceContextByAsin(eligibleRows.map((row) => row.asin));
   const myListingByAsin = await fetchMyListingContextByAsin(eligibleRows.map((row) => row.asin));
   const amazonImageByAsin = await fetchAmazonImageFallbackByAsin(eligibleRows.map((row) => row.asin), keepaByAsin);
@@ -601,13 +611,162 @@ function isPresentationEligibleOpportunity(row: OpportunityRow) {
   return !(row.ai_flags ?? []).some((flag) => String(flag).startsWith("Blocked:"));
 }
 
-function isClosestExcludedCandidate(row: OpportunityRow) {
-  if (["dismissed", "matched_to_purchase", "purchased_pending_match", "roi_snoozed"].includes(String(row.status ?? ""))) {
+function isClosestExcludedCandidate(row: OpportunityRow, context: ClosestExcludedContext | null) {
+  if (isActionedOrPresentedStatus(row.status)) {
     return false;
   }
   if (!row.matching_diagnostics_json || !isRecord(row.matching_diagnostics_json)) return false;
   if (isObviousLowValueExclusion(row)) return false;
+  if (context) {
+    const presentation = context.presentationByOpportunityId.get(row.opportunity_id);
+    if ((presentation?.presentationCount ?? 0) > 0) return false;
+    if (context.actionedOpportunityIds.has(row.opportunity_id)) return false;
+    const listingKey = opportunityListingKey(row);
+    if (listingKey && context.presentedListingKeys.has(listingKey)) return false;
+  }
   return !isPresentationEligibleOpportunity(row) || row.status === "rejected";
+}
+
+function isActionedOrPresentedStatus(status: string | null | undefined) {
+  return [
+    "watching",
+    "purchased",
+    "purchased_pending_match",
+    "dismissed",
+    "matched_to_purchase",
+    "completed",
+    "confirmed_valid_match",
+    "confirmed_exclusion",
+    "roi_snoozed",
+  ].includes(String(status ?? "").toLowerCase());
+}
+
+async function buildClosestExcludedContext(rows: OpportunityRow[]): Promise<ClosestExcludedContext> {
+  const opportunityIds = rows.map((row) => row.opportunity_id).filter(Boolean);
+  const presentationByOpportunityId = await fetchPresentationMetadataByOpportunityId(opportunityIds, new Set());
+  const actionedOpportunityIds = await fetchActionedOpportunityIds(opportunityIds);
+  const presentedListingKeys = await fetchPresentedListingKeys(rows);
+  return { presentationByOpportunityId, actionedOpportunityIds, presentedListingKeys };
+}
+
+async function fetchActionedOpportunityIds(opportunityIds: string[]) {
+  const uniqueIds = [...new Set(opportunityIds.filter(Boolean))];
+  const ids = new Set<string>();
+  for (let index = 0; index < uniqueIds.length; index += 100) {
+    const chunk = uniqueIds.slice(index, index + 100);
+    const { data, error } = await supabase
+      .from("sourcing_actions")
+      .select("opportunity_id,action_type")
+      .in("opportunity_id", chunk);
+    if (error) throw new Error(`Sourcing action history: ${error.message}`);
+    for (const row of (data ?? []) as Array<{ opportunity_id: string | null; action_type: string | null }>) {
+      if (!row.opportunity_id) continue;
+      if (isOperatorActionType(row.action_type)) ids.add(row.opportunity_id);
+    }
+  }
+  return ids;
+}
+
+function isOperatorActionType(actionType: string | null | undefined) {
+  return [
+    "watch",
+    "purchased",
+    "dismiss",
+    "block_asin",
+    "mark_valid_match",
+    "confirm_exclusion",
+    "seller_listing_mismatch",
+  ].includes(String(actionType ?? "").toLowerCase());
+}
+
+async function fetchPresentedListingKeys(candidateRows: OpportunityRow[]) {
+  const candidateKeys = new Set(candidateRows.map(opportunityListingKey).filter(Boolean) as string[]);
+  const asins = [...new Set(candidateRows.map((row) => row.asin?.toUpperCase()).filter(Boolean))];
+  const relatedRows: OpportunityRow[] = [];
+  if (!candidateKeys.size || !asins.length) return new Set<string>();
+
+  for (let index = 0; index < asins.length; index += 75) {
+    const chunk = asins.slice(index, index + 75);
+    const { data, error } = await supabase
+      .from("sourcing_opportunities")
+      .select(`
+        opportunity_id,
+        sourcing_run_id,
+        asin,
+        status,
+        score,
+        matching_diagnostics_json,
+        created_at,
+        sourcing_ebay_candidates (
+          ebay_item_id,
+          ebay_legacy_item_id,
+          ebay_item_web_url,
+          ebay_title,
+          ebay_image_url,
+          seller_username,
+          item_location_country,
+          condition,
+          buying_options,
+          price,
+          shipping_cost,
+          landed_cost,
+          available_quantity,
+          auction_end_time,
+          bid_count,
+          best_offer_enabled,
+          listing_status,
+          raw_ebay_json
+        )
+      `)
+      .in("asin", chunk)
+      .limit(5000);
+    if (error) throw new Error(`Presented listing identity lookup: ${error.message}`);
+    relatedRows.push(...((data ?? []) as unknown as OpportunityRow[]).filter((row) => {
+      const key = opportunityListingKey(row);
+      return key ? candidateKeys.has(key) : false;
+    }));
+  }
+
+  const presentedIds = await fetchPresentedOpportunityIds(relatedRows.map((row) => row.opportunity_id));
+  const presentedKeys = new Set<string>();
+  for (const row of relatedRows) {
+    if (!presentedIds.has(row.opportunity_id)) continue;
+    const key = opportunityListingKey(row);
+    if (key) presentedKeys.add(key);
+  }
+  return presentedKeys;
+}
+
+async function fetchPresentedOpportunityIds(opportunityIds: string[]) {
+  const uniqueIds = [...new Set(opportunityIds.filter(Boolean))];
+  const ids = new Set<string>();
+  for (let index = 0; index < uniqueIds.length; index += 100) {
+    const chunk = uniqueIds.slice(index, index + 100);
+    const { data, error } = await supabase
+      .from("sourcing_opportunity_batch_items")
+      .select("opportunity_id")
+      .in("opportunity_id", chunk);
+    if (error) {
+      if (isMissingBatchTableError(error.message)) return ids;
+      throw new Error(`Presented opportunity lookup: ${error.message}`);
+    }
+    for (const row of (data ?? []) as Array<{ opportunity_id: string | null }>) {
+      if (row.opportunity_id) ids.add(row.opportunity_id);
+    }
+  }
+  return ids;
+}
+
+function opportunityListingKey(row: Pick<OpportunityRow, "asin" | "sourcing_ebay_candidates">) {
+  const asin = row.asin?.trim().toUpperCase();
+  if (!asin) return null;
+  const candidate = row.sourcing_ebay_candidates;
+  const legacyId = legacyEbayItemId(candidate?.ebay_legacy_item_id) ?? legacyEbayItemId(candidate?.ebay_item_id);
+  if (legacyId) return `${asin}|legacy:${legacyId}`;
+  const itemId = normalizeKeyPart(candidate?.ebay_item_id);
+  if (itemId) return `${asin}|item:${itemId}`;
+  const url = normalizeEbayUrl(candidate?.ebay_item_web_url);
+  return url ? `${asin}|url:${url}` : null;
 }
 
 function isObviousLowValueExclusion(row: OpportunityRow) {

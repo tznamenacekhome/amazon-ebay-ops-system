@@ -92,6 +92,12 @@ Current implementation notes:
   tasks.
 - The opportunity detail drawer was removed after operator review.
 - Table actions handle watch, purchased/offer made, and dismiss directly; table dismiss uses a modal for dismiss reason and notes.
+- Single-row dismissals open the backend-provided Amazon/eBay diagnostic
+  comparison automatically. Multi-select dismissal remains a compact bulk modal
+  without single-row diagnostics.
+- Closest Excluded is limited to never-presented, never-actioned candidates and
+  is filtered against `sourcing_opportunity_batch_items`, `sourcing_actions`,
+  and same-ASIN eBay listing identity before backend ranking.
 - Auction type cells link to Gixen and copy the eBay item number to the clipboard.
 - Type cells show backend-suggested Best Offer and auction bid amounts in USD.
   When eBay Browse returns an original non-USD amount, the cell also displays

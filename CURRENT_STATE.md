@@ -7,11 +7,17 @@ Last Updated: 2026-08-02
 - Sourcing dismissals now include an expandable backend-owned Amazon/eBay
   diagnostic comparison panel with row-level incorrect-assumption feedback and
   an all-assumptions-correct option.
+- Single-row Replenishment dismissals now open that comparison panel
+  automatically in the wide two-column dialog. Multi-select dismissal remains a
+  compact bulk workflow.
 - Added dismissal reason `seller_listing_mismatch` for listings whose text or
   item specifics match but seller photos reveal the wrong product/version/region
   or contents.
 - Added a `Closest Excluded` Sourcing tab backed by backend-ranked excluded
   near misses and evidence-only `Mark Valid` / `Confirm` actions.
+- Closest Excluded is constrained to never-presented, never-actioned exclusions
+  using `sourcing_opportunity_batch_items`, `sourcing_actions`, and same-ASIN
+  eBay listing identity checks before ranking.
 - Receiving now supports `Sourcing false positive` with failed matching element
   capture and high-confidence negative matching-intelligence rebuild semantics.
 - Migration `20260802000000_mbop_sourcing_feedback_outcomes.sql` adds

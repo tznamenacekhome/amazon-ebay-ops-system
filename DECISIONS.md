@@ -1,5 +1,25 @@
 # DECISIONS.md
 
+# Closest Excluded Means Never Presented
+
+Decision date: 2026-08-02
+
+The Sourcing `Closest Excluded` tab is a quality-control queue for evaluated
+candidates that were excluded before operator presentation. A candidate does
+not qualify if it was ever inserted into `sourcing_opportunity_batch_items`, was
+shown through a presentation batch, was operator-actioned, or shares the same
+ASIN/eBay listing identity as a previously presented row.
+
+Consequences:
+
+- Replenishment `All Open`, `New This Run`, and Closest Excluded must not
+  overlap.
+- Status alone is not sufficient for Closest Excluded eligibility.
+- Closest Excluded must not show presentation badges or `Previously Presented`
+  metadata in the operator-facing table.
+- Ranking remains backend-owned and is applied only after the never-presented
+  eligibility gate.
+
 # Operator Matching Feedback Is Evidence, Not Automatic Rule Mutation
 
 Decision date: 2026-08-02
