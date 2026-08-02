@@ -115,6 +115,28 @@ Set-Location C:\Dev\amazon-ebay-ops-system\web; npm.cmd run build
 
 Both passed.
 
+## Deployment
+
+Implementation commit:
+
+- `89d913000f45dcc4b7caf5a0eeb7e6ee3c2f5827`
+
+Initial web deployment:
+
+- image tag: `web-89d913000f45`
+- image digest:
+  `sha256:585e015061993f8bb50bb6f548054313bdc9d78280a0010a71949258772c0e18`
+- ECS task definition:
+  `arn:aws:ecs:us-west-2:297464765814:task-definition/mbop-web-task:101`
+- service rollout: `COMPLETED`, desired/running/pending `1 / 1 / 0`
+- build env:
+  `MBOP_BUILD_SHA=89d913000f45`,
+  `NEXT_PUBLIC_MBOP_BUILD_SHA=89d913000f45`
+- protected production URL returned the expected Cognito `302` redirect.
+
+Scheduler deployment was not updated because this correction changes the web
+API/UI and documentation only.
+
 ## Files Changed
 
 - `web/app/api/sourcing/diagnosticComparison.ts`
@@ -128,6 +150,6 @@ Both passed.
 
 ## Caveats
 
-No production rows were rescored or modified by the audits. Production UI
-behavior still needs final verification through the Cognito-protected app after
-deployment.
+No production rows were rescored or modified by the audits. The protected
+production entrypoint and ECS rollout were verified; interactive Cognito UI
+review is still the final operator confirmation for the single-dismiss modal.
