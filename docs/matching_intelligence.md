@@ -137,8 +137,12 @@ Amazon-to-eBay sourcing now consumes Matching Intelligence during scoring:
   item-specific Platform is used before title platform detection
 - clear non-game categories, accessory/merchandise phrases, digital/service
   phrases, incomplete-product phrases, non-North-American region signals,
-  numeric sequel/year mismatches, item-specific Game Name conflicts, and
-  edition/version conflicts can hard-block profitable-looking rows
+  context-aware numeric identity mismatches, item-specific Game Name conflicts,
+  and edition/version conflicts can hard-block profitable-looking rows
+- numeric identity diagnostics classify platform aliases, release years,
+  quantity/lot counts, and included-content counts as ignored non-identity
+  evidence; ambiguous numeric disagreement routes to review instead of a hard
+  block
 - recommendations use `Blocked`, `Probable Non-Match`, `Review`,
   `Probable Match`, and `Strong Match`
 - exact historical positive examples boost candidate score

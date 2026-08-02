@@ -13,6 +13,13 @@ structured eBay evidence parsing, seed inferred-platform scoring, stronger
 category/accessory/digital/incomplete/region/numeric/edition blocks, regression
 tests, analyzer coverage output, and a live rescore of the latest sourcing runs.
 
+Update 2026-08-02: the numeric identity rule was narrowed to context-aware
+recognized product identities. Platform numbers, release years, quantity/lot
+counts, and included-content counts are now diagnostic ignored evidence rather
+than hard-block triggers. The sprint is documented in
+`docs/sourcing_context_aware_numeric_identity_sprint_2026-08-02.md`; no
+production rescore, database writes, or deployment were performed.
+
 ## Current Dataset Summary
 
 Live sourcing dataset reviewed:

@@ -307,6 +307,40 @@ NON_GAME_CATEGORY_TERMS = {
 
 BUNDLE_REVIEW_TERMS = {"bundle", "bundled", "with game", "includes game", "game included"}
 
+ANNUAL_IDENTITY_PATTERNS = [
+    ("nba", re.compile(r"\bnba\s+2k(?P<value>\d{1,2})\b")),
+    ("mlb", re.compile(r"\b(?:mlb|major league baseball)\s+2k(?P<value>\d{1,2})\b")),
+    ("wwe", re.compile(r"\bwwe\s+2k(?P<value>\d{1,2})\b")),
+    ("all_pro_football", re.compile(r"\ball\s+pro\s+football\s+2k(?P<value>\d{1,2})\b")),
+    ("madden", re.compile(r"\bmadden\s+nfl\s+(?P<value>\d{2})\b")),
+    ("fifa", re.compile(r"\bfifa\s+(?P<value>\d{2})\b")),
+    ("nhl", re.compile(r"\bnhl\s+(?P<value>\d{2})\b")),
+    ("ncaa_football", re.compile(r"\bncaa\s+football\s+(?P<value>\d{2})\b")),
+    ("tiger_woods", re.compile(r"\btiger\s+woods\s+pga\s+tour\s+(?P<value>\d{2})\b")),
+    ("just_dance", re.compile(r"\bjust\s+dance\s+(?P<value>(?:19|20)\d{2}|\d{1,2})\b")),
+]
+
+GAME_INSTALLMENT_PATTERNS = [
+    ("rock_band", re.compile(r"\brock\s+band\s+(?P<value>[2-4])\b")),
+    ("sports_champions", re.compile(r"\bsports\s+champions\s+(?P<value>[2-9])\b")),
+    ("jackbox_party_pack", re.compile(r"\b(?:the\s+)?jackbox\s+(?:party\s+)?pack\s+(?P<value>[2-9]|[1-9][0-9])\b")),
+    ("dance_central", re.compile(r"\bdance\s+central\s+(?P<value>[2-9])\b")),
+    ("sniper_elite", re.compile(r"\bsniper\s+elite\s+(?P<value>[2-9])\b")),
+    ("devil_may_cry", re.compile(r"\bdevil\s+may\s+cry\s+(?P<value>[2-9])\b")),
+    ("far_cry", re.compile(r"\bfar\s+cry\s+(?P<value>[2-9])\b")),
+    ("mercenaries", re.compile(r"\bmercenaries\s+(?P<value>[2-9])\b")),
+]
+
+BASE_IDENTITY_PATTERNS = {
+    "rock_band": re.compile(r"\brock\s+band\b"),
+    "sports_champions": re.compile(r"\bsports\s+champions\b"),
+    "jackbox_party_pack": re.compile(r"\b(?:the\s+)?jackbox\s+(?:party\s+)?pack\b"),
+}
+
+BASE_IDENTITY_EXCLUSIONS = {
+    "rock_band": re.compile(r"\b(?:track\s+pack|beatles|ac/dc|country\s+track|vol(?:ume)?\.?\s*\d)\b"),
+}
+
 ASPECT_NAMES = {
     "platform": "platform",
     "game name": "game_name",
@@ -835,53 +869,274 @@ def game_name_rule(amazon_title: str, evidence: dict[str, Any]) -> dict[str, Any
 
 
 def numeric_identity_rule(amazon_title: str, ebay_title: str, evidence: dict[str, Any]) -> dict[str, Any]:
-    amazon_numbers = identity_numbers(amazon_title)
-    candidate_text = " ".join([ebay_title, " ".join(evidence.get("game_name_values") or [])])
-    ebay_numbers = identity_numbers(candidate_text)
-    shared_title_tokens = meaningful_title_tokens(amazon_title) & meaningful_title_tokens(candidate_text)
-    if amazon_numbers["years"] and ebay_numbers["years"] and amazon_numbers["years"].isdisjoint(ebay_numbers["years"]):
-        return {
-            "result": "blocked",
-            "reason": "numeric sequel/year mismatch",
-            "amazon_numbers": sorted(amazon_numbers["years"]),
-            "ebay_numbers": sorted(ebay_numbers["years"]),
-        }
-    if shared_title_tokens and amazon_numbers["numbers"] and ebay_numbers["numbers"] and amazon_numbers["numbers"].isdisjoint(ebay_numbers["numbers"]):
-        return {
-            "result": "blocked",
-            "reason": "numeric sequel/year mismatch",
-            "amazon_numbers": sorted(amazon_numbers["numbers"]),
-            "ebay_numbers": sorted(ebay_numbers["numbers"]),
-            "shared_tokens": sorted(shared_title_tokens),
-        }
-    if shared_title_tokens and not amazon_numbers["numbers"] and ebay_numbers["numbers"] and len(shared_title_tokens) >= 2:
-        return {
-            "result": "blocked",
-            "reason": "numeric sequel/year mismatch",
-            "amazon_numbers": [],
-            "ebay_numbers": sorted(ebay_numbers["numbers"]),
-            "shared_tokens": sorted(shared_title_tokens),
-        }
-    if (
-        shared_title_tokens
-        and amazon_numbers["numbers"]
-        and ebay_numbers["years"]
-        and amazon_numbers["numbers"].isdisjoint(ebay_numbers["numbers"])
-        and amazon_numbers["numbers"].isdisjoint({year[-2:].lstrip("0") or "0" for year in ebay_numbers["years"]})
-    ):
-        return {
-            "result": "blocked",
-            "reason": "numeric sequel/year mismatch",
-            "amazon_numbers": sorted(amazon_numbers["numbers"]),
-            "ebay_numbers": sorted(ebay_numbers["years"]),
-            "shared_tokens": sorted(shared_title_tokens),
-        }
+    amazon_analysis = numeric_identity_analysis(amazon_title, "amazon_title")
+    ebay_title_analysis = numeric_identity_analysis(ebay_title, "ebay_title")
+    game_name_analysis = merge_numeric_analyses(
+        numeric_identity_analysis(value, "ebay_item_specific_game_name")
+        for value in evidence.get("game_name_values") or []
+    )
+    ebay_analysis = merge_numeric_analyses([ebay_title_analysis, game_name_analysis])
+    shared_title_tokens = meaningful_title_tokens(amazon_title) & meaningful_title_tokens(
+        " ".join([ebay_title, " ".join(evidence.get("game_name_values") or [])])
+    )
+    result = "pass"
+    reason = "No conflicting numeric product identity"
+    comparison = compare_numeric_identity(amazon_analysis, ebay_analysis)
+    if shared_title_tokens and comparison["blocked"]:
+        result = "blocked"
+        reason = comparison["reason"]
+    elif shared_title_tokens and comparison["review"]:
+        result = "review"
+        reason = comparison["reason"]
+
     return {
-        "result": "pass",
-        "reason": "No conflicting sequel/year numbers",
-        "amazon_numbers": sorted(amazon_numbers["years"] | amazon_numbers["numbers"]),
-        "ebay_numbers": sorted(ebay_numbers["years"] | ebay_numbers["numbers"]),
+        "result": result,
+        "reason": reason,
+        "normalized_amazon_title": normalize_numeric_text(amazon_title),
+        "normalized_ebay_title": normalize_numeric_text(ebay_title),
+        "amazon_numeric_tokens": amazon_analysis["numeric_tokens"],
+        "ebay_numeric_tokens": ebay_analysis["numeric_tokens"],
+        "amazon_identity_numbers": sorted(amazon_analysis["identity_numbers"]),
+        "ebay_identity_numbers": sorted(ebay_analysis["identity_numbers"]),
+        "amazon_base_identities": sorted(amazon_analysis["base_identities"]),
+        "ebay_base_identities": sorted(ebay_analysis["base_identities"]),
+        "ignored_amazon_platform_numbers": sorted(amazon_analysis["ignored_platform_numbers"]),
+        "ignored_ebay_platform_numbers": sorted(ebay_analysis["ignored_platform_numbers"]),
+        "ignored_amazon_release_years": sorted(amazon_analysis["ignored_release_years"]),
+        "ignored_ebay_release_years": sorted(ebay_analysis["ignored_release_years"]),
+        "ignored_amazon_quantity_numbers": sorted(amazon_analysis["ignored_quantity_numbers"]),
+        "ignored_ebay_quantity_numbers": sorted(ebay_analysis["ignored_quantity_numbers"]),
+        "ignored_amazon_content_amounts": sorted(amazon_analysis["ignored_content_amounts"]),
+        "ignored_ebay_content_amounts": sorted(ebay_analysis["ignored_content_amounts"]),
+        "ambiguous_amazon_numbers": sorted(amazon_analysis["ambiguous_numbers"]),
+        "ambiguous_ebay_numbers": sorted(ebay_analysis["ambiguous_numbers"]),
+        "evidence_sources": sorted(amazon_analysis["evidence_sources"] | ebay_analysis["evidence_sources"]),
+        "shared_tokens": sorted(shared_title_tokens),
+        "comparison": comparison,
     }
+
+
+def numeric_identity_analysis(text: Any, source: str) -> dict[str, Any]:
+    normalized = normalize_numeric_text(text)
+    platform_spans = platform_alias_spans(normalized)
+    tokens = numeric_tokens(normalized, source)
+    analysis = empty_numeric_analysis()
+    analysis["evidence_sources"].add(source)
+    for span_start, span_end in platform_spans:
+        for number in re.findall(r"\d+", normalized[span_start:span_end]):
+            analysis["ignored_platform_numbers"].add(number.lstrip("0") or "0")
+    for token in tokens:
+        classification = classify_numeric_token(token, normalized, platform_spans)
+        token["classification"] = classification
+        analysis["numeric_tokens"].append(token)
+        value = token["value"]
+        if classification in {"game_installment", "annual_sports_identity"}:
+            analysis["identity_numbers"].add(value)
+            analysis["identity_details"].append(token)
+        elif classification == "platform_number":
+            analysis["ignored_platform_numbers"].add(value)
+        elif classification == "release_year":
+            analysis["ignored_release_years"].add(value)
+        elif classification in {"package_quantity", "lot_quantity"}:
+            analysis["ignored_quantity_numbers"].add(value)
+        elif classification == "included_content_amount":
+            analysis["ignored_content_amounts"].add(value)
+        elif classification == "ambiguous":
+            analysis["ambiguous_numbers"].add(value)
+    for family, pattern in BASE_IDENTITY_PATTERNS.items():
+        if pattern.search(normalized) and not any(detail.get("family") == family for detail in analysis["identity_details"]):
+            exclusion = BASE_IDENTITY_EXCLUSIONS.get(family)
+            if not exclusion or not exclusion.search(normalized):
+                analysis["base_identities"].add(family)
+    return analysis
+
+
+def compare_numeric_identity(amazon: dict[str, Any], ebay: dict[str, Any]) -> dict[str, Any]:
+    amazon_by_family = identity_numbers_by_family(amazon)
+    ebay_by_family = identity_numbers_by_family(ebay)
+    shared_families = sorted((set(amazon_by_family) | amazon["base_identities"]) & (set(ebay_by_family) | ebay["base_identities"]))
+    for family in shared_families:
+        amazon_values = amazon_by_family.get(family, set())
+        ebay_values = ebay_by_family.get(family, set())
+        if amazon_values and ebay_values and amazon_values.isdisjoint(ebay_values):
+            return {
+                "blocked": True,
+                "review": False,
+                "family": family,
+                "amazon_values": sorted(amazon_values),
+                "ebay_values": sorted(ebay_values),
+                "reason": f"numeric identity mismatch: Amazon {family_label(family)} {', '.join(sorted(amazon_values))}, eBay {family_label(family)} {', '.join(sorted(ebay_values))}",
+            }
+        if amazon_values and family in ebay["base_identities"]:
+            value_text = ", ".join(sorted(amazon_values))
+            return {
+                "blocked": True,
+                "review": False,
+                "family": family,
+                "amazon_values": sorted(amazon_values),
+                "ebay_values": [],
+                "reason": f"numeric identity mismatch: Amazon installment {value_text}, eBay base game {family_label(family)}",
+            }
+        if ebay_values and family in amazon["base_identities"]:
+            value_text = ", ".join(sorted(ebay_values))
+            return {
+                "blocked": True,
+                "review": False,
+                "family": family,
+                "amazon_values": [],
+                "ebay_values": sorted(ebay_values),
+                "reason": f"numeric identity mismatch: Amazon base game {family_label(family)}, eBay installment {value_text}",
+            }
+    if amazon["identity_numbers"] and ebay["identity_numbers"] and amazon["identity_numbers"].isdisjoint(ebay["identity_numbers"]):
+        return {
+            "blocked": False,
+            "review": True,
+            "family": None,
+            "amazon_values": sorted(amazon["identity_numbers"]),
+            "ebay_values": sorted(ebay["identity_numbers"]),
+            "reason": "numeric identity numbers differ but shared title family is ambiguous",
+        }
+    return {"blocked": False, "review": False, "family": None, "amazon_values": [], "ebay_values": [], "reason": ""}
+
+
+def empty_numeric_analysis() -> dict[str, Any]:
+    return {
+        "numeric_tokens": [],
+        "identity_numbers": set(),
+        "identity_details": [],
+        "base_identities": set(),
+        "ignored_platform_numbers": set(),
+        "ignored_release_years": set(),
+        "ignored_quantity_numbers": set(),
+        "ignored_content_amounts": set(),
+        "ambiguous_numbers": set(),
+        "evidence_sources": set(),
+    }
+
+
+def merge_numeric_analyses(analyses: Any) -> dict[str, Any]:
+    merged = empty_numeric_analysis()
+    for analysis in analyses:
+        if not analysis:
+            continue
+        merged["numeric_tokens"].extend(analysis.get("numeric_tokens") or [])
+        merged["identity_details"].extend(analysis.get("identity_details") or [])
+        for key in (
+            "identity_numbers",
+            "base_identities",
+            "ignored_platform_numbers",
+            "ignored_release_years",
+            "ignored_quantity_numbers",
+            "ignored_content_amounts",
+            "ambiguous_numbers",
+            "evidence_sources",
+        ):
+            merged[key].update(analysis.get(key) or set())
+    return merged
+
+
+def numeric_tokens(text: str, source: str) -> list[dict[str, Any]]:
+    tokens = []
+    for match in re.finditer(r"(?<![a-z0-9])(?:2k\d{1,2}|[0-9]+(?:st|nd|rd|th)?)(?![a-z0-9])", text):
+        raw = match.group(0)
+        value = raw[2:] if raw.startswith("2k") else re.sub(r"(st|nd|rd|th)$", "", raw)
+        value = value.lstrip("0") or "0"
+        tokens.append(
+            {
+                "raw": raw,
+                "value": f"2k{value}" if raw.startswith("2k") else value,
+                "start": match.start(),
+                "end": match.end(),
+                "source": source,
+                "context": text[max(0, match.start() - 32) : match.end() + 32].strip(),
+            }
+        )
+    return tokens
+
+
+def classify_numeric_token(token: dict[str, Any], text: str, platform_spans: list[tuple[int, int]]) -> str:
+    start = token["start"]
+    end = token["end"]
+    raw = str(token["raw"])
+    value = str(token["value"])
+    before = text[max(0, start - 32) : start]
+    after = text[end : end + 32]
+    if any(span_start <= start and end <= span_end for span_start, span_end in platform_spans):
+        return "platform_number"
+    annual = annual_identity_for_span(text, start, end)
+    if annual:
+        token["family"] = annual
+        return "annual_sports_identity"
+    installment = game_installment_for_span(text, start, end)
+    if installment:
+        token["family"] = installment
+        return "game_installment"
+    if re.fullmatch(r"(?:19|20)\d{2}", value):
+        return "release_year"
+    if re.search(r"(lot\s+of|lot|bundle|set\s+of|\()\s*$", before) or re.search(r"^\s*(games?|pcs|pieces?|pack)", after):
+        return "lot_quantity" if "lot" in before else "package_quantity"
+    if re.search(r"(coins?|minecoins?|points?|v-?bucks?|currency)\b", after) or re.search(r"\b(coins?|minecoins?|points?|v-?bucks?|currency)\s*$", before):
+        return "included_content_amount"
+    if re.search(r"(anniversary|birthday)", after) or re.search(r"\banniversary\s*$", before) or re.search(r"(st|nd|rd|th)$", raw):
+        return "anniversary_number"
+    if re.search(r"(sku|model|item\s*#|item\s+number|stock\s*#|stock\s+number|#)\s*$", before):
+        return "model_or_sku_number"
+    return "ambiguous"
+
+
+def annual_identity_for_span(text: str, start: int, end: int) -> str | None:
+    for family, pattern in ANNUAL_IDENTITY_PATTERNS:
+        for match in pattern.finditer(text):
+            value_span = match.span("value")
+            if (value_span[0] <= start and end <= value_span[1]) or (start <= value_span[0] and value_span[1] <= end):
+                return family
+    return None
+
+
+def game_installment_for_span(text: str, start: int, end: int) -> str | None:
+    for family, pattern in GAME_INSTALLMENT_PATTERNS:
+        for match in pattern.finditer(text):
+            value_span = match.span("value")
+            if value_span[0] <= start and end <= value_span[1]:
+                return family
+    return None
+
+
+def identity_numbers_by_family(analysis: dict[str, Any]) -> dict[str, set[str]]:
+    output: dict[str, set[str]] = {}
+    for detail in analysis.get("identity_details") or []:
+        family = detail.get("family")
+        value = detail.get("value")
+        if family and value:
+            output.setdefault(family, set()).add(str(value))
+    return output
+
+
+def family_label(family: str) -> str:
+    return family.replace("_", " ")
+
+
+def normalize_numeric_text(value: Any) -> str:
+    text = str(value or "").casefold()
+    text = re.sub(r"[\[\]{}()\"']", " ", text)
+    text = re.sub(r"[/|:_\-–—+]+", " ", text)
+    text = re.sub(r"\s+", " ", text)
+    return text.strip()
+
+
+def platform_alias_spans(text: str) -> list[tuple[int, int]]:
+    spans = []
+    aliases = []
+    for alias_list in SYSTEM_ALIASES.values():
+        aliases.extend(alias.casefold() for alias in alias_list)
+    aliases.extend(["x360", "xb360", "xbox360", "wiiu"])
+    for alias in sorted(set(aliases), key=len, reverse=True):
+        normalized_alias = normalize_numeric_text(alias)
+        if not normalized_alias:
+            continue
+        pattern = rf"(?<![a-z0-9]){re.escape(normalized_alias)}(?![a-z0-9])"
+        spans.extend(match.span() for match in re.finditer(pattern, text))
+    return spans
 
 
 def identity_numbers(value: str) -> dict[str, set[str]]:

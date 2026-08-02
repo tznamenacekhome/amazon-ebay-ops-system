@@ -246,6 +246,174 @@ class SourcingMatchRuleTests(unittest.TestCase):
         self.assertNotEqual("Blocked", diagnostics["recommendation"])
         self.assertFalse(any("numeric" in reason.casefold() for reason in diagnostics["hard_blocks"]))
 
+    def test_rock_band_3_vs_base_rock_band_ps3_blocks_without_platform_number_satisfying_installment(self) -> None:
+        diagnostics = evaluate_static_match_rules(
+            candidate("Rock Band PlayStation 3", platform="Sony PlayStation 3", game_name="Rock Band"),
+            seed("Rock Band 3 PlayStation 3", "PS 3"),
+        )
+        self.assert_blocked(diagnostics, "numeric identity mismatch")
+        numeric = diagnostics["numeric_identity"]
+        self.assertEqual(["3"], numeric["amazon_identity_numbers"])
+        self.assertEqual([], numeric["ebay_identity_numbers"])
+        self.assertIn("3", numeric["ignored_amazon_platform_numbers"])
+        self.assertIn("3", numeric["ignored_ebay_platform_numbers"])
+
+    def test_base_rock_band_ps3_vs_rock_band_3_ps3_blocks(self) -> None:
+        diagnostics = evaluate_static_match_rules(
+            candidate("Rock Band 3 PS3", platform="Sony PlayStation 3", game_name="Rock Band 3"),
+            seed("Rock Band PS3", "PS 3"),
+        )
+        self.assert_blocked(diagnostics, "numeric identity mismatch")
+        numeric = diagnostics["numeric_identity"]
+        self.assertEqual([], numeric["amazon_identity_numbers"])
+        self.assertEqual(["3"], numeric["ebay_identity_numbers"])
+        self.assertIn("3", numeric["ignored_amazon_platform_numbers"])
+        self.assertIn("3", numeric["ignored_ebay_platform_numbers"])
+
+    def test_base_rock_band_playstation_3_vs_ps3_does_not_numeric_block(self) -> None:
+        diagnostics = evaluate_static_match_rules(
+            candidate("Rock Band PS3", platform="Sony PlayStation 3", game_name="Rock Band"),
+            seed("Rock Band PlayStation 3", "PS 3"),
+        )
+        self.assertNotEqual("Blocked", diagnostics["recommendation"])
+        self.assertFalse(any("numeric" in reason.casefold() for reason in diagnostics["hard_blocks"]))
+        self.assertEqual(["3"], diagnostics["numeric_identity"]["ignored_amazon_platform_numbers"])
+        self.assertEqual(["3"], diagnostics["numeric_identity"]["ignored_ebay_platform_numbers"])
+
+    def test_rock_band_3_playstation_3_vs_rock_band_3_ps3_does_not_numeric_block(self) -> None:
+        diagnostics = evaluate_static_match_rules(
+            candidate("Rock Band 3 PS3", platform="Sony PlayStation 3", game_name="Rock Band 3"),
+            seed("Rock Band 3 PlayStation 3", "PS 3"),
+        )
+        self.assertNotEqual("Blocked", diagnostics["recommendation"])
+        self.assertFalse(any("numeric" in reason.casefold() for reason in diagnostics["hard_blocks"]))
+        self.assertEqual(["3"], diagnostics["numeric_identity"]["amazon_identity_numbers"])
+        self.assertEqual(["3"], diagnostics["numeric_identity"]["ebay_identity_numbers"])
+
+    def test_rock_band_2_vs_rock_band_3_ps3_blocks(self) -> None:
+        diagnostics = evaluate_static_match_rules(
+            candidate("Rock Band 3 PS3", platform="Sony PlayStation 3", game_name="Rock Band 3"),
+            seed("Rock Band 2 PS3", "PS 3"),
+        )
+        self.assert_blocked(diagnostics, "numeric identity mismatch")
+
+    def test_base_rock_band_ps3_vs_base_rock_band_playstation_3_does_not_numeric_block(self) -> None:
+        diagnostics = evaluate_static_match_rules(
+            candidate("Rock Band PlayStation 3", platform="Sony PlayStation 3", game_name="Rock Band"),
+            seed("Rock Band PS3", "PS 3"),
+        )
+        self.assertNotEqual("Blocked", diagnostics["recommendation"])
+        self.assertFalse(any("numeric" in reason.casefold() for reason in diagnostics["hard_blocks"]))
+
+    def test_sports_champions_base_vs_2_blocks(self) -> None:
+        diagnostics = evaluate_static_match_rules(
+            candidate("Sports Champions 2", platform="Sony PlayStation 3", game_name="Sports Champions 2"),
+            seed("Sports Champions", "PS 3"),
+        )
+        self.assert_blocked(diagnostics, "numeric identity mismatch")
+
+    def test_sports_champions_2_vs_base_blocks(self) -> None:
+        diagnostics = evaluate_static_match_rules(
+            candidate("Sports Champions", platform="Sony PlayStation 3", game_name="Sports Champions"),
+            seed("Sports Champions 2", "PS 3"),
+        )
+        self.assert_blocked(diagnostics, "numeric identity mismatch")
+
+    def test_sports_champions_2_platform_alias_does_not_numeric_block(self) -> None:
+        diagnostics = evaluate_static_match_rules(
+            candidate("Sports Champions 2 PlayStation 3", platform="Sony PlayStation 3", game_name="Sports Champions 2"),
+            seed("Sports Champions 2 PS3", "PS 3"),
+        )
+        self.assertNotEqual("Blocked", diagnostics["recommendation"])
+        self.assertFalse(any("numeric" in reason.casefold() for reason in diagnostics["hard_blocks"]))
+
+    def test_jackbox_party_pack_base_vs_7_blocks(self) -> None:
+        diagnostics = evaluate_static_match_rules(
+            candidate("The Jackbox Party Pack 7 PS4", platform="Sony PlayStation 4", game_name="The Jackbox Party Pack 7"),
+            seed("The Jackbox Party Pack", "PS 4"),
+        )
+        self.assert_blocked(diagnostics, "numeric identity mismatch")
+
+    def test_jackbox_party_pack_7_platform_alias_does_not_numeric_block(self) -> None:
+        diagnostics = evaluate_static_match_rules(
+            candidate("The Jackbox Party Pack 7 PS4", platform="Sony PlayStation 4", game_name="The Jackbox Party Pack 7"),
+            seed("The Jackbox Party Pack 7", "PS 4"),
+        )
+        self.assertNotEqual("Blocked", diagnostics["recommendation"])
+        self.assertFalse(any("numeric" in reason.casefold() for reason in diagnostics["hard_blocks"]))
+
+    def test_nba_2k19_vs_2k26_blocks(self) -> None:
+        diagnostics = evaluate_static_match_rules(
+            candidate("NBA 2K26 Nintendo Switch", platform="Nintendo Switch", game_name="NBA 2K26"),
+            seed("NBA 2K19", "Switch"),
+        )
+        self.assert_blocked(diagnostics, "numeric identity mismatch")
+
+    def test_madden_nfl_25_exact_match_with_xbox_one_does_not_numeric_block(self) -> None:
+        diagnostics = evaluate_static_match_rules(
+            candidate("Madden NFL 25 Xbox One", platform="Microsoft Xbox One", game_name="Madden NFL 25"),
+            seed("Madden NFL 25", "Xbox One"),
+        )
+        self.assertNotEqual("Blocked", diagnostics["recommendation"])
+        self.assertFalse(any("numeric" in reason.casefold() for reason in diagnostics["hard_blocks"]))
+
+    def test_xbox_360_does_not_become_installment_360(self) -> None:
+        diagnostics = evaluate_static_match_rules(
+            candidate("Rock Band Xbox 360", platform="Microsoft Xbox 360", game_name="Rock Band"),
+            seed("Rock Band Xbox 360", "Xbox 360"),
+        )
+        self.assertNotEqual("Blocked", diagnostics["recommendation"])
+        self.assertIn("360", diagnostics["numeric_identity"]["ignored_amazon_platform_numbers"])
+        self.assertIn("360", diagnostics["numeric_identity"]["ignored_ebay_platform_numbers"])
+
+    def test_lot_of_2_does_not_become_installment(self) -> None:
+        diagnostics = evaluate_static_match_rules(
+            candidate("Lot of 2 Rock Band 3 Games PS3", platform="Sony PlayStation 3", game_name="Rock Band 3"),
+            seed("Rock Band 3", "PS 3"),
+        )
+        self.assertNotEqual("Blocked", diagnostics["recommendation"])
+        self.assertIn("2", diagnostics["numeric_identity"]["ignored_ebay_quantity_numbers"])
+
+    def test_two_games_bundle_does_not_become_installment(self) -> None:
+        diagnostics = evaluate_static_match_rules(
+            candidate("2 Games Bundle: Sports Champions 2 + TV Superstars", platform="Sony PlayStation 3", game_name="Sports Champions 2"),
+            seed("Sports Champions 2", "PS 3"),
+        )
+        self.assertNotEqual("Blocked", diagnostics["recommendation"])
+        self.assertIn("2", diagnostics["numeric_identity"]["ignored_ebay_quantity_numbers"])
+
+    def test_release_year_does_not_become_installment(self) -> None:
+        diagnostics = evaluate_static_match_rules(
+            candidate("Sniper Elite 4 Xbox One 2017", platform="Microsoft Xbox One", game_name="Sniper Elite 4"),
+            seed("Sniper Elite 4", "Xbox One"),
+        )
+        self.assertNotEqual("Blocked", diagnostics["recommendation"])
+        self.assertIn("2017", diagnostics["numeric_identity"]["ignored_ebay_release_years"])
+
+    def test_rock_band_release_year_does_not_become_installment(self) -> None:
+        diagnostics = evaluate_static_match_rules(
+            candidate("Rock Band PlayStation 3 2007", platform="Sony PlayStation 3", game_name="Rock Band"),
+            seed("Rock Band", "PS 3"),
+        )
+        self.assertNotEqual("Blocked", diagnostics["recommendation"])
+        self.assertIn("2007", diagnostics["numeric_identity"]["ignored_ebay_release_years"])
+
+    def test_included_content_amount_does_not_become_installment(self) -> None:
+        diagnostics = evaluate_static_match_rules(
+            candidate("Minecraft + 3500 Coins Xbox One", platform="Microsoft Xbox One", game_name="Minecraft"),
+            seed("Minecraft", "Xbox One"),
+        )
+        self.assertNotEqual("Blocked", diagnostics["recommendation"])
+        self.assertIn("3500", diagnostics["numeric_identity"]["ignored_ebay_content_amounts"])
+
+    def test_anniversary_number_does_not_hard_block(self) -> None:
+        diagnostics = evaluate_static_match_rules(
+            candidate("Sonic Generations 20th Anniversary Edition", platform="Microsoft Xbox 360", game_name="Sonic Generations"),
+            seed("Sonic Generations", "Xbox 360"),
+        )
+        self.assertNotEqual("Blocked", diagnostics["recommendation"])
+        self.assertFalse(any("numeric" in reason.casefold() for reason in diagnostics["hard_blocks"]))
+
     def test_cable_pedal_drum_sticks_block(self) -> None:
         diagnostics = evaluate_static_match_rules(
             candidate("Rock Band Drum Sticks Pedal Cable Set", category_name="Video Game Accessories"),

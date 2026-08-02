@@ -1,5 +1,26 @@
 # DECISIONS.md
 
+# Sourcing Numeric Identity Requires Context
+
+Decision date: 2026-08-02
+
+Sourcing numeric hard blocks must compare context-classified identity numbers,
+not every number found in the Amazon and eBay titles. Platform aliases,
+release years, quantity/lot counts, and included-content counts are diagnostic
+evidence but not product identity conflicts.
+
+Consequences:
+
+- Recognized annual and installment families may hard-block when the same
+  family has disjoint identities, such as `NBA 2K19` vs `NBA 2K26` or
+  `Rock Band 2` vs `Rock Band 3`.
+- Recognized base-game-vs-installment conflicts may hard-block, such as
+  `Rock Band` vs `Rock Band 3`, `Sports Champions` vs `Sports Champions 2`,
+  and `Jackbox Party Pack` vs `Jackbox Party Pack 7`.
+- Ambiguous numeric disagreement routes to review instead of a hard block.
+- Production rescoring should remain a separate operator-approved action after
+  positive-status conflict review.
+
 # Sourcing Presentation Must Honor Final Hard Blocks
 
 Decision date: 2026-08-01

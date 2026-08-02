@@ -2,7 +2,7 @@
 
 This file tracks active issues, monitor items, and deferred decisions for Midnight Blue Operations Platform (MBOP).
 
-Last reviewed: 2026-08-01
+Last reviewed: 2026-08-02
 
 # Active Issues
 
@@ -14,14 +14,16 @@ Problem:
 The 2026-08-01 existing-rule-miss investigation found that current
 deterministic rules would hard-block some non-open positive-status sourcing
 rows in dry-run: 11 `purchased_pending_match` rows and 23
-`matched_to_purchase` rows.
+`matched_to_purchase` rows. The 2026-08-02 context-aware numeric identity
+sprint reduced numeric false positives sharply, but still found 4 current
+positive-status rows that the revised numeric rule would hard-block.
 
 Impact:
 The final presentation gate is still safe for stale `open` rows because it
 honors already-written hard-block diagnostics before presentation. However,
-broader matching-rule expansion or production rescoring should not proceed
-until the positive-status hard-block examples are reviewed and converted into
-fixtures or documented exceptions.
+broader matching-rule expansion or production rescoring should not proceed until
+positive-status hard-block examples are reviewed and converted into fixtures or
+documented exceptions.
 
 Current mitigation:
 - No production rescoring or deployment was performed during the 2026-08-01
@@ -30,9 +32,14 @@ Current mitigation:
   modify positive-status rows.
 - Regression tests cover the presentation gate, post-detail hard blocks, exact
   historical negative memory, and valid non-blocked opportunities.
+- No production rescoring, database writes, or deployment was performed during
+  the 2026-08-02 numeric identity sprint.
 
 Recommended next mitigation:
-- Export and review the 34 positive-status current-rule hard-block examples.
+- Review the 4 revised numeric positive-status conflicts exported in
+  `tmp/numeric-sprint-positive-conflicts-2026-08-02.csv`, then either confirm
+  them as valid blocks or add fixtures/documented exceptions before deployment
+  and production rescoring.
 - Add fixtures for any valid positives before changing deterministic rule
   coverage or running a production rescore.
 

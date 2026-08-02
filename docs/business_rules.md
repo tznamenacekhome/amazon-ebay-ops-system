@@ -1,6 +1,6 @@
 # Business Rules
 
-Last updated: 2026-07-14
+Last updated: 2026-08-02
 
 ## Cost And Reporting
 
@@ -74,6 +74,14 @@ Carrier/status syncs must not downgrade workflow-owned statuses.
   merchandise, digital/service items, incomplete products, foreign regions,
   sequel/year conflicts, and edition/version conflicts as backend-owned
   diagnostics and hard blocks where confidence is high.
+- Numeric sourcing identity blocks must be context-aware. Recognized annual or
+  installment product numbers may hard-block when the same family conflicts,
+  such as `NBA 2K19` vs `NBA 2K26`, `Rock Band 2` vs `Rock Band 3`, or base
+  `Rock Band` vs `Rock Band 3`.
+- Platform aliases, release years, quantity/lot counts, and included-content
+  counts must not create numeric hard blocks. Examples: `Rock Band PlayStation
+  3` vs `Rock Band PS3`, `Lot of 2 Rock Band 3`, `Sniper Elite 4 Xbox One
+  2017`, and `Minecraft + 3500 Coins`.
 - Annual sports/game matching must not treat a release year as a sequel/year
   conflict when the candidate also contains the same game number as the Amazon
   title, such as `Tiger Woods PGA Tour 10` with release year `2009`.

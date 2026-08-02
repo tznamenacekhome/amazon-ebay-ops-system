@@ -1,6 +1,24 @@
 # CURRENT_STATE.md
 
-Last Updated: 2026-08-01
+Last Updated: 2026-08-02
+
+## 2026-08-02 Context-Aware Numeric Identity Matching
+
+- Sourcing numeric hard blocks now require context-classified product identity
+  numbers instead of raw number disagreement.
+- Recognized annual/installment identities include sports-year families like
+  `NBA 2Kxx`, `Madden NFL xx`, `FIFA xx`, `NHL xx`, `WWE 2Kxx`, `Just Dance`,
+  and game installment families such as `Rock Band`, `Sports Champions`,
+  `Jackbox Party Pack`, `Sniper Elite`, `Far Cry`, and `Devil May Cry`.
+- Platform numbers, release years, quantity/lot counts, and included-content
+  counts are ignored for hard-block purposes and preserved in diagnostics.
+- Base-game-vs-installment conflicts now block for recognized families, e.g.
+  `Rock Band` vs `Rock Band 3`, while `Rock Band PlayStation 3` vs
+  `Rock Band PS3` remains eligible.
+- Validation was read-only: no production rescore, database writes, deployment,
+  marketplace writes, AI calls, or new matching families beyond numeric identity
+  classification were performed.
+- Sprint report: `docs/sourcing_context_aware_numeric_identity_sprint_2026-08-02.md`.
 
 ## 2026-08-01 Sourcing Hard-Block Presentation Gate
 
