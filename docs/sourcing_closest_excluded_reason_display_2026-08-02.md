@@ -16,20 +16,22 @@ Read-only audit of the current 50 `Closest Excluded` rows:
 - rows returned: 50
 - rows with a clear stored exclusion diagnostic: 0
 - rows with multiple exclusion diagnostics: 0
-- rows where status is the only exclusion cause: 50
-- rows with missing or ambiguous exclusion cause: 50
-- rows with historical positive-match supporting signals: 26
+- rows where status is the only exclusion cause: 48
+- rows with missing or ambiguous exclusion cause: 48
+- rows with historical positive-match supporting signals: 24
 - rows with no hard block, blocked flag, or warning: 24
 
 Distribution by stored reason class:
 
 | Reason class | Count |
 |---|---:|
-| `status_rejected_without_block` | 50 |
+| `status_rejected_without_block` | 48 |
+| `profitability` | 1 |
+| `review_threshold` | 1 |
 
 The valid-looking rows are not being hidden by a visible current hard block.
 They are `rejected` opportunities whose stored diagnostics often say `Strong
-Match` or `Probable Match`; 26 also have historical positive title/system
+Match` or `Probable Match`; 24 also have historical positive title/system
 signals. This points to stale or earlier-run eligibility/status decisions, not a
 new deterministic matching rule.
 
@@ -110,6 +112,13 @@ Set-Location C:\Dev\amazon-ebay-ops-system\web; npm.cmd run build
 ```
 
 Both passed before commit.
+
+Production verification:
+
+- ECS web rollout completed on task definition `mbop-web-task:103`.
+- Protected production root returned the expected Cognito `302` auth redirect.
+- Read-only production audit after deploy returned 50 current Closest Excluded
+  rows with reason objects, 0 missing reasons, and 0 unknown reasons.
 
 ## Caveats
 
