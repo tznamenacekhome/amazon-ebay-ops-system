@@ -769,6 +769,9 @@ function ExcludedBecause({ reason }: { reason: SourcingOpportunity["exclusionRea
   const label = reason?.label ?? "Unknown - inspect diagnostics";
   const summary = reason?.summary ?? "No backend exclusion reason was returned.";
   const moreCount = reason?.secondaryReasons?.length ?? 0;
+  const statusText = reason?.eligible === true
+    ? "Current rules: eligible"
+    : `Final: ${reason?.finalRecommendation ?? reason?.finalStatus ?? "not available"}`;
   return (
     <div className="mt-2 max-w-xl rounded-md border border-amber-200 bg-amber-50 px-2 py-1.5 text-xs text-amber-950">
       <div className="flex flex-wrap items-center gap-1.5">
@@ -779,7 +782,7 @@ function ExcludedBecause({ reason }: { reason: SourcingOpportunity["exclusionRea
       <div className="mt-1 font-medium">{label}</div>
       <div className="mt-0.5 text-amber-800">{summary}</div>
       <div className="mt-0.5 text-[11px] text-amber-700">
-        Source: {reason?.source ?? "unknown"} / Final: {reason?.finalRecommendation ?? reason?.finalStatus ?? "not available"}
+        Source: {reason?.source ?? "unknown"} / {statusText}
       </div>
     </div>
   );
@@ -988,6 +991,7 @@ function DiagnosticComparisonPanel({
 }) {
   const comparison = row.diagnosticComparison;
   const rows = comparison?.rows ?? [];
+  const decisionTrace = row.decisionTrace ?? [];
   const incorrect = new Set(incorrectRows);
   const reason = row.exclusionReason ?? null;
   const reasonKeys = new Set(reason?.diagnosticKeys ?? []);
@@ -1028,6 +1032,7 @@ function DiagnosticComparisonPanel({
           ) : null}
         </div>
       ) : null}
+      {decisionTrace.length ? <DecisionTracePanel rows={decisionTrace} /> : null}
       <div className="overflow-hidden rounded-md border border-slate-200 bg-white">
         <table className="w-full table-fixed text-left text-xs">
           <thead className="bg-slate-100 uppercase tracking-wide text-slate-500">
@@ -1084,6 +1089,35 @@ function DiagnosticComparisonPanel({
       </div>
     </aside>
   );
+}
+
+function DecisionTracePanel({ rows }: { rows: NonNullable<SourcingOpportunity["decisionTrace"]> }) {
+  const visibleRows = rows.filter((row) => row.result !== "pass").slice(0, 6);
+  const passCount = rows.filter((row) => row.result === "pass").length;
+  return (
+    <div className="mb-3 rounded-md border border-slate-200 bg-white p-3 text-xs text-slate-700">
+      <div className="mb-2 flex flex-wrap items-center gap-2">
+        <span className="font-semibold text-slate-900">Rejection decision trace</span>
+        {passCount ? <span className="text-slate-500">{passCount} checks passed</span> : null}
+      </div>
+      <div className="space-y-1.5">
+        {(visibleRows.length ? visibleRows : rows.slice(0, 4)).map((traceRow) => (
+          <div key={`${traceRow.stage}-${traceRow.diagnosticKey}-${traceRow.summary}`} className="grid gap-1 rounded border border-slate-100 px-2 py-1.5 sm:grid-cols-[120px_80px_1fr]">
+            <div className="font-medium text-slate-800">{traceRow.stage}</div>
+            <div className={traceResultClass(traceRow.result)}>{label(traceRow.result)}</div>
+            <div className="text-slate-600">{traceRow.summary}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function traceResultClass(result: string) {
+  if (result === "fail") return "font-medium text-red-700";
+  if (result === "warning") return "font-medium text-amber-700";
+  if (result === "pass") return "font-medium text-emerald-700";
+  return "font-medium text-slate-500";
 }
 
 function DismissReasonButtons({

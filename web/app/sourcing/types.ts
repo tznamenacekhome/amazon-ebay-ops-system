@@ -64,6 +64,7 @@ export type SourcingOpportunity = {
   matchingDiagnostics: unknown;
   diagnosticComparison?: DiagnosticComparison | null;
   exclusionReason?: ExclusionReason | null;
+  decisionTrace?: DecisionTraceRow[];
   nearMissRank?: number | null;
   createdAt: string | null;
   listingStatus?: string | null;
@@ -82,6 +83,7 @@ export type ExclusionReason = {
   label: string;
   summary: string;
   source: string;
+  eligible?: boolean;
   severity:
     | "hard_block"
     | "probable_non_match"
@@ -108,6 +110,14 @@ export type ExclusionReason = {
     diagnosticKeys: string[];
   }>;
   supportingSignals: string[];
+};
+
+export type DecisionTraceRow = {
+  stage: string;
+  diagnosticKey: string;
+  result: "pass" | "fail" | "warning" | "unknown" | string;
+  summary: string;
+  reasonCode?: string;
 };
 
 export type DiagnosticComparison = {

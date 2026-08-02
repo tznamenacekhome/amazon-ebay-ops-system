@@ -190,10 +190,19 @@ type ExclusionReasonSummary = {
 };
 
 type ExclusionReason = ExclusionReasonSummary & {
+  eligible?: boolean;
   finalRecommendation: string | null;
   finalStatus: string | null;
   secondaryReasons: ExclusionReasonSummary[];
   supportingSignals: string[];
+};
+
+type DecisionTraceRow = {
+  stage: string;
+  diagnosticKey: string;
+  result: string;
+  summary: string;
+  reasonCode?: string;
 };
 
 export async function GET(request: NextRequest) {
@@ -286,6 +295,7 @@ async function getOpportunities(request: NextRequest) {
       const landedCost = row.sourcing_ebay_candidates?.landed_cost ?? null;
       const conservativeProfit = conservativeDisplayedProfit(targetSalePrice, landedCost, row.profit);
       const exclusionReason = scope === "closest_excluded" ? closestExcludedReason(row) : null;
+      const decisionTrace = scope === "closest_excluded" ? persistedDecisionTrace(row.matching_diagnostics_json) : [];
       return {
         opportunityId: row.opportunity_id,
         runId: row.sourcing_run_id,
@@ -360,6 +370,7 @@ async function getOpportunities(request: NextRequest) {
           diagnostics: row.matching_diagnostics_json,
         }),
         exclusionReason,
+        decisionTrace,
         nearMissRank: scope === "closest_excluded" ? closestExcludedRank(row) : null,
         createdAt: row.created_at,
         firstPresentedAt: presentation.firstPresentedAt,
@@ -953,6 +964,8 @@ const EXCLUSION_REASON_RULES: Array<{
 
 function closestExcludedReason(row: OpportunityRow): ExclusionReason {
   const diagnostics = isRecord(row.matching_diagnostics_json) ? row.matching_diagnostics_json : {};
+  const persisted = persistedExclusionReason(diagnostics);
+  if (persisted) return persisted;
   const staticRules = isRecord(diagnostics.static_rules) ? diagnostics.static_rules : {};
   const hardBlocks = stringArray(staticRules.hard_blocks ?? diagnostics.hard_blocks);
   const warnings = stringArray(staticRules.warnings ?? diagnostics.warnings ?? diagnostics.flags);
@@ -986,11 +999,74 @@ function closestExcludedReason(row: OpportunityRow): ExclusionReason {
   const primary = matches[0] ?? closestExcludedFallbackReason(row, finalRecommendation, hardBlocks.length > 0);
   return {
     ...primary,
+    eligible: false,
     finalRecommendation,
     finalStatus: row.status ?? null,
     secondaryReasons: matches.filter((reason) => reason.code !== primary.code),
     supportingSignals: [...new Set(supportingSignals)].slice(0, 8),
   };
+}
+
+function persistedExclusionReason(diagnostics: Record<string, unknown>): ExclusionReason | null {
+  const decision = isRecord(diagnostics.presentationDecision) ? diagnostics.presentationDecision : null;
+  const primary = decision && isRecord(decision.primaryReason) ? decision.primaryReason : null;
+  if (!decision || !primary) return null;
+  const secondaryReasons = Array.isArray(decision.secondaryReasons)
+    ? decision.secondaryReasons.filter(isRecord).map((reason) => exclusionSummary(reason))
+    : [];
+  const traceSignals = persistedDecisionTrace(diagnostics)
+    .filter((row) => row.result === "fail" || row.result === "warning")
+    .map((row) => row.summary)
+    .filter(Boolean);
+  return {
+    ...exclusionSummary(primary),
+    eligible: typeof decision.eligible === "boolean" ? decision.eligible : undefined,
+    finalRecommendation: stringOrNull(decision.finalRecommendation),
+    finalStatus: stringOrNull(decision.finalStatus),
+    secondaryReasons,
+    supportingSignals: [...new Set(traceSignals)].slice(0, 8),
+  };
+}
+
+function exclusionSummary(value: Record<string, unknown>): ExclusionReasonSummary {
+  return {
+    code: String(value.code ?? "unknown"),
+    label: String(value.label ?? "Unknown - inspect diagnostics"),
+    summary: String(value.summary ?? "No backend exclusion reason was returned."),
+    source: String(value.source ?? "unknown"),
+    severity: exclusionSeverity(value.severity),
+    category: String(value.category ?? value.severity ?? "other_eligibility_gate"),
+    diagnosticKeys: stringArray(value.diagnosticKeys),
+  };
+}
+
+function exclusionSeverity(value: unknown): ExclusionReasonSeverity {
+  const text = String(value ?? "");
+  const allowed: ExclusionReasonSeverity[] = [
+    "hard_block",
+    "probable_non_match",
+    "review_threshold",
+    "score_threshold",
+    "profitability",
+    "availability",
+    "seller_rule",
+    "duplicate_history",
+    "unsupported_platform",
+    "item_location",
+    "other_eligibility_gate",
+  ];
+  return allowed.includes(text as ExclusionReasonSeverity) ? text as ExclusionReasonSeverity : "other_eligibility_gate";
+}
+
+function persistedDecisionTrace(value: unknown): DecisionTraceRow[] {
+  if (!isRecord(value) || !Array.isArray(value.decisionTrace)) return [];
+  return value.decisionTrace.filter(isRecord).map((row) => ({
+    stage: String(row.stage ?? ""),
+    diagnosticKey: String(row.diagnosticKey ?? ""),
+    result: String(row.result ?? "unknown"),
+    summary: String(row.summary ?? ""),
+    reasonCode: row.reasonCode ? String(row.reasonCode) : undefined,
+  })).filter((row) => row.stage && row.summary);
 }
 
 function closestExcludedFallbackReason(
@@ -1071,6 +1147,11 @@ function closestExcludedRank(row: OpportunityRow) {
 
 function stringArray(value: unknown): string[] {
   return Array.isArray(value) ? value.map((item) => String(item ?? "").trim()).filter(Boolean) : [];
+}
+
+function stringOrNull(value: unknown): string | null {
+  const text = String(value ?? "").trim();
+  return text ? text : null;
 }
 
 function hasBlockedDiagnostic(value: unknown): boolean {

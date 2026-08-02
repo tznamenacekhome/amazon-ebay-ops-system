@@ -7,6 +7,7 @@ import datetime as dt
 from typing import Any
 
 from sourcing_common import chunked, fetch_settings, get_supabase_client, paginate_table, to_float
+from sourcing_decision_trace import enrich_sourcing_diagnostics
 from matching_intelligence import build_listing_snapshot
 from sourcing_match_rules import evaluate_static_match_rules, meaningful_title_tokens, resolve_seed_system
 from system_detection import detect_system_from_title, normalize_system
@@ -455,6 +456,14 @@ def score_candidate(
             "raw_estimated_fees": raw_estimated_fees or None,
         },
     }
+    matching_diagnostics = enrich_sourcing_diagnostics(
+        matching_diagnostics,
+        status=status,
+        opportunity_type=opportunity_type,
+        profit=profit,
+        roi_percent=roi,
+        listing_status=candidate.get("listing_status"),
+    )
 
     return {
         "sourcing_run_id": candidate["sourcing_run_id"],
