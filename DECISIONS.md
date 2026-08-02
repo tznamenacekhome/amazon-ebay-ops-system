@@ -19,6 +19,9 @@ Consequences:
   metadata in the operator-facing table.
 - Ranking remains backend-owned and is applied only after the never-presented
   eligibility gate.
+- Exclusion explanations are backend-owned. React may display
+  `exclusionReason`, but it must not derive matching or eligibility reasons
+  from titles, statuses, or diagnostics on its own.
 
 # Operator Matching Feedback Is Evidence, Not Automatic Rule Mutation
 

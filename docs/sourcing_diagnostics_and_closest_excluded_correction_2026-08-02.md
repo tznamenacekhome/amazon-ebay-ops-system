@@ -64,6 +64,11 @@ Rows are excluded before ranking when they are:
 
 Closest Excluded still uses backend ranking and remains capped at 50.
 
+The same endpoint now returns a structured `exclusionReason` object for each
+Closest Excluded row so the operator can see whether the row was excluded by a
+hard block, final recommendation, status/eligibility gate, profitability, or an
+unmapped/unknown cause.
+
 ## UI Corrections
 
 Single-row Replenishment dismissal now opens the wide two-column dialog with
@@ -76,6 +81,9 @@ diagnostics as if they applied to all selected rows.
 
 Closest Excluded no longer renders presentation-count badges or `Previously
 Presented` metadata in the operator-facing table.
+
+Closest Excluded rows also show an `Excluded Because` block without opening
+diagnostics.
 
 ## Diagnostic Evidence Population
 

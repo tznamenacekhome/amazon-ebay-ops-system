@@ -166,6 +166,36 @@ type ClosestExcludedContext = {
   presentedListingKeys: Set<string>;
 };
 
+type ExclusionReasonSeverity =
+  | "hard_block"
+  | "probable_non_match"
+  | "review_threshold"
+  | "score_threshold"
+  | "profitability"
+  | "availability"
+  | "seller_rule"
+  | "duplicate_history"
+  | "unsupported_platform"
+  | "item_location"
+  | "other_eligibility_gate";
+
+type ExclusionReasonSummary = {
+  code: string;
+  label: string;
+  summary: string;
+  source: string;
+  severity: ExclusionReasonSeverity;
+  category: string;
+  diagnosticKeys: string[];
+};
+
+type ExclusionReason = ExclusionReasonSummary & {
+  finalRecommendation: string | null;
+  finalStatus: string | null;
+  secondaryReasons: ExclusionReasonSummary[];
+  supportingSignals: string[];
+};
+
 export async function GET(request: NextRequest) {
   try {
     return await getOpportunities(request);
@@ -255,6 +285,7 @@ async function getOpportunities(request: NextRequest) {
       const myListing = myListingByAsin.get(row.asin.toUpperCase()) ?? null;
       const landedCost = row.sourcing_ebay_candidates?.landed_cost ?? null;
       const conservativeProfit = conservativeDisplayedProfit(targetSalePrice, landedCost, row.profit);
+      const exclusionReason = scope === "closest_excluded" ? closestExcludedReason(row) : null;
       return {
         opportunityId: row.opportunity_id,
         runId: row.sourcing_run_id,
@@ -328,7 +359,7 @@ async function getOpportunities(request: NextRequest) {
           candidate: (row.sourcing_ebay_candidates ?? {}) as unknown as Record<string, unknown>,
           diagnostics: row.matching_diagnostics_json,
         }),
-        exclusionReason: scope === "closest_excluded" ? closestExcludedReason(row) : null,
+        exclusionReason,
         nearMissRank: scope === "closest_excluded" ? closestExcludedRank(row) : null,
         createdAt: row.created_at,
         firstPresentedAt: presentation.firstPresentedAt,
@@ -778,14 +809,248 @@ function isObviousLowValueExclusion(row: OpportunityRow) {
   return false;
 }
 
-function closestExcludedReason(row: OpportunityRow) {
+const EXCLUSION_REASON_RULES: Array<{
+  code: string;
+  label: string;
+  summary: string;
+  source: string;
+  severity: ExclusionReasonSeverity;
+  category: string;
+  diagnosticKeys: string[];
+  patterns: string[];
+}> = [
+  {
+    code: "historical_exact_negative",
+    label: "Historical Exact Negative",
+    summary: "Stored matching intelligence says this exact listing/title was previously rejected.",
+    source: "matching_intelligence",
+    severity: "duplicate_history",
+    category: "duplicate/history rule",
+    diagnosticKeys: ["confidence_summary", "hard_blocks", "warnings"],
+    patterns: ["historical non_match", "historical condition_problem", "exact historical"],
+  },
+  {
+    code: "game_name_conflict",
+    label: "Different Game Name",
+    summary: "eBay Game Name or title evidence identifies a different game.",
+    source: "matching_diagnostics",
+    severity: "hard_block",
+    category: "hard block",
+    diagnosticKeys: ["game_name", "core_game_identity", "full_title", "hard_blocks"],
+    patterns: ["game name"],
+  },
+  {
+    code: "numeric_installment_mismatch",
+    label: "Numeric Installment Mismatch",
+    summary: "Stored diagnostics found a conflicting installment, sequel, or identity number.",
+    source: "matching_diagnostics",
+    severity: "hard_block",
+    category: "hard block",
+    diagnosticKeys: ["installment_number", "hard_blocks"],
+    patterns: ["numeric", "identity number", "installment", "sequel"],
+  },
+  {
+    code: "wrong_platform",
+    label: "Wrong Platform",
+    summary: "Amazon and eBay platform/system evidence does not match.",
+    source: "matching_diagnostics",
+    severity: "hard_block",
+    category: "hard block",
+    diagnosticKeys: ["platform_system", "hard_blocks"],
+    patterns: ["platform mismatch", "wrong platform"],
+  },
+  {
+    code: "unsupported_platform",
+    label: "Unsupported Platform",
+    summary: "The Amazon seed platform is not supported for sourcing presentation.",
+    source: "matching_diagnostics",
+    severity: "unsupported_platform",
+    category: "unsupported platform",
+    diagnosticKeys: ["platform_system", "hard_blocks"],
+    patterns: ["unsupported sourcing platform", "unsupported platform"],
+  },
+  {
+    code: "edition_version_conflict",
+    label: "Edition/version conflict",
+    summary: "Edition, version, or bundle wording conflicts with the Amazon product.",
+    source: "matching_diagnostics",
+    severity: "hard_block",
+    category: "hard block",
+    diagnosticKeys: ["edition_version", "package_bundle_contents", "hard_blocks"],
+    patterns: ["edition", "version"],
+  },
+  {
+    code: "digital_or_service_listing",
+    label: "Digital or service listing",
+    summary: "The listing appears to be digital delivery, DLC, an account, or a service.",
+    source: "matching_diagnostics",
+    severity: "hard_block",
+    category: "hard block",
+    diagnosticKeys: ["digital_physical", "hard_blocks"],
+    patterns: ["digital", "download", "dlc", "account", "service"],
+  },
+  {
+    code: "accessory_not_game",
+    label: "Accessory / not a game",
+    summary: "Category or title evidence indicates an accessory, merchandise, or non-game item.",
+    source: "matching_diagnostics",
+    severity: "hard_block",
+    category: "hard block",
+    diagnosticKeys: ["category", "format_type", "hard_blocks"],
+    patterns: ["non-video-game", "not a game", "not-game", "accessory", "category"],
+  },
+  {
+    code: "incomplete_product",
+    label: "Incomplete product",
+    summary: "The listing appears incomplete, disc-only, case-only, or missing expected contents.",
+    source: "matching_diagnostics",
+    severity: "hard_block",
+    category: "hard block",
+    diagnosticKeys: ["completeness", "package_bundle_contents", "hard_blocks"],
+    patterns: ["incomplete", "disc only", "case only", "missing manual", "missing contents"],
+  },
+  {
+    code: "region_or_location",
+    label: "Region or location conflict",
+    summary: "Stored diagnostics found region, North American, item-location, or pickup-only conflict.",
+    source: "matching_diagnostics",
+    severity: "item_location",
+    category: "item location",
+    diagnosticKeys: ["region", "item_location", "hard_blocks"],
+    patterns: ["region", "north american", "non-north", "item location", "pickup"],
+  },
+  {
+    code: "unavailable_listing",
+    label: "Unavailable listing",
+    summary: "Availability evidence says the eBay listing is ended, sold out, or unavailable.",
+    source: "availability",
+    severity: "availability",
+    category: "availability",
+    diagnosticKeys: ["opportunity_context", "hard_blocks"],
+    patterns: ["no longer available", "unavailable", "ended", "sold out"],
+  },
+  {
+    code: "seller_policy",
+    label: "Seller avoid/watch policy",
+    summary: "Seller intelligence warning reduced or blocked presentation.",
+    source: "seller_intelligence",
+    severity: "seller_rule",
+    category: "seller rule",
+    diagnosticKeys: ["warnings", "confidence_summary"],
+    patterns: ["seller"],
+  },
+  {
+    code: "probable_non_match",
+    label: "Probable non-match",
+    summary: "Final diagnostics classify the candidate as a probable non-match.",
+    source: "matching_diagnostics",
+    severity: "probable_non_match",
+    category: "probable non-match",
+    diagnosticKeys: ["final_recommendation", "confidence_summary"],
+    patterns: ["probable non-match"],
+  },
+];
+
+function closestExcludedReason(row: OpportunityRow): ExclusionReason {
   const diagnostics = isRecord(row.matching_diagnostics_json) ? row.matching_diagnostics_json : {};
   const staticRules = isRecord(diagnostics.static_rules) ? diagnostics.static_rules : {};
   const hardBlocks = stringArray(staticRules.hard_blocks ?? diagnostics.hard_blocks);
-  if (hardBlocks.length) return hardBlocks.join("; ");
-  const flags = [...(row.ai_flags ?? []), ...diagnosticFlags(diagnostics)].filter((flag) => flag.startsWith("Blocked:"));
-  if (flags.length) return flags.join("; ");
-  return String(diagnostics.recommendation ?? staticRules.recommendation ?? row.status ?? "Excluded");
+  const warnings = stringArray(staticRules.warnings ?? diagnostics.warnings ?? diagnostics.flags);
+  const flags = [...(row.ai_flags ?? []), ...diagnosticFlags(diagnostics)];
+  const finalRecommendation = String(diagnostics.recommendation ?? staticRules.recommendation ?? "") || null;
+  const signalText = [
+    ...hardBlocks,
+    ...warnings,
+    ...flags.filter((flag) => flag.startsWith("Blocked:")),
+    finalRecommendation,
+  ].filter((value): value is string => Boolean(value));
+  const supportingSignals = [
+    ...hardBlocks,
+    ...warnings,
+    ...flags,
+    finalRecommendation,
+  ].filter((value): value is string => Boolean(value));
+  const signalHaystack = signalText.join(" | ").toLowerCase();
+  const matches = EXCLUSION_REASON_RULES
+    .filter((rule) => rule.patterns.some((pattern) => signalHaystack.includes(pattern)))
+    .map((rule) => ({
+      code: rule.code,
+      label: rule.label,
+      summary: rule.summary,
+      source: rule.source,
+      severity: rule.severity,
+      category: rule.category,
+      diagnosticKeys: rule.diagnosticKeys,
+    }));
+
+  const primary = matches[0] ?? closestExcludedFallbackReason(row, finalRecommendation, hardBlocks.length > 0);
+  return {
+    ...primary,
+    finalRecommendation,
+    finalStatus: row.status ?? null,
+    secondaryReasons: matches.filter((reason) => reason.code !== primary.code),
+    supportingSignals: [...new Set(supportingSignals)].slice(0, 8),
+  };
+}
+
+function closestExcludedFallbackReason(
+  row: OpportunityRow,
+  finalRecommendation: string | null,
+  hasHardBlock: boolean,
+): ExclusionReasonSummary {
+  if (hasHardBlock) {
+    return {
+      code: "other_hard_block",
+      label: "Other hard block",
+      summary: "Stored diagnostics contain a hard block that is not yet mapped to a named reason.",
+      source: "matching_diagnostics",
+      severity: "hard_block",
+      category: "hard block",
+      diagnosticKeys: ["hard_blocks", "final_recommendation"],
+    };
+  }
+  if ((row.profit ?? 0) <= 0 && row.profit !== null) {
+    return {
+      code: "profitability",
+      label: "Rejected by profitability",
+      summary: "Stored opportunity profit is at or below zero.",
+      source: "profitability",
+      severity: "profitability",
+      category: "profitability",
+      diagnosticKeys: ["opportunity_context", "confidence_summary"],
+    };
+  }
+  if (String(finalRecommendation ?? "").toLowerCase().includes("review")) {
+    return {
+      code: "review_threshold",
+      label: "Review threshold",
+      summary: "Final recommendation required review and did not enter presentation.",
+      source: "presentation_gate",
+      severity: "review_threshold",
+      category: "review threshold",
+      diagnosticKeys: ["final_recommendation", "confidence_summary"],
+    };
+  }
+  if (String(row.status ?? "").toLowerCase() === "rejected") {
+    return {
+      code: "status_rejected_without_block",
+      label: "Rejected before presentation",
+      summary: "Status is rejected, but stored diagnostics do not include a mapped exclusion rule.",
+      source: "opportunity_status",
+      severity: "other_eligibility_gate",
+      category: "other eligibility gate",
+      diagnosticKeys: ["final_recommendation", "confidence_summary", "opportunity_context"],
+    };
+  }
+  return {
+    code: "unknown",
+    label: "Unknown - inspect diagnostics",
+    summary: "No stored exclusion reason could be derived from diagnostics or eligibility fields.",
+    source: "unknown",
+    severity: "other_eligibility_gate",
+    category: "other eligibility gate",
+    diagnosticKeys: ["final_recommendation", "confidence_summary"],
+  };
 }
 
 function closestExcludedRank(row: OpportunityRow) {

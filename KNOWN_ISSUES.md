@@ -23,6 +23,9 @@ Current mitigation:
 - Production reprocessing is scoped to current open/unreviewed rows.
 - Closest Excluded is gated against presentation/action history before ranking,
   so the quality-control queue only shows never-presented exclusions.
+- The current Closest Excluded top 50 mostly expose rejected-status rows without
+  mapped hard-block diagnostics; this is now visible in the UI as `Rejected
+  before presentation` and should be reviewed before any rescore/reopen action.
 
 ## Sourcing Positive Fixture Review Before Rule Expansion
 

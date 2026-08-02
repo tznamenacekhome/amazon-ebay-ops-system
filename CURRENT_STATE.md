@@ -18,6 +18,8 @@ Last Updated: 2026-08-02
 - Closest Excluded is constrained to never-presented, never-actioned exclusions
   using `sourcing_opportunity_batch_items`, `sourcing_actions`, and same-ASIN
   eBay listing identity checks before ranking.
+- Closest Excluded rows now include a backend-owned `exclusionReason` object
+  and display an `Excluded Because` block in the table.
 - Receiving now supports `Sourcing false positive` with failed matching element
   capture and high-confidence negative matching-intelligence rebuild semantics.
 - Migration `20260802000000_mbop_sourcing_feedback_outcomes.sql` adds

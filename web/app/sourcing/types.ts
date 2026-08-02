@@ -63,7 +63,7 @@ export type SourcingOpportunity = {
   aiFlags: string[];
   matchingDiagnostics: unknown;
   diagnosticComparison?: DiagnosticComparison | null;
-  exclusionReason?: string | null;
+  exclusionReason?: ExclusionReason | null;
   nearMissRank?: number | null;
   createdAt: string | null;
   listingStatus?: string | null;
@@ -75,6 +75,39 @@ export type SourcingOpportunity = {
   latestPresentedCycleId?: string | null;
   isNewThisRun?: boolean;
   presentationCount?: number;
+};
+
+export type ExclusionReason = {
+  code: string;
+  label: string;
+  summary: string;
+  source: string;
+  severity:
+    | "hard_block"
+    | "probable_non_match"
+    | "review_threshold"
+    | "score_threshold"
+    | "profitability"
+    | "availability"
+    | "seller_rule"
+    | "duplicate_history"
+    | "unsupported_platform"
+    | "item_location"
+    | "other_eligibility_gate";
+  category: string;
+  diagnosticKeys: string[];
+  finalRecommendation: string | null;
+  finalStatus: string | null;
+  secondaryReasons: Array<{
+    code: string;
+    label: string;
+    summary: string;
+    source: string;
+    severity: ExclusionReason["severity"];
+    category: string;
+    diagnosticKeys: string[];
+  }>;
+  supportingSignals: string[];
 };
 
 export type DiagnosticComparison = {

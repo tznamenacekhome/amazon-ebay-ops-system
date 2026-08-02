@@ -162,7 +162,8 @@ Amazon-to-eBay sourcing now consumes Matching Intelligence during scoring:
   `diagnosticComparison` shape for operator review in dismissals and
   near-miss workflows
 - the Sourcing workspace includes a `Closest Excluded` tab that shows the 50
-  strongest backend-ranked excluded near misses for operator review
+  strongest backend-ranked excluded near misses for operator review, including
+  a backend-owned exclusion reason for each row
 - the Matching Intelligence UI includes image clue counts and a near-miss
   review queue for title-similar dismissed/condition examples
 - sourcing presentation has a final stored-diagnostic eligibility gate:

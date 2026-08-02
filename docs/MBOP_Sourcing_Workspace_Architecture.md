@@ -98,6 +98,8 @@ Current implementation notes:
 - Closest Excluded is limited to never-presented, never-actioned candidates and
   is filtered against `sourcing_opportunity_batch_items`, `sourcing_actions`,
   and same-ASIN eBay listing identity before backend ranking.
+- Closest Excluded rows display a backend-owned `Excluded Because` reason and
+  the diagnostics panel highlights the same primary reason.
 - Auction type cells link to Gixen and copy the eBay item number to the clipboard.
 - Type cells show backend-suggested Best Offer and auction bid amounts in USD.
   When eBay Browse returns an original non-USD amount, the cell also displays

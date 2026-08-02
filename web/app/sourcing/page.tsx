@@ -540,8 +540,8 @@ function ReplenishmentTable({
                       <span>{row.itemLocationCountry ?? "location unknown"}</span>
                       <span>qty {row.quantityAvailable ?? "--"}</span>
                       {closestExcludedMode ? <span>near miss {number(row.nearMissRank)}</span> : null}
-                      {closestExcludedMode && row.exclusionReason ? <span>{row.exclusionReason}</span> : null}
                     </div>
+                    {closestExcludedMode ? <ExcludedBecause reason={row.exclusionReason ?? null} /> : null}
                   </td>
                   <td className="px-2 py-2 whitespace-nowrap">
                     <CostCell row={row} />
@@ -765,6 +765,26 @@ function PresentationBadge({ row }: { row: SourcingOpportunity }) {
   );
 }
 
+function ExcludedBecause({ reason }: { reason: SourcingOpportunity["exclusionReason"] | null }) {
+  const label = reason?.label ?? "Unknown - inspect diagnostics";
+  const summary = reason?.summary ?? "No backend exclusion reason was returned.";
+  const moreCount = reason?.secondaryReasons?.length ?? 0;
+  return (
+    <div className="mt-2 max-w-xl rounded-md border border-amber-200 bg-amber-50 px-2 py-1.5 text-xs text-amber-950">
+      <div className="flex flex-wrap items-center gap-1.5">
+        <span className="font-semibold text-amber-900">Excluded Because</span>
+        <span className="rounded bg-white px-1.5 py-0.5 text-[11px] font-medium text-amber-800">{reason?.severity ?? "unknown"}</span>
+        {moreCount ? <span className="text-[11px] text-amber-700">+{moreCount} more</span> : null}
+      </div>
+      <div className="mt-1 font-medium">{label}</div>
+      <div className="mt-0.5 text-amber-800">{summary}</div>
+      <div className="mt-0.5 text-[11px] text-amber-700">
+        Source: {reason?.source ?? "unknown"} / Final: {reason?.finalRecommendation ?? reason?.finalStatus ?? "not available"}
+      </div>
+    </div>
+  );
+}
+
 function OpportunityTypeCell({ row }: { row: SourcingOpportunity }) {
   if (row.opportunityType === "auction" && row.ebayItemId) {
     return (
@@ -969,6 +989,8 @@ function DiagnosticComparisonPanel({
   const comparison = row.diagnosticComparison;
   const rows = comparison?.rows ?? [];
   const incorrect = new Set(incorrectRows);
+  const reason = row.exclusionReason ?? null;
+  const reasonKeys = new Set(reason?.diagnosticKeys ?? []);
 
   return (
     <aside className="max-h-[72vh] overflow-auto border-t border-slate-200 bg-slate-50 p-3 lg:border-l lg:border-t-0">
@@ -987,6 +1009,25 @@ function DiagnosticComparisonPanel({
           All matching assumptions are correct
         </label>
       </div>
+      {reason ? (
+        <div className="mb-3 rounded-md border border-amber-300 bg-amber-50 p-3 text-xs text-amber-950">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="font-semibold">Primary exclusion reason: {reason.label}</span>
+            <span className="rounded bg-white px-2 py-0.5 font-medium text-amber-800">{reason.severity}</span>
+            <span className="text-amber-800">Source: {reason.source}</span>
+          </div>
+          <div className="mt-1">{reason.summary}</div>
+          <div className="mt-1 text-amber-800">
+            Final recommendation: {reason.finalRecommendation ?? "Not available"} / Status: {reason.finalStatus ?? "Not available"}
+          </div>
+          {reason.supportingSignals.length ? (
+            <div className="mt-1 text-amber-800">Signals: {reason.supportingSignals.join("; ")}</div>
+          ) : null}
+          {reason.secondaryReasons.length ? (
+            <div className="mt-1 text-amber-800">Secondary: {reason.secondaryReasons.map((item) => item.label).join("; ")}</div>
+          ) : null}
+        </div>
+      ) : null}
       <div className="overflow-hidden rounded-md border border-slate-200 bg-white">
         <table className="w-full table-fixed text-left text-xs">
           <thead className="bg-slate-100 uppercase tracking-wide text-slate-500">
@@ -1000,8 +1041,9 @@ function DiagnosticComparisonPanel({
           <tbody className="divide-y divide-slate-100">
             {rows.length ? rows.map((diagnosticRow) => {
               const active = incorrect.has(diagnosticRow.key);
+              const highlighted = reasonKeys.has(diagnosticRow.key);
               return (
-                <tr key={diagnosticRow.key} className="align-top">
+                <tr key={diagnosticRow.key} className={`align-top ${highlighted ? "bg-amber-50" : ""}`}>
                   <td className="px-2 py-2 font-medium text-slate-700">
                     <div>{diagnosticRow.label}</div>
                     <div className="mt-1 text-[11px] font-normal text-slate-500">{diagnosticRow.evidence ?? "Not available"}</div>
