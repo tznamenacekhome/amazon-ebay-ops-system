@@ -61,9 +61,29 @@ Read-only production validation from the sprint:
 
 ## Deployment Details
 
-Status: pending at document creation. Update this section after ECS deployment
-with the committed SHA, image tag/digest, task definition revision, service
-stability result, and production URL validation.
+Status: deployed.
+
+- Commit deployed: `79653afe852c`
+- Image tag: `web-79653afe852c`
+- ECR image: `297464765814.dkr.ecr.us-west-2.amazonaws.com/mbop-web@sha256:b77942af183d1240484914ede504120eef94eca5007e19ac8079180ebd4f1459`
+- ECS cluster: `mbop-cluster1`
+- ECS service: `mbop-web-service`
+- ECS task definition: `arn:aws:ecs:us-west-2:297464765814:task-definition/mbop-web-task:99`
+- Desired/running/pending tasks after deployment: `1 / 1 / 0`
+- Rollout state: `COMPLETED`
+- Build environment:
+  - `MBOP_BUILD_SHA=79653afe852c`
+  - `NEXT_PUBLIC_MBOP_BUILD_SHA=79653afe852c`
+- Production URL: `https://mbop.midnightblueenterprises.com`
+- Production HTTPS check: root URL returned `302`, expected for the protected
+  application entrypoint.
+
+Deployment commands:
+
+```powershell
+.\scripts\deploy-web.ps1
+.\scripts\aws-web-status.ps1
+```
 
 ## Remaining Risks
 
