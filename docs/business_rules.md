@@ -55,6 +55,14 @@ Carrier/status syncs must not downgrade workflow-owned statuses.
 
 - Sourcing opportunities are advisory and must remain separate from Purchases
   until an eBay buyer purchase has been imported and matched.
+- Sourcing dismissal feedback may mark specific backend matching assumptions
+  as incorrect or confirm all assumptions were correct. This feedback is
+  evidence for later deterministic-rule analysis; it must not automatically
+  change rules from one response.
+- `seller_listing_mismatch` means the title/description/item specifics appeared
+  matched, but seller photos or listing inconsistency showed a different
+  product, version, region, packaging, or contents. It is exact-listing
+  negative evidence and must not broadly poison similar listings by text alone.
 - Sourcing search and scoring must hard-exclude items outside the configured
   item-location countries, currently US only.
 - Excluded sourcing keywords, such as Steam, message delivery, DLC, promo, VPN,
@@ -159,6 +167,9 @@ Carrier/status syncs must not downgrade workflow-owned statuses.
 - Coverage-cycle batch membership must not re-present opportunities already
   assigned to prior batches unless the operator action/workflow explicitly
   returns the row to an open sourcing state.
+- Closest Excluded review is a quality-control queue for excluded near misses.
+  Marking a row valid or confirming exclusion records evidence only; it must
+  not purchase, bid, submit offers, message sellers, or reopen historical rows.
 
 ## Receiving
 
@@ -172,6 +183,10 @@ Carrier/status syncs must not downgrade workflow-owned statuses.
   return_pending` and opens or updates the active Order Problems episode as a
   receiving exception.
 - Cancelled items require future refund follow-up.
+- `Sourcing false positive` is a receiving outcome for items that MBOP
+  presented/matched to an ASIN but later receipt or review proves were not the
+  correct product match. It creates high-confidence negative matching evidence
+  without automating returns, refunds, messages, or marketplace actions.
 
 ## Order Problems And Returns
 

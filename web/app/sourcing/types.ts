@@ -62,6 +62,9 @@ export type SourcingOpportunity = {
   score: number | null;
   aiFlags: string[];
   matchingDiagnostics: unknown;
+  diagnosticComparison?: DiagnosticComparison | null;
+  exclusionReason?: string | null;
+  nearMissRank?: number | null;
   createdAt: string | null;
   listingStatus?: string | null;
   firstPresentedAt?: string | null;
@@ -72,6 +75,21 @@ export type SourcingOpportunity = {
   latestPresentedCycleId?: string | null;
   isNewThisRun?: boolean;
   presentationCount?: number;
+};
+
+export type DiagnosticComparison = {
+  version: string;
+  recommendation: string | null;
+  hardBlocks: string[];
+  warnings: string[];
+  evidenceSummary: string | null;
+  rows: Array<{
+    key: string;
+    label: string;
+    amazon: string | null;
+    ebay: string | null;
+    evidence: string | null;
+  }>;
 };
 
 export type SourcingSettings = {

@@ -27,6 +27,7 @@ type ReceivingUpdate = {
   receiving_outcome?: string | null;
   condition_issue?: string | null;
   image_clues?: string[] | null;
+  failed_matching_elements?: string[] | null;
   receiving_notes?: string | null;
 };
 
@@ -696,6 +697,7 @@ async function recordReceivingOutcome(
   const imageClues = Array.isArray(update.image_clues)
     ? update.image_clues.map((value) => String(value)).filter(Boolean)
     : [];
+  const failedMatchingElements = normalizeFailedMatchingElements(update.failed_matching_elements);
   const notes =
     typeof update.receiving_notes === "string" && update.receiving_notes.trim()
       ? update.receiving_notes.trim()
@@ -727,6 +729,10 @@ async function recordReceivingOutcome(
         raw_context_json: {
           targetPrice: sellPrice ?? source.target_price,
           returnPending: update.return_pending,
+          failedMatchingElements,
+          evidenceStrength: outcome === "sourcing_false_positive" ? "high" : undefined,
+          matchLabel: outcome === "sourcing_false_positive" ? "non_match" : undefined,
+          labelType: outcome === "sourcing_false_positive" ? "negative_identity" : undefined,
           rawImportJson: source.raw_import_json,
         },
         updated_at: new Date().toISOString(),
@@ -973,7 +979,7 @@ function shouldOpenReceivingProblemEpisode(
   const outcome = normalizeReceivingOutcome(update.receiving_outcome, false);
   const issue = normalizeConditionIssue(update.condition_issue);
   if (quantityReceived < expectedQuantity) return true;
-  if (["wrong_item", "wrong_condition", "packaging_issue", "incomplete_item"].includes(outcome)) return true;
+  if (["wrong_item", "wrong_condition", "packaging_issue", "incomplete_item", "sourcing_false_positive"].includes(outcome)) return true;
   return Boolean(issue);
 }
 
@@ -981,7 +987,7 @@ function hasReceivedItemException(update: ReceivingUpdate) {
   if (update.return_pending) return true;
   const outcome = normalizeReceivingOutcome(update.receiving_outcome, false);
   const issue = normalizeConditionIssue(update.condition_issue);
-  if (["wrong_item", "wrong_condition", "packaging_issue", "incomplete_item"].includes(outcome)) {
+  if (["wrong_item", "wrong_condition", "packaging_issue", "incomplete_item", "sourcing_false_positive"].includes(outcome)) {
     return true;
   }
   return Boolean(issue);
@@ -1034,6 +1040,7 @@ function normalizeReceivingOutcome(value: unknown, returnPending: boolean) {
       "packaging_issue",
       "incomplete_item",
       "listed_successfully",
+      "sourcing_false_positive",
     ].includes(normalized)
   ) {
     return normalized;
@@ -1106,6 +1113,22 @@ async function createMissingQuantitySplit(
   });
 
   if (error) throw new Error(error.message);
+}
+
+function normalizeFailedMatchingElements(value: unknown) {
+  const allowed = new Set([
+    "core_game",
+    "installment",
+    "platform",
+    "edition_version",
+    "region",
+    "completeness",
+    "seller_listing_photo_mismatch",
+    "other",
+  ]);
+  return Array.isArray(value)
+    ? value.map((item) => String(item)).filter((item) => allowed.has(item))
+    : [];
 }
 
 async function createProblemQuantitySplit(

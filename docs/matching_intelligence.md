@@ -24,7 +24,8 @@ sourcing work.
 Operator dismiss reasons:
 
 - Identity / Match: `wrong_product`, `wrong_platform`,
-  `wrong_edition_version`, `non_north_american_version`, `digital_item`
+  `wrong_edition_version`, `non_north_american_version`, `digital_item`,
+  `seller_listing_mismatch`
 - Completeness: `incomplete_product`
 - Packaging / Condition: `missing_shrink_wrap`, `suspected_reseal`,
   `packaging_damage`
@@ -64,7 +65,8 @@ business issue, availability/system, and unknown evidence.
   sourcing purchase matches, and order problem return outcomes.
 - `matching_intelligence_receiving_outcomes` stores receiving-owned item
   verification outcomes such as correct item, wrong item, wrong condition,
-  packaging issue, incomplete item, and listed successfully.
+  packaging issue, incomplete item, sourcing false positive, and listed
+  successfully.
 - `sourcing_seller_intelligence` stores derived seller metrics and advisory
   seller status.
 
@@ -156,6 +158,11 @@ Amazon-to-eBay sourcing now consumes Matching Intelligence during scoring:
   or routed to Review for ambiguous game-plus-accessory bundles
 - `/api/sourcing/opportunities` returns full backend `matchingDiagnostics` for
   each row in addition to flattened flags
+- `/api/sourcing/opportunities` also returns a stable
+  `diagnosticComparison` shape for operator review in dismissals and
+  near-miss workflows
+- the Sourcing workspace includes a `Closest Excluded` tab that shows the 50
+  strongest backend-ranked excluded near misses for operator review
 - the Matching Intelligence UI includes image clue counts and a near-miss
   review queue for title-similar dismissed/condition examples
 - sourcing presentation has a final stored-diagnostic eligibility gate:

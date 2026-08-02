@@ -1,5 +1,24 @@
 # DECISIONS.md
 
+# Operator Matching Feedback Is Evidence, Not Automatic Rule Mutation
+
+Decision date: 2026-08-02
+
+Sourcing dismissal diagnostics, Closest Excluded confirmations, and receiving
+`Sourcing false positive` outcomes are structured evidence for deterministic
+rule analysis. They must not automatically create new matching rules, change
+profitability logic, perform marketplace actions, or reopen historical rows.
+
+Consequences:
+
+- Frontend renders backend-owned diagnostic comparisons only.
+- Seller listing/photo mismatches are exact-listing negative evidence and are
+  preserved as `image_conflict` context.
+- Closest Excluded ranking is backend-owned.
+- Reprocessing current unreviewed opportunities is scoped to currently `open`
+  rows and preserves purchased, matched, dismissed, completed, and historical
+  action rows.
+
 # Sourcing Numeric Identity Requires Context
 
 Decision date: 2026-08-02

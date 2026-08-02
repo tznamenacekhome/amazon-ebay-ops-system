@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabase } from "../../../_supabase";
+import { buildDiagnosticComparison } from "../../../diagnosticComparison";
 import { buildListingSnapshot } from "../../../matchingIntelligence";
 import { requireAdminApiToken } from "../../../../_server";
 
@@ -17,6 +18,8 @@ const actionRecordType: Record<string, string> = {
   watch: "watching",
   purchased: "purchased",
   snooze_roi: "roi_snoozed",
+  mark_valid_match: "confirmed_valid_match",
+  confirm_exclusion: "confirmed_exclusion",
 };
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -34,9 +37,10 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   const requiredMaxLandedCost = numberOrNull(body.requiredMaxLandedCost);
   const requiredRoiPercent = numberOrNull(body.requiredRoiPercent);
   const expectedPurchaseCost = numberOrNull(body.expectedPurchaseCost);
+  const diagnosticsFeedback = normalizeDiagnosticsFeedback(body.diagnosticsFeedback);
   const newStatus = actionStatus[actionType];
 
-  if (!newStatus) {
+  if (!actionRecordType[actionType]) {
     return NextResponse.json({ error: "Unsupported sourcing action." }, { status: 400 });
   }
   if (actionType === "dismiss" && !reason) {
@@ -58,15 +62,26 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     return NextResponse.json({ error: opportunityError.message }, { status: 500 });
   }
 
+  const diagnosticComparison = buildDiagnosticComparison({
+    opportunity: opportunity as Record<string, unknown>,
+    candidate: (opportunity.sourcing_ebay_candidates ?? {}) as Record<string, unknown>,
+    seed: (opportunity.sourcing_seed_asins ?? {}) as Record<string, unknown>,
+    diagnostics: opportunity.matching_diagnostics_json,
+  });
+
   const rawActionContext = {
     actionType,
     blockedAsin: actionType === "block_asin",
     previousStatus: opportunity.status,
-    newStatus,
+    newStatus: newStatus ?? opportunity.status,
     requiredMaxLandedCost,
     requiredRoiPercent,
     expectedPurchaseCost,
     imageClues,
+    diagnosticsFeedback,
+    diagnosticComparison,
+    diagnosticVersion: diagnosticComparison.version,
+    evidenceSource: reason === "seller_listing_mismatch" ? "image_conflict" : undefined,
   };
 
   const { data: action, error: actionError } = await supabase.from("sourcing_actions").insert({
@@ -127,6 +142,20 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     .update({ listing_snapshot_id: snapshot.listing_snapshot_id })
     .eq("action_id", action.action_id);
 
+  await persistImmediateMatchingExample({
+    action,
+    opportunity,
+    snapshotId: snapshot.listing_snapshot_id,
+    reason,
+    actionType,
+    notes,
+    rawActionContext,
+  });
+
+  if (!newStatus) {
+    return NextResponse.json({ opportunity });
+  }
+
   const updatePayload = {
     status: newStatus,
     latest_listing_snapshot_id: snapshot.listing_snapshot_id,
@@ -159,6 +188,119 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   }
 
   return NextResponse.json({ opportunity: data });
+}
+
+function normalizeDiagnosticsFeedback(value: unknown) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return {
+      allAssumptionsCorrect: false,
+      incorrectRows: [],
+      note: null,
+    };
+  }
+  const record = value as Record<string, unknown>;
+  const allAssumptionsCorrect = record.allAssumptionsCorrect === true;
+  const incorrectRows = Array.isArray(record.incorrectRows)
+    ? record.incorrectRows.map((row) => String(row)).filter(Boolean)
+    : [];
+  return {
+    allAssumptionsCorrect,
+    incorrectRows: allAssumptionsCorrect ? [] : incorrectRows,
+    note: typeof record.note === "string" && record.note.trim() ? record.note.trim() : null,
+  };
+}
+
+async function persistImmediateMatchingExample({
+  action,
+  opportunity,
+  snapshotId,
+  reason,
+  actionType,
+  notes,
+  rawActionContext,
+}: {
+  action: Record<string, unknown>;
+  opportunity: Record<string, unknown>;
+  snapshotId: string;
+  reason: string | null;
+  actionType: string;
+  notes: string | null;
+  rawActionContext: Record<string, unknown>;
+}) {
+  const label = immediateLabel(actionType, reason);
+  if (!label) return;
+  const candidate = objectRecord(opportunity.sourcing_ebay_candidates);
+  const seed = objectRecord(opportunity.sourcing_seed_asins);
+  const rawEbay = objectRecord(candidate.raw_ebay_json);
+  const now = new Date().toISOString();
+  const { error } = await supabase.from("matching_intelligence_examples").insert(
+    {
+      source_table: "sourcing_actions",
+      source_id: textOrNull(action.action_id),
+      source_detail: textOrNull(action.action_type),
+      source_weight: label.match_label === "match" ? 7 : 8,
+      listing_snapshot_id: snapshotId,
+      opportunity_id: textOrNull(opportunity.opportunity_id),
+      candidate_id: textOrNull(opportunity.candidate_id),
+      action_id: textOrNull(action.action_id),
+      asin: textOrNull(opportunity.asin),
+      amazon_title: seed.amazon_title ?? null,
+      amazon_image_url: seed.amazon_image_url ?? null,
+      amazon_system: seed.system ?? null,
+      ebay_item_id: candidate.ebay_item_id ?? opportunity.ebay_item_id ?? null,
+      ebay_legacy_item_id: candidate.ebay_legacy_item_id ?? legacyEbayItemId(textOrNull(candidate.ebay_item_id ?? opportunity.ebay_item_id)),
+      ebay_title: candidate.ebay_title ?? null,
+      ebay_primary_image_url: candidate.ebay_image_url ?? null,
+      ebay_item_specifics_json: Array.isArray(rawEbay.localizedAspects) ? rawEbay.localizedAspects : null,
+      ebay_condition: candidate.condition ?? null,
+      ebay_category: ebayCategory(rawEbay),
+      ebay_seller_username: candidate.seller_username ?? null,
+      detected_system: seed.system ?? null,
+      operator_action: textOrNull(action.action_type),
+      dismiss_reason: label.dismiss_reason,
+      dismissal_note: notes,
+      match_label: label.match_label,
+      label_type: label.label_type,
+      confidence: label.confidence,
+      evidence_strength: label.evidence_strength,
+      raw_context_json: rawActionContext,
+      created_at: now,
+      reviewed_at: now,
+      rebuilt_at: now,
+    },
+  );
+  if (error) console.warn("Immediate matching-intelligence example insert failed", error.message);
+}
+
+function objectRecord(value: unknown): Record<string, unknown> {
+  return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : {};
+}
+
+function textOrNull(value: unknown) {
+  const text = String(value ?? "").trim();
+  return text || null;
+}
+
+function immediateLabel(actionType: string, reason: string | null) {
+  if (actionType === "mark_valid_match") {
+    return { match_label: "match", label_type: "positive_identity", dismiss_reason: null, confidence: 1, evidence_strength: "high" };
+  }
+  if (actionType === "confirm_exclusion") {
+    return { match_label: "non_match", label_type: "negative_identity", dismiss_reason: reason || "wrong_product", confidence: 1, evidence_strength: "high" };
+  }
+  if (actionType === "dismiss" && reason === "seller_listing_mismatch") {
+    return { match_label: "non_match", label_type: "negative_identity", dismiss_reason: reason, confidence: 1, evidence_strength: "high" };
+  }
+  return null;
+}
+
+function ebayCategory(raw: unknown) {
+  if (!raw || typeof raw !== "object") return null;
+  const categories = (raw as { categories?: unknown }).categories;
+  if (Array.isArray(categories) && categories[0] && typeof categories[0] === "object") {
+    return String((categories[0] as { categoryName?: unknown }).categoryName ?? "") || null;
+  }
+  return String((raw as { categoryPath?: unknown }).categoryPath ?? "") || null;
 }
 
 function numberOrNull(value: unknown) {

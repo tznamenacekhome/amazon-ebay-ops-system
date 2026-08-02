@@ -17,7 +17,7 @@ import { dismissReasons } from "./matchingTaxonomy";
 import { mutationHeaders } from "../mutationHeaders";
 import { KeepaPriceIndicator } from "../components/KeepaPriceIndicator";
 
-const tabs = ["Replenishment", "Coverage Cycle", "Watchlist", "Purchased Pending Match", "Sourcing History", "Matching Intelligence", "Settings"] as const;
+const tabs = ["Replenishment", "Closest Excluded", "Coverage Cycle", "Watchlist", "Purchased Pending Match", "Sourcing History", "Matching Intelligence", "Settings"] as const;
 const opportunityTypes = ["all", "buy_now", "multi_unit", "best_offer", "auction", "watch"] as const;
 const GIXEN_URL = "https://www.gixen.com/main/index.php";
 type SourcingActionPayload = {
@@ -25,6 +25,11 @@ type SourcingActionPayload = {
   reason?: string;
   notes?: string;
   imageClues?: string[];
+  diagnosticsFeedback?: {
+    allAssumptionsCorrect: boolean;
+    incorrectRows: string[];
+    note?: string | null;
+  };
   requiredMaxLandedCost?: number;
   requiredRoiPercent?: number;
   expectedPurchaseCost?: number;
@@ -38,17 +43,19 @@ export default function SourcingPage() {
   const [scope, setScope] = useState("all_open");
   const [searchText, setSearchText] = useState("");
   const effectiveStatus =
-    activeTab === "Watchlist"
-      ? "watching"
-      : activeTab === "Purchased Pending Match"
-        ? "purchased_pending_match"
-        : status;
+    activeTab === "Closest Excluded"
+      ? "all"
+      : activeTab === "Watchlist"
+        ? "watching"
+        : activeTab === "Purchased Pending Match"
+          ? "purchased_pending_match"
+          : status;
   const { rows, summary, batch, loading, error, reload, removeRows, setError } = useSourcingOpportunities(
     effectiveStatus,
     type,
     searchText,
     sourceMode,
-    activeTab === "Replenishment" ? scope : "all_open",
+    activeTab === "Closest Excluded" ? "closest_excluded" : activeTab === "Replenishment" ? scope : "all_open",
   );
   const [actionBusyId, setActionBusyId] = useState<string | null>(null);
   const [dismissRow, setDismissRow] = useState<SourcingOpportunity | null>(null);
@@ -60,7 +67,7 @@ export default function SourcingPage() {
 
   const visibleRows = useMemo(() => {
     if (activeTab === "Purchased Pending Match") return rows.filter((row) => row.status === "purchased_pending_match");
-    if (activeTab === "Replenishment" || activeTab === "Watchlist") return rows;
+    if (activeTab === "Replenishment" || activeTab === "Watchlist" || activeTab === "Closest Excluded") return rows;
     return [];
   }, [activeTab, rows]);
   const selectedRows = useMemo(
@@ -310,6 +317,7 @@ export default function SourcingPage() {
             }}
             onDismiss={setDismissRow}
             purchasedMode={activeTab === "Purchased Pending Match"}
+            closestExcludedMode={activeTab === "Closest Excluded"}
           />
           {dismissRow ? (
             <DismissOpportunityDialog
@@ -320,8 +328,8 @@ export default function SourcingPage() {
                 await act(dismissRow, { actionType: "block_asin", notes, imageClues });
                 setDismissRow(null);
               }}
-              onDismiss={async (reason, notes, imageClues) => {
-                await act(dismissRow, { actionType: "dismiss", reason, notes, imageClues });
+              onDismiss={async (reason, notes, imageClues, diagnosticsFeedback) => {
+                await act(dismissRow, { actionType: "dismiss", reason, notes, imageClues, diagnosticsFeedback });
                 setDismissRow(null);
               }}
             />
@@ -403,6 +411,7 @@ function ReplenishmentTable({
   onToggleAll,
   onDismiss,
   purchasedMode,
+  closestExcludedMode,
 }: {
   rows: SourcingOpportunity[];
   loading: boolean;
@@ -417,6 +426,7 @@ function ReplenishmentTable({
   onToggleAll: () => void;
   onDismiss: (row: SourcingOpportunity) => void;
   purchasedMode: boolean;
+  closestExcludedMode: boolean;
 }) {
   const allSelected = rows.length > 0 && rows.every((row) => selectedIds.has(row.opportunityId));
   const bulkDisabled = selectedCount === 0 || actionBusyId === "bulk";
@@ -430,7 +440,7 @@ function ReplenishmentTable({
               <th colSpan={15} className="border-b border-slate-200 bg-white px-2 py-2">
                 <div className="flex flex-wrap items-center gap-2 normal-case tracking-normal">
                   <span className="text-sm font-medium text-slate-700">{selectedCount} selected</span>
-                  {!purchasedMode ? (
+                  {!purchasedMode && !closestExcludedMode ? (
                     <>
                       <button disabled={bulkDisabled} onClick={onBulkWatch} className="bulk-button">Watch selected</button>
                       <button disabled={bulkDisabled} onClick={onBulkPurchased} className="bulk-button">Mark selected purchased / offer made</button>
@@ -519,6 +529,8 @@ function ReplenishmentTable({
                       <span>{row.conditionName ?? "condition unknown"}</span>
                       <span>{row.itemLocationCountry ?? "location unknown"}</span>
                       <span>qty {row.quantityAvailable ?? "--"}</span>
+                      {closestExcludedMode ? <span>near miss {number(row.nearMissRank)}</span> : null}
+                      {closestExcludedMode && row.exclusionReason ? <span>{row.exclusionReason}</span> : null}
                     </div>
                   </td>
                   <td className="px-2 py-2 whitespace-nowrap">
@@ -597,7 +609,34 @@ function ReplenishmentTable({
                           <Clipboard className="h-4 w-4" />
                         </button>
                       ) : null}
-                      {!purchasedMode ? (
+                      {closestExcludedMode ? (
+                        <>
+                          <button
+                            disabled={actionBusyId === row.opportunityId}
+                            onClick={() => void onAction(row, { actionType: "mark_valid_match", notes: "Operator marked excluded candidate as a valid match." })}
+                            className="col-span-2 rounded-md border border-emerald-300 bg-white px-2 py-2 text-xs font-medium text-emerald-700 hover:bg-emerald-50"
+                            title="Store positive match evidence"
+                          >
+                            Mark Valid
+                          </button>
+                          <button
+                            disabled={actionBusyId === row.opportunityId}
+                            onClick={() => void onAction(row, { actionType: "confirm_exclusion", reason: "wrong_product", notes: "Operator confirmed closest-excluded candidate should remain excluded." })}
+                            className="col-span-2 rounded-md border border-slate-300 bg-white px-2 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50"
+                            title="Store negative exclusion evidence"
+                          >
+                            Confirm
+                          </button>
+                          <button
+                            disabled={actionBusyId === row.opportunityId}
+                            onClick={() => onDismiss(row)}
+                            className="col-span-4 rounded-md border border-blue-200 bg-blue-50 px-2 py-2 text-xs font-medium text-blue-700 hover:bg-blue-100"
+                            title="Open diagnostics"
+                          >
+                            Open Diagnostics
+                          </button>
+                        </>
+                      ) : !purchasedMode ? (
                         <>
                           <button disabled={actionBusyId === row.opportunityId} onClick={() => void onAction(row, watchPayload(row))} className="icon-button" title="Watch">
                             <Eye className="h-4 w-4" />
@@ -763,39 +802,76 @@ function DismissOpportunityDialog({
   actionBusyId: string | null;
   onClose: () => void;
   onBlockAsin: (notes: string, imageClues: string[]) => Promise<void>;
-  onDismiss: (reason: string, notes: string, imageClues: string[]) => Promise<void>;
+  onDismiss: (
+    reason: string,
+    notes: string,
+    imageClues: string[],
+    diagnosticsFeedback: { allAssumptionsCorrect: boolean; incorrectRows: string[]; note?: string | null },
+  ) => Promise<void>;
 }) {
   const [notes, setNotes] = useState("");
   const [imageClues, setImageClues] = useState<string[]>([]);
+  const [diagnosticsOpen, setDiagnosticsOpen] = useState(false);
+  const [allAssumptionsCorrect, setAllAssumptionsCorrect] = useState(false);
+  const [incorrectRows, setIncorrectRows] = useState<string[]>([]);
   const busy = actionBusyId === row.opportunityId;
+  const diagnosticsFeedback = {
+    allAssumptionsCorrect,
+    incorrectRows: allAssumptionsCorrect ? [] : incorrectRows,
+    note: notes.trim() || null,
+  };
 
   return (
     <div className="fixed inset-0 z-40 flex items-center justify-center bg-slate-950/20 p-4">
-      <div className="w-full max-w-lg rounded-md border border-slate-200 bg-white shadow-2xl">
+      <div className={`w-full rounded-md border border-slate-200 bg-white shadow-2xl ${diagnosticsOpen ? "max-w-7xl" : "max-w-lg"}`}>
         <div className="border-b border-slate-200 px-4 py-3">
           <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">Dismiss Opportunity</div>
           <div className="mt-1 text-sm font-medium text-slate-950">{row.ebayTitle}</div>
           <div className="mt-1 font-mono text-xs text-slate-500">{row.asin}</div>
         </div>
-        <div className="space-y-3 px-4 py-3">
-          <DismissReasonButtons
-            busy={busy}
-            onChoose={(reason) => void onDismiss(reason, notes, imageClues)}
-          />
-          <ImageClueButtons selected={imageClues} onChange={setImageClues} />
-          <button
-            type="button"
-            disabled={busy}
-            onClick={() => void onBlockAsin(notes, imageClues)}
-            className="inline-flex h-9 items-center gap-2 rounded-md border border-red-300 bg-white px-3 text-sm font-medium text-red-700 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            <Ban className="h-4 w-4" />
-            Block ASIN
-          </button>
-          <label className="block text-sm font-medium text-slate-700">
-            Notes
-            <textarea value={notes} onChange={(event) => setNotes(event.target.value)} className="mt-1 min-h-12 w-full rounded-md border border-slate-300 p-2 text-sm" />
-          </label>
+        <div className={`grid gap-0 ${diagnosticsOpen ? "lg:grid-cols-[minmax(380px,480px)_1fr]" : ""}`}>
+          <div className="space-y-3 px-4 py-3">
+            <DismissReasonButtons
+              busy={busy}
+              onChoose={(reason) => void onDismiss(reason, notes, imageClues, diagnosticsFeedback)}
+            />
+            <ImageClueButtons selected={imageClues} onChange={setImageClues} />
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => void onBlockAsin(notes, imageClues)}
+              className="inline-flex h-9 items-center gap-2 rounded-md border border-red-300 bg-white px-3 text-sm font-medium text-red-700 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <Ban className="h-4 w-4" />
+              Block ASIN
+            </button>
+            <button
+              type="button"
+              onClick={() => setDiagnosticsOpen((current) => !current)}
+              className="ml-2 inline-flex h-9 items-center gap-2 rounded-md border border-blue-200 bg-blue-50 px-3 text-sm font-medium text-blue-700 hover:bg-blue-100"
+            >
+              {diagnosticsOpen ? "Hide Diagnostics" : "Matching Diagnostics"}
+            </button>
+            <label className="block text-sm font-medium text-slate-700">
+              Notes
+              <textarea value={notes} onChange={(event) => setNotes(event.target.value)} className="mt-1 min-h-12 w-full rounded-md border border-slate-300 p-2 text-sm" />
+            </label>
+          </div>
+          {diagnosticsOpen ? (
+            <DiagnosticComparisonPanel
+              row={row}
+              allAssumptionsCorrect={allAssumptionsCorrect}
+              incorrectRows={incorrectRows}
+              onAllCorrectChange={(checked) => {
+                setAllAssumptionsCorrect(checked);
+                if (checked) setIncorrectRows([]);
+              }}
+              onIncorrectRowsChange={(rows) => {
+                setIncorrectRows(rows);
+                if (rows.length) setAllAssumptionsCorrect(false);
+              }}
+            />
+          ) : null}
         </div>
         <div className="flex justify-end gap-2 border-t border-slate-200 px-4 py-3">
           <button onClick={onClose} disabled={busy} className="rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-700 hover:bg-slate-50">
@@ -862,6 +938,97 @@ function BulkDismissOpportunityDialog({
         </div>
       </div>
     </div>
+  );
+}
+
+function DiagnosticComparisonPanel({
+  row,
+  allAssumptionsCorrect,
+  incorrectRows,
+  onAllCorrectChange,
+  onIncorrectRowsChange,
+}: {
+  row: SourcingOpportunity;
+  allAssumptionsCorrect: boolean;
+  incorrectRows: string[];
+  onAllCorrectChange: (checked: boolean) => void;
+  onIncorrectRowsChange: (rows: string[]) => void;
+}) {
+  const comparison = row.diagnosticComparison;
+  const rows = comparison?.rows ?? [];
+  const incorrect = new Set(incorrectRows);
+
+  return (
+    <aside className="max-h-[72vh] overflow-auto border-t border-slate-200 bg-slate-50 p-3 lg:border-l lg:border-t-0">
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+        <div>
+          <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">Amazon vs eBay Diagnostics</div>
+          <div className="text-sm text-slate-700">{comparison?.evidenceSummary ?? "Not available"}</div>
+        </div>
+        <label className="flex items-center gap-2 rounded-md border border-slate-300 bg-white px-3 py-2 text-xs font-medium text-slate-700">
+          <input
+            type="checkbox"
+            checked={allAssumptionsCorrect}
+            onChange={(event) => onAllCorrectChange(event.target.checked)}
+            className="h-4 w-4"
+          />
+          All matching assumptions are correct
+        </label>
+      </div>
+      <div className="overflow-hidden rounded-md border border-slate-200 bg-white">
+        <table className="w-full table-fixed text-left text-xs">
+          <thead className="bg-slate-100 uppercase tracking-wide text-slate-500">
+            <tr>
+              <th className="w-40 px-2 py-2">Matching element</th>
+              <th className="px-2 py-2">Amazon</th>
+              <th className="px-2 py-2">eBay</th>
+              <th className="w-44 px-2 py-2">Operator feedback</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-100">
+            {rows.length ? rows.map((diagnosticRow) => {
+              const active = incorrect.has(diagnosticRow.key);
+              return (
+                <tr key={diagnosticRow.key} className="align-top">
+                  <td className="px-2 py-2 font-medium text-slate-700">
+                    <div>{diagnosticRow.label}</div>
+                    <div className="mt-1 text-[11px] font-normal text-slate-500">{diagnosticRow.evidence ?? "Not available"}</div>
+                  </td>
+                  <td className="break-words px-2 py-2 text-slate-700">{diagnosticRow.amazon ?? "Not available"}</td>
+                  <td className="break-words px-2 py-2 text-slate-700">{diagnosticRow.ebay ?? "Not available"}</td>
+                  <td className="px-2 py-2">
+                    <label className="flex items-center gap-2 text-slate-700">
+                      <input
+                        type="checkbox"
+                        checked={active}
+                        disabled={allAssumptionsCorrect}
+                        onChange={(event) => {
+                          const next = new Set(incorrect);
+                          if (event.target.checked) next.add(diagnosticRow.key);
+                          else next.delete(diagnosticRow.key);
+                          onIncorrectRowsChange([...next]);
+                        }}
+                        className="h-4 w-4"
+                      />
+                      MBOP got this assumption wrong
+                    </label>
+                  </td>
+                </tr>
+              );
+            }) : (
+              <tr>
+                <td colSpan={4} className="px-3 py-6 text-center text-slate-500">Diagnostics not available.</td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+      <div className="mt-3 grid gap-2 text-xs text-slate-600 md:grid-cols-3">
+        <div><span className="font-medium">Recommendation:</span> {comparison?.recommendation ?? "Not available"}</div>
+        <div><span className="font-medium">Hard blocks:</span> {comparison?.hardBlocks?.join("; ") || "None"}</div>
+        <div><span className="font-medium">Warnings:</span> {comparison?.warnings?.join("; ") || "None"}</div>
+      </div>
+    </aside>
   );
 }
 

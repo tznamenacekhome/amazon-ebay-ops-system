@@ -14,7 +14,7 @@ export function useSourcingOpportunities(status: string, type: string, searchTex
     setLoading(true);
     setError(null);
     try {
-      const params = new URLSearchParams({ status, type, limit: "150" });
+      const params = new URLSearchParams({ status, type, limit: scope === "closest_excluded" ? "50" : "150" });
       params.set("scope", scope);
       if (sourceMode !== "all") params.set("sourceMode", sourceMode);
       if (searchText.trim()) params.set("q", searchText.trim());

@@ -28,6 +28,7 @@ type ReceivingDraft = {
   receivingOutcome: ReceivingOutcome;
   conditionIssue: string;
   imageClues: string[];
+  failedMatchingElements: string[];
   receivingNotes: string;
 };
 
@@ -37,7 +38,8 @@ type ReceivingOutcome =
   | "wrong_condition"
   | "packaging_issue"
   | "incomplete_item"
-  | "listed_successfully";
+  | "listed_successfully"
+  | "sourcing_false_positive";
 
 const RECEIVING_CONFIRMATION_TOKEN = "operator_receive_v2";
 
@@ -239,6 +241,7 @@ export default function ReceivingPage() {
           receivingOutcome: "correct_item",
           conditionIssue: "",
           imageClues: [],
+          failedMatchingElements: [],
           receivingNotes: "",
         };
       }
@@ -368,6 +371,7 @@ export default function ReceivingPage() {
         receiving_outcome: draft?.receivingOutcome ?? "correct_item",
         condition_issue: draft?.conditionIssue || null,
         image_clues: draft?.imageClues ?? [],
+        failed_matching_elements: draft?.failedMatchingElements ?? [],
         receiving_notes: draft?.receivingNotes || null,
       };
     });
@@ -483,6 +487,7 @@ export default function ReceivingPage() {
       receivingOutcome: "correct_item",
       conditionIssue: "",
       imageClues: [],
+      failedMatchingElements: [],
       receivingNotes: "",
     };
 
@@ -781,6 +786,7 @@ export default function ReceivingPage() {
                     receivingOutcome: "correct_item" as const,
                     conditionIssue: "",
                     imageClues: [],
+                    failedMatchingElements: [],
                     receivingNotes: "",
                   };
                   const quantityReceived = parseQuantityReceived(
@@ -925,6 +931,7 @@ export default function ReceivingPage() {
                             <option value="packaging_issue">Packaging Issue</option>
                             <option value="incomplete_item">Incomplete Item</option>
                             <option value="listed_successfully">Listed Successfully</option>
+                            <option value="sourcing_false_positive">Sourcing False Positive</option>
                           </select>
                         </label>
 
@@ -1002,6 +1009,16 @@ export default function ReceivingPage() {
                             onChange={(imageClues) => updateDraft(row, { imageClues })}
                           />
                         </div>
+
+                        {draft.receivingOutcome === "sourcing_false_positive" && (
+                          <div className="sm:col-span-3">
+                            <div className="mb-2 text-sm font-medium uppercase tracking-wide text-slate-500">Failed Matching Element</div>
+                            <FailedMatchingElementButtons
+                              selected={draft.failedMatchingElements}
+                              onChange={(failedMatchingElements) => updateDraft(row, { failedMatchingElements })}
+                            />
+                          </div>
+                        )}
 
                         <label className="grid min-w-0 content-start gap-2 text-sm font-medium uppercase tracking-wide text-slate-500 sm:col-span-3">
                           Notes
@@ -1202,7 +1219,7 @@ function getProblemQuantity(
   if (!Number.isFinite(quantityReceived)) return 0;
   if (
     draft.returnPending ||
-    ["wrong_item", "wrong_condition", "packaging_issue", "incomplete_item"].includes(
+    ["wrong_item", "wrong_condition", "packaging_issue", "incomplete_item", "sourcing_false_positive"].includes(
       draft.receivingOutcome
     ) ||
     Boolean(draft.conditionIssue)
@@ -1291,6 +1308,17 @@ const imageClueOptions = [
   ["damaged_case", "Damaged Case"],
 ] as const;
 
+const failedMatchingElementOptions = [
+  ["core_game", "Core Game"],
+  ["installment", "Installment"],
+  ["platform", "Platform"],
+  ["edition_version", "Edition / Version"],
+  ["region", "Region"],
+  ["completeness", "Completeness"],
+  ["seller_listing_photo_mismatch", "Seller Listing / Photo"],
+  ["other", "Other"],
+] as const;
+
 function ImageClueButtons({
   selected,
   onChange,
@@ -1310,6 +1338,36 @@ function ImageClueButtons({
             className={`rounded-md border px-3 py-2 text-sm font-medium ${
               active
                 ? "border-blue-300 bg-blue-50 text-blue-700"
+                : "border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
+            }`}
+          >
+            {label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function FailedMatchingElementButtons({
+  selected,
+  onChange,
+}: {
+  selected: string[];
+  onChange: (values: string[]) => void;
+}) {
+  return (
+    <div className="flex flex-wrap gap-2">
+      {failedMatchingElementOptions.map(([value, label]) => {
+        const active = selected.includes(value);
+        return (
+          <button
+            key={value}
+            type="button"
+            onClick={() => onChange(active ? selected.filter((item) => item !== value) : [...selected, value])}
+            className={`rounded-md border px-3 py-2 text-sm font-medium ${
+              active
+                ? "border-amber-300 bg-amber-50 text-amber-800"
                 : "border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
             }`}
           >

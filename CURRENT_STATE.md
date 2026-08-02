@@ -2,6 +2,23 @@
 
 Last Updated: 2026-08-02
 
+## 2026-08-02 Sourcing Diagnostics And Receiving Feedback
+
+- Sourcing dismissals now include an expandable backend-owned Amazon/eBay
+  diagnostic comparison panel with row-level incorrect-assumption feedback and
+  an all-assumptions-correct option.
+- Added dismissal reason `seller_listing_mismatch` for listings whose text or
+  item specifics match but seller photos reveal the wrong product/version/region
+  or contents.
+- Added a `Closest Excluded` Sourcing tab backed by backend-ranked excluded
+  near misses and evidence-only `Mark Valid` / `Confirm` actions.
+- Receiving now supports `Sourcing false positive` with failed matching element
+  capture and high-confidence negative matching-intelligence rebuild semantics.
+- Migration `20260802000000_mbop_sourcing_feedback_outcomes.sql` adds
+  `sourcing_false_positive` to receiving outcome storage.
+- Reprocessing tool:
+  `integrations/reprocess_current_unreviewed_sourcing.py`.
+
 ## 2026-08-02 Context-Aware Numeric Identity Matching
 
 - Sourcing numeric hard blocks now require context-classified product identity

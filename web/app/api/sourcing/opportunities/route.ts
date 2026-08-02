@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabase, toNumber } from "../_supabase";
+import { buildDiagnosticComparison } from "../diagnosticComparison";
 
 type OpportunityRow = {
   opportunity_id: string;
@@ -158,7 +159,7 @@ type PresentationMetadata = {
   presentationCount: number;
 };
 
-type OpportunityScope = "all_open" | "new_this_run" | "prior_unreviewed";
+type OpportunityScope = "all_open" | "new_this_run" | "prior_unreviewed" | "closest_excluded";
 
 export async function GET(request: NextRequest) {
   try {
@@ -205,11 +206,22 @@ async function getOpportunities(request: NextRequest) {
 
   const { data, error } = scope === "new_this_run" && latestBatchOpportunityIds
     ? await fetchBatchOpportunities(latestBatchOpportunityIds, status, type)
-    : await fetchRunOpportunities({ runId, latestRunIds, status, type, queryLimit });
+    : await fetchRunOpportunities({
+        runId,
+        latestRunIds,
+        status: scope === "closest_excluded" ? "all" : status,
+        type,
+        queryLimit,
+      });
   if (error) return jsonNoStore({ error: error.message }, { status: 500 });
 
   const rows = (data ?? []) as OpportunityRow[];
-  const eligibleRows = rows.filter(isPresentationEligibleOpportunity);
+  const qualifyingClosestExcludedRows = scope === "closest_excluded"
+    ? rows.filter(isClosestExcludedCandidate)
+    : [];
+  const eligibleRows = scope === "closest_excluded"
+    ? qualifyingClosestExcludedRows
+    : rows.filter(isPresentationEligibleOpportunity);
   const presentationByOpportunityId = await fetchPresentationMetadataByOpportunityId(
     eligibleRows.map((row) => row.opportunity_id),
     new Set(latestBatchOpportunityIds ?? []),
@@ -300,6 +312,14 @@ async function getOpportunities(request: NextRequest) {
         score: row.score,
         aiFlags: mergeFlags(row.ai_flags, diagnosticFlags(row.matching_diagnostics_json)),
         matchingDiagnostics: row.matching_diagnostics_json ?? null,
+        diagnosticComparison: buildDiagnosticComparison({
+          opportunity: row as unknown as Record<string, unknown>,
+          seed: (row.sourcing_seed_asins ?? {}) as unknown as Record<string, unknown>,
+          candidate: (row.sourcing_ebay_candidates ?? {}) as unknown as Record<string, unknown>,
+          diagnostics: row.matching_diagnostics_json,
+        }),
+        exclusionReason: scope === "closest_excluded" ? closestExcludedReason(row) : null,
+        nearMissRank: scope === "closest_excluded" ? closestExcludedRank(row) : null,
         createdAt: row.created_at,
         firstPresentedAt: presentation.firstPresentedAt,
         lastPresentedAt: presentation.lastPresentedAt,
@@ -320,7 +340,9 @@ async function getOpportunities(request: NextRequest) {
       return haystack.includes(queryText.toLowerCase());
     });
 
-  const sortedRows = groupByAsinPriority(dedupeExactEbayListings(mappedRows));
+  const sortedRows = scope === "closest_excluded"
+    ? dedupeExactEbayListings(mappedRows).sort((left, right) => (right.nearMissRank ?? 0) - (left.nearMissRank ?? 0))
+    : groupByAsinPriority(dedupeExactEbayListings(mappedRows));
   const opportunities = sortedRows.slice(0, limit);
 
   return jsonNoStore({
@@ -554,7 +576,7 @@ function emptyPresentationMetadata(): PresentationMetadata {
 
 function parseScope(value: string | null, runId: string | null): OpportunityScope {
   if (runId) return "new_this_run";
-  if (value === "new_this_run" || value === "prior_unreviewed") return value;
+  if (value === "new_this_run" || value === "prior_unreviewed" || value === "closest_excluded") return value;
   return "all_open";
 }
 
@@ -577,6 +599,54 @@ function isPresentationEligibleOpportunity(row: OpportunityRow) {
   if (row.status !== "open") return true;
   if (hasBlockedDiagnostic(row.matching_diagnostics_json)) return false;
   return !(row.ai_flags ?? []).some((flag) => String(flag).startsWith("Blocked:"));
+}
+
+function isClosestExcludedCandidate(row: OpportunityRow) {
+  if (["dismissed", "matched_to_purchase", "purchased_pending_match", "roi_snoozed"].includes(String(row.status ?? ""))) {
+    return false;
+  }
+  if (!row.matching_diagnostics_json || !isRecord(row.matching_diagnostics_json)) return false;
+  if (isObviousLowValueExclusion(row)) return false;
+  return !isPresentationEligibleOpportunity(row) || row.status === "rejected";
+}
+
+function isObviousLowValueExclusion(row: OpportunityRow) {
+  const diagnostics = isRecord(row.matching_diagnostics_json) ? row.matching_diagnostics_json : {};
+  const flags = [...(row.ai_flags ?? []), ...diagnosticFlags(diagnostics)].map((flag) => flag.toLowerCase());
+  const joined = flags.join(" ");
+  if (joined.includes("historical non_match") || joined.includes("no longer available")) return true;
+  if (joined.includes("non-video-game category") && closestExcludedRank(row) < 35) return true;
+  return false;
+}
+
+function closestExcludedReason(row: OpportunityRow) {
+  const diagnostics = isRecord(row.matching_diagnostics_json) ? row.matching_diagnostics_json : {};
+  const staticRules = isRecord(diagnostics.static_rules) ? diagnostics.static_rules : {};
+  const hardBlocks = stringArray(staticRules.hard_blocks ?? diagnostics.hard_blocks);
+  if (hardBlocks.length) return hardBlocks.join("; ");
+  const flags = [...(row.ai_flags ?? []), ...diagnosticFlags(diagnostics)].filter((flag) => flag.startsWith("Blocked:"));
+  if (flags.length) return flags.join("; ");
+  return String(diagnostics.recommendation ?? staticRules.recommendation ?? row.status ?? "Excluded");
+}
+
+function closestExcludedRank(row: OpportunityRow) {
+  const diagnostics = isRecord(row.matching_diagnostics_json) ? row.matching_diagnostics_json : {};
+  const staticRules = isRecord(diagnostics.static_rules) ? diagnostics.static_rules : {};
+  const titleOverlap = isRecord(staticRules.title_overlap ?? diagnostics.title_overlap) ? (staticRules.title_overlap ?? diagnostics.title_overlap) as Record<string, unknown> : {};
+  const platformRule = isRecord(staticRules.platform_rule ?? diagnostics.platform_rule) ? (staticRules.platform_rule ?? diagnostics.platform_rule) as Record<string, unknown> : {};
+  const category = isRecord(staticRules.category ?? diagnostics.category) ? (staticRules.category ?? diagnostics.category) as Record<string, unknown> : {};
+  let rank = row.score ?? 0;
+  const sharedTokens = Array.isArray(titleOverlap.shared_title_tokens) ? titleOverlap.shared_title_tokens.length : 0;
+  rank += Math.min(sharedTokens * 6, 30);
+  if (String(platformRule.result ?? "").toLowerCase().includes("match")) rank += 15;
+  if (!String(category.result ?? "").toLowerCase().includes("non")) rank += 5;
+  if (String(diagnostics.recommendation ?? staticRules.recommendation ?? "") === "Review") rank += 8;
+  if (hasBlockedDiagnostic(row.matching_diagnostics_json)) rank -= 20;
+  return Math.round(rank * 10) / 10;
+}
+
+function stringArray(value: unknown): string[] {
+  return Array.isArray(value) ? value.map((item) => String(item ?? "").trim()).filter(Boolean) : [];
 }
 
 function hasBlockedDiagnostic(value: unknown): boolean {

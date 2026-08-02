@@ -150,6 +150,10 @@ def label_for_action(action_type: str, reason: Any) -> tuple[str, str]:
         return label_for_dismiss_reason(reason)
     if action_type == "purchased":
         return "match", "positive_identity"
+    if action_type == "confirmed_valid_match":
+        return "match", "positive_identity"
+    if action_type == "confirmed_exclusion":
+        return "non_match", "negative_identity"
     if action_type == "roi_snoozed":
         return "valid_match_poor_opportunity", "business_issue"
     return "needs_review", "unknown"
@@ -394,6 +398,8 @@ def label_for_receiving_outcome(row: dict[str, Any]) -> tuple[str, str, str]:
     issue = clean_optional_text(row.get("condition_issue"))
     if outcome in {"correct_item", "listed_successfully"}:
         return "match", "positive_identity", "correct_item"
+    if outcome == "sourcing_false_positive":
+        return "non_match", "negative_identity", issue or "sourcing_false_positive"
     if outcome == "wrong_item":
         return "non_match", "negative_identity", issue or "wrong_product"
     if outcome == "incomplete_item":

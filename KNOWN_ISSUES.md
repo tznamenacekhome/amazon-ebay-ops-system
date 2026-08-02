@@ -6,6 +6,22 @@ Last reviewed: 2026-08-02
 
 # Active Issues
 
+## Sourcing Diagnostics Feedback Needs Ongoing Review
+
+Status: ACTIVE / MONITOR
+
+Problem:
+The new diagnostics feedback, Closest Excluded confirmations, and receiving
+false-positive outcomes create stronger structured evidence, but the evidence
+set is still early and should not automatically mutate deterministic rules.
+
+Current mitigation:
+- Feedback is stored structurally and consumed as matching intelligence
+  examples where appropriate.
+- No AI, image analysis, marketplace action, or rule mutation is triggered from
+  a single operator response.
+- Production reprocessing is scoped to current open/unreviewed rows.
+
 ## Sourcing Positive Fixture Review Before Rule Expansion
 
 Status: ACTIVE / SAFETY REVIEW NEEDED
