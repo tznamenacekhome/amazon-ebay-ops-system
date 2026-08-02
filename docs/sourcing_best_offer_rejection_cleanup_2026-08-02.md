@@ -73,3 +73,24 @@ Best Offer scoring fix reprocess:
 ## Deployment Note
 
 The scoring code runs in the scheduler image for production sourcing jobs. Deploying the scheduler image is required so future sourcing runs do not recreate the Best Offer exclusion issue.
+
+## Deployment
+
+Committed fix:
+
+- `03f6559 Fix best offer sourcing eligibility`
+
+Scheduler deployment:
+
+- image tag: `scheduler-03f6559004ea`
+- image digest: `sha256:871abff71ca6508df712406a77a2750314527fbedc0bb00690398f06afd7196f`
+- task definition: `arn:aws:ecs:us-west-2:297464765814:task-definition/mbop-scheduler-task:58`
+
+EventBridge schedule update:
+
+- schedule: `mbop-sourcing-catalog`
+- previous task definition: `mbop-scheduler-task:56`
+- new task definition: `mbop-scheduler-task:58`
+- schedule expression preserved: `cron(10 0 ? * * *)`
+- timezone preserved: `America/Los_Angeles`
+- command preserved: `python run_all_syncs.py --group sourcing-catalog`
