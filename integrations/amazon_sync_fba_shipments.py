@@ -62,6 +62,7 @@ def main() -> int:
             return 0
 
         shipment_items = fetch_shipment_items(supabase, shipments)
+        shipment_source_items = fetch_shipment_source_items(supabase, shipments)
         sku_index = fetch_amazon_sku_index(supabase)
 
         LOGGER.info("Selected MBOP FBA shipments: %s", len(shipments))
@@ -71,12 +72,13 @@ def main() -> int:
             if not shipment_code:
                 continue
             mbop_rows = shipment_items.get(shipment["fba_shipment_id"], [])
+            mbop_source_rows = shipment_source_items.get(shipment["fba_shipment_id"], [])
             try:
                 amazon_shipments = list(client.iter_inbound_shipments([shipment_code]))
             except AmazonSPAPIError as error:
                 LOGGER.info("v0 shipment status unavailable for %s: %s", shipment_code, error)
                 amazon_shipments = []
-            if should_fetch_v0_shipment_items(shipment, mbop_rows):
+            if should_fetch_v0_shipment_items(shipment, mbop_rows, mbop_source_rows):
                 try:
                     amazon_items = list(
                         client.iter_inbound_shipment_items(
@@ -108,6 +110,7 @@ def main() -> int:
                 bridge_payload,
                 amazon_items,
                 mbop_rows,
+                mbop_source_rows,
                 sku_index,
                 latest_inventory,
             )
@@ -759,6 +762,25 @@ def fetch_shipment_items(
     return rows
 
 
+def fetch_shipment_source_items(
+    supabase,
+    shipments: list[dict[str, Any]],
+) -> dict[str, list[dict[str, Any]]]:
+    shipment_ids = [row["fba_shipment_id"] for row in shipments if row.get("fba_shipment_id")]
+    rows: dict[str, list[dict[str, Any]]] = defaultdict(list)
+    for chunk in chunks(shipment_ids, 100):
+        response = (
+            supabase.table("fba_shipment_source_items")
+            .select("*")
+            .in_("fba_shipment_id", chunk)
+            .eq("included", True)
+            .execute()
+        )
+        for row in response.data or []:
+            rows[row["fba_shipment_id"]].append(row)
+    return rows
+
+
 def has_v2024_bridge_payload(shipment: dict[str, Any]) -> bool:
     raw_payload = shipment.get("raw_tracking_json")
     return (
@@ -770,8 +792,9 @@ def has_v2024_bridge_payload(shipment: dict[str, Any]) -> bool:
 def should_fetch_v0_shipment_items(
     shipment: dict[str, Any],
     mbop_items: list[dict[str, Any]],
+    mbop_source_items: list[dict[str, Any]],
 ) -> bool:
-    if mbop_items:
+    if mbop_items or mbop_source_items:
         return True
     return not has_v2024_bridge_payload(shipment)
 
@@ -869,6 +892,7 @@ def build_plan(
     transport_details: dict[str, Any],
     amazon_items: list[dict[str, Any]],
     mbop_items: list[dict[str, Any]],
+    mbop_source_items: list[dict[str, Any]],
     sku_index: dict[str, dict[str, Any]],
     latest_inventory: dict[str, dict[str, int]],
 ) -> dict[str, Any]:
@@ -879,9 +903,17 @@ def build_plan(
         asin = clean_asin(row.get("asin"))
         if asin:
             mbop_by_asin[asin].append(row)
+    mbop_sources_by_asin: dict[str, list[dict[str, Any]]] = defaultdict(list)
+    for row in mbop_source_items:
+        asin = clean_asin(row.get("asin"))
+        if asin:
+            mbop_sources_by_asin[asin].append(row)
 
     item_updates: list[dict[str, Any]] = []
-    is_v2024_only = has_v2024_bridge_payload(shipment) and not mbop_items
+    source_item_updates: list[dict[str, Any]] = []
+    is_v2024_only = (
+        has_v2024_bridge_payload(shipment) and not mbop_items and not mbop_source_items
+    )
     totals = {
         "sent": 0,
         "expected": 0,
@@ -958,7 +990,70 @@ def build_plan(
                 }
             )
 
-    if not mbop_by_asin and not is_v2024_only:
+    for asin, rows in mbop_sources_by_asin.items():
+        amazon_summary = amazon_by_asin.get(asin, {})
+        seller_skus = amazon_summary.get("seller_skus") or []
+        seller_sku = seller_skus[0] if seller_skus else None
+        sku_inventory = aggregate_inventory(seller_skus, latest_inventory)
+        source_sent = sum(to_int(row.get("quantity")) for row in rows)
+        item_sent = sum(to_int(row.get("quantity")) for row in mbop_by_asin.get(asin, []))
+        expected_total = max(to_int(amazon_summary.get("expected")) - item_sent, 0)
+        if expected_total == 0 and not amazon_summary:
+            expected_total = source_sent
+        received_total = max(to_int(amazon_summary.get("received")) - item_sent, 0)
+        available_total = min(sku_inventory["available"], source_sent)
+        reserved_total = min(sku_inventory["reserved"], source_sent)
+        unfulfillable_total = min(sku_inventory["unfulfillable"], source_sent)
+        missing_total = max(source_sent - max(received_total, available_total), 0)
+        outbound_total = max(source_sent - max(received_total, available_total), 0)
+
+        distributed = distribute_quantities(
+            rows,
+            {
+                "expected_quantity": expected_total,
+                "received_quantity": received_total,
+                "available_quantity": available_total,
+                "reserved_quantity": reserved_total,
+                "unfulfillable_quantity": unfulfillable_total,
+                "missing_quantity": missing_total,
+                "outbound_remaining_quantity": outbound_total,
+            },
+        )
+
+        for row, quantities in distributed:
+            quantity = to_int(row.get("quantity"))
+            unit_cost = to_float(row.get("unit_cost")) or 0.0
+            cost_sent = quantity * unit_cost
+            outbound_cost = quantities["outbound_remaining_quantity"] * unit_cost
+            received_cost = quantities["received_quantity"] * unit_cost
+            available_cost = quantities["available_quantity"] * unit_cost
+            totals["sent"] += quantity
+            totals["expected"] += quantities["expected_quantity"]
+            totals["received"] += quantities["received_quantity"]
+            totals["available"] += quantities["available_quantity"]
+            totals["reserved"] += quantities["reserved_quantity"]
+            totals["unfulfillable"] += quantities["unfulfillable_quantity"]
+            totals["missing"] += quantities["missing_quantity"]
+            totals["cost_sent"] += cost_sent
+            totals["outbound_remaining_cost"] += outbound_cost
+            totals["amazon_received_cost"] += received_cost
+            totals["amazon_available_cost"] += available_cost
+
+            source_item_updates.append(
+                {
+                    "fba_shipment_source_item_id": row["fba_shipment_source_item_id"],
+                    "seller_sku": seller_sku or row.get("seller_sku"),
+                    "fnsku": amazon_summary.get("fnsku") or row.get("fnsku"),
+                    **quantities,
+                    "cost_sent": round(cost_sent, 2),
+                    "outbound_remaining_cost": round(outbound_cost, 2),
+                    "amazon_received_cost": round(received_cost, 2),
+                    "amazon_available_cost": round(available_cost, 2),
+                    "updated_at": now,
+                }
+            )
+
+    if not mbop_by_asin and not mbop_sources_by_asin and not is_v2024_only:
         for amazon_summary in amazon_by_asin.values():
             seller_skus = amazon_summary.get("seller_skus") or []
             sku_inventory = aggregate_inventory(seller_skus, latest_inventory)
@@ -1063,6 +1158,7 @@ def build_plan(
     return {
         "shipment_update": shipment_update,
         "item_updates": item_updates,
+        "source_item_updates": source_item_updates,
         "events": events,
     }
 
@@ -1205,6 +1301,13 @@ def apply_plan(supabase, fba_shipment_id: str, plan: dict[str, Any]) -> None:
         item_id = item.pop("fba_shipment_item_id")
         supabase.table("fba_shipment_items").update(item).eq(
             "fba_shipment_item_id",
+            item_id,
+        ).execute()
+
+    for item in plan["source_item_updates"]:
+        item_id = item.pop("fba_shipment_source_item_id")
+        supabase.table("fba_shipment_source_items").update(item).eq(
+            "fba_shipment_source_item_id",
             item_id,
         ).execute()
 

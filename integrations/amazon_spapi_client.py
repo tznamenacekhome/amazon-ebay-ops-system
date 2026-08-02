@@ -475,11 +475,33 @@ class AmazonSPAPIClient:
         next_token: str | None = None
         pages_seen = 0
         seen_tokens: set[str] = set()
+        seen_page_signatures: set[tuple[tuple[Any, ...], ...]] = set()
         while True:
             payload = self.get_inbound_shipment_items(shipment_id, next_token=next_token)
             pages_seen += 1
             container = payload.get("payload") or payload
-            for item in container.get("ItemData") or []:
+            items = container.get("ItemData") or []
+            page_signature = tuple(
+                (
+                    item.get("SellerSKU") or item.get("SellerSku"),
+                    item.get("FulfillmentNetworkSKU")
+                    or item.get("FulfillmentNetworkSku"),
+                    item.get("QuantityShipped"),
+                    item.get("QuantityReceived"),
+                    item.get("Quantity"),
+                    item.get("ASIN"),
+                )
+                for item in items
+            )
+            if page_signature in seen_page_signatures:
+                LOGGER.warning(
+                    "Stopping Amazon inbound shipment item pagination for %s "
+                    "after repeated page content.",
+                    shipment_id,
+                )
+                return
+            seen_page_signatures.add(page_signature)
+            for item in items:
                 yield item
             next_token = container.get("NextToken")
             if not next_token or pages_seen >= max_pages or next_token in seen_tokens:
