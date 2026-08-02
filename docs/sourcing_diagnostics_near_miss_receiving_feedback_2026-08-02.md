@@ -142,15 +142,87 @@ Scope:
 
 The script writes local JSON artifacts under `tmp/` for dry-run and write mode.
 
+Post-deployment dry-run:
+
+- Rows in scope: 33
+- Rows processed: 33
+- Unchanged: 33
+- Newly hard-blocked: 0
+- Downgraded: 0
+- Upgraded: 0
+- Diagnostic-only changes: 33
+- Rows leaving presentation: 0
+- Rows entering presentation: 0
+- Recommendation changes: 0
+- Status transitions: `open->open`: 33
+- Purchased/completed/dismissed touched: 0
+- Artifact:
+  `tmp/sourcing_unreviewed_reprocess_dry_run_20260802174611.json`
+
+Post-deployment write:
+
+- Rows processed/written: 33
+- Removed from presentation: 0
+- Newly eligible: 0
+- Recommendation changes: 0
+- Status transitions: `open->open`: 33
+- Final actionable open count: 33
+- Purchased/completed/dismissed touched: 0
+- Queue resorting uses the existing opportunities API score/type/ASIN grouping
+  order after updated diagnostics and scores were written.
+- Artifact:
+  `tmp/sourcing_unreviewed_reprocess_write_20260802174652.json`
+
+The first write attempt produced the same safe summary but failed before
+writing because the tool used partial-row `upsert`; Supabase rejected the batch
+on required columns. The script was corrected to update existing rows by
+`opportunity_id`, then the write completed successfully.
+
 ## Validation
 
 Pre-commit validation:
 
 - Python compile check for matching-intelligence and reprocess modules: passed.
 - Next.js production build: passed.
+- Python regression tests:
+  `tests.test_matching_feedback`, `tests.test_sourcing_match_rules`,
+  `tests.test_ebay_sourcing_search`, and
+  `tests.test_sourcing_progressive_batches`: 79 passed.
+- Sourcing-specific ESLint passed for the touched sourcing API/UI files.
+- Repo-wide ESLint still has pre-existing failures in unrelated files and in
+  existing receiving lint debt; production build passed.
 
-Additional test/deployment/reprocess results are recorded in the final operator
-report after deployment.
+## Deployment
+
+Schema:
+
+- Applied migration:
+  `20260802000000_mbop_sourcing_feedback_outcomes.sql`
+- Remote migration ledger verified local/remote match after apply.
+
+Web:
+
+- Commit deployed: `2180b0de51cb`
+- Image tag: `web-2180b0de51cb`
+- ECR image:
+  `297464765814.dkr.ecr.us-west-2.amazonaws.com/mbop-web@sha256:2b3b96d2c9b0616cbb22795f1ba74ffac56d0bb819106f536c80f6be85146eb8`
+- ECS task definition:
+  `arn:aws:ecs:us-west-2:297464765814:task-definition/mbop-web-task:100`
+- ECS service rollout: `COMPLETED`, desired/running/pending `1 / 1 / 0`
+- Build env:
+  `MBOP_BUILD_SHA=2180b0de51cb`,
+  `NEXT_PUBLIC_MBOP_BUILD_SHA=2180b0de51cb`
+- Production root URL returned `302`, expected for the protected app
+  entrypoint.
+
+Scheduler:
+
+- Commit used for scheduler image: `2180b0de51cb`
+- Image tag: `scheduler-2180b0de51cb`
+- ECR image:
+  `297464765814.dkr.ecr.us-west-2.amazonaws.com/mbop-scheduler@sha256:cae38e442a74fbd0df4f96bb46c049559f232e2d6b2e1d8701717883c163d843`
+- ECS task definition:
+  `arn:aws:ecs:us-west-2:297464765814:task-definition/mbop-scheduler-task:57`
 
 ## Caveats
 

@@ -133,36 +133,31 @@ def summarize(results: list[dict[str, Any]]) -> dict[str, Any]:
 
 
 def write_updates(supabase, results: list[dict[str, Any]]) -> None:
-    updates = []
     for row in results:
         scored = dict(row["scored"])
-        updates.append(
-            {
-                "opportunity_id": row["opportunity_id"],
-                "opportunity_type": scored.get("opportunity_type"),
-                "status": scored.get("status"),
-                "target_sale_price": scored.get("target_sale_price"),
-                "target_sale_price_source": scored.get("target_sale_price_source"),
-                "landed_cost": scored.get("landed_cost"),
-                "profit": scored.get("profit"),
-                "roi_percent": scored.get("roi_percent"),
-                "max_profitable_landed_cost": scored.get("max_profitable_landed_cost"),
-                "max_offer_price": scored.get("max_offer_price"),
-                "required_offer_percent_of_ask": scored.get("required_offer_percent_of_ask"),
-                "max_bid": scored.get("max_bid"),
-                "total_profit_opportunity": scored.get("total_profit_opportunity"),
-                "score": scored.get("score"),
-                "score_reason": scored.get("score_reason"),
-                "warning_flags": scored.get("warning_flags"),
-                "ai_flags": scored.get("ai_flags"),
-                "seller_trust_status": scored.get("seller_trust_status"),
-                "seller_trust_score": scored.get("seller_trust_score"),
-                "matching_diagnostics_json": scored.get("matching_diagnostics_json"),
-                "updated_at": dt.datetime.now(dt.UTC).isoformat(),
-            }
-        )
-    for batch in chunked(updates, 250):
-        supabase.table("sourcing_opportunities").upsert(batch, on_conflict="opportunity_id").execute()
+        update = {
+            "opportunity_type": scored.get("opportunity_type"),
+            "status": scored.get("status"),
+            "target_sale_price": scored.get("target_sale_price"),
+            "target_sale_price_source": scored.get("target_sale_price_source"),
+            "landed_cost": scored.get("landed_cost"),
+            "profit": scored.get("profit"),
+            "roi_percent": scored.get("roi_percent"),
+            "max_profitable_landed_cost": scored.get("max_profitable_landed_cost"),
+            "max_offer_price": scored.get("max_offer_price"),
+            "required_offer_percent_of_ask": scored.get("required_offer_percent_of_ask"),
+            "max_bid": scored.get("max_bid"),
+            "total_profit_opportunity": scored.get("total_profit_opportunity"),
+            "score": scored.get("score"),
+            "score_reason": scored.get("score_reason"),
+            "warning_flags": scored.get("warning_flags"),
+            "ai_flags": scored.get("ai_flags"),
+            "seller_trust_status": scored.get("seller_trust_status"),
+            "seller_trust_score": scored.get("seller_trust_score"),
+            "matching_diagnostics_json": scored.get("matching_diagnostics_json"),
+            "updated_at": dt.datetime.now(dt.UTC).isoformat(),
+        }
+        supabase.table("sourcing_opportunities").update(update).eq("opportunity_id", row["opportunity_id"]).execute()
 
 
 def write_artifacts(results: list[dict[str, Any]], summary: dict[str, Any], write: bool) -> Path:
