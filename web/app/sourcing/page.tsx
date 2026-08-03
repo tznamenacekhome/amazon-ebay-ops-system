@@ -5,11 +5,8 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 import {
   Ban,
-  Clipboard,
-  Eye,
   RefreshCw,
   Search,
-  ShoppingBag,
 } from "lucide-react";
 import type { SourcingBatch, SourcingOpportunity, SourcingRun, SourcingSettings } from "./types";
 import { useSourcingOpportunities } from "./useSourcingOpportunities";
@@ -28,6 +25,9 @@ type SourcingActionPayload = {
   diagnosticsFeedback?: {
     allAssumptionsCorrect: boolean;
     incorrectRows: string[];
+    failedRuleFamilies?: string[];
+    evidenceSources?: string[];
+    legacyIncorrectRows?: string[];
     note?: string | null;
   };
   requiredMaxLandedCost?: number;
@@ -61,7 +61,6 @@ export default function SourcingPage() {
   const [dismissRow, setDismissRow] = useState<SourcingOpportunity | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkDismissOpen, setBulkDismissOpen] = useState(false);
-  const [sourcingRefreshRunning, setSourcingRefreshRunning] = useState(false);
   const [batchContinueRunning, setBatchContinueRunning] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
 
@@ -117,34 +116,6 @@ export default function SourcingPage() {
     }
   }
 
-  async function refreshSourcingWorkflow() {
-    setSourcingRefreshRunning(true);
-    setError(null);
-    setNotice("Starting unified sourcing coverage cycle...");
-    try {
-      const response = await fetch("/api/sourcing/runs", {
-        method: "POST",
-        headers: mutationHeaders({ "Content-Type": "application/json" }),
-        body: JSON.stringify({ execute: true }),
-      });
-      const payload = await response.json();
-      if (!response.ok) throw new Error(payload.error ?? "Sourcing workflow failed.");
-      const startedAwsTask = payload.executionMode === "aws-ecs" || payload.status === "started";
-      setSelectedIds(new Set());
-      await reload();
-      setNotice(
-        startedAwsTask
-          ? "AWS sourcing coverage task started. Opportunities refresh after the ECS task finishes."
-          : "Sourcing coverage run complete. Loaded fresh opportunities.",
-      );
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Sourcing workflow failed.");
-      setNotice(null);
-    } finally {
-      setSourcingRefreshRunning(false);
-    }
-  }
-
   async function continueSourcingBatch() {
     setBatchContinueRunning(true);
     setError(null);
@@ -173,7 +144,7 @@ export default function SourcingPage() {
   }
 
   return (
-    <main className="min-h-screen bg-slate-100 p-5 text-slate-950">
+    <main className="min-h-screen bg-slate-100 py-5 pl-5 pr-3 text-slate-950">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-semibold tracking-normal">Sourcing Workspace</h1>
@@ -181,14 +152,6 @@ export default function SourcingPage() {
             Replenishment candidates from Amazon demand, eBay supply, and MBOP scoring.
           </p>
         </div>
-        <button
-          onClick={() => void refreshSourcingWorkflow()}
-          disabled={sourcingRefreshRunning}
-          className="inline-flex h-9 items-center gap-2 rounded-md border border-slate-300 bg-white px-3 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
-        >
-          <RefreshCw className={`h-4 w-4 ${loading || sourcingRefreshRunning ? "animate-spin" : ""}`} />
-          {sourcingRefreshRunning ? "Running Sourcing" : "Run Sourcing"}
-        </button>
       </div>
 
       <div className="mb-4 flex flex-wrap gap-2 border-b border-slate-300">
@@ -296,7 +259,6 @@ export default function SourcingPage() {
             actionBusyId={actionBusyId}
             selectedIds={selectedIds}
             selectedCount={selectedRows.length}
-            onAction={act}
             onBulkWatch={() => void bulkAct(selectedRows, watchPayload)}
             onBulkPurchased={() => void bulkAct(selectedRows, (row) => ({ actionType: "purchased", expectedPurchaseCost: row.landedCost ?? undefined }))}
             onBulkDismiss={() => {
@@ -321,7 +283,6 @@ export default function SourcingPage() {
                 return allSelected ? new Set() : new Set(visibleIds);
               });
             }}
-            onDismiss={setDismissRow}
             purchasedMode={activeTab === "Purchased Pending Match"}
             closestExcludedMode={activeTab === "Closest Excluded"}
           />
@@ -411,13 +372,11 @@ function ReplenishmentTable({
   actionBusyId,
   selectedIds,
   selectedCount,
-  onAction,
   onBulkWatch,
   onBulkPurchased,
   onBulkDismiss,
   onToggleSelected,
   onToggleAll,
-  onDismiss,
   purchasedMode,
   closestExcludedMode,
 }: {
@@ -426,13 +385,11 @@ function ReplenishmentTable({
   actionBusyId: string | null;
   selectedIds: Set<string>;
   selectedCount: number;
-  onAction: (row: SourcingOpportunity, payload: SourcingActionPayload) => Promise<void>;
   onBulkWatch: () => void;
   onBulkPurchased: () => void;
   onBulkDismiss: () => void;
   onToggleSelected: (row: SourcingOpportunity) => void;
   onToggleAll: () => void;
-  onDismiss: (row: SourcingOpportunity) => void;
   purchasedMode: boolean;
   closestExcludedMode: boolean;
 }) {
@@ -442,10 +399,10 @@ function ReplenishmentTable({
   return (
     <div className="overflow-hidden rounded-md border border-slate-200 bg-white shadow-sm">
       <div className="max-h-[calc(100vh-250px)] overflow-auto">
-        <table className="min-w-[112rem] table-fixed text-left text-sm">
+        <table className="min-w-[96rem] table-fixed text-left text-sm">
           <thead className="sticky top-0 z-10 bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
             <tr>
-              <th colSpan={15} className="border-b border-slate-200 bg-white px-2 py-2">
+              <th colSpan={13} className="border-b border-slate-200 bg-white px-2 py-2">
                 <div className="flex flex-wrap items-center gap-2 normal-case tracking-normal">
                   <span className="text-sm font-medium text-slate-700">{selectedCount} selected</span>
                   {!purchasedMode && !closestExcludedMode ? (
@@ -478,17 +435,15 @@ function ReplenishmentTable({
               <th className="w-24 px-2 py-2">My Price</th>
               <th className="w-24 px-2 py-2">Profit</th>
               <th className="w-16 px-2 py-2">ROI</th>
-              <th className="w-24 px-2 py-2">Velocity</th>
               <th className="w-32 px-2 py-2">Type</th>
               <th className="w-40 px-2 py-2">Flags</th>
-              <th className="w-60 px-2 py-2">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
             {loading ? (
-              <tr><td colSpan={15} className="px-3 py-8 text-center text-slate-500">Loading sourcing rows...</td></tr>
+              <tr><td colSpan={13} className="px-3 py-8 text-center text-slate-500">Loading sourcing rows...</td></tr>
             ) : rows.length === 0 ? (
-              <tr><td colSpan={15} className="px-3 py-8 text-center text-slate-500">No sourcing rows found for this view.</td></tr>
+              <tr><td colSpan={13} className="px-3 py-8 text-center text-slate-500">No sourcing rows found for this view.</td></tr>
             ) : (
               rows.map((row) => (
                 <tr key={row.opportunityId} className="align-top hover:bg-slate-50">
@@ -597,70 +552,11 @@ function ReplenishmentTable({
                   </td>
                   <td className="px-2 py-2 whitespace-nowrap">{percent(row.estimatedRoiPercent)}</td>
                   <td className="px-2 py-2 whitespace-nowrap">
-                    <div>{number(row.monthlyVelocity)}/mo</div>
-                    <div className="text-xs text-slate-500">{row.currentInventoryUnits ?? 0} on hand</div>
-                  </td>
-                  <td className="px-2 py-2 whitespace-nowrap">
                     <OpportunityTypeCell row={row} />
                   </td>
                   <td className="px-2 py-2">
                     <div className="flex flex-col items-start gap-1">
-                      {row.aiFlags.length ? row.aiFlags.map((flag) => <span key={flag} className="rounded bg-amber-50 px-2 py-1 text-xs text-amber-800">{flag}</span>) : <span className="text-xs text-slate-400">None</span>}
-                    </div>
-                  </td>
-                  <td className="px-2 py-2">
-                    <div className="grid grid-cols-4 gap-1">
-                      {row.opportunityType === "auction" && row.ebayItemId ? (
-                        <button
-                          onClick={() => void navigator.clipboard.writeText(row.ebayItemId ?? "")}
-                          className="icon-button"
-                          title="Copy item ID for Gixen"
-                        >
-                          <Clipboard className="h-4 w-4" />
-                        </button>
-                      ) : null}
-                      {closestExcludedMode ? (
-                        <>
-                          <button
-                            disabled={actionBusyId === row.opportunityId}
-                            onClick={() => void onAction(row, { actionType: "mark_valid_match", notes: "Operator marked excluded candidate as a valid match." })}
-                            className="col-span-2 rounded-md border border-emerald-300 bg-white px-2 py-2 text-xs font-medium text-emerald-700 hover:bg-emerald-50"
-                            title="Store positive match evidence"
-                          >
-                            Mark Valid
-                          </button>
-                          <button
-                            disabled={actionBusyId === row.opportunityId}
-                            onClick={() => void onAction(row, { actionType: "confirm_exclusion", reason: "wrong_product", notes: "Operator confirmed closest-excluded candidate should remain excluded." })}
-                            className="col-span-2 rounded-md border border-slate-300 bg-white px-2 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50"
-                            title="Store negative exclusion evidence"
-                          >
-                            Confirm
-                          </button>
-                          <button
-                            disabled={actionBusyId === row.opportunityId}
-                            onClick={() => onDismiss(row)}
-                            className="col-span-4 rounded-md border border-blue-200 bg-blue-50 px-2 py-2 text-xs font-medium text-blue-700 hover:bg-blue-100"
-                            title="Open diagnostics"
-                          >
-                            Open Diagnostics
-                          </button>
-                        </>
-                      ) : !purchasedMode ? (
-                        <>
-                          <button disabled={actionBusyId === row.opportunityId} onClick={() => void onAction(row, watchPayload(row))} className="icon-button" title="Watch">
-                            <Eye className="h-4 w-4" />
-                          </button>
-                          <button disabled={actionBusyId === row.opportunityId} onClick={() => void onAction(row, { actionType: "purchased", expectedPurchaseCost: row.landedCost ?? undefined })} className="icon-button" title="Purchased / offer made">
-                            <ShoppingBag className="h-4 w-4" />
-                          </button>
-                          <button disabled={actionBusyId === row.opportunityId} onClick={() => onDismiss(row)} className="icon-button" title="Dismiss">
-                            <Ban className="h-4 w-4" />
-                          </button>
-                        </>
-                      ) : (
-                        <span className="text-xs text-slate-500">Waiting for eBay import match</span>
-                      )}
+                      <SourcingFlags flags={row.aiFlags} />
                     </div>
                   </td>
                 </tr>
@@ -721,6 +617,51 @@ function ReplenishmentTable({
         }
       `}</style>
     </div>
+  );
+}
+
+function SourcingFlags({ flags }: { flags: string[] }) {
+  const visibleFlags = flags.filter(isVisibleSourcingFlag);
+  if (!visibleFlags.length) return <span className="text-xs text-slate-400">None</span>;
+  return visibleFlags.map((flag) => (
+    <span key={flag} className="rounded bg-amber-50 px-2 py-1 text-xs text-amber-800">
+      {flag}
+    </span>
+  ));
+}
+
+function isVisibleSourcingFlag(flag: string) {
+  const text = flag.toLowerCase();
+  return (
+    text.includes("unknown shipping estimate") ||
+    text.includes("suppressed listing") ||
+    text.includes("return-heavy asin") ||
+    text.includes("historical non_match") ||
+    text.includes("historical condition_problem") ||
+    text.includes("historical negative") ||
+    text.includes("seller warning: avoid") ||
+    text.includes("seller warning: watch") ||
+    text.includes("platform mismatch") ||
+    text.includes("wrong platform") ||
+    text.includes("title token") ||
+    text.includes("title overlap") ||
+    text.includes("no meaningful title") ||
+    text.includes("excluded keyword") ||
+    text.includes("digital") ||
+    text.includes("download") ||
+    text.includes("incomplete listing") ||
+    text.includes("accessory/not game") ||
+    text.includes("not a game") ||
+    text.includes("non-north-american") ||
+    text.includes("non-video-game category") ||
+    text.includes("game name") ||
+    text.includes("numeric") ||
+    text.includes("installment") ||
+    text.includes("edition") ||
+    text.includes("version") ||
+    text.includes("pickup") ||
+    text.includes("delivery") ||
+    text.includes("non-us item location")
   );
 }
 
@@ -841,18 +782,28 @@ function DismissOpportunityDialog({
     reason: string,
     notes: string,
     imageClues: string[],
-    diagnosticsFeedback: { allAssumptionsCorrect: boolean; incorrectRows: string[]; note?: string | null },
+    diagnosticsFeedback: {
+      allAssumptionsCorrect: boolean;
+      failedRuleFamilies: string[];
+      evidenceSources: string[];
+      legacyIncorrectRows: string[];
+      incorrectRows: string[];
+      note?: string | null;
+    },
   ) => Promise<void>;
 }) {
   const [notes, setNotes] = useState("");
   const [imageClues, setImageClues] = useState<string[]>([]);
   const [diagnosticsOpen, setDiagnosticsOpen] = useState(initialDiagnosticsOpen);
   const [allAssumptionsCorrect, setAllAssumptionsCorrect] = useState(false);
-  const [incorrectRows, setIncorrectRows] = useState<string[]>([]);
+  const [failedRuleFamilies, setFailedRuleFamilies] = useState<string[]>([]);
   const busy = actionBusyId === row.opportunityId;
   const diagnosticsFeedback = {
     allAssumptionsCorrect,
-    incorrectRows: allAssumptionsCorrect ? [] : incorrectRows,
+    failedRuleFamilies: allAssumptionsCorrect ? [] : failedRuleFamilies,
+    evidenceSources: allAssumptionsCorrect ? [] : evidenceSourcesForRuleFamilies(failedRuleFamilies),
+    legacyIncorrectRows: allAssumptionsCorrect ? [] : legacyRowsForRuleFamilies(failedRuleFamilies),
+    incorrectRows: allAssumptionsCorrect ? [] : legacyRowsForRuleFamilies(failedRuleFamilies),
     note: notes.trim() || null,
   };
 
@@ -896,14 +847,14 @@ function DismissOpportunityDialog({
             <DiagnosticComparisonPanel
               row={row}
               allAssumptionsCorrect={allAssumptionsCorrect}
-              incorrectRows={incorrectRows}
+              failedRuleFamilies={failedRuleFamilies}
               onAllCorrectChange={(checked) => {
                 setAllAssumptionsCorrect(checked);
-                if (checked) setIncorrectRows([]);
+                if (checked) setFailedRuleFamilies([]);
               }}
-              onIncorrectRowsChange={(rows) => {
-                setIncorrectRows(rows);
-                if (rows.length) setAllAssumptionsCorrect(false);
+              onFailedRuleFamiliesChange={(families) => {
+                setFailedRuleFamilies(families);
+                if (families.length) setAllAssumptionsCorrect(false);
               }}
             />
           ) : null}
@@ -979,20 +930,23 @@ function BulkDismissOpportunityDialog({
 function DiagnosticComparisonPanel({
   row,
   allAssumptionsCorrect,
-  incorrectRows,
+  failedRuleFamilies,
   onAllCorrectChange,
-  onIncorrectRowsChange,
+  onFailedRuleFamiliesChange,
 }: {
   row: SourcingOpportunity;
   allAssumptionsCorrect: boolean;
-  incorrectRows: string[];
+  failedRuleFamilies: string[];
   onAllCorrectChange: (checked: boolean) => void;
-  onIncorrectRowsChange: (rows: string[]) => void;
+  onFailedRuleFamiliesChange: (families: string[]) => void;
 }) {
   const comparison = row.diagnosticComparison;
   const rows = comparison?.rows ?? [];
+  const identityRows = rows.filter((item) => (item.kind ?? "identity") === "identity");
+  const evidenceRows = rows.filter((item) => item.kind === "evidence");
+  const contextRows = rows.filter((item) => item.kind === "context");
   const decisionTrace = row.decisionTrace ?? [];
-  const incorrect = new Set(incorrectRows);
+  const failed = new Set(failedRuleFamilies);
   const reason = row.exclusionReason ?? null;
   const reasonKeys = new Set(reason?.diagnosticKeys ?? []);
 
@@ -1037,39 +991,40 @@ function DiagnosticComparisonPanel({
         <table className="w-full table-fixed text-left text-xs">
           <thead className="bg-slate-100 uppercase tracking-wide text-slate-500">
             <tr>
-              <th className="w-40 px-2 py-2">Matching element</th>
+              <th className="w-40 px-2 py-2">Derived Identity</th>
               <th className="px-2 py-2">Amazon</th>
               <th className="px-2 py-2">eBay</th>
-              <th className="w-44 px-2 py-2">Operator feedback</th>
+              <th className="w-20 px-2 py-2 text-center">Incorrect Match</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
-            {rows.length ? rows.map((diagnosticRow) => {
-              const active = incorrect.has(diagnosticRow.key);
-              const highlighted = reasonKeys.has(diagnosticRow.key);
+            {identityRows.length ? identityRows.map((diagnosticRow) => {
+              const family = diagnosticRow.ruleFamily ?? diagnosticRow.key;
+              const active = failed.has(family);
+              const highlighted = reasonKeys.has(diagnosticRow.key) || reasonKeys.has(family);
               return (
                 <tr key={diagnosticRow.key} className={`align-top ${highlighted ? "bg-amber-50" : ""}`}>
                   <td className="px-2 py-2 font-medium text-slate-700">
                     <div>{diagnosticRow.label}</div>
-                    <div className="mt-1 text-[11px] font-normal text-slate-500">{diagnosticRow.evidence ?? "Not available"}</div>
+                    <div className="mt-1 text-[11px] font-normal text-slate-500">{formatDiagnosticCell(diagnosticRow.evidence)}</div>
                   </td>
-                  <td className="break-words px-2 py-2 text-slate-700">{diagnosticRow.amazon ?? "Not available"}</td>
-                  <td className="break-words px-2 py-2 text-slate-700">{diagnosticRow.ebay ?? "Not available"}</td>
-                  <td className="px-2 py-2">
-                    <label className="flex items-center gap-2 text-slate-700">
+                  <td className="break-words px-2 py-2 text-slate-700">{formatDiagnosticCell(diagnosticRow.amazon)}</td>
+                  <td className="break-words px-2 py-2 text-slate-700">{formatDiagnosticCell(diagnosticRow.ebay)}</td>
+                  <td className="px-2 py-2 text-center">
+                    <label className="inline-flex items-center justify-center text-slate-700">
                       <input
                         type="checkbox"
                         checked={active}
                         disabled={allAssumptionsCorrect}
                         onChange={(event) => {
-                          const next = new Set(incorrect);
-                          if (event.target.checked) next.add(diagnosticRow.key);
-                          else next.delete(diagnosticRow.key);
-                          onIncorrectRowsChange([...next]);
+                          const next = new Set(failed);
+                          if (event.target.checked) next.add(family);
+                          else next.delete(family);
+                          onFailedRuleFamiliesChange([...next]);
                         }}
                         className="h-4 w-4"
+                        aria-label={`${diagnosticRow.label} incorrect match`}
                       />
-                      MBOP got this assumption wrong
                     </label>
                   </td>
                 </tr>
@@ -1082,13 +1037,71 @@ function DiagnosticComparisonPanel({
           </tbody>
         </table>
       </div>
+      <div className="mt-3 overflow-hidden rounded-md border border-slate-200 bg-white">
+        <div className="border-b border-slate-100 bg-slate-100 px-2 py-2 text-xs font-semibold uppercase tracking-wide text-slate-500">Evidence Used</div>
+        <div className="grid divide-y divide-slate-100 text-xs md:grid-cols-2 md:divide-x md:divide-y-0">
+          {(evidenceRows.length ? evidenceRows : []).map((diagnosticRow) => (
+            <div key={diagnosticRow.key} className="grid grid-cols-[150px_minmax(0,1fr)] gap-2 px-2 py-2">
+              <div className="font-medium text-slate-700">{diagnosticRow.label}</div>
+              <div className="break-words text-slate-600">{formatDiagnosticCell(diagnosticRow.ebay)}</div>
+            </div>
+          ))}
+          {!evidenceRows.length ? <div className="px-3 py-4 text-slate-500">Evidence not available.</div> : null}
+        </div>
+      </div>
       <div className="mt-3 grid gap-2 text-xs text-slate-600 md:grid-cols-3">
         <div><span className="font-medium">Recommendation:</span> {comparison?.recommendation ?? "Not available"}</div>
         <div><span className="font-medium">Hard blocks:</span> {comparison?.hardBlocks?.join("; ") || "None"}</div>
         <div><span className="font-medium">Warnings:</span> {comparison?.warnings?.join("; ") || "None"}</div>
       </div>
+      {contextRows.length ? (
+        <div className="mt-2 text-xs text-slate-500">
+          {contextRows.slice(0, 3).map((item) => (
+            <div key={item.key}><span className="font-medium">{item.label}:</span> {formatDiagnosticCell(item.ebay ?? item.evidence)}</div>
+          ))}
+        </div>
+      ) : null}
     </aside>
   );
+}
+
+function formatDiagnosticCell(value: unknown): string {
+  if (value === null || value === undefined || value === "") return "Not available";
+  if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") return String(value);
+  if (Array.isArray(value)) return value.map(formatDiagnosticCell).join(", ");
+  return "Structured diagnostic";
+}
+
+function evidenceSourcesForRuleFamilies(families: string[]) {
+  const defaults: Record<string, string[]> = {
+    core_game_identity: ["amazon_title", "ebay_title", "ebay_game_name"],
+    numeric_installment: ["amazon_title", "ebay_title", "ebay_item_specifics"],
+    platform: ["amazon_title", "ebay_title", "platform_metadata", "ebay_item_specifics"],
+    edition_version: ["amazon_title", "ebay_title", "ebay_item_specifics"],
+    region: ["ebay_item_specifics", "category"],
+    completeness: ["ebay_title", "ebay_item_specifics", "ebay_description", "primary_image", "additional_images"],
+    digital_physical: ["ebay_title", "ebay_item_specifics", "ebay_description", "category"],
+    category_product_type: ["category", "ebay_item_specifics", "ebay_title"],
+    seller_listing_photo_consistency: ["primary_image", "additional_images", "ebay_title"],
+    other: ["other"],
+  };
+  return [...new Set(families.flatMap((family) => defaults[family] ?? ["other"]))];
+}
+
+function legacyRowsForRuleFamilies(families: string[]) {
+  const legacy: Record<string, string[]> = {
+    core_game_identity: ["core_game_identity"],
+    numeric_installment: ["installment_number"],
+    platform: ["platform_system"],
+    edition_version: ["edition_version"],
+    region: ["region"],
+    completeness: ["completeness", "package_bundle_contents"],
+    digital_physical: ["digital_physical"],
+    category_product_type: ["category", "format_type"],
+    seller_listing_photo_consistency: ["seller_listing_photo_consistency"],
+    other: ["opportunity_context"],
+  };
+  return [...new Set(families.flatMap((family) => legacy[family] ?? ["opportunity_context"]))];
 }
 
 function DecisionTracePanel({ rows }: { rows: NonNullable<SourcingOpportunity["decisionTrace"]> }) {

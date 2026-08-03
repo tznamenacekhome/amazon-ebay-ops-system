@@ -15,6 +15,7 @@ from matching_intelligence import (
     label_for_dismiss_reason,
     seller_status_from_counts,
 )
+from matching_feedback import matching_feedback_from_context
 from sourcing_common import chunked, get_supabase_client, paginate_table, to_float
 
 
@@ -115,6 +116,8 @@ def build_sourcing_examples(supabase, limit: int | None) -> tuple[list[dict[str,
         action_type = str(action.get("action_type") or "")
         reason = action.get("dismiss_reason")
         label, label_type = label_for_action(action_type, reason)
+        action_context = action.get("raw_action_context") if isinstance(action.get("raw_action_context"), dict) else {}
+        matching_feedback = matching_feedback_from_context(action_context)
         snapshot = snapshots_by_action.get(action.get("action_id"))
         if not snapshot:
             opportunity = opportunities.get(action.get("opportunity_id")) or {}
@@ -139,7 +142,14 @@ def build_sourcing_examples(supabase, limit: int | None) -> tuple[list[dict[str,
                 label_type=label_type,
                 confidence=0.95 if action_type == "dismissed" else 0.75,
                 evidence_strength="medium",
-                raw_context={"action": action},
+                raw_context={
+                    "action": action,
+                    "matchingFeedback": matching_feedback,
+                    "ruleFeedback": {
+                        "failedRuleFamilies": matching_feedback["failedRuleFamilies"],
+                    },
+                    "evidenceSources": matching_feedback["evidenceSources"],
+                },
             )
         )
     return examples, snapshots

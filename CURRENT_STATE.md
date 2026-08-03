@@ -2,6 +2,22 @@
 
 Last Updated: 2026-08-02
 
+## 2026-08-02 Sourcing Matching Feedback Refinement
+
+- Sourcing dismissal diagnostics now store versioned `matchingFeedback` with
+  failed rule families separate from evidence sources.
+- The diagnostics UI now shows selectable `Derived Identity` rows and
+  display-only `Evidence Used` rows. Full Title and eBay Game Name are evidence,
+  not rule failures.
+- Structured diagnostic values are formatted before display so arbitrary
+  objects do not render as `[object Object]`.
+- `integrations/analyze_matching_feedback.py` provides a read-only report of
+  failed rule families, evidence sources, dismissal reasons, date range, and
+  representative examples.
+- Sourcing table cleanup removed the redundant Run Sourcing button, Velocity
+  column, Actions column, and fixed-position logout behavior while widening the
+  content area.
+
 ## 2026-08-02 Sourcing Diagnostics And Receiving Feedback
 
 - Sourcing dismissals now include an expandable backend-owned Amazon/eBay

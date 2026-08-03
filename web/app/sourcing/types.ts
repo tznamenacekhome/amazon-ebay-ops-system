@@ -132,6 +132,9 @@ export type DiagnosticComparison = {
     amazon: string | null;
     ebay: string | null;
     evidence: string | null;
+    kind?: "identity" | "evidence" | "context";
+    ruleFamily?: string;
+    evidenceSource?: string;
   }>;
 };
 

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { supabase } from "../../../_supabase";
 import { buildDiagnosticComparison } from "../../../diagnosticComparison";
 import { buildListingSnapshot } from "../../../matchingIntelligence";
+import { normalizeMatchingFeedback } from "../../../matchingFeedback";
 import { requireAdminApiToken } from "../../../../_server";
 
 const actionStatus: Record<string, string> = {
@@ -37,7 +38,8 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   const requiredMaxLandedCost = numberOrNull(body.requiredMaxLandedCost);
   const requiredRoiPercent = numberOrNull(body.requiredRoiPercent);
   const expectedPurchaseCost = numberOrNull(body.expectedPurchaseCost);
-  const diagnosticsFeedback = normalizeDiagnosticsFeedback(body.diagnosticsFeedback);
+  const diagnosticsFeedback = normalizeLegacyDiagnosticsFeedback(body.diagnosticsFeedback);
+  const matchingFeedback = normalizeMatchingFeedback(body.diagnosticsFeedback);
   const newStatus = actionStatus[actionType];
 
   if (!actionRecordType[actionType]) {
@@ -79,6 +81,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     expectedPurchaseCost,
     imageClues,
     diagnosticsFeedback,
+    matchingFeedback,
     diagnosticComparison,
     diagnosticVersion: diagnosticComparison.version,
     evidenceSource: reason === "seller_listing_mismatch" ? "image_conflict" : undefined,
@@ -190,7 +193,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   return NextResponse.json({ opportunity: data });
 }
 
-function normalizeDiagnosticsFeedback(value: unknown) {
+function normalizeLegacyDiagnosticsFeedback(value: unknown) {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
     return {
       allAssumptionsCorrect: false,
@@ -202,6 +205,8 @@ function normalizeDiagnosticsFeedback(value: unknown) {
   const allAssumptionsCorrect = record.allAssumptionsCorrect === true;
   const incorrectRows = Array.isArray(record.incorrectRows)
     ? record.incorrectRows.map((row) => String(row)).filter(Boolean)
+    : Array.isArray(record.legacyIncorrectRows)
+      ? record.legacyIncorrectRows.map((row) => String(row)).filter(Boolean)
     : [];
   return {
     allAssumptionsCorrect,

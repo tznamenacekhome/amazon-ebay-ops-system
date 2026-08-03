@@ -18,6 +18,9 @@ set is still early and should not automatically mutate deterministic rules.
 Current mitigation:
 - Feedback is stored structurally and consumed as matching intelligence
   examples where appropriate.
+- Feedback now separates failed rule families from evidence sources so evidence
+  rows such as Full Title and eBay Game Name do not duplicate rule-failure
+  signals.
 - No AI, image analysis, marketplace action, or rule mutation is triggered from
   a single operator response.
 - Production reprocessing is scoped to current open/unreviewed rows.

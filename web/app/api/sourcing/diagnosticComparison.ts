@@ -6,10 +6,13 @@ export type DiagnosticComparisonRow = {
   amazon: string | null;
   ebay: string | null;
   evidence: string | null;
+  kind: "identity" | "evidence" | "context";
+  ruleFamily?: string;
+  evidenceSource?: string;
 };
 
 export type DiagnosticComparison = {
-  version: "diagnostic_comparison_v1";
+  version: "diagnostic_comparison_v2";
   recommendation: string | null;
   hardBlocks: string[];
   warnings: string[];
@@ -51,38 +54,57 @@ export function buildDiagnosticComparison({
   const amazonRegion = firstText(regionRule.amazon, objectValue(seed.raw_context_json).region);
 
   return {
-    version: "diagnostic_comparison_v1",
+    version: "diagnostic_comparison_v2",
     recommendation,
     hardBlocks,
     warnings,
     evidenceSummary: evidenceSummary(diagnostics, titleOverlap),
     rows: [
-      row("core_game_identity", "Core game identity", amazonTitle, textValue(candidate.ebay_title), textValue(titleOverlap.shared_title_tokens)),
-      row("full_title", "Full title", amazonTitle, textValue(candidate.ebay_title), "Title evidence"),
-      row("platform_system", "Platform/system", amazonSystem, textValue(aspects.Platform ?? platformRule.ebay_system), textValue(platformRule.result)),
-      row("installment_number", "Installment/sequel number", identityText(numeric, "amazon"), identityText(numeric, "ebay"), textValue(numeric.comparison)),
-      row("edition_version", "Edition/version", amazonEdition, textValue(editionRule.ebay), textValue(editionRule.result)),
-      row("region", "Region", amazonRegion, textValue(aspects["Region Code"] ?? aspects.Region ?? regionRule.ebay), textValue(regionRule.result)),
-      row("game_name", "eBay Game Name item specific", null, textValue(aspects["Game Name"]), "eBay item specific"),
-      row("category", "Category", null, textValue(categoryName(rawEbay) ?? categoryRule.ebay), textValue(categoryRule.result)),
-      row("format_type", "Format/type", null, textValue(aspects.Format ?? aspects.Type ?? candidate.condition), "eBay item specifics"),
-      row("release_year", "Release year", null, textValue(aspects["Release Year"]), "eBay item specific"),
-      row("package_bundle_contents", "Package/bundle contents", firstText(objectValue(seed.raw_context_json).package_contents, "Standard physical software expected"), textValue(aspects.Features ?? aspects["Custom Bundle"] ?? aspects.Bundle), "eBay item specifics"),
-      row("completeness", "Completeness", null, textValue(incompleteRule.result), textValue(incompleteRule.reason)),
-      row("digital_physical", "Digital versus physical", "Physical resale expected", textValue(digitalRule.result), textValue(digitalRule.reason)),
-      row("item_location", "Item location", null, textValue(candidate.item_location_country ?? objectValue(rawEbay.itemLocation).country), "eBay item location"),
-      row("seller_listing_photo_consistency", "Seller listing/photo consistency", amazonImage, imageCount(rawEbay), "Photos available for operator review"),
-      row("final_recommendation", "Final recommendation", null, recommendation, "Backend scoring recommendation"),
-      row("hard_blocks", "Hard-block reasons", null, hardBlocks.join("; ") || null, "Backend hard blocks"),
-      row("warnings", "Warnings", null, warnings.join("; ") || null, "Backend warnings"),
-      row("confidence_summary", "Confidence/evidence summary", null, evidenceSummary(diagnostics, titleOverlap), "Backend diagnostics"),
-      row("opportunity_context", "Opportunity context", asin, textValue(candidate.ebay_item_id), "ASIN and eBay identity"),
+      identityRow("core_game_identity", "Core Game", "core_game_identity", amazonTitle, textValue(candidate.ebay_title), sharedTokensText(titleOverlap)),
+      identityRow("installment_number", "Installment / Sequel", "numeric_installment", identityText(numeric, "amazon"), identityText(numeric, "ebay"), numericExplanation(numeric)),
+      identityRow("platform_system", "Platform", "platform", amazonSystem, textValue(aspects.Platform ?? platformRule.ebay_system), formatDiagnosticValue(platformRule.result)),
+      identityRow("edition_version", "Edition / Version", "edition_version", amazonEdition, textValue(editionRule.ebay), formatDiagnosticValue(editionRule.result)),
+      identityRow("region", "Region", "region", amazonRegion, textValue(aspects["Region Code"] ?? aspects.Region ?? regionRule.ebay), formatDiagnosticValue(regionRule.result)),
+      identityRow("package_bundle_contents", "Package Contents", "completeness", firstText(objectValue(seed.raw_context_json).package_contents, "Standard physical software expected"), formatDiagnosticValue(aspects.Features ?? aspects["Custom Bundle"] ?? aspects.Bundle), "Package or bundle evidence"),
+      identityRow("completeness", "Completeness", "completeness", "Complete physical software expected", formatDiagnosticValue(incompleteRule.result), formatDiagnosticValue(incompleteRule.reason)),
+      identityRow("digital_physical", "Digital vs Physical", "digital_physical", "Physical resale expected", formatDiagnosticValue(digitalRule.result), formatDiagnosticValue(digitalRule.reason)),
+      identityRow("category_product_type", "Category / Product Type", "category_product_type", null, formatDiagnosticValue(categoryName(rawEbay) ?? categoryRule.ebay), formatDiagnosticValue(categoryRule.result)),
+      identityRow("seller_listing_photo_consistency", "Seller Listing / Photos", "seller_listing_photo_consistency", amazonImage, imageCount(rawEbay), "Photos available for operator review"),
+      evidenceRow("amazon_title", "Amazon Title", "amazon_title", amazonTitle),
+      evidenceRow("ebay_title", "eBay Title", "ebay_title", textValue(candidate.ebay_title)),
+      evidenceRow("ebay_game_name", "eBay Game Name", "ebay_game_name", formatDiagnosticValue(aspects["Game Name"])),
+      evidenceRow("ebay_item_specifics", "eBay Item Specifics", "ebay_item_specifics", itemSpecificSummary(aspects)),
+      evidenceRow("ebay_description", "Description", "ebay_description", formatDiagnosticValue(rawEbay.description ?? rawEbay.shortDescription)),
+      evidenceRow("photos", "Photos", "primary_image", imageCount(rawEbay)),
+      evidenceRow("category", "Category", "category", formatDiagnosticValue(categoryName(rawEbay) ?? categoryRule.ebay)),
+      evidenceRow("platform_metadata", "Platform Metadata", "platform_metadata", formatDiagnosticValue(aspects.Platform ?? platformRule.ebay_system)),
+      evidenceRow("amazon_catalog_metadata", "Amazon Catalog Metadata", "amazon_catalog_metadata", amazonCatalogSummary(seed, platformRule, editionRule, regionRule)),
+      contextRow("final_recommendation", "Final recommendation", null, recommendation, "Backend scoring recommendation"),
+      contextRow("hard_blocks", "Hard-block reasons", null, hardBlocks.join("; ") || null, "Backend hard blocks"),
+      contextRow("warnings", "Warnings", null, warnings.join("; ") || null, "Backend warnings"),
+      contextRow("confidence_summary", "Confidence/evidence summary", null, evidenceSummary(diagnostics, titleOverlap), "Backend diagnostics"),
+      contextRow("opportunity_context", "Opportunity context", asin, textValue(candidate.ebay_item_id), "ASIN and eBay identity"),
     ],
   };
 }
 
-function row(key: string, label: string, amazon: string | null, ebay: string | null, evidence: string | null): DiagnosticComparisonRow {
-  return { key, label, amazon, ebay, evidence };
+function identityRow(
+  key: string,
+  label: string,
+  ruleFamily: string,
+  amazon: unknown,
+  ebay: unknown,
+  evidence: unknown,
+): DiagnosticComparisonRow {
+  return { key, label, ruleFamily, amazon: formatDiagnosticValue(amazon), ebay: formatDiagnosticValue(ebay), evidence: formatDiagnosticValue(evidence), kind: "identity" };
+}
+
+function evidenceRow(key: string, label: string, evidenceSource: string, value: unknown): DiagnosticComparisonRow {
+  return { key, label, evidenceSource, amazon: null, ebay: formatDiagnosticValue(value), evidence: null, kind: "evidence" };
+}
+
+function contextRow(key: string, label: string, amazon: unknown, ebay: unknown, evidence: unknown): DiagnosticComparisonRow {
+  return { key, label, amazon: formatDiagnosticValue(amazon), ebay: formatDiagnosticValue(ebay), evidence: formatDiagnosticValue(evidence), kind: "context" };
 }
 
 function objectValue(value: unknown): JsonRecord {
@@ -90,12 +112,7 @@ function objectValue(value: unknown): JsonRecord {
 }
 
 function textValue(value: unknown): string | null {
-  if (Array.isArray(value)) {
-    const text = value.map((item) => String(item ?? "").trim()).filter(Boolean).join(", ");
-    return text || null;
-  }
-  const text = String(value ?? "").trim();
-  return text || null;
+  return formatDiagnosticValue(value);
 }
 
 function firstText(...values: unknown[]): string | null {
@@ -157,10 +174,91 @@ function identityText(numeric: JsonRecord, side: "amazon" | "ebay") {
   return parts.join(", ") || null;
 }
 
+function numericExplanation(numeric: JsonRecord) {
+  const parts = [
+    labeledValue("Result", numeric.result),
+    labeledValue("Comparison", numeric.comparison),
+    labeledValue("Amazon installment identity", identityText(numeric, "amazon")),
+    labeledValue("eBay installment identity", identityText(numeric, "ebay")),
+    labeledValue("Ignored platform numbers", numeric.ignored_platform_numbers),
+    labeledValue("Ignored release years", numeric.ignored_release_years),
+    labeledValue("Ignored quantities", numeric.ignored_quantity_numbers),
+    labeledValue("Explanation", numeric.reason),
+  ].filter(Boolean);
+  return parts.join("; ") || null;
+}
+
+function sharedTokensText(titleOverlap: JsonRecord) {
+  const shared = formatDiagnosticValue(titleOverlap.shared_title_tokens);
+  const result = formatDiagnosticValue(titleOverlap.result);
+  return [shared ? `Shared title tokens: ${shared}` : null, result ? `Result: ${result}` : null].filter(Boolean).join("; ") || null;
+}
+
 function evidenceSummary(diagnostics: unknown, titleOverlap: JsonRecord) {
   const recommendation = textValue(objectValue(diagnostics).recommendation);
-  const overlap = textValue(titleOverlap.shared_title_tokens);
+  const overlap = formatDiagnosticValue(titleOverlap.shared_title_tokens);
   return [recommendation ? `Recommendation: ${recommendation}` : null, overlap ? `Shared title tokens: ${overlap}` : null]
     .filter(Boolean)
     .join("; ") || null;
+}
+
+function itemSpecificSummary(aspects: JsonRecord) {
+  const entries = Object.entries(aspects)
+    .map(([key, value]) => labeledValue(key, value))
+    .filter(Boolean)
+    .slice(0, 8);
+  return entries.join("; ") || null;
+}
+
+function amazonCatalogSummary(seed: JsonRecord, platformRule: JsonRecord, editionRule: JsonRecord, regionRule: JsonRecord) {
+  const rawContext = objectValue(seed.raw_context_json);
+  const entries = [
+    labeledValue("ASIN", seed.asin),
+    labeledValue("System", seed.system ?? rawContext.inferred_system ?? platformRule.amazon_system),
+    labeledValue("Edition", editionRule.amazon ?? rawContext.edition),
+    labeledValue("Region", regionRule.amazon ?? rawContext.region),
+    labeledValue("Product group", rawContext.keepa_product_group),
+    labeledValue("Category", rawContext.keepa_category_tree),
+  ].filter(Boolean);
+  return entries.join("; ") || null;
+}
+
+function labeledValue(label: string, value: unknown) {
+  const text = formatDiagnosticValue(value);
+  return text ? `${label}: ${text}` : null;
+}
+
+function formatDiagnosticValue(value: unknown): string | null {
+  if (value === null || value === undefined) return null;
+  if (typeof value === "string") {
+    const text = value.trim();
+    return text || null;
+  }
+  if (typeof value === "number" || typeof value === "boolean") return String(value);
+  if (Array.isArray(value)) {
+    const text = value.map(formatDiagnosticValue).filter(Boolean).join(", ");
+    return text || null;
+  }
+  if (typeof value === "object") {
+    const record = value as JsonRecord;
+    const preferred = [
+      labeledValue("Result", record.result),
+      labeledValue("Reason", record.reason),
+      labeledValue("Summary", record.summary),
+      labeledValue("Recommendation", record.recommendation),
+      labeledValue("Comparison", record.comparison),
+    ].filter(Boolean);
+    if (preferred.length) return preferred.join("; ");
+    const entries = Object.entries(record)
+      .filter(([, item]) => item !== null && item !== undefined)
+      .slice(0, 6)
+      .map(([key, item]) => labeledValue(labelFromKey(key), item))
+      .filter(Boolean);
+    return entries.join("; ") || null;
+  }
+  return String(value);
+}
+
+function labelFromKey(value: string) {
+  return value.replaceAll("_", " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
 }

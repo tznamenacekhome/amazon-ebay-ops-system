@@ -110,14 +110,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
       <a
         href="/api/logout"
-        className="fixed right-3 top-3 z-50 inline-flex h-9 items-center gap-2 rounded-md border border-slate-300 bg-white px-3 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50"
+        className="absolute right-3 top-3 z-50 inline-flex h-9 items-center gap-2 rounded-md border border-slate-300 bg-white px-3 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50"
         title="Log out"
       >
         <LogOut className="h-4 w-4" />
         Log out
       </a>
 
-      <div className="min-w-0 flex-1 pr-24">{children}</div>
+      <div className="min-w-0 flex-1">{children}</div>
     </div>
   );
 }

@@ -3,6 +3,26 @@
 Status: Foundation implemented; deterministic live scoring diagnostics are
 implemented; AI-assisted opportunity review is intentionally deferred.
 
+## 2026-08-02 Feedback Semantics Update
+
+Sourcing dismissal diagnostics now separate failed rule families from evidence
+sources. `matchingFeedback.version = matching_feedback_v2` is stored in
+`sourcing_actions.raw_action_context` and
+`sourcing_listing_snapshots.raw_context_json`, while the legacy
+`diagnosticsFeedback` shape remains readable.
+
+Rule families represent what MBOP got wrong, such as core game identity,
+numeric installment, platform, edition/version, region, completeness,
+digital/physical, category/product type, and seller listing/photo consistency.
+Evidence sources represent what proved the failure, such as Amazon title, eBay
+title, eBay Game Name, item specifics, description, photos, category, platform
+metadata, and Amazon catalog metadata.
+
+Full Title and eBay Game Name are evidence, not failed rule families. A Rock
+Band 3 vs Rock Band Track Pack dismissal should store
+`core_game_identity` with title/Game Name evidence, not numeric, platform, or
+edition failure.
+
 The Matching Intelligence Layer preserves reviewed sourcing evidence so MBOP can
 improve Amazon-to-eBay replenishment matching before any future eBay-to-Amazon
 sourcing work.

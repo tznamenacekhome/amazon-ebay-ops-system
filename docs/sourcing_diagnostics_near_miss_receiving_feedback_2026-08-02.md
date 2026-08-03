@@ -39,15 +39,17 @@ marketplace actions, historical reopening, and unrelated shipment-sync edits.
 
 ## Diagnostic Comparison Fields
 
-The backend comparison shape is `diagnostic_comparison_v1` and includes:
+The backend comparison shape is now `diagnostic_comparison_v2`. It separates
+selectable `Derived Identity` rows from display-only `Evidence Used` rows and
+includes:
 
 - core game identity
-- full title
+- Amazon title and eBay title as evidence rows
 - platform/system
 - installment/sequel number
 - edition/version
 - region
-- eBay Game Name item specific
+- eBay Game Name as an evidence row
 - category
 - format/type
 - release year
@@ -63,6 +65,8 @@ The backend comparison shape is `diagnostic_comparison_v1` and includes:
 - ASIN/eBay opportunity context
 
 Missing evidence is returned as null and rendered as `Not available`.
+Structured diagnostic values are formatted before rendering so the operator UI
+does not display `[object Object]`.
 
 ## Storage Model
 
@@ -70,11 +74,17 @@ No new table is required for sourcing diagnostic feedback. The durable storage
 is:
 
 - `sourcing_actions.raw_action_context.diagnosticsFeedback`
+- `sourcing_actions.raw_action_context.matchingFeedback`
 - `sourcing_actions.raw_action_context.diagnosticComparison`
 - `sourcing_listing_snapshots.raw_context_json.diagnosticsFeedback`
+- `sourcing_listing_snapshots.raw_context_json.matchingFeedback`
 - `sourcing_listing_snapshots.raw_context_json.diagnosticComparison`
 - immediate exact examples in `matching_intelligence_examples` for
   `seller_listing_mismatch`, `mark_valid_match`, and `confirm_exclusion`
+
+`matchingFeedback` stores failed rule families separately from evidence
+sources. Legacy `incorrectRows` are preserved as `legacyIncorrectRows` and
+remain readable during matching-intelligence rebuilds.
 
 Receiving needed one schema change because the existing outcome check
 constraint did not allow `sourcing_false_positive`.

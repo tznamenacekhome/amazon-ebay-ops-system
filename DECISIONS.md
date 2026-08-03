@@ -1,5 +1,24 @@
 # DECISIONS.md
 
+# Sourcing Feedback Separates Rule Families From Evidence
+
+Decision date: 2026-08-02
+
+Operator diagnostics feedback must record which derived identity/rule family
+failed separately from the evidence that proved it. Full Title and eBay Game
+Name are evidence sources, not failed rule families.
+
+Consequences:
+
+- The selectable diagnostics section is `Derived Identity`.
+- Evidence is displayed separately and is not directly selectable as a failed
+  rule.
+- `matchingFeedback.version = matching_feedback_v2` is stored alongside legacy
+  feedback.
+- All-assumptions-correct clears failed rule families and evidence sources.
+- This feedback does not mutate deterministic rules or trigger production
+  rescoring by itself.
+
 # Closest Excluded Means Never Presented
 
 Decision date: 2026-08-02

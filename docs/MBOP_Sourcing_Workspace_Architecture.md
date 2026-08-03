@@ -95,6 +95,13 @@ Current implementation notes:
 - Single-row dismissals open the backend-provided Amazon/eBay diagnostic
   comparison automatically. Multi-select dismissal remains a compact bulk modal
   without single-row diagnostics.
+- The dismiss diagnostics panel separates selectable `Derived Identity`
+  failures from display-only `Evidence Used`. Full Title and eBay Game Name are
+  stored as evidence sources, not failed rule families.
+- The Sourcing table is wider for operator review: the global right padding was
+  removed, the redundant Run Sourcing button was removed, the Velocity and
+  Actions columns were removed, and table flags are filtered to the active
+  operator-approved flag families.
 - Closest Excluded is limited to never-presented, never-actioned candidates and
   is filtered against `sourcing_opportunity_batch_items`, `sourcing_actions`,
   and same-ASIN eBay listing identity before backend ranking.
