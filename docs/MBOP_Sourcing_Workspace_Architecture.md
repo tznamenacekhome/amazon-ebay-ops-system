@@ -98,6 +98,10 @@ Current implementation notes:
 - The dismiss diagnostics panel separates selectable `Derived Identity`
   failures from display-only `Evidence Used`. Full Title and eBay Game Name are
   stored as evidence sources, not failed rule families.
+- The diagnostics panel is operator-focused: it hides backend context rows and
+  repeated pass/empty values, shows only the main identity dimensions, moves
+  category into evidence, strips description HTML, shows compact photo
+  thumbnails, and ends with a compact matching summary.
 - The Sourcing table is wider for operator review: the global right padding was
   removed, the redundant Run Sourcing button was removed, the Velocity and
   Actions columns were removed, and table flags are filtered to the active

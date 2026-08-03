@@ -942,20 +942,19 @@ function DiagnosticComparisonPanel({
 }) {
   const comparison = row.diagnosticComparison;
   const rows = comparison?.rows ?? [];
-  const identityRows = rows.filter((item) => (item.kind ?? "identity") === "identity");
-  const evidenceRows = rows.filter((item) => item.kind === "evidence");
-  const contextRows = rows.filter((item) => item.kind === "context");
-  const decisionTrace = row.decisionTrace ?? [];
+  const identityRows = diagnosticsIdentityRows(row, rows);
+  const evidenceRows = diagnosticsEvidenceRows(row, rows);
+  const summaryRows = diagnosticsSummaryRows(identityRows, comparison?.hardBlocks ?? [], comparison?.warnings ?? []);
+  const hardBlocks = cleanDiagnosticMessages(comparison?.hardBlocks ?? []);
+  const warnings = cleanDiagnosticMessages(comparison?.warnings ?? []);
   const failed = new Set(failedRuleFamilies);
-  const reason = row.exclusionReason ?? null;
-  const reasonKeys = new Set(reason?.diagnosticKeys ?? []);
 
   return (
     <aside className="max-h-[72vh] overflow-auto border-t border-slate-200 bg-slate-50 p-3 lg:border-l lg:border-t-0">
-      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+      <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
         <div>
-          <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">Amazon vs eBay Diagnostics</div>
-          <div className="text-sm text-slate-700">{comparison?.evidenceSummary ?? "Not available"}</div>
+          <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">Why MBOP Matched These</div>
+          <div className="text-sm text-slate-700">Parsed identity on each side, followed by the listing evidence MBOP used.</div>
         </div>
         <label className="flex items-center gap-2 rounded-md border border-slate-300 bg-white px-3 py-2 text-xs font-medium text-slate-700">
           <input
@@ -967,109 +966,385 @@ function DiagnosticComparisonPanel({
           All matching assumptions are correct
         </label>
       </div>
-      {reason ? (
-        <div className="mb-3 rounded-md border border-amber-300 bg-amber-50 p-3 text-xs text-amber-950">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="font-semibold">Primary exclusion reason: {reason.label}</span>
-            <span className="rounded bg-white px-2 py-0.5 font-medium text-amber-800">{reason.severity}</span>
-            <span className="text-amber-800">Source: {reason.source}</span>
-          </div>
-          <div className="mt-1">{reason.summary}</div>
-          <div className="mt-1 text-amber-800">
-            Final recommendation: {reason.finalRecommendation ?? "Not available"} / Status: {reason.finalStatus ?? "Not available"}
-          </div>
-          {reason.supportingSignals.length ? (
-            <div className="mt-1 text-amber-800">Signals: {reason.supportingSignals.join("; ")}</div>
-          ) : null}
-          {reason.secondaryReasons.length ? (
-            <div className="mt-1 text-amber-800">Secondary: {reason.secondaryReasons.map((item) => item.label).join("; ")}</div>
-          ) : null}
+      {hardBlocks.length || warnings.length ? (
+        <div className="mb-3 grid gap-2 text-xs md:grid-cols-2">
+          {hardBlocks.length ? <DiagnosticMessageList title="Hard Blocks" messages={hardBlocks} tone="danger" /> : null}
+          {warnings.length ? <DiagnosticMessageList title="Warnings" messages={warnings} tone="warning" /> : null}
         </div>
       ) : null}
-      {decisionTrace.length ? <DecisionTracePanel rows={decisionTrace} /> : null}
       <div className="overflow-hidden rounded-md border border-slate-200 bg-white">
-        <table className="w-full table-fixed text-left text-xs">
-          <thead className="bg-slate-100 uppercase tracking-wide text-slate-500">
-            <tr>
-              <th className="w-40 px-2 py-2">Derived Identity</th>
-              <th className="px-2 py-2">Amazon</th>
-              <th className="px-2 py-2">eBay</th>
-              <th className="w-20 px-2 py-2 text-center">Incorrect Match</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100">
-            {identityRows.length ? identityRows.map((diagnosticRow) => {
-              const family = diagnosticRow.ruleFamily ?? diagnosticRow.key;
-              const active = failed.has(family);
-              const highlighted = reasonKeys.has(diagnosticRow.key) || reasonKeys.has(family);
-              return (
-                <tr key={diagnosticRow.key} className={`align-top ${highlighted ? "bg-amber-50" : ""}`}>
-                  <td className="px-2 py-2 font-medium text-slate-700">
-                    <div>{diagnosticRow.label}</div>
-                    <div className="mt-1 text-[11px] font-normal text-slate-500">{formatDiagnosticCell(diagnosticRow.evidence)}</div>
-                  </td>
-                  <td className="break-words px-2 py-2 text-slate-700">{formatDiagnosticCell(diagnosticRow.amazon)}</td>
-                  <td className="break-words px-2 py-2 text-slate-700">{formatDiagnosticCell(diagnosticRow.ebay)}</td>
-                  <td className="px-2 py-2 text-center">
-                    <label className="inline-flex items-center justify-center text-slate-700">
-                      <input
-                        type="checkbox"
-                        checked={active}
-                        disabled={allAssumptionsCorrect}
-                        onChange={(event) => {
-                          const next = new Set(failed);
-                          if (event.target.checked) next.add(family);
-                          else next.delete(family);
-                          onFailedRuleFamiliesChange([...next]);
-                        }}
-                        className="h-4 w-4"
-                        aria-label={`${diagnosticRow.label} incorrect match`}
-                      />
-                    </label>
-                  </td>
-                </tr>
-              );
-            }) : (
-              <tr>
-                <td colSpan={4} className="px-3 py-6 text-center text-slate-500">Diagnostics not available.</td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+        <div className="grid grid-cols-[150px_minmax(0,1fr)_minmax(0,1fr)_64px] border-b border-slate-100 bg-slate-100 px-2 py-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
+          <div>Derived Identity</div>
+          <div>Amazon</div>
+          <div>eBay</div>
+          <div className="text-center">Wrong</div>
+        </div>
+        <div className="divide-y divide-slate-100">
+          {identityRows.length ? identityRows.map((diagnosticRow) => {
+            const family = diagnosticRow.ruleFamily ?? diagnosticRow.key;
+            const active = failed.has(family);
+            const status = summaryStatusForRow(diagnosticRow, hardBlocks, warnings);
+            return (
+              <div key={diagnosticRow.key} className={`grid grid-cols-[150px_minmax(0,1fr)_minmax(0,1fr)_64px] items-center gap-2 px-2 py-2 text-xs ${status === "fail" ? "bg-rose-50" : status === "warning" ? "bg-amber-50" : ""}`}>
+                <div className="font-medium text-slate-800">{diagnosticRow.label}</div>
+                <div className="break-words text-slate-700">{formatCompactDiagnosticCell(diagnosticRow.amazon)}</div>
+                <div className="break-words text-slate-700">{formatCompactDiagnosticCell(diagnosticRow.ebay)}</div>
+                <label className="inline-flex items-center justify-center text-slate-700">
+                  <input
+                    type="checkbox"
+                    checked={active}
+                    disabled={allAssumptionsCorrect}
+                    onChange={(event) => {
+                      const next = new Set(failed);
+                      if (event.target.checked) next.add(family);
+                      else next.delete(family);
+                      onFailedRuleFamiliesChange([...next]);
+                    }}
+                    className="h-4 w-4"
+                    aria-label={`${diagnosticRow.label} incorrect match`}
+                  />
+                </label>
+              </div>
+            );
+          }) : <div className="px-3 py-6 text-center text-sm text-slate-500">Diagnostics not available.</div>}
+        </div>
       </div>
       <div className="mt-3 overflow-hidden rounded-md border border-slate-200 bg-white">
         <div className="border-b border-slate-100 bg-slate-100 px-2 py-2 text-xs font-semibold uppercase tracking-wide text-slate-500">Evidence Used</div>
-        <div className="grid divide-y divide-slate-100 text-xs md:grid-cols-2 md:divide-x md:divide-y-0">
-          {(evidenceRows.length ? evidenceRows : []).map((diagnosticRow) => (
-            <div key={diagnosticRow.key} className="grid grid-cols-[150px_minmax(0,1fr)] gap-2 px-2 py-2">
-              <div className="font-medium text-slate-700">{diagnosticRow.label}</div>
-              <div className="break-words text-slate-600">{formatDiagnosticCell(diagnosticRow.ebay)}</div>
-            </div>
+        <div className="grid gap-0 divide-y divide-slate-100 text-xs md:grid-cols-2 md:divide-x md:divide-y-0">
+          {evidenceRows.map((diagnosticRow) => (
+            <EvidenceRow key={diagnosticRow.key} row={diagnosticRow} />
           ))}
           {!evidenceRows.length ? <div className="px-3 py-4 text-slate-500">Evidence not available.</div> : null}
         </div>
       </div>
-      <div className="mt-3 grid gap-2 text-xs text-slate-600 md:grid-cols-3">
-        <div><span className="font-medium">Recommendation:</span> {comparison?.recommendation ?? "Not available"}</div>
-        <div><span className="font-medium">Hard blocks:</span> {comparison?.hardBlocks?.join("; ") || "None"}</div>
-        <div><span className="font-medium">Warnings:</span> {comparison?.warnings?.join("; ") || "None"}</div>
-      </div>
-      {contextRows.length ? (
-        <div className="mt-2 text-xs text-slate-500">
-          {contextRows.slice(0, 3).map((item) => (
-            <div key={item.key}><span className="font-medium">{item.label}:</span> {formatDiagnosticCell(item.ebay ?? item.evidence)}</div>
+      <div className="mt-3 rounded-md border border-slate-200 bg-white p-3">
+        <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">Matching Summary</div>
+        <div className="flex flex-wrap gap-2">
+          {summaryRows.map((item) => (
+            <span key={item.label} className={`inline-flex items-center gap-1 rounded px-2 py-1 text-xs font-medium ${summaryClass(item.status)}`}>
+              <span aria-hidden="true">{summaryIcon(item.status)}</span>
+              {item.label}
+            </span>
           ))}
+          <span className="ml-auto inline-flex items-center gap-2 rounded bg-slate-900 px-2 py-1 text-xs font-semibold text-white">
+            Overall <span>{friendlyRecommendation(comparison?.recommendation, hardBlocks)}</span>
+          </span>
         </div>
-      ) : null}
+      </div>
     </aside>
   );
 }
 
-function formatDiagnosticCell(value: unknown): string {
+type DiagnosticsDisplayRow = {
+  key: string;
+  label: string;
+  amazon: string | null;
+  ebay: string | null;
+  evidence: string | null;
+  kind?: "identity" | "evidence" | "context";
+  ruleFamily?: string;
+  evidenceSource?: string;
+  photoUrls?: string[];
+};
+
+type SummaryStatus = "pass" | "warning" | "fail" | "unknown";
+
+const DIAGNOSTIC_IDENTITY_KEYS = [
+  "core_game_identity",
+  "installment_number",
+  "platform_system",
+  "edition_version",
+  "region",
+  "package_bundle_contents",
+  "completeness",
+  "digital_physical",
+];
+
+const DIAGNOSTIC_EVIDENCE_KEYS = [
+  "amazon_title",
+  "ebay_title",
+  "ebay_game_name",
+  "ebay_item_specifics",
+  "ebay_description",
+  "photos",
+  "category",
+];
+
+const SUMMARY_LABELS: Record<string, string> = {
+  core_game_identity: "Core Game",
+  platform_system: "Platform",
+  edition_version: "Edition",
+  region: "Region",
+};
+
+function diagnosticsIdentityRows(row: SourcingOpportunity, rows: NonNullable<SourcingOpportunity["diagnosticComparison"]>["rows"]): DiagnosticsDisplayRow[] {
+  const byKey = new Map(rows.map((item) => [item.key, item]));
+  return DIAGNOSTIC_IDENTITY_KEYS
+    .map((key) => byKey.get(key))
+    .filter((item): item is NonNullable<typeof item> => Boolean(item))
+    .map((item) => identityDisplayRow(row, item))
+    .filter((item) => hasUsefulDiagnosticValue(item.amazon) || hasUsefulDiagnosticValue(item.ebay));
+}
+
+function identityDisplayRow(row: SourcingOpportunity, item: NonNullable<SourcingOpportunity["diagnosticComparison"]>["rows"][number]): DiagnosticsDisplayRow {
+  const diagnostics = diagnosticRecord(row.matchingDiagnostics);
+  const staticRules = diagnosticRecord(diagnostics.static_rules);
+  const evidence = diagnosticRecord(staticRules.normalized_evidence ?? diagnostics.normalized_evidence);
+  const titleOverlap = diagnosticRecord(staticRules.title_overlap ?? diagnostics.title_overlap);
+  const numeric = diagnosticRecord(staticRules.numeric_identity ?? diagnostics.numeric_identity);
+  const gameName = firstArrayText(evidence.game_name_values) ?? firstDiagnosticEvidence("ebay_game_name", row);
+  const sharedIdentity = sharedTitleIdentity(titleOverlap, row.amazonTitle, row.ebayTitle, gameName);
+  const platform = firstArrayText(evidence.platform_values);
+  const region = firstArrayText(evidence.region_code_values) ?? firstArrayText(evidence.country_of_origin_values);
+  const features = firstArrayText(evidence.features_values);
+  const format = firstArrayText(evidence.format_values) ?? firstArrayText(evidence.type_values);
+
+  if (item.key === "core_game_identity") {
+    const amazonCore = coreGameDisplayName(row.amazonTitle, gameName, sharedIdentity);
+    return { ...item, amazon: amazonCore ?? sharedIdentity ?? item.amazon, ebay: gameName ?? sharedIdentity ?? item.ebay };
+  }
+  if (item.key === "installment_number") {
+    return {
+      ...item,
+      amazon: numericIdentitySummary(numeric, "amazon") ?? "Base game",
+      ebay: numericIdentitySummary(numeric, "ebay") ?? "Base game",
+    };
+  }
+  if (item.key === "platform_system") return { ...item, ebay: platform ?? item.ebay };
+  if (item.key === "region") return { ...item, ebay: region ?? item.ebay };
+  if (item.key === "package_bundle_contents") return { ...item, ebay: features ?? item.ebay };
+  if (item.key === "completeness") return { ...item, amazon: "Complete physical game", ebay: plainOutcome(item.ebay, "No incompleteness found") };
+  if (item.key === "digital_physical") return { ...item, amazon: "Physical game", ebay: format ?? plainOutcome(item.ebay, "Physical listing") };
+  return item;
+}
+
+function diagnosticsEvidenceRows(row: SourcingOpportunity, rows: NonNullable<SourcingOpportunity["diagnosticComparison"]>["rows"]): DiagnosticsDisplayRow[] {
+  const byKey = new Map(rows.map((item) => [item.key, item]));
+  return DIAGNOSTIC_EVIDENCE_KEYS
+    .map((key) => {
+      const item = byKey.get(key);
+      if (!item) return null;
+      if (key === "ebay_description") return { ...item, ebay: descriptionPreview(item.ebay) };
+      if (key === "photos") return { ...item, ebay: null, photoUrls: sourcingPhotoUrls(row) };
+      return item;
+    })
+    .filter((item): item is DiagnosticsDisplayRow => Boolean(item))
+    .filter((item) => item.key === "photos" || hasUsefulDiagnosticValue(item.ebay));
+}
+
+function EvidenceRow({ row }: { row: DiagnosticsDisplayRow }) {
+  if (row.key === "photos") {
+    const urls = row.photoUrls ?? [];
+    return (
+      <div className="grid grid-cols-[128px_minmax(0,1fr)] gap-2 px-2 py-2">
+        <div className="font-medium text-slate-700">Photos</div>
+        {urls.length ? (
+          <div className="flex gap-2">
+            {urls.slice(0, 3).map((url) => (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img key={url} src={url} alt="" className="h-14 w-14 rounded border border-slate-200 bg-slate-50 object-contain" loading="lazy" />
+            ))}
+          </div>
+        ) : (
+          <div className="text-slate-600">{formatCompactDiagnosticCell(row.ebay)}</div>
+        )}
+      </div>
+    );
+  }
+  return (
+    <div className="grid grid-cols-[128px_minmax(0,1fr)] gap-2 px-2 py-2">
+      <div className="font-medium text-slate-700">{row.label}</div>
+      <div className="break-words text-slate-600">{formatCompactDiagnosticCell(row.ebay)}</div>
+    </div>
+  );
+}
+
+function DiagnosticMessageList({ title, messages, tone }: { title: string; messages: string[]; tone: "danger" | "warning" }) {
+  const className = tone === "danger" ? "border-rose-200 bg-rose-50 text-rose-950" : "border-amber-200 bg-amber-50 text-amber-950";
+  return (
+    <div className={`rounded-md border p-2 ${className}`}>
+      <div className="mb-1 font-semibold">{title}</div>
+      <div className="space-y-1">
+        {messages.map((message) => <div key={message}>{message}</div>)}
+      </div>
+    </div>
+  );
+}
+
+function formatCompactDiagnosticCell(value: unknown): string {
   if (value === null || value === undefined || value === "") return "Not available";
-  if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") return String(value);
-  if (Array.isArray(value)) return value.map(formatDiagnosticCell).join(", ");
+  if (typeof value === "string") {
+    const text = stripHtml(value).replace(/\bResult:\s*pass;?\s*/gi, "").replace(/\bpass\b/gi, "").replace(/\s+/g, " ").trim();
+    return text || "Not available";
+  }
+  if (typeof value === "number" || typeof value === "boolean") return String(value);
+  if (Array.isArray(value)) return value.map(formatCompactDiagnosticCell).filter((item) => item !== "Not available").join(", ") || "Not available";
   return "Structured diagnostic";
+}
+
+function hasUsefulDiagnosticValue(value: unknown) {
+  return formatCompactDiagnosticCell(value) !== "Not available";
+}
+
+function diagnosticRecord(value: unknown): Record<string, unknown> {
+  return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : {};
+}
+
+function stringArrayValue(value: unknown) {
+  return Array.isArray(value) ? value.map((item) => String(item ?? "").trim()).filter(Boolean) : [];
+}
+
+function firstArrayText(value: unknown) {
+  return stringArrayValue(value)[0] ?? null;
+}
+
+function firstDiagnosticEvidence(key: string, row: SourcingOpportunity) {
+  return row.diagnosticComparison?.rows.find((item) => item.key === key)?.ebay ?? null;
+}
+
+function sharedTitleIdentity(titleOverlap: Record<string, unknown>, amazonTitle: string, ebayTitle: string, ebayGameName: string | null) {
+  const shared = stringArrayValue(titleOverlap.shared_title_tokens ?? titleOverlap.shared_tokens);
+  if (!shared.length) return null;
+  const source = ebayGameName ?? ebayTitle ?? amazonTitle;
+  const sourceWords = source.match(/[a-z0-9]+(?:['-][a-z0-9]+)*/gi) ?? [];
+  const ordered = sourceWords.filter((word, index) => {
+    const normalized = word.toLowerCase().replace(/s$/, "");
+    return shared.includes(normalized) && sourceWords.findIndex((candidate) => candidate.toLowerCase().replace(/s$/, "") === normalized) === index;
+  });
+  return titleCase(ordered.join(" ")) || titleCase(shared.join(" "));
+}
+
+function coreGameDisplayName(amazonTitle: string, ebayGameName: string | null, sharedIdentity: string | null) {
+  if (ebayGameName && containsSameCoreTokens(amazonTitle, ebayGameName)) return ebayGameName;
+  return cleanedCoreTitle(amazonTitle) ?? sharedIdentity;
+}
+
+function containsSameCoreTokens(title: string, candidate: string) {
+  const titleTokens = normalizedDisplayTokens(title);
+  const candidateTokens = normalizedDisplayTokens(candidate);
+  if (!candidateTokens.length) return false;
+  if (!candidateTokens.every((token) => titleTokens.includes(token))) return false;
+  const titleNumbers = titleTokens.filter((token) => /^\d+$/.test(token));
+  const candidateNumbers = candidateTokens.filter((token) => /^\d+$/.test(token));
+  return titleNumbers.every((number) => candidateNumbers.includes(number) || isPlatformNumber(number, title));
+}
+
+function cleanedCoreTitle(value: string) {
+  const text = value
+    .replace(/\[[^\]]*\]/g, " ")
+    .replace(/\([^)]*\)/g, " ")
+    .replace(/\b(?:playstation|sony|microsoft|nintendo|xbox|switch|ps[1-5]|ps4|ps5|xbox one|xbox 360|wii u?|3ds|ds|pc)\b/gi, " ")
+    .replace(/\b(?:complete edition|limited edition|special edition|collector'?s edition|brand new|new|sealed|video game)\b/gi, " ")
+    .replace(/\s+[-:]\s*$/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  return text || null;
+}
+
+function normalizedDisplayTokens(value: string) {
+  return (value.match(/[a-z0-9]+/gi) ?? []).map((token) => token.toLowerCase());
+}
+
+function isPlatformNumber(number: string, title: string) {
+  return new RegExp(`\\b(?:playstation|ps|xbox)\\s*${number}\\b`, "i").test(title);
+}
+
+function numericIdentitySummary(numeric: Record<string, unknown>, side: "amazon" | "ebay") {
+  const identities = stringArrayValue(numeric[`${side}_identity_numbers`]);
+  const baseIdentities = stringArrayValue(numeric[`${side}_base_identities`]);
+  if (identities.length) return identities.join(", ");
+  if (baseIdentities.length) return baseIdentities.map((value) => `${titleCase(value)} base`).join(", ");
+  return null;
+}
+
+function plainOutcome(value: unknown, passFallback: string) {
+  const text = formatCompactDiagnosticCell(value);
+  if (text === "Not available") return null;
+  if (/^Result:\s*pass\b/i.test(String(value))) return passFallback;
+  return text;
+}
+
+function descriptionPreview(value: unknown) {
+  const text = stripHtml(formatCompactDiagnosticCell(value));
+  return text.length > 220 ? `${text.slice(0, 220).trim()}...` : text;
+}
+
+function stripHtml(value: string) {
+  return value
+    .replace(/<script[\s\S]*?<\/script>/gi, " ")
+    .replace(/<style[\s\S]*?<\/style>/gi, " ")
+    .replace(/<[^>]*>/g, " ")
+    .replace(/&nbsp;/gi, " ")
+    .replace(/&amp;/gi, "&")
+    .replace(/&quot;/gi, "\"")
+    .replace(/&#39;/gi, "'")
+    .replace(/&lt;/gi, "<")
+    .replace(/&gt;/gi, ">")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function sourcingPhotoUrls(row: SourcingOpportunity) {
+  const diagnostics = diagnosticRecord(row.matchingDiagnostics);
+  const staticRules = diagnosticRecord(diagnostics.static_rules);
+  const evidence = diagnosticRecord(staticRules.normalized_evidence ?? diagnostics.normalized_evidence);
+  const urls = [row.ebayImageUrl, ...stringArrayValue(evidence.image_urls)]
+    .map((url) => String(url ?? "").trim())
+    .filter(Boolean);
+  return [...new Set(urls)].slice(0, 3);
+}
+
+function cleanDiagnosticMessages(messages: string[]) {
+  return messages.map((message) => message.replace(/^Blocked:\s*/i, "").trim()).filter(Boolean);
+}
+
+function diagnosticsSummaryRows(identityRows: DiagnosticsDisplayRow[], hardBlocks: string[], warnings: string[]) {
+  return identityRows
+    .filter((item) => item.key in SUMMARY_LABELS)
+    .map((item) => ({ label: SUMMARY_LABELS[item.key], status: summaryStatusForRow(item, hardBlocks, warnings) }));
+}
+
+function summaryStatusForRow(row: DiagnosticsDisplayRow, hardBlocks: string[], warnings: string[]): SummaryStatus {
+  const haystack = [row.key, row.ruleFamily, row.label, row.amazon, row.ebay, row.evidence].join(" ").toLowerCase();
+  const blockText = hardBlocks.join(" ").toLowerCase();
+  const warningText = warnings.join(" ").toLowerCase();
+  if (blockText && summaryTerms(row).some((term) => blockText.includes(term))) return "fail";
+  if (warningText && summaryTerms(row).some((term) => warningText.includes(term))) return "warning";
+  if (haystack.includes("not available")) return "unknown";
+  return "pass";
+}
+
+function summaryTerms(row: DiagnosticsDisplayRow) {
+  if (row.key === "core_game_identity") return ["title", "game name", "different game", "core game", "overlap"];
+  if (row.key === "platform_system") return ["platform", "system"];
+  if (row.key === "edition_version") return ["edition", "version"];
+  if (row.key === "region") return ["region", "north american", "pal", "ntsc"];
+  return [row.label.toLowerCase()];
+}
+
+function friendlyRecommendation(recommendation: string | null | undefined, hardBlocks: string[]) {
+  if (hardBlocks.length) return "Rejected";
+  if (!recommendation) return "Review";
+  return recommendation.replace(/^Probable Non-Match$/i, "Rejected");
+}
+
+function summaryIcon(status: SummaryStatus) {
+  if (status === "fail") return "x";
+  if (status === "warning") return "!";
+  if (status === "unknown") return "-";
+  return "+";
+}
+
+function summaryClass(status: SummaryStatus) {
+  if (status === "fail") return "bg-rose-50 text-rose-800";
+  if (status === "warning") return "bg-amber-50 text-amber-800";
+  if (status === "unknown") return "bg-slate-100 text-slate-600";
+  return "bg-emerald-50 text-emerald-800";
+}
+
+function titleCase(value: string) {
+  return value.replace(/\b\w/g, (letter) => letter.toUpperCase()).trim();
 }
 
 function evidenceSourcesForRuleFamilies(families: string[]) {
@@ -1102,35 +1377,6 @@ function legacyRowsForRuleFamilies(families: string[]) {
     other: ["opportunity_context"],
   };
   return [...new Set(families.flatMap((family) => legacy[family] ?? ["opportunity_context"]))];
-}
-
-function DecisionTracePanel({ rows }: { rows: NonNullable<SourcingOpportunity["decisionTrace"]> }) {
-  const visibleRows = rows.filter((row) => row.result !== "pass").slice(0, 6);
-  const passCount = rows.filter((row) => row.result === "pass").length;
-  return (
-    <div className="mb-3 rounded-md border border-slate-200 bg-white p-3 text-xs text-slate-700">
-      <div className="mb-2 flex flex-wrap items-center gap-2">
-        <span className="font-semibold text-slate-900">Rejection decision trace</span>
-        {passCount ? <span className="text-slate-500">{passCount} checks passed</span> : null}
-      </div>
-      <div className="space-y-1.5">
-        {(visibleRows.length ? visibleRows : rows.slice(0, 4)).map((traceRow) => (
-          <div key={`${traceRow.stage}-${traceRow.diagnosticKey}-${traceRow.summary}`} className="grid gap-1 rounded border border-slate-100 px-2 py-1.5 sm:grid-cols-[120px_80px_1fr]">
-            <div className="font-medium text-slate-800">{traceRow.stage}</div>
-            <div className={traceResultClass(traceRow.result)}>{label(traceRow.result)}</div>
-            <div className="text-slate-600">{traceRow.summary}</div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function traceResultClass(result: string) {
-  if (result === "fail") return "font-medium text-red-700";
-  if (result === "warning") return "font-medium text-amber-700";
-  if (result === "pass") return "font-medium text-emerald-700";
-  return "font-medium text-slate-500";
 }
 
 function DismissReasonButtons({

@@ -68,6 +68,14 @@ Missing evidence is returned as null and rendered as `Not available`.
 Structured diagnostic values are formatted before rendering so the operator UI
 does not display `[object Object]`.
 
+The operator-facing dismiss panel intentionally renders a smaller subset of the
+comparison rows. It keeps identity rows that explain the product match, moves
+Category/Product Type into evidence, hides backend context rows and repeated
+pass/empty values, strips HTML from descriptions, renders compact photo
+thumbnails when available, and summarizes Core Game, Platform, Edition, Region,
+and the overall recommendation at the bottom. This is presentation-only; the
+backend comparison shape remains available to the API.
+
 ## Storage Model
 
 No new table is required for sourcing diagnostic feedback. The durable storage
