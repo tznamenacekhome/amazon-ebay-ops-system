@@ -33,6 +33,12 @@ type SourcingActionPayload = {
   requiredMaxLandedCost?: number;
   requiredRoiPercent?: number;
   expectedPurchaseCost?: number;
+  inventoryBaselineUnits?: number;
+  myQuantity?: number;
+  myPipelineQuantity?: number;
+  myPurchasedQuantity?: number;
+  myReceivedQuantity?: number;
+  myOutboundQuantity?: number;
 };
 
 export default function SourcingPage() {
@@ -226,6 +232,7 @@ export default function SourcingPage() {
                 <option value="rejected">Rejected</option>
                 <option value="dismissed">Dismissed</option>
                 <option value="roi_snoozed">ROI Snoozed</option>
+                <option value="inventory_snoozed">Inventory Snoozed</option>
               </select>
             ) : null}
             <select
@@ -260,6 +267,7 @@ export default function SourcingPage() {
             selectedIds={selectedIds}
             selectedCount={selectedRows.length}
             onBulkWatch={() => void bulkAct(selectedRows, watchPayload)}
+            onBulkWaitForSellThrough={() => void bulkAct(selectedRows, inventorySnoozePayload)}
             onBulkPurchased={() => void bulkAct(selectedRows, (row) => ({ actionType: "purchased", expectedPurchaseCost: row.landedCost ?? undefined }))}
             onBulkDismiss={() => {
               if (selectedRows.length === 1) {
@@ -373,6 +381,7 @@ function ReplenishmentTable({
   selectedIds,
   selectedCount,
   onBulkWatch,
+  onBulkWaitForSellThrough,
   onBulkPurchased,
   onBulkDismiss,
   onToggleSelected,
@@ -386,6 +395,7 @@ function ReplenishmentTable({
   selectedIds: Set<string>;
   selectedCount: number;
   onBulkWatch: () => void;
+  onBulkWaitForSellThrough: () => void;
   onBulkPurchased: () => void;
   onBulkDismiss: () => void;
   onToggleSelected: (row: SourcingOpportunity) => void;
@@ -408,6 +418,7 @@ function ReplenishmentTable({
                   {!purchasedMode && !closestExcludedMode ? (
                     <>
                       <button disabled={bulkDisabled} onClick={onBulkWatch} className="bulk-button">Watch selected</button>
+                      <button disabled={bulkDisabled} onClick={onBulkWaitForSellThrough} className="bulk-button">Wait for sell-through</button>
                       <button disabled={bulkDisabled} onClick={onBulkPurchased} className="bulk-button">Mark selected purchased / offer made</button>
                       <button disabled={bulkDisabled} onClick={onBulkDismiss} className="bulk-button-danger">Dismiss selected</button>
                     </>
@@ -432,7 +443,7 @@ function ReplenishmentTable({
               <th className="w-32 px-2 py-2">Last Sold</th>
               <th className="w-24 px-2 py-2">Keepa 90</th>
               <th className="w-24 px-2 py-2">Keepa Now</th>
-              <th className="w-24 px-2 py-2">My Price</th>
+              <th className="w-28 px-2 py-2">My Price</th>
               <th className="w-24 px-2 py-2">Profit</th>
               <th className="w-16 px-2 py-2">ROI</th>
               <th className="w-32 px-2 py-2">Type</th>
@@ -537,6 +548,11 @@ function ReplenishmentTable({
                     ) : (
                       <div className="text-xs text-slate-400">not in stock</div>
                     )}
+                    {row.myPipelineQuantity > 0 ? (
+                      <div className="text-xs font-medium text-blue-700" title={myPipelineTitle(row)}>
+                        +{row.myPipelineQuantity} pipeline
+                      </div>
+                    ) : null}
                   </td>
                   <td className="px-2 py-2 whitespace-nowrap">
                     <div className={
@@ -2250,6 +2266,14 @@ function money(value: number | null | undefined) {
   return typeof value === "number" ? `$${value.toFixed(2)}` : "--";
 }
 
+function myPipelineTitle(row: SourcingOpportunity) {
+  return [
+    row.myPurchasedQuantity > 0 ? `${row.myPurchasedQuantity} purchased/not received` : null,
+    row.myReceivedQuantity > 0 ? `${row.myReceivedQuantity} received/not sent` : null,
+    row.myOutboundQuantity > 0 ? `${row.myOutboundQuantity} outbound to Amazon` : null,
+  ].filter(Boolean).join("; ");
+}
+
 function originalCurrencyCostLabel(row: SourcingOpportunity) {
   if (!row.originalCurrency || row.originalItemPrice === null) return null;
   const parts = [`Orig ${formatCurrency(row.originalItemPrice, row.originalCurrency)}`];
@@ -2303,6 +2327,18 @@ function watchPayload(row: SourcingOpportunity): SourcingActionPayload {
     expectedPurchaseCost: watchReferencePurchaseCost(row) ?? undefined,
     requiredMaxLandedCost: row.maxProfitableLandedCost ?? undefined,
     requiredRoiPercent: row.estimatedRoiPercent ?? undefined,
+  };
+}
+
+function inventorySnoozePayload(row: SourcingOpportunity): SourcingActionPayload {
+  return {
+    actionType: "inventory_snooze",
+    inventoryBaselineUnits: row.myQuantity + row.myPipelineQuantity,
+    myQuantity: row.myQuantity,
+    myPipelineQuantity: row.myPipelineQuantity,
+    myPurchasedQuantity: row.myPurchasedQuantity,
+    myReceivedQuantity: row.myReceivedQuantity,
+    myOutboundQuantity: row.myOutboundQuantity,
   };
 }
 

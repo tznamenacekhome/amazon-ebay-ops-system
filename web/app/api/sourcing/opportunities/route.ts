@@ -95,7 +95,47 @@ type KeepaPriceContext = {
 type MyListingContext = {
   price: number | null;
   quantity: number;
+  pipelineQuantity: number;
+  purchasedQuantity: number;
+  receivedQuantity: number;
+  outboundQuantity: number;
   fulfillment: "fba" | "mf" | null;
+};
+
+type PurchasePipelineContext = {
+  purchasedQuantity: number;
+  receivedQuantity: number;
+  outboundQuantity: number;
+};
+
+type PurchasePipelineRow = {
+  item_id: string | null;
+  asin: string | null;
+  quantity: number | null;
+  current_status: string | null;
+  marketplace: string | null;
+  exclude_from_purchase_reporting?: boolean | null;
+};
+
+type FbaShipmentPipelineRow = {
+  item_id: string | null;
+  quantity: number | null;
+  included: boolean | null;
+  outbound_remaining_quantity: number | null;
+  received_quantity: number | null;
+  available_quantity: number | null;
+  fba_shipments:
+    | {
+        shipment_code: string | null;
+        workflow_status: string | null;
+        amazon_status_normalized: string | null;
+      }
+    | Array<{
+        shipment_code: string | null;
+        workflow_status: string | null;
+        amazon_status_normalized: string | null;
+      }>
+    | null;
 };
 
 type LastSaleContext = {
@@ -340,6 +380,10 @@ async function getOpportunities(request: NextRequest) {
         keepaCurrentPriceIsBuyBox: keepaByAsin.get(row.asin)?.currentPriceIsBuyBox ?? false,
         myPrice: myListing?.price ?? null,
         myQuantity: myListing?.quantity ?? 0,
+        myPipelineQuantity: myListing?.pipelineQuantity ?? 0,
+        myPurchasedQuantity: myListing?.purchasedQuantity ?? 0,
+        myReceivedQuantity: myListing?.receivedQuantity ?? 0,
+        myOutboundQuantity: myListing?.outboundQuantity ?? 0,
         myPriceFulfillment: myListing?.fulfillment ?? null,
         currentInventoryUnits: row.sourcing_seed_asins?.current_inventory_units ?? null,
         monthlyVelocity: row.sourcing_seed_asins?.monthly_velocity ?? null,
@@ -680,6 +724,7 @@ function isActionedOrPresentedStatus(status: string | null | undefined) {
     "confirmed_valid_match",
     "confirmed_exclusion",
     "roi_snoozed",
+    "inventory_snoozed",
   ].includes(String(status ?? "").toLowerCase());
 }
 
@@ -718,6 +763,7 @@ function isOperatorActionType(actionType: string | null | undefined) {
     "mark_valid_match",
     "confirm_exclusion",
     "seller_listing_mismatch",
+    "inventory_snoozed",
   ].includes(String(actionType ?? "").toLowerCase());
 }
 
@@ -1348,6 +1394,7 @@ function statusRank(status: string | null) {
   if (status === "watching") return 3;
   if (status === "purchased_pending_match") return 2;
   if (status === "roi_snoozed") return 1;
+  if (status === "inventory_snoozed") return 1;
   return 0;
 }
 
@@ -1500,7 +1547,20 @@ async function fetchKeepaPriceContextByAsin(asins: string[]) {
 async function fetchMyListingContextByAsin(asins: string[]) {
   const uniqueAsins = [...new Set(asins.map((asin) => asin?.toUpperCase()).filter(Boolean))];
   const inventoryQuantityByAsin = await fetchLatestFbaInventoryQuantityByAsin(uniqueAsins);
+  const pipelineQuantityByAsin = await fetchPipelineQuantityByAsin(uniqueAsins);
   const byAsin = new Map<string, MyListingContext>();
+
+  for (const [asin, pipeline] of pipelineQuantityByAsin.entries()) {
+    byAsin.set(asin, {
+      price: null,
+      quantity: 0,
+      pipelineQuantity: pipelineQuantity(pipeline),
+      purchasedQuantity: pipeline.purchasedQuantity,
+      receivedQuantity: pipeline.receivedQuantity,
+      outboundQuantity: pipeline.outboundQuantity,
+      fulfillment: null,
+    });
+  }
 
   for (let index = 0; index < uniqueAsins.length; index += 200) {
     const chunk = uniqueAsins.slice(index, index + 200);
@@ -1532,7 +1592,15 @@ async function fetchMyListingContextByAsin(asins: string[]) {
       const fulfillment = fulfillmentKind(row.fulfillment_channel);
       const existing = byAsin.get(asin);
       if (!existing) {
-        byAsin.set(asin, { price, quantity, fulfillment });
+        byAsin.set(asin, {
+          price,
+          quantity,
+          pipelineQuantity: 0,
+          purchasedQuantity: 0,
+          receivedQuantity: 0,
+          outboundQuantity: 0,
+          fulfillment,
+        });
         continue;
       }
 
@@ -1548,6 +1616,69 @@ async function fetchMyListingContextByAsin(asins: string[]) {
         existing.price = price;
         existing.fulfillment = fulfillment;
       }
+    }
+  }
+
+  return byAsin;
+}
+
+async function fetchPipelineQuantityByAsin(asins: string[]) {
+  const byAsin = new Map<string, PurchasePipelineContext>();
+  const asinByListedItemId = new Map<string, string>();
+
+  for (let index = 0; index < asins.length; index += 200) {
+    const chunk = asins.slice(index, index + 200);
+    const { data, error } = await supabase
+      .from("purchase_items")
+      .select("item_id,asin,quantity,current_status,marketplace,exclude_from_purchase_reporting")
+      .in("asin", chunk);
+
+    if (error) throw new Error(`Purchase pipeline quantities: ${error.message}`);
+
+    for (const row of (data ?? []) as unknown as PurchasePipelineRow[]) {
+      const asin = row.asin?.toUpperCase();
+      const itemId = row.item_id;
+      if (!asin || !itemId || isExcludedPipelinePurchase(row)) continue;
+
+      const quantity = purchaseItemQuantity(row.quantity);
+      const status = normalizedStatus(row.current_status);
+      if (PURCHASED_NOT_RECEIVED_STATUSES.has(status)) {
+        addPipelineQuantity(byAsin, asin, "purchasedQuantity", quantity);
+      } else if (status === "received") {
+        addPipelineQuantity(byAsin, asin, "receivedQuantity", quantity);
+      } else if (status === "listed") {
+        asinByListedItemId.set(itemId, asin);
+      }
+    }
+  }
+
+  const listedItemIds = [...asinByListedItemId.keys()];
+  for (let index = 0; index < listedItemIds.length; index += 200) {
+    const chunk = listedItemIds.slice(index, index + 200);
+    const { data, error } = await supabase
+      .from("fba_shipment_items")
+      .select(
+        [
+          "item_id",
+          "quantity",
+          "included",
+          "outbound_remaining_quantity",
+          "received_quantity",
+          "available_quantity",
+          "fba_shipments(shipment_code,workflow_status,amazon_status_normalized)",
+        ].join(",")
+      )
+      .in("item_id", chunk);
+
+    if (error) throw new Error(`FBA outbound pipeline quantities: ${error.message}`);
+
+    for (const row of (data ?? []) as unknown as FbaShipmentPipelineRow[]) {
+      const itemId = row.item_id;
+      const asin = itemId ? asinByListedItemId.get(itemId) : null;
+      if (!asin || row.included === false || !isActiveOutboundShipment(row.fba_shipments)) continue;
+
+      const quantity = outboundPipelineQuantity(row);
+      if (quantity > 0) addPipelineQuantity(byAsin, asin, "outboundQuantity", quantity);
     }
   }
 
@@ -1672,6 +1803,89 @@ function hasKeepaOfferValue(value: unknown): boolean {
   if (typeof value === "string") return value.trim() !== "" && value !== "-1";
   if (typeof value === "number") return Number.isFinite(value) && value > 0;
   return false;
+}
+
+const PURCHASED_NOT_RECEIVED_STATUSES = new Set([
+  "ordered",
+  "no_tracking",
+  "shipped_no_tracking",
+  "awaiting_carrier_scan",
+  "in_transit",
+  "delivered",
+]);
+
+const EXCLUDED_PIPELINE_STATUSES = new Set([
+  "cancelled",
+  "return_opened",
+  "return_pending",
+]);
+
+const CLOSED_OUTBOUND_SHIPMENT_STATUSES = new Set([
+  "cancelled",
+  "canceled",
+  "closed",
+  "deleted",
+  "voided",
+  "abandoned",
+]);
+
+function addPipelineQuantity(
+  byAsin: Map<string, PurchasePipelineContext>,
+  asin: string,
+  key: keyof PurchasePipelineContext,
+  quantity: number,
+) {
+  const current = byAsin.get(asin) ?? emptyPurchasePipelineContext();
+  current[key] += quantity;
+  byAsin.set(asin, current);
+}
+
+function emptyPurchasePipelineContext(): PurchasePipelineContext {
+  return {
+    purchasedQuantity: 0,
+    receivedQuantity: 0,
+    outboundQuantity: 0,
+  };
+}
+
+function pipelineQuantity(context: PurchasePipelineContext) {
+  return context.purchasedQuantity + context.receivedQuantity + context.outboundQuantity;
+}
+
+function purchaseItemQuantity(value: number | string | null | undefined) {
+  const quantity = toNumber(value);
+  return Math.max(1, Math.floor(quantity ?? 1));
+}
+
+function normalizedStatus(value: string | null | undefined) {
+  return String(value ?? "").trim().toLowerCase();
+}
+
+function isExcludedPipelinePurchase(row: PurchasePipelineRow) {
+  if (row.exclude_from_purchase_reporting === true) return true;
+  if (EXCLUDED_PIPELINE_STATUSES.has(normalizedStatus(row.current_status))) return true;
+  return String(row.marketplace ?? "").trim().toLowerCase() === "ebay";
+}
+
+function isActiveOutboundShipment(value: FbaShipmentPipelineRow["fba_shipments"]) {
+  const shipment = Array.isArray(value) ? value[0] : value;
+  const shipmentCode = String(shipment?.shipment_code ?? "").trim().toLowerCase();
+  if (!shipmentCode || shipmentCode === "legacy_listed_no_shipment_id") return false;
+
+  const statuses = [shipment?.workflow_status, shipment?.amazon_status_normalized]
+    .map(normalizedStatus)
+    .filter(Boolean);
+  return !statuses.some((status) => CLOSED_OUTBOUND_SHIPMENT_STATUSES.has(status));
+}
+
+function outboundPipelineQuantity(row: FbaShipmentPipelineRow) {
+  const outboundRemaining = toNumber(row.outbound_remaining_quantity);
+  if (outboundRemaining !== null) return Math.max(0, Math.floor(outboundRemaining));
+
+  const quantity = Math.max(0, Math.floor(toNumber(row.quantity) ?? 0));
+  const received = Math.max(0, Math.floor(toNumber(row.received_quantity) ?? 0));
+  const available = Math.max(0, Math.floor(toNumber(row.available_quantity) ?? 0));
+  return Math.max(0, quantity - received - available);
 }
 
 function listingQuantity(row: AmazonSkuListingRow) {

@@ -25,6 +25,7 @@ def main() -> int:
     candidates = fetch_candidates(supabase, args.run_id)
     seed_by_id = {row["seed_id"]: row for row in seeds}
     keepa_prices_by_asin = fetch_keepa_price_context_by_asin(supabase, [row.get("asin") for row in seeds])
+    owned_units_by_asin = fetch_owned_units_by_asin(supabase, seeds)
     historical_status_by_key = fetch_historical_status_by_key(supabase)
     matching_context = fetch_matching_context(supabase)
     rows = [
@@ -33,6 +34,7 @@ def main() -> int:
             seed_by_id.get(candidate.get("seed_id")),
             settings,
             keepa_prices_by_asin,
+            owned_units_by_asin,
             historical_status_by_key,
             matching_context,
         )
@@ -279,7 +281,7 @@ def fetch_historical_status_by_key(supabase) -> dict[tuple[str, str], dict[str, 
     rows = paginate_table(
         supabase,
         "sourcing_actions",
-        "asin,ebay_item_id,action_type,created_at,expected_purchase_cost,required_max_landed_cost,required_roi_percent",
+        "asin,ebay_item_id,action_type,created_at,expected_purchase_cost,required_max_landed_cost,required_roi_percent,raw_action_context",
         order_column="created_at",
         desc=False,
     )
@@ -289,14 +291,24 @@ def fetch_historical_status_by_key(supabase) -> dict[tuple[str, str], dict[str, 
         "watching": "watching",
         "purchased": "purchased_pending_match",
         "roi_snoozed": "roi_snoozed",
+        "inventory_snoozed": "inventory_snoozed",
     }
     for row in rows:
         asin = str(row.get("asin") or "").upper()
         status = action_status.get(str(row.get("action_type") or ""))
+        if status == "roi_snoozed" and is_inventory_snooze_action(row):
+            status = "inventory_snoozed"
+        if asin and status == "inventory_snoozed":
+            status_by_key[(asin, "*")] = {**row, "status": status}
         for ebay_item_id in ebay_identity_values(row):
             if asin and ebay_item_id and status:
                 status_by_key[(asin, ebay_item_id)] = {**row, "status": status}
     return status_by_key
+
+
+def is_inventory_snooze_action(row: dict[str, Any]) -> bool:
+    raw_context = row.get("raw_action_context") or {}
+    return isinstance(raw_context, dict) and raw_context.get("actionType") == "inventory_snooze"
 
 
 def fetch_matching_context(supabase) -> dict[str, Any]:
@@ -355,11 +367,128 @@ def fetch_keepa_price_context_by_asin(supabase, asins: list[Any]) -> dict[str, d
     return by_asin
 
 
+def fetch_owned_units_by_asin(supabase, seeds: list[dict[str, Any]]) -> dict[str, int]:
+    asins = sorted({clean_asin(seed.get("asin")) for seed in seeds if clean_asin(seed.get("asin"))})
+    pipeline_by_asin = fetch_pipeline_quantity_by_asin(supabase, asins)
+    owned_by_asin: dict[str, int] = {}
+    for seed in seeds:
+        asin = clean_asin(seed.get("asin"))
+        if not asin:
+            continue
+        inventory_units = max(0, int(to_float(seed.get("current_inventory_units"), 0) or 0))
+        owned_by_asin[asin] = max(owned_by_asin.get(asin, 0), inventory_units + pipeline_by_asin.get(asin, 0))
+    return owned_by_asin
+
+
+def fetch_pipeline_quantity_by_asin(supabase, asins: list[str]) -> dict[str, int]:
+    by_asin: dict[str, int] = {}
+    asin_by_listed_item_id: dict[str, str] = {}
+    for batch in chunked(asins, 100):
+        response = (
+            supabase.table("purchase_items")
+            .select("item_id,asin,quantity,current_status,marketplace,exclude_from_purchase_reporting")
+            .in_("asin", batch)
+            .execute()
+        )
+        for row in response.data or []:
+            asin = clean_asin(row.get("asin"))
+            item_id = str(row.get("item_id") or "")
+            if not asin or not item_id or is_excluded_pipeline_purchase(row):
+                continue
+            quantity = purchase_item_quantity(row.get("quantity"))
+            status = str(row.get("current_status") or "").strip().lower()
+            if status in PURCHASED_NOT_RECEIVED_STATUSES or status == "received":
+                by_asin[asin] = by_asin.get(asin, 0) + quantity
+            elif status == "listed":
+                asin_by_listed_item_id[item_id] = asin
+
+    listed_item_ids = list(asin_by_listed_item_id)
+    for batch in chunked(listed_item_ids, 100):
+        response = (
+            supabase.table("fba_shipment_items")
+            .select(
+                "item_id,quantity,included,outbound_remaining_quantity,received_quantity,available_quantity,"
+                "fba_shipments(shipment_code,workflow_status,amazon_status_normalized)"
+            )
+            .in_("item_id", batch)
+            .execute()
+        )
+        for row in response.data or []:
+            item_id = str(row.get("item_id") or "")
+            asin = asin_by_listed_item_id.get(item_id)
+            if not asin or row.get("included") is False or not is_active_outbound_shipment(row.get("fba_shipments")):
+                continue
+            quantity = outbound_pipeline_quantity(row)
+            if quantity > 0:
+                by_asin[asin] = by_asin.get(asin, 0) + quantity
+    return by_asin
+
+
+PURCHASED_NOT_RECEIVED_STATUSES = {
+    "ordered",
+    "no_tracking",
+    "shipped_no_tracking",
+    "awaiting_carrier_scan",
+    "in_transit",
+    "delivered",
+}
+
+EXCLUDED_PIPELINE_STATUSES = {
+    "cancelled",
+    "return_opened",
+    "return_pending",
+}
+
+CLOSED_OUTBOUND_SHIPMENT_STATUSES = {
+    "cancelled",
+    "canceled",
+    "closed",
+    "deleted",
+    "voided",
+    "abandoned",
+}
+
+
+def is_excluded_pipeline_purchase(row: dict[str, Any]) -> bool:
+    status = str(row.get("current_status") or "").strip().lower()
+    marketplace = str(row.get("marketplace") or "").strip().lower()
+    return row.get("exclude_from_purchase_reporting") is True or status in EXCLUDED_PIPELINE_STATUSES or marketplace == "ebay"
+
+
+def purchase_item_quantity(value: Any) -> int:
+    return max(1, int(to_float(value, 1) or 1))
+
+
+def is_active_outbound_shipment(value: Any) -> bool:
+    shipment = value[0] if isinstance(value, list) and value else value
+    if not isinstance(shipment, dict):
+        return False
+    shipment_code = str(shipment.get("shipment_code") or "").strip().lower()
+    if not shipment_code or shipment_code == "legacy_listed_no_shipment_id":
+        return False
+    statuses = [
+        str(shipment.get("workflow_status") or "").strip().lower(),
+        str(shipment.get("amazon_status_normalized") or "").strip().lower(),
+    ]
+    return not any(status in CLOSED_OUTBOUND_SHIPMENT_STATUSES for status in statuses if status)
+
+
+def outbound_pipeline_quantity(row: dict[str, Any]) -> int:
+    outbound_remaining = row.get("outbound_remaining_quantity")
+    if outbound_remaining is not None:
+        return max(0, int(to_float(outbound_remaining, 0) or 0))
+    quantity = max(0, int(to_float(row.get("quantity"), 0) or 0))
+    received = max(0, int(to_float(row.get("received_quantity"), 0) or 0))
+    available = max(0, int(to_float(row.get("available_quantity"), 0) or 0))
+    return max(0, quantity - received - available)
+
+
 def score_candidate(
     candidate: dict[str, Any],
     seed: dict[str, Any] | None,
     settings,
     keepa_prices_by_asin: dict[str, dict[str, float | None]] | None = None,
+    owned_units_by_asin: dict[str, int] | None = None,
     historical_status_by_key: dict[tuple[str, str], dict[str, Any]] | None = None,
     matching_context: dict[str, Any] | None = None,
 ) -> dict[str, Any] | None:
@@ -432,6 +561,11 @@ def score_candidate(
     max_offer_price = suggested_offer(candidate, best_offer_cap, settings)
     required_offer_percent_of_ask = required_offer_percent(candidate, max_offer_price)
     max_bid = suggested_max_bid(candidate, max_profitable_landed_cost, shipping_unknown)
+    asin = clean_asin(candidate.get("asin"))
+    current_owned_units = (owned_units_by_asin or {}).get(
+        asin,
+        max(0, int(to_float(seed.get("current_inventory_units"), 0) or 0)),
+    )
     historical_status = first_historical_status(historical_status_by_key or {}, candidate)
     if historical_status:
         status = apply_historical_status(
@@ -442,6 +576,7 @@ def score_candidate(
             item_price,
             max_offer_price,
             displayed_max_landed_cost,
+            current_owned_units,
         )
     score_reason = (
         f"{seed.get('inventory_need_level')} need, shipping unknown, max landed cost ${displayed_max_landed_cost}"
@@ -507,6 +642,7 @@ def apply_historical_status(
     item_price: float,
     max_offer_price: float | None,
     max_landed_cost: float,
+    current_owned_units: int,
 ) -> str:
     status = str(historical_status.get("status") or "")
     if status in {"watching", "roi_snoozed"}:
@@ -521,6 +657,10 @@ def apply_historical_status(
         ):
             return scored_status
         return status
+    if status == "inventory_snoozed":
+        if should_reactivate_inventory_snoozed(historical_status, scored_status, current_owned_units):
+            return scored_status
+        return status
     return status or scored_status
 
 
@@ -533,7 +673,7 @@ def first_historical_status(
         status = historical_status_by_key.get((asin, ebay_item_id))
         if status:
             return status
-    return None
+    return historical_status_by_key.get((asin, "*"))
 
 
 def should_reactivate_watched_opportunity(
@@ -564,6 +704,36 @@ def should_reactivate_watched_opportunity(
     return price_improved or sell_price_cap_improved
 
 
+def should_reactivate_inventory_snoozed(
+    historical_status: dict[str, Any],
+    scored_status: str,
+    current_owned_units: int,
+) -> bool:
+    if scored_status != "open":
+        return False
+    raw_context = historical_status.get("raw_action_context") or {}
+    inventory_context = raw_context.get("inventorySnooze") if isinstance(raw_context, dict) else {}
+    if not isinstance(inventory_context, dict):
+        inventory_context = {}
+    represent_at_units = nullable_int(inventory_context.get("representAtUnits"))
+    baseline_units = nullable_int(inventory_context.get("baselineUnits"))
+    if represent_at_units is None and baseline_units is not None:
+        represent_at_units = represent_at_units_for_baseline(baseline_units)
+    if represent_at_units is None:
+        return False
+    return current_owned_units <= represent_at_units
+
+
+def represent_at_units_for_baseline(baseline_units: int) -> int:
+    sold_units_required = max(1, int_ceil(baseline_units * 0.1))
+    return max(0, baseline_units - sold_units_required)
+
+
+def int_ceil(value: float) -> int:
+    integer = int(value)
+    return integer if value == integer else integer + 1
+
+
 def watch_reference_purchase_cost(
     opportunity_type: str,
     landed_cost: float | None,
@@ -582,6 +752,14 @@ def nullable_float(value: Any) -> float | None:
         return None
     number = to_float(value, 0)
     return number if number > 0 else None
+
+
+def nullable_int(value: Any) -> int | None:
+    if value is None or value == "":
+        return None
+    parsed = to_float(value, -1)
+    number = int(parsed if parsed is not None else -1)
+    return number if number >= 0 else None
 
 
 def best_offer_reference_price(seed: dict[str, Any], keepa_prices_by_asin: dict[str, dict[str, float | None]]) -> float | None:

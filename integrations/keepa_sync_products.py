@@ -457,7 +457,7 @@ def collect_source_asins(supabase, *, source: str) -> tuple[list[str], dict[str,
         ):
             asin = clean_asin(row.get("asin"))
             status = clean_text(row.get("status"))
-            if asin and status in {"open", "watching", "roi_snoozed", "purchased_pending_match"}:
+            if asin and status in {"open", "watching", "roi_snoozed", "inventory_snoozed", "purchased_pending_match"}:
                 add_asin(asin, SOURCE_PRIORITY_MEDIUM)
 
     if source == "catalog_priority":

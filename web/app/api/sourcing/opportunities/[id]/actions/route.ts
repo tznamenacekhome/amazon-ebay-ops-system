@@ -11,6 +11,7 @@ const actionStatus: Record<string, string> = {
   watch: "watching",
   purchased: "purchased_pending_match",
   snooze_roi: "roi_snoozed",
+  inventory_snooze: "inventory_snoozed",
 };
 
 const actionRecordType: Record<string, string> = {
@@ -19,6 +20,7 @@ const actionRecordType: Record<string, string> = {
   watch: "watching",
   purchased: "purchased",
   snooze_roi: "roi_snoozed",
+  inventory_snooze: "inventory_snoozed",
   mark_valid_match: "confirmed_valid_match",
   confirm_exclusion: "confirmed_exclusion",
 };
@@ -38,6 +40,13 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   const requiredMaxLandedCost = numberOrNull(body.requiredMaxLandedCost);
   const requiredRoiPercent = numberOrNull(body.requiredRoiPercent);
   const expectedPurchaseCost = numberOrNull(body.expectedPurchaseCost);
+  const inventoryBaselineUnits = integerOrNull(body.inventoryBaselineUnits);
+  const inventoryRepresentAtUnits = inventoryBaselineUnits === null ? null : representAtUnits(inventoryBaselineUnits);
+  const myQuantity = integerOrNull(body.myQuantity);
+  const myPipelineQuantity = integerOrNull(body.myPipelineQuantity);
+  const myPurchasedQuantity = integerOrNull(body.myPurchasedQuantity);
+  const myReceivedQuantity = integerOrNull(body.myReceivedQuantity);
+  const myOutboundQuantity = integerOrNull(body.myOutboundQuantity);
   const diagnosticsFeedback = normalizeLegacyDiagnosticsFeedback(body.diagnosticsFeedback);
   const matchingFeedback = normalizeMatchingFeedback(body.diagnosticsFeedback);
   const newStatus = actionStatus[actionType];
@@ -47,6 +56,9 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   }
   if (actionType === "dismiss" && !reason) {
     return NextResponse.json({ error: "Dismiss requires a reason." }, { status: 400 });
+  }
+  if (actionType === "inventory_snooze" && (!inventoryBaselineUnits || inventoryBaselineUnits < 1)) {
+    return NextResponse.json({ error: "Wait for sell-through requires at least one in-stock or pipeline unit." }, { status: 400 });
   }
 
   const { data: opportunity, error: opportunityError } = await supabase
@@ -79,6 +91,16 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     requiredMaxLandedCost,
     requiredRoiPercent,
     expectedPurchaseCost,
+    inventorySnooze: actionType === "inventory_snooze" ? {
+      baselineUnits: inventoryBaselineUnits,
+      representAtUnits: inventoryRepresentAtUnits,
+      sellThroughPercent: 10,
+      inStockUnits: myQuantity,
+      pipelineUnits: myPipelineQuantity,
+      purchasedNotReceivedUnits: myPurchasedQuantity,
+      receivedNotSentUnits: myReceivedQuantity,
+      outboundToAmazonUnits: myOutboundQuantity,
+    } : undefined,
     imageClues,
     diagnosticsFeedback,
     matchingFeedback,
@@ -120,7 +142,11 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     }
   }
 
-  const event = actionRecordType[actionType] === "purchased" ? "purchased" : actionRecordType[actionType];
+  const event = actionType === "inventory_snooze"
+    ? "roi_snoozed"
+    : actionRecordType[actionType] === "purchased"
+      ? "purchased"
+      : actionRecordType[actionType];
   let snapshotId: string | null = null;
   try {
     snapshotId = await persistActionSnapshot({
@@ -184,7 +210,15 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       .from("sourcing_opportunities")
       .update(updatePayload)
       .eq("asin", opportunity.asin)
-      .in("status", ["open", "rejected", "watching", "roi_snoozed"]);
+      .in("status", ["open", "rejected", "watching", "roi_snoozed", "inventory_snoozed"]);
+  }
+
+  if (actionType === "inventory_snooze") {
+    await supabase
+      .from("sourcing_opportunities")
+      .update(updatePayload)
+      .eq("asin", opportunity.asin)
+      .in("status", ["open", "rejected", "watching", "roi_snoozed", "inventory_snoozed"]);
   }
 
   return NextResponse.json({ opportunity: data });
@@ -389,6 +423,16 @@ function ebayCategory(raw: unknown) {
 function numberOrNull(value: unknown) {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : null;
+}
+
+function integerOrNull(value: unknown) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? Math.max(0, Math.floor(parsed)) : null;
+}
+
+function representAtUnits(baselineUnits: number) {
+  const soldUnitsRequired = Math.max(1, Math.ceil(baselineUnits * 0.1));
+  return Math.max(0, baselineUnits - soldUnitsRequired);
 }
 
 function ebayIdentityValues(opportunity: {

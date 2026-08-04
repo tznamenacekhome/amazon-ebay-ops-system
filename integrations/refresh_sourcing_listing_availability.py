@@ -15,7 +15,7 @@ from sourcing_common import fetch_settings, get_supabase_client, required_env, t
 
 
 EBAY_BROWSE_ITEM_URL = "https://api.ebay.com/buy/browse/v1/item"
-ACTIVE_OPPORTUNITY_STATUSES = ["open", "watching", "roi_snoozed"]
+ACTIVE_OPPORTUNITY_STATUSES = ["open", "watching", "roi_snoozed", "inventory_snoozed"]
 UNAVAILABLE_DISMISS_REASON = "no_longer_available"
 
 
