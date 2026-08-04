@@ -64,7 +64,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     return NextResponse.json({ error: opportunityError.message }, { status: 500 });
   }
 
-  const diagnosticComparison = buildDiagnosticComparison({
+  const diagnosticComparison = safeDiagnosticComparison({
     opportunity: opportunity as Record<string, unknown>,
     candidate: (opportunity.sourcing_ebay_candidates ?? {}) as Record<string, unknown>,
     seed: (opportunity.sourcing_seed_asins ?? {}) as Record<string, unknown>,
@@ -121,49 +121,46 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   }
 
   const event = actionRecordType[actionType] === "purchased" ? "purchased" : actionRecordType[actionType];
-  const { data: snapshot, error: snapshotError } = await supabase
-    .from("sourcing_listing_snapshots")
-    .insert(buildListingSnapshot({
-      opportunity: opportunity as Record<string, unknown>,
-      candidate: (opportunity.sourcing_ebay_candidates ?? {}) as Record<string, unknown>,
-      seed: (opportunity.sourcing_seed_asins ?? {}) as Record<string, unknown>,
+  let snapshotId: string | null = null;
+  try {
+    snapshotId = await persistActionSnapshot({
+      action,
+      opportunity,
       event,
-      actionId: action.action_id,
-      rawContext: {
-        ...rawActionContext,
-        dismissReason: reason,
-        notes,
-        imageClues,
-      },
-    }))
-    .select("listing_snapshot_id")
-    .single();
-  if (snapshotError) return NextResponse.json({ error: snapshotError.message }, { status: 500 });
+      reason,
+      notes,
+      imageClues,
+      rawActionContext,
+      required: actionType !== "watch",
+    });
+  } catch (error) {
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : "Sourcing action snapshot failed." },
+      { status: 500 },
+    );
+  }
 
-  await supabase
-    .from("sourcing_actions")
-    .update({ listing_snapshot_id: snapshot.listing_snapshot_id })
-    .eq("action_id", action.action_id);
-
-  await persistImmediateMatchingExample({
-    action,
-    opportunity,
-    snapshotId: snapshot.listing_snapshot_id,
-    reason,
-    actionType,
-    notes,
-    rawActionContext,
-  });
+  if (snapshotId) {
+    await persistImmediateMatchingExample({
+      action,
+      opportunity,
+      snapshotId,
+      reason,
+      actionType,
+      notes,
+      rawActionContext,
+    });
+  }
 
   if (!newStatus) {
     return NextResponse.json({ opportunity });
   }
 
-  const updatePayload = {
+  const updatePayload: Record<string, unknown> = {
     status: newStatus,
-    latest_listing_snapshot_id: snapshot.listing_snapshot_id,
     updated_at: new Date().toISOString(),
   };
+  if (snapshotId) updatePayload.latest_listing_snapshot_id = snapshotId;
 
   const { data, error } = await supabase
     .from("sourcing_opportunities")
@@ -191,6 +188,87 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   }
 
   return NextResponse.json({ opportunity: data });
+}
+
+function safeDiagnosticComparison({
+  opportunity,
+  candidate,
+  seed,
+  diagnostics,
+}: {
+  opportunity: Record<string, unknown>;
+  candidate: Record<string, unknown>;
+  seed: Record<string, unknown>;
+  diagnostics: unknown;
+}) {
+  try {
+    return buildDiagnosticComparison({ opportunity, candidate, seed, diagnostics });
+  } catch (error) {
+    console.warn("Sourcing action diagnostic comparison failed", error);
+    return {
+      version: "unavailable",
+      rows: [],
+      summary: {
+        matchingFields: 0,
+        conflictingFields: 0,
+        unknownFields: 0,
+      },
+    };
+  }
+}
+
+async function persistActionSnapshot({
+  action,
+  opportunity,
+  event,
+  reason,
+  notes,
+  imageClues,
+  rawActionContext,
+  required,
+}: {
+  action: Record<string, unknown>;
+  opportunity: Record<string, unknown>;
+  event: string;
+  reason: string | null;
+  notes: string | null;
+  imageClues: string[];
+  rawActionContext: Record<string, unknown>;
+  required: boolean;
+}) {
+  const { data: snapshot, error: snapshotError } = await supabase
+    .from("sourcing_listing_snapshots")
+    .insert(buildListingSnapshot({
+      opportunity,
+      candidate: (opportunity.sourcing_ebay_candidates ?? {}) as Record<string, unknown>,
+      seed: (opportunity.sourcing_seed_asins ?? {}) as Record<string, unknown>,
+      event,
+      actionId: textOrNull(action.action_id),
+      rawContext: {
+        ...rawActionContext,
+        dismissReason: reason,
+        notes,
+        imageClues,
+      },
+    }))
+    .select("listing_snapshot_id")
+    .single();
+
+  if (snapshotError) {
+    if (required) throw new Error(snapshotError.message);
+    console.warn("Optional sourcing action snapshot failed", snapshotError.message);
+    return null;
+  }
+
+  const snapshotId = textOrNull(snapshot?.listing_snapshot_id);
+  if (!snapshotId) return null;
+
+  await supabase
+    .from("sourcing_actions")
+    .update({ listing_snapshot_id: snapshotId })
+    .eq("action_id", action.action_id);
+
+  return snapshotId;
 }
 
 function normalizeLegacyDiagnosticsFeedback(value: unknown) {
