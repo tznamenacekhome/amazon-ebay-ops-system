@@ -128,7 +128,8 @@ type SchedulerJobRunRecord = {
 
 type KeepaCatalogCycleSummary = {
   cycleId: string;
-  status: "running" | "complete";
+  displayName: string;
+  status: "unfinished" | "superseded" | "complete";
   cycleStartedAt: string | null;
   latestRunAt: string | null;
   durationSeconds: number | null;
@@ -1014,18 +1015,19 @@ function keepaCatalogCycleSummaries(jobRuns: SchedulerJobRunRecord[]): KeepaCata
 
   const byCycle = groupBy(cycleRuns, (run) => run.cycleId);
 
-  return Array.from(byCycle.entries())
+  const allSummaries = Array.from(byCycle.entries())
     .map(([cycleId, runs]) => {
       const sortedRuns = [...runs].sort((a, b) => b.timestamp - a.timestamp);
       const latest = sortedRuns[0];
       const latestRunAt = latest.latestRunAt;
       const cycleStartedAt = latest.cycleStartedAt ?? sortedRuns.find((run) => run.cycleStartedAt)?.cycleStartedAt ?? null;
       const remainingCount = latest.remainingAfter;
-      const status: KeepaCatalogCycleSummary["status"] = remainingCount === 0 ? "complete" : "running";
+      const status: KeepaCatalogCycleSummary["status"] = remainingCount === 0 ? "complete" : "unfinished";
       const durationSeconds = durationBetweenSeconds(cycleStartedAt, status === "complete" ? latestRunAt : new Date().toISOString());
 
       return {
         cycleId,
+        displayName: "",
         status,
         cycleStartedAt,
         latestRunAt,
@@ -1041,6 +1043,19 @@ function keepaCatalogCycleSummaries(jobRuns: SchedulerJobRunRecord[]): KeepaCata
         cycleTokensPerAsin: latest.cycleTokensPerAsin,
       };
     })
+    .sort((a, b) => Date.parse(a.cycleStartedAt ?? "") - Date.parse(b.cycleStartedAt ?? ""));
+
+  const latestCompletedAt = allSummaries
+    .filter((summary) => summary.status === "complete")
+    .reduce((latest, summary) => Math.max(latest, Date.parse(summary.latestRunAt ?? "") || 0), 0);
+  const activeUnfinished = allSummaries
+    .filter((summary) => summary.status === "unfinished")
+    .filter((summary) => (Date.parse(summary.cycleStartedAt ?? "") || 0) > latestCompletedAt)
+    .sort((a, b) => Date.parse(a.cycleStartedAt ?? "") - Date.parse(b.cycleStartedAt ?? ""))[0];
+
+  return allSummaries
+    .filter((summary) => summary.status === "complete" || summary.cycleId === activeUnfinished?.cycleId)
+    .map((summary, index) => ({ ...summary, displayName: `KC${index + 1}` }))
     .sort((a, b) => Date.parse(b.latestRunAt ?? "") - Date.parse(a.latestRunAt ?? ""))
     .slice(0, 4);
 }

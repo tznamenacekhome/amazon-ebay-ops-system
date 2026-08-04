@@ -79,7 +79,8 @@ type SchedulerRunJob = {
 
 type KeepaCatalogCycle = {
   cycleId: string;
-  status: "running" | "complete";
+  displayName: string;
+  status: "unfinished" | "superseded" | "complete";
   cycleStartedAt: string | null;
   latestRunAt: string | null;
   durationSeconds: number | null;
@@ -653,8 +654,8 @@ function SchedulerGroupDrawer({ group, onClose }: { group: SchedulerGroup; onClo
               <div className="mt-2 overflow-x-auto rounded-lg border border-slate-200">
                 <table className="min-w-[800px] table-fixed text-left text-sm">
                   <colgroup>
-                    <col className="w-[110px]" />
-                    <col className="w-[82px]" />
+                    <col className="w-[80px]" />
+                    <col className="w-[100px]" />
                     <col className="w-[138px]" />
                     <col className="w-[128px]" />
                     <col className="w-[125px]" />
@@ -678,9 +679,18 @@ function SchedulerGroupDrawer({ group, onClose }: { group: SchedulerGroup; onClo
                     {keepaCycles.length ? (
                       keepaCycles.map((cycle) => (
                         <tr key={cycle.cycleId} className="border-t border-slate-100 align-middle">
-                          <td className="whitespace-nowrap px-3 py-3 font-mono text-xs text-slate-700">{shortRunId(cycle.cycleId)}</td>
+                          <td
+                            className="whitespace-nowrap px-3 py-3 font-mono text-xs text-slate-700"
+                            title={cycle.cycleId}
+                          >
+                            {cycle.displayName || cycleDisplayId(cycle.cycleId)}
+                          </td>
                           <td className="whitespace-nowrap px-3 py-3">
-                            <StatusBadge status={cycle.status === "complete" ? "ok" : "running"} />
+                            <span
+                              className={`inline-flex rounded-md border px-2 py-1 text-xs font-medium ${cycleStatusClass(cycle.status)}`}
+                            >
+                              {cycleStatusLabel(cycle.status)}
+                            </span>
                           </td>
                           <td className="whitespace-nowrap px-3 py-3 text-slate-700">
                             {formatPacificDateTime(cycle.cycleStartedAt)}
@@ -1033,6 +1043,23 @@ function formatDecimal(value?: number | null, maximumFractionDigits = 2) {
 function shortRunId(value?: string | null) {
   if (!value) return "--";
   return value.length > 8 ? value.slice(0, 8) : value;
+}
+
+function cycleDisplayId(value?: string | null) {
+  if (!value) return "--";
+  return value.startsWith("keepa-") ? value.replace("keepa-", "") : value;
+}
+
+function cycleStatusLabel(status: KeepaCatalogCycle["status"]) {
+  if (status === "complete") return "Complete";
+  if (status === "superseded") return "Superseded";
+  return "Unfinished";
+}
+
+function cycleStatusClass(status: KeepaCatalogCycle["status"]) {
+  if (status === "complete") return "border-emerald-200 bg-emerald-50 text-emerald-800";
+  if (status === "superseded") return "border-slate-200 bg-slate-50 text-slate-600";
+  return "border-amber-200 bg-amber-50 text-amber-800";
 }
 
 function shortTaskArn(value?: string | null) {

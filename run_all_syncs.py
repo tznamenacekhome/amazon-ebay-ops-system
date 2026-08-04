@@ -26,6 +26,8 @@ RUN_HISTORY_PATH = LOG_DIR / "sync_runs.jsonl"
 LOCK_PATH = LOG_DIR / "run_all_syncs.lock"
 LOCK_STALE_HOURS = 10
 DEFAULT_TIMEOUT_SECONDS = 45 * 60
+DISTRIBUTED_LOCK_GROUPS = {"keepa-catalog-priority"}
+DB_LOCK_GRACE_SECONDS = 15 * 60
 TELEMETRY_CLIENT = None
 ECS_METADATA: dict[str, object] | None = None
 
@@ -531,6 +533,31 @@ def main() -> int:
     print(f"Starting sync group={args.group} run_id={run_id}")
     print(started_at)
     start_scheduler_run(run_id=run_id, group=args.group, jobs=selected_jobs, started_at=started_at)
+
+    active_run = find_active_distributed_group_run(args.group, run_id, selected_jobs)
+    if active_run:
+        message = (
+            f"Another {args.group} scheduler run is already active: "
+            f"run_id={active_run.get('run_id')} started_at={active_run.get('started_at')}"
+        )
+        for job in selected_jobs:
+            record_job(
+                job=job,
+                command=job.command(),
+                group=args.group,
+                run_id=run_id,
+                status="blocked",
+                started_at=started_at,
+                message=message,
+            )
+        print(f"ERROR: {message}")
+        finish_scheduler_run(
+            run_id=run_id,
+            status="blocked",
+            started_at=started_at,
+            error_summary=message,
+        )
+        return 1
 
     lock_acquired = False
     if not args.no_lock:
@@ -1190,6 +1217,39 @@ def probe_supabase() -> None:
     client = create_client(supabase_url, supabase_key)
     result = client.table("import_batches").select("import_batch_id").limit(1).execute()
     print(f"Supabase preflight ok. rows={len(result.data or [])}")
+
+
+def find_active_distributed_group_run(
+    group: str,
+    run_id: str,
+    jobs: list[SyncJob],
+) -> dict[str, object] | None:
+    if group not in DISTRIBUTED_LOCK_GROUPS:
+        return None
+    client = telemetry_client()
+    if client is None:
+        return None
+
+    timeout_seconds = max((job.timeout_seconds for job in jobs), default=DEFAULT_TIMEOUT_SECONDS)
+    cutoff = datetime.now(timezone.utc) - timedelta(seconds=timeout_seconds + DB_LOCK_GRACE_SECONDS)
+    try:
+        response = (
+            client.table("scheduler_runs")
+            .select("run_id,started_at,eventbridge_schedule_name,ecs_task_arn")
+            .eq("group_name", group)
+            .eq("status", "running")
+            .neq("run_id", run_id)
+            .gte("started_at", cutoff.isoformat().replace("+00:00", "Z"))
+            .order("started_at", desc=True)
+            .limit(1)
+            .execute()
+        )
+    except Exception as error:  # noqa: BLE001 - overlap guard must not break the scheduler when telemetry is unavailable.
+        print(f"WARNING: distributed overlap check failed: {error}")
+        return None
+
+    rows = response.data or []
+    return rows[0] if rows else None
 
 
 def acquire_lock(group: str, run_id: str) -> None:

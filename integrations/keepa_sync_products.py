@@ -702,18 +702,14 @@ def build_catalog_cycle_state(
         else 0
     ) or 0
 
-    if (
-        previous_start
-        and previous_eligible == len(eligible_set)
-        and previous_remaining
-        and previous_remaining_count
-        and previous_remaining_count > 0
-    ):
+    if previous_start and previous_remaining and previous_remaining_count and previous_remaining_count > 0:
         cycle_started_at = previous_start
         remaining = previous_remaining
-        covered_before = max(len(eligible_set) - len(remaining), 0)
+        cycle_eligible_count = previous_eligible or len(eligible_set)
+        covered_before = max(cycle_eligible_count - len(remaining), 0)
     else:
         cycle_started_at = captured_at
+        cycle_eligible_count = len(eligible_set)
         previous_cycle_tokens_used = 0
         previous_token_tracked_asins = 0
         latest_by_asin = fetch_latest_snapshot_by_asin(supabase, eligible_asins)
@@ -734,7 +730,7 @@ def build_catalog_cycle_state(
     return {
         "cycle_id": cycle_id,
         "cycle_started_at": cycle_started_at,
-        "eligible_count": len(eligible_set),
+        "eligible_count": cycle_eligible_count,
         "covered_before": covered_before,
         "remaining_before": len(remaining),
         "remaining_asins": remaining,
@@ -803,17 +799,55 @@ def fetch_latest_keepa_cycle_metadata(supabase) -> dict[str, Any]:
             .select("metadata,started_at")
             .eq("job_name", "Keepa catalog priority refresh")
             .order("started_at", desc=True)
-            .limit(20)
+            .limit(500)
             .execute()
         )
     except Exception:
         return {}
 
-    for row in response.data or []:
+    return select_keepa_cycle_metadata(response.data or [])
+
+
+def select_keepa_cycle_metadata(rows: list[dict[str, Any]]) -> dict[str, Any]:
+    cycles: dict[str, dict[str, Any]] = {}
+    for row in rows:
         metadata = row.get("metadata")
-        if isinstance(metadata, dict) and isinstance(metadata.get("keepa_catalog_cycle"), dict):
-            return metadata
-    return {}
+        if not isinstance(metadata, dict):
+            continue
+        cycle = metadata.get("keepa_catalog_cycle")
+        if not isinstance(cycle, dict):
+            continue
+        cycle_id = clean_text(cycle.get("cycle_id"))
+        cycle_started_at = clean_text(cycle.get("cycle_started_at"))
+        if not cycle_id or not cycle_started_at:
+            continue
+        started_at = clean_text(row.get("started_at")) or ""
+        previous = cycles.get(cycle_id)
+        if previous is None or started_at > previous["started_at"]:
+            cycles[cycle_id] = {
+                "metadata": metadata,
+                "cycle": cycle,
+                "cycle_started_at": cycle_started_at,
+                "started_at": started_at,
+                "remaining_after": to_int(cycle.get("remaining_after"), default=None),
+            }
+
+    if not cycles:
+        return {}
+
+    completed = [cycle for cycle in cycles.values() if cycle["remaining_after"] == 0]
+    latest_completed_run_at = max((cycle["started_at"] for cycle in completed), default="")
+    unfinished = [
+        cycle
+        for cycle in cycles.values()
+        if cycle["remaining_after"] is not None
+        and cycle["remaining_after"] > 0
+        and cycle["cycle_started_at"] > latest_completed_run_at
+    ]
+    if unfinished:
+        return min(unfinished, key=lambda cycle: cycle["cycle_started_at"])["metadata"]
+
+    return max(cycles.values(), key=lambda cycle: cycle["started_at"])["metadata"]
 
 
 def has_offer_data(raw_keepa: Any) -> bool:
