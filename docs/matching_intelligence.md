@@ -23,6 +23,23 @@ Band 3 vs Rock Band Track Pack dismissal should store
 `core_game_identity` with title/Game Name evidence, not numeric, platform, or
 edition failure.
 
+## 2026-08-04 Derived Identity And Velocity Suppression
+
+Sourcing diagnostics now include a backend-owned `derived_identity` object with
+core game, installment, edition, platform, region, package contents,
+completeness, and digital/physical values for both Amazon and eBay. React
+displays these parsed values but does not derive them independently.
+
+Known Roman numeral installments normalize to Arabic comparison values for
+recognized game families, e.g. `Final Fantasy XIV` equals `Final Fantasy 14`.
+`Rock Band Track Pack` remains a distinct core product from numbered `Rock
+Band` base-game installments.
+
+Dismissals for `sales_velocity_too_low` are dynamic ASIN-level business
+suppressions. They do not create identity-negative evidence; they hide
+otherwise valid opportunities until refreshed sourcing velocity meets the
+current threshold.
+
 The Matching Intelligence Layer preserves reviewed sourcing evidence so MBOP can
 improve Amazon-to-eBay replenishment matching before any future eBay-to-Amazon
 sourcing work.

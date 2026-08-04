@@ -55,6 +55,8 @@ READ_ONLY_OPERATION_PREFIXES = (
     "/listings/2021-08-01/items/",
     "/products/pricing/",
     "/products/fees/",
+    "/catalog/2022-04-01/items",
+    "/catalog/2022-04-01/items/",
     "/reports/2021-06-30/",
 )
 
@@ -568,6 +570,30 @@ class AmazonSPAPIClient:
             "/listings/2021-08-01/items/"
             f"{quote(selling_partner_id, safe='')}/{quote(seller_sku, safe='')}"
         )
+        return self.request("GET", path, params=params)
+
+    def get_catalog_item(
+        self,
+        asin: str,
+        *,
+        included_data: list[str] | None = None,
+    ) -> dict[str, Any]:
+        params: dict[str, Any] = {
+            "marketplaceIds": self.config.marketplace_id,
+            "includedData": ",".join(
+                included_data
+                or [
+                    "attributes",
+                    "summaries",
+                    "relationships",
+                    "productTypes",
+                    "classifications",
+                    "images",
+                    "identifiers",
+                ]
+            ),
+        }
+        path = f"/catalog/2022-04-01/items/{quote(asin, safe='')}"
         return self.request("GET", path, params=params)
 
     def get_item_offers(

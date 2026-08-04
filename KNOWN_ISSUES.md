@@ -2,9 +2,27 @@
 
 This file tracks active issues, monitor items, and deferred decisions for Midnight Blue Operations Platform (MBOP).
 
-Last reviewed: 2026-08-02
+Last reviewed: 2026-08-04
 
 # Active Issues
+
+## Sourcing Catalog/Velocity Migration Pending Explicit Approval
+
+Status: BLOCKED / OPERATOR APPROVAL NEEDED
+
+Problem:
+The derived identity, Amazon Catalog Items cache, and Sales Velocity Too Low
+suppression implementation includes forward migration
+`20260804000000_mbop_sourcing_catalog_velocity_suppression.sql`. The migration
+ledger was checked and aligned, but direct `supabase db push` was blocked by
+the schema-change approval policy pending explicit operator approval.
+
+Current mitigation:
+- The app/API handles a missing velocity suppression table on read paths.
+- Production deployment should wait until the migration is explicitly approved
+  and applied because sales-velocity dismiss actions write to the new table.
+- Dry-run reprocessing and dry-run backfill artifacts were produced without
+  marketplace writes or eBay quota use.
 
 ## Sourcing Diagnostics Feedback Needs Ongoing Review
 

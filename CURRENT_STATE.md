@@ -1,6 +1,21 @@
 # CURRENT_STATE.md
 
-Last Updated: 2026-08-02
+Last Updated: 2026-08-04
+
+## 2026-08-04 Derived Identity, Catalog Evidence, And Velocity Suppression
+
+- Sourcing diagnostics now emit backend-owned `derived_identity` values for
+  core game, installment, edition, platform, region, package contents,
+  completeness, and digital/physical state.
+- Roman numeral installments normalize for recognized families, e.g. Final
+  Fantasy XIV equals Final Fantasy 14.
+- Amazon Catalog Items v2022-04-01 read-only cache tooling was added for
+  ASIN-level identity evidence; page rendering does not call SP-API.
+- Sales Velocity Too Low dismissals now create dynamic ASIN-level suppressions
+  that hide default Replenishment rows until refreshed velocity meets the
+  threshold.
+- Report:
+  `docs/sourcing_derived_identity_amazon_catalog_velocity_suppression_2026-08-04.md`.
 
 ## 2026-08-02 Sourcing Matching Feedback Refinement
 

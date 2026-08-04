@@ -142,6 +142,12 @@ Carrier/status syncs must not downgrade workflow-owned statuses.
   history can still become replenishment candidates. Full-listing sourcing may
   also seed ASINs known only through current stored Keepa snapshots, but not
   snapshots older than 7 days.
+- Amazon Catalog Items SP-API data may be cached as ASIN-level identity
+  evidence for sourcing diagnostics. Page rendering and scoring must use cached
+  data only and must not call SP-API live.
+- Sales Velocity Too Low dismissals are ASIN-level business suppressions, not
+  product identity negatives. They remain active until the ASIN's refreshed
+  monthly velocity satisfies the current sourcing velocity threshold.
 - Sourcing opportunity Last Sold display is backend-owned. It should use the
   seed's stored sale context when present and otherwise fall back to Amazon
   sales history by ASIN so full-listing candidates do not lose recent sale

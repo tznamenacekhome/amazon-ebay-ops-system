@@ -53,6 +53,15 @@ export type SourcingOpportunity = {
   unitsSold120d: number;
   unitsSold365d: number;
   salesCountSource: "amazon_orders" | null;
+  salesVelocitySuppression: {
+    velocityAtDismissal: number | null;
+    currentVelocity: number | null;
+    requiredVelocity: number | null;
+    metricWindowDays: number | null;
+    lastEvaluatedAt: string | null;
+    reactivatedAt: string | null;
+    releaseEligible: boolean;
+  } | null;
   opportunityType: string | null;
   status: string | null;
   estimatedProfit: number | null;

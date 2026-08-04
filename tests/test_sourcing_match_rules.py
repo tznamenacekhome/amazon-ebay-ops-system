@@ -466,6 +466,49 @@ class SourcingMatchRuleTests(unittest.TestCase):
         self.assertNotEqual("Blocked", diagnostics["recommendation"])
         self.assertTrue(any("bundle review" in warning.casefold() for warning in diagnostics["warnings"]))
 
+    def test_wipeout_3_vs_wipeout_2_has_derived_installment_conflict(self) -> None:
+        diagnostics = evaluate_static_match_rules(
+            candidate("ABC's Wipeout 2 (Nintendo 3DS, 2011)", platform="Nintendo 3DS", region_code="NTSC-U/C"),
+            seed("Wipeout 3 - Nintendo 3DS", "3DS"),
+        )
+        identity = diagnostics["derived_identity"]
+        self.assertEqual("Wipeout", identity["amazon"]["coreGame"])
+        self.assertEqual("Wipeout", identity["ebay"]["coreGame"])
+        self.assertEqual("3", identity["amazon"]["installment"])
+        self.assertEqual("2", identity["ebay"]["installment"])
+        self.assertEqual("Base / Standard", identity["amazon"]["edition"])
+        self.assertEqual("Base / Standard", identity["ebay"]["edition"])
+        self.assertEqual("Nintendo 3DS", identity["amazon"]["platform"])
+        self.assertEqual("Nintendo 3DS", identity["ebay"]["platform"])
+        self.assertEqual("NTSC-U/C", identity["ebay"]["region"])
+        self.assertEqual("installment_conflict", identity["result"])
+
+    def test_final_fantasy_roman_and_arabic_installments_match(self) -> None:
+        diagnostics = evaluate_static_match_rules(
+            candidate("Final Fantasy 14 Online Complete Edition PS4", platform="Sony PlayStation 4"),
+            seed("Final Fantasy XIV Online Complete Edition - PlayStation 4", "PS 4"),
+        )
+        identity = diagnostics["derived_identity"]
+        self.assertEqual("Final Fantasy", identity["amazon"]["coreGame"])
+        self.assertEqual("Final Fantasy", identity["ebay"]["coreGame"])
+        self.assertEqual("XIV / 14", identity["amazon"]["installment"])
+        self.assertEqual("14", identity["ebay"]["installment"])
+        self.assertEqual("14", identity["amazon"]["installmentNormalized"])
+        self.assertEqual("14", identity["ebay"]["installmentNormalized"])
+        self.assertEqual("Complete Edition", identity["amazon"]["edition"])
+        self.assertEqual("Complete Edition", identity["ebay"]["edition"])
+        self.assertNotEqual("installment_conflict", identity["result"])
+
+    def test_rock_band_track_pack_is_distinct_core_product(self) -> None:
+        diagnostics = evaluate_static_match_rules(
+            candidate("Rock Band Track Pack Classic Rock PS3", platform="Sony PlayStation 3"),
+            seed("Rock Band 3 PlayStation 3", "PS 3"),
+        )
+        identity = diagnostics["derived_identity"]
+        self.assertEqual("Rock Band", identity["amazon"]["coreGame"])
+        self.assertEqual("Rock Band Track Pack: Classic Rock", identity["ebay"]["coreGame"])
+        self.assertNotEqual(identity["amazon"]["coreGame"], identity["ebay"]["coreGame"])
+
 
 if __name__ == "__main__":
     unittest.main()

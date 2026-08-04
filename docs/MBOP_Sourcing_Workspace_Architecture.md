@@ -66,6 +66,10 @@ Current implementation notes:
   pickup delivery options such as `SELLER_ARRANGED_LOCAL_PICKUP` without
   `shippingOptions`.
 - UI actions are operator-only: `watching`, `dismissed`, `roi_snoozed`, and `purchased_pending_match`.
+- `sales_velocity_too_low` dismissals create ASIN-level dynamic suppressions
+  rather than identity-negative matching memory. The default Replenishment view
+  excludes active suppressions, and the `Sales Velocity Suppressed` view shows
+  current velocity, required velocity, last evaluation, and release eligibility.
 - `/api/sourcing/runs` starts the unified daily coverage-cycle workflow. The
   UI no longer launches separate Recent Sales and Full Listings discovery jobs.
 - `run_daily_sourcing_discovery.py` is a compatibility wrapper around

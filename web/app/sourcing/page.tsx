@@ -14,7 +14,7 @@ import { dismissReasons } from "./matchingTaxonomy";
 import { mutationHeaders } from "../mutationHeaders";
 import { KeepaPriceIndicator } from "../components/KeepaPriceIndicator";
 
-const tabs = ["Replenishment", "Closest Excluded", "Coverage Cycle", "Watchlist", "Purchased Pending Match", "Sourcing History", "Matching Intelligence", "Settings"] as const;
+const tabs = ["Replenishment", "Closest Excluded", "Sales Velocity Suppressed", "Coverage Cycle", "Watchlist", "Purchased Pending Match", "Sourcing History", "Matching Intelligence", "Settings"] as const;
 const opportunityTypes = ["all", "buy_now", "multi_unit", "best_offer", "auction", "watch"] as const;
 const GIXEN_URL = "https://www.gixen.com/main/index.php";
 type SourcingActionPayload = {
@@ -51,11 +51,13 @@ export default function SourcingPage() {
   const effectiveStatus =
     activeTab === "Closest Excluded"
       ? "all"
-      : activeTab === "Watchlist"
-        ? "watching"
-        : activeTab === "Purchased Pending Match"
-          ? "purchased_pending_match"
-          : status;
+      : activeTab === "Sales Velocity Suppressed"
+        ? "sales_velocity_suppressed"
+        : activeTab === "Watchlist"
+          ? "watching"
+          : activeTab === "Purchased Pending Match"
+            ? "purchased_pending_match"
+            : status;
   const { rows, summary, batch, loading, error, reload, removeRows, setError } = useSourcingOpportunities(
     effectiveStatus,
     type,
@@ -72,7 +74,7 @@ export default function SourcingPage() {
 
   const visibleRows = useMemo(() => {
     if (activeTab === "Purchased Pending Match") return rows.filter((row) => row.status === "purchased_pending_match");
-    if (activeTab === "Replenishment" || activeTab === "Watchlist" || activeTab === "Closest Excluded") return rows;
+    if (activeTab === "Replenishment" || activeTab === "Watchlist" || activeTab === "Closest Excluded" || activeTab === "Sales Velocity Suppressed") return rows;
     return [];
   }, [activeTab, rows]);
   const selectedRows = useMemo(
@@ -293,6 +295,7 @@ export default function SourcingPage() {
             }}
             purchasedMode={activeTab === "Purchased Pending Match"}
             closestExcludedMode={activeTab === "Closest Excluded"}
+            salesVelocitySuppressedMode={activeTab === "Sales Velocity Suppressed"}
           />
           {dismissRow ? (
             <DismissOpportunityDialog
@@ -388,6 +391,7 @@ function ReplenishmentTable({
   onToggleAll,
   purchasedMode,
   closestExcludedMode,
+  salesVelocitySuppressedMode,
 }: {
   rows: SourcingOpportunity[];
   loading: boolean;
@@ -402,6 +406,7 @@ function ReplenishmentTable({
   onToggleAll: () => void;
   purchasedMode: boolean;
   closestExcludedMode: boolean;
+  salesVelocitySuppressedMode: boolean;
 }) {
   const allSelected = rows.length > 0 && rows.every((row) => selectedIds.has(row.opportunityId));
   const bulkDisabled = selectedCount === 0 || actionBusyId === "bulk";
@@ -415,7 +420,7 @@ function ReplenishmentTable({
               <th colSpan={13} className="border-b border-slate-200 bg-white px-2 py-2">
                 <div className="flex flex-wrap items-center gap-2 normal-case tracking-normal">
                   <span className="text-sm font-medium text-slate-700">{selectedCount} selected</span>
-                  {!purchasedMode && !closestExcludedMode ? (
+                  {!purchasedMode && !closestExcludedMode && !salesVelocitySuppressedMode ? (
                     <>
                       <button disabled={bulkDisabled} onClick={onBulkWatch} className="bulk-button">Watch selected</button>
                       <button disabled={bulkDisabled} onClick={onBulkWaitForSellThrough} className="bulk-button">Wait for sell-through</button>
@@ -508,6 +513,7 @@ function ReplenishmentTable({
                       {closestExcludedMode ? <span>near miss {number(row.nearMissRank)}</span> : null}
                     </div>
                     {closestExcludedMode ? <ExcludedBecause reason={row.exclusionReason ?? null} /> : null}
+                    {salesVelocitySuppressedMode ? <SalesVelocitySuppressionSummary row={row} /> : null}
                   </td>
                   <td className="px-2 py-2 whitespace-nowrap">
                     <CostCell row={row} />
@@ -740,6 +746,29 @@ function ExcludedBecause({ reason }: { reason: SourcingOpportunity["exclusionRea
       <div className="mt-0.5 text-amber-800">{summary}</div>
       <div className="mt-0.5 text-[11px] text-amber-700">
         Source: {reason?.source ?? "unknown"} / {statusText}
+      </div>
+    </div>
+  );
+}
+
+function SalesVelocitySuppressionSummary({ row }: { row: SourcingOpportunity }) {
+  const suppression = row.salesVelocitySuppression;
+  if (!suppression) return null;
+  return (
+    <div className="mt-2 max-w-xl rounded-md border border-sky-200 bg-sky-50 px-2 py-1.5 text-xs text-sky-950">
+      <div className="flex flex-wrap items-center gap-1.5">
+        <span className="font-semibold text-sky-900">Sales Velocity Suppressed</span>
+        <span className={`rounded px-1.5 py-0.5 text-[11px] font-medium ${
+          suppression.releaseEligible ? "bg-emerald-50 text-emerald-700" : "bg-white text-sky-800"
+        }`}>
+          {suppression.releaseEligible ? "Release eligible" : "Waiting"}
+        </span>
+      </div>
+      <div className="mt-1 text-sky-800">
+        Dismissed at {number(suppression.velocityAtDismissal)} / mo; current {number(suppression.currentVelocity)} / mo; required {number(suppression.requiredVelocity)} / mo
+      </div>
+      <div className="mt-0.5 text-[11px] text-sky-700">
+        Window {suppression.metricWindowDays ?? "--"} days / last evaluated {dateOnly(suppression.lastEvaluatedAt)}
       </div>
     </div>
   );
@@ -1107,31 +1136,15 @@ function identityDisplayRow(row: SourcingOpportunity, item: NonNullable<Sourcing
   const diagnostics = diagnosticRecord(row.matchingDiagnostics);
   const staticRules = diagnosticRecord(diagnostics.static_rules);
   const evidence = diagnosticRecord(staticRules.normalized_evidence ?? diagnostics.normalized_evidence);
-  const titleOverlap = diagnosticRecord(staticRules.title_overlap ?? diagnostics.title_overlap);
-  const numeric = diagnosticRecord(staticRules.numeric_identity ?? diagnostics.numeric_identity);
-  const gameName = firstArrayText(evidence.game_name_values) ?? firstDiagnosticEvidence("ebay_game_name", row);
-  const sharedIdentity = sharedTitleIdentity(titleOverlap, row.amazonTitle, row.ebayTitle, gameName);
   const platform = firstArrayText(evidence.platform_values);
   const region = firstArrayText(evidence.region_code_values) ?? firstArrayText(evidence.country_of_origin_values);
   const features = firstArrayText(evidence.features_values);
   const format = firstArrayText(evidence.format_values) ?? firstArrayText(evidence.type_values);
 
-  if (item.key === "core_game_identity") {
-    const amazonCore = coreGameDisplayName(row.amazonTitle, gameName, sharedIdentity);
-    return { ...item, amazon: amazonCore ?? sharedIdentity ?? item.amazon, ebay: gameName ?? sharedIdentity ?? item.ebay };
-  }
-  if (item.key === "installment_number") {
-    return {
-      ...item,
-      amazon: numericIdentitySummary(numeric, "amazon") ?? "Base game",
-      ebay: numericIdentitySummary(numeric, "ebay") ?? "Base game",
-    };
-  }
   if (item.key === "platform_system") return { ...item, ebay: platform ?? item.ebay };
   if (item.key === "region") return { ...item, ebay: region ?? item.ebay };
   if (item.key === "package_bundle_contents") return { ...item, ebay: features ?? item.ebay };
-  if (item.key === "completeness") return { ...item, amazon: "Complete physical game", ebay: plainOutcome(item.ebay, "No incompleteness found") };
-  if (item.key === "digital_physical") return { ...item, amazon: "Physical game", ebay: format ?? plainOutcome(item.ebay, "Physical listing") };
+  if (item.key === "digital_physical") return { ...item, ebay: format ?? item.ebay };
   return item;
 }
 

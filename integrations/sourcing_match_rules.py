@@ -321,6 +321,8 @@ ANNUAL_IDENTITY_PATTERNS = [
 ]
 
 GAME_INSTALLMENT_PATTERNS = [
+    ("final_fantasy", re.compile(r"\bfinal\s+fantasy\s+(?P<value>xiv|14|xiii|13|xii|12|xv|15|xvi|16|[2-9])\b")),
+    ("wipeout", re.compile(r"\b(?:abc'?s\s+)?wipeout\s+(?P<value>[2-9])\b")),
     ("rock_band", re.compile(r"\brock\s+band\s+(?P<value>[2-4])\b")),
     ("sports_champions", re.compile(r"\bsports\s+champions\s+(?P<value>[2-9])\b")),
     ("jackbox_party_pack", re.compile(r"\b(?:the\s+)?jackbox\s+(?:party\s+)?pack\s+(?P<value>[2-9]|[1-9][0-9])\b")),
@@ -333,12 +335,17 @@ GAME_INSTALLMENT_PATTERNS = [
 
 BASE_IDENTITY_PATTERNS = {
     "rock_band": re.compile(r"\brock\s+band\b"),
+    "rock_band_track_pack": re.compile(r"\brock\s+band\s+(?:classic\s+rock\s+)?track\s+pack\b|\brock\s+band\s+track\s+pack\s+classic\s+rock\b"),
+    "final_fantasy": re.compile(r"\bfinal\s+fantasy\b"),
+    "wipeout": re.compile(r"\b(?:abc'?s\s+)?wipeout\b"),
     "sports_champions": re.compile(r"\bsports\s+champions\b"),
     "jackbox_party_pack": re.compile(r"\b(?:the\s+)?jackbox\s+(?:party\s+)?pack\b"),
 }
 
 BASE_IDENTITY_EXCLUSIONS = {
     "rock_band": re.compile(r"\b(?:track\s+pack|beatles|ac/dc|country\s+track|vol(?:ume)?\.?\s*\d)\b"),
+    "final_fantasy": re.compile(r"\bfinal\s+fantasy\s+(?:xiv|14|xiii|13|xii|12|xv|15|xvi|16|[2-9])\b"),
+    "wipeout": re.compile(r"\b(?:abc'?s\s+)?wipeout\s+[2-9]\b"),
 }
 
 ASPECT_NAMES = {
@@ -351,6 +358,45 @@ ASPECT_NAMES = {
     "features": "features",
     "release year": "release_year",
 }
+
+ROMAN_NUMERAL_VALUES = {
+    "ii": "2",
+    "iii": "3",
+    "iv": "4",
+    "v": "5",
+    "vi": "6",
+    "vii": "7",
+    "viii": "8",
+    "ix": "9",
+    "x": "10",
+    "xi": "11",
+    "xii": "12",
+    "xiii": "13",
+    "xiv": "14",
+    "xv": "15",
+    "xvi": "16",
+}
+
+EDITION_DISPLAY_SIGNALS = [
+    ("Complete Edition", re.compile(r"\bcomplete\s+edition\b")),
+    ("Collector's Edition", re.compile(r"\bcollector'?s?\s+edition\b")),
+    ("Deluxe Edition", re.compile(r"\bdeluxe\s+edition\b")),
+    ("Gold Edition", re.compile(r"\bgold\s+edition\b")),
+    ("Greatest Hits", re.compile(r"\bgreatest\s+hits\b")),
+    ("Limited Edition", re.compile(r"\blimited\s+edition\b")),
+    ("Platinum Hits", re.compile(r"\bplatinum\s+hits\b")),
+    ("Premium Edition", re.compile(r"\bpremium\s+edition\b")),
+    ("Player's Choice", re.compile(r"\bplayer'?s?\s+choice\b")),
+    ("Special Edition", re.compile(r"\bspecial\s+edition\b")),
+    ("Steelbook", re.compile(r"\bsteel\s*book\b")),
+    ("Ultimate Edition", re.compile(r"\bultimate\s+edition\b")),
+]
+
+REGION_DISPLAY_SIGNALS = [
+    ("NTSC-U/C", re.compile(r"\bntsc[-\s]?u/?c?\b|\busa\b|\bus\s+version\b|\bnorth\s+american\b")),
+    ("NTSC-J", re.compile(r"\bntsc[-\s]?j\b|\bjapan(?:ese)?\b")),
+    ("PAL", re.compile(r"\bpal\b|\bpegi\b|\buk\s+(?:import|version)\b|\beuropean\s+version\b")),
+]
 
 
 def evaluate_static_match_rules(
@@ -506,6 +552,19 @@ def evaluate_static_match_rules(
         score_adjustment -= 30
         recommendation = "Blocked"
 
+    derived_identity = derived_game_identity(
+        amazon_title=amazon_title,
+        ebay_title=ebay_title,
+        seed=seed,
+        evidence=evidence,
+        platform=platform,
+        numeric=numeric,
+        edition=edition,
+        region=region,
+        incomplete=incomplete,
+        digital=digital,
+    )
+
     if not hard_blocks and not warnings and title_overlap.get("shared_tokens"):
         recommendation = "Probable Match"
 
@@ -529,6 +588,7 @@ def evaluate_static_match_rules(
         "category": category,
         "delivery": delivery,
         "location": location,
+        "derived_identity": derived_identity,
     }
 
 
@@ -570,6 +630,212 @@ def normalize_candidate_evidence(candidate: dict[str, Any]) -> dict[str, Any]:
         "image_urls": image_urls,
         "searchable_text": searchable_text,
     }
+
+
+def derived_game_identity(
+    *,
+    amazon_title: str,
+    ebay_title: str,
+    seed: dict[str, Any],
+    evidence: dict[str, Any],
+    platform: dict[str, Any],
+    numeric: dict[str, Any],
+    edition: dict[str, Any],
+    region: list[str],
+    incomplete: list[str],
+    digital: list[str],
+) -> dict[str, Any]:
+    ebay_identity_title = first_text(evidence.get("game_name_values")) or ebay_title
+    raw_context = seed.get("raw_context_json") if isinstance(seed.get("raw_context_json"), dict) else {}
+    catalog_identity = raw_context.get("amazon_catalog_identity") if isinstance(raw_context.get("amazon_catalog_identity"), dict) else {}
+    amazon = parse_game_identity(
+        amazon_title,
+        platform=catalog_identity.get("normalized_platform") or platform.get("seed_system"),
+        explicit_region=first_text(catalog_identity.get("normalized_region"), seed.get("region"), raw_context.get("region")),
+        incomplete_hits=[],
+        digital_hits=[],
+    )
+    if catalog_identity.get("normalized_edition"):
+        amazon["edition"] = catalog_identity.get("normalized_edition")
+    ebay = parse_game_identity(
+        ebay_identity_title,
+        fallback_text=ebay_title,
+        platform=platform.get("candidate_system"),
+        explicit_region=first_text(evidence.get("region_code_values"), evidence.get("country_of_origin_values")),
+        incomplete_hits=incomplete,
+        digital_hits=digital,
+    )
+    result = "pass"
+    conflicts: list[str] = []
+    comparison = numeric.get("comparison") if isinstance(numeric.get("comparison"), dict) else {}
+    if comparison.get("blocked") or comparison.get("review"):
+        result = "installment_conflict"
+        conflicts.append("installment")
+    if platform.get("result") == "blocked":
+        result = "platform_conflict"
+        conflicts.append("platform")
+    if edition.get("result") == "blocked":
+        result = "edition_conflict"
+        conflicts.append("edition")
+    if region:
+        result = "region_conflict"
+        conflicts.append("region")
+    return {
+        "amazon": amazon,
+        "ebay": ebay,
+        "result": result,
+        "conflicts": conflicts,
+        "source": {
+            "amazon": "catalog_attributes" if catalog_identity else "amazon_title",
+            "ebay": "ebay_game_name" if first_text(evidence.get("game_name_values")) else "ebay_title",
+        },
+    }
+
+
+def parse_game_identity(
+    title: Any,
+    *,
+    fallback_text: Any = None,
+    platform: Any = None,
+    explicit_region: Any = None,
+    incomplete_hits: list[str] | None = None,
+    digital_hits: list[str] | None = None,
+) -> dict[str, Any]:
+    text = str(title or fallback_text or "")
+    search_text = " ".join([text, str(fallback_text or "")])
+    normalized = normalize_numeric_text(search_text)
+    family, raw_installment, installment = first_installment(normalized)
+    core_game = core_game_name(text, family)
+    return {
+        "coreGame": core_game,
+        "installment": installment_display(raw_installment, installment),
+        "installmentNormalized": installment,
+        "edition": edition_display(search_text),
+        "platform": platform_display(normalize_system(str(platform or "")) or detect_system_from_title(search_text)),
+        "region": normalize_region(explicit_region) or region_display(search_text),
+        "packageContents": package_contents_display(search_text),
+        "completeness": "Incomplete" if incomplete_hits else "Complete",
+        "digitalPhysical": "Digital" if digital_hits else "Physical",
+    }
+
+
+def first_installment(normalized: str) -> tuple[str | None, str | None, str | None]:
+    for family, pattern in GAME_INSTALLMENT_PATTERNS:
+        match = pattern.search(normalized)
+        if match:
+            raw = str(match.group("value"))
+            return family, raw.upper() if raw in ROMAN_NUMERAL_VALUES else raw, normalize_installment_value(raw)
+    return None, None, None
+
+
+def normalize_installment_value(value: Any) -> str:
+    text = str(value or "").strip().casefold()
+    return ROMAN_NUMERAL_VALUES.get(text, text.lstrip("0") or text)
+
+
+def installment_display(raw: str | None, normalized: str | None) -> str:
+    if not normalized:
+        return "None / Base title"
+    if raw and raw.casefold() in ROMAN_NUMERAL_VALUES:
+        return f"{raw.upper()} / {normalized}"
+    return raw or normalized
+
+
+def core_game_name(title: Any, family: str | None) -> str:
+    normalized_title = normalize_numeric_text(title)
+    if "rock band" in normalized_title and "track pack" in normalized_title:
+        return "Rock Band Track Pack: Classic Rock" if "classic rock" in normalized_title else "Rock Band Track Pack"
+    if family == "rock_band_track_pack":
+        return "Rock Band Track Pack: Classic Rock" if "classic rock" in normalized_title else "Rock Band Track Pack"
+    if family == "rock_band":
+        return "Rock Band"
+    if family == "final_fantasy":
+        return "Final Fantasy"
+    if family == "wipeout":
+        return "Wipeout"
+    cleaned = remove_identity_noise(str(title or ""))
+    return title_case_game(cleaned) or "Unknown"
+
+
+def remove_identity_noise(value: str) -> str:
+    text = normalize_numeric_text(value)
+    for alias_list in SYSTEM_ALIASES.values():
+        for alias in alias_list:
+            text = re.sub(rf"(?<![a-z0-9]){re.escape(normalize_numeric_text(alias))}(?![a-z0-9])", " ", text)
+    for _, pattern in EDITION_DISPLAY_SIGNALS:
+        text = pattern.sub(" ", text)
+    text = re.sub(r"\b(?:brand|new|sealed|video|game|standard|edition|for)\b", " ", text)
+    text = re.sub(r"\b(?:19|20)\d{2}\b", " ", text)
+    text = re.sub(r"\s+", " ", text)
+    return text.strip()
+
+
+def title_case_game(value: str) -> str:
+    acronyms = {"ps", "psp", "xbox", "wii", "u", "ds", "3ds", "pc", "xiv"}
+    words = []
+    for word in value.split():
+        words.append(word.upper() if word in acronyms else word.capitalize())
+    return " ".join(words)
+
+
+def edition_display(value: Any) -> str:
+    text = normalize_numeric_text(value)
+    for label, pattern in EDITION_DISPLAY_SIGNALS:
+        if pattern.search(text):
+            return label
+    return "Base / Standard"
+
+
+def platform_display(value: str | None) -> str | None:
+    display = {
+        "3DS": "Nintendo 3DS",
+        "DS": "Nintendo DS",
+        "Switch": "Nintendo Switch",
+        "Switch 2": "Nintendo Switch 2",
+        "Wii": "Nintendo Wii",
+        "Wii U": "Nintendo Wii U",
+        "PS 2": "PlayStation 2",
+        "PS 3": "PlayStation 3",
+        "PS 4": "PlayStation 4",
+        "PS 5": "PlayStation 5",
+    }
+    return display.get(value or "", value)
+
+
+def normalize_region(value: Any) -> str | None:
+    text = " ".join(str(item or "") for item in value) if isinstance(value, list) else str(value or "")
+    return region_display(text)
+
+
+def region_display(value: Any) -> str | None:
+    text = normalize_numeric_text(value)
+    for label, pattern in REGION_DISPLAY_SIGNALS:
+        if pattern.search(text):
+            return label
+    return None
+
+
+def package_contents_display(value: Any) -> str:
+    text = normalize_numeric_text(value)
+    if "track pack" in text:
+        return "Track pack"
+    if any(term in text for term in ("bundle", "includes", "with game")):
+        return "Bundle"
+    return "Standard physical software"
+
+
+def first_text(*values: Any) -> str | None:
+    for value in values:
+        if isinstance(value, list):
+            for item in value:
+                text = str(item or "").strip()
+                if text:
+                    return text
+        else:
+            text = str(value or "").strip()
+            if text:
+                return text
+    return None
 
 
 def normalized_aspects(localized_aspects: Any) -> dict[str, list[str]]:
@@ -925,6 +1191,23 @@ def numeric_identity_analysis(text: Any, source: str) -> dict[str, Any]:
     for span_start, span_end in platform_spans:
         for number in re.findall(r"\d+", normalized[span_start:span_end]):
             analysis["ignored_platform_numbers"].add(number.lstrip("0") or "0")
+    for family, pattern in GAME_INSTALLMENT_PATTERNS:
+        for match in pattern.finditer(normalized):
+            raw_value = str(match.group("value"))
+            value = normalize_installment_value(raw_value)
+            if not value:
+                continue
+            analysis["identity_numbers"].add(value)
+            analysis["identity_details"].append(
+                {
+                    "raw": raw_value,
+                    "value": value,
+                    "family": family,
+                    "classification": "game_installment",
+                    "source": source,
+                    "context": match.group(0),
+                }
+            )
     for token in tokens:
         classification = classify_numeric_token(token, normalized, platform_spans)
         token["classification"] = classification

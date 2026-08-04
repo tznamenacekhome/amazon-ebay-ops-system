@@ -142,6 +142,16 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     }
   }
 
+  if (actionType === "dismiss" && reason === "sales_velocity_too_low") {
+    const suppressionError = await upsertSalesVelocitySuppression({
+      opportunity,
+      action,
+    });
+    if (suppressionError) {
+      return NextResponse.json({ error: suppressionError }, { status: 500 });
+    }
+  }
+
   const event = actionType === "inventory_snooze"
     ? "roi_snoozed"
     : actionRecordType[actionType] === "purchased"
@@ -423,6 +433,76 @@ function ebayCategory(raw: unknown) {
 function numberOrNull(value: unknown) {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : null;
+}
+
+async function upsertSalesVelocitySuppression({
+  opportunity,
+  action,
+}: {
+  opportunity: Record<string, unknown>;
+  action: Record<string, unknown>;
+}) {
+  const seed = objectRecord(opportunity.sourcing_seed_asins);
+  const asin = textOrNull(opportunity.asin)?.toUpperCase();
+  if (!asin) return "Sales velocity suppression requires an ASIN.";
+
+  const settings = await latestSourcingSettings();
+  const lookbackDays = Math.max(1, Math.floor(numberOrNull(settings?.sales_lookback_days) ?? 90));
+  const requiredVelocity = roundNumber(1 / Math.max(lookbackDays / 30, 1), 4);
+  const currentVelocity = numberOrNull(seed.monthly_velocity);
+  const now = new Date().toISOString();
+  const payload = {
+    asin,
+    source_action_id: action.action_id,
+    dismissed_at: now,
+    velocity_at_dismissal: currentVelocity,
+    metric_window_days: lookbackDays,
+    required_velocity: requiredVelocity,
+    current_velocity: currentVelocity,
+    status: "active",
+    last_evaluated_at: now,
+    reactivated_at: null,
+    reason_code: "sales_velocity_too_low",
+    raw_context_json: {
+      opportunityId: opportunity.opportunity_id,
+      sourcingRunId: opportunity.sourcing_run_id,
+      seedId: opportunity.seed_id,
+      inventoryNeedLevel: seed.inventory_need_level ?? null,
+      monthsOfSupply: seed.months_of_supply ?? null,
+    },
+    updated_at: now,
+  };
+  const existing = await supabase
+    .from("sourcing_sales_velocity_suppressions")
+    .select("suppression_id")
+    .eq("asin", asin)
+    .eq("status", "active")
+    .maybeSingle();
+  if (existing.error) return `Sales velocity suppression lookup failed: ${existing.error.message}`;
+  const { error } = existing.data?.suppression_id
+    ? await supabase
+      .from("sourcing_sales_velocity_suppressions")
+      .update(payload)
+      .eq("suppression_id", existing.data.suppression_id)
+    : await supabase
+      .from("sourcing_sales_velocity_suppressions")
+      .insert({ ...payload, created_at: now });
+  return error ? `Sales velocity suppression failed: ${error.message}` : null;
+}
+
+async function latestSourcingSettings() {
+  const { data, error } = await supabase
+    .from("sourcing_settings")
+    .select("sales_lookback_days")
+    .order("created_at", { ascending: false })
+    .limit(1);
+  if (error) throw new Error(`Sourcing settings: ${error.message}`);
+  return data?.[0] ?? null;
+}
+
+function roundNumber(value: number, digits: number) {
+  const factor = 10 ** digits;
+  return Math.round(value * factor) / factor;
 }
 
 function integerOrNull(value: unknown) {

@@ -1,5 +1,38 @@
 # DECISIONS.md
 
+# Derived Identity Is Backend-Owned
+
+Decision date: 2026-08-04
+
+Sourcing product identity parsing belongs in backend diagnostics, not React.
+The UI may display `derived_identity`, but it must not independently infer core
+game, installment, edition, platform, region, completeness, package contents,
+or digital/physical state.
+
+Consequences:
+
+- Raw Amazon/eBay titles remain evidence, not the Derived Identity rows.
+- Roman numeral normalization is a backend rule for recognized game families.
+- Amazon Catalog Items evidence may override Amazon title inference only when
+  cached for the exact ASIN.
+
+# Sales Velocity Dismissals Are Dynamic Business Suppressions
+
+Decision date: 2026-08-04
+
+`sales_velocity_too_low` means the product may be valid but is not worth
+replenishing until velocity improves. It must not become negative identity
+memory.
+
+Consequences:
+
+- Suppression is ASIN-level and dynamic.
+- Default Replenishment excludes active suppressions.
+- Velocity refresh can release the suppression once the current threshold is
+  met.
+- Matching intelligence labels remain business issue /
+  valid-match-poor-opportunity.
+
 # Sourcing Feedback Separates Rule Families From Evidence
 
 Decision date: 2026-08-02

@@ -500,7 +500,27 @@ def latest_catalog_context_by_asin(supabase) -> dict[str, dict[str, Any]]:
         if not asin:
             continue
         context.setdefault(asin, {})["keepa"] = row
+    try:
+        catalog_items = paginate_table(
+            supabase,
+            "amazon_catalog_item_identity_snapshots",
+            "asin,product_type,normalized_platform,normalized_edition,normalized_release_date,normalized_release_year,normalized_region,normalized_format,package_quantity,variation_parent_asins,variation_child_asins,variation_theme,relevant_attributes_json,fetched_at,source_version",
+            max_rows=15000,
+        )
+        for row in catalog_items:
+            asin = str(row.get("asin") or "").upper()
+            if asin:
+                context.setdefault(asin, {})["amazon_catalog_item"] = row
+    except APIError as error:
+        if not is_missing_catalog_item_identity_table(error):
+            raise
     return context
+
+
+def is_missing_catalog_item_identity_table(error: APIError) -> bool:
+    payload = getattr(error, "args", [{}])[0]
+    text = str(payload)
+    return "amazon_catalog_item_identity_snapshots" in text and ("PGRST205" in text or "42P01" in text or "does not exist" in text)
 
 
 def finalize_seeds(
@@ -518,12 +538,15 @@ def finalize_seeds(
     stale_stock_skipped = 0
     blocked_skipped = 0
     blocked_asins = blocked_asins or set()
+    velocity_suppressions = fetch_active_velocity_suppressions(supabase)
     for row in rows:
         asin = str(row.get("asin") or "").upper()
         if asin in blocked_asins:
             blocked_skipped += 1
             continue
         velocity = to_float(row.get("units_sold_lookback"), 0) / max(settings.sales_lookback_days / 30, 1)
+        if velocity_suppression_active_after_evaluation(supabase, velocity_suppressions.get(asin), velocity):
+            continue
         inventory_units = inventory_by_asin.get(row["asin"], 0)
         planning = planning_by_asin.get(row["asin"]) or {}
         stale_stock = stale_in_stock_no_recent_sales(row["asin"], inventory_units, planning)
@@ -597,6 +620,52 @@ def fetch_blocked_asins(supabase) -> set[str]:
     return {str(row.get("asin") or "").strip().upper() for row in rows if row.get("asin")}
 
 
+def fetch_active_velocity_suppressions(supabase) -> dict[str, dict[str, Any]]:
+    try:
+        rows = paginate_table(
+            supabase,
+            "sourcing_sales_velocity_suppressions",
+            "suppression_id,asin,status,required_velocity,current_velocity,metric_window_days",
+        )
+    except APIError as error:
+        if is_missing_velocity_suppressions_table(error):
+            return {}
+        raise
+    return {
+        str(row.get("asin") or "").strip().upper(): row
+        for row in rows
+        if str(row.get("status") or "") == "active" and row.get("asin")
+    }
+
+
+def is_missing_velocity_suppressions_table(error: APIError) -> bool:
+    payload = getattr(error, "args", [{}])[0]
+    text = str(payload)
+    return "sourcing_sales_velocity_suppressions" in text and ("PGRST205" in text or "42P01" in text or "does not exist" in text)
+
+
+def velocity_suppression_active_after_evaluation(supabase, suppression: dict[str, Any] | None, current_velocity: float) -> bool:
+    if not suppression:
+        return False
+    required_velocity = to_float(suppression.get("required_velocity"), 0)
+    now = dt.datetime.now(dt.UTC).isoformat()
+    update = {
+        "current_velocity": round(current_velocity, 4),
+        "last_evaluated_at": now,
+        "updated_at": now,
+    }
+    if current_velocity >= required_velocity:
+        update.update({"status": "released", "reactivated_at": now})
+        active = False
+    else:
+        active = True
+    supabase.table("sourcing_sales_velocity_suppressions").update(update).eq(
+        "suppression_id",
+        suppression["suppression_id"],
+    ).execute()
+    return active
+
+
 def is_missing_blocked_asins_table(error: APIError) -> bool:
     payload = getattr(error, "args", [{}])[0]
     text = str(payload)
@@ -625,6 +694,11 @@ def stale_in_stock_no_recent_sales(asin: str, inventory_units: float, planning: 
 
 
 def infer_platform_context(asin: str, amazon_title: Any, context: dict[str, Any]) -> dict[str, str | None]:
+    catalog_item = context.get("amazon_catalog_item") or {}
+    catalog_platform = normalize_system(str(catalog_item.get("normalized_platform") or ""))
+    if catalog_platform:
+        return {"system": catalog_platform, "source": "amazon_catalog_item"}
+
     title_system = detect_system_from_title(str(amazon_title or ""))
     if title_system:
         return {"system": title_system, "source": "amazon_title"}
@@ -646,9 +720,11 @@ def infer_platform_context(asin: str, amazon_title: Any, context: dict[str, Any]
 
 def catalog_video_game_context(context: dict[str, Any]) -> dict[str, Any]:
     keepa = context.get("keepa") or {}
+    catalog_item = context.get("amazon_catalog_item") or {}
     product_group = str(keepa.get("product_group") or "").strip()
     category_tree = flatten_text(keepa.get("category_tree_json"))
     return {
+        "amazon_catalog_identity": catalog_item or None,
         "keepa_product_group": product_group or None,
         "keepa_category_tree": category_tree or None,
     }

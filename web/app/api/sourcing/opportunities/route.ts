@@ -245,6 +245,17 @@ type DecisionTraceRow = {
   reasonCode?: string;
 };
 
+type SalesVelocitySuppressionRow = {
+  asin: string | null;
+  velocity_at_dismissal: number | null;
+  current_velocity: number | null;
+  required_velocity: number | null;
+  metric_window_days: number | null;
+  last_evaluated_at: string | null;
+  reactivated_at: string | null;
+  status: string | null;
+};
+
 export async function GET(request: NextRequest) {
   try {
     return await getOpportunities(request);
@@ -288,18 +299,25 @@ async function getOpportunities(request: NextRequest) {
     });
   }
 
+  const requestedStatus = status === "sales_velocity_suppressed" ? "all" : status;
   const { data, error } = scope === "new_this_run" && latestBatchOpportunityIds
-    ? await fetchBatchOpportunities(latestBatchOpportunityIds, status, type)
+    ? await fetchBatchOpportunities(latestBatchOpportunityIds, requestedStatus, type)
     : await fetchRunOpportunities({
         runId,
         latestRunIds,
-        status: scope === "closest_excluded" ? "all" : status,
+        status: scope === "closest_excluded" ? "all" : requestedStatus,
         type,
         queryLimit,
       });
   if (error) return jsonNoStore({ error: error.message }, { status: 500 });
 
-  const rows = (data ?? []) as OpportunityRow[];
+  const activeSuppressionByAsin = await fetchActiveSalesVelocitySuppressions();
+  let rows = (data ?? []) as OpportunityRow[];
+  if (status === "sales_velocity_suppressed") {
+    rows = rows.filter((row) => activeSuppressionByAsin.has(row.asin?.toUpperCase()));
+  } else if (status === "open" && scope !== "closest_excluded") {
+    rows = rows.filter((row) => !activeSuppressionByAsin.has(row.asin?.toUpperCase()));
+  }
   const closestExcludedContext = scope === "closest_excluded"
     ? await buildClosestExcludedContext(rows)
     : null;
@@ -336,6 +354,7 @@ async function getOpportunities(request: NextRequest) {
       const conservativeProfit = conservativeDisplayedProfit(targetSalePrice, landedCost, row.profit);
       const exclusionReason = scope === "closest_excluded" ? closestExcludedReason(row) : null;
       const decisionTrace = scope === "closest_excluded" ? persistedDecisionTrace(row.matching_diagnostics_json) : [];
+      const velocitySuppression = activeSuppressionByAsin.get(row.asin.toUpperCase()) ?? null;
       return {
         opportunityId: row.opportunity_id,
         runId: row.sourcing_run_id,
@@ -394,6 +413,15 @@ async function getOpportunities(request: NextRequest) {
         unitsSold120d: lastSale?.unitsSold120d ?? 0,
         unitsSold365d: lastSale?.unitsSold365d ?? 0,
         salesCountSource: lastSale?.salesCountSource ?? null,
+        salesVelocitySuppression: velocitySuppression ? {
+          velocityAtDismissal: velocitySuppression.velocity_at_dismissal ?? null,
+          currentVelocity: velocitySuppression.current_velocity ?? null,
+          requiredVelocity: velocitySuppression.required_velocity ?? null,
+          metricWindowDays: velocitySuppression.metric_window_days ?? null,
+          lastEvaluatedAt: velocitySuppression.last_evaluated_at ?? null,
+          reactivatedAt: velocitySuppression.reactivated_at ?? null,
+          releaseEligible: (velocitySuppression.current_velocity ?? 0) >= (velocitySuppression.required_velocity ?? Number.POSITIVE_INFINITY),
+        } : null,
         opportunityType: row.opportunity_type,
         status: row.status,
         estimatedProfit: conservativeProfit.profit,
@@ -752,6 +780,31 @@ async function fetchActionedOpportunityIds(opportunityIds: string[]) {
     }
   }
   return ids;
+}
+
+async function fetchActiveSalesVelocitySuppressions() {
+  const byAsin = new Map<string, SalesVelocitySuppressionRow>();
+  const { data, error } = await supabase
+    .from("sourcing_sales_velocity_suppressions")
+    .select("asin,velocity_at_dismissal,current_velocity,required_velocity,metric_window_days,last_evaluated_at,reactivated_at,status")
+    .eq("status", "active");
+  if (error) {
+    if (isMissingSalesVelocitySuppressionTableError(error.message)) return byAsin;
+    throw new Error(`Sales velocity suppressions: ${error.message}`);
+  }
+  for (const row of (data ?? []) as SalesVelocitySuppressionRow[]) {
+    const asin = row.asin?.toUpperCase();
+    if (asin) byAsin.set(asin, row);
+  }
+  return byAsin;
+}
+
+function isMissingSalesVelocitySuppressionTableError(message: string) {
+  return message.includes("sourcing_sales_velocity_suppressions") && (
+    message.includes("does not exist") ||
+    message.includes("PGRST205") ||
+    message.includes("42P01")
+  );
 }
 
 function isOperatorActionType(actionType: string | null | undefined) {

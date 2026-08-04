@@ -270,6 +270,11 @@ All external API integrations are read-only unless explicitly documented otherwi
 
 - Amazon SP-API uses LWA auth and an explicit read-only path allow-list.
 - Amazon write endpoints, restricted PII flows, and seller order/customer PII are not used.
+- Amazon Catalog Items v2022-04-01 is used only by offline/cache integrations,
+  not page rendering. `integrations/amazon_sync_catalog_items.py` requests
+  attributes, summaries, relationships, product types, classifications, images,
+  and identifiers, then stores normalized exact-ASIN identity evidence in
+  `amazon_catalog_item_identity_snapshots`.
 - Amazon Seller Central account-health and feedback observations stay in
   Amazon-specific dashboard tables. `GET_SELLER_FEEDBACK_DATA` is allowed only
   as a read-only Reports API source for 1-3 star feedback alerts.

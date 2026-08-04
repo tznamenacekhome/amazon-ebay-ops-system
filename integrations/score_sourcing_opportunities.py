@@ -34,9 +34,9 @@ def main() -> int:
             seed_by_id.get(candidate.get("seed_id")),
             settings,
             keepa_prices_by_asin,
-            owned_units_by_asin,
             historical_status_by_key,
             matching_context,
+            owned_units_by_asin=owned_units_by_asin,
         )
         for candidate in candidates
     ]
@@ -488,9 +488,10 @@ def score_candidate(
     seed: dict[str, Any] | None,
     settings,
     keepa_prices_by_asin: dict[str, dict[str, float | None]] | None = None,
-    owned_units_by_asin: dict[str, int] | None = None,
     historical_status_by_key: dict[tuple[str, str], dict[str, Any]] | None = None,
     matching_context: dict[str, Any] | None = None,
+    *,
+    owned_units_by_asin: dict[str, int] | None = None,
 ) -> dict[str, Any] | None:
     if not seed:
         return None

@@ -11,6 +11,7 @@ from score_sourcing_opportunities import (
     fetch_historical_status_by_key,
     fetch_keepa_price_context_by_asin,
     fetch_matching_context,
+    fetch_owned_units_by_asin,
     score_candidate,
 )
 
@@ -24,6 +25,10 @@ def main() -> int:
     settings = fetch_settings(supabase)
     opportunities = fetch_open_opportunities(supabase, args.limit)
     keepa = fetch_keepa_price_context_by_asin(supabase, [row.get("asin") for row in opportunities])
+    owned_units = fetch_owned_units_by_asin(
+        supabase,
+        [dict(row.get("sourcing_seed_asins") or {}, asin=row.get("asin")) for row in opportunities],
+    )
     historical = fetch_historical_status_by_key(supabase)
     matching_context = fetch_matching_context(supabase)
 
@@ -39,7 +44,7 @@ def main() -> int:
                 "asin": opportunity.get("asin"),
             }
         )
-        scored = score_candidate(candidate, seed, settings, keepa, historical, matching_context)
+        scored = score_candidate(candidate, seed, settings, keepa, historical, matching_context, owned_units_by_asin=owned_units)
         if not scored:
             continue
         results.append(compare_opportunity(opportunity, scored))

@@ -42,6 +42,9 @@ export function buildDiagnosticComparison({
   const categoryRule = objectValue(staticRules.category ?? objectValue(diagnostics).category);
   const incompleteRule = objectValue(staticRules.incomplete_product ?? objectValue(diagnostics).incomplete_product);
   const digitalRule = objectValue(staticRules.digital_download ?? objectValue(diagnostics).digital_download);
+  const derivedIdentity = objectValue(staticRules.derived_identity ?? objectValue(diagnostics).derived_identity);
+  const amazonIdentity = objectValue(derivedIdentity.amazon);
+  const ebayIdentity = objectValue(derivedIdentity.ebay);
   const recommendation = textValue(objectValue(diagnostics).recommendation ?? staticRules.recommendation);
   const hardBlocks = stringArray(staticRules.hard_blocks ?? objectValue(diagnostics).hard_blocks);
   const warnings = stringArray(staticRules.warnings ?? objectValue(diagnostics).warnings ?? objectValue(diagnostics).flags)
@@ -60,14 +63,14 @@ export function buildDiagnosticComparison({
     warnings,
     evidenceSummary: evidenceSummary(diagnostics, titleOverlap),
     rows: [
-      identityRow("core_game_identity", "Core Game", "core_game_identity", amazonTitle, textValue(candidate.ebay_title), sharedTokensText(titleOverlap)),
-      identityRow("installment_number", "Installment / Sequel", "numeric_installment", identityText(numeric, "amazon"), identityText(numeric, "ebay"), numericExplanation(numeric)),
-      identityRow("platform_system", "Platform", "platform", amazonSystem, textValue(aspects.Platform ?? platformRule.ebay_system), formatDiagnosticValue(platformRule.result)),
-      identityRow("edition_version", "Edition / Version", "edition_version", amazonEdition, textValue(editionRule.ebay), formatDiagnosticValue(editionRule.result)),
-      identityRow("region", "Region", "region", amazonRegion, textValue(aspects["Region Code"] ?? aspects.Region ?? regionRule.ebay), formatDiagnosticValue(regionRule.result)),
-      identityRow("package_bundle_contents", "Package Contents", "completeness", firstText(objectValue(seed.raw_context_json).package_contents, "Standard physical software expected"), formatDiagnosticValue(aspects.Features ?? aspects["Custom Bundle"] ?? aspects.Bundle), "Package or bundle evidence"),
-      identityRow("completeness", "Completeness", "completeness", "Complete physical software expected", formatDiagnosticValue(incompleteRule.result), formatDiagnosticValue(incompleteRule.reason)),
-      identityRow("digital_physical", "Digital vs Physical", "digital_physical", "Physical resale expected", formatDiagnosticValue(digitalRule.result), formatDiagnosticValue(digitalRule.reason)),
+      identityRow("core_game_identity", "Core Game", "core_game_identity", amazonIdentity.coreGame, ebayIdentity.coreGame, sharedTokensText(titleOverlap)),
+      identityRow("installment_number", "Installment / Sequel", "numeric_installment", amazonIdentity.installment, ebayIdentity.installment, numericExplanation(numeric)),
+      identityRow("platform_system", "Platform", "platform", amazonIdentity.platform ?? amazonSystem, ebayIdentity.platform ?? aspects.Platform ?? platformRule.ebay_system, formatDiagnosticValue(platformRule.result)),
+      identityRow("edition_version", "Edition / Version", "edition_version", amazonIdentity.edition ?? amazonEdition, ebayIdentity.edition ?? editionRule.ebay, formatDiagnosticValue(editionRule.result)),
+      identityRow("region", "Region", "region", amazonIdentity.region ?? amazonRegion, ebayIdentity.region ?? aspects["Region Code"] ?? aspects.Region ?? regionRule.ebay, formatDiagnosticValue(regionRule.result)),
+      identityRow("package_bundle_contents", "Package Contents", "completeness", amazonIdentity.packageContents, ebayIdentity.packageContents, "Package or bundle evidence"),
+      identityRow("completeness", "Completeness", "completeness", amazonIdentity.completeness, ebayIdentity.completeness, formatDiagnosticValue(incompleteRule.reason)),
+      identityRow("digital_physical", "Digital vs Physical", "digital_physical", amazonIdentity.digitalPhysical, ebayIdentity.digitalPhysical, formatDiagnosticValue(digitalRule.reason)),
       identityRow("category_product_type", "Category / Product Type", "category_product_type", null, formatDiagnosticValue(categoryName(rawEbay) ?? categoryRule.ebay), formatDiagnosticValue(categoryRule.result)),
       identityRow("seller_listing_photo_consistency", "Seller Listing / Photos", "seller_listing_photo_consistency", amazonImage, imageCount(rawEbay), "Photos available for operator review"),
       evidenceRow("amazon_title", "Amazon Title", "amazon_title", amazonTitle),
@@ -212,11 +215,14 @@ function itemSpecificSummary(aspects: JsonRecord) {
 
 function amazonCatalogSummary(seed: JsonRecord, platformRule: JsonRecord, editionRule: JsonRecord, regionRule: JsonRecord) {
   const rawContext = objectValue(seed.raw_context_json);
+  const catalogIdentity = objectValue(rawContext.amazon_catalog_identity);
   const entries = [
     labeledValue("ASIN", seed.asin),
-    labeledValue("System", seed.system ?? rawContext.inferred_system ?? platformRule.amazon_system),
-    labeledValue("Edition", editionRule.amazon ?? rawContext.edition),
-    labeledValue("Region", regionRule.amazon ?? rawContext.region),
+    labeledValue("System", catalogIdentity.normalized_platform ?? seed.system ?? rawContext.inferred_system ?? platformRule.amazon_system),
+    labeledValue("Edition", catalogIdentity.normalized_edition ?? editionRule.amazon ?? rawContext.edition),
+    labeledValue("Region", catalogIdentity.normalized_region ?? regionRule.amazon ?? rawContext.region),
+    labeledValue("Product type", catalogIdentity.product_type),
+    labeledValue("Variation theme", catalogIdentity.variation_theme),
     labeledValue("Product group", rawContext.keepa_product_group),
     labeledValue("Category", rawContext.keepa_category_tree),
   ].filter(Boolean);
