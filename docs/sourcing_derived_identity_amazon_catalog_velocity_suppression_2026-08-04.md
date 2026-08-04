@@ -133,7 +133,44 @@ Sales velocity suppression backfill:
 - Artifact: `tmp/sales_velocity_suppression_backfill_dry_run_20260804150216.json`
 - Dismissal actions found: 2,110
 - ASIN suppressions selected: 21
-- Write mode not run because schema migration application is pending explicit approval.
+
+## Production Write Results
+
+Migration:
+
+- `supabase db push` applied `20260804000000_mbop_sourcing_catalog_velocity_suppression.sql`.
+- Follow-up `supabase migration list` confirmed local and remote migration ledgers aligned through `20260804000000`.
+
+Sales velocity suppression backfill:
+
+- Command: `integrations/backfill_sales_velocity_suppressions.py --write`
+- Artifact: `tmp/sales_velocity_suppression_backfill_write_20260804223137.json`
+- Dismissal actions found: 2,110
+- ASIN suppressions selected: 21
+- Rows written: 21
+
+Amazon Catalog Items cache:
+
+- Command: `integrations/amazon_sync_catalog_items.py --current-opportunities --limit 50 --write`
+- Artifact: `tmp/amazon_catalog_items_identity_write_20260804223141.json`
+- ASINs fetched: 18
+- Rows written: 18
+- Calls were read-only Catalog Items API calls. No eBay quota-consuming search was run.
+
+Current presented opportunity reevaluation:
+
+- Command: `integrations/reprocess_current_unreviewed_sourcing.py --write`
+- Artifact: `tmp/sourcing_unreviewed_reprocess_write_20260804223800.json`
+- Rows in scope: 3,451
+- Rows processed: 3,451
+- Unchanged: 3,397
+- Newly hard-blocked: 2
+- Downgraded from open to rejected: 12
+- Rows leaving presentation: 12
+- Rows entering presentation: 0
+- Recommendation changes: 2
+- Status transitions: `open->open`: 3,439, `open->rejected`: 12
+- Purchased, completed, and dismissed rows touched: 0
 
 ## Migration
 
@@ -146,7 +183,7 @@ Adds:
 - `amazon_catalog_item_identity_snapshots`
 - `sourcing_sales_velocity_suppressions`
 
-`supabase migration list` showed the migration as local-only and all earlier migrations aligned with remote. Direct `supabase db push` was blocked by approval policy pending explicit operator approval.
+`supabase migration list` showed all earlier migrations aligned with remote. After explicit operator approval, `supabase db push` applied this migration and a follow-up ledger check confirmed remote alignment.
 
 ## Validation
 
@@ -158,6 +195,6 @@ Passed:
 
 ## Caveats
 
-- Catalog Items write/cache mode requires the migration to be applied first.
-- Historical sales velocity suppression write backfill requires the migration to be applied first.
-- Production deployment should wait until the migration is explicitly approved and applied, because the sales-velocity dismiss action writes to the new suppression table.
+- Catalog Items evidence is cached only for ASINs fetched through the new utility; unfetched ASINs continue to fall back through existing trusted MBOP/Amazon metadata and title normalization.
+- Product Type Definitions were not used for ASIN values; Catalog Items is the ASIN-level evidence source.
+- Historical Sales Velocity Too Low dismissals were backfilled as active ASIN-level business suppressions without reopening historical opportunities or creating identity-negative evidence.

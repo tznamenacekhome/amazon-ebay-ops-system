@@ -14,6 +14,10 @@ Last Updated: 2026-08-04
 - Sales Velocity Too Low dismissals now create dynamic ASIN-level suppressions
   that hide default Replenishment rows until refreshed velocity meets the
   threshold.
+- Migration `20260804000000_mbop_sourcing_catalog_velocity_suppression.sql`
+  has been applied. The approved production write pass backfilled 21 active
+  velocity suppressions, cached 18 current-opportunity Catalog Items rows, and
+  reprocessed 3,451 current open opportunities.
 - Report:
   `docs/sourcing_derived_identity_amazon_catalog_velocity_suppression_2026-08-04.md`.
 

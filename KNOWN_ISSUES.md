@@ -6,23 +6,26 @@ Last reviewed: 2026-08-04
 
 # Active Issues
 
-## Sourcing Catalog/Velocity Migration Pending Explicit Approval
+## Sourcing Catalog/Velocity Suppression Production Monitor
 
-Status: BLOCKED / OPERATOR APPROVAL NEEDED
+Status: ACTIVE / MONITOR
 
 Problem:
 The derived identity, Amazon Catalog Items cache, and Sales Velocity Too Low
-suppression implementation includes forward migration
-`20260804000000_mbop_sourcing_catalog_velocity_suppression.sql`. The migration
-ledger was checked and aligned, but direct `supabase db push` was blocked by
-the schema-change approval policy pending explicit operator approval.
+suppression implementation is newly deployed and should be monitored as real
+operator actions and velocity refreshes flow through it.
 
 Current mitigation:
-- The app/API handles a missing velocity suppression table on read paths.
-- Production deployment should wait until the migration is explicitly approved
-  and applied because sales-velocity dismiss actions write to the new table.
-- Dry-run reprocessing and dry-run backfill artifacts were produced without
-  marketplace writes or eBay quota use.
+- Migration `20260804000000_mbop_sourcing_catalog_velocity_suppression.sql`
+  has been applied and the remote migration ledger is aligned.
+- The approved write pass backfilled 21 active Sales Velocity Too Low ASIN
+  suppressions, cached 18 current-opportunity Catalog Items rows, and
+  reprocessed 3,451 current open opportunities.
+- Default Replenishment excludes active velocity suppressions, while the Sales
+  Velocity Suppressed tab exposes current velocity, required threshold, last
+  evaluation, and release eligibility.
+- No marketplace writes, eBay quota-consuming search, AI/image analysis, or
+  historical opportunity reopening were part of the change.
 
 ## Sourcing Diagnostics Feedback Needs Ongoing Review
 
