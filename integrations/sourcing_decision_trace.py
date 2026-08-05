@@ -70,6 +70,7 @@ DIAGNOSTIC_KEYS = {
     "profitability": ["opportunity_context", "confidence_summary"],
     "duplicate_history": ["opportunity_context", "confidence_summary"],
     "review_threshold": ["final_recommendation", "confidence_summary"],
+    "video_game_identity_conflict": ["core_game_identity", "installment_number", "platform_system", "hard_blocks"],
     "current_rules_would_present": ["final_recommendation", "confidence_summary", "opportunity_context"],
     "unknown_rejection": ["final_recommendation", "confidence_summary", "opportunity_context"],
 }
@@ -135,6 +136,7 @@ def build_decision_trace(
     static_rules = record(diagnostics.get("static_rules"))
     checks = [
         ("title_overlap", "Title overlap", "title_overlap"),
+        ("identity_comparison", "Video game identity", "core_game_identity"),
         ("platform_rule", "Platform/system", "platform_system"),
         ("game_name", "Game name", "game_name"),
         ("numeric_identity", "Numeric identity", "installment_number"),
@@ -273,6 +275,10 @@ def reason_code_for_check(key: str, value: dict[str, Any]) -> str | None:
         return "unsupported_platform"
     if "platform" in text:
         return "wrong_platform"
+    if "video game identity" in text or "coreproduct" in text or "franchise" in text:
+        if "installment" in text or "generation" in text:
+            return "numeric_installment_mismatch"
+        return "game_name_conflict"
     if "game_name" in key or "game name" in text:
         return "game_name_conflict"
     if "numeric" in text or "installment" in text or "identity number" in text:

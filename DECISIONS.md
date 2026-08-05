@@ -1,5 +1,25 @@
 # DECISIONS.md
 
+# Video Game Identity Comparator Is Conservative Authority
+
+Decision date: 2026-08-04
+
+Sourcing now uses a dedicated backend video-game identity parser/comparator for
+canonical identity diagnostics. It is authoritative only for high-confidence
+identity conflicts: franchise, core product, installment, generation, theme,
+and material edition.
+
+Consequences:
+
+- Unknown identity must remain unknown and cannot create positive core-game
+  evidence.
+- Shared franchise alone and platform-only agreement are not enough to create a
+  positive identity match.
+- Platform, region, completeness, and digital/physical are still displayed in
+  the canonical identity object, but existing rule families remain responsible
+  for hard-blocking those dimensions.
+- Deployment requires the remaining full production-read validation pass.
+
 # Derived Identity Is Backend-Owned
 
 Decision date: 2026-08-04

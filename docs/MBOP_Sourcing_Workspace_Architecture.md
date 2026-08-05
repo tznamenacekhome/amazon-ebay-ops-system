@@ -27,6 +27,7 @@ Implemented entry points:
 - `integrations/build_sourcing_seed_asins.py`
 - `integrations/ebay_sourcing_search.py`
 - `integrations/score_sourcing_opportunities.py`
+- `integrations/video_game_identity.py`
 - `integrations/sourcing_coverage_cycle.py`
 - `integrations/run_daily_catalog_sourcing.py`
 - `integrations/run_daily_sourcing_discovery.py`
@@ -147,6 +148,11 @@ Current implementation notes:
   Platform, Game Name, Region Code, Country of Origin, Format, Type, Features,
   Release Year, category IDs/names, seller description text, and image URL
   availability.
+- `video_game_identity.py` owns canonical video-game identity parsing and
+  comparison for diagnostics and scoring. Its first version hard-blocks only
+  high-confidence franchise, core product, installment, generation, theme, and
+  material-edition conflicts; unknown identity and platform-only agreement are
+  not treated as positive evidence.
 - `/api/sourcing/opportunities` hydrates Last Sold from the seed row first and
   then falls back to Amazon sales history by ASIN, which keeps full-listing
   opportunities from showing an empty Last Sold column when the ASIN has recent

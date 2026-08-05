@@ -40,6 +40,27 @@ suppressions. They do not create identity-negative evidence; they hide
 otherwise valid opportunities until refreshed sourcing velocity meets the
 current threshold.
 
+## 2026-08-04 Video Game Identity Engine
+
+Sourcing matching now has a dedicated deterministic video-game identity parser
+and comparator in `integrations/video_game_identity.py`. It emits
+`identity_comparison` as the authoritative identity object for diagnostics,
+hard-blocks, summary/presentation traces, and the existing `derived_identity`
+display shape.
+
+The first version hard-blocks only high-confidence product identity conflicts:
+franchise, core product, installment, generation, theme, and explicit material
+edition conflict. Platform, region, completeness, and digital/physical remain
+visible in the identity object, but their hard-blocking stays with the existing
+rule families to avoid duplicate false-positive risk from generic platform
+labels and package wording.
+
+Unknown identity is not positive evidence. Generic eBay Game Name values such
+as `Game` are ignored and cannot override clearer title/description evidence.
+Deployment remains blocked until the remaining full production-read validation
+can run after the Codex usage-limit gate clears. Report:
+`docs/sourcing_video_game_identity_engine_2026-08-04.md`.
+
 The Matching Intelligence Layer preserves reviewed sourcing evidence so MBOP can
 improve Amazon-to-eBay replenishment matching before any future eBay-to-Amazon
 sourcing work.

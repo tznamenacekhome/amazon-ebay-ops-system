@@ -1,6 +1,6 @@
 # Business Rules
 
-Last updated: 2026-08-02
+Last updated: 2026-08-04
 
 ## Cost And Reporting
 
@@ -86,6 +86,13 @@ Carrier/status syncs must not downgrade workflow-owned statuses.
   installment product numbers may hard-block when the same family conflicts,
   such as `NBA 2K19` vs `NBA 2K26`, `Rock Band 2` vs `Rock Band 3`, or base
   `Rock Band` vs `Rock Band 3`.
+- Video-game identity parsing is backend-owned in
+  `integrations/video_game_identity.py`. The identity comparator may
+  hard-block only high-confidence franchise, core product, installment,
+  generation, theme, or material-edition conflicts. Unknown identity and shared
+  franchise/platform alone are not positive match evidence.
+- Generic eBay Game Name values such as `Game` must not override clearer title,
+  item-specific, or description evidence.
 - Platform aliases, release years, quantity/lot counts, and included-content
   counts must not create numeric hard blocks. Examples: `Rock Band PlayStation
   3` vs `Rock Band PS3`, `Lot of 2 Rock Band 3`, `Sniper Elite 4 Xbox One

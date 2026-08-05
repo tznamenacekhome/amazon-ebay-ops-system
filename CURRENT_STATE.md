@@ -2,6 +2,25 @@
 
 Last Updated: 2026-08-04
 
+## 2026-08-04 Video Game Identity Engine
+
+- Added a dedicated deterministic parser/comparator in
+  `integrations/video_game_identity.py` and wired it into sourcing static
+  diagnostics as `identity_comparison`.
+- The engine hard-blocks high-confidence video-game identity conflicts for
+  franchise, core product, installment, generation, theme, and material edition.
+  Unknown identity remains unknown and does not create positive evidence.
+- Regression fixtures cover the requested Rock Band, Shrek, Disney Infinity,
+  Dead Rising, Wipeout, Wii Play/Tiger Woods, Carnival, Final Fantasy, and
+  platform-number examples.
+- Confirmed-positive safety rerun found 85 current hard-blocked authoritative
+  positives versus the prior documented 95 baseline, with zero authoritative
+  confirmed-positive hard blocks from the new video identity reason.
+- Deployment and write-mode reprocessing are not complete because the final
+  full production-read validation pass was blocked by the Codex usage-limit
+  gate until 2026-08-07 21:05.
+- Report: `docs/sourcing_video_game_identity_engine_2026-08-04.md`.
+
 ## 2026-08-04 Derived Identity, Catalog Evidence, And Velocity Suppression
 
 - Sourcing diagnostics now emit backend-owned `derived_identity` values for

@@ -6,6 +6,27 @@ Last reviewed: 2026-08-04
 
 # Active Issues
 
+## Video Game Identity Engine Deployment Pending Full Validation
+
+Status: BLOCKED / TOOLING LIMIT
+
+Problem:
+The deterministic video-game identity parser/comparator is implemented and
+locally validated, but deployment is intentionally blocked until the remaining
+full production-read safety validation can run. The Codex escalation reviewer
+rejected additional networked production reads because the session usage limit
+was reached until 2026-08-07 21:05.
+
+Current mitigation:
+- No deployment or write-mode reprocessing has been run for this engine.
+- Local tests and build pass.
+- Confirmed-positive safety rerun showed 85 current hard-blocked authoritative
+  positives versus the prior documented 95 baseline, with zero authoritative
+  confirmed-positive hard blocks from the new video identity reason.
+- A 1,000-row current-open dry-run and 459-row recent-rejected dry-run were
+  captured in `tmp/`, but the full all-current-open validation remains pending.
+- Report: `docs/sourcing_video_game_identity_engine_2026-08-04.md`.
+
 ## Sourcing Catalog/Velocity Suppression Production Monitor
 
 Status: ACTIVE / MONITOR

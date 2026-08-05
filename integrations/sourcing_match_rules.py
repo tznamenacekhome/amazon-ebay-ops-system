@@ -7,6 +7,7 @@ from typing import Any
 
 from system_detection import SYSTEM_ALIASES, detect_system_from_title, normalize_system
 from title_cleaning import clean_marketplace_title_for_search
+from video_game_identity import build_identity_comparison
 
 
 RECOMMENDATION_RANK = {
@@ -552,18 +553,32 @@ def evaluate_static_match_rules(
         score_adjustment -= 30
         recommendation = "Blocked"
 
-    derived_identity = derived_game_identity(
+    identity_comparison = build_identity_comparison(
         amazon_title=amazon_title,
         ebay_title=ebay_title,
         seed=seed,
         evidence=evidence,
-        platform=platform,
-        numeric=numeric,
-        edition=edition,
-        region=region,
-        incomplete=incomplete,
-        digital=digital,
     )
+    if identity_comparison.get("hard_block"):
+        reason = f"video game identity conflict: {identity_comparison.get('reason')}"
+        hard_blocks.append(reason)
+        flags.append(f"Blocked: {reason}")
+        score_adjustment -= 40
+        recommendation = "Blocked"
+    elif identity_comparison.get("result") == "review":
+        warnings.append(str(identity_comparison.get("reason") or "video game identity requires review"))
+        score_adjustment -= 12
+        recommendation = lower_recommendation(recommendation, "Review")
+
+    derived_identity = dict(identity_comparison)
+    if identity_comparison.get("result") == "conflict":
+        conflicts = set(identity_comparison.get("conflicts") or [])
+        if "installment" in conflicts:
+            derived_identity["result"] = "installment_conflict"
+        elif "platform" in conflicts:
+            derived_identity["result"] = "platform_conflict"
+        elif "edition" in conflicts:
+            derived_identity["result"] = "edition_conflict"
 
     if not hard_blocks and not warnings and title_overlap.get("shared_tokens"):
         recommendation = "Probable Match"
@@ -588,6 +603,7 @@ def evaluate_static_match_rules(
         "category": category,
         "delivery": delivery,
         "location": location,
+        "identity_comparison": identity_comparison,
         "derived_identity": derived_identity,
     }
 
