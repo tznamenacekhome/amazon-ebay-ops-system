@@ -437,7 +437,7 @@ JOBS: tuple[SyncJob, ...] = (
             "--source",
             "catalog_priority",
             "--limit",
-            "25",
+            "30",
             "--batch-size",
             "5",
             "--min-tokens",

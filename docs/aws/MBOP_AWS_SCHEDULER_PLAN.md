@@ -315,7 +315,7 @@ Current scheduler-safe defaults:
 keepa-catalog-priority:
   --source catalog_priority
   --batch-size 5
-  --limit 25
+  --limit 30
   --min-tokens 10
   --offers 20
   --only-live-offers
