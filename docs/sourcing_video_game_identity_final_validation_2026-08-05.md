@@ -208,14 +208,52 @@ Commands passed:
 
 ## Production Write And Deployment
 
-To be filled after deployment:
+Runtime commit deployed:
+`5308bc991a05a33879396a09a215e3dbe88b3a97`.
 
-- Final commit SHA:
-- Web image digest:
-- Web ECS task revision:
-- Scheduler image digest:
-- Scheduler ECS task revision:
-- EventBridge schedules updated:
-- Current-open rows written:
-- Rejected/Closest Excluded diagnostics rows written:
-- Production verification rows:
+Follow-up deployment-helper commit:
+`f195c0a` (`scripts/update-sourcing-catalog-schedule.ps1` only).
+
+Web deployment:
+
+- Image digest:
+  `sha256:9e9fb2d1bc508e56460a723ec7a7c5a93071e4c15016bb5cfb725536093e140a`
+- ECS task revision: `mbop-web-task:112`
+- Build variables: `MBOP_BUILD_SHA=5308bc991a05`,
+  `NEXT_PUBLIC_MBOP_BUILD_SHA=5308bc991a05`
+- ECS service: stable, desired `1`, running `1`, pending `0`
+
+Scheduler deployment:
+
+- Image digest:
+  `sha256:1424901375ae59e7e1681885be8991f0ab0375409de29f7bdffe3193a7969410`
+- ECS task revision: `mbop-scheduler-task:62`
+- Updated EventBridge schedule: `mbop-sourcing-catalog`
+- Schedule expression remained `cron(10 0 ? * * *)`
+- Schedule timezone remained `America/Los_Angeles`
+- Schedule command remained
+  `python run_all_syncs.py --group sourcing-catalog`
+
+Production writes:
+
+- Current-open post-deploy dry-run artifact:
+  `tmp/sourcing_unreviewed_reprocess_dry_run_20260805013649.json`
+- Current-open write artifact:
+  `tmp/sourcing_unreviewed_reprocess_write_20260805013810.json`
+- Current-open rows written: 3,441
+- Rows leaving presentation: 449
+- Purchased/completed/dismissed rows touched: 0
+- Rejected/Closest Excluded diagnostics write artifact:
+  `tmp/sourcing_rejected_decision_trace_write_20260805014303.json`
+- Rejected/Closest Excluded diagnostics rows written: 193
+- Rows promoted from rejected diagnostics write: 0
+
+Production row verification:
+
+| Opportunity ID | ASIN | Status | Primary reason | Final recommendation | Trace rows |
+| --- | --- | --- | --- | --- | ---: |
+| `cf5dde8b-58a8-4c60-9050-35acaa257bda` | B003RS8I92 | rejected | game_name_conflict | Blocked | 16 |
+| `88e2ca05-006e-43c2-99cb-cf3a513da246` | B00AXI9WFS | rejected | numeric_installment_mismatch | Blocked | 16 |
+| `18d9a8b1-94ff-4c91-a782-891c44c7ca4b` | B00CZCA6RI | rejected | edition_version_conflict | Review | 16 |
+| `5310e462-04d5-4f93-98b3-481e78efcdc7` | B07JMHZMX1 | watching | game_name_conflict | Review | 16 |
+| `def00ccb-31ad-44b4-9fc3-7df530a9a1fe` | B01LDUYU60 | inventory_snoozed | edition_version_conflict | Review | 16 |

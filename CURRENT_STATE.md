@@ -15,6 +15,11 @@ Last Updated: 2026-08-05
   presentation, with zero purchased/completed/dismissed rows touched.
 - Fixed diagnostics reason mapping so `identity_comparison.result = conflict`
   appears as an identity reason instead of being hidden behind profitability.
+- Deployed runtime commit `5308bc991a05` to web task `mbop-web-task:112` and
+  scheduler task `mbop-scheduler-task:62`; updated only the
+  `mbop-sourcing-catalog` schedule to revision 62.
+- Production write pass updated 3,441 current open opportunities and refreshed
+  193 rejected/Closest Excluded diagnostics rows.
 - Final deployment/write details are tracked in
   `docs/sourcing_video_game_identity_final_validation_2026-08-05.md`.
 
