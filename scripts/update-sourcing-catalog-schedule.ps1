@@ -4,7 +4,8 @@ param(
   [string]$ScheduleName = "mbop-sourcing-catalog",
   [string]$GroupName = "default",
   [string]$ScheduleExpression = "cron(10 0 ? * * *)",
-  [string]$Timezone = "America/Los_Angeles"
+  [string]$Timezone = "America/Los_Angeles",
+  [string]$TaskDefinitionArn = ""
 )
 
 $ErrorActionPreference = "Stop"
@@ -20,6 +21,12 @@ $schedule = aws scheduler get-schedule `
 
 $targetFile = Join-Path ([System.IO.Path]::GetTempPath()) "mbop-sourcing-catalog-target.json"
 $windowFile = Join-Path ([System.IO.Path]::GetTempPath()) "mbop-sourcing-catalog-window.json"
+
+if ($TaskDefinitionArn) {
+  $targetInput = $schedule.Target.Input | ConvertFrom-Json
+  $targetInput.TaskDefinition = $TaskDefinitionArn
+  $schedule.Target.Input = $targetInput | ConvertTo-Json -Depth 100 -Compress
+}
 
 $schedule.Target | ConvertTo-Json -Depth 100 | Set-Content -LiteralPath $targetFile -Encoding ascii
 $schedule.FlexibleTimeWindow | ConvertTo-Json -Depth 100 | Set-Content -LiteralPath $windowFile -Encoding ascii
