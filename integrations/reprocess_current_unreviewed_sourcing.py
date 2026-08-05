@@ -94,6 +94,12 @@ def fetch_open_opportunities(supabase, limit: int | None) -> list[dict[str, Any]
 def compare_opportunity(opportunity: dict[str, Any], scored: dict[str, Any]) -> dict[str, Any]:
     old_recommendation = recommendation(opportunity.get("matching_diagnostics_json"))
     new_recommendation = recommendation(scored.get("matching_diagnostics_json"))
+    new_diagnostics = scored.get("matching_diagnostics_json")
+    new_decision = presentation_decision(new_diagnostics)
+    new_primary_reason = primary_reason_code(new_decision)
+    static_rules = static_rule_payload(new_diagnostics)
+    candidate = opportunity.get("sourcing_ebay_candidates") or {}
+    seed = opportunity.get("sourcing_seed_asins") or {}
     old_status = opportunity.get("status")
     new_status = scored.get("status")
     old_score = number_or_none(opportunity.get("score"))
@@ -103,10 +109,17 @@ def compare_opportunity(opportunity: dict[str, Any], scored: dict[str, Any]) -> 
         "asin": opportunity.get("asin"),
         "ebay_item_id": opportunity.get("ebay_item_id"),
         "candidate_id": opportunity.get("candidate_id"),
+        "amazon_title": seed.get("amazon_title"),
+        "ebay_title": candidate.get("ebay_title"),
         "old_status": old_status,
         "new_status": new_status,
         "old_recommendation": old_recommendation,
         "new_recommendation": new_recommendation,
+        "new_primary_reason": new_primary_reason,
+        "new_hard_blocks": string_list(static_rules.get("hard_blocks") or (new_diagnostics or {}).get("hard_blocks")),
+        "new_warnings": string_list(static_rules.get("warnings") or (new_diagnostics or {}).get("warnings")),
+        "new_decision_trace_count": len((new_diagnostics or {}).get("decisionTrace") or []),
+        "new_final_recommendation": new_decision.get("finalRecommendation"),
         "old_score": old_score,
         "new_score": new_score,
         "status_changed": old_status != new_status,
@@ -189,6 +202,33 @@ def recommendation(value: Any) -> str | None:
         return None
     static_rules = value.get("static_rules") if isinstance(value.get("static_rules"), dict) else {}
     return value.get("recommendation") or static_rules.get("recommendation")
+
+
+def presentation_decision(value: Any) -> dict[str, Any]:
+    if not isinstance(value, dict):
+        return {}
+    payload = value.get("presentationDecision")
+    return payload if isinstance(payload, dict) else {}
+
+
+def primary_reason_code(value: dict[str, Any]) -> str | None:
+    primary = value.get("primaryReason")
+    if isinstance(primary, dict) and primary.get("code"):
+        return str(primary["code"])
+    return None
+
+
+def static_rule_payload(value: Any) -> dict[str, Any]:
+    if not isinstance(value, dict):
+        return {}
+    payload = value.get("static_rules")
+    return payload if isinstance(payload, dict) else {}
+
+
+def string_list(value: Any) -> list[str]:
+    if not isinstance(value, list):
+        return []
+    return [str(item).strip() for item in value if str(item).strip()]
 
 
 def has_block(value: Any) -> bool:

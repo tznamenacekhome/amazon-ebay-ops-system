@@ -245,7 +245,7 @@ def reason(code: str) -> dict[str, Any]:
 
 def result_name(value: dict[str, Any]) -> str:
     raw = str(value.get("result") or "").lower()
-    if raw in {"blocked", "fail"}:
+    if raw in {"blocked", "conflict", "fail"}:
         return "fail"
     if raw in {"review", "warning"}:
         return "warning"
@@ -271,6 +271,12 @@ def reason_code_for_check(key: str, value: dict[str, Any]) -> str | None:
     if result_name(value) == "pass":
         return None
     text = " ".join([key, str(value.get("reason") or ""), " ".join(str(item) for item in value.get("hits") or [])]).lower()
+    if key == "identity_comparison":
+        if "installment" in text or "generation" in text:
+            return "numeric_installment_mismatch"
+        if "edition" in text or "version" in text:
+            return "edition_version_conflict"
+        return "game_name_conflict"
     if "unsupported platform" in text:
         return "unsupported_platform"
     if "platform" in text:

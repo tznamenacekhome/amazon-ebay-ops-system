@@ -1,6 +1,22 @@
 # CURRENT_STATE.md
 
-Last Updated: 2026-08-04
+Last Updated: 2026-08-05
+
+## 2026-08-05 Video Game Identity Final Validation
+
+- Completed the final production-read validation pass for the conservative
+  video game identity engine.
+- Current confirmed-positive dataset: 6,110 raw evidence rows, 2,436 deduped
+  positive rows, 2,353 authoritative confirmed positives, and 83 review-only
+  watching rows.
+- Zero authoritative confirmed positives are hard-blocked by the new video game
+  identity conflict.
+- Full current-open dry-run scored 3,441 open opportunities; 449 would leave
+  presentation, with zero purchased/completed/dismissed rows touched.
+- Fixed diagnostics reason mapping so `identity_comparison.result = conflict`
+  appears as an identity reason instead of being hidden behind profitability.
+- Final deployment/write details are tracked in
+  `docs/sourcing_video_game_identity_final_validation_2026-08-05.md`.
 
 ## 2026-08-04 Video Game Identity Engine
 
@@ -16,9 +32,7 @@ Last Updated: 2026-08-04
 - Confirmed-positive safety rerun found 85 current hard-blocked authoritative
   positives versus the prior documented 95 baseline, with zero authoritative
   confirmed-positive hard blocks from the new video identity reason.
-- Deployment and write-mode reprocessing are not complete because the final
-  full production-read validation pass was blocked by the Codex usage-limit
-  gate until 2026-08-07 21:05.
+- Final production-read validation resumed and passed on 2026-08-05.
 - Report: `docs/sourcing_video_game_identity_engine_2026-08-04.md`.
 
 ## 2026-08-04 Derived Identity, Catalog Evidence, And Velocity Suppression
