@@ -6,6 +6,7 @@ import argparse
 import datetime as dt
 import subprocess
 import sys
+import time
 from pathlib import Path
 from typing import Any
 
@@ -286,18 +287,42 @@ def count_run_rows(supabase, table_name: str, run_id: str) -> int:
 
 
 def fetch_ebay_search_summary(supabase, run_id: str) -> dict[str, Any]:
-    response = (
-        supabase.table("sourcing_runs")
-        .select("raw_summary_json")
-        .eq("sourcing_run_id", run_id)
-        .maybe_single()
-        .execute()
-    )
+    response = None
+    for attempt in range(1, 5):
+        try:
+            response = (
+                supabase.table("sourcing_runs")
+                .select("raw_summary_json")
+                .eq("sourcing_run_id", run_id)
+                .maybe_single()
+                .execute()
+            )
+            break
+        except Exception as exc:
+            if not is_transient_supabase_error(exc) or attempt == 4:
+                raise
+            wait_seconds = attempt * 3
+            print(f"Transient Supabase error reading eBay search summary; retrying in {wait_seconds}s ({attempt}/4): {exc}", flush=True)
+            time.sleep(wait_seconds)
+    if response is None:
+        return {}
     raw_summary = (response.data or {}).get("raw_summary_json") or {}
     if not isinstance(raw_summary, dict):
         return {}
     search_summary = raw_summary.get("ebay_search") or {}
     return search_summary if isinstance(search_summary, dict) else {}
+
+
+def is_transient_supabase_error(error: Exception) -> bool:
+    text = str(error).lower()
+    return (
+        "web server is down" in text
+        or "error code 521" in text
+        or "cloudflare" in text
+        or "json could not be generated" in text
+        or "connection" in text
+        or "timeout" in text
+    )
 
 
 def select_unbatched_open_opportunities(supabase, run_id: str, target: int) -> list[dict[str, Any]]:

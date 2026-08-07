@@ -1196,7 +1196,7 @@ function scheduledPacificTimesForGroup(groupKey: string): PacificRunTime[] {
     case "repricing-catalog":
       return [{ hour: 21, minute: 30 }];
     case "sourcing-catalog":
-      return [{ hour: 22, minute: 0 }];
+      return [{ hour: 0, minute: 10 }];
     case "keepa-catalog-priority":
       return everyThirtyMinutes();
     default:

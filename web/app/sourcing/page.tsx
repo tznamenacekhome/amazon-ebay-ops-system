@@ -5,6 +5,7 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 import {
   Ban,
+  ChevronsUpDown,
   RefreshCw,
   Search,
 } from "lucide-react";
@@ -17,6 +18,24 @@ import { KeepaPriceIndicator } from "../components/KeepaPriceIndicator";
 const tabs = ["Replenishment", "Closest Excluded", "Sales Velocity Suppressed", "Coverage Cycle", "Watchlist", "Purchased Pending Match", "Sourcing History", "Matching Intelligence", "Settings"] as const;
 const opportunityTypes = ["all", "buy_now", "multi_unit", "best_offer", "auction", "watch"] as const;
 const GIXEN_URL = "https://www.gixen.com/main/index.php";
+type OpportunitySortKey =
+  | "ebay"
+  | "amazon"
+  | "opportunity"
+  | "cost"
+  | "lastSold"
+  | "keepa90"
+  | "keepaNow"
+  | "myPrice"
+  | "profit"
+  | "roi"
+  | "type"
+  | "flags";
+type SortDirection = "asc" | "desc";
+type OpportunitySort = {
+  key: OpportunitySortKey;
+  direction: SortDirection;
+};
 type SourcingActionPayload = {
   actionType: string;
   reason?: string;
@@ -408,8 +427,19 @@ function ReplenishmentTable({
   closestExcludedMode: boolean;
   salesVelocitySuppressedMode: boolean;
 }) {
+  const [sort, setSort] = useState<OpportunitySort | null>(null);
   const allSelected = rows.length > 0 && rows.every((row) => selectedIds.has(row.opportunityId));
   const bulkDisabled = selectedCount === 0 || actionBusyId === "bulk";
+  const sortedRows = useMemo(() => sortOpportunityRows(rows, sort), [rows, sort]);
+
+  function toggleSort(key: OpportunitySortKey) {
+    setSort((current) => {
+      if (current?.key === key) {
+        return { key, direction: current.direction === "desc" ? "asc" : "desc" };
+      }
+      return { key, direction: defaultSortDirection(key) };
+    });
+  }
 
   return (
     <div className="overflow-hidden rounded-md border border-slate-200 bg-white shadow-sm">
@@ -441,18 +471,18 @@ function ReplenishmentTable({
                   className="sourcing-checkbox"
                 />
               </th>
-              <th className="w-36 px-3 py-2">eBay</th>
-              <th className="w-36 px-3 py-2">Amazon</th>
-              <th className="w-[26rem] px-2 py-2">Opportunity</th>
-              <th className="w-24 px-2 py-2">Cost</th>
-              <th className="w-32 px-2 py-2">Last Sold</th>
-              <th className="w-24 px-2 py-2">Keepa 90</th>
-              <th className="w-24 px-2 py-2">Keepa Now</th>
-              <th className="w-28 px-2 py-2">My Price</th>
-              <th className="w-24 px-2 py-2">Profit</th>
-              <th className="w-16 px-2 py-2">ROI</th>
-              <th className="w-32 px-2 py-2">Type</th>
-              <th className="w-40 px-2 py-2">Flags</th>
+              <SortableHeader className="w-36 px-3 py-2" label="eBay" sortKey="ebay" activeSort={sort} onSort={toggleSort} />
+              <SortableHeader className="w-36 px-3 py-2" label="Amazon" sortKey="amazon" activeSort={sort} onSort={toggleSort} />
+              <SortableHeader className="w-[26rem] px-2 py-2" label="Opportunity" sortKey="opportunity" activeSort={sort} onSort={toggleSort} />
+              <SortableHeader className="w-24 px-2 py-2" label="Cost" sortKey="cost" activeSort={sort} onSort={toggleSort} />
+              <SortableHeader className="w-32 px-2 py-2" label="Last Sold" sortKey="lastSold" activeSort={sort} onSort={toggleSort} />
+              <SortableHeader className="w-24 px-2 py-2" label="Keepa 90" sortKey="keepa90" activeSort={sort} onSort={toggleSort} />
+              <SortableHeader className="w-24 px-2 py-2" label="Keepa Now" sortKey="keepaNow" activeSort={sort} onSort={toggleSort} />
+              <SortableHeader className="w-28 px-2 py-2" label="My Price" sortKey="myPrice" activeSort={sort} onSort={toggleSort} />
+              <SortableHeader className="w-24 px-2 py-2" label="Profit" sortKey="profit" activeSort={sort} onSort={toggleSort} />
+              <SortableHeader className="w-16 px-2 py-2" label="ROI" sortKey="roi" activeSort={sort} onSort={toggleSort} />
+              <SortableHeader className="w-32 px-2 py-2" label="Type" sortKey="type" activeSort={sort} onSort={toggleSort} />
+              <SortableHeader className="w-40 px-2 py-2" label="Flags" sortKey="flags" activeSort={sort} onSort={toggleSort} />
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
@@ -461,7 +491,7 @@ function ReplenishmentTable({
             ) : rows.length === 0 ? (
               <tr><td colSpan={13} className="px-3 py-8 text-center text-slate-500">No sourcing rows found for this view.</td></tr>
             ) : (
-              rows.map((row) => (
+              sortedRows.map((row) => (
                 <tr key={row.opportunityId} className="align-top hover:bg-slate-50">
                   <td className="px-2 py-2 align-middle">
                     <input
@@ -640,6 +670,94 @@ function ReplenishmentTable({
       `}</style>
     </div>
   );
+}
+
+function SortableHeader({
+  className,
+  label,
+  sortKey,
+  activeSort,
+  onSort,
+}: {
+  className: string;
+  label: string;
+  sortKey: OpportunitySortKey;
+  activeSort: OpportunitySort | null;
+  onSort: (key: OpportunitySortKey) => void;
+}) {
+  const active = activeSort?.key === sortKey;
+  const directionLabel = activeSort?.direction === "asc" ? "ascending" : "descending";
+  return (
+    <th className={className} aria-sort={active ? directionLabel : "none"}>
+      <button
+        type="button"
+        onClick={() => onSort(sortKey)}
+        className={`flex w-full items-center gap-1 text-left font-semibold uppercase tracking-wide ${
+          active ? "text-slate-950" : "text-slate-500 hover:text-slate-800"
+        }`}
+        title={`Sort by ${label}`}
+      >
+        <span>{label}</span>
+        <ChevronsUpDown className={`h-3 w-3 ${active ? "text-slate-900" : "text-slate-400"}`} aria-hidden="true" />
+        {active ? <span className="text-[10px]">{activeSort.direction === "asc" ? "Asc" : "Desc"}</span> : null}
+      </button>
+    </th>
+  );
+}
+
+function sortOpportunityRows(rows: SourcingOpportunity[], sort: OpportunitySort | null) {
+  if (!sort) return rows;
+  return [...rows].sort((left, right) => {
+    const compared = compareOpportunitySortValue(sortValue(left, sort.key), sortValue(right, sort.key), sort.direction);
+    if (compared !== 0) return compared;
+    return compareOpportunitySortValue(left.createdAt, right.createdAt, "desc");
+  });
+}
+
+function sortValue(row: SourcingOpportunity, key: OpportunitySortKey): string | number | null {
+  switch (key) {
+    case "ebay":
+      return row.ebayTitle;
+    case "amazon":
+      return `${row.amazonTitle} ${row.asin}`;
+    case "opportunity":
+      return row.score;
+    case "cost":
+      return row.landedCost ?? row.itemPrice;
+    case "lastSold":
+      return row.lastSoldAt ? Date.parse(row.lastSoldAt) : null;
+    case "keepa90":
+      return row.keepaAvg90Price;
+    case "keepaNow":
+      return row.keepaCurrentPrice;
+    case "myPrice":
+      return row.myPrice;
+    case "profit":
+      return row.estimatedProfit;
+    case "roi":
+      return row.estimatedRoiPercent;
+    case "type":
+      return row.opportunityType;
+    case "flags":
+      return row.aiFlags.filter(isVisibleSourcingFlag).join(" ");
+  }
+}
+
+function compareOpportunitySortValue(left: string | number | null, right: string | number | null, direction: SortDirection) {
+  const leftMissing = left === null || left === "";
+  const rightMissing = right === null || right === "";
+  if (leftMissing && rightMissing) return 0;
+  if (leftMissing) return 1;
+  if (rightMissing) return -1;
+  const compared = typeof left === "number" && typeof right === "number"
+    ? left - right
+    : String(left).localeCompare(String(right), undefined, { numeric: true, sensitivity: "base" });
+  return direction === "asc" ? compared : -compared;
+}
+
+function defaultSortDirection(key: OpportunitySortKey): SortDirection {
+  if (key === "ebay" || key === "amazon" || key === "type" || key === "flags") return "asc";
+  return "desc";
 }
 
 function SourcingFlags({ flags }: { flags: string[] }) {
