@@ -119,7 +119,7 @@ export default function ReceivingPage() {
   useEffect(() => {
     const normalizedSearch = searchText.trim();
 
-    if (!normalizedSearch || !isLikelyTrackingScan(normalizedSearch)) {
+    if (!normalizedSearch || !isReceivingServerLookupInput(normalizedSearch)) {
       setScanRows([]);
       return;
     }
@@ -305,7 +305,7 @@ export default function ReceivingPage() {
       const draft = drafts[receivingRowKey(row)];
       const marketplace = draft?.marketplace ?? "Amazon";
       const returnPending = draft?.returnPending ?? false;
-      const expectedQuantity = Number(row.quantity ?? 1);
+      const expectedQuantity = getExpectedRemainingQuantity(row);
       const quantityReceived = parseQuantityReceived(
         draft?.quantityReceived,
         expectedQuantity
@@ -355,7 +355,7 @@ export default function ReceivingPage() {
 
     const items = detailRows.map((row) => {
       const draft = drafts[receivingRowKey(row)];
-      const expectedQuantity = Number(row.quantity ?? 1);
+      const expectedQuantity = getExpectedRemainingQuantity(row);
       return {
         item_id: row.item_id,
         package_link_id: row.package_link_id ?? null,
@@ -776,9 +776,9 @@ export default function ReceivingPage() {
                   const key = receivingRowKey(row);
                   const ebayListingUrl = row.ebay_listing_url || getEbayListingUrl(row);
                   const amazonDisplayTitle = getAmazonDisplayTitle(row);
-                  const expectedQuantity = Number(row.quantity ?? 1);
+                  const expectedQuantity = getExpectedRemainingQuantity(row);
                   const draft = drafts[key] ?? {
-                    quantityReceived: String(row.quantity ?? 1),
+                    quantityReceived: defaultQuantityReceivedDraft(row),
                     returnPending: false,
                     marketplace: "Amazon" as const,
                     asin: row.asin || "",
@@ -843,7 +843,7 @@ export default function ReceivingPage() {
                           </div>
                         )}
                         <div className="mt-3 text-sm text-slate-500">
-                          Expected: {row.quantity ?? 1}
+                          Expected remaining: {expectedQuantity}
                         </div>
                         {row.package_link_id && (
                           <div className="mt-2 text-sm text-slate-500">
@@ -1204,11 +1204,18 @@ function parseQuantityReceived(value: string | undefined, fallback: number) {
 }
 
 function defaultQuantityReceivedDraft(row: PurchaseRow) {
-  if (row.package_link_id && row.package_quantity_expected === null) {
-    return "0";
-  }
+  return String(getExpectedRemainingQuantity(row));
+}
 
-  return String(row.package_quantity_expected ?? row.quantity ?? 1);
+function getExpectedRemainingQuantity(row: PurchaseRow) {
+  return Number(row.package_quantity_expected ?? row.quantity ?? 1);
+}
+
+function isReceivingServerLookupInput(value: string) {
+  const normalizedInput = cleanTrackingScanValue(value);
+  if (/^\d{2}-\d{5}-\d{5}$/.test(value.trim())) return true;
+  if (isLikelyTrackingScan(value)) return true;
+  return /^\d{6,11}$/.test(normalizedInput);
 }
 
 function getProblemQuantity(

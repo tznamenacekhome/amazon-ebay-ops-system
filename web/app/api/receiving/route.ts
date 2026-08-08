@@ -161,39 +161,85 @@ async function fetchReceivingPackageRows(excludedItemIds: string[]) {
 }
 
 async function fetchReceivingScanRows(scan: string, excludedItemIds: string[]) {
-  const trackingCandidates = normalizeTrackingScan(scan).candidates;
-  if (trackingCandidates.length === 0) return [];
+  const trackingScan = normalizeTrackingScan(scan);
+  const trackingCandidates = trackingScan.candidates;
+  const orderRows = await fetchReceivingScanRowsByOrder(scan, excludedItemIds);
 
-  const { data: shipments, error: shipmentError } = await supabase
+  let shipmentRequest = supabase
     .from("inbound_shipments")
     .select("inbound_shipment_id")
-    .in("tracking_number", trackingCandidates)
     .not("delivered_date", "is", null);
+
+  if (trackingCandidates.length > 0) {
+    shipmentRequest = shipmentRequest.in("tracking_number", trackingCandidates);
+  } else if (isNumericTrackingSuffix(trackingScan.normalizedInput)) {
+    shipmentRequest = shipmentRequest.ilike(
+      "tracking_number",
+      `%${escapeIlike(trackingScan.normalizedInput)}`
+    );
+  } else {
+    return orderRows;
+  }
+
+  const { data: shipments, error: shipmentError } = await shipmentRequest.limit(25);
 
   if (shipmentError) {
     console.warn("Receiving scan shipment lookup failed", shipmentError.message);
-    return [];
+    return orderRows;
   }
 
   const shipmentIds = (shipments ?? [])
     .map((shipment) => shipment.inbound_shipment_id)
     .filter(Boolean);
 
-  if (shipmentIds.length === 0) return [];
+  if (shipmentIds.length === 0) return orderRows;
 
-  let request = supabase
-    .from("inbound_shipment_items")
-    .select(
-      [
-        "inbound_shipment_item_id",
-        "quantity_expected_in_package",
-        "quantity_received_from_package",
-        "received_verified",
-        "resolution_status",
-        "inbound_shipments!inner(inbound_shipment_id,purchase_id,tracking_number,carrier,carrier_status,normalized_status,shipment_status,estimated_delivery_date,delivered_date,tracking_url)",
-        "purchase_items!inner(item_id,purchase_id,title,amazon_title,quantity,unit_cost,asin,target_price,system,current_status,condition,supplier_sku,supplier_listing_url,raw_import_json,marketplace,received_date,purchases(supplier_order_id,order_date,total_order_cost,order_status,raw_import_json))",
-      ].join(",")
-    )
+  const trackingRows = await fetchReceivingScanRowsByShipmentIds(shipmentIds, excludedItemIds);
+  return uniqueReceivingRows([...trackingRows, ...orderRows]);
+}
+
+async function fetchReceivingScanRowsByOrder(scan: string, excludedItemIds: string[]) {
+  const orderNumber = scan.trim();
+  if (!/^\d{2}-\d{5}-\d{5}$/.test(orderNumber)) return [];
+
+  const { data: purchases, error } = await supabase
+    .from("purchases")
+    .select("purchase_id")
+    .eq("supplier_order_id", orderNumber)
+    .limit(5);
+
+  if (error) {
+    console.warn("Receiving scan order lookup failed", error.message);
+    return [];
+  }
+
+  const purchaseIds = (purchases ?? [])
+    .map((purchase) => purchase.purchase_id)
+    .filter(Boolean);
+
+  if (purchaseIds.length === 0) return [];
+
+  let request = baseReceivingPackageLinkRequest()
+    .eq("resolution_status", "open")
+    .not("inbound_shipments.delivered_date", "is", null)
+    .not("purchase_items.current_status", "in", `(${RECEIVING_CLOSED_ITEM_STATUSES.join(",")})`)
+    .in("inbound_shipments.purchase_id", purchaseIds);
+
+  if (excludedItemIds.length > 0) {
+    request = request.not("item_id", "in", `(${excludedItemIds.join(",")})`);
+  }
+
+  const { data, error: packageError } = await request.limit(100);
+  if (packageError) {
+    console.warn("Receiving scan order package lookup failed", packageError.message);
+    return [];
+  }
+
+  return (data ?? []).flatMap((link: any) => mapReceivingPackageRow(link));
+}
+
+async function fetchReceivingScanRowsByShipmentIds(shipmentIds: string[], excludedItemIds: string[]) {
+  let request = baseReceivingPackageLinkRequest()
     .eq("resolution_status", "open")
     .not("purchase_items.current_status", "in", `(${RECEIVING_CLOSED_ITEM_STATUSES.join(",")})`)
     .in("inbound_shipment_id", shipmentIds);
@@ -209,6 +255,40 @@ async function fetchReceivingScanRows(scan: string, excludedItemIds: string[]) {
   }
 
   return (data ?? []).flatMap((link: any) => mapReceivingPackageRow(link));
+}
+
+function baseReceivingPackageLinkRequest() {
+  return supabase
+    .from("inbound_shipment_items")
+    .select(
+      [
+        "inbound_shipment_item_id",
+        "quantity_expected_in_package",
+        "quantity_received_from_package",
+        "received_verified",
+        "resolution_status",
+        "inbound_shipments!inner(inbound_shipment_id,purchase_id,tracking_number,carrier,carrier_status,normalized_status,shipment_status,estimated_delivery_date,delivered_date,tracking_url)",
+        "purchase_items!inner(item_id,purchase_id,title,amazon_title,quantity,unit_cost,asin,target_price,system,current_status,condition,supplier_sku,supplier_listing_url,raw_import_json,marketplace,received_date,purchases(supplier_order_id,order_date,total_order_cost,order_status,raw_import_json))",
+      ].join(",")
+    );
+}
+
+function isNumericTrackingSuffix(value: string) {
+  return /^\d{6,11}$/.test(value);
+}
+
+function uniqueReceivingRows(rows: any[]) {
+  const seen = new Set<string>();
+  return rows.filter((row) => {
+    const key = row.package_link_id || row.item_id || `${row.purchase_id}:${row.tracking_number}`;
+    if (!key || seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+function escapeIlike(value: string) {
+  return value.replace(/[\\%_]/g, (match) => `\\${match}`);
 }
 
 function mapReceivingPackageRow(link: any) {

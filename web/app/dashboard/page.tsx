@@ -871,7 +871,12 @@ function DashboardSchedulerGroupDrawer({ group, onClose }: { group: DashboardPay
                     {keepaCatalogCycles.length ? (
                       keepaCatalogCycles.map((cycle) => (
                         <tr key={text(cycle.cycleId)} className="border-t border-slate-100 align-middle">
-                          <td className="whitespace-nowrap px-3 py-3 font-mono text-xs text-slate-700">{shortId(text(cycle.cycleId))}</td>
+                          <td
+                            className="whitespace-nowrap px-3 py-3 font-mono text-xs text-slate-700"
+                            title={text(cycle.cycleId)}
+                          >
+                            {text(cycle.displayName) || shortId(text(cycle.cycleId))}
+                          </td>
                           <td className="whitespace-nowrap px-3 py-3 text-slate-700">{text(cycle.status)}</td>
                           <td className="whitespace-nowrap px-3 py-3 text-slate-700">{formatDateShort(text(cycle.cycleStartedAt))}</td>
                           <td className="whitespace-nowrap px-3 py-3 text-right tabular-nums text-slate-700">
