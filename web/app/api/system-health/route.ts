@@ -724,13 +724,16 @@ const JOBS: JobConfig[] = [
   },
 ];
 
+const HEALTH_READ_TIMEOUT_MS = 4_000;
+const JOB_SIGNAL_TIMEOUT_MS = 3_000;
+
 export async function GET() {
   try {
     const [failures, localRuns, schedulerRuns, schedulerJobRuns] = await Promise.all([
-      readSchedulerFailures(),
-      readLocalRunRecords(),
-      readSchedulerRuns(),
-      readSchedulerJobRuns(),
+      withTimeout(readSchedulerFailures(), HEALTH_READ_TIMEOUT_MS, []),
+      withTimeout(readLocalRunRecords(), HEALTH_READ_TIMEOUT_MS, []),
+      withTimeout(readSchedulerRuns(), HEALTH_READ_TIMEOUT_MS, []),
+      withTimeout(readSchedulerJobRuns(), HEALTH_READ_TIMEOUT_MS, []),
     ]);
     const jobs = await Promise.all(
       JOBS.map(async (job) => {
@@ -851,7 +854,13 @@ export async function GET() {
 
 async function safeSignal(job: JobConfig): Promise<JobSignal> {
   try {
-    return await job.signal();
+    return await withTimeout(job.signal(), JOB_SIGNAL_TIMEOUT_MS, {
+      lastRunAt: null,
+      source: "timed out",
+      stats: [],
+      statusOverride: "unknown",
+      message: `Timed out reading ${job.name} health signal.`,
+    });
   } catch (error) {
     return {
       lastRunAt: null,
@@ -1201,6 +1210,20 @@ function scheduledPacificTimesForGroup(groupKey: string): PacificRunTime[] {
       return everyThirtyMinutes();
     default:
       return [];
+  }
+}
+
+async function withTimeout<T>(promise: Promise<T>, timeoutMs: number, fallback: T): Promise<T> {
+  let timeout: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([
+      promise,
+      new Promise<T>((resolve) => {
+        timeout = setTimeout(() => resolve(fallback), timeoutMs);
+      }),
+    ]);
+  } finally {
+    if (timeout) clearTimeout(timeout);
   }
 }
 
