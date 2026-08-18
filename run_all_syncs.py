@@ -26,7 +26,10 @@ RUN_HISTORY_PATH = LOG_DIR / "sync_runs.jsonl"
 LOCK_PATH = LOG_DIR / "run_all_syncs.lock"
 LOCK_STALE_HOURS = 10
 DEFAULT_TIMEOUT_SECONDS = 45 * 60
-DISTRIBUTED_LOCK_GROUPS = {"keepa-catalog-priority"}
+DISTRIBUTED_LOCK_GROUPS = {"keepa-catalog-priority", "fba-pricing"}
+KEEPA_QUOTA_GROUPS = {"keepa-catalog-priority", "fba-pricing"}
+KEEPA_MANUAL_GROUP = "fba-pricing"
+KEEPA_SCHEDULED_GROUP = "keepa-catalog-priority"
 DB_LOCK_GRACE_SECONDS = 15 * 60
 TELEMETRY_CLIENT = None
 ECS_METADATA: dict[str, object] | None = None
@@ -460,24 +463,14 @@ JOBS: tuple[SyncJob, ...] = (
     SyncJob(
         name="Keepa FBA prep pricing",
         command=static_command(
-            "integrations/keepa_sync_products.py",
-            "--source",
-            "received_fba_prep",
-            "--limit",
-            "100",
+            "integrations/fba_pricing_keepa_until_complete.py",
             "--batch-size",
             "20",
             "--min-tokens",
-            "100",
-            "--offers",
             "20",
-            "--only-live-offers",
-            "--no-history",
-            "--no-rating",
-            "--write",
         ),
         groups=("fba-pricing",),
-        timeout_seconds=30 * 60,
+        timeout_seconds=4 * 60 * 60,
     ),
     SyncJob(
         name="Amazon Product Fees estimates",
@@ -529,7 +522,7 @@ def main() -> int:
         return 0
 
     started_at = now_iso()
-    run_id = str(uuid.uuid4())
+    run_id = args.run_id or os.getenv("MBOP_RUN_ID") or str(uuid.uuid4())
     print(f"Starting sync group={args.group} run_id={run_id}")
     print(started_at)
     start_scheduler_run(run_id=run_id, group=args.group, jobs=selected_jobs, started_at=started_at)
@@ -558,6 +551,34 @@ def main() -> int:
             error_summary=message,
         )
         return 1
+
+    keepa_blocking_run = find_active_keepa_quota_run(args.group, run_id, selected_jobs)
+    if keepa_blocking_run and args.group == KEEPA_SCHEDULED_GROUP:
+        message = (
+            "Manual FBA pricing is using Keepa quota; scheduled Keepa catalog "
+            f"priority is paused until run_id={keepa_blocking_run.get('run_id')} finishes."
+        )
+        for job in selected_jobs:
+            record_job(
+                job=job,
+                command=job.command(),
+                group=args.group,
+                run_id=run_id,
+                status="blocked",
+                started_at=started_at,
+                message=message,
+            )
+        print(f"ERROR: {message}")
+        finish_scheduler_run(
+            run_id=run_id,
+            status="blocked",
+            started_at=started_at,
+            error_summary=message,
+        )
+        return 1
+
+    if args.group == KEEPA_MANUAL_GROUP:
+        wait_for_keepa_quota(args.group, run_id, selected_jobs)
 
     lock_acquired = False
     if not args.no_lock:
@@ -672,6 +693,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--include-disabled", action="store_true", help="Include disabled jobs in --list output.")
     parser.add_argument("--no-lock", action="store_true", help="Skip local overlap protection.")
     parser.add_argument("--skip-supabase-probe", action="store_true", help="Skip Supabase preflight read.")
+    parser.add_argument("--run-id", default=None, help="Optional externally supplied scheduler run id.")
     return parser.parse_args()
 
 
@@ -1250,6 +1272,61 @@ def find_active_distributed_group_run(
 
     rows = response.data or []
     return rows[0] if rows else None
+
+
+def find_active_keepa_quota_run(
+    group: str,
+    run_id: str,
+    jobs: list[SyncJob],
+) -> dict[str, object] | None:
+    if group not in KEEPA_QUOTA_GROUPS:
+        return None
+    other_groups = sorted(KEEPA_QUOTA_GROUPS - {group})
+    if not other_groups:
+        return None
+    client = telemetry_client()
+    if client is None:
+        return None
+
+    timeout_seconds = max((job.timeout_seconds for job in jobs), default=DEFAULT_TIMEOUT_SECONDS)
+    cutoff = datetime.now(timezone.utc) - timedelta(seconds=timeout_seconds + DB_LOCK_GRACE_SECONDS)
+    try:
+        response = (
+            client.table("scheduler_runs")
+            .select("run_id,group_name,started_at,eventbridge_schedule_name,ecs_task_arn")
+            .in_("group_name", other_groups)
+            .eq("status", "running")
+            .neq("run_id", run_id)
+            .gte("started_at", cutoff.isoformat().replace("+00:00", "Z"))
+            .order("started_at", desc=True)
+            .limit(1)
+            .execute()
+        )
+    except Exception as error:  # noqa: BLE001 - quota guard must not break non-Keepa scheduler groups.
+        print(f"WARNING: Keepa quota overlap check failed: {error}")
+        return None
+
+    rows = response.data or []
+    return rows[0] if rows else None
+
+
+def wait_for_keepa_quota(group: str, run_id: str, jobs: list[SyncJob]) -> None:
+    wait_started = time.monotonic()
+    timeout_seconds = max((job.timeout_seconds for job in jobs), default=DEFAULT_TIMEOUT_SECONDS)
+    while True:
+        active_run = find_active_keepa_quota_run(group, run_id, jobs)
+        if not active_run:
+            return
+        if time.monotonic() - wait_started > timeout_seconds:
+            raise RuntimeError(
+                "Timed out waiting for scheduled Keepa catalog priority run "
+                f"{active_run.get('run_id')} to release Keepa quota."
+            )
+        print(
+            "Waiting for scheduled Keepa quota user to finish: "
+            f"group={active_run.get('group_name')} run_id={active_run.get('run_id')}"
+        )
+        time.sleep(60)
 
 
 def acquire_lock(group: str, run_id: str) -> None:

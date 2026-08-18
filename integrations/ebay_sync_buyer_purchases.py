@@ -780,6 +780,20 @@ def order_is_fully_refunded(order):
     )
 
 
+def order_is_cancelled_or_refunded(order):
+    order_status = str(child_text(order, "OrderStatus") or "").strip().lower()
+    cancel_status = str(child_text(order, "CancelStatus") or "").strip().lower()
+
+    return (
+        order_status in {"cancelled", "canceled"}
+        or (
+            cancel_status
+            and cancel_status not in {"notapplicable", "not_applicable", "none"}
+        )
+        or order_is_fully_refunded(order)
+    )
+
+
 def transaction_landed_total(transaction):
     quantity = transaction_quantity(transaction)
 
@@ -1264,10 +1278,12 @@ def upsert_purchase(order, import_batch_id, access_token):
     transactions = extract_transactions(order)
     existing_purchase = get_existing_purchase_for_order(order, order_id, transactions)
     tracking_candidates = extract_tracking_candidates(order)
+    ebay_cancelled = order_is_cancelled_or_refunded(order)
 
     if (
         SKIP_EXISTING_ORDERS_WITH_TRACKING
         and existing_purchase
+        and not ebay_cancelled
         and purchase_has_all_tracking(existing_purchase["purchase_id"], tracking_candidates)
     ):
         return "skipped_existing_with_tracking"
@@ -1276,7 +1292,6 @@ def upsert_purchase(order, import_batch_id, access_token):
     dates = extract_delivery_dates(order)
     raw_order = element_to_dict(order)
     seller_shipped = order_has_shipped_time(order)
-    ebay_cancelled = order_is_fully_refunded(order)
 
     purchase_payload = {
         "supplier": "eBay",

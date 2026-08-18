@@ -2,7 +2,7 @@ import { promises as fs } from "fs";
 import path from "path";
 import { spawn } from "child_process";
 import { NextRequest, NextResponse } from "next/server";
-import { isCloudDeployment, isLocalJobExecutionEnabled, requireAdminApiToken } from "../_server";
+import { createServerSupabaseClient, isCloudDeployment, isLocalJobExecutionEnabled, requireAdminApiToken } from "../_server";
 import { runSchedulerGroupTask } from "../_awsScheduler";
 
 export const runtime = "nodejs";
@@ -22,7 +22,12 @@ const TARGET_GROUPS: Record<string, string | null> = {
   "fba-pricing": "fba-pricing",
 };
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const runId = request.nextUrl.searchParams.get("runId")?.trim();
+  if (runId) {
+    return NextResponse.json(await readRunStatus(runId));
+  }
+
   const lock = await readActiveLock();
   return NextResponse.json({
     inProgress: Boolean(lock),
@@ -109,6 +114,8 @@ export async function POST(request: NextRequest) {
     "run_all_syncs.py",
     "--group",
     group,
+    "--run-id",
+    runId,
   ];
   const shellCommand = `${command.join(" ")} >> logs\\on_demand_sync.log 2>&1`;
 
@@ -133,6 +140,64 @@ export async function POST(request: NextRequest) {
     runId,
     message: `Started ${target} sync refresh.`,
   });
+}
+
+async function readRunStatus(runId: string) {
+  try {
+    const supabase = createServerSupabaseClient();
+    const [{ data: runRows }, { data: jobRows }] = await Promise.all([
+      supabase
+        .from("scheduler_runs")
+        .select("run_id,group_name,status,started_at,finished_at,runtime_seconds,error_summary")
+        .eq("run_id", runId)
+        .limit(1),
+      supabase
+        .from("scheduler_run_jobs")
+        .select("job_name,status,started_at,finished_at,error_summary,rows_read,rows_inserted,rows_updated,rows_skipped,rate_limit_count,metadata")
+        .eq("run_id", runId)
+        .order("started_at", { ascending: true }),
+    ]);
+    const run = runRows?.[0] ?? null;
+    const jobs = jobRows ?? [];
+    return {
+      found: Boolean(run),
+      run,
+      jobs,
+      summary: summarizeRunJobs(jobs),
+    };
+  } catch (error) {
+    return {
+      found: false,
+      error: error instanceof Error ? error.message : "Unable to read run status.",
+    };
+  }
+}
+
+type RunSummary = {
+  rowsRead: number;
+  rowsInserted: number;
+  rowsUpdated: number;
+  rowsSkipped: number;
+  rateLimitCount: number;
+  failures: number;
+};
+
+function summarizeRunJobs(jobs: Array<Record<string, unknown>>): RunSummary {
+  return jobs.reduce<RunSummary>(
+    (summary, job) => ({
+      rowsRead: summary.rowsRead + numberValue(job.rows_read),
+      rowsInserted: summary.rowsInserted + numberValue(job.rows_inserted),
+      rowsUpdated: summary.rowsUpdated + numberValue(job.rows_updated),
+      rowsSkipped: summary.rowsSkipped + numberValue(job.rows_skipped),
+      rateLimitCount: summary.rateLimitCount + numberValue(job.rate_limit_count),
+      failures: summary.failures + (job.status === "failed" || job.status === "blocked" ? 1 : 0),
+    }),
+    { rowsRead: 0, rowsInserted: 0, rowsUpdated: 0, rowsSkipped: 0, rateLimitCount: 0, failures: 0 } satisfies RunSummary,
+  );
+}
+
+function numberValue(value: unknown) {
+  return typeof value === "number" && Number.isFinite(value) ? value : 0;
 }
 
 async function readActiveLock() {

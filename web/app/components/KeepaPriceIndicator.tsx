@@ -11,6 +11,7 @@ export function KeepaPriceIndicator({
   formatMoney,
   noData = false,
   usedOnly = false,
+  priceClassName = "text-slate-900",
 }: {
   price: number | null;
   fulfillment: KeepaFulfillment;
@@ -18,6 +19,7 @@ export function KeepaPriceIndicator({
   formatMoney: (value?: number | null) => string;
   noData?: boolean;
   usedOnly?: boolean;
+  priceClassName?: string;
 }) {
   if (noData) {
     return (
@@ -47,7 +49,7 @@ export function KeepaPriceIndicator({
 
   return (
     <div className="flex items-center justify-end gap-1.5">
-      <span className="font-medium text-slate-900">{formatMoney(price)}</span>
+      <span className={`font-medium ${priceClassName}`}>{formatMoney(price)}</span>
       <span
         className={`flex min-w-[34px] flex-col items-center gap-px ${isBuyBox || icon ? "" : "invisible"}`}
         aria-hidden={isBuyBox || icon ? undefined : "true"}

@@ -14,7 +14,7 @@ export type SchedulerTaskRequest = {
 
 export async function runSchedulerGroupTask({ group, source, job, runId }: SchedulerTaskRequest) {
   return runSchedulerCommandTask({
-    command: ["python", "run_all_syncs.py", "--group", group],
+    command: ["python", "run_all_syncs.py", "--group", group, ...(runId ? ["--run-id", runId] : [])],
     source,
     job,
     group,
@@ -67,6 +67,7 @@ export async function runSchedulerCommandTask({
           environment: [
             { name: "SCHEDULER_TRIGGER_SOURCE", value: source },
             { name: "EVENTBRIDGE_SCHEDULE_NAME", value: source },
+            ...(runId ? [{ name: "MBOP_RUN_ID", value: runId }] : []),
           ],
         },
       ],

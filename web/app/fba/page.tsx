@@ -12,7 +12,12 @@ import {
   Search,
   Truck,
 } from "lucide-react";
-import { runOnDemandRefresh, type RefreshNotice } from "../syncRefresh";
+import {
+  readPersistedRefresh,
+  resumePersistedRefresh,
+  runOnDemandRefresh,
+  type RefreshNotice,
+} from "../syncRefresh";
 import { DataFreshness } from "../DataFreshness";
 import { mutationHeaders } from "../mutationHeaders";
 import { KeepaPriceIndicator } from "../components/KeepaPriceIndicator";
@@ -157,6 +162,7 @@ type QuantityDraft = Record<string, string>;
 type SellPriceDraft = Record<string, string>;
 
 const LAST_OPENED_ASIN_KEY = "mbop:fba:last-opened-asin";
+const FBA_PRICING_REFRESH_KEY = "mbop:fba-pricing-refresh";
 
 export default function FbaPage() {
   const [activeView, setActiveView] = useState<"prep" | "shipments">("prep");
@@ -188,6 +194,28 @@ export default function FbaPage() {
       loadShipments();
     }
   }, [activeView]);
+
+  useEffect(() => {
+    const stored = readPersistedRefresh(FBA_PRICING_REFRESH_KEY);
+    if (!stored) return;
+    setRefreshNotice(stored.notice);
+    if (stored.completedAt || !stored.runId) return;
+
+    let cancelled = false;
+    setRefreshing(true);
+    resumePersistedRefresh(FBA_PRICING_REFRESH_KEY, loadFba, (notice) => {
+      if (!cancelled) setRefreshNotice(notice);
+    }).finally(() => {
+      if (!cancelled) {
+        setRefreshing(false);
+        setFreshnessKey((current) => current + 1);
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const selectedTotals = useMemo(() => {
     let units = 0;
@@ -357,7 +385,9 @@ export default function FbaPage() {
     setRefreshing(true);
     setError(null);
     try {
-      await runOnDemandRefresh("fba-pricing", loadFba, setRefreshNotice);
+      await runOnDemandRefresh("fba-pricing", loadFba, setRefreshNotice, {
+        persistKey: FBA_PRICING_REFRESH_KEY,
+      });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Pricing update failed.");
     } finally {
@@ -505,7 +535,7 @@ export default function FbaPage() {
   }
 
   return (
-    <main className="min-h-screen bg-slate-100 p-4 text-slate-900">
+    <main className="min-h-screen bg-slate-100 p-4 pr-32 text-slate-900 lg:pr-40">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Ready to ship to Amazon FBA</h1>
@@ -514,7 +544,7 @@ export default function FbaPage() {
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center justify-end gap-3">
+        <div className="flex max-w-[calc(100vw-14rem)] flex-wrap items-center justify-end gap-3">
           <DataFreshness screen="fba" refreshKey={freshnessKey} />
           <button
             onClick={activeView === "prep" ? updatePricing : refreshFba}
@@ -859,7 +889,9 @@ export default function FbaPage() {
                       <CurrentPriceCell row={row} />
                     </td>
                     <td className="whitespace-nowrap px-2 py-2 text-right align-middle">
-                      {formatMoney(row.buy_box_price_avg90)}
+                      <span className={keepaAgePriceClass(row.keepa_cache_updated_at)}>
+                        {formatMoney(row.buy_box_price_avg90)}
+                      </span>
                     </td>
                     <td className="whitespace-nowrap px-2 py-2 text-right align-middle">
                       {formatProfitRoi(row, sellPriceDrafts[row.asin])}
@@ -1240,8 +1272,19 @@ function CurrentPriceCell({ row }: { row: FbaRow }) {
       noData={!row.current_price_source || row.current_price_source === "no_data"}
       usedOnly={row.current_price_source === "used_only"}
       formatMoney={formatMoney}
+      priceClassName={keepaAgePriceClass(row.keepa_cache_updated_at)}
     />
   );
+}
+
+function keepaAgePriceClass(updatedAt?: string | null) {
+  if (!updatedAt) return "font-medium text-slate-400";
+  const timestamp = Date.parse(updatedAt);
+  if (Number.isNaN(timestamp)) return "font-medium text-slate-400";
+  const ageDays = (Date.now() - timestamp) / (24 * 60 * 60 * 1000);
+  if (ageDays < 3) return "font-medium text-emerald-700";
+  if (ageDays <= 7) return "font-medium text-amber-700";
+  return "font-medium text-red-700";
 }
 
 function formatProfitRoi(row: FbaRow, draft?: string) {
