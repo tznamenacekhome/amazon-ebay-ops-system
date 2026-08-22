@@ -2,9 +2,30 @@
 
 This file tracks active issues, monitor items, and deferred decisions for Midnight Blue Operations Platform (MBOP).
 
-Last reviewed: 2026-08-04
+Last reviewed: 2026-08-22
 
 # Active Issues
+
+## Sourcing Catalog Transient Supabase Delays
+
+Status: MITIGATED / MONITOR NEXT SCHEDULED RUN
+
+Problem:
+System Health frequently showed `Sourcing Catalog` as delayed because the
+`mbop-sourcing-catalog` scheduler group ended `degraded`. The 2026-08-22
+CloudWatch stream confirmed transient Supabase failures, not a missing
+EventBridge schedule: daily catalog sourcing hit statement timeout `57014`
+during coverage-cycle creation, and Matching Intelligence rescoring hit
+Cloudflare/Supabase `521` while fetching sourcing candidates.
+
+Current mitigation:
+- Sourcing finalization, coverage-cycle creation, scoring candidate fetches,
+  and Matching Intelligence rebuild writes now retry transient Supabase
+  timeout/connectivity failures.
+- System Health now includes `Daily catalog sourcing` in the Sourcing Catalog
+  group drawer so future degraded runs expose the actual job status.
+- Monitor the next scheduled `mbop-sourcing-catalog` run after deployment.
+- Details: `docs/sourcing_catalog_health_hardening_2026-08-22.md`.
 
 ## Video Game Identity Engine Deployment Pending Full Validation
 

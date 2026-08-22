@@ -6,6 +6,7 @@ import argparse
 from collections import Counter, defaultdict
 import datetime as dt
 from statistics import median
+import time
 from typing import Any
 
 from matching_intelligence import (
@@ -576,13 +577,22 @@ def clean_optional_text(value: Any) -> str | None:
 def write_rows(supabase, examples: list[dict[str, Any]], snapshots: list[dict[str, Any]], source: str) -> None:
     sources_to_clear = ["sourcing_actions", "manual_item_matches", "purchase_items", "sourcing_purchase_matches", "order_problem_cases", "matching_intelligence_receiving_outcomes"] if source == "all" else source_tables_for(source)
     for table in sources_to_clear:
-        supabase.table("matching_intelligence_examples").delete().eq("source_table", table).execute()
+        execute_with_transient_retry(
+            lambda table=table: supabase.table("matching_intelligence_examples").delete().eq("source_table", table).execute(),
+            f"clear matching examples for {table}",
+        )
     if source in {"all", "sourcing", "manual_matches", "purchases"}:
-        supabase.table("sourcing_listing_snapshots").delete().eq("snapshot_source", "matching_intelligence_backfill").execute()
+        execute_with_transient_retry(
+            lambda: supabase.table("sourcing_listing_snapshots").delete().eq("snapshot_source", "matching_intelligence_backfill").execute(),
+            "clear matching intelligence listing snapshots",
+        )
 
     inserted_snapshots = []
     for batch in chunked(snapshots, 250):
-        response = supabase.table("sourcing_listing_snapshots").insert(batch).execute()
+        response = execute_with_transient_retry(
+            lambda batch=batch: supabase.table("sourcing_listing_snapshots").insert(batch).execute(),
+            "insert matching intelligence listing snapshots",
+        )
         inserted_snapshots.extend(response.data or [])
     snapshots_by_action = {row.get("action_id"): row for row in inserted_snapshots if row.get("action_id")}
     snapshots_by_source = {
@@ -605,18 +615,24 @@ def write_rows(supabase, examples: list[dict[str, Any]], snapshots: list[dict[st
     clear_missing_purchase_item_references(supabase, examples)
 
     for batch in chunked(examples, 250):
-        supabase.table("matching_intelligence_examples").insert(batch).execute()
+        execute_with_transient_retry(
+            lambda batch=batch: supabase.table("matching_intelligence_examples").insert(batch).execute(),
+            "insert matching intelligence examples",
+        )
 
 
 def clear_missing_snapshot_references(supabase, examples: list[dict[str, Any]]) -> None:
     snapshot_ids = sorted({row.get("listing_snapshot_id") for row in examples if row.get("listing_snapshot_id")})
     valid_ids: set[str] = set()
     for batch in [snapshot_ids[index : index + 100] for index in range(0, len(snapshot_ids), 100)]:
-        response = (
-            supabase.table("sourcing_listing_snapshots")
-            .select("listing_snapshot_id")
-            .in_("listing_snapshot_id", batch)
-            .execute()
+        response = execute_with_transient_retry(
+            lambda batch=batch: (
+                supabase.table("sourcing_listing_snapshots")
+                .select("listing_snapshot_id")
+                .in_("listing_snapshot_id", batch)
+                .execute()
+            ),
+            "validate matching intelligence snapshot references",
         )
         valid_ids.update(str(row.get("listing_snapshot_id")) for row in response.data or [])
     for row in examples:
@@ -629,11 +645,14 @@ def clear_missing_purchase_item_references(supabase, examples: list[dict[str, An
     purchase_item_ids = sorted({row.get("purchase_item_id") for row in examples if row.get("purchase_item_id")})
     valid_ids: set[str] = set()
     for batch in [purchase_item_ids[index : index + 100] for index in range(0, len(purchase_item_ids), 100)]:
-        response = (
-            supabase.table("purchase_items")
-            .select("item_id")
-            .in_("item_id", batch)
-            .execute()
+        response = execute_with_transient_retry(
+            lambda batch=batch: (
+                supabase.table("purchase_items")
+                .select("item_id")
+                .in_("item_id", batch)
+                .execute()
+            ),
+            "validate matching intelligence purchase item references",
         )
         valid_ids.update(str(row.get("item_id")) for row in response.data or [])
     cleared = 0
@@ -719,9 +738,46 @@ def rebuild_seller_intelligence(supabase) -> None:
             }
         )
 
-    supabase.table("sourcing_seller_intelligence").delete().neq("seller_username", "").execute()
+    execute_with_transient_retry(
+        lambda: supabase.table("sourcing_seller_intelligence").delete().neq("seller_username", "").execute(),
+        "clear sourcing seller intelligence",
+    )
     for batch in chunked(rows, 250):
-        supabase.table("sourcing_seller_intelligence").insert(batch).execute()
+        execute_with_transient_retry(
+            lambda batch=batch: supabase.table("sourcing_seller_intelligence").insert(batch).execute(),
+            "insert sourcing seller intelligence",
+        )
+
+
+def execute_with_transient_retry(action, description: str, attempts: int = 4):
+    for attempt in range(1, attempts + 1):
+        try:
+            return action()
+        except Exception as exc:
+            if not is_transient_supabase_error(exc) or attempt == attempts:
+                raise
+            wait_seconds = attempt * 3
+            print(
+                f"Transient Supabase error during {description}; retrying in {wait_seconds}s ({attempt}/{attempts}): {exc}",
+                flush=True,
+            )
+            time.sleep(wait_seconds)
+    raise RuntimeError(f"Retry loop exhausted during {description}.")
+
+
+def is_transient_supabase_error(error: Exception) -> bool:
+    text = str(error).lower()
+    return (
+        "web server is down" in text
+        or "error code 521" in text
+        or "error code 522" in text
+        or "connection refused" in text
+        or "cloudflare" in text
+        or "json could not be generated" in text
+        or "connection" in text
+        or "statement timeout" in text
+        or "timeout" in text
+    )
 
 
 def count_return_reason(rows: list[dict[str, Any]], reason: str) -> int:

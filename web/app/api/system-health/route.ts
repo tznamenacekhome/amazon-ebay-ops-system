@@ -310,9 +310,9 @@ const SCHEDULER_GROUPS: SchedulerGroupConfig[] = [
     scheduleNames: ["mbop-sourcing-catalog"],
     expectedEveryHours: 24,
     criticalAfterHours: 36,
-    description: "Refreshes sourcing listing availability and matching intelligence.",
+    description: "Refreshes daily catalog sourcing, sourcing listing availability, and matching intelligence.",
     features: ["Sourcing workspace", "Matching intelligence", "Purchase matching"],
-    jobNames: ["Sourcing listing availability", "Matching intelligence refresh"],
+    jobNames: ["Daily catalog sourcing", "Sourcing listing availability", "Matching intelligence refresh"],
   },
   {
     key: "keepa-catalog-priority",

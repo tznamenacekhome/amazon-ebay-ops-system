@@ -1,6 +1,22 @@
 # CURRENT_STATE.md
 
-Last Updated: 2026-08-05
+Last Updated: 2026-08-22
+
+## 2026-08-22 Sourcing Catalog Health Hardening
+
+- Investigated recurring `Sourcing Catalog` delayed status in System Health.
+  The EventBridge schedule was running, but the scheduler group ended
+  `degraded` after transient Supabase failures.
+- CloudWatch for the 2026-08-22 `mbop-sourcing-catalog` ECS task showed:
+  `Daily catalog sourcing` hit Postgres statement timeout `57014` while
+  creating a follow-on coverage cycle, and `Matching intelligence refresh`
+  later hit Supabase/Cloudflare `521` while rescoring the same run.
+- Added transient Supabase retries around sourcing finalization, coverage-cycle
+  creation, paginated sourcing candidate fetches, and Matching Intelligence
+  bulk writes.
+- System Health now lists `Daily catalog sourcing` inside the Sourcing Catalog
+  group so the real failing job is visible in the drawer.
+- Details: `docs/sourcing_catalog_health_hardening_2026-08-22.md`.
 
 ## 2026-08-05 Video Game Identity Final Validation
 

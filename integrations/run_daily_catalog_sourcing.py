@@ -6,6 +6,7 @@ import argparse
 import datetime as dt
 import subprocess
 import sys
+import time
 import uuid
 from pathlib import Path
 from typing import Any
@@ -280,13 +281,16 @@ def parse_args() -> argparse.Namespace:
 
 
 def get_or_create_active_cycle(supabase, settings, queue_limit: int, exclude_asins: set[str] | None = None) -> dict[str, Any]:
-    response = (
-        supabase.table("sourcing_coverage_cycles")
-        .select("*")
-        .eq("status", "active")
-        .order("started_at", desc=True)
-        .limit(1)
-        .execute()
+    response = execute_with_transient_retry(
+        lambda: (
+            supabase.table("sourcing_coverage_cycles")
+            .select("*")
+            .eq("status", "active")
+            .order("started_at", desc=True)
+            .limit(1)
+            .execute()
+        ),
+        "select active sourcing coverage cycle",
     )
     if response.data:
         return response.data[0]
@@ -307,23 +311,26 @@ def create_new_cycle(
     queue = build_unified_priority_queue(supabase, settings, limit=queue_limit, exclude_asins=exclude_asins)
     if not queue.rows:
         return None
-    cycle_response = (
-        supabase.table("sourcing_coverage_cycles")
-        .insert(
-            {
-                "status": "active",
-                "total_eligible_asins": len(queue.rows),
-                "priority_1_count": queue.counts[PRIORITY_RECENTLY_SOLD],
-                "priority_2_count": queue.counts[PRIORITY_PURCHASED_NOT_SENT],
-                "priority_3_count": queue.counts[PRIORITY_CATALOG_REMAINING],
-                "remaining_count": len(queue.rows),
-                "raw_metrics_json": {
-                    "created_from": created_from,
-                    "excluded_same_run_asins": len(exclude_asins or set()),
-                },
-            }
-        )
-        .execute()
+    cycle_response = execute_with_transient_retry(
+        lambda: (
+            supabase.table("sourcing_coverage_cycles")
+            .insert(
+                {
+                    "status": "active",
+                    "total_eligible_asins": len(queue.rows),
+                    "priority_1_count": queue.counts[PRIORITY_RECENTLY_SOLD],
+                    "priority_2_count": queue.counts[PRIORITY_PURCHASED_NOT_SENT],
+                    "priority_3_count": queue.counts[PRIORITY_CATALOG_REMAINING],
+                    "remaining_count": len(queue.rows),
+                    "raw_metrics_json": {
+                        "created_from": created_from,
+                        "excluded_same_run_asins": len(exclude_asins or set()),
+                    },
+                }
+            )
+            .execute()
+        ),
+        "insert sourcing coverage cycle",
     )
     cycle = cycle_response.data[0]
     insert_cycle_items(supabase, cycle["coverage_cycle_id"], queue.rows)
@@ -723,6 +730,37 @@ def count_rows(supabase, table_name: str, run_id: str) -> int:
 def run_python(step: list[str]) -> None:
     print(f"\n--- python {' '.join(step)} ---", flush=True)
     subprocess.run([sys.executable, *step], cwd=ROOT, check=True)
+
+
+def execute_with_transient_retry(action, description: str, attempts: int = 4):
+    for attempt in range(1, attempts + 1):
+        try:
+            return action()
+        except Exception as exc:
+            if not is_transient_supabase_error(exc) or attempt == attempts:
+                raise
+            wait_seconds = attempt * 3
+            print(
+                f"Transient Supabase error during {description}; retrying in {wait_seconds}s ({attempt}/{attempts}): {exc}",
+                flush=True,
+            )
+            time.sleep(wait_seconds)
+    raise RuntimeError(f"Retry loop exhausted during {description}.")
+
+
+def is_transient_supabase_error(error: Exception) -> bool:
+    text = str(error).lower()
+    return (
+        "web server is down" in text
+        or "error code 521" in text
+        or "error code 522" in text
+        or "connection refused" in text
+        or "cloudflare" in text
+        or "json could not be generated" in text
+        or "connection" in text
+        or "statement timeout" in text
+        or "timeout" in text
+    )
 
 
 def int_value(value: Any, fallback: int) -> int:

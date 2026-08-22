@@ -282,7 +282,10 @@ def previous_cumulative_seeds(supabase, run_id: str, batch_sequence: int) -> int
 
 
 def count_run_rows(supabase, table_name: str, run_id: str) -> int:
-    response = supabase.table(table_name).select("sourcing_run_id", count="exact").eq("sourcing_run_id", run_id).limit(1).execute()
+    response = execute_with_transient_retry(
+        lambda: supabase.table(table_name).select("sourcing_run_id", count="exact").eq("sourcing_run_id", run_id).limit(1).execute(),
+        f"count {table_name} rows",
+    )
     return int(response.count or 0)
 
 
@@ -318,26 +321,48 @@ def is_transient_supabase_error(error: Exception) -> bool:
     return (
         "web server is down" in text
         or "error code 521" in text
+        or "error code 522" in text
+        or "connection refused" in text
         or "cloudflare" in text
         or "json could not be generated" in text
         or "connection" in text
+        or "statement timeout" in text
         or "timeout" in text
     )
+
+
+def execute_with_transient_retry(action, description: str, attempts: int = 4):
+    for attempt in range(1, attempts + 1):
+        try:
+            return action()
+        except Exception as exc:
+            if not is_transient_supabase_error(exc) or attempt == attempts:
+                raise
+            wait_seconds = attempt * 3
+            print(
+                f"Transient Supabase error during {description}; retrying in {wait_seconds}s ({attempt}/{attempts}): {exc}",
+                flush=True,
+            )
+            time.sleep(wait_seconds)
+    raise RuntimeError(f"Retry loop exhausted during {description}.")
 
 
 def select_unbatched_open_opportunities(supabase, run_id: str, target: int) -> list[dict[str, Any]]:
     batched_ids = batched_opportunity_ids(supabase, run_id)
     limit = target * 5 if target else 5000
-    response = (
-        supabase.table("sourcing_opportunities")
-        .select("opportunity_id,asin,ebay_item_id,score,status,opportunity_type,ai_flags,matching_diagnostics_json,created_at")
-        .eq("sourcing_run_id", run_id)
-        .eq("status", "open")
-        .in_("opportunity_type", ["buy_now", "multi_unit", "best_offer", "auction"])
-        .order("score", desc=True)
-        .order("created_at", desc=True)
-        .limit(limit)
-        .execute()
+    response = execute_with_transient_retry(
+        lambda: (
+            supabase.table("sourcing_opportunities")
+            .select("opportunity_id,asin,ebay_item_id,score,status,opportunity_type,ai_flags,matching_diagnostics_json,created_at")
+            .eq("sourcing_run_id", run_id)
+            .eq("status", "open")
+            .in_("opportunity_type", ["buy_now", "multi_unit", "best_offer", "auction"])
+            .order("score", desc=True)
+            .order("created_at", desc=True)
+            .limit(limit)
+            .execute()
+        ),
+        "select unbatched sourcing opportunities",
     )
     return choose_batch_opportunities(response.data or [], batched_ids, target)
 
@@ -382,11 +407,14 @@ def is_presentable_opportunity(row: dict[str, Any]) -> bool:
 
 
 def batched_opportunity_ids(supabase, run_id: str) -> set[str]:
-    response = (
-        supabase.table("sourcing_opportunity_batch_items")
-        .select("opportunity_id")
-        .eq("sourcing_run_id", run_id)
-        .execute()
+    response = execute_with_transient_retry(
+        lambda: (
+            supabase.table("sourcing_opportunity_batch_items")
+            .select("opportunity_id")
+            .eq("sourcing_run_id", run_id)
+            .execute()
+        ),
+        "select batched sourcing opportunity ids",
     )
     return {str(row.get("opportunity_id")) for row in response.data or [] if row.get("opportunity_id")}
 
@@ -406,7 +434,10 @@ def write_batch_items(supabase, batch_id: str, run_id: str, rows: list[dict[str,
         }
         for row in rows
     ]
-    supabase.table("sourcing_opportunity_batch_items").insert(items).execute()
+    execute_with_transient_retry(
+        lambda: supabase.table("sourcing_opportunity_batch_items").insert(items).execute(),
+        "insert sourcing opportunity batch items",
+    )
 
 
 def summarize_funnel(supabase, run_id: str, batch_id: str) -> dict[str, Any]:
@@ -414,14 +445,16 @@ def summarize_funnel(supabase, run_id: str, batch_id: str) -> dict[str, Any]:
     open_rows = [row for row in opportunities if row.get("status") == "open"]
     rejected_rows = [row for row in opportunities if row.get("status") == "rejected"]
     hard_blocked = [row for row in opportunities if has_blocked_flag(row)]
-    batch_items = (
-        supabase.table("sourcing_opportunity_batch_items")
-        .select("opportunity_id")
-        .eq("batch_id", batch_id)
-        .execute()
-        .data
-        or []
+    batch_items_response = execute_with_transient_retry(
+        lambda: (
+            supabase.table("sourcing_opportunity_batch_items")
+            .select("opportunity_id")
+            .eq("batch_id", batch_id)
+            .execute()
+        ),
+        "select sourcing batch items for funnel",
     )
+    batch_items = batch_items_response.data or []
     return summarize_funnel_from_rows(opportunities, batch_item_count=len(batch_items))
 
 
@@ -444,12 +477,15 @@ def fetch_run_opportunity_summary(supabase, run_id: str) -> list[dict[str, Any]]
     rows: list[dict[str, Any]] = []
     start = 0
     while True:
-        response = (
-            supabase.table("sourcing_opportunities")
-            .select("status,opportunity_type,ai_flags,matching_diagnostics_json")
-            .eq("sourcing_run_id", run_id)
-            .range(start, start + 999)
-            .execute()
+        response = execute_with_transient_retry(
+            lambda: (
+                supabase.table("sourcing_opportunities")
+                .select("status,opportunity_type,ai_flags,matching_diagnostics_json")
+                .eq("sourcing_run_id", run_id)
+                .range(start, start + 999)
+                .execute()
+            ),
+            "select sourcing opportunity summary",
         )
         batch = response.data or []
         rows.extend(batch)
@@ -489,16 +525,19 @@ def update_batch_progress(
     api_calls_used: int,
 ) -> None:
     selected_count = len(select_unbatched_open_opportunities(supabase, run_id, target))
-    supabase.table("sourcing_opportunity_batches").update(
-        {
-            "qualifying_opportunity_count": selected_count,
-            "seeds_searched": seeds_searched,
-            "cumulative_seeds_searched": cumulative_seeds,
-            "seeds_remaining": seeds_remaining,
-            "api_call_count": api_calls_used,
-            "updated_at": now_iso(),
-        }
-    ).eq("batch_id", batch_id).execute()
+    execute_with_transient_retry(
+        lambda: supabase.table("sourcing_opportunity_batches").update(
+            {
+                "qualifying_opportunity_count": selected_count,
+                "seeds_searched": seeds_searched,
+                "cumulative_seeds_searched": cumulative_seeds,
+                "seeds_remaining": seeds_remaining,
+                "api_call_count": api_calls_used,
+                "updated_at": now_iso(),
+            }
+        ).eq("batch_id", batch_id).execute(),
+        "update sourcing batch progress",
+    )
 
 
 def complete_batch(
@@ -540,29 +579,35 @@ def complete_batch(
         "completed_at": completed_at,
         "updated_at": completed_at,
     }
-    supabase.table("sourcing_opportunity_batches").update(batch_update).eq("batch_id", batch_id).execute()
-    supabase.table("sourcing_runs").update(
-        {
-            "status": "completed",
-            "completed_at": completed_at,
-            "search_count": cumulative_seeds,
-            "candidate_count": candidate_count,
-            "opportunity_count": opportunity_count,
-            "api_call_count": api_calls_used,
-            "raw_summary_json": {
-                "progressive_batch": {
-                    "batch_id": batch_id,
-                    "batch_sequence": sequence,
-                    "requested_opportunity_count": target,
-                    "qualifying_opportunity_count": len(selected),
-                    "stop_reason": stop_reason,
-                    "funnel": funnel,
-                    "ebay_browse_quota": quota_summary(quota),
-                    "ebay_browse_quota_reserve": quota_reserve,
-                }
-            },
-        }
-    ).eq("sourcing_run_id", run_id).execute()
+    execute_with_transient_retry(
+        lambda: supabase.table("sourcing_opportunity_batches").update(batch_update).eq("batch_id", batch_id).execute(),
+        "complete sourcing opportunity batch",
+    )
+    execute_with_transient_retry(
+        lambda: supabase.table("sourcing_runs").update(
+            {
+                "status": "completed",
+                "completed_at": completed_at,
+                "search_count": cumulative_seeds,
+                "candidate_count": candidate_count,
+                "opportunity_count": opportunity_count,
+                "api_call_count": api_calls_used,
+                "raw_summary_json": {
+                    "progressive_batch": {
+                        "batch_id": batch_id,
+                        "batch_sequence": sequence,
+                        "requested_opportunity_count": target,
+                        "qualifying_opportunity_count": len(selected),
+                        "stop_reason": stop_reason,
+                        "funnel": funnel,
+                        "ebay_browse_quota": quota_summary(quota),
+                        "ebay_browse_quota_reserve": quota_reserve,
+                    }
+                },
+            }
+        ).eq("sourcing_run_id", run_id).execute(),
+        "complete sourcing run batch summary",
+    )
 
 
 def complete_quota_exhausted_batch(

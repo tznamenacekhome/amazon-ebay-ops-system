@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import datetime as dt
+import time
 from typing import Any
 
 from sourcing_common import chunked, fetch_settings, get_supabase_client, paginate_table, to_float
@@ -265,16 +266,46 @@ def fetch_run_rows(supabase, table_name: str, run_id: str, page_size: int = 1000
         )
         if order_column:
             query = query.order(order_column)
-        response = (
-            query
-            .range(start, end)
-            .execute()
+        response = execute_with_transient_retry(
+            lambda: query.range(start, end).execute(),
+            f"fetch {table_name} rows",
         )
         batch = response.data or []
         rows.extend(batch)
         if len(batch) < page_size:
             return rows
         start += page_size
+
+
+def execute_with_transient_retry(action, description: str, attempts: int = 4):
+    for attempt in range(1, attempts + 1):
+        try:
+            return action()
+        except Exception as exc:
+            if not is_transient_supabase_error(exc) or attempt == attempts:
+                raise
+            wait_seconds = attempt * 3
+            print(
+                f"Transient Supabase error during {description}; retrying in {wait_seconds}s ({attempt}/{attempts}): {exc}",
+                flush=True,
+            )
+            time.sleep(wait_seconds)
+    raise RuntimeError(f"Retry loop exhausted during {description}.")
+
+
+def is_transient_supabase_error(error: Exception) -> bool:
+    text = str(error).lower()
+    return (
+        "web server is down" in text
+        or "error code 521" in text
+        or "error code 522" in text
+        or "connection refused" in text
+        or "cloudflare" in text
+        or "json could not be generated" in text
+        or "connection" in text
+        or "statement timeout" in text
+        or "timeout" in text
+    )
 
 
 def fetch_historical_status_by_key(supabase) -> dict[tuple[str, str], dict[str, Any]]:
