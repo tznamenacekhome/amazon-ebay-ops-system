@@ -214,9 +214,9 @@ const SCHEDULER_GROUPS: SchedulerGroupConfig[] = [
     scheduleNames: ["mbop-purchase-enrichment"],
     expectedEveryHours: 4,
     criticalAfterHours: 12,
-    description: "Refreshes RevSeller purchase enrichment and guarded missing-title repairs.",
+    description: "Refreshes RevSeller purchase enrichment.",
     features: ["Purchases ASIN/title review", "Amazon title enrichment", "Cost/profit readiness"],
-    jobNames: ["RevSeller enrichment", "Keepa missing purchase titles"],
+    jobNames: ["RevSeller enrichment"],
   },
   {
     key: "amazon-sales-recent",
@@ -234,6 +234,7 @@ const SCHEDULER_GROUPS: SchedulerGroupConfig[] = [
       "Recent Amazon sales finances",
       "Veeqo MF label costs",
       "Recent sales profitability",
+      "ZFI business summary push",
     ],
   },
   {
@@ -247,7 +248,7 @@ const SCHEDULER_GROUPS: SchedulerGroupConfig[] = [
     criticalAfterHours: 24,
     description: "Refreshes read-only Amazon Finance balances for operational payout visibility and ZFI export.",
     features: ["Amazon payout/cash source data", "ZFI business summary"],
-    jobNames: ["Amazon finance balances", "ZFI business summary push"],
+    jobNames: ["Amazon finance balances", "Provider costs", "ZFI business summary push"],
   },
   {
     key: "fba-inventory-daily",
@@ -260,7 +261,13 @@ const SCHEDULER_GROUPS: SchedulerGroupConfig[] = [
     criticalAfterHours: 36,
     description: "Refreshes Amazon FBA inventory and inventory planning report data.",
     features: ["Amazon FBA inventory", "Inventory dashboard", "Aged inventory planning"],
-    jobNames: ["Amazon FBA inventory", "Amazon inventory planning"],
+    jobNames: [
+      "Amazon FBA inventory",
+      "Amazon merchant listings",
+      "Amazon inactive merchant listings",
+      "Amazon inventory planning",
+      "ZFI business summary push",
+    ],
   },
   {
     key: "fba-shipments",
@@ -273,7 +280,7 @@ const SCHEDULER_GROUPS: SchedulerGroupConfig[] = [
     criticalAfterHours: 18,
     description: "Refreshes active FBA shipment status and carrier tracking.",
     features: ["Send to Amazon", "FBA shipment tracking", "Inventory availability"],
-    jobNames: ["Amazon FBA shipments", "FBA EasyPost carrier tracking"],
+    jobNames: ["Amazon FBA shipments", "FBA EasyPost carrier tracking", "ZFI business summary push"],
   },
   {
     key: "reconciliation",
@@ -430,6 +437,8 @@ const JOBS: JobConfig[] = [
       "integrations/backfill_amazon_titles_from_keepa.py --limit 25 --fetch-missing --min-tokens 25 --apply",
     group: "core",
     blocking: false,
+    enabled: false,
+    disabledReason: "Consolidated into the Keepa catalog priority refresh queue.",
     expectedEveryHours: 12,
     criticalAfterHours: 24,
     signal: async () => missingPurchaseTitleSignal(),
@@ -443,6 +452,26 @@ const JOBS: JobConfig[] = [
     expectedEveryHours: 24,
     criticalAfterHours: 36,
     signal: async () => snapshotSignal("amazon_fba_inventory_snapshots", "captured_at", "Snapshot rows"),
+  },
+  {
+    id: "amazon-merchant-listings",
+    name: "Amazon merchant listings",
+    command: "integrations/amazon_sync_merchant_listings.py",
+    group: "daily",
+    blocking: true,
+    expectedEveryHours: 24,
+    criticalAfterHours: 36,
+    signal: async () => latestSchedulerJobSignal("Amazon merchant listings"),
+  },
+  {
+    id: "amazon-inactive-merchant-listings",
+    name: "Amazon inactive merchant listings",
+    command: "integrations/amazon_sync_merchant_listings.py --report-type GET_MERCHANT_LISTINGS_INACTIVE_DATA",
+    group: "daily",
+    blocking: false,
+    expectedEveryHours: 24,
+    criticalAfterHours: 36,
+    signal: async () => latestSchedulerJobSignal("Amazon inactive merchant listings"),
   },
   {
     id: "amazon-fba-shipments",
@@ -567,6 +596,26 @@ const JOBS: JobConfig[] = [
         ],
       };
     },
+  },
+  {
+    id: "provider-costs",
+    name: "Provider costs",
+    command: "integrations/provider_costs.py --provider all",
+    group: "daily",
+    blocking: false,
+    expectedEveryHours: 12,
+    criticalAfterHours: 24,
+    signal: async () => latestSchedulerJobSignal("Provider costs"),
+  },
+  {
+    id: "zfi-business-summary-push",
+    name: "ZFI business summary push",
+    command: "integrations/push_zfi_business_summary.py --generated-by aws-scheduler --apply",
+    group: "daily",
+    blocking: false,
+    expectedEveryHours: 12,
+    criticalAfterHours: 24,
+    signal: async () => latestSchedulerJobSignal("ZFI business summary push"),
   },
   {
     id: "amazon-sales-orders",
@@ -764,14 +813,14 @@ export async function GET() {
         const failure = latestFailureForCommand(failures, job.command);
         const localRun = latestLocalRunForJob(localRuns, job);
         const localRunAt = stringValue(localRun?.finished_at) || stringValue(localRun?.started_at);
-        const hasNewerLocalRun = localRunAt && isTimestampNewer(localRunAt, signal.lastRunAt);
-        const lastRunAt = hasNewerLocalRun ? localRunAt : signal.lastRunAt;
+        const hasLocalRun = Boolean(localRunAt);
+        const lastRunAt = hasLocalRun ? localRunAt : signal.lastRunAt;
         const hoursSinceLastRun = lastRunAt ? hoursSince(lastRunAt) : null;
         let status = statusForSignal(signal, hoursSinceLastRun, job);
         let message = signal.message || null;
         let source = signal.source;
 
-        if (hasNewerLocalRun) {
+        if (hasLocalRun) {
           source = `${source} + ${localRun.source || "logs/sync_health.json"}`;
           if (localRun?.status === "skipped") {
             status = "skipped";
@@ -914,12 +963,13 @@ function buildSchedulerGroupSummaries(
     const configuredJobs = group.jobNames.map((name) => {
       const telemetry = latestByJob.get(name) ?? latestByJobName.get(name);
       const configured = jobs.find((job) => job.name === name);
+      const lastRunAt = telemetry?.finishedAt || telemetry?.startedAt || configured?.lastRunAt || null;
+      const hoursSinceLastRun = lastRunAt ? hoursSince(lastRunAt) : null;
       const status = telemetry
-        ? healthStatusForJobRun(telemetry)
+        ? healthStatusForSchedulerJobRun(telemetry, hoursSinceLastRun, group)
         : configured?.awsGroups.includes(group.key)
           ? configured.status
           : "unknown";
-      const lastRunAt = telemetry?.finishedAt || telemetry?.startedAt || configured?.lastRunAt || null;
 
       return {
         name,
@@ -1134,17 +1184,17 @@ function statusForSchedulerGroup(
   if (latestRun?.status === "blocked") return "blocked";
   if (latestRun?.status === "failed" || latestRun?.status === "cancelled") return "failed";
   if (!latestRun || hoursSinceLastSuccess === null) return "unknown";
+  if (hoursSinceLastSuccess >= group.criticalAfterHours) return "failed";
+  if (hoursSinceLastSuccess >= group.expectedEveryHours) return "delayed";
   if (previousRunAt && lastSuccessAt) {
     const previousRunTimestamp = Date.parse(previousRunAt);
     const lastSuccessTimestamp = Date.parse(lastSuccessAt);
     const graceMs = 75 * 60_000;
     if (Date.now() > previousRunTimestamp + graceMs && lastSuccessTimestamp < previousRunTimestamp) {
-      return hoursSinceLastSuccess >= group.criticalAfterHours ? "failed" : "delayed";
+      return "delayed";
     }
     return runStatusToHealth(latestRun.status);
   }
-  if (hoursSinceLastSuccess >= group.criticalAfterHours) return "failed";
-  if (hoursSinceLastSuccess >= group.expectedEveryHours) return "delayed";
   return runStatusToHealth(latestRun.status);
 }
 
@@ -1341,6 +1391,19 @@ function healthStatusForJobRun(run: SchedulerJobRunRecord): HealthStatus {
   return "skipped";
 }
 
+function healthStatusForSchedulerJobRun(
+  run: SchedulerJobRunRecord,
+  hoursSinceLastRun: number | null,
+  group: SchedulerGroupConfig,
+): HealthStatus {
+  const status = healthStatusForJobRun(run);
+  if (status !== "ok" || group.expectedEveryHours <= 0) return status;
+  if (hoursSinceLastRun === null) return "unknown";
+  if (hoursSinceLastRun >= group.criticalAfterHours) return "failed";
+  if (hoursSinceLastRun >= group.expectedEveryHours) return "delayed";
+  return "ok";
+}
+
 function runStatusToHealth(status: SchedulerRunRecord["status"]): HealthStatus {
   if (status === "ok") return "ok";
   if (status === "degraded") return "delayed";
@@ -1392,6 +1455,27 @@ async function latestTimestampSignal(table: string, column: string, countLabel: 
     lastRunAt,
     source: table,
     stats: [{ label: countLabel, value: formatCount(count) }],
+  };
+}
+
+async function latestSchedulerJobSignal(jobName: string): Promise<JobSignal> {
+  const row = await latestRow(
+    "scheduler_run_jobs",
+    "started_at",
+    "status,started_at,finished_at,runtime_seconds,error_summary",
+    { job_name: jobName },
+  );
+  const status = stringValue(row?.status);
+
+  return {
+    lastRunAt: stringValue(row?.finished_at) || stringValue(row?.started_at),
+    source: "scheduler_run_jobs",
+    statusOverride:
+      status === "failed" || status === "blocked" || status === "running" || status === "skipped"
+        ? (status as HealthStatus)
+        : undefined,
+    message: stringValue(row?.error_summary),
+    stats: [{ label: "Runtime", value: formatDuration(numberValue(row?.runtime_seconds)) }],
   };
 }
 
@@ -1593,7 +1677,7 @@ async function readSchedulerRuns(): Promise<SchedulerRunRecord[]> {
       "run_id,group_name,status,started_at,finished_at,runtime_seconds,trigger_source,ecs_task_arn,eventbridge_schedule_name,container_cpu,container_memory,error_summary",
     )
     .order("started_at", { ascending: false, nullsFirst: false })
-    .limit(150);
+    .limit(500);
 
   if (error) return [];
 
@@ -1636,7 +1720,7 @@ async function readSchedulerJobRuns(): Promise<SchedulerJobRunRecord[]> {
       "run_id,job_name,group_name,command,status,blocking,started_at,finished_at,runtime_seconds,error_summary,rows_read,rows_inserted,rows_updated,rows_deleted,rows_skipped,external_api_calls,retry_count,rate_limit_count,log_bytes,metadata",
     )
     .order("started_at", { ascending: false, nullsFirst: false })
-    .limit(500);
+    .limit(2000);
 
   if (error) return [];
 
@@ -1762,7 +1846,7 @@ async function readSchedulerTelemetryJobs(): Promise<LocalRunRecord[]> {
   const { data, error } = await dynamicFrom("scheduler_run_jobs")
     .select("job_name,group_name,command,status,blocking,started_at,finished_at,error_summary")
     .order("started_at", { ascending: false, nullsFirst: false })
-    .limit(250);
+    .limit(2000);
 
   if (error) return [];
 

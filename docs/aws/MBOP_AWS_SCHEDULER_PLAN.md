@@ -277,6 +277,14 @@ Telemetry tables:
 
 `run_all_syncs.py` writes scheduler runs and per-job records to Supabase telemetry tables. System Health reads cloud scheduler run/job history when `CLOUD_DEPLOYMENT=true`.
 
+System Health should treat `scheduler_runs` and `scheduler_run_jobs` as the
+authoritative source for scheduler freshness, status, runtime, and group/job
+membership. Domain table timestamps, such as product snapshots or finance
+events, are supporting data-change signals only and must not override the
+latest scheduler attempt timestamp. When orchestrator job membership changes,
+update the System Health scheduler group config at the same time so disabled or
+consolidated jobs do not appear as stale production failures.
+
 The scheduler captures each job's stdout/stderr, parses summary lines into
 standard counters such as rows read/inserted/updated/skipped and stores
 additional human-readable metrics in `scheduler_run_jobs.metadata.metrics`.
