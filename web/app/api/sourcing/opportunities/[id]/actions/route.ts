@@ -57,10 +57,6 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   if (actionType === "dismiss" && !reason) {
     return NextResponse.json({ error: "Dismiss requires a reason." }, { status: 400 });
   }
-  if (actionType === "inventory_snooze" && (!inventoryBaselineUnits || inventoryBaselineUnits < 1)) {
-    return NextResponse.json({ error: "Wait for sell-through requires at least one in-stock or pipeline unit." }, { status: 400 });
-  }
-
   const { data: opportunity, error: opportunityError } = await supabase
     .from("sourcing_opportunities")
     .select(
