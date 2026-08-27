@@ -442,9 +442,9 @@ function ReplenishmentTable({
   }
 
   return (
-    <div className="overflow-hidden rounded-md border border-slate-200 bg-white shadow-sm">
-      <div className="max-h-[calc(100vh-250px)] overflow-auto">
-        <table className="min-w-[96rem] table-fixed text-left text-sm">
+    <div className="rounded-md border border-slate-200 bg-white shadow-sm">
+      <div className="max-h-[calc(100vh-250px)] overflow-x-auto overflow-y-auto">
+        <table className="min-w-[112rem] table-fixed text-left text-sm">
           <thead className="sticky top-0 z-10 bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
             <tr>
               <th colSpan={13} className="border-b border-slate-200 bg-white px-2 py-2">
