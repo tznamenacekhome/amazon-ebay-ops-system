@@ -32,6 +32,7 @@ def candidate(
     game_name: str | None = None,
     category_id: str = "139973",
     category_name: str = "Video Games",
+    condition: str = "Brand New",
     description: str | None = None,
     item_type: str | None = None,
     region_code: str | None = None,
@@ -47,7 +48,7 @@ def candidate(
             aspects.append({"name": name, "value": value})
     return {
         "ebay_title": title,
-        "condition": "Brand New",
+        "condition": condition,
         "item_location_country": "US",
         "raw_ebay_json": {
             "localizedAspects": aspects,
@@ -108,6 +109,31 @@ class SourcingMatchRuleTests(unittest.TestCase):
             seed("Super Mario 3D Land", "3DS"),
         )
         self.assertNotEqual("Blocked", diagnostics["recommendation"])
+
+    def test_used_title_signal_blocks_new_sourcing_candidate(self) -> None:
+        diagnostics = evaluate_static_match_rules(
+            candidate(
+                "Command and Conquer 3 - Tiberium Wars [XBOX360][USED]",
+                platform="Xbox 360",
+                game_name="Command and Conquer 3 Tiberium Wars",
+            ),
+            seed("Command & Conquer 3 Tiberium Wars", "Xbox 360"),
+        )
+        self.assert_blocked(diagnostics, "not new condition")
+        self.assertIn("used", diagnostics["condition_mismatch"]["hits"])
+
+    def test_very_good_condition_blocks_new_sourcing_candidate(self) -> None:
+        diagnostics = evaluate_static_match_rules(
+            candidate(
+                "Command and Conquer 3 - Tiberium Wars Xbox 360",
+                platform="Xbox 360",
+                game_name="Command and Conquer 3 Tiberium Wars",
+                condition="Very Good",
+            ),
+            seed("Command & Conquer 3 Tiberium Wars", "Xbox 360"),
+        )
+        self.assert_blocked(diagnostics, "not new condition")
+        self.assertIn("very good", diagnostics["condition_mismatch"]["hits"])
 
     def test_game_vs_controller_accessory_blocks(self) -> None:
         diagnostics = evaluate_static_match_rules(

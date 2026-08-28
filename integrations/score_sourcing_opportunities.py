@@ -938,6 +938,7 @@ def matching_diagnostics_for_candidate(
         "title_overlap": static_rules.get("title_overlap"),
         "excluded_keywords": static_rules.get("excluded_keywords"),
         "digital_download": static_rules.get("digital_download"),
+        "condition_mismatch": static_rules.get("condition_mismatch"),
         "category": static_rules.get("category"),
         "normalized_evidence": static_rules.get("normalized_evidence"),
         "game_name": static_rules.get("game_name"),

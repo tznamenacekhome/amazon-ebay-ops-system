@@ -308,6 +308,21 @@ NON_GAME_CATEGORY_TERMS = {
 
 BUNDLE_REVIEW_TERMS = {"bundle", "bundled", "with game", "includes game", "game included"}
 
+USED_CONDITION_SIGNALS = {
+    "acceptable",
+    "disc is in",
+    "disc only",
+    "disc-only",
+    "good condition",
+    "great shape",
+    "like new",
+    "pre-owned",
+    "preowned",
+    "tested",
+    "used",
+    "very good",
+}
+
 ANNUAL_IDENTITY_PATTERNS = [
     ("nba", re.compile(r"\bnba\s+2k(?P<value>\d{1,2})\b")),
     ("mlb", re.compile(r"\b(?:mlb|major league baseball)\s+2k(?P<value>\d{1,2})\b")),
@@ -459,6 +474,13 @@ def evaluate_static_match_rules(
         score_adjustment -= 35
         recommendation = "Blocked"
 
+    condition_mismatch = used_condition_hits(title_text, description_text)
+    if condition_mismatch:
+        hard_blocks.append(f"not new condition signal: {', '.join(condition_mismatch[:3])}")
+        flags.append(f"Blocked: not new condition signal: {', '.join(condition_mismatch[:3])}")
+        score_adjustment -= 35
+        recommendation = "Blocked"
+
     incomplete = incomplete_hits(title_text, description_text)
     not_game = keyword_hits(title_text, sorted(NOT_GAME_BLOCK_TERMS))
     structured_not_game = structured_not_game_hits(evidence)
@@ -593,6 +615,7 @@ def evaluate_static_match_rules(
         "title_overlap": title_overlap,
         "excluded_keywords": {"hits": excluded, "result": "blocked" if excluded else "pass"},
         "digital_download": {"hits": digital, "result": "blocked" if digital else "pass"},
+        "condition_mismatch": {"hits": condition_mismatch, "result": "blocked" if condition_mismatch else "pass"},
         "incomplete_listing": {"hits": incomplete, "result": "blocked" if incomplete else "pass"},
         "not_game": {"hits": not_game, "result": "blocked" if not_game else "pass"},
         "region": {"hits": region, "result": "blocked" if region else "pass"},
@@ -1095,6 +1118,14 @@ def keyword_hits(text: str, terms: list[str] | set[str]) -> list[str]:
         elif re.search(rf"(?<![a-z0-9]){re.escape(term_text)}(?![a-z0-9])", normalized):
             hits.append(str(term))
     return sorted(dict.fromkeys(hits))
+
+
+def used_condition_hits(title_text: str, description_text: str) -> list[str]:
+    text = f"{title_text} {description_text}".casefold()
+    hits = keyword_hits(text, sorted(USED_CONDITION_SIGNALS))
+    if "tested" in hits and not any(term in hits for term in {"used", "pre-owned", "preowned", "very good", "like new"}):
+        hits.remove("tested")
+    return hits
 
 
 def incomplete_hits(title_text: str, description_text: str) -> list[str]:

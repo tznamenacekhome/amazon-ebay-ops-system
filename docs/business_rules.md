@@ -82,6 +82,11 @@ Carrier/status syncs must not downgrade workflow-owned statuses.
   merchandise, digital/service items, incomplete products, foreign regions,
   sequel/year conflicts, and edition/version conflicts as backend-owned
   diagnostics and hard blocks where confidence is high.
+- Sourcing opportunities are for new-condition Amazon replenishment only.
+  Explicit used-condition signals in the eBay title, seller condition, item
+  specifics, or seller description, such as Very Good, Used, Pre-owned, or disc
+  condition language, must hard-block presentation even if eBay also reports
+  structured condition ID `1000`.
 - Numeric sourcing identity blocks must be context-aware. Recognized annual or
   installment product numbers may hard-block when the same family conflicts,
   such as `NBA 2K19` vs `NBA 2K26`, `Rock Band 2` vs `Rock Band 3`, or base
