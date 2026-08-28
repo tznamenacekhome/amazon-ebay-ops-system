@@ -122,7 +122,7 @@ class SourcingMatchRuleTests(unittest.TestCase):
         self.assert_blocked(diagnostics, "not new condition")
         self.assertIn("used", diagnostics["condition_mismatch"]["hits"])
 
-    def test_very_good_condition_blocks_new_sourcing_candidate(self) -> None:
+    def test_very_good_condition_does_not_block_new_sourcing_candidate(self) -> None:
         diagnostics = evaluate_static_match_rules(
             candidate(
                 "Command and Conquer 3 - Tiberium Wars Xbox 360",
@@ -132,8 +132,8 @@ class SourcingMatchRuleTests(unittest.TestCase):
             ),
             seed("Command & Conquer 3 Tiberium Wars", "Xbox 360"),
         )
-        self.assert_blocked(diagnostics, "not new condition")
-        self.assertIn("very good", diagnostics["condition_mismatch"]["hits"])
+        self.assertNotEqual("Blocked", diagnostics["recommendation"])
+        self.assertEqual([], diagnostics["condition_mismatch"]["hits"])
 
     def test_game_vs_controller_accessory_blocks(self) -> None:
         diagnostics = evaluate_static_match_rules(

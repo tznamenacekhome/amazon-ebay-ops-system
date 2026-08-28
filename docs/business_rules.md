@@ -84,7 +84,7 @@ Carrier/status syncs must not downgrade workflow-owned statuses.
   diagnostics and hard blocks where confidence is high.
 - Sourcing opportunities are for new-condition Amazon replenishment only.
   Explicit used-condition signals in the eBay title, seller condition, item
-  specifics, or seller description, such as Very Good, Used, Pre-owned, or disc
+  specifics, or seller description, such as Used, Pre-owned, Like New, or disc
   condition language, must hard-block presentation even if eBay also reports
   structured condition ID `1000`.
 - Numeric sourcing identity blocks must be context-aware. Recognized annual or

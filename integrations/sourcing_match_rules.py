@@ -320,7 +320,6 @@ USED_CONDITION_SIGNALS = {
     "preowned",
     "tested",
     "used",
-    "very good",
 }
 
 ANNUAL_IDENTITY_PATTERNS = [
@@ -1123,7 +1122,7 @@ def keyword_hits(text: str, terms: list[str] | set[str]) -> list[str]:
 def used_condition_hits(title_text: str, description_text: str) -> list[str]:
     text = f"{title_text} {description_text}".casefold()
     hits = keyword_hits(text, sorted(USED_CONDITION_SIGNALS))
-    if "tested" in hits and not any(term in hits for term in {"used", "pre-owned", "preowned", "very good", "like new"}):
+    if "tested" in hits and not any(term in hits for term in {"used", "pre-owned", "preowned", "like new"}):
         hits.remove("tested")
     return hits
 
