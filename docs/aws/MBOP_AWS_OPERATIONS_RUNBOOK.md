@@ -342,9 +342,17 @@ The AWS CLI requires the existing schedule fields when updating. In the console,
 
 ## Rotate Amazon SP-API LWA Client Secret
 
-Amazon requires LWA client secret rotation every 180 days. The current Amazon
-deadline notice for MBOP application `amzn1.sp.solution.443c0a17-6bac-42bb-9bfe-408f59c02895`
-requires rotation before `2026-09-10T21:58:48.636Z`.
+Amazon requires LWA client secret rotation every 180 days. MBOP uses the
+`Midnight Blue Operations Platform` application:
+
+```text
+amzn1.sp.solution.ca3b5022-fb9c-4112-8ce1-2affbabf8b31
+```
+
+If Amazon sends a rotation notice for another application, such as
+`replen tracker2` / `amzn1.sp.solution.443c0a17-6bac-42bb-9bfe-408f59c02895`,
+do not rotate MBOP credentials from that app unless production
+`AMAZON_SP_API_CLIENT_ID` has been verified to belong to it.
 
 Manual rotation is the preferred emergency path unless MBOP has already built
 the SQS-based Application Management API workflow.
@@ -384,7 +392,8 @@ overlap.
    https://sellercentral.amazon.com/sellingpartner/developerconsole
    ```
 
-2. Find application `amzn1.sp.solution.443c0a17-6bac-42bb-9bfe-408f59c02895`.
+2. Find application `Midnight Blue Operations Platform` /
+   `amzn1.sp.solution.ca3b5022-fb9c-4112-8ce1-2affbabf8b31`.
 3. In the LWA credentials column, choose the expiration alert / View.
 4. Choose Rotate Secret and copy the new client secret into the password vault.
 5. Update local `.env.local`, AWS Secrets Manager, and run an auth smoke test
