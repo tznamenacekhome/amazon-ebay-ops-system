@@ -97,7 +97,10 @@ class AmazonSPAPIConfig:
 
     @classmethod
     def from_env(cls) -> "AmazonSPAPIConfig":
-        dotenv_path = find_dotenv(usecwd=True)
+        dotenv_path = find_dotenv(usecwd=True) or find_dotenv(
+            ".env.local",
+            usecwd=True,
+        )
         load_dotenv(dotenv_path or None)
         log_refresh_token_diagnostics(dotenv_path)
         region_value = env("AMAZON_SP_API_REGION", "na").lower()
@@ -1047,11 +1050,9 @@ def log_refresh_token_diagnostics(dotenv_path: str | None) -> None:
         return
 
     LOGGER.info(
-        "Amazon refresh token diagnostics: .env=%s length=%s prefix=%s suffix=%s",
+        "Amazon refresh token diagnostics: .env=%s length=%s token=present",
         dotenv_path or "<not found>",
         len(token),
-        token[:6],
-        token[-6:],
     )
 
 

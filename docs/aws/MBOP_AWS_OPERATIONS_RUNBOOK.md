@@ -340,6 +340,55 @@ The AWS CLI requires the existing schedule fields when updating. In the console,
 3. Restart affected ECS service or wait for the next scheduled task if only the value changed.
 4. Run the smallest safe smoke test, preferably a `--list` or auth-only script.
 
+## Rotate Amazon SP-API LWA Client Secret
+
+Amazon requires LWA client secret rotation every 180 days. The current Amazon
+deadline notice for MBOP application `amzn1.sp.solution.443c0a17-6bac-42bb-9bfe-408f59c02895`
+requires rotation before `2026-09-10T21:58:48.636Z`.
+
+Manual rotation is the preferred emergency path unless MBOP has already built
+the SQS-based Application Management API workflow.
+
+1. In Seller Central, open Apps and Services / Develop Apps:
+
+   ```text
+   https://sellercentral.amazon.com/sellingpartner/developerconsole
+   ```
+
+2. Find application `amzn1.sp.solution.443c0a17-6bac-42bb-9bfe-408f59c02895`.
+3. In the LWA credentials column, choose the expiration alert / View.
+4. Choose Rotate Secret and copy the new client secret into the password vault.
+5. Update local development environment variable `AMAZON_SP_API_CLIENT_SECRET`
+   in `.env.local` and any local secret store used for one-off scripts.
+6. Update the production AWS Secrets Manager value:
+
+   ```powershell
+   aws secretsmanager put-secret-value `
+     --profile mbop-admin `
+     --region us-west-2 `
+     --secret-id /mbop/prod/amazon-spapi/client-secret `
+     --secret-string "<new-client-secret>"
+   ```
+
+7. Because the secret name/ARN remains the same, a new scheduler task definition
+   is not required. Running tasks keep their existing environment, but future
+   scheduler tasks will receive the new secret from Secrets Manager.
+8. Run an auth smoke test locally after `.env.local` is updated:
+
+   ```powershell
+   .\.venv\Scripts\python.exe integrations\amazon_test_connection.py
+   ```
+
+9. Run the smallest production scheduler smoke test that uses Amazon SP-API,
+   such as `fba-inventory-daily --list` if only command wiring is needed, or a
+   bounded one-off Amazon test task if credential validation must happen inside
+   ECS.
+10. Delete or revoke the old stored client secret after the seven-day overlap
+    has passed and the new secret has been verified in production.
+
+Do not commit the old or new LWA client secret. Do not print it in logs, shell
+history, screenshots, or docs.
+
 ## Investigate Failed Scheduler Jobs
 
 1. Check System Health for the latest `scheduler_runs` and `scheduler_run_jobs` record.
