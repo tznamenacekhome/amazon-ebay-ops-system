@@ -41,6 +41,7 @@ REGION_ENDPOINTS = {
 }
 
 READ_ONLY_OPERATION_PREFIXES = (
+    "/applications/2023-11-30/",
     "/fba/inventory/",
     "/fba/inbound/v0/shipments",
     "/fba/inbound/v0/shipments/",
@@ -218,6 +219,48 @@ class AmazonSPAPIClient:
         self._access_token_expires_at = now + dt.timedelta(seconds=expires_in)
         LOGGER.info("Amazon LWA access token received; expires_in=%s", expires_in)
         return access_token
+
+    def get_grantless_lwa_access_token(self, scope: str) -> str:
+        if not scope:
+            raise AmazonSPAPIError("Grantless LWA token scope is required")
+
+        LOGGER.info("Requesting Amazon grantless LWA access token for scope=%s", scope)
+        response = self.session.post(
+            LWA_TOKEN_URL,
+            data={
+                "grant_type": "client_credentials",
+                "scope": scope,
+                "client_id": self.config.client_id,
+                "client_secret": self.config.client_secret,
+            },
+            headers={
+                "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
+                "User-Agent": self.user_agent(),
+            },
+            timeout=DEFAULT_TIMEOUT_SECONDS,
+        )
+
+        if not response.ok:
+            raise AmazonSPAPIError(
+                f"Grantless LWA token request failed with HTTP {response.status_code}: "
+                f"{safe_response_text(response)}"
+            )
+
+        payload = response.json()
+        access_token = payload.get("access_token")
+        expires_in = int(payload.get("expires_in") or 0)
+        if not access_token or expires_in <= 0:
+            raise AmazonSPAPIError("Grantless LWA token response did not include a usable token")
+
+        LOGGER.info("Amazon grantless LWA access token received; expires_in=%s", expires_in)
+        return access_token
+
+    def rotate_application_client_secret(self) -> dict[str, Any]:
+        return self.request(
+            "POST",
+            "/applications/2023-11-30/clientSecret",
+            grantless_scope="sellingpartnerapi::client_credential:rotation",
+        )
 
     def get_inventory_summaries(
         self,
@@ -813,13 +856,18 @@ class AmazonSPAPIClient:
         *,
         params: dict[str, Any] | None = None,
         json_body: dict[str, Any] | None = None,
+        grantless_scope: str | None = None,
     ) -> dict[str, Any]:
         method = method.upper()
         self.validate_read_only_request(method, path)
 
         body = json.dumps(json_body, separators=(",", ":")) if json_body else ""
         url = f"{self.config.endpoint}{path}"
-        access_token = self.get_lwa_access_token()
+        access_token = (
+            self.get_grantless_lwa_access_token(grantless_scope)
+            if grantless_scope
+            else self.get_lwa_access_token()
+        )
         headers = {
             "user-agent": self.user_agent(),
             "x-amz-access-token": access_token,
@@ -908,6 +956,8 @@ class AmazonSPAPIClient:
             if not (
                 method == "POST"
                 and (
+                    path == "/applications/2023-11-30/clientSecret"
+                    or
                     path == "/reports/2021-06-30/reports"
                     or (
                         path.startswith("/products/fees/v0/items/")

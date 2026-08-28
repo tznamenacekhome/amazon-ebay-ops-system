@@ -349,6 +349,35 @@ requires rotation before `2026-09-10T21:58:48.636Z`.
 Manual rotation is the preferred emergency path unless MBOP has already built
 the SQS-based Application Management API workflow.
 
+Programmatic rotation support exists for MBOP, but it still needs one Amazon
+Developer Console registration step before the first use. The AWS SQS queue is:
+
+```text
+arn:aws:sqs:us-west-2:297464765814:mbop-amazon-lwa-rotation
+```
+
+Register that ARN in Developer Console / Notification Preferences /
+`Application Client New Secret` for the MBOP application. Amazon documents that
+the queue policy must allow AWS account `437568002678` to call
+`sqs:GetQueueAttributes` and `sqs:SendMessage`; MBOP's setup helper applies
+that policy:
+
+```powershell
+.\scripts\setup-amazon-lwa-rotation-queue.ps1
+```
+
+After the queue ARN is registered in Amazon, run:
+
+```powershell
+.\.venv\Scripts\python.exe integrations\amazon_rotate_lwa_secret.py --confirm
+```
+
+The script calls Amazon's grantless Application Management API, waits for the
+new secret on SQS, updates `.env.local`, updates
+`/mbop/prod/amazon-spapi/client-secret`, deletes the consumed SQS message, and
+runs the auth smoke test. Calling rotation starts the seven-day old-secret
+overlap.
+
 1. In Seller Central, open Apps and Services / Develop Apps:
 
    ```text
