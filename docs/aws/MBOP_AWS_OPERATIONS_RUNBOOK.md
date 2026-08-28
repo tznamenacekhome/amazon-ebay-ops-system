@@ -358,32 +358,25 @@ the SQS-based Application Management API workflow.
 2. Find application `amzn1.sp.solution.443c0a17-6bac-42bb-9bfe-408f59c02895`.
 3. In the LWA credentials column, choose the expiration alert / View.
 4. Choose Rotate Secret and copy the new client secret into the password vault.
-5. Update local development environment variable `AMAZON_SP_API_CLIENT_SECRET`
-   in `.env.local` and any local secret store used for one-off scripts.
-6. Update the production AWS Secrets Manager value:
+5. Update local `.env.local`, AWS Secrets Manager, and run an auth smoke test
+   with the helper script:
 
    ```powershell
-   aws secretsmanager put-secret-value `
-     --profile mbop-admin `
-     --region us-west-2 `
-     --secret-id /mbop/prod/amazon-spapi/client-secret `
-     --secret-string "<new-client-secret>"
+   .\scripts\update-amazon-lwa-client-secret.ps1
    ```
 
-7. Because the secret name/ARN remains the same, a new scheduler task definition
+   The script prompts for the new secret without echoing it, updates
+   `AMAZON_SP_API_CLIENT_SECRET` in `.env.local`, writes the production secret
+   through AWS Secrets Manager, deletes its temporary secret file, and runs
+   `integrations\amazon_test_connection.py --auth-only`.
+6. Because the secret name/ARN remains the same, a new scheduler task definition
    is not required. Running tasks keep their existing environment, but future
    scheduler tasks will receive the new secret from Secrets Manager.
-8. Run an auth smoke test locally after `.env.local` is updated:
-
-   ```powershell
-   .\.venv\Scripts\python.exe integrations\amazon_test_connection.py
-   ```
-
-9. Run the smallest production scheduler smoke test that uses Amazon SP-API,
+7. Run the smallest production scheduler smoke test that uses Amazon SP-API,
    such as `fba-inventory-daily --list` if only command wiring is needed, or a
    bounded one-off Amazon test task if credential validation must happen inside
    ECS.
-10. Delete or revoke the old stored client secret after the seven-day overlap
+8. Delete or revoke the old stored client secret after the seven-day overlap
     has passed and the new secret has been verified in production.
 
 Do not commit the old or new LWA client secret. Do not print it in logs, shell
