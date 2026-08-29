@@ -21,9 +21,11 @@ Stored details:
 
 Sourcing now hard-blocks explicit used-condition signals from eBay
 listing-facing fields even when eBay also reports structured condition ID
-`1000`. Signals include `Used`, `Pre-owned`, `Like New`, and disc condition
-language such as `disc is in` or `great shape`. `Very Good` is intentionally
-not blocked by itself because sellers may use it to describe new-item packaging.
+`1000`. Structured eBay condition values other than New/Brand New, including
+`Very Good`, block presentation. Free-text signals include `Used`, `Pre-owned`,
+`Like New`, and disc condition language such as `disc is in` or `great shape`.
+`Very Good` is intentionally not blocked as standalone free text because
+sellers may use it to describe new-item packaging.
 
 Changed files:
 

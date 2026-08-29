@@ -33,6 +33,7 @@ def candidate(
     category_id: str = "139973",
     category_name: str = "Video Games",
     condition: str = "Brand New",
+    condition_id: str = "1000",
     description: str | None = None,
     item_type: str | None = None,
     region_code: str | None = None,
@@ -49,10 +50,12 @@ def candidate(
     return {
         "ebay_title": title,
         "condition": condition,
+        "condition_id": condition_id,
         "item_location_country": "US",
         "raw_ebay_json": {
             "localizedAspects": aspects,
             "categories": [{"categoryId": category_id, "categoryName": category_name}],
+            "conditionId": condition_id,
             "description": description,
         },
     }
@@ -122,13 +125,27 @@ class SourcingMatchRuleTests(unittest.TestCase):
         self.assert_blocked(diagnostics, "not new condition")
         self.assertIn("used", diagnostics["condition_mismatch"]["hits"])
 
-    def test_very_good_condition_does_not_block_new_sourcing_candidate(self) -> None:
+    def test_structured_very_good_condition_blocks_new_sourcing_candidate(self) -> None:
         diagnostics = evaluate_static_match_rules(
             candidate(
                 "Command and Conquer 3 - Tiberium Wars Xbox 360",
                 platform="Xbox 360",
                 game_name="Command and Conquer 3 Tiberium Wars",
                 condition="Very Good",
+                condition_id="4000",
+            ),
+            seed("Command & Conquer 3 Tiberium Wars", "Xbox 360"),
+        )
+        self.assert_blocked(diagnostics, "not new condition")
+        self.assertIn("Very Good", diagnostics["condition_mismatch"]["hits"])
+
+    def test_very_good_description_text_does_not_block_new_sourcing_candidate(self) -> None:
+        diagnostics = evaluate_static_match_rules(
+            candidate(
+                "Command and Conquer 3 - Tiberium Wars Xbox 360 New",
+                platform="Xbox 360",
+                game_name="Command and Conquer 3 Tiberium Wars",
+                description="Packaging is in very good condition.",
             ),
             seed("Command & Conquer 3 Tiberium Wars", "Xbox 360"),
         )

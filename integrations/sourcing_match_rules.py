@@ -308,12 +308,23 @@ NON_GAME_CATEGORY_TERMS = {
 
 BUNDLE_REVIEW_TERMS = {"bundle", "bundled", "with game", "includes game", "game included"}
 
+NEW_CONDITION_IDS = {"1000"}
+NEW_CONDITION_VALUES = {"brand new", "new"}
+NON_NEW_STRUCTURED_CONDITION_VALUES = {
+    "acceptable",
+    "good",
+    "like new",
+    "pre-owned",
+    "preowned",
+    "seller refurbished",
+    "used",
+    "very good",
+}
 USED_CONDITION_SIGNALS = {
     "acceptable",
     "disc is in",
     "disc only",
     "disc-only",
-    "good condition",
     "great shape",
     "like new",
     "pre-owned",
@@ -427,7 +438,7 @@ def evaluate_static_match_rules(
     raw_json = candidate.get("raw_ebay_json") or {}
     combined_text = evidence["searchable_text"]
     description_text = str(evidence.get("description") or "").casefold()
-    title_text = " ".join([ebay_title, str(candidate.get("condition") or "")]).casefold()
+    title_text = ebay_title.casefold()
 
     flags: list[str] = []
     hard_blocks: list[str] = []
@@ -473,7 +484,11 @@ def evaluate_static_match_rules(
         score_adjustment -= 35
         recommendation = "Blocked"
 
-    condition_mismatch = used_condition_hits(title_text, description_text)
+    condition_mismatch = non_new_structured_condition_hits(
+        candidate.get("condition"),
+        candidate.get("condition_id") or raw_json.get("conditionId"),
+    ) + used_condition_hits(title_text, description_text)
+    condition_mismatch = list(dict.fromkeys(condition_mismatch))
     if condition_mismatch:
         hard_blocks.append(f"not new condition signal: {', '.join(condition_mismatch[:3])}")
         flags.append(f"Blocked: not new condition signal: {', '.join(condition_mismatch[:3])}")
@@ -1117,6 +1132,23 @@ def keyword_hits(text: str, terms: list[str] | set[str]) -> list[str]:
         elif re.search(rf"(?<![a-z0-9]){re.escape(term_text)}(?![a-z0-9])", normalized):
             hits.append(str(term))
     return sorted(dict.fromkeys(hits))
+
+
+def non_new_structured_condition_hits(condition: Any, condition_id: Any) -> list[str]:
+    hits: list[str] = []
+    condition_id_text = str(condition_id or "").strip()
+    if condition_id_text and condition_id_text not in NEW_CONDITION_IDS:
+        hits.append(f"condition id {condition_id_text}")
+
+    condition_text = str(condition or "").strip()
+    normalized_condition = condition_text.casefold()
+    if not normalized_condition or normalized_condition in NEW_CONDITION_VALUES:
+        return hits
+    if normalized_condition in NON_NEW_STRUCTURED_CONDITION_VALUES:
+        hits.append(condition_text)
+    elif keyword_hits(normalized_condition, NON_NEW_STRUCTURED_CONDITION_VALUES):
+        hits.append(condition_text)
+    return list(dict.fromkeys(hits))
 
 
 def used_condition_hits(title_text: str, description_text: str) -> list[str]:
