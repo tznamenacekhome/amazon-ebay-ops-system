@@ -79,7 +79,7 @@ Scheduler repository:
 Scheduler task definition:
 
 ```text
-Sourcing catalog schedule: arn:aws:ecs:us-west-2:297464765814:task-definition/mbop-scheduler-task:21
+Sourcing catalog schedule: arn:aws:ecs:us-west-2:297464765814:task-definition/mbop-scheduler-task:71
 Other scheduler schedules: inspect live EventBridge Scheduler targets before changing
 ```
 
@@ -89,12 +89,12 @@ EventBridge Scheduler targets before changing other schedules.
 Current scheduler image digest:
 
 ```text
-Sourcing catalog revision: sha256:bc42711a71e9f13ed95ad5f35fbf8181d117f0ac404730ad3ddc39ff42986f2d
+Sourcing catalog revision: sha256:826df3ddf2c2e7bb0e3c8f87d900ae03852dcd34662a996360b00a3bef5489c9
 ```
 
-Tag `scheduler-56a34347dd8e` points at the sourcing catalog scheduler digest.
+Tag `scheduler-eb1461ee8caa` points at the sourcing catalog scheduler digest.
 This image was built from repository HEAD
-`56a34347dd8eb515161e32ef88bdcd24d92a3fcb`.
+`eb1461ee8caa`.
 
 ## ALB
 
@@ -504,6 +504,10 @@ Scheduler sizing note:
   previous image predated the eBay Browse optimization commit. The schedule
   retained the same command override, networking, EventBridge role, and
   `1024 CPU / 2048 MB` override.
+- On 2026-08-30, `mbop-sourcing-catalog` was updated to
+  `mbop-scheduler-task:71` after deploying repository HEAD `eb1461ee8caa`.
+  The schedule retained the same command override, networking, EventBridge
+  role, and `1024 CPU / 2048 MB` override.
 
 ## Current Monitoring Items
 
