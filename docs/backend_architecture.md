@@ -1,6 +1,6 @@
 # Backend Architecture
 
-Last updated: 2026-07-14
+Last updated: 2026-08-30
 
 ## Core Flow
 
@@ -123,6 +123,19 @@ reason instead of being treated as failed jobs. The frontend renders saved
 backend cycle/batch/quota
 diagnostics and does not calculate matching, profitability, or queue eligibility
 in React.
+
+Opportunity scoring enforces the open review queue as one display-eligible row
+per ASIN. After scoring inserts or updates rows, duplicate open/unreviewed ASIN
+opportunities are dismissed with `duplicate_open_asin_opportunity`, preserving
+the highest score and then newest opportunity as the keeper. This cleanup is
+recorded in `sourcing_actions` and does not hard-delete sourcing history.
+
+Normal sourcing listing availability cleanup uses eBay Browse evidence. The
+manual Trading API `GetItem` fallback is reserved for explicit same-day cleanup
+when Browse quota is exhausted. It uses the legacy item ID from Browse IDs,
+classifies ambiguous/error states as unknown, and only dismisses
+`no_longer_available` when Trading fields reliably show the exact listing is no
+longer purchasable.
 
 The 2026-07-12 eBay Browse call-efficiency audit lives at
 `docs/ebay_browse_call_efficiency_audit_2026-07-12.md`. In the monitored

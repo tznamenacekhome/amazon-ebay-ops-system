@@ -13,6 +13,7 @@ from matching_intelligence import build_listing_snapshot
 from sourcing_match_rules import evaluate_static_match_rules, meaningful_title_tokens, resolve_seed_system
 from system_detection import detect_system_from_title, normalize_system
 from title_cleaning import clean_marketplace_title_for_search
+from cleanup_sourcing_duplicate_asin_opportunities import enforce_one_open_opportunity_per_asin
 
 
 NEED_POINTS = {"critical": 40, "high": 28, "medium": 14, "low": 4}
@@ -56,6 +57,7 @@ def main() -> int:
 
     if args.update_existing:
         updated, inserted = upsert_opportunities(supabase, args.run_id, rows)
+        duplicate_cleanup = enforce_one_open_opportunity_per_asin(supabase)
         snapshots = snapshot_new_opportunities(supabase, args.run_id)
         supabase.table("sourcing_runs").update(
             {
@@ -66,6 +68,7 @@ def main() -> int:
         ).eq("sourcing_run_id", args.run_id).execute()
         print(f"Updated: {updated}")
         print(f"Inserted: {inserted}")
+        print(f"Duplicate open ASIN opportunities dismissed: {duplicate_cleanup['dismissed_duplicate_opportunities']}")
         print(f"Initial listing snapshots created: {snapshots}")
         return 0
 
@@ -74,6 +77,7 @@ def main() -> int:
         print(f"Deleted existing opportunities: {deleted}")
     for batch in chunked(rows, 250):
         supabase.table("sourcing_opportunities").insert(batch).execute()
+    duplicate_cleanup = enforce_one_open_opportunity_per_asin(supabase)
     snapshots = snapshot_new_opportunities(supabase, args.run_id)
     supabase.table("sourcing_runs").update(
         {
@@ -82,6 +86,7 @@ def main() -> int:
             "opportunity_count": len(rows),
         }
     ).eq("sourcing_run_id", args.run_id).execute()
+    print(f"Duplicate open ASIN opportunities dismissed: {duplicate_cleanup['dismissed_duplicate_opportunities']}")
     print(f"Initial listing snapshots created: {snapshots}")
     return 0
 
@@ -219,7 +224,7 @@ def fetch_opportunities_for_snapshot(supabase, run_id: str) -> list[dict[str, An
         )
         .eq("sourcing_run_id", run_id)
         .is_("initial_listing_snapshot_id", "null")
-        .neq("status", "rejected")
+        .in_("status", ["open", "watching", "roi_snoozed", "inventory_snoozed", "purchased_pending_match"])
         .execute()
     )
     return response.data or []

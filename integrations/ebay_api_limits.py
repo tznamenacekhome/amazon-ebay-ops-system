@@ -35,15 +35,25 @@ class EbayBrowseQuota:
             return None
 
 
-def fetch_browse_quota() -> EbayBrowseQuota | None:
+def fetch_rate_limits(*, api_context: str | None = None, api_name: str | None = None) -> dict[str, Any]:
     token = get_app_access_token()
+    params = {}
+    if api_context:
+        params["api_context"] = api_context
+    if api_name:
+        params["api_name"] = api_name
     response = requests.get(
         EBAY_RATE_LIMIT_URL,
         headers={"Authorization": f"Bearer {token}", "Accept": "application/json"},
+        params=params,
         timeout=30,
     )
     response.raise_for_status()
-    return parse_browse_quota(response.json())
+    return response.json()
+
+
+def fetch_browse_quota() -> EbayBrowseQuota | None:
+    return parse_browse_quota(fetch_rate_limits())
 
 
 def get_app_access_token() -> str:
@@ -65,16 +75,18 @@ def get_app_access_token() -> str:
 
 
 def parse_browse_quota(payload: dict[str, Any]) -> EbayBrowseQuota | None:
+    return find_resource_quota(payload, EBAY_BROWSE_RESOURCE)
+
+
+def find_resource_quota(payload: dict[str, Any], resource_name: str) -> EbayBrowseQuota | None:
     for api in payload.get("rateLimits") or []:
-        if str(api.get("apiName") or "").casefold() != "browse":
-            continue
         for resource in api.get("resources") or []:
-            if str(resource.get("name") or "").casefold() != EBAY_BROWSE_RESOURCE:
+            if str(resource.get("name") or "").casefold() != resource_name.casefold():
                 continue
             rates = resource.get("rates") or []
             rate = rates[0] if rates else {}
             return EbayBrowseQuota(
-                resource=EBAY_BROWSE_RESOURCE,
+                resource=str(resource.get("name") or resource_name),
                 limit=to_int(rate.get("limit")),
                 count=to_int(rate.get("count")),
                 remaining=to_int(rate.get("remaining")),

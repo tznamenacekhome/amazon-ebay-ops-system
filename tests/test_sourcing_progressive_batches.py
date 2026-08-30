@@ -10,6 +10,7 @@ sys.path.insert(0, str(ROOT / "integrations"))
 
 from run_sourcing_workflow import choose_batch_opportunities, fetch_ebay_search_summary, is_presentable_opportunity, summarize_funnel_from_rows  # noqa: E402
 from ebay_api_limits import browse_call_budget, parse_browse_quota  # noqa: E402
+from cleanup_sourcing_duplicate_asin_opportunities import choose_duplicates, group_by_asin  # noqa: E402
 from score_sourcing_opportunities import required_offer_percent, score_candidate, suggested_max_bid, suggested_offer  # noqa: E402
 
 
@@ -48,6 +49,30 @@ class SourcingProgressiveBatchTests(unittest.TestCase):
         selected = choose_batch_opportunities(rows, set(), 0)
 
         self.assertEqual([row["opportunity_id"] for row in selected], ["first", "second"])
+
+    def test_duplicate_asin_cleanup_keeps_highest_score_per_asin(self):
+        rows = [
+            {"opportunity_id": "older-low", "asin": "B001", "status": "open", "score": 80, "created_at": "2026-08-28T00:00:00+00:00"},
+            {"opportunity_id": "newer-high", "asin": "B001", "status": "open", "score": 90, "created_at": "2026-08-29T00:00:00+00:00"},
+            {"opportunity_id": "only", "asin": "B002", "status": "open", "score": 50, "created_at": "2026-08-28T00:00:00+00:00"},
+        ]
+
+        keepers, duplicates = choose_duplicates(group_by_asin(rows))
+
+        self.assertEqual(keepers["B001"]["opportunity_id"], "newer-high")
+        self.assertEqual(keepers["B002"]["opportunity_id"], "only")
+        self.assertEqual([row["opportunity_id"] for row in duplicates], ["older-low"])
+
+    def test_duplicate_asin_cleanup_uses_newer_row_as_tiebreaker(self):
+        rows = [
+            {"opportunity_id": "older", "asin": "B001", "status": "open", "score": 75, "created_at": "2026-08-28T00:00:00+00:00"},
+            {"opportunity_id": "newer", "asin": "B001", "status": "open", "score": 75, "created_at": "2026-08-29T00:00:00+00:00"},
+        ]
+
+        keepers, duplicates = choose_duplicates(group_by_asin(rows))
+
+        self.assertEqual(keepers["B001"]["opportunity_id"], "newer")
+        self.assertEqual([row["opportunity_id"] for row in duplicates], ["older"])
 
     def test_choose_batch_opportunities_skips_stale_open_rows_with_final_hard_blocks(self):
         rows = [

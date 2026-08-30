@@ -1,6 +1,6 @@
 # Business Rules
 
-Last updated: 2026-08-04
+Last updated: 2026-08-30
 
 ## Cost And Reporting
 
@@ -151,6 +151,17 @@ Carrier/status syncs must not downgrade workflow-owned statuses.
   ended, sold out, or missing. It must not dismiss Purchased Pending Match rows,
   because those often become unavailable after the operator buys or offers and
   must remain available for purchase matching/enrichment.
+- When Browse quota is unavailable, a manually invoked eBay Trading API
+  `GetItem` fallback may be used for same-day availability cleanup. The fallback
+  must remain isolated from normal Browse-driven cleanup, classify ambiguous
+  API/auth/rate-limit responses as unknown, and only dismiss rows when Trading
+  evidence reliably shows the exact listing ended, completed, sold out, or has
+  no purchasable inventory.
+- Open/unreviewed replenishment opportunities are ASIN-level review work. MBOP
+  should keep only one open display-eligible opportunity per ASIN, choosing the
+  highest scoring row and then the newest row as a tie-breaker. Extra open rows
+  for the same ASIN are dismissed with
+  `duplicate_open_asin_opportunity` and an auditable `sourcing_actions` record.
 - Sourcing seed generation may use the full known Amazon SKU catalog, including
   inactive seller listings, so out-of-stock products with known ASIN/MSKU
   history can still become replenishment candidates. Full-listing sourcing may
