@@ -336,9 +336,10 @@ Carrier/status syncs must not downgrade workflow-owned statuses.
   MBOP does not infer reimbursement eligibility automatically.
 - Seller Central cases are prepared manually. MBOP must not create Amazon cases
   automatically unless a future approved write workflow is designed.
-- Customer return and reimbursement report imports may be run manually/on
+- Customer return and reimbursement report imports run daily through the
+  `amazon-return-recovery` scheduler group and may also be run manually on
   demand. Do not schedule unreliable Amazon removal reports while they are
-  returning `FATAL`.
+  returning `FATAL` or incomplete identity/LPN evidence.
 
 ## Inventory And Valuation
 

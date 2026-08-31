@@ -148,6 +148,7 @@ export async function GET(request: NextRequest) {
         "finance-refresh",
         "fba-inventory-daily",
         "fba-shipments",
+        "amazon-return-recovery",
         "reconciliation",
         "repricing-catalog",
         "sourcing-catalog",

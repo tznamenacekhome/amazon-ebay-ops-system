@@ -87,13 +87,18 @@ designed.
   2x/day runs.
 - `daily`: Amazon FBA inventory, Amazon FBA shipments, Amazon listing status,
   Amazon inventory planning, Amazon finance balances, 60-day Amazon sales
-  finance refresh, daily sales profitability, Informed Repricer reports,
-  sourcing listing availability cleanup, and Matching Intelligence refresh.
+  finance refresh, daily sales profitability, Amazon Return Recovery customer
+  return/reimbursement reports, Informed Repricer reports, sourcing listing
+  availability cleanup, and Matching Intelligence refresh.
   YNAB sync and daily business-value snapshot jobs are retired from MBOP. This
   group is intended for 1x/day runs.
 - `catalog`: sourcing listing availability cleanup and guarded Keepa
   active-Amazon stale refresh plus Matching Intelligence refresh. Keepa work is
   token-aware and can run daily or less often.
+- `amazon-return-recovery`: Amazon FBA customer return report and reimbursement
+  report import for the Return Recovery queue. Removal order/shipment reports
+  remain manual until Amazon report payloads consistently include useful item
+  identity and LPN fields.
 - AWS production schedules use the cloud-specific groups documented in
   `docs/aws/MBOP_AWS_SCHEDULER_PLAN.md`. System Health reads Supabase
   `scheduler_runs` and `scheduler_run_jobs` telemetry for those groups,

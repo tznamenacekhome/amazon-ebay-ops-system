@@ -102,6 +102,7 @@ These group names are now accepted by `run_all_syncs.py`:
 - `finance-refresh`: Amazon finance balances, ZFI business summary push
 - `fba-inventory-daily`: Amazon FBA inventory, Amazon inventory planning, ZFI business summary push
 - `fba-shipments`: Amazon FBA shipments, FBA EasyPost carrier tracking, ZFI business summary push
+- `amazon-return-recovery`: Amazon FBA customer return and reimbursement report import
 - `reconciliation`: inventory reconciliation with `--skip-if-unchanged`
 - `repricing-catalog`: Amazon listing status, Informed repricing reports
 - `sourcing-catalog`: unified daily catalog sourcing, sourcing listing availability,
@@ -140,6 +141,7 @@ mbop-finance-refresh-afternoon: cron(0 14 ? * * *)
 mbop-finance-refresh-evening: cron(45 20 ? * * *)
 mbop-fba-inventory-daily: cron(30 20 ? * * *)
 mbop-fba-shipments-active-window: cron(40 8,12,16,20 ? * * *)
+mbop-amazon-return-recovery-daily: cron(45 15 ? * * *)
 mbop-reconciliation: cron(0 21 ? * * *)
 mbop-repricing-catalog: cron(30 21 ? * * *)
 mbop-sourcing-catalog: cron(10 0 ? * * *)
@@ -165,6 +167,9 @@ The target still overrides the task to `1024 CPU / 2048 MB` and keeps the same
 cluster, public subnet set, security group, and EventBridge Scheduler role.
 
 `fba-pricing`, `finance-audit`, `listing-audit`, and `inventory-audit` remain manual/on-demand.
+Amazon Return Recovery removal order/shipment report imports also remain
+manual until Amazon returns reliable item identity and LPN evidence for those
+reports.
 
 ## Secrets Manager Entries
 

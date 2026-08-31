@@ -169,6 +169,7 @@ const AWS_GROUP_ORDER = [
   "finance-refresh",
   "fba-inventory-daily",
   "fba-shipments",
+  "amazon-return-recovery",
   "reconciliation",
   "repricing-catalog",
   "sourcing-catalog",

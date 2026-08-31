@@ -508,6 +508,11 @@ Scheduler sizing note:
   `mbop-scheduler-task:71` after deploying repository HEAD `eb1461ee8caa`.
   The schedule retained the same command override, networking, EventBridge
   role, and `1024 CPU / 2048 MB` override.
+- On 2026-08-30, `mbop-amazon-return-recovery-daily` was added as a daily
+  `3:45 PM America/Los_Angeles` EventBridge schedule for
+  `python run_all_syncs.py --group amazon-return-recovery`. It refreshes
+  Amazon FBA customer return and reimbursement reports; removal reports remain
+  manual until Amazon provides reliable identity/LPN evidence.
 
 ## Current Monitoring Items
 
