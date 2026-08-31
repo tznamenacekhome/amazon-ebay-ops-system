@@ -51,7 +51,7 @@ Target:
 
 ```text
 Task definition family: mbop-scheduler-task
-Current deployed revision for mbop-sourcing-catalog: mbop-scheduler-task:71
+Current deployed revision for mbop-sourcing-catalog: mbop-scheduler-task:72
 Container: mbop-scheduler
 CPU: 512
 Memory: 1024 MiB
@@ -68,14 +68,14 @@ Default command:
 Current ECR image:
 
 ```text
-297464765814.dkr.ecr.us-west-2.amazonaws.com/mbop-scheduler@sha256:826df3ddf2c2e7bb0e3c8f87d900ae03852dcd34662a996360b00a3bef5489c9
-tag: scheduler-eb1461ee8caa
+297464765814.dkr.ecr.us-west-2.amazonaws.com/mbop-scheduler@sha256:be9f76d83c6fc988d930595223feb5fe1a9b971a92e8064b9ee56248d280d827
+tag: scheduler-08728f87baf6
 ```
 
 The current `mbop-sourcing-catalog` scheduler task definition is digest-pinned
 and includes the one-open-opportunity-per-ASIN sourcing cleanup plus the manual
 Trading `GetItem` availability fallback deployed from repository HEAD
-`eb1461ee8caa`.
+`08728f87baf6`.
 
 EventBridge Scheduler should override the command per group:
 
@@ -157,7 +157,7 @@ because `Matching intelligence refresh` was killed by ECS with
 after the eBay Browse quota reset, so the unified daily coverage-cycle runner
 can spend the usable quota before lower-priority Browse consumers.
 As of 2026-08-30 verification, `mbop-sourcing-catalog` targets
-`mbop-scheduler-task:71` and runs:
+`mbop-scheduler-task:72` and runs:
 
 ```text
 python run_all_syncs.py --group sourcing-catalog

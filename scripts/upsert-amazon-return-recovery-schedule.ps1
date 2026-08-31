@@ -42,8 +42,16 @@ $targetInput.Overrides.ContainerOverrides[0].Environment = @(
   @{ Name = "CONTAINER_CPU"; Value = "512" },
   @{ Name = "CONTAINER_MEMORY"; Value = "1024" }
 )
-$targetInput.Overrides.Cpu = "512"
-$targetInput.Overrides.Memory = "1024"
+if ($targetInput.Overrides.PSObject.Properties.Name -contains "Cpu") {
+  $targetInput.Overrides.Cpu = "512"
+} else {
+  $targetInput.Overrides | Add-Member -NotePropertyName Cpu -NotePropertyValue "512"
+}
+if ($targetInput.Overrides.PSObject.Properties.Name -contains "Memory") {
+  $targetInput.Overrides.Memory = "1024"
+} else {
+  $targetInput.Overrides | Add-Member -NotePropertyName Memory -NotePropertyValue "1024"
+}
 $target.Input = $targetInput | ConvertTo-Json -Depth 100 -Compress
 
 $targetFile = Join-Path ([System.IO.Path]::GetTempPath()) "$ScheduleName-target.json"

@@ -79,7 +79,7 @@ Scheduler repository:
 Scheduler task definition:
 
 ```text
-Sourcing catalog schedule: arn:aws:ecs:us-west-2:297464765814:task-definition/mbop-scheduler-task:71
+Sourcing catalog schedule: arn:aws:ecs:us-west-2:297464765814:task-definition/mbop-scheduler-task:72
 Other scheduler schedules: inspect live EventBridge Scheduler targets before changing
 ```
 
@@ -89,12 +89,12 @@ EventBridge Scheduler targets before changing other schedules.
 Current scheduler image digest:
 
 ```text
-Sourcing catalog revision: sha256:826df3ddf2c2e7bb0e3c8f87d900ae03852dcd34662a996360b00a3bef5489c9
+Sourcing catalog revision: sha256:be9f76d83c6fc988d930595223feb5fe1a9b971a92e8064b9ee56248d280d827
 ```
 
-Tag `scheduler-eb1461ee8caa` points at the sourcing catalog scheduler digest.
+Tag `scheduler-08728f87baf6` points at the sourcing catalog scheduler digest.
 This image was built from repository HEAD
-`eb1461ee8caa`.
+`08728f87baf6`.
 
 ## ALB
 
@@ -513,6 +513,9 @@ Scheduler sizing note:
   `python run_all_syncs.py --group amazon-return-recovery`. It refreshes
   Amazon FBA customer return and reimbursement reports; removal reports remain
   manual until Amazon provides reliable identity/LPN evidence.
+- On 2026-08-30, `mbop-sourcing-catalog` was moved to
+  `mbop-scheduler-task:72` as part of the same scheduler image deployment that
+  added `amazon-return-recovery`.
 
 ## Current Monitoring Items
 
