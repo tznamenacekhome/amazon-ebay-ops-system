@@ -409,6 +409,16 @@ JOBS: tuple[SyncJob, ...] = (
         timeout_seconds=30 * 60,
     ),
     SyncJob(
+        name="Sourcing listing availability Trading fallback",
+        command=static_command(
+            "integrations/refresh_sourcing_listing_availability_trading_fallback.py",
+            "--apply",
+        ),
+        groups=("daily", "catalog", "sourcing-catalog"),
+        blocking=False,
+        timeout_seconds=45 * 60,
+    ),
+    SyncJob(
         name="Matching intelligence refresh",
         command=static_command(
             "integrations/refresh_matching_intelligence.py",

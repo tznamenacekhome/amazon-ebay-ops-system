@@ -105,8 +105,9 @@ These group names are now accepted by `run_all_syncs.py`:
 - `amazon-return-recovery`: Amazon FBA customer return and reimbursement report import
 - `reconciliation`: inventory reconciliation with `--skip-if-unchanged`
 - `repricing-catalog`: Amazon listing status, Informed repricing reports
-- `sourcing-catalog`: unified daily catalog sourcing, sourcing listing availability,
-  Matching Intelligence refresh
+- `sourcing-catalog`: unified daily catalog sourcing, Browse sourcing listing
+  availability, Trading `GetItem` availability fallback, Matching Intelligence
+  refresh
 - `keepa-catalog-priority`: the only scheduled Keepa token-spending group.
   It enriches purchases first, then active sourcing opportunities, then the
   remaining non-blocked catalog ASINs oldest Keepa snapshot first.

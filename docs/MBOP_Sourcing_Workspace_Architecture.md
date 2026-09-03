@@ -33,6 +33,7 @@ Implemented entry points:
 - `integrations/run_daily_sourcing_discovery.py`
 - `integrations/match_sourcing_purchases.py`
 - `integrations/refresh_sourcing_listing_availability.py`
+- `integrations/refresh_sourcing_listing_availability_trading_fallback.py`
 - `integrations/sourcing_common.py`
 
 Manual legacy population sequence:
@@ -140,6 +141,12 @@ Current implementation notes:
 - When the matcher finds the imported eBay purchase, it writes sourced ASIN, Amazon title, and `purchase_items.target_price` using the highest of Last Sold, Keepa 90-day, and current Buy Box price.
 - Amazon images come from `vw_latest_amazon_listing_snapshot.raw_listing_json.summaries[0].mainImage.link` when available.
 - `refresh_sourcing_listing_availability.py` checks open/watch/ROI-snoozed sourcing eBay item IDs through eBay Browse once per daily scheduler run. Ended, sold-out, or missing listings are moved to `dismissed` and recorded in `sourcing_actions` with dismiss reason `no_longer_available`. Purchased-pending rows are left for `match_sourcing_purchases.py` so accepted offers can still match imported eBay orders.
+- `refresh_sourcing_listing_availability_trading_fallback.py` runs later in the
+  daily `sourcing-catalog` group to clean the open/unreviewed Opportunities
+  screen when Browse quota is exhausted or insufficient. It uses Trading
+  `GetItem`, checks quota first, leaves unknown/error responses open, and only
+  dismisses listings that are completed, ended, sold out, or otherwise have no
+  purchasable inventory.
 - `refresh_sourcing_listing_availability.py` sends the same buyer contextual ZIP
   header used by sourcing search and preserves an existing stored shipping
   option/cost when eBay item-detail responses omit `shippingOptions`.

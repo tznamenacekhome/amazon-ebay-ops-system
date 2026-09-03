@@ -92,9 +92,10 @@ designed.
   availability cleanup, and Matching Intelligence refresh.
   YNAB sync and daily business-value snapshot jobs are retired from MBOP. This
   group is intended for 1x/day runs.
-- `catalog`: sourcing listing availability cleanup and guarded Keepa
-  active-Amazon stale refresh plus Matching Intelligence refresh. Keepa work is
-  token-aware and can run daily or less often.
+- `catalog`: sourcing listing availability cleanup, scheduled Trading
+  availability fallback, guarded Keepa active-Amazon stale refresh, and
+  Matching Intelligence refresh. Keepa work is token-aware and can run daily or
+  less often.
 - `amazon-return-recovery`: Amazon FBA customer return report and reimbursement
   report import for the Return Recovery queue. Removal order/shipment reports
   remain manual until Amazon report payloads consistently include useful item
@@ -136,7 +137,8 @@ the highest score and then newest opportunity as the keeper. This cleanup is
 recorded in `sourcing_actions` and does not hard-delete sourcing history.
 
 Normal sourcing listing availability cleanup uses eBay Browse evidence. The
-manual Trading API `GetItem` fallback is reserved for explicit same-day cleanup
+daily `sourcing-catalog` group also runs the Trading API `GetItem` fallback
+after the Browse cleanup so open/unreviewed opportunities can still be cleaned
 when Browse quota is exhausted. It uses the legacy item ID from Browse IDs,
 classifies ambiguous/error states as unknown, and only dismisses
 `no_longer_available` when Trading fields reliably show the exact listing is no

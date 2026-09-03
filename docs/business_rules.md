@@ -151,12 +151,12 @@ Carrier/status syncs must not downgrade workflow-owned statuses.
   ended, sold out, or missing. It must not dismiss Purchased Pending Match rows,
   because those often become unavailable after the operator buys or offers and
   must remain available for purchase matching/enrichment.
-- When Browse quota is unavailable, a manually invoked eBay Trading API
-  `GetItem` fallback may be used for same-day availability cleanup. The fallback
-  must remain isolated from normal Browse-driven cleanup, classify ambiguous
-  API/auth/rate-limit responses as unknown, and only dismiss rows when Trading
-  evidence reliably shows the exact listing ended, completed, sold out, or has
-  no purchasable inventory.
+- The daily `sourcing-catalog` group also runs an eBay Trading API `GetItem`
+  availability fallback after the Browse cleanup. The fallback remains isolated
+  from normal Browse-driven cleanup, checks Trading quota before spending calls,
+  classifies ambiguous API/auth/rate-limit responses as unknown, and only
+  dismisses rows when Trading evidence reliably shows the exact listing ended,
+  completed, sold out, or has no purchasable inventory.
 - Open/unreviewed replenishment opportunities are ASIN-level review work. MBOP
   should keep only one open display-eligible opportunity per ASIN, choosing the
   highest scoring row and then the newest row as a tie-breaker. Extra open rows
