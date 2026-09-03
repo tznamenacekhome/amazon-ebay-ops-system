@@ -79,7 +79,7 @@ Scheduler repository:
 Scheduler task definition:
 
 ```text
-Sourcing catalog schedule: arn:aws:ecs:us-west-2:297464765814:task-definition/mbop-scheduler-task:72
+Sourcing catalog schedule: arn:aws:ecs:us-west-2:297464765814:task-definition/mbop-scheduler-task:73
 Other scheduler schedules: inspect live EventBridge Scheduler targets before changing
 ```
 
@@ -89,12 +89,12 @@ EventBridge Scheduler targets before changing other schedules.
 Current scheduler image digest:
 
 ```text
-Sourcing catalog revision: sha256:be9f76d83c6fc988d930595223feb5fe1a9b971a92e8064b9ee56248d280d827
+Sourcing catalog revision: sha256:f00f3bc923443ccebd0397b780081b9d47f12f4b0d44df2b3fe5a0debfeb5783
 ```
 
-Tag `scheduler-08728f87baf6` points at the sourcing catalog scheduler digest.
+Tag `scheduler-9a525ff8bf01` points at the sourcing catalog scheduler digest.
 This image was built from repository HEAD
-`08728f87baf6`.
+`9a525ff8bf01`.
 
 ## ALB
 
@@ -516,6 +516,10 @@ Scheduler sizing note:
 - On 2026-08-30, `mbop-sourcing-catalog` was moved to
   `mbop-scheduler-task:72` as part of the same scheduler image deployment that
   added `amazon-return-recovery`.
+- On 2026-09-03, `mbop-sourcing-catalog` was moved to
+  `mbop-scheduler-task:73` after deploying repository HEAD `9a525ff8bf01`.
+  The group now runs the Trading `GetItem` sourcing availability fallback daily
+  after the normal Browse availability cleanup.
 
 ## Current Monitoring Items
 

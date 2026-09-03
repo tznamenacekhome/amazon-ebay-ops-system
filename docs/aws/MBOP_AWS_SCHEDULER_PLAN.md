@@ -51,7 +51,7 @@ Target:
 
 ```text
 Task definition family: mbop-scheduler-task
-Current deployed revision for mbop-sourcing-catalog: mbop-scheduler-task:72
+Current deployed revision for mbop-sourcing-catalog: mbop-scheduler-task:73
 Container: mbop-scheduler
 CPU: 512
 Memory: 1024 MiB
@@ -75,7 +75,7 @@ tag: scheduler-08728f87baf6
 The current `mbop-sourcing-catalog` scheduler task definition is digest-pinned
 and includes the one-open-opportunity-per-ASIN sourcing cleanup plus the manual
 Trading `GetItem` availability fallback deployed from repository HEAD
-`08728f87baf6`.
+`9a525ff8bf01`.
 
 EventBridge Scheduler should override the command per group:
 
@@ -157,8 +157,8 @@ because `Matching intelligence refresh` was killed by ECS with
 `mbop-sourcing-catalog` runs at 12:10 AM in `America/Los_Angeles`, shortly
 after the eBay Browse quota reset, so the unified daily coverage-cycle runner
 can spend the usable quota before lower-priority Browse consumers.
-As of 2026-08-30 verification, `mbop-sourcing-catalog` targets
-`mbop-scheduler-task:72` and runs:
+As of 2026-09-03 verification, `mbop-sourcing-catalog` targets
+`mbop-scheduler-task:73` and runs:
 
 ```text
 python run_all_syncs.py --group sourcing-catalog
