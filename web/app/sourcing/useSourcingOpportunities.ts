@@ -3,7 +3,14 @@
 import { useCallback, useEffect, useState } from "react";
 import type { SourcingBatch, SourcingOpportunity } from "./types";
 
-export function useSourcingOpportunities(status: string, type: string, searchText: string, sourceMode: string, scope = "all_open") {
+export function useSourcingOpportunities(
+  status: string,
+  type: string,
+  searchText: string,
+  sourceMode: string,
+  scope = "all_open",
+  inventoryFilter = "all",
+) {
   const [rows, setRows] = useState<SourcingOpportunity[]>([]);
   const [summary, setSummary] = useState<Record<string, number>>({});
   const [batch, setBatch] = useState<SourcingBatch | null>(null);
@@ -17,6 +24,7 @@ export function useSourcingOpportunities(status: string, type: string, searchTex
       const params = new URLSearchParams({ status, type, limit: scope === "closest_excluded" ? "50" : "150" });
       params.set("scope", scope);
       if (sourceMode !== "all") params.set("sourceMode", sourceMode);
+      if (inventoryFilter !== "all") params.set("inventoryFilter", inventoryFilter);
       if (searchText.trim()) params.set("q", searchText.trim());
       params.set("_", String(Date.now()));
       const response = await fetch(`/api/sourcing/opportunities?${params.toString()}`, { cache: "no-store" });
@@ -30,7 +38,7 @@ export function useSourcingOpportunities(status: string, type: string, searchTex
     } finally {
       setLoading(false);
     }
-  }, [scope, searchText, sourceMode, status, type]);
+  }, [inventoryFilter, scope, searchText, sourceMode, status, type]);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect

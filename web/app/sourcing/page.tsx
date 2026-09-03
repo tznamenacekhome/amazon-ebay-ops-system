@@ -17,6 +17,7 @@ import { KeepaPriceIndicator } from "../components/KeepaPriceIndicator";
 
 const tabs = ["Replenishment", "Closest Excluded", "Sales Velocity Suppressed", "Coverage Cycle", "Watchlist", "Purchased Pending Match", "Sourcing History", "Matching Intelligence", "Settings"] as const;
 const opportunityTypes = ["all", "buy_now", "multi_unit", "best_offer", "auction", "watch"] as const;
+const inventoryFilters = ["all", "exclude_in_stock", "only_in_stock"] as const;
 const GIXEN_URL = "https://www.gixen.com/main/index.php";
 type OpportunitySortKey =
   | "ebay"
@@ -65,6 +66,7 @@ export default function SourcingPage() {
   const [status, setStatus] = useState("open");
   const [type, setType] = useState("all");
   const [sourceMode, setSourceMode] = useState("all");
+  const [inventoryFilter, setInventoryFilter] = useState<(typeof inventoryFilters)[number]>("all");
   const [scope, setScope] = useState("all_open");
   const [searchText, setSearchText] = useState("");
   const effectiveStatus =
@@ -83,6 +85,7 @@ export default function SourcingPage() {
     searchText,
     sourceMode,
     activeTab === "Closest Excluded" ? "closest_excluded" : activeTab === "Replenishment" ? scope : "all_open",
+    inventoryFilter,
   );
   const [actionBusyId, setActionBusyId] = useState<string | null>(null);
   const [dismissRow, setDismissRow] = useState<SourcingOpportunity | null>(null);
@@ -278,6 +281,15 @@ export default function SourcingPage() {
               <option value="3_catalog_remaining">Coverage: Catalog Remaining</option>
               <option value="recent_sales">Recently Sold</option>
               <option value="full_listings">All Listings</option>
+            </select>
+            <select
+              value={inventoryFilter}
+              onChange={(event) => setInventoryFilter(event.target.value as (typeof inventoryFilters)[number])}
+              className="h-9 rounded-md border border-slate-300 bg-white px-2 text-sm"
+            >
+              <option value="all">All Inventory</option>
+              <option value="exclude_in_stock">Exclude In Stock</option>
+              <option value="only_in_stock">Only In Stock</option>
             </select>
           </div>
 

@@ -273,6 +273,7 @@ async function getOpportunities(request: NextRequest) {
   const runId = searchParams.get("runId");
   const scope = parseScope(searchParams.get("scope"), runId);
   const sourceMode = searchParams.get("sourceMode") ?? "all";
+  const inventoryFilter = parseInventoryFilter(searchParams.get("inventoryFilter"));
   const queryText = (searchParams.get("q") ?? "").trim();
   const limit = Math.min(toNumber(searchParams.get("limit"), 100), 250);
   const queryLimit = Math.min(Math.max(limit * 20, 1000), 5000);
@@ -459,6 +460,8 @@ async function getOpportunities(request: NextRequest) {
       if (scope === "prior_unreviewed" && row.isNewThisRun) return false;
       if (row.status === "open" && row.listingStatus === "ended") return false;
       if (sourceMode !== "all" && row.sourceMode !== sourceMode) return false;
+      if (inventoryFilter === "exclude_in_stock" && row.myQuantity > 0) return false;
+      if (inventoryFilter === "only_in_stock" && row.myQuantity <= 0) return false;
       if (!queryText) return true;
       const haystack = `${row.asin} ${row.amazonTitle} ${row.ebayTitle}`.toLowerCase();
       return haystack.includes(queryText.toLowerCase());
@@ -702,6 +705,11 @@ function parseScope(value: string | null, runId: string | null): OpportunityScop
   if (runId) return "new_this_run";
   if (value === "new_this_run" || value === "prior_unreviewed" || value === "closest_excluded") return value;
   return "all_open";
+}
+
+function parseInventoryFilter(value: string | null) {
+  if (value === "exclude_in_stock" || value === "only_in_stock") return value;
+  return "all";
 }
 
 function emptySummary() {
