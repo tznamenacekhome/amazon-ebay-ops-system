@@ -331,11 +331,7 @@ export default function ReceivingPage() {
         return "ASIN is required for Amazon received items.";
       }
 
-      if (!draft?.sellPrice.trim()) {
-        return "Sell price is required for Amazon received items.";
-      }
-
-      if (Number.isNaN(Number(draft.sellPrice))) {
+      if (draft?.sellPrice.trim() && Number.isNaN(Number(draft.sellPrice))) {
         return "Sell price must be a valid number.";
       }
     }

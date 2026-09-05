@@ -7,7 +7,7 @@ import datetime as dt
 import re
 from typing import Any
 
-from sourcing_common import get_supabase_client, paginate_table
+from sourcing_common import execute_with_transient_retry, get_supabase_client, paginate_table
 
 
 ITEM_ID_RE = re.compile(r"(?:/itm/|[?&]item=)?(\d{9,15})(?:\D|$)")
@@ -20,12 +20,26 @@ def main() -> int:
     keepa_prices_by_asin = fetch_keepa_prices_by_asin(supabase, [row.get("asin") for row in opportunities])
     purchase_index = build_purchase_index(supabase)
     purchased_action_at_by_opportunity = latest_purchased_action_at_by_opportunity(supabase, opportunities)
+    matched_purchase_item_ids: set[str] = set()
     matched = 0
     skipped = 0
+    skipped_without_purchased_action = 0
+    skipped_duplicate_purchase_item = 0
     enriched_existing = 0
     moved_to_watch = 0
 
     for opportunity in opportunities:
+        purchased_at = purchased_action_at_by_opportunity.get(opportunity.get("opportunity_id"))
+        if purchased_at is None:
+            skipped_without_purchased_action += 1
+            continue
+        if opportunity.get("status") == "watching" and purchase_window_expired(
+            purchased_at,
+            args.pending_expire_hours,
+        ):
+            skipped += 1
+            continue
+
         item_ids = candidate_item_ids(opportunity)
         match = first_match(item_ids, purchase_index)
         if not match:
@@ -43,6 +57,13 @@ def main() -> int:
             else:
                 skipped += 1
             continue
+
+        purchase_item_id = str(match.get("item_id") or "")
+        if purchase_item_id and purchase_item_id in matched_purchase_item_ids:
+            skipped_duplicate_purchase_item += 1
+            continue
+        if purchase_item_id:
+            matched_purchase_item_ids.add(purchase_item_id)
 
         if existing_match(supabase, opportunity["opportunity_id"]):
             sell_price = matched_purchase_sell_price(opportunity, keepa_prices_by_asin)
@@ -91,31 +112,46 @@ def main() -> int:
     print(f"Existing matches enriched: {enriched_existing}")
     print(f"Moved to watch after {args.pending_expire_hours}h unmatched: {moved_to_watch}")
     print(f"Skipped: {skipped}")
+    print(f"Skipped without purchased action: {skipped_without_purchased_action}")
+    print(f"Skipped duplicate purchase item: {skipped_duplicate_purchase_item}")
     return 0
 
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Match sourcing purchased-pending rows to eBay purchases.")
-    parser.add_argument("--limit", type=int, default=200)
-    parser.add_argument("--pending-expire-hours", type=float, default=72)
+    parser.add_argument("--limit", type=int, default=5000)
+    parser.add_argument("--pending-expire-hours", type=float, default=240)
     parser.add_argument("--dry-run", action="store_true")
     return parser.parse_args()
 
 
 def fetch_purchased_opportunities(supabase, limit: int) -> list[dict[str, Any]]:
-    response = (
-        supabase.table("sourcing_opportunities")
-        .select(
-            "opportunity_id,asin,ebay_item_id,status,"
-            "candidate_id,"
-            "sourcing_seed_asins(amazon_title,target_sale_price,last_sold_at),"
-            "sourcing_ebay_candidates(ebay_item_id,ebay_legacy_item_id,ebay_title)"
-        )
-        .eq("status", "purchased_pending_match")
-        .limit(limit)
-        .execute()
+    columns = (
+        "opportunity_id,asin,ebay_item_id,status,"
+        "candidate_id,"
+        "sourcing_seed_asins(amazon_title,target_sale_price,last_sold_at),"
+        "sourcing_ebay_candidates(ebay_item_id,ebay_legacy_item_id,ebay_title)"
     )
-    return response.data or []
+    rows: list[dict[str, Any]] = []
+    page_size = 1000
+    start = 0
+    while len(rows) < limit:
+        end = min(start + page_size - 1, limit - 1)
+        response = execute_with_transient_retry(
+            lambda start=start, end=end: supabase.table("sourcing_opportunities")
+            .select(columns)
+            .in_("status", ["purchased_pending_match", "watching"])
+            .order("updated_at", desc=True)
+            .range(start, end)
+            .execute(),
+            "fetch purchased pending sourcing opportunities",
+        )
+        batch = response.data or []
+        rows.extend(batch)
+        if len(batch) < end - start + 1:
+            break
+        start += page_size
+    return rows[:limit]
 
 
 def fetch_keepa_prices_by_asin(supabase, asins: list[Any]) -> dict[str, dict[str, float | None]]:
@@ -277,9 +313,15 @@ def should_move_unmatched_to_watch(
     purchased_action_at_by_opportunity: dict[str, dt.datetime],
     pending_expire_hours: float,
 ) -> bool:
+    if opportunity.get("status") != "purchased_pending_match":
+        return False
     purchased_at = purchased_action_at_by_opportunity.get(opportunity.get("opportunity_id"))
     if purchased_at is None:
         return False
+    return purchase_window_expired(purchased_at, pending_expire_hours)
+
+
+def purchase_window_expired(purchased_at: dt.datetime, pending_expire_hours: float) -> bool:
     cutoff = dt.datetime.now(dt.UTC) - dt.timedelta(hours=pending_expire_hours)
     return purchased_at <= cutoff
 

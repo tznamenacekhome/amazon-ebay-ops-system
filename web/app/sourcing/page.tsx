@@ -39,6 +39,7 @@ type OpportunitySort = {
 };
 type SourcingActionPayload = {
   actionType: string;
+  asin?: string;
   reason?: string;
   notes?: string;
   imageClues?: string[];
@@ -115,7 +116,8 @@ export default function SourcingPage() {
       });
       const result = await response.json();
       if (!response.ok) throw new Error(result.error ?? "Action failed.");
-      removeRows([row.opportunityId]);
+      if (payload.actionType === "update_asin") await reload();
+      else removeRows([row.opportunityId]);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Action failed.");
       } finally {
@@ -327,6 +329,7 @@ export default function SourcingPage() {
             purchasedMode={activeTab === "Purchased Pending Match"}
             closestExcludedMode={activeTab === "Closest Excluded"}
             salesVelocitySuppressedMode={activeTab === "Sales Velocity Suppressed"}
+            onUpdateAsin={(row, asin) => void act(row, { actionType: "update_asin", asin })}
           />
           {dismissRow ? (
             <DismissOpportunityDialog
@@ -423,6 +426,7 @@ function ReplenishmentTable({
   purchasedMode,
   closestExcludedMode,
   salesVelocitySuppressedMode,
+  onUpdateAsin,
 }: {
   rows: SourcingOpportunity[];
   loading: boolean;
@@ -438,6 +442,7 @@ function ReplenishmentTable({
   purchasedMode: boolean;
   closestExcludedMode: boolean;
   salesVelocitySuppressedMode: boolean;
+  onUpdateAsin: (row: SourcingOpportunity, asin: string) => void;
 }) {
   const [sort, setSort] = useState<OpportunitySort | null>(null);
   const allSelected = rows.length > 0 && rows.every((row) => selectedIds.has(row.opportunityId));
@@ -543,9 +548,7 @@ function ReplenishmentTable({
                     ) : null}
                     <div className="mt-1 text-sm text-slate-600">
                       <span>{row.amazonTitle}</span>{" "}
-                      <Link href={row.amazonUrl} target="_blank" className="font-medium text-blue-700 hover:underline">
-                        {row.asin}
-                      </Link>
+                      <AsinCorrectionInput row={row} disabled={actionBusyId === row.opportunityId} onUpdateAsin={onUpdateAsin} />
                     </div>
                     <div className="mt-1 flex flex-wrap gap-2 text-xs text-slate-500">
                       <span>{row.sellerUsername ?? "unknown seller"}</span>
@@ -714,6 +717,55 @@ function SortableHeader({
         {active ? <span className="text-[10px]">{activeSort.direction === "asc" ? "Asc" : "Desc"}</span> : null}
       </button>
     </th>
+  );
+}
+
+function AsinCorrectionInput({
+  row,
+  disabled,
+  onUpdateAsin,
+}: {
+  row: SourcingOpportunity;
+  disabled: boolean;
+  onUpdateAsin: (row: SourcingOpportunity, asin: string) => void;
+}) {
+  const [draft, setDraft] = useState(row.asin);
+
+  useEffect(() => {
+    setDraft(row.asin);
+  }, [row.asin]);
+
+  function commit() {
+    const normalized = draft.trim().toUpperCase();
+    if (!/^[A-Z0-9]{10}$/.test(normalized)) {
+      setDraft(row.asin);
+      return;
+    }
+    if (normalized !== row.asin.toUpperCase()) onUpdateAsin(row, normalized);
+  }
+
+  return (
+    <span className="inline-flex items-center gap-1 align-middle">
+      <input
+        value={draft}
+        disabled={disabled}
+        onChange={(event) => setDraft(event.target.value.toUpperCase())}
+        onBlur={commit}
+        onKeyDown={(event) => {
+          if (event.key === "Enter") event.currentTarget.blur();
+          if (event.key === "Escape") {
+            setDraft(row.asin);
+            event.currentTarget.blur();
+          }
+        }}
+        aria-label={`Correct ASIN for ${row.ebayTitle}`}
+        className="h-6 w-28 rounded border border-slate-300 bg-white px-1.5 font-mono text-xs text-slate-700 outline-none focus:border-slate-500 disabled:bg-slate-100"
+        maxLength={10}
+      />
+      <Link href={`https://www.amazon.com/dp/${row.asin}`} target="_blank" className="text-xs font-medium text-blue-700 hover:underline">
+        Open
+      </Link>
+    </span>
   );
 }
 

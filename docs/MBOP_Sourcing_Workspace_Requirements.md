@@ -457,7 +457,7 @@ Monitoring rule:
 - If a matching eBay purchase is imported, MBOP links the opportunity to the purchase.
 - When a match is found, MBOP writes the sourced ASIN, Amazon title, and target sell price to the matched purchase item.
 - The matched purchase target sell price uses the highest available value from Last Sold, Keepa 90-day, and current Buy Box price.
-- If no matching purchase is found within 72 hours of the Purchased / Offer Made action, MBOP moves the opportunity back to Watchlist and records an action note.
+- If no matching purchase is found within 10 days of the Purchased / Offer Made action, MBOP moves the opportunity back to Watchlist and records an action note.
 
 ## Purchase Matching
 

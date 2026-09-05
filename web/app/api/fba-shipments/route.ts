@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerSupabaseClient, requireAdminApiToken } from "../_server";
+import { normalizeAsin as normalizeCatalogAsin, resolveAsinMetadata } from "../_asinMetadata";
 
 const supabase = createServerSupabaseClient();
 
@@ -139,7 +140,8 @@ type FbaPrepCandidate = {
 
 type PriceUpdateItem = {
   item_id: string;
-  target_price: number;
+  asin?: string | null;
+  target_price?: number | null;
 };
 
 type ShipmentRow = {
@@ -382,15 +384,29 @@ export async function PATCH(request: NextRequest) {
 
     if (!items.length) {
       return NextResponse.json(
-        { error: "At least one item price update is required." },
+        { error: "At least one item update is required." },
         { status: 400 }
       );
     }
 
     for (const item of items) {
+      const update: Record<string, unknown> = {};
+      if (item.asin !== undefined) {
+        const metadata = item.asin ? await resolveAsinMetadata(supabase, item.asin) : null;
+        update.asin = item.asin;
+        update.amazon_title = metadata?.amazonTitle ?? null;
+        update.target_price =
+          item.target_price !== undefined
+            ? item.target_price
+            : metadata?.targetPrice ?? null;
+      } else if (item.target_price !== undefined) {
+        update.target_price = item.target_price;
+      }
+      if (!Object.keys(update).length) continue;
+
       const { error } = await supabase
         .from("purchase_items")
-        .update({ target_price: item.target_price })
+        .update(update)
         .eq("item_id", item.item_id)
         .eq("current_status", "received");
 
@@ -400,7 +416,7 @@ export async function PATCH(request: NextRequest) {
     return NextResponse.json({ success: true, updated: items.length });
   } catch (error) {
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Failed to update sell price" },
+      { error: error instanceof Error ? error.message : "Failed to update FBA item" },
       { status: 500 }
     );
   }
@@ -2375,13 +2391,32 @@ function normalizePriceUpdateItems(items: unknown[]): PriceUpdateItem[] {
     if (!item || typeof item !== "object") return [];
     const value = item as Record<string, unknown>;
     const itemId = typeof value.item_id === "string" ? value.item_id : "";
-    const targetPrice = Number(value.target_price);
+    const hasTargetPrice = "target_price" in value;
+    const hasAsin = "asin" in value;
+    const targetPrice =
+      value.target_price === null || value.target_price === undefined || value.target_price === ""
+        ? null
+        : Number(value.target_price);
+    const asin = hasAsin ? normalizeCatalogAsin(value.asin) : undefined;
 
-    if (!itemId || !Number.isFinite(targetPrice) || targetPrice < 0) {
+    if (!itemId || (!hasTargetPrice && !hasAsin)) {
       return [];
     }
+    if (hasTargetPrice && targetPrice !== null && (!Number.isFinite(targetPrice) || targetPrice < 0)) {
+      return [];
+    }
+    if (hasAsin && !asin) return [];
 
-    return [{ item_id: itemId, target_price: Math.round(targetPrice * 100) / 100 }];
+    return [{
+      item_id: itemId,
+      asin,
+      target_price:
+        hasTargetPrice && targetPrice !== null
+          ? Math.round(targetPrice * 100) / 100
+          : hasTargetPrice
+            ? null
+            : undefined,
+    }];
   });
 }
 

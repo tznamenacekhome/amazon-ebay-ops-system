@@ -575,17 +575,14 @@ def clean_optional_text(value: Any) -> str | None:
 
 
 def write_rows(supabase, examples: list[dict[str, Any]], snapshots: list[dict[str, Any]], source: str) -> None:
-    sources_to_clear = ["sourcing_actions", "manual_item_matches", "purchase_items", "sourcing_purchase_matches", "order_problem_cases", "matching_intelligence_receiving_outcomes"] if source == "all" else source_tables_for(source)
-    for table in sources_to_clear:
-        execute_with_transient_retry(
-            lambda table=table: supabase.table("matching_intelligence_examples").delete().eq("source_table", table).execute(),
-            f"clear matching examples for {table}",
-        )
     if source in {"all", "sourcing", "manual_matches", "purchases"}:
-        execute_with_transient_retry(
-            lambda: supabase.table("sourcing_listing_snapshots").delete().eq("snapshot_source", "matching_intelligence_backfill").execute(),
-            "clear matching intelligence listing snapshots",
-        )
+        try:
+            execute_with_transient_retry(
+                lambda: supabase.table("sourcing_listing_snapshots").delete().eq("snapshot_source", "matching_intelligence_backfill").execute(),
+                "clear matching intelligence listing snapshots",
+            )
+        except Exception as error:
+            print(f"Skipping stale matching intelligence snapshot cleanup after retries: {error}", flush=True)
 
     inserted_snapshots = []
     for batch in chunked(snapshots, 250):
@@ -611,14 +608,69 @@ def write_rows(supabase, examples: list[dict[str, Any]], snapshots: list[dict[st
         if not example.get("listing_snapshot_id") and source_key in snapshots_by_source:
             example["listing_snapshot_id"] = snapshots_by_source[source_key].get("listing_snapshot_id")
         normalize_example_defaults(example)
+    examples = dedupe_examples_by_source_key(examples)
     clear_missing_snapshot_references(supabase, examples)
     clear_missing_purchase_item_references(supabase, examples)
 
-    for batch in chunked(examples, 250):
+    for batch in chunk_examples_for_replacement(examples, 250):
         execute_with_transient_retry(
-            lambda batch=batch: supabase.table("matching_intelligence_examples").insert(batch).execute(),
-            "insert matching intelligence examples",
+            lambda batch=batch: replace_matching_example_batch(supabase, batch),
+            "replace matching intelligence examples",
         )
+
+
+def chunk_examples_for_replacement(examples: list[dict[str, Any]], size: int) -> list[list[dict[str, Any]]]:
+    batches: list[list[dict[str, Any]]] = []
+    current: list[dict[str, Any]] = []
+    current_keys: set[tuple[str | None, str | None]] = set()
+    for example in examples:
+        source_key = (
+            clean_optional_text(example.get("source_table")),
+            clean_optional_text(example.get("source_id")),
+        )
+        if current and len(current) >= size and source_key not in current_keys:
+            batches.append(current)
+            current = []
+            current_keys = set()
+        current.append(example)
+        current_keys.add(source_key)
+    if current:
+        batches.append(current)
+    return batches
+
+
+def dedupe_examples_by_source_key(examples: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    by_key: dict[tuple[str, str, str], dict[str, Any]] = {}
+    for example in examples:
+        key = (
+            clean_optional_text(example.get("source_table")) or "",
+            clean_optional_text(example.get("source_id")) or "",
+            clean_optional_text(example.get("source_detail")) or "",
+        )
+        by_key[key] = example
+    if len(by_key) != len(examples):
+        print(f"Deduplicated matching intelligence examples: {len(examples)} -> {len(by_key)}", flush=True)
+    return list(by_key.values())
+
+
+def replace_matching_example_batch(supabase, batch: list[dict[str, Any]]):
+    for source_table, source_ids in source_ids_by_table(batch).items():
+        for source_id_batch in chunk_values(sorted(source_ids), 100):
+            supabase.table("matching_intelligence_examples").delete().eq("source_table", source_table).in_(
+                "source_id",
+                source_id_batch,
+            ).execute()
+    return supabase.table("matching_intelligence_examples").insert(batch).execute()
+
+
+def source_ids_by_table(batch: list[dict[str, Any]]) -> dict[str, set[str]]:
+    output: dict[str, set[str]] = defaultdict(set)
+    for row in batch:
+        source_table = clean_optional_text(row.get("source_table"))
+        source_id = clean_optional_text(row.get("source_id"))
+        if source_table and source_id:
+            output[source_table].add(source_id)
+    return output
 
 
 def clear_missing_snapshot_references(supabase, examples: list[dict[str, Any]]) -> None:
@@ -768,7 +820,10 @@ def execute_with_transient_retry(action, description: str, attempts: int = 4):
 def is_transient_supabase_error(error: Exception) -> bool:
     text = str(error).lower()
     return (
-        "web server is down" in text
+        "pgrst002" in text
+        or "schema cache" in text
+        or "could not query the database" in text
+        or "web server is down" in text
         or "error code 521" in text
         or "error code 522" in text
         or "connection refused" in text
@@ -776,6 +831,7 @@ def is_transient_supabase_error(error: Exception) -> bool:
         or "json could not be generated" in text
         or "connection" in text
         or "statement timeout" in text
+        or "canceling statement due to statement timeout" in text
         or "timeout" in text
     )
 

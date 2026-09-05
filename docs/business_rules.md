@@ -139,9 +139,11 @@ Carrier/status syncs must not downgrade workflow-owned statuses.
   the eBay purchase-cost reference falls below the watched baseline or the
   Amazon sale-price/profitability context raises the profitable landed-cost cap.
   Best Offer watch baselines use the suggested item offer before shipping.
-- Purchased Pending Match is also used for Best Offers made by the operator. If
-  no matching eBay purchase appears within 72 hours, the sourcing matcher moves
-  the row back to Watchlist.
+- Purchased Pending Match is also used for Best Offers and auction bids made by
+  the operator. If no matching eBay purchase appears within 10 days, the
+  sourcing matcher moves the row back to Watchlist. Watchlist rows with a recent
+  purchased/offer-made action remain eligible for exact eBay purchase matching
+  until that 10-day window expires.
 - When a sourced opportunity matches an imported eBay purchase, the matcher may
   write sourced ASIN, Amazon title, and target sell price to the matched
   `purchase_items` row. The target sell price is the highest available Last

@@ -137,7 +137,11 @@ Current implementation notes:
   `quota_reserve_reached` are displayed as "Out of quota" rather than failed
   sourcing jobs.
 - `match_sourcing_purchases.py` performs exact item-ID matching only. It does not yet attempt title/price/date fallback matches.
-- `purchased_pending_match` also represents Best Offers made by the operator. The matcher moves rows back to `watching` when no matching eBay purchase appears within 72 hours of the purchased/offer-made action.
+- `purchased_pending_match` also represents Best Offers and auction bids made by
+  the operator. The matcher moves rows back to `watching` when no matching eBay
+  purchase appears within 10 days of the purchased/offer-made action, and
+  recently watched rows with that action remain matchable until the same 10-day
+  window expires.
 - When the matcher finds the imported eBay purchase, it writes sourced ASIN, Amazon title, and `purchase_items.target_price` using the highest of Last Sold, Keepa 90-day, and current Buy Box price.
 - Amazon images come from `vw_latest_amazon_listing_snapshot.raw_listing_json.summaries[0].mainImage.link` when available.
 - `refresh_sourcing_listing_availability.py` checks open/watch/ROI-snoozed sourcing eBay item IDs through eBay Browse once per daily scheduler run. Ended, sold-out, or missing listings are moved to `dismissed` and recorded in `sourcing_actions` with dismiss reason `no_longer_available`. Purchased-pending rows are left for `match_sourcing_purchases.py` so accepted offers can still match imported eBay orders.
@@ -891,7 +895,7 @@ Initial recommended flags:
 Responsibilities:
 - Match `purchased_pending_match` opportunities to imported eBay buyer purchases.
 - Enrich matched purchase item rows with ASIN, Amazon title, and target sell price from sourcing context.
-- Move unmatched rows back to `watching` after 72 hours when no eBay purchase is imported.
+- Move unmatched rows back to `watching` after 10 days when no eBay purchase is imported.
 - Primary match by eBay item ID / legacy item ID.
 - Create `sourcing_purchase_matches`.
 - Update opportunity status to `matched_to_purchase`.
@@ -1179,7 +1183,7 @@ Watching:
 Purchased pending match:
 - visible until eBay buyer purchase sync imports and match script links purchase
 - may also mean a Best Offer was made and the expected order has not appeared yet
-- moves back to Watchlist after 72 hours without a matching eBay purchase
+- moves back to Watchlist after 10 days without a matching eBay purchase
 
 Matched:
 - preserved in history

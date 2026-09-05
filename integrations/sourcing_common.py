@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import time
 from dataclasses import dataclass
 from decimal import Decimal, InvalidOperation
 from typing import Any
@@ -98,7 +99,10 @@ def paginate_table(
         query = supabase.table(table_name).select(columns)
         if order_column:
             query = query.order(order_column, desc=desc)
-        response = query.range(start, end).execute()
+        response = execute_with_transient_retry(
+            lambda query=query, start=start, end=end: query.range(start, end).execute(),
+            f"paginate {table_name}",
+        )
         batch = response.data or []
         rows.extend(batch)
         if len(batch) < page_size:
@@ -107,6 +111,41 @@ def paginate_table(
             return rows[:max_rows]
         start += page_size
     return rows
+
+
+def execute_with_transient_retry(action, description: str, attempts: int = 4):
+    for attempt in range(1, attempts + 1):
+        try:
+            return action()
+        except Exception as exc:
+            if not is_transient_supabase_error(exc) or attempt == attempts:
+                raise
+            wait_seconds = attempt * 3
+            print(
+                f"Transient Supabase error during {description}; retrying in {wait_seconds}s ({attempt}/{attempts}): {exc}",
+                flush=True,
+            )
+            time.sleep(wait_seconds)
+    raise RuntimeError(f"Retry loop exhausted during {description}.")
+
+
+def is_transient_supabase_error(error: Exception) -> bool:
+    text = str(error).lower()
+    return (
+        "pgrst002" in text
+        or "schema cache" in text
+        or "could not query the database" in text
+        or "web server is down" in text
+        or "error code 521" in text
+        or "error code 522" in text
+        or "connection refused" in text
+        or "cloudflare" in text
+        or "json could not be generated" in text
+        or "connection" in text
+        or "statement timeout" in text
+        or "canceling statement due to statement timeout" in text
+        or "timeout" in text
+    )
 
 
 def to_float(value: Any, default: float = 0) -> float:

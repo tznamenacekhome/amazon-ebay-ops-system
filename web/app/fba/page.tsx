@@ -160,6 +160,7 @@ type ShipmentData = {
 
 type QuantityDraft = Record<string, string>;
 type SellPriceDraft = Record<string, string>;
+type AsinDraft = Record<string, string>;
 
 const LAST_OPENED_ASIN_KEY = "mbop:fba:last-opened-asin";
 const FBA_PRICING_REFRESH_KEY = "mbop:fba-pricing-refresh";
@@ -174,7 +175,9 @@ export default function FbaPage() {
   const [prepSearchText, setPrepSearchText] = useState("");
   const [quantityDrafts, setQuantityDrafts] = useState<QuantityDraft>({});
   const [sellPriceDrafts, setSellPriceDrafts] = useState<SellPriceDraft>({});
+  const [asinDrafts, setAsinDrafts] = useState<AsinDraft>({});
   const [savingPriceAsin, setSavingPriceAsin] = useState<string | null>(null);
+  const [savingAsinItemId, setSavingAsinItemId] = useState<string | null>(null);
   const [lastOpenedAsin, setLastOpenedAsin] = useState<string | null>(() => {
     if (typeof window === "undefined") return null;
     return window.sessionStorage.getItem(LAST_OPENED_ASIN_KEY);
@@ -339,6 +342,7 @@ export default function FbaPage() {
       setData(payload);
       setQuantityDrafts(quantityDraftsForData(payload));
       setSellPriceDrafts(sellPriceDraftsForData(payload));
+      setAsinDrafts(asinDraftsForData(payload));
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load FBA workflow.");
     } finally {
@@ -526,6 +530,39 @@ export default function FbaPage() {
       setError(err instanceof Error ? err.message : "Failed to save sell price.");
     } finally {
       setSavingPriceAsin(null);
+    }
+  }
+
+  async function saveDetailAsin(detail: FbaDetail) {
+    const draft = (asinDrafts[detail.item_id] ?? "").trim().toUpperCase();
+    if (!/^[A-Z0-9]{10}$/.test(draft)) {
+      setError("ASIN must be 10 letters or numbers.");
+      return;
+    }
+    if (draft === detail.asin) return;
+
+    setSavingAsinItemId(detail.item_id);
+    setError(null);
+
+    try {
+      const response = await fetch("/api/fba-shipments", {
+        method: "PATCH",
+        headers: mutationHeaders({ "Content-Type": "application/json" }),
+        body: JSON.stringify({
+          items: [{ item_id: detail.item_id, asin: draft }],
+        }),
+      });
+
+      if (!response.ok) {
+        const payload = await response.json().catch(() => null);
+        throw new Error(payload?.error || `ASIN save failed: ${response.status}`);
+      }
+
+      await loadFba();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to save ASIN.");
+    } finally {
+      setSavingAsinItemId(null);
     }
   }
 
@@ -915,6 +952,10 @@ export default function FbaPage() {
                           details={row.details}
                           quantityDrafts={quantityDrafts}
                           setQuantityDrafts={setQuantityDrafts}
+                          asinDrafts={asinDrafts}
+                          setAsinDrafts={setAsinDrafts}
+                          savingAsinItemId={savingAsinItemId}
+                          onSaveAsin={saveDetailAsin}
                         />
                       </td>
                     </tr>
@@ -1226,6 +1267,16 @@ function sellPriceDraftsForData(data: FbaData) {
   return drafts;
 }
 
+function asinDraftsForData(data: FbaData) {
+  const drafts: AsinDraft = {};
+  for (const row of data.rows) {
+    for (const detail of row.details) {
+      drafts[detail.item_id] = detail.asin;
+    }
+  }
+  return drafts;
+}
+
 function rowWithSellPrice(row: FbaRow, sellPrice: number): FbaRow {
   const amazonFeeEstimate = adjustedAmazonFeeEstimate(row, sellPrice);
   const profitPerUnit =
@@ -1354,10 +1405,18 @@ function DetailTable({
   details,
   quantityDrafts,
   setQuantityDrafts,
+  asinDrafts,
+  setAsinDrafts,
+  savingAsinItemId,
+  onSaveAsin,
 }: {
   details: FbaDetail[];
   quantityDrafts: QuantityDraft;
   setQuantityDrafts: React.Dispatch<React.SetStateAction<QuantityDraft>>;
+  asinDrafts: AsinDraft;
+  setAsinDrafts: React.Dispatch<React.SetStateAction<AsinDraft>>;
+  savingAsinItemId: string | null;
+  onSaveAsin: (detail: FbaDetail) => void;
 }) {
   return (
     <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
@@ -1398,14 +1457,35 @@ function DetailTable({
                 </td>
                 <td className="px-3 py-2">{detail.amazon_title || "--"}</td>
                 <td className="whitespace-nowrap px-3 py-2">
-                  <a
-                    href={amazonAsinUrl(detail.asin)}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="text-blue-700 hover:underline"
-                  >
-                    {detail.asin}
-                  </a>
+                  {detail.source_type === "amazon_return_recovery" ? (
+                    <a
+                      href={amazonAsinUrl(detail.asin)}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-blue-700 hover:underline"
+                    >
+                      {detail.asin}
+                    </a>
+                  ) : (
+                    <input
+                      value={asinDrafts[detail.item_id] ?? detail.asin}
+                      onChange={(event) =>
+                        setAsinDrafts((current) => ({
+                          ...current,
+                          [detail.item_id]: event.target.value.toUpperCase(),
+                        }))
+                      }
+                      onBlur={() => onSaveAsin(detail)}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter") event.currentTarget.blur();
+                      }}
+                      className="h-9 w-32 rounded-md border border-slate-300 px-2 font-mono text-xs uppercase"
+                      disabled={savingAsinItemId === detail.item_id}
+                    />
+                  )}
+                  {savingAsinItemId === detail.item_id ? (
+                    <div className="text-xs text-slate-500">saving</div>
+                  ) : null}
                 </td>
                 <td className="px-3 py-2 text-right">{detail.quantity}</td>
                 <td className="px-3 py-2 text-right">

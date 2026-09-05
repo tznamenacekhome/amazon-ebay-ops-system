@@ -6,6 +6,7 @@ import {
   normalizeMatchTitle,
   normalizeSystem,
 } from "../../purchases/matchingKeys";
+import { resolveAsinMetadata } from "../_asinMetadata";
 
 const supabase = createServerSupabaseClient();
 
@@ -911,6 +912,18 @@ export async function PATCH(request: Request) {
     }
 
     updates.current_status = currentStatus;
+  }
+
+  if ("asin" in body && updates.asin) {
+    const metadata = await resolveAsinMetadata(supabase, updates.asin);
+    if (metadata) {
+      if (!("amazon_title" in body)) {
+        updates.amazon_title = metadata.amazonTitle;
+      }
+      if (!("sell_price" in body) && !("target_price" in body)) {
+        updates.target_price = metadata.targetPrice;
+      }
+    }
   }
 
   const { data: sourceItem, error: sourceError } = await supabase

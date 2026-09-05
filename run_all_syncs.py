@@ -79,7 +79,7 @@ JOBS: tuple[SyncJob, ...] = (
     ),
     SyncJob(
         name="Sourcing purchase matching",
-        command=static_command("integrations/match_sourcing_purchases.py", "--limit", "300"),
+        command=static_command("integrations/match_sourcing_purchases.py", "--limit", "5000"),
         groups=("core", "purchases", "dashboard", "purchase-ingestion"),
         timeout_seconds=20 * 60,
     ),

@@ -21,6 +21,7 @@ type OpportunityRow = {
   matching_diagnostics_json: unknown;
   created_at: string | null;
   sourcing_seed_asins?: {
+    asin: string | null;
     amazon_title: string | null;
     amazon_image_url: string | null;
     seller_sku: string | null;
@@ -57,6 +58,7 @@ type OpportunityRow = {
 
 type KeepaSnapshotRow = {
   asin: string | null;
+  title: string | null;
   buy_box_price_current_cents: number | null;
   buy_box_price_avg90_cents: number | null;
   new_fba_price_current_cents: number | null;
@@ -82,6 +84,7 @@ type AmazonSkuListingRow = {
 };
 
 type KeepaPriceContext = {
+  amazonTitle: string | null;
   avg90Price: number | null;
   avg90Label: string | null;
   currentPrice: number | null;
@@ -349,6 +352,12 @@ async function getOpportunities(request: NextRequest) {
       );
       const originalCurrency = getOriginalCurrency(rawEbay);
       const targetSalePrice = row.target_sale_price ?? row.sourcing_seed_asins?.target_sale_price ?? null;
+      const asinKey = row.asin.toUpperCase();
+      const keepaContext = keepaByAsin.get(asinKey) ?? null;
+      const seedAsin = row.sourcing_seed_asins?.asin?.toUpperCase() ?? asinKey;
+      const amazonTitle = asinKey === seedAsin
+        ? row.sourcing_seed_asins?.amazon_title ?? keepaContext?.amazonTitle ?? ""
+        : keepaContext?.amazonTitle ?? row.sourcing_seed_asins?.amazon_title ?? "";
       const lastSale = lastSaleByAsin.get(row.asin.toUpperCase()) ?? null;
       const myListing = myListingByAsin.get(row.asin.toUpperCase()) ?? null;
       const landedCost = row.sourcing_ebay_candidates?.landed_cost ?? null;
@@ -360,8 +369,8 @@ async function getOpportunities(request: NextRequest) {
         opportunityId: row.opportunity_id,
         runId: row.sourcing_run_id,
         asin: row.asin,
-        amazonTitle: row.sourcing_seed_asins?.amazon_title ?? "",
-        amazonImageUrl: row.sourcing_seed_asins?.amazon_image_url ?? amazonImageByAsin.get(row.asin.toUpperCase()) ?? null,
+        amazonTitle,
+        amazonImageUrl: (asinKey === seedAsin ? row.sourcing_seed_asins?.amazon_image_url : null) ?? amazonImageByAsin.get(row.asin.toUpperCase()) ?? null,
         sellerSku: row.sourcing_seed_asins?.seller_sku ?? null,
         sourceMode: row.sourcing_seed_asins?.source_mode ?? null,
         amazonUrl: `https://www.amazon.com/dp/${row.asin}`,
@@ -485,6 +494,7 @@ const OPPORTUNITY_SELECT = `
   *,
   sourcing_seed_asins (
     amazon_title,
+    asin,
     amazon_image_url,
     seller_sku,
     source_mode,
@@ -1567,7 +1577,7 @@ async function fetchKeepaPriceContextByAsin(asins: string[]) {
     const chunk = uniqueAsins.slice(index, index + 100);
     const { data, error } = await supabase
       .from("vw_latest_keepa_product_snapshot")
-      .select("asin,buy_box_price_current_cents,buy_box_price_avg90_cents,new_fba_price_current_cents,new_price_current_cents,raw_keepa_json")
+      .select("asin,title,buy_box_price_current_cents,buy_box_price_avg90_cents,new_fba_price_current_cents,new_price_current_cents,raw_keepa_json")
       .in("asin", chunk);
     if (error) throw new Error(`Keepa snapshots: ${error.message}`);
 
@@ -1589,6 +1599,7 @@ async function fetchKeepaPriceContextByAsin(asins: string[]) {
           usedCurrent: keepaStatsCentsToDollars(row.raw_keepa_json, "current", 2),
         });
         byAsin.set(asin, {
+          amazonTitle: row.title ?? null,
           avg90Price: buyBoxAvg90 ?? newAvg90,
           avg90Label: buyBoxAvg90 !== null ? "Buy Box avg" : newAvg90 !== null ? "New avg" : null,
           currentPrice: current.price,

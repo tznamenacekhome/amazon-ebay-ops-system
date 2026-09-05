@@ -751,7 +751,10 @@ def execute_with_transient_retry(action, description: str, attempts: int = 4):
 def is_transient_supabase_error(error: Exception) -> bool:
     text = str(error).lower()
     return (
-        "web server is down" in text
+        "pgrst002" in text
+        or "schema cache" in text
+        or "could not query the database" in text
+        or "web server is down" in text
         or "error code 521" in text
         or "error code 522" in text
         or "connection refused" in text
@@ -759,6 +762,7 @@ def is_transient_supabase_error(error: Exception) -> bool:
         or "json could not be generated" in text
         or "connection" in text
         or "statement timeout" in text
+        or "canceling statement due to statement timeout" in text
         or "timeout" in text
     )
 

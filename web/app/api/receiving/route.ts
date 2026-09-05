@@ -3,6 +3,7 @@ import { spawn } from "child_process";
 import path from "path";
 import { createServerSupabaseClient, isCloudDeployment, isLocalJobExecutionEnabled, requireAdminApiToken } from "../_server";
 import { runSchedulerGroupTask } from "../_awsScheduler";
+import { resolveAsinMetadata } from "../_asinMetadata";
 import { normalizeTrackingScan } from "../../receiving/trackingScan";
 
 const supabase = createServerSupabaseClient();
@@ -591,12 +592,16 @@ async function receiveItem(update: ReceivingUpdate, receivedDate: string) {
     update.package_link_id && quantityReceived > 0 && quantityReceived < expectedQuantity
       ? await hasOpenPackageLinksForItem(source.item_id, update.package_link_id)
       : false;
+  const resolvedMetadata =
+    marketplace === "Amazon" && asin ? await resolveAsinMetadata(supabase, asin) : null;
+  const resolvedAmazonTitle = resolvedMetadata?.amazonTitle ?? source.amazon_title;
+  const resolvedSellPrice = sellPrice ?? resolvedMetadata?.targetPrice ?? null;
 
   if (
     (!requiresReturnEpisode || isPartialMissingEpisode || hasOtherOpenPackages) &&
     quantityReceived > 0 &&
     marketplace === "Amazon" &&
-    (!asin || sellPrice === null)
+    (!asin || resolvedSellPrice === null)
   ) {
     throw new Error("ASIN and sell price are required for Amazon received items");
   }
@@ -611,7 +616,8 @@ async function receiveItem(update: ReceivingUpdate, receivedDate: string) {
         current_status: "received",
         marketplace,
         asin: marketplace === "Amazon" ? asin : source.asin,
-        target_price: marketplace === "Amazon" ? sellPrice : source.target_price,
+        amazon_title: marketplace === "Amazon" ? resolvedAmazonTitle : source.amazon_title,
+        target_price: marketplace === "Amazon" ? resolvedSellPrice : source.target_price,
         received_date: receivedDate,
       })
       .eq("item_id", source.item_id)
@@ -623,8 +629,9 @@ async function receiveItem(update: ReceivingUpdate, receivedDate: string) {
     const packageSplit = await createPackageQuantitySplit(
       {
         ...source,
+        amazon_title: marketplace === "Amazon" ? resolvedAmazonTitle : source.amazon_title,
         asin: marketplace === "Amazon" ? asin : source.asin,
-        target_price: marketplace === "Amazon" ? sellPrice : source.target_price,
+        target_price: marketplace === "Amazon" ? resolvedSellPrice : source.target_price,
       },
       remainingQuantity,
       await deriveOpenPackageStatusForItem(source.item_id, update.package_link_id)
@@ -632,7 +639,7 @@ async function receiveItem(update: ReceivingUpdate, receivedDate: string) {
     await moveOpenPackageLinksToSplit(source.item_id, packageSplit.item_id, update.package_link_id);
     await updateShipmentReceipt(source.item_id, quantityReceived, true, update.package_link_id);
     await closeExtraTrackingIfPurchaseFullyAccounted(source.purchase_id);
-    await recordReceivingOutcome(source, update, quantityReceived, marketplace, asin, sellPrice);
+    await recordReceivingOutcome({ ...source, amazon_title: resolvedAmazonTitle }, update, quantityReceived, marketplace, asin, resolvedSellPrice);
     return data;
   }
 
@@ -646,7 +653,8 @@ async function receiveItem(update: ReceivingUpdate, receivedDate: string) {
         current_status: "received",
         marketplace,
         asin: marketplace === "Amazon" ? asin : source.asin,
-        target_price: marketplace === "Amazon" ? sellPrice : source.target_price,
+        amazon_title: marketplace === "Amazon" ? resolvedAmazonTitle : source.amazon_title,
+        target_price: marketplace === "Amazon" ? resolvedSellPrice : source.target_price,
         received_date: receivedDate,
       })
       .eq("item_id", source.item_id)
@@ -658,14 +666,15 @@ async function receiveItem(update: ReceivingUpdate, receivedDate: string) {
     const problemSplit = await createProblemQuantitySplit(
       {
         ...source,
+        amazon_title: marketplace === "Amazon" ? resolvedAmazonTitle : source.amazon_title,
         asin: marketplace === "Amazon" ? asin : source.asin,
-        target_price: marketplace === "Amazon" ? sellPrice : source.target_price,
+        target_price: marketplace === "Amazon" ? resolvedSellPrice : source.target_price,
       },
       remainingQuantity
     );
 
     await splitShipmentReceipt(source.item_id, problemSplit.item_id, quantityReceived, remainingQuantity, update.package_link_id);
-    await recordReceivingOutcome(source, update, quantityReceived, marketplace, asin, sellPrice);
+    await recordReceivingOutcome({ ...source, amazon_title: resolvedAmazonTitle }, update, quantityReceived, marketplace, asin, resolvedSellPrice);
     await openReceivingProblemEpisode(
       {
         item_id: problemSplit.item_id,
@@ -695,7 +704,7 @@ async function receiveItem(update: ReceivingUpdate, receivedDate: string) {
       .single();
 
     if (error) throw new Error(error.message);
-    await recordReceivingOutcome(source, update, quantityReceived, marketplace, asin, sellPrice);
+    await recordReceivingOutcome({ ...source, amazon_title: resolvedAmazonTitle }, update, quantityReceived, marketplace, asin, resolvedSellPrice);
     await openReceivingProblemEpisode(source, update, quantityReceived);
     return data;
   }
@@ -714,7 +723,7 @@ async function receiveItem(update: ReceivingUpdate, receivedDate: string) {
       .single();
 
     if (error) throw new Error(error.message);
-    await recordReceivingOutcome(source, update, quantityReceived, marketplace, asin, sellPrice);
+    await recordReceivingOutcome({ ...source, amazon_title: resolvedAmazonTitle }, update, quantityReceived, marketplace, asin, resolvedSellPrice);
     return data;
   }
 
@@ -727,7 +736,8 @@ async function receiveItem(update: ReceivingUpdate, receivedDate: string) {
       current_status: "received",
       marketplace,
       asin: marketplace === "Amazon" ? asin : source.asin,
-      target_price: marketplace === "Amazon" ? sellPrice : source.target_price,
+      amazon_title: marketplace === "Amazon" ? resolvedAmazonTitle : source.amazon_title,
+      target_price: marketplace === "Amazon" ? resolvedSellPrice : source.target_price,
       received_date: receivedDate,
     })
     .eq("item_id", source.item_id)
@@ -740,15 +750,16 @@ async function receiveItem(update: ReceivingUpdate, receivedDate: string) {
     await createMissingQuantitySplit(
       {
         ...source,
+        amazon_title: marketplace === "Amazon" ? resolvedAmazonTitle : source.amazon_title,
         asin: marketplace === "Amazon" ? asin : source.asin,
-        target_price: marketplace === "Amazon" ? sellPrice : source.target_price,
+        target_price: marketplace === "Amazon" ? resolvedSellPrice : source.target_price,
       },
       remainingQuantity
     );
   }
 
   await closeExtraTrackingIfPurchaseFullyAccounted(source.purchase_id);
-  await recordReceivingOutcome(source, update, quantityReceived, marketplace, asin, sellPrice);
+  await recordReceivingOutcome({ ...source, amazon_title: resolvedAmazonTitle }, update, quantityReceived, marketplace, asin, resolvedSellPrice);
   return data;
 }
 

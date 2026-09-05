@@ -157,16 +157,28 @@ export default function PurchasesPage() {
       return;
     }
 
-    const updatedRow = await patchPurchase(selectedRow, {
-      asin: drawerAsin.trim().toUpperCase() || null,
-      amazon_title: drawerAmazonTitle.trim() || null,
-      sell_price: parsedSellPrice,
-      target_price: parsedSellPrice,
+    const nextAsin = drawerAsin.trim().toUpperCase() || null;
+    const asinChanged = nextAsin !== (selectedRow.asin || null);
+    const amazonTitleChanged = drawerAmazonTitle.trim() !== (selectedRow.amazon_title || "");
+    const sellPriceChanged =
+      formatPriceDraft(parsedSellPrice) !==
+      formatPriceDraft(selectedRow.sell_price ?? selectedRow.target_price);
+    const matchUpdates: Partial<PurchaseRow> = {
+      asin: nextAsin,
       title: drawerEbayTitle.trim() || null,
       ebay_title: drawerEbayTitle.trim() || null,
       unit_cost: parsedUnitCost,
       system: drawerSystem || null,
-    });
+    };
+    if (!asinChanged || amazonTitleChanged) {
+      matchUpdates.amazon_title = drawerAmazonTitle.trim() || null;
+    }
+    if (!asinChanged || sellPriceChanged) {
+      matchUpdates.sell_price = parsedSellPrice;
+      matchUpdates.target_price = parsedSellPrice;
+    }
+
+    const updatedRow = await patchPurchase(selectedRow, matchUpdates);
 
     if (updatedRow) {
       setSelectedRow(updatedRow);

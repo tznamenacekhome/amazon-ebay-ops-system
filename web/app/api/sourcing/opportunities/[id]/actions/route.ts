@@ -3,6 +3,7 @@ import { supabase } from "../../../_supabase";
 import { buildDiagnosticComparison } from "../../../diagnosticComparison";
 import { buildListingSnapshot } from "../../../matchingIntelligence";
 import { normalizeMatchingFeedback } from "../../../matchingFeedback";
+import { normalizeAsin, resolveAsinMetadata } from "../../../../_asinMetadata";
 import { requireAdminApiToken } from "../../../../_server";
 
 const actionStatus: Record<string, string> = {
@@ -23,6 +24,7 @@ const actionRecordType: Record<string, string> = {
   inventory_snooze: "inventory_snoozed",
   mark_valid_match: "confirmed_valid_match",
   confirm_exclusion: "confirmed_exclusion",
+  update_asin: "asin_updated",
 };
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -50,9 +52,13 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   const diagnosticsFeedback = normalizeLegacyDiagnosticsFeedback(body.diagnosticsFeedback);
   const matchingFeedback = normalizeMatchingFeedback(body.diagnosticsFeedback);
   const newStatus = actionStatus[actionType];
+  const requestedAsin = actionType === "update_asin" ? normalizeAsin(body.asin) : "";
 
   if (!actionRecordType[actionType]) {
     return NextResponse.json({ error: "Unsupported sourcing action." }, { status: 400 });
+  }
+  if (actionType === "update_asin" && !requestedAsin) {
+    return NextResponse.json({ error: "ASIN update requires a valid 10-character ASIN." }, { status: 400 });
   }
   if (actionType === "dismiss" && !reason) {
     return NextResponse.json({ error: "Dismiss requires a reason." }, { status: 400 });
@@ -70,6 +76,44 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     .single();
   if (opportunityError) {
     return NextResponse.json({ error: opportunityError.message }, { status: 500 });
+  }
+
+  if (actionType === "update_asin") {
+    const metadata = await resolveAsinMetadata(supabase, requestedAsin);
+    const targetSalePrice = metadata?.targetPrice ?? opportunity.target_sale_price ?? opportunity.sourcing_seed_asins?.target_sale_price ?? null;
+    const now = new Date().toISOString();
+    const rawActionContext = {
+      actionType,
+      previousAsin: opportunity.asin,
+      newAsin: requestedAsin,
+      resolvedAmazonTitle: metadata?.amazonTitle ?? null,
+      resolvedTargetSalePrice: metadata?.targetPrice ?? null,
+    };
+
+    const { error: actionError } = await supabase.from("sourcing_actions").insert({
+      opportunity_id: id,
+      candidate_id: opportunity.candidate_id,
+      asin: requestedAsin,
+      ebay_item_id: opportunity.ebay_item_id,
+      action_type: actionRecordType[actionType],
+      notes,
+      raw_action_context: rawActionContext,
+    });
+    if (actionError) return NextResponse.json({ error: actionError.message }, { status: 500 });
+
+    const { data, error } = await supabase
+      .from("sourcing_opportunities")
+      .update({
+        asin: requestedAsin,
+        target_sale_price: targetSalePrice,
+        updated_at: now,
+      })
+      .eq("opportunity_id", id)
+      .select("*")
+      .single();
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+    return NextResponse.json({ opportunity: data, metadata });
   }
 
   const diagnosticComparison = safeDiagnosticComparison({
@@ -208,7 +252,8 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       .from("sourcing_opportunities")
       .update(updatePayload)
       .eq("asin", opportunity.asin)
-      .in("ebay_item_id", relatedEbayIds);
+      .in("ebay_item_id", relatedEbayIds)
+      .in("status", ["open", "rejected", "watching", "roi_snoozed", "inventory_snoozed", "purchased_pending_match"]);
   }
 
   if (actionType === "block_asin") {
