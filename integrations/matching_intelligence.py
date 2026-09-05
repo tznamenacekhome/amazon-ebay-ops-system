@@ -15,6 +15,7 @@ IDENTITY_REASONS = {
     "non_north_american_version",
     "incomplete_product",
     "digital_item",
+    "listing_error",
     "seller_listing_mismatch",
 }
 CONDITION_REASONS = {

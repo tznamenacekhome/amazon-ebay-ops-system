@@ -1,6 +1,7 @@
 export const dismissReasons = [
   ["wrong_edition_version", "Wrong Edition / Version"],
   ["wrong_product", "Wrong Product"],
+  ["listing_error", "Listing Error"],
   ["seller_listing_mismatch", "Seller Listing Does Not Match Photos"],
   ["no_longer_available", "No Longer Available"],
   ["missing_shrink_wrap", "Missing Shrink Wrap"],

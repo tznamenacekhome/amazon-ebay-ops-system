@@ -146,7 +146,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     matchingFeedback,
     diagnosticComparison,
     diagnosticVersion: diagnosticComparison.version,
-    evidenceSource: reason === "seller_listing_mismatch" ? "image_conflict" : undefined,
+    evidenceSource: ["listing_error", "seller_listing_mismatch"].includes(String(reason ?? "")) ? "image_conflict" : undefined,
   };
 
   const { data: action, error: actionError } = await supabase.from("sourcing_actions").insert({
@@ -456,7 +456,7 @@ function immediateLabel(actionType: string, reason: string | null) {
   if (actionType === "confirm_exclusion") {
     return { match_label: "non_match", label_type: "negative_identity", dismiss_reason: reason || "wrong_product", confidence: 1, evidence_strength: "high" };
   }
-  if (actionType === "dismiss" && reason === "seller_listing_mismatch") {
+  if (actionType === "dismiss" && ["listing_error", "seller_listing_mismatch"].includes(String(reason ?? ""))) {
     return { match_label: "non_match", label_type: "negative_identity", dismiss_reason: reason, confidence: 1, evidence_strength: "high" };
   }
   return null;

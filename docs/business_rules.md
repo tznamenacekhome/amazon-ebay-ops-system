@@ -63,6 +63,11 @@ Carrier/status syncs must not downgrade workflow-owned statuses.
   matched, but seller photos or listing inconsistency showed a different
   product, version, region, packaging, or contents. It is exact-listing
   negative evidence and must not broadly poison similar listings by text alone.
+- `listing_error` is an operator-facing sourcing dismissal reason for cases
+  where the seller's described product and photographed product conflict, such
+  as the photo showing a different game than the listing title. It is
+  exact-listing negative evidence and should be treated like image-conflict
+  identity feedback.
 - Sourcing search and scoring must hard-exclude items outside the configured
   item-location countries, currently US only.
 - Excluded sourcing keywords, such as Steam, message delivery, DLC, promo, VPN,

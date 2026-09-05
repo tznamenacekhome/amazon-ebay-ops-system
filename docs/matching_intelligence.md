@@ -83,7 +83,7 @@ Operator dismiss reasons:
 
 - Identity / Match: `wrong_product`, `wrong_platform`,
   `wrong_edition_version`, `non_north_american_version`, `digital_item`,
-  `seller_listing_mismatch`
+  `listing_error`, `seller_listing_mismatch`
 - Completeness: `incomplete_product`
 - Packaging / Condition: `missing_shrink_wrap`, `suspected_reseal`,
   `packaging_damage`
