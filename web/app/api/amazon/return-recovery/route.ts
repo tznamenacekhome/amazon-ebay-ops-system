@@ -25,12 +25,13 @@ export async function GET(request: Request) {
       fetchCustomerReturnRows(supabase),
       fetchRecentReimbursementRows(supabase),
     ]);
+    const uniqueCustomerReturns = dedupeCustomerReturnRows(customerReturns);
     const [salesContext, cases] = await Promise.all([
-      fetchSalesContextForReturns(supabase, customerReturns),
-      fetchCasesForReturns(supabase, customerReturns),
+      fetchSalesContextForReturns(supabase, uniqueCustomerReturns),
+      fetchCasesForReturns(supabase, uniqueCustomerReturns),
     ]);
 
-    const allRows = customerReturns.map((row) =>
+    const allRows = uniqueCustomerReturns.map((row) =>
       buildQueueRow(row, reimbursements, salesContext, cases),
     );
     const filteredRows = allRows
@@ -57,6 +58,49 @@ export async function GET(request: Request) {
       { status: 500 },
     );
   }
+}
+
+function dedupeCustomerReturnRows<T extends {
+  amazon_fba_customer_return_row_id: string;
+  amazon_order_id: string | null;
+  return_date: string | null;
+  seller_sku: string | null;
+  sku: string | null;
+  fnsku: string | null;
+  asin: string | null;
+  quantity: number | null;
+  license_plate_number: string | null;
+}>(rows: T[]) {
+  const byIdentity = new Map<string, T>();
+  for (const row of rows) {
+    const key = customerReturnIdentity(row);
+    if (!byIdentity.has(key)) byIdentity.set(key, row);
+  }
+  return [...byIdentity.values()];
+}
+
+function customerReturnIdentity(row: {
+  amazon_fba_customer_return_row_id: string;
+  amazon_order_id: string | null;
+  return_date: string | null;
+  seller_sku: string | null;
+  sku: string | null;
+  fnsku: string | null;
+  asin: string | null;
+  quantity: number | null;
+  license_plate_number: string | null;
+}) {
+  const durableParts = [
+    row.license_plate_number,
+    row.amazon_order_id,
+    row.asin,
+    row.seller_sku ?? row.sku,
+    row.fnsku,
+    row.return_date,
+    row.quantity,
+  ].map((value) => String(value ?? "").trim().toUpperCase());
+  if (durableParts.some(Boolean)) return durableParts.join("|");
+  return row.amazon_fba_customer_return_row_id;
 }
 
 function clampLimit(value: string | null) {
