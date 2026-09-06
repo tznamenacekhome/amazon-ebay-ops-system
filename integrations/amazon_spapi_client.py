@@ -54,6 +54,7 @@ READ_ONLY_OPERATION_PREFIXES = (
     "/finances/v0/orders/",
     "/finances/2024-06-19/transactions",
     "/listings/2021-08-01/items/",
+    "/listings/2021-08-01/restrictions",
     "/products/pricing/",
     "/products/fees/",
     "/catalog/2022-04-01/items",
@@ -619,6 +620,32 @@ class AmazonSPAPIClient:
             f"{quote(selling_partner_id, safe='')}/{quote(seller_sku, safe='')}"
         )
         return self.request("GET", path, params=params)
+
+    def get_listings_restrictions(
+        self,
+        asin: str,
+        *,
+        condition_type: str | None = None,
+        seller_id: str | None = None,
+        reason_locale: str | None = "en_US",
+    ) -> dict[str, Any]:
+        selling_partner_id = seller_id or self.config.seller_id
+        if not selling_partner_id:
+            raise AmazonSPAPIError(
+                "AMAZON_SP_API_SELLER_ID is required for getListingsRestrictions"
+            )
+
+        params: dict[str, Any] = {
+            "asin": asin.strip().upper(),
+            "sellerId": selling_partner_id,
+            "marketplaceIds": self.config.marketplace_id,
+        }
+        if condition_type:
+            params["conditionType"] = condition_type
+        if reason_locale:
+            params["reasonLocale"] = reason_locale
+
+        return self.request("GET", "/listings/2021-08-01/restrictions", params=params)
 
     def get_catalog_item(
         self,

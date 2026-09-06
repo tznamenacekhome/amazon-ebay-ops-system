@@ -30,6 +30,7 @@ SOURCE_PRIORITY_HIGH = 0
 SOURCE_PRIORITY_MEDIUM = 1
 SOURCE_PRIORITY_LOW = 2
 BLOCKED_CATALOG_STATUSES = {"cancelled", "return_opened", "return_pending"}
+SOURCING_BLOCKED_KEEPA_SOURCES = {"catalog_priority", "sourcing_active", "canonical", "amazon_active"}
 
 CSV_AMAZON = 0
 CSV_NEW = 1
@@ -61,13 +62,29 @@ def main() -> int:
         format="%(asctime)s %(levelname)s %(name)s - %(message)s",
     )
     logging.getLogger("httpx").setLevel(logging.WARNING)
-    load_dotenv()
+    load_dotenv(".env")
+    load_dotenv(".env.local")
 
     try:
         client = KeepaClient.from_env()
         supabase = get_supabase_client()
         captured_at = utc_now_iso()
         asins, priority_by_asin = collect_source_asins(supabase, source=args.source)
+        if args.source in SOURCING_BLOCKED_KEEPA_SOURCES:
+            blocked_asins = fetch_sourcing_blocked_asins(supabase)
+            if blocked_asins:
+                before_block_filter = len(asins)
+                asins = [asin for asin in asins if asin not in blocked_asins]
+                priority_by_asin = {
+                    asin: priority
+                    for asin, priority in priority_by_asin.items()
+                    if asin not in blocked_asins
+                }
+                LOGGER.info(
+                    "Excluded %s sourcing-blocked ASIN(s) from Keepa source=%s.",
+                    before_block_filter - len(asins),
+                    args.source,
+                )
         cycle_state: dict[str, Any] | None = None
         eligible_asins = list(asins)
         if args.cycle_progress and args.source == "catalog_priority":
@@ -610,6 +627,21 @@ def fetch_existing_keepa_asins(supabase) -> set[str]:
         if asin:
             existing.add(asin)
     return existing
+
+
+def fetch_sourcing_blocked_asins(supabase) -> set[str]:
+    try:
+        rows = fetch_all(
+            supabase,
+            "sourcing_blocked_asins",
+            "asin",
+        )
+    except Exception as error:  # noqa: BLE001 - table is optional in older environments
+        if "sourcing_blocked_asins" not in str(error):
+            raise
+        LOGGER.warning("Skipping sourcing-blocked Keepa filter because table is unavailable: %s", error)
+        return set()
+    return {asin for row in rows if (asin := clean_asin(row.get("asin")))}
 
 
 def filter_stale_keepa_asins(

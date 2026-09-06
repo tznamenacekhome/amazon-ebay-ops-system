@@ -1,6 +1,6 @@
 # Business Rules
 
-Last updated: 2026-08-30
+Last updated: 2026-09-05
 
 ## Cost And Reporting
 
@@ -50,6 +50,11 @@ Carrier/status syncs must not downgrade workflow-owned statuses.
 - Amazon listing/MSKU discovery should use the broadest safe Amazon seller
   listing set available, including inactive merchant listings imported into
   `amazon_skus`, when a workflow needs historical ASIN/MSKU coverage.
+- Amazon Listings Restrictions is the authoritative API source for checking
+  whether MBOP can currently list an ASIN. Clear `APPROVAL_REQUIRED`,
+  `NOT_ELIGIBLE`, or `ASIN_NOT_FOUND` responses may create ASIN-level
+  `sourcing_blocked_asins` rows; ambiguous API/auth/rate-limit failures must
+  not create blocks.
 
 ## Sourcing
 
@@ -174,6 +179,9 @@ Carrier/status syncs must not downgrade workflow-owned statuses.
   history can still become replenishment candidates. Full-listing sourcing may
   also seed ASINs known only through current stored Keepa snapshots, but not
   snapshots older than 7 days.
+- ASINs in `sourcing_blocked_asins`, including Amazon restriction blocks, must
+  be excluded from sourcing seed generation and from scheduled Keepa
+  `catalog_priority` catalog refresh selection.
 - Amazon Catalog Items SP-API data may be cached as ASIN-level identity
   evidence for sourcing diagnostics. Page rendering and scoring must use cached
   data only and must not call SP-API live.
