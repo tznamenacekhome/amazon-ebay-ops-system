@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabase, toNumber } from "../_supabase";
 import { buildDiagnosticComparison } from "../diagnosticComparison";
+import { excludeBlockedOpportunities } from "../blockedAsins";
 
 type OpportunityRow = {
   opportunity_id: string;
@@ -316,7 +317,7 @@ async function getOpportunities(request: NextRequest) {
   if (error) return jsonNoStore({ error: error.message }, { status: 500 });
 
   const activeSuppressionByAsin = await fetchActiveSalesVelocitySuppressions();
-  let rows = (data ?? []) as OpportunityRow[];
+  let rows = await excludeBlockedOpportunities((data ?? []) as OpportunityRow[]);
   if (status === "sales_velocity_suppressed") {
     rows = rows.filter((row) => activeSuppressionByAsin.has(row.asin?.toUpperCase()));
   } else if (status === "open" && scope !== "closest_excluded") {

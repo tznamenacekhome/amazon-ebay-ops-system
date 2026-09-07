@@ -9,6 +9,7 @@ from typing import Any
 
 from sourcing_common import chunked, fetch_settings, get_supabase_client, paginate_table, to_float
 from sourcing_decision_trace import enrich_sourcing_diagnostics
+from sourcing_database_guard import guard_if_enabled
 from matching_intelligence import build_listing_snapshot
 from sourcing_match_rules import evaluate_static_match_rules, meaningful_title_tokens, resolve_seed_system
 from system_detection import detect_system_from_title, normalize_system
@@ -23,8 +24,10 @@ def main() -> int:
     args = parse_args()
     supabase = get_supabase_client()
     settings = fetch_settings(supabase)
-    seeds = fetch_seeds(supabase, args.run_id)
-    candidates = fetch_candidates(supabase, args.run_id)
+    guard_if_enabled(supabase)
+    seed_ids = args.seed_ids.split(",") if args.seed_ids else None
+    seeds = fetch_seeds(supabase, args.run_id, seed_ids)
+    candidates = fetch_candidates(supabase, args.run_id, seed_ids)
     seed_by_id = {row["seed_id"]: row for row in seeds}
     keepa_prices_by_asin = fetch_keepa_price_context_by_asin(supabase, [row.get("asin") for row in seeds])
     owned_units_by_asin = fetch_owned_units_by_asin(supabase, seeds)
@@ -58,13 +61,9 @@ def main() -> int:
     if args.update_existing:
         updated, inserted = upsert_opportunities(supabase, args.run_id, rows)
         duplicate_cleanup = enforce_one_open_opportunity_per_asin(supabase)
-        snapshots = snapshot_new_opportunities(supabase, args.run_id)
+        snapshots = snapshot_new_opportunities(supabase, args.run_id, seed_ids)
         supabase.table("sourcing_runs").update(
-            {
-                "status": "completed",
-                "completed_at": dt.datetime.now(dt.UTC).isoformat(),
-                "opportunity_count": len(rows),
-            }
+            scoring_run_update(opportunity_count(supabase, args.run_id) if seed_ids else len(rows), args.preserve_run_status)
         ).eq("sourcing_run_id", args.run_id).execute()
         print(f"Updated: {updated}")
         print(f"Inserted: {inserted}")
@@ -78,17 +77,20 @@ def main() -> int:
     for batch in chunked(rows, 250):
         supabase.table("sourcing_opportunities").insert(batch).execute()
     duplicate_cleanup = enforce_one_open_opportunity_per_asin(supabase)
-    snapshots = snapshot_new_opportunities(supabase, args.run_id)
+    snapshots = snapshot_new_opportunities(supabase, args.run_id, seed_ids)
     supabase.table("sourcing_runs").update(
-        {
-            "status": "completed",
-            "completed_at": dt.datetime.now(dt.UTC).isoformat(),
-            "opportunity_count": len(rows),
-        }
+        scoring_run_update(opportunity_count(supabase, args.run_id) if seed_ids else len(rows), args.preserve_run_status)
     ).eq("sourcing_run_id", args.run_id).execute()
     print(f"Duplicate open ASIN opportunities dismissed: {duplicate_cleanup['dismissed_duplicate_opportunities']}")
     print(f"Initial listing snapshots created: {snapshots}")
     return 0
+
+
+def scoring_run_update(count: int, preserve_run_status: bool) -> dict[str, Any]:
+    update = {"opportunity_count": count}
+    if not preserve_run_status:
+        update.update(status="completed", completed_at=dt.datetime.now(dt.UTC).isoformat())
+    return update
 
 
 def delete_run_opportunities(supabase, run_id: str) -> int:
@@ -112,7 +114,10 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Score MBOP sourcing opportunities.")
     parser.add_argument("--run-id", required=True)
     parser.add_argument("--dry-run", action="store_true")
+    parser.add_argument("--seed-ids", help="Comma-separated seed IDs for one search chunk; omitted for full rescore.")
     parser.add_argument("--replace-run", action="store_true")
+    parser.add_argument("--preserve-run-status", action="store_true",
+                        help="Leave completion and timestamps to the owning workflow.")
     parser.add_argument(
         "--update-existing",
         action="store_true",
@@ -144,7 +149,8 @@ def upsert_opportunities(supabase, run_id: str, scored_rows: list[dict[str, Any]
     update_rows = list(update_rows_by_id.values())
 
     updated = 0
-    for batch in chunked(update_rows, 250):
+    for batch in chunked(update_rows, 25):
+        guard_if_enabled(supabase)
         supabase.table("sourcing_opportunities").upsert(
             batch,
             on_conflict="opportunity_id",
@@ -152,7 +158,8 @@ def upsert_opportunities(supabase, run_id: str, scored_rows: list[dict[str, Any]
         updated += len(batch)
 
     inserted = 0
-    for batch in chunked(insert_rows, 250):
+    for batch in chunked(insert_rows, 25):
+        guard_if_enabled(supabase)
         supabase.table("sourcing_opportunities").insert(batch).execute()
         inserted += len(batch)
 
@@ -181,8 +188,8 @@ def fetch_existing_opportunities(supabase, run_id: str) -> list[dict[str, Any]]:
     return rows
 
 
-def snapshot_new_opportunities(supabase, run_id: str) -> int:
-    opportunities = fetch_opportunities_for_snapshot(supabase, run_id)
+def snapshot_new_opportunities(supabase, run_id: str, seed_ids=None) -> int:
+    opportunities = fetch_opportunities_for_snapshot(supabase, run_id, seed_ids)
     created = 0
     for opportunity in opportunities:
         candidate = opportunity.get("sourcing_ebay_candidates") or {}
@@ -212,22 +219,24 @@ def snapshot_new_opportunities(supabase, run_id: str) -> int:
     return created
 
 
-def fetch_opportunities_for_snapshot(supabase, run_id: str) -> list[dict[str, Any]]:
-    response = (
-        supabase.table("sourcing_opportunities")
-        .select(
-            """
-            *,
-            sourcing_ebay_candidates (*),
-            sourcing_seed_asins (*)
-            """
-        )
-        .eq("sourcing_run_id", run_id)
-        .is_("initial_listing_snapshot_id", "null")
-        .in_("status", ["open", "watching", "roi_snoozed", "inventory_snoozed", "purchased_pending_match"])
-        .execute()
-    )
-    return response.data or []
+def fetch_opportunities_for_snapshot(supabase, run_id: str, seed_ids=None) -> list[dict[str, Any]]:
+    rows = []
+    while True:
+        guard_if_enabled(supabase)
+        query = (supabase.table("sourcing_opportunities")
+                 .select("*,sourcing_ebay_candidates (*),sourcing_seed_asins (*)")
+                 .eq("sourcing_run_id", run_id)
+                 .is_("initial_listing_snapshot_id", "null")
+                 .in_("status", ["open", "watching", "roi_snoozed", "inventory_snoozed", "purchased_pending_match"]))
+        if seed_ids is not None:
+            if not seed_ids:
+                return rows
+            query = query.in_("seed_id", seed_ids)
+        batch = query.order("opportunity_id").range(len(rows), len(rows) + 24).execute().data or []
+        rows.extend(batch)
+        if len(batch) < 25:
+            return rows
+
 
 
 def merge_existing_opportunity(existing: dict[str, Any], scored: dict[str, Any]) -> dict[str, Any]:
@@ -246,16 +255,23 @@ def merge_existing_opportunity(existing: dict[str, Any], scored: dict[str, Any])
     }
 
 
-def fetch_seeds(supabase, run_id: str) -> list[dict[str, Any]]:
-    return fetch_run_rows(supabase, "sourcing_seed_asins", run_id)
+def fetch_seeds(supabase, run_id: str, seed_ids=None) -> list[dict[str, Any]]:
+    return list(iter_run_rows(supabase, "sourcing_seed_asins", run_id, seed_ids=seed_ids))
 
 
-def fetch_candidates(supabase, run_id: str) -> list[dict[str, Any]]:
-    return fetch_run_rows(supabase, "sourcing_ebay_candidates", run_id)
+def fetch_candidates(supabase, run_id: str, seed_ids=None):
+    # Score each page before fetching the next; raw eBay payloads need not
+    # remain resident after their normalized opportunity has been produced.
+    return iter_run_rows(supabase, "sourcing_ebay_candidates", run_id, page_size=100, seed_ids=seed_ids)
 
 
 def fetch_run_rows(supabase, table_name: str, run_id: str, page_size: int = 1000) -> list[dict[str, Any]]:
-    rows: list[dict[str, Any]] = []
+    return list(iter_run_rows(supabase, table_name, run_id, page_size))
+
+
+def iter_run_rows(supabase, table_name: str, run_id: str, page_size: int = 1000, seed_ids=None):
+    if seed_ids == []:
+        return
     start = 0
     order_column_by_table = {
         "sourcing_seed_asins": "seed_id",
@@ -269,6 +285,8 @@ def fetch_run_rows(supabase, table_name: str, run_id: str, page_size: int = 1000
             .select("*")
             .eq("sourcing_run_id", run_id)
         )
+        if seed_ids is not None:
+            query = query.in_("seed_id", seed_ids)
         if order_column:
             query = query.order(order_column)
         response = execute_with_transient_retry(
@@ -276,9 +294,9 @@ def fetch_run_rows(supabase, table_name: str, run_id: str, page_size: int = 1000
             f"fetch {table_name} rows",
         )
         batch = response.data or []
-        rows.extend(batch)
+        yield from batch
         if len(batch) < page_size:
-            return rows
+            return
         start += page_size
 
 
@@ -1170,6 +1188,11 @@ def opportunity_score(seed: dict[str, Any], profit: float | None, roi: float | N
         score += 5
     return min(score, 100)
 
+
+
+
+def opportunity_count(supabase, run_id):
+    return supabase.table("sourcing_opportunities").select("opportunity_id", count="exact", head=True).eq("sourcing_run_id", run_id).execute().count
 
 if __name__ == "__main__":
     raise SystemExit(main())

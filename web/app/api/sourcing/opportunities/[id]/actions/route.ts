@@ -5,6 +5,7 @@ import { buildListingSnapshot } from "../../../matchingIntelligence";
 import { normalizeMatchingFeedback } from "../../../matchingFeedback";
 import { normalizeAsin, resolveAsinMetadata } from "../../../../_asinMetadata";
 import { requireAdminApiToken } from "../../../../_server";
+import { fetchBlockedAsins } from "../../../blockedAsins";
 
 const actionStatus: Record<string, string> = {
   block_asin: "dismissed",
@@ -76,6 +77,18 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     .single();
   if (opportunityError) {
     return NextResponse.json({ error: opportunityError.message }, { status: 500 });
+  }
+
+  // Recheck stale browser rows before allowing a buying action or ASIN change.
+  if (["watch", "purchased", "snooze_roi", "inventory_snooze", "mark_valid_match", "update_asin"].includes(actionType)) {
+    try {
+      const targetAsin = actionType === "update_asin" ? requestedAsin : String(opportunity.asin ?? "");
+      if ((await fetchBlockedAsins([targetAsin])).has(targetAsin.trim().toUpperCase())) {
+        return NextResponse.json({ error: "This ASIN is blocked from buying opportunities." }, { status: 409 });
+      }
+    } catch (error) {
+      return NextResponse.json({ error: error instanceof Error ? error.message : "Could not verify ASIN eligibility." }, { status: 503 });
+    }
   }
 
   if (actionType === "update_asin") {

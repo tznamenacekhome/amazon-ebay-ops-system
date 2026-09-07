@@ -5,9 +5,12 @@ import hashlib
 import json
 import os
 import re
+import signal
 import subprocess
 import sys
 import time
+import tempfile
+import threading
 import urllib.request
 import uuid
 from collections import defaultdict
@@ -567,6 +570,28 @@ def main() -> int:
 
     started_at = now_iso()
     run_id = args.run_id or os.getenv("MBOP_RUN_ID") or str(uuid.uuid4())
+    if args.group == "sourcing-catalog":
+        os.environ["MBOP_RUN_ID"] = run_id
+        os.environ["MBOP_CATALOG_DIAGNOSTICS"] = "1"
+        os.environ["MBOP_CATALOG_DATABASE_GUARD"] = "1"
+        integration_dir = Path(__file__).resolve().parent / "integrations"
+        os.environ["PYTHONPATH"] = os.pathsep.join([
+            str(integration_dir / "diagnostic_bootstrap"), str(integration_dir),
+            os.environ.get("PYTHONPATH", ""),
+        ])
+        from integrations.scheduler_diagnostics import install, emit
+        install(monitor_database=True)
+        def terminate(signum, frame):
+            emit("scheduler_termination", signal=signum)
+            raise SystemExit(128 + signum)
+        signal.signal(signal.SIGTERM, terminate)
+    if args.diagnostics_check:
+        if args.group != "sourcing-catalog":
+            raise ValueError("Diagnostics check requires sourcing-catalog")
+        result, _, _ = run_streamed_process(
+            [sys.executable, "integrations/check_scheduler_diagnostics.py"], 60
+        )
+        return result.returncode
     print(f"Starting sync group={args.group} run_id={run_id}")
     print(started_at)
     start_scheduler_run(run_id=run_id, group=args.group, jobs=selected_jobs, started_at=started_at)
@@ -669,6 +694,9 @@ def main() -> int:
                 )
                 continue
 
+            if args.group == "sourcing-catalog":
+                from integrations.sourcing_database_guard import wait_for_database
+                wait_for_database(telemetry_client())
             try:
                 run_job(job, group=args.group, run_id=run_id)
             except RuntimeError as error:
@@ -712,7 +740,7 @@ def main() -> int:
         print(now_iso())
         finish_scheduler_run(run_id=run_id, status="ok", started_at=started_at)
         return 0
-    except Exception as error:
+    except (Exception, SystemExit, KeyboardInterrupt) as error:
         finish_scheduler_run(
             run_id=run_id,
             status="failed",
@@ -738,6 +766,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--no-lock", action="store_true", help="Skip local overlap protection.")
     parser.add_argument("--skip-supabase-probe", action="store_true", help="Skip Supabase preflight read.")
     parser.add_argument("--run-id", default=None, help="Optional externally supplied scheduler run id.")
+    parser.add_argument("--diagnostics-check", action="store_true",
+                        help="Read-only catalog logging probe; no sync jobs or telemetry writes.")
     return parser.parse_args()
 
 
@@ -769,17 +799,9 @@ def run_job(job: SyncJob, *, group: str, run_id: str) -> None:
     start_scheduler_job(job=job, command=command, group=group, run_id=run_id, started_at=started_at)
 
     try:
-        result = subprocess.run(
-            [sys.executable, *command],
-            capture_output=True,
-            text=True,
-            timeout=job.timeout_seconds,
-        )
+        result, metrics, log_bytes = run_streamed_process([sys.executable, *command], job.timeout_seconds)
     except subprocess.TimeoutExpired as error:
-        output = combined_process_output(error.stdout, error.stderr)
-        if output:
-            print(output, end="" if output.endswith("\n") else "\n")
-        metrics = parse_job_metrics(output)
+        metrics = error.metrics
         message = f"{job.name} timed out after {job.timeout_seconds}s"
         record_job(
             job=job,
@@ -799,14 +821,19 @@ def run_job(job: SyncJob, *, group: str, run_id: str) -> None:
             started_at=started_at,
             error_summary=message,
             metrics=metrics,
-            log_bytes=len(output.encode("utf-8")),
+            log_bytes=error.log_bytes,
         )
         raise RuntimeError(message) from error
-
-    output = combined_process_output(result.stdout, result.stderr)
-    if output:
-        print(output, end="" if output.endswith("\n") else "\n")
-    metrics = parse_job_metrics(output)
+    except (SystemExit, KeyboardInterrupt) as error:
+        finish_scheduler_job(job=job, command=command, group=group, run_id=run_id,
+                             status="failed", started_at=started_at,
+                             error_summary=f"Scheduler interrupted: {type(error).__name__}")
+        raise
+    except Exception as error:
+        message = f"{job.name} process supervision failed: {type(error).__name__}"
+        finish_scheduler_job(job=job, command=command, group=group, run_id=run_id,
+                             status="failed", started_at=started_at, error_summary=message)
+        raise RuntimeError(message) from error
 
     if result.returncode != 0:
         message = f"{job.name} failed with exit code {result.returncode}"
@@ -828,7 +855,7 @@ def run_job(job: SyncJob, *, group: str, run_id: str) -> None:
             started_at=started_at,
             error_summary=message,
             metrics=metrics,
-            log_bytes=len(output.encode("utf-8")),
+            log_bytes=log_bytes,
         )
         raise RuntimeError(message)
 
@@ -841,8 +868,71 @@ def run_job(job: SyncJob, *, group: str, run_id: str) -> None:
         status="ok",
         started_at=started_at,
         metrics=metrics,
-        log_bytes=len(output.encode("utf-8")),
+        log_bytes=log_bytes,
     )
+
+
+def run_streamed_process(command: list[str], timeout: float):
+    """Stream immediately; spool normal output for metric parsing without RAM growth."""
+    env = {**os.environ, "PYTHONUNBUFFERED": "1"}
+    log_bytes = 0
+    errors = []
+    with tempfile.TemporaryFile(mode="w+t", encoding="utf-8") as output:
+        process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                                   text=True, encoding="utf-8", errors="replace", env=env,
+                                   start_new_session=os.name == "posix")
+
+        def read_output():
+            nonlocal log_bytes
+            try:
+                for line in process.stdout:
+                    print(line, end="", flush=True)
+                    log_bytes += len(line.encode("utf-8"))
+                    if not line.startswith("CATALOG_DIAGNOSTIC "):
+                        output.write(line)
+            except Exception as error:
+                errors.append(error)
+
+        def kill_tree():
+            try:
+                if os.name == "posix":
+                    os.killpg(process.pid, signal.SIGKILL)
+                else:
+                    process.kill()
+            except ProcessLookupError:
+                pass
+
+        reader = threading.Thread(target=read_output, daemon=True)
+        reader.start()
+        timed_out = False
+        try:
+            try:
+                process.wait(timeout=timeout)
+            except subprocess.TimeoutExpired:
+                timed_out = True
+                kill_tree()
+                process.wait(timeout=10)
+        except BaseException:
+            kill_tree()
+            process.wait(timeout=10)
+            reader.join(timeout=10)
+            raise
+        reader.join(timeout=10)
+        if reader.is_alive():
+            kill_tree()
+            reader.join(timeout=10)
+            if reader.is_alive():
+                raise RuntimeError("Child output stream did not close")
+        process.stdout.close()
+        if errors:
+            raise RuntimeError("Child output capture failed") from errors[0]
+        output.seek(0)
+        metrics = parse_job_metric_lines(output)
+        if timed_out:
+            error = subprocess.TimeoutExpired(command, timeout)
+            error.metrics, error.log_bytes = metrics, log_bytes
+            raise error
+        return subprocess.CompletedProcess(command, process.returncode), metrics, log_bytes
 
 
 def record_job(
@@ -1087,11 +1177,15 @@ def combined_process_output(stdout: str | bytes | None, stderr: str | bytes | No
 
 
 def parse_job_metrics(output: str) -> dict[str, object]:
+    return parse_job_metric_lines(output.splitlines())
+
+
+def parse_job_metric_lines(lines) -> dict[str, object]:
     raw_metrics: list[dict[str, object]] = []
     counters: dict[str, int] = defaultdict(int)
     metadata: dict[str, object] = {}
 
-    for line in output.splitlines():
+    for line in lines:
         if line.startswith("METADATA_JSON:"):
             try:
                 parsed = json.loads(line.replace("METADATA_JSON:", "", 1).strip())

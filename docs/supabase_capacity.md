@@ -95,3 +95,10 @@ Use a tiny read probe before rerunning expensive work:
 ```powershell
 .\.venv\Scripts\python.exe -c "import os; from dotenv import load_dotenv; from supabase import create_client; load_dotenv(); s=create_client(os.environ['SUPABASE_URL'], os.environ['SUPABASE_SERVICE_ROLE_KEY']); r=s.table('import_batches').select('import_batch_id').limit(1).execute(); print('ok', len(r.data or []))"
 ```
+
+## September 7 catalog safeguard
+
+The catalog now uses a fail-closed metrics/tiny-read capacity gate and 25-row
+opportunity writes. See [catalog recovery](sourcing_catalog_recovery_2026-09-07.md)
+for thresholds and limitations. This does not measure remaining Disk IO Budget
+or establish the exact cause of the observed database restart.

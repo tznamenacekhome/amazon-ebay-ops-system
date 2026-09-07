@@ -45,6 +45,7 @@ def main() -> int:
                 "--run-id",
                 str(row["sourcing_run_id"]),
                 "--update-existing",
+                "--preserve-run-status",
             ]
         )
 

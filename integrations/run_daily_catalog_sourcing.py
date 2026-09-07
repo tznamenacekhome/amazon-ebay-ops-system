@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import os
 import datetime as dt
 import subprocess
 import sys
@@ -11,6 +12,7 @@ import uuid
 from pathlib import Path
 from typing import Any
 
+from sourcing_database_guard import wait_for_database, DatabasePressureError
 from ebay_api_limits import browse_call_budget, fetch_browse_quota, quota_summary
 from run_sourcing_workflow import (
     clean_ebay_key,
@@ -60,9 +62,12 @@ def main() -> int:
         print(f"Browse quota resets: {quota_snapshot.get('reset')}")
         return 0
 
+    os.environ["MBOP_CATALOG_DATABASE_GUARD"] = "1"
+    wait_for_database(supabase)
     run_id = args.run_id or str(uuid.uuid4())
     searched_asins_this_run: set[str] = set()
     cycle = get_or_create_active_cycle(supabase, settings, args.queue_limit, searched_asins_this_run)
+    recover_abandoned_searches(supabase, cycle["coverage_cycle_id"])
     added_count = refresh_active_cycle_queue(
         supabase,
         cycle["coverage_cycle_id"],
@@ -93,6 +98,11 @@ def main() -> int:
     quota_refreshes: list[dict[str, Any]] = []
 
     while True:
+        try:
+            wait_for_database(supabase)
+        except DatabasePressureError:
+            stop_reason = "database_pressure"
+            break
         remaining_budget = None if budget is None else max(budget - api_calls_used, 0)
         if remaining_budget == 0:
             budget, remaining_budget = refresh_budget_from_live_quota(
@@ -145,7 +155,7 @@ def main() -> int:
             continue
 
         mark_items_status(supabase, [row["cycle_item_id"] for row in pending], "searching")
-        insert_seed_rows(supabase, pending, run_id, cycle["coverage_cycle_id"])
+        chunk_seed_ids = insert_seed_rows(supabase, pending, run_id, cycle["coverage_cycle_id"])
         offset = searched_total
         search_limit = len(pending)
         search_step = [
@@ -189,14 +199,21 @@ def main() -> int:
         last_queue_position = searched_items[-1]["queue_position"] if searched_items else last_queue_position
 
         if searched_this_chunk > 0:
-            run_python(["integrations/score_sourcing_opportunities.py", "--run-id", run_id, "--update-existing"])
+            try:
+                score_chunk(supabase, run_id, chunk_seed_ids[:searched_this_chunk])
+            except (subprocess.CalledProcessError, DatabasePressureError):
+                mark_items_status(supabase, [row["cycle_item_id"] for row in pending], "retryable_failed")
+                stop_reason = "scoring_chunk_failed"
+                break
             update_cycle_items_after_chunk(supabase, run_id, searched_items, calls_this_chunk)
         refresh_cycle_metrics(supabase, cycle["coverage_cycle_id"], run_id=run_id)
 
         if searched_this_chunk < len(pending):
             mark_items_status(supabase, [row["cycle_item_id"] for row in pending[searched_this_chunk:]], "retryable_failed")
-        if search_failed:
+        if search_failed or search_summary.get("stop_reason") == "ebay_child_failed":
             stop_reason = str(search_summary.get("stop_reason") or "ebay_child_failed")
+            if not daily_run_failed(stop_reason):
+                stop_reason = "ebay_child_failed"
             break
         if search_summary.get("stop_reason") == "ebay_out_of_quota":
             budget, remaining_budget = refresh_budget_from_live_quota(
@@ -264,7 +281,48 @@ def main() -> int:
     print(f"Browse calls used: {api_calls_used}")
     print(f"Opportunities found: {len(selected)}")
     print(f"Stop reason: {stop_reason}")
-    return 0
+    return 1 if daily_run_failed(stop_reason) else 0
+
+
+def score_chunk(supabase, run_id, seed_ids):
+    if not seed_ids:
+        return
+    command = ["integrations/score_sourcing_opportunities.py", "--run-id", run_id,
+               "--update-existing", "--preserve-run-status", "--seed-ids", ",".join(seed_ids)]
+    # Re-read existing candidates on each attempt: a lost response may have committed.
+    # Never retry a blind INSERT using the old in-memory existence map.
+    for attempt in range(3):
+        wait_for_database(supabase)
+        try:
+            run_python(command)
+            return
+        except subprocess.CalledProcessError:
+            if attempt == 2:
+                raise
+            print(f"Retrying saved scoring chunk after capacity check ({attempt + 1}/2)", flush=True)
+            time.sleep(30)
+
+
+def recover_abandoned_searches(supabase, cycle_id):
+    # Do not steal work from another scheduler. Hard-killed telemetry must first
+    # be reconciled against ECS by the existing recovery tool.
+    running = supabase.table("scheduler_runs").select("run_id").eq("group_name", "sourcing-catalog").eq("status", "running").execute().data or []
+    if any(row["run_id"] != os.getenv("MBOP_RUN_ID") for row in running):
+        raise RuntimeError("Another catalog run is active or requires ECS telemetry reconciliation")
+    cutoff = (dt.datetime.now(dt.UTC) - dt.timedelta(hours=6)).isoformat()
+    rows = (supabase.table("sourcing_coverage_cycle_items").select("cycle_item_id")
+            .eq("coverage_cycle_id", cycle_id).eq("processing_status", "searching")
+            .lt("updated_at", cutoff).limit(1000).execute().data or [])
+    for row in rows:
+        (supabase.table("sourcing_coverage_cycle_items")
+         .update({"processing_status": "retryable_failed", "last_error": "Recovered abandoned search chunk", "updated_at": now_iso()})
+         .eq("cycle_item_id", row["cycle_item_id"]).eq("processing_status", "searching")
+         .lt("updated_at", cutoff).execute())
+    print(f"Recovered abandoned searching items: {len(rows)}", flush=True)
+
+
+def daily_run_failed(stop_reason: str) -> bool:
+    return stop_reason in {"ebay_rate_limited", "ebay_transient_error", "ebay_child_failed", "database_pressure", "scoring_chunk_failed"}
 
 
 def parse_args() -> argparse.Namespace:
@@ -400,11 +458,12 @@ def fetch_pending_cycle_items(supabase, cycle_id: str, limit: int) -> list[dict[
     return response.data or []
 
 
-def insert_seed_rows(supabase, items: list[dict[str, Any]], run_id: str, cycle_id: str) -> None:
+def insert_seed_rows(supabase, items: list[dict[str, Any]], run_id: str, cycle_id: str) -> list[str]:
     seeds = [seed_row_for_run(item, run_id, cycle_id) for item in items]
     for batch in chunked(seeds, 250):
         supabase.table("sourcing_seed_asins").insert(batch).execute()
     supabase.table("sourcing_runs").update({"source_count": count_rows(supabase, "sourcing_seed_asins", run_id)}).eq("sourcing_run_id", run_id).execute()
+    return [row["seed_id"] for row in seeds]
 
 
 def update_cycle_items_after_chunk(supabase, run_id: str, items: list[dict[str, Any]], calls_used: int) -> None:
@@ -544,7 +603,7 @@ def finish_daily_run(
     opportunity_type_counts = fetch_opportunity_type_counts(supabase, run_id)
     end_quota = quota_summary(fetch_browse_quota())
     update = {
-        "status": "completed",
+        "status": "failed" if daily_run_failed(stop_reason) else "completed",
         "completed_at": now_iso(),
         "stop_reason": stop_reason,
         "ending_browse_quota_remaining": end_quota.get("remaining"),

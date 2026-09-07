@@ -5,7 +5,10 @@ from __future__ import annotations
 import argparse
 from collections import Counter, defaultdict
 import datetime as dt
+import itertools
+import json
 from statistics import median
+import tempfile
 import time
 from typing import Any
 
@@ -21,7 +24,24 @@ from sourcing_common import chunked, get_supabase_client, paginate_table, to_flo
 
 
 SOURCES = {"sourcing", "manual_matches", "purchases", "returns", "receiving", "all"}
-OPPORTUNITY_EVIDENCE_SELECT = "*,sourcing_ebay_candidates(*),sourcing_seed_asins(*)"
+# Keep the original eBay evidence, but do not load opportunity diagnostics or
+# the seed's full catalog payload for every historical action.
+OPPORTUNITY_SNAPSHOT_COLUMNS = "opportunity_id,candidate_id,sourcing_run_id,asin,target_sale_price,target_sale_price_source,ebay_item_id,landed_cost,status"
+SEED_SNAPSHOT_COLUMNS = "asin,amazon_title,amazon_image_url,target_sale_price,target_sale_price_source"
+OPPORTUNITY_EVIDENCE_SELECT = (
+    OPPORTUNITY_SNAPSHOT_COLUMNS + ",sourcing_ebay_candidates(*),sourcing_seed_asins("
+    + SEED_SNAPSHOT_COLUMNS + ")"
+)
+# Existing snapshots are used only to build normalized examples. Retaining the
+# original API payloads for every historical action inflated the rebuild's
+# working set without contributing to example_from_snapshot's output.
+MATCHING_SNAPSHOT_COLUMNS = ",".join([
+    "listing_snapshot_id", "action_id", "opportunity_id", "candidate_id", "asin",
+    "amazon_title", "amazon_image_url", "amazon_system", "ebay_item_id",
+    "ebay_legacy_item_id", "ebay_title", "ebay_description",
+    "ebay_primary_image_url", "ebay_image_urls", "ebay_item_specifics_json",
+    "ebay_condition", "ebay_category", "seller_username", "captured_at",
+])
 PURCHASE_ITEM_EVIDENCE_COLUMNS = ",".join(
     [
         "item_id",
@@ -42,16 +62,47 @@ PURCHASE_ITEM_EVIDENCE_COLUMNS = ",".join(
 )
 
 
+class SnapshotSpool:
+    """Keep full historical evidence on task-local disk until bounded inserts."""
+    def __init__(self):
+        self.file = tempfile.TemporaryFile(mode="w+t", encoding="utf-8")
+        self.count = 0
+
+    def append(self, row):
+        self.file.write(json.dumps(row) + "\n")
+        self.count += 1
+
+    def extend(self, rows):
+        for row in rows:
+            self.append(row)
+
+    def __len__(self):
+        return self.count
+
+    def __iter__(self):
+        self.file.seek(0)
+        for line in self.file:
+            yield json.loads(line)
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *_):
+        self.file.close()
+
+
 def main() -> int:
     args = parse_args()
     supabase = get_supabase_client()
+    with SnapshotSpool() as snapshots:
+        return rebuild(supabase, args, snapshots)
 
+
+def rebuild(supabase, args, snapshots) -> int:
     examples: list[dict[str, Any]] = []
-    snapshots: list[dict[str, Any]] = []
     if args.source in {"sourcing", "all"}:
-        sourcing_examples, sourcing_snapshots = build_sourcing_examples(supabase, args.limit)
+        sourcing_examples, _ = build_sourcing_examples(supabase, args.limit, snapshot_sink=snapshots)
         examples.extend(sourcing_examples)
-        snapshots.extend(sourcing_snapshots)
     if args.source in {"manual_matches", "all"}:
         manual_examples, manual_snapshots = build_manual_match_examples(supabase, args.limit)
         examples.extend(manual_examples)
@@ -86,7 +137,7 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def build_sourcing_examples(supabase, limit: int | None) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+def build_sourcing_examples(supabase, limit: int | None, snapshot_sink=None):
     actions = paginate_table(
         supabase,
         "sourcing_actions",
@@ -95,42 +146,15 @@ def build_sourcing_examples(supabase, limit: int | None) -> tuple[list[dict[str,
         order_column="created_at",
         desc=True,
     )
-    snapshots_by_action = fetch_listing_snapshots_by_action_ids(
-        supabase,
-        [row.get("action_id") for row in actions],
-    )
-    opportunities = rows_by_id(
-        fetch_opportunities_by_ids(
-            supabase,
-            [
-                row.get("opportunity_id")
-                for row in actions
-                if row.get("opportunity_id") and row.get("action_id") not in snapshots_by_action
-            ],
-        ),
-        "opportunity_id",
-    )
-
     examples: list[dict[str, Any]] = []
-    snapshots: list[dict[str, Any]] = []
-    for action in actions:
+    snapshots = snapshot_sink if snapshot_sink is not None else []
+    for action, snapshot, needs_backfill in iter_action_evidence(supabase, actions):
         action_type = str(action.get("action_type") or "")
         reason = action.get("dismiss_reason")
         label, label_type = label_for_action(action_type, reason)
         action_context = action.get("raw_action_context") if isinstance(action.get("raw_action_context"), dict) else {}
         matching_feedback = matching_feedback_from_context(action_context)
-        snapshot = snapshots_by_action.get(action.get("action_id"))
-        if not snapshot:
-            opportunity = opportunities.get(action.get("opportunity_id")) or {}
-            snapshot = build_listing_snapshot(
-                opportunity=opportunity,
-                candidate=opportunity.get("sourcing_ebay_candidates") or {},
-                seed=opportunity.get("sourcing_seed_asins") or {},
-                event=action_type if action_type in {"dismissed", "watching", "purchased", "roi_snoozed"} else "backfill",
-                action_id=action.get("action_id"),
-                source="matching_intelligence_backfill",
-                raw_context={"backfilled_from_action": True},
-            )
+        if needs_backfill:
             snapshots.append(snapshot)
         examples.append(
             example_from_snapshot(
@@ -154,6 +178,30 @@ def build_sourcing_examples(supabase, limit: int | None) -> tuple[list[dict[str,
             )
         )
     return examples, snapshots
+
+
+def iter_action_evidence(supabase, actions):
+    # At most 100 joined opportunities and their raw API payloads stay live.
+    for batch in itertools.batched(actions, 100):
+        existing = fetch_listing_snapshots_by_action_ids(supabase, [row.get("action_id") for row in batch])
+        opportunities = rows_by_id(fetch_opportunities_by_ids(supabase, [
+            row.get("opportunity_id") for row in batch if row.get("action_id") not in existing
+        ]), "opportunity_id")
+        for action in batch:
+            snapshot = existing.get(action.get("action_id"))
+            needs_backfill = not bool(snapshot)
+            if needs_backfill:
+                opportunity = opportunities.get(action.get("opportunity_id")) or {}
+                action_type = action.get("action_type")
+                snapshot = build_listing_snapshot(
+                    opportunity=opportunity,
+                    candidate=opportunity.get("sourcing_ebay_candidates") or {},
+                    seed=opportunity.get("sourcing_seed_asins") or {},
+                    event=action_type if action_type in {"dismissed", "watching", "purchased", "roi_snoozed"} else "backfill",
+                    action_id=action.get("action_id"), source="matching_intelligence_backfill",
+                    raw_context={"backfilled_from_action": True},
+                )
+            yield action, snapshot, needs_backfill
 
 
 def label_for_action(action_type: str, reason: Any) -> tuple[str, str]:
@@ -574,23 +622,63 @@ def clean_optional_text(value: Any) -> str | None:
     return text or None
 
 
+def clear_backfill_snapshots(supabase, batch_size: int = 100, source: str = "all") -> int:
+    """Clear only rebuild-owned snapshots, with bounded writes and no payload echo.
+
+    Let exhausted retries propagate: inserting a replacement set after failed
+    cleanup grows stale history and incorrectly reports the rebuild as complete.
+    Requires the snapshot-source and referencing-FK indexes from 20260906000000.
+    """
+    source_tables = ["manual_item_matches", "purchase_items"] if source == "all" else source_tables_for(source)
+    if source not in {"all", "manual_matches", "purchases"}:
+        return 0
+    cleared = 0
+    while True:
+        response = execute_with_transient_retry(
+            lambda: supabase.table("sourcing_listing_snapshots")
+            .select("listing_snapshot_id")
+            .eq("snapshot_source", "matching_intelligence_backfill")
+            .is_("action_id", "null")
+            .in_("raw_context_json->>source_table", source_tables)
+            .order("listing_snapshot_id")
+            .limit(batch_size)
+            .execute(),
+            "select matching intelligence snapshot cleanup batch",
+        )
+        ids = [row["listing_snapshot_id"] for row in response.data or []]
+        if not ids:
+            return cleared
+        execute_with_transient_retry(
+            lambda: supabase.table("sourcing_listing_snapshots")
+            .delete(returning="minimal")
+            .eq("snapshot_source", "matching_intelligence_backfill")
+            .is_("action_id", "null")
+            .in_("raw_context_json->>source_table", source_tables)
+            .in_("listing_snapshot_id", ids)
+            .execute(),
+            "clear matching intelligence snapshot batch",
+        )
+        cleared += len(ids)
+
+
 def write_rows(supabase, examples: list[dict[str, Any]], snapshots: list[dict[str, Any]], source: str) -> None:
+    # Action snapshots are historical evidence reused above, not replacements.
+    # Deleting them here nulled the examples' references and forced the next
+    # rebuild to reload all their original opportunities.
     if source in {"all", "sourcing", "manual_matches", "purchases"}:
-        try:
-            execute_with_transient_retry(
-                lambda: supabase.table("sourcing_listing_snapshots").delete().eq("snapshot_source", "matching_intelligence_backfill").execute(),
-                "clear matching intelligence listing snapshots",
-            )
-        except Exception as error:
-            print(f"Skipping stale matching intelligence snapshot cleanup after retries: {error}", flush=True)
+        cleared = clear_backfill_snapshots(supabase, source=source)
+        print(f"Cleared matching intelligence backfill snapshots: {cleared}", flush=True)
 
     inserted_snapshots = []
-    for batch in chunked(snapshots, 250):
+    for snapshot_batch in itertools.batched(snapshots, 100):
+        batch = list(snapshot_batch)
         response = execute_with_transient_retry(
             lambda batch=batch: supabase.table("sourcing_listing_snapshots").insert(batch).execute(),
             "insert matching intelligence listing snapshots",
         )
-        inserted_snapshots.extend(response.data or [])
+        inserted_snapshots.extend({key: row.get(key) for key in (
+            "listing_snapshot_id", "action_id", "raw_context_json"
+        )} for row in response.data or [])
     snapshots_by_action = {row.get("action_id"): row for row in inserted_snapshots if row.get("action_id")}
     snapshots_by_source = {
         (
@@ -846,7 +934,7 @@ def fetch_listing_snapshots_by_action_ids(supabase, action_ids: list[Any]) -> di
     for batch in chunk_values(unique_ids, 100):
         response = (
             supabase.table("sourcing_listing_snapshots")
-            .select("*")
+            .select(MATCHING_SNAPSHOT_COLUMNS)
             .in_("action_id", batch)
             .order("captured_at", desc=True)
             .execute()

@@ -1002,11 +1002,8 @@ function buildSchedulerGroupSummaries(
     const latestRun = displayRuns[0] ?? null;
     const successRun = displayRuns.find((run) => run.status === "ok") ?? null;
     const latestJobRunAt = maxTimestamp(configuredJobs.map((job) => job.lastRunAt));
-    const latestOkJobRunAt = maxTimestamp(
-      configuredJobs.filter((job) => job.status === "ok").map((job) => job.lastRunAt),
-    );
     const latestRunAt = latestRun?.finishedAt || latestRun?.startedAt || latestJobRunAt;
-    const lastSuccessAt = successRun?.finishedAt || successRun?.startedAt || latestOkJobRunAt;
+    const lastSuccessAt = successRun?.finishedAt || successRun?.startedAt || null;
     const hoursSinceLastRun = latestRunAt ? hoursSince(latestRunAt) : null;
     const hoursSinceLastSuccess = lastSuccessAt ? hoursSince(lastSuccessAt) : null;
 
@@ -1201,7 +1198,8 @@ function statusForSchedulerGroup(
   if (latestRun?.status === "running") return "running";
   if (latestRun?.status === "blocked") return "blocked";
   if (latestRun?.status === "failed" || latestRun?.status === "cancelled") return "failed";
-  if (!latestRun || hoursSinceLastSuccess === null) return "unknown";
+  if (!latestRun) return "unknown";
+  if (hoursSinceLastSuccess === null) return runStatusToHealth(latestRun.status);
   if (hoursSinceLastSuccess >= group.criticalAfterHours) return "failed";
   if (hoursSinceLastSuccess >= group.expectedEveryHours) return "delayed";
   if (previousRunAt && lastSuccessAt) {

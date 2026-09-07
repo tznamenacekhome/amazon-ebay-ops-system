@@ -182,6 +182,12 @@ Carrier/status syncs must not downgrade workflow-owned statuses.
 - ASINs in `sourcing_blocked_asins`, including Amazon restriction blocks, must
   be excluded from sourcing seed generation and from scheduled Keepa
   `catalog_priority` catalog refresh selection.
+- ASIN-level blocks also exclude existing buying opportunities from API results
+  and their summaries, including unreviewed/open, Watch, and snoozed rows.
+  Existing workflow status does not override the block. Buying-related actions
+  on stale browser rows must recheck eligibility and reject blocked ASINs.
+  Historical records are retained; a failed blocklist lookup must not expose
+  potentially blocked buying opportunities.
 - Amazon Catalog Items SP-API data may be cached as ASIN-level identity
   evidence for sourcing diagnostics. Page rendering and scoring must use cached
   data only and must not call SP-API live.
