@@ -6,6 +6,19 @@ Last reviewed: 2026-08-22
 
 # Active Issues
 
+## ZFI Buying Acquisition-Cost Preflight
+
+Status: CONFIRMED CODE DISCREPANCY / HISTORICAL IMPACT NOT YET QUANTIFIED
+
+The current eBay unit-cost calculation omits explicit vendor tax on its
+normal USD path and does not apply refunds to normal USD multi-transaction
+orders. Synthetic fixtures confirm both behaviors. The authoritative
+purchases view passes these costs through, and FIFO consumes them.
+The ZFI Buying task explicitly requires stopping to report such a discrepancy
+before a broad COGS change. No cost data, COGS, schema or schedules were
+changed. Details and remaining history checks:
+[ZFI Buying preflight](docs/zfi_buying_preflight_2026-09-07.md).
+
 ## Sourcing Catalog Transient Supabase Delays
 
 Status: MITIGATED / MONITOR NEXT SCHEDULED RUN
