@@ -1,5 +1,10 @@
 # MBOP / ZFI Integration Principles
 
+## Authorized Buying facts pull (2026-09-07)
+
+The dedicated ZFI Buying view/API is an explicit narrow exception to summary-only defaults. It exposes order-level quantities/current costs, not arbitrary MBOP tables. Read and refresh authorization remain separate, server-only, and independent of user sessions. [Contract](../ZFI_BUYING_INTEGRATION.md).
+
+
 Status: Phase A final
 Last updated: 2026-07-14
 

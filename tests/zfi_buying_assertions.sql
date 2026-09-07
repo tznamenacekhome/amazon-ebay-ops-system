@@ -1,0 +1,43 @@
+do $$ declare r record; old_time timestamptz; old_id uuid; begin
+ select * into r from zfi_ebay_purchase_facts where ebay_order_id='ORDER-A';
+ assert r.unit_count=2 and r.acquisition_cost_total=45, 'refund net costs and legacy distinct items';
+ assert r.source_purchase_count=2 and r.source_item_count=2, 'one fact for duplicate order headers';
+ assert r.purchase_date='2024-09-10' and not r.date_needs_review;
+ select * into r from zfi_ebay_purchase_facts where ebay_order_id='ORDER-B';
+ assert r.unit_count=3 and r.recorded_unit_count=4 and r.excluded_unit_count=1;
+ assert r.acquisition_cost_total=25 and r.recorded_acquisition_cost_total=40;
+ assert r.manual_split_item_count=1 and r.exclusion_status='partially_excluded';
+ update purchases set order_status='Cancelled' where supplier_order_id='ORDER-B';
+ select * into r from zfi_ebay_purchase_facts where ebay_order_id='ORDER-B';
+ assert r.unit_count=0 and r.acquisition_cost_total=0 and r.purchase_status='cancelled';
+ update purchases set order_status=null where supplier_order_id='ORDER-B';
+ select * into r from zfi_ebay_purchase_facts where ebay_order_id='CANCELLED';
+ assert r.unit_count=0 and r.acquisition_cost_total=0 and r.recorded_acquisition_cost_total=30;
+ select * into r from zfi_ebay_purchase_facts where ebay_order_id='UNKNOWN-COST';
+ assert r.cost_needs_review and r.acquisition_cost_total is null;
+ assert (select count(*) from zfi_ebay_purchase_facts)=4, 'non-eBay excluded';
+ select source_updated_at,source_purchase_id into old_time,old_id from zfi_ebay_purchase_facts where ebay_order_id='ORDER-A';
+ update purchase_items set unit_cost=17 where item_id='10000000-0000-0000-0000-000000000001';
+ select * into r from zfi_ebay_purchase_facts where ebay_order_id='ORDER-A';
+ assert r.source_updated_at>old_time and r.source_purchase_id=old_id and r.acquisition_cost_total=44;
+ assert not has_table_privilege('anon','public.zfi_ebay_purchase_facts','select');
+ assert not has_table_privilege('authenticated','public.zfi_ebay_purchase_facts','select');
+ assert has_table_privilege('service_role','public.zfi_ebay_purchase_facts','select');
+ assert not has_table_privilege('service_role','public.zfi_ebay_purchase_facts','insert');
+ assert not has_function_privilege('anon','public.mbop_claim_purchase_ingestion(uuid,boolean,text)','execute');
+end $$;
+
+do $$ declare a jsonb; b jsonb; begin
+ a := mbop_claim_purchase_ingestion('20000000-0000-0000-0000-000000000001');
+ b := mbop_claim_purchase_ingestion('20000000-0000-0000-0000-000000000002');
+ assert (a->>'acquired')::boolean and not (b->>'acquired')::boolean;
+ assert a->>'run_id'=b->>'run_id' and b->>'status'='queued';
+ b := mbop_claim_purchase_ingestion('20000000-0000-0000-0000-000000000001',true,'task-A');
+ assert (b->>'acquired')::boolean and b->>'status'='running';
+ b := mbop_claim_purchase_ingestion('20000000-0000-0000-0000-000000000001',true,'task-B');
+ assert not (b->>'acquired')::boolean, 'different worker cannot take reservation';
+ update mbop_purchase_ingestion_requests set status='succeeded',completed_at=now();
+ b := mbop_claim_purchase_ingestion('20000000-0000-0000-0000-000000000002',true,'scheduled-task');
+ assert (b->>'acquired')::boolean and b->>'run_id'='20000000-0000-0000-0000-000000000002';
+ update mbop_purchase_ingestion_requests set status='failed',completed_at=now() where status='running';
+end $$;

@@ -6,9 +6,30 @@ Last updated: 2026-09-05
 
 - Frontend code must never recalculate landed cost.
 - Purchase reporting must use backend-provided `vw_purchases_dashboard.unit_cost`.
+
+### Post-purchase combined-order refunds
+
+- For a partial refund on a multi-transaction USD eBay order, allocate the
+  refund by merchandise value: unit item price times quantity for each line,
+  divided by total merchandise value. Vendor shipping/handling remains in
+  acquisition cost but does not determine the refund weights.
+- Example: $20 and $30 merchandise lines with a $5 refund receive $2 and $3
+  reductions, producing $18 and $27 costs before any retained shipping.
+- Divide each adjusted line total by its quantity using existing per-unit
+  cent rounding. Reconstructed order totals can differ by cents when a line
+  has multiple units; exact order cash reconciliation must use payment facts.
+- Recalculate from original transaction facts and the cumulative signed refund,
+  not previously adjusted stored costs. Preserve manual unit-cost overrides.
+- Refund-bearing orders returned by eBay must not be skipped merely because
+  tracking is already present. This does not expand the existing lookup window
+  or automatically discover every older post-purchase refund.
+- Fully refunded/cancelled order handling and foreign-currency conversion
+  remain separate existing paths. Unallocatable refunds must raise for review
+  rather than create negative item costs. Rare vendor tax differences are out
+  of scope for ZFI Buying under the reseller-permit assumption.
 - eBay reward points or payment methods must not reduce inventory cost to zero.
 - Single-item partial refunds where the item is kept may reduce purchase item cost.
-- Multi-item partial refunds require explicit workflow/manual handling.
+- Multi-product partial order refunds use the proportional allocation described above; item-specific exceptions still require review.
 - Personal purchases and business supplies remain traceable but are excluded from resale reporting through `purchase_items.exclude_from_purchase_reporting`.
 - Purchases on or after 2026-05-16 are MBOP-canonical, not spreadsheet-canonical.
 

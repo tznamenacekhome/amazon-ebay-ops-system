@@ -848,6 +848,31 @@ def transaction_unit_costs(order, transactions):
         for transaction in transactions
     )
 
+    if (refund_total < 0 and len(transactions) > 1
+            and not has_non_usd_currency and not order_is_fully_refunded(order)):
+        # Allocate the refund itself by merchandise value, not by shipping.
+        # Recompute from source totals on every sync; never subtract it from
+        # an already-adjusted stored cost. Manual overrides remain protected
+        # by the existing item update path.
+        weights = [
+            parse_money(child_text(transaction, "TransactionPrice"))
+            * Decimal(str(transaction_quantity(transaction)))
+            for transaction in transactions
+        ]
+        weight_total = sum(weights, Decimal("0.00"))
+        if weight_total <= 0:
+            raise ValueError("Cannot allocate an order refund without positive merchandise value")
+        adjusted_totals = [
+            gross + refund_total * weight / weight_total
+            for gross, weight in zip(gross_totals, weights)
+        ]
+        if any(total < 0 for total in adjusted_totals):
+            raise ValueError("Proportional order refund exceeds an item's cost; manual review required")
+        return [
+            unit_cost_from_total(total, transaction_quantity(transaction))
+            for total, transaction in zip(adjusted_totals, transactions)
+        ]
+
     use_net_payment = (
         net_payment_total > Decimal("0.00")
         and (
@@ -1284,6 +1309,7 @@ def upsert_purchase(order, import_batch_id, access_token):
         SKIP_EXISTING_ORDERS_WITH_TRACKING
         and existing_purchase
         and not ebay_cancelled
+        and order_refund_total(order) == Decimal("0.00")
         and purchase_has_all_tracking(existing_purchase["purchase_id"], tracking_candidates)
     ):
         return "skipped_existing_with_tracking"

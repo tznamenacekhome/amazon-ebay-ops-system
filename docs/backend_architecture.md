@@ -1,5 +1,10 @@
 # Backend Architecture
 
+## ZFI Buying backend contract (2026-09-07)
+
+public.zfi_ebay_purchase_facts aggregates item quantities/current costs at logical eBay-order grain. Fixed server routes under /api/integrations/zfi/buying provide bounded reads and purchase-ingestion request/status through the existing ECS launcher. API and updated scheduled workers share an atomic database reservation. Implementation is local; activation requires migration and coordinated worker rollout, with cadence unchanged. [Details](ZFI_BUYING_INTEGRATION.md).
+
+
 Last updated: 2026-08-30
 
 ## Core Flow

@@ -1,5 +1,10 @@
 # DECISIONS.md
 
+## ZFI Buying facts and on-demand purchase ingestion (2026-09-07)
+
+Authorize a narrow MBOP-owned purchase-facts pull alongside existing summary pushes. ZFI owns Buying Power and YNAB reconciliation; MBOP exposes current item-cost facts and the existing purchase-ingestion ECS workflow only. Use separate read/refresh server credentials and a shared database reservation for API and scheduled workers. Rare tax-bearing purchases do not block this integration under the operator's reseller-permit assumption. No historical COGS redesign or backfill is authorized by this feature. See [contract and activation requirements](docs/ZFI_BUYING_INTEGRATION.md).
+
+
 # Video Game Identity Comparator Is Conservative Authority
 
 Decision date: 2026-08-04

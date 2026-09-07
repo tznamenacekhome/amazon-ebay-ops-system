@@ -1,5 +1,10 @@
 # System Boundaries: MBOP Relative To ZFI
 
+## ZFI Buying scoped access (2026-09-07)
+
+The operator explicitly authorizes ZFI to pull the dedicated eBay purchase-facts contract and trigger/poll purchase-ingestion. This is a narrow extension to summary-first integration, not arbitrary table replication. MBOP remains the facts/execution owner; ZFI owns reconciliation and Buying Power. See [contract](../ZFI_BUYING_INTEGRATION.md).
+
+
 Status: ZFI replacement verified
 Last updated: 2026-07-14
 

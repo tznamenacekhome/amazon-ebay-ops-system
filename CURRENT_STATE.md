@@ -1,5 +1,10 @@
 # CURRENT_STATE.md
 
+## ZFI Buying integration (2026-09-07, local implementation)
+
+The narrow purchase-facts view and server-only read/refresh/status API are implemented and locally tested. Partial USD multi-product refunds flow proportionally into purchase-item/FIFO source costs. Production migration, credentials and deployment are pending; existing schedules remain unchanged. See [ZFI Buying integration](docs/ZFI_BUYING_INTEGRATION.md).
+
+
 Last Updated: 2026-08-22
 
 ## 2026-08-22 Sourcing Catalog Health Hardening

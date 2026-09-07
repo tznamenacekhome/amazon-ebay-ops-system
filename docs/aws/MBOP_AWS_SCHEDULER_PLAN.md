@@ -1,5 +1,10 @@
 # MBOP AWS Scheduler Plan
 
+## ZFI Buying on-demand extension (2026-09-07, not deployed)
+
+The new API reuses runSchedulerGroupTask with group purchase-ingestion and an explicit revision/client token. The updated worker uses the same atomic database reservation as the API. Before activation, all purchase-ingestion launchers must use the shared-lock runtime; leave existing cadence/group arguments unchanged and the ZFI trigger disabled until then. Existing schedule definitions were not changed. [Configuration and rollout](../ZFI_BUYING_INTEGRATION.md).
+
+
 Last updated: 2026-08-30
 
 ## Architecture Decision

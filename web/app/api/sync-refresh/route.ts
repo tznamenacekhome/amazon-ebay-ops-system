@@ -1,6 +1,7 @@
 import { promises as fs } from "fs";
 import path from "path";
 import { spawn } from "child_process";
+import { randomUUID } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { createServerSupabaseClient, isCloudDeployment, isLocalJobExecutionEnabled, requireAdminApiToken } from "../_server";
 import { runSchedulerGroupTask } from "../_awsScheduler";
@@ -54,7 +55,7 @@ export async function POST(request: NextRequest) {
     });
   }
 
-  const runId = `${target}-${new Date().toISOString().replace(/[:.]/g, "-")}`;
+  const runId = randomUUID();
 
   if (isCloudDeployment()) {
     try {

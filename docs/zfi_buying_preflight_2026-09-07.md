@@ -1,6 +1,18 @@
 # ZFI Buying integration: acquisition-cost preflight
 
-Status: paused at the task's explicit acquisition-cost/COGS discrepancy gate.
+## Follow-up: proportional refunds implemented locally
+
+Following the operator's combined-shipping-refund instruction, the importer
+now allocates partial multi-transaction USD order refunds in proportion to
+merchandise price times quantity. The $20/$30/$5 fixture now returns $18/$27.
+It also processes refund-bearing orders even when tracking already exists.
+Manual overrides remain protected; original facts are used on repeat sync.
+Eleven buyer-sync tests pass. This change has not been deployed, and no
+historical costs or existing sales COGS have been recalculated. Tax inclusion,
+historical impact audit, older-refund discovery and the ZFI integration remain
+outstanding. The findings below describe the preflight baseline.
+
+Preflight status superseded: the operator accepted current corrected item-cost semantics and removed rare tax differences as a blocker. See [implemented Buying contract](ZFI_BUYING_INTEGRATION.md). The following records the original inspection.
 No purchase data, COGS allocations, schema, credentials, APIs, or schedules
 were changed. No second historical import was created.
 

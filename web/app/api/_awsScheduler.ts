@@ -1,6 +1,6 @@
 import "server-only";
 
-import { ECSClient, RunTaskCommand } from "@aws-sdk/client-ecs";
+import { DescribeTasksCommand, ECSClient, RunTaskCommand } from "@aws-sdk/client-ecs";
 
 const DEFAULT_SCHEDULER_SUBNETS = ["subnet-0acbbc29cdf301200", "subnet-07558cd00060ff69d"];
 const DEFAULT_SCHEDULER_SECURITY_GROUPS = ["sg-0b05e7760083c5e31"];
@@ -10,15 +10,19 @@ export type SchedulerTaskRequest = {
   source: string;
   job: string;
   runId?: string;
+  taskDefinition?: string;
+  clientToken?: string;
 };
 
-export async function runSchedulerGroupTask({ group, source, job, runId }: SchedulerTaskRequest) {
+export async function runSchedulerGroupTask({ group, source, job, runId, taskDefinition, clientToken }: SchedulerTaskRequest) {
   return runSchedulerCommandTask({
     command: ["python", "run_all_syncs.py", "--group", group, ...(runId ? ["--run-id", runId] : [])],
     source,
     job,
     group,
     runId,
+    taskDefinition,
+    clientToken,
   });
 }
 
@@ -28,6 +32,8 @@ export type SchedulerCommandTaskRequest = {
   job: string;
   group?: string;
   runId?: string;
+  taskDefinition?: string;
+  clientToken?: string;
 };
 
 export async function runSchedulerCommandTask({
@@ -36,10 +42,12 @@ export async function runSchedulerCommandTask({
   job,
   group,
   runId,
+  taskDefinition: requestedTaskDefinition,
+  clientToken,
 }: SchedulerCommandTaskRequest) {
   const client = new ECSClient({ region: process.env.AWS_REGION || process.env.AWS_DEFAULT_REGION || "us-west-2" });
   const cluster = process.env.MBOP_SCHEDULER_CLUSTER || "mbop-cluster1";
-  const taskDefinition = process.env.MBOP_SCHEDULER_TASK_DEFINITION || "mbop-scheduler-task";
+  const taskDefinition = requestedTaskDefinition || process.env.MBOP_SCHEDULER_TASK_DEFINITION || "mbop-scheduler-task";
   const containerName = process.env.MBOP_SCHEDULER_CONTAINER || "mbop-scheduler";
   const subnets = csvEnv("MBOP_SCHEDULER_SUBNET_IDS", DEFAULT_SCHEDULER_SUBNETS);
   const securityGroups = csvEnv("MBOP_SCHEDULER_SECURITY_GROUP_IDS", DEFAULT_SCHEDULER_SECURITY_GROUPS);
@@ -49,6 +57,7 @@ export async function runSchedulerCommandTask({
     taskDefinition,
     launchType: "FARGATE",
     count: 1,
+    ...(clientToken ? { clientToken } : {}),
     platformVersion: "LATEST",
     networkConfiguration: {
       awsvpcConfiguration: {
@@ -91,6 +100,14 @@ export async function runSchedulerCommandTask({
   }
 
   return task;
+}
+
+export async function readSchedulerTask(taskArn: string) {
+  const client = new ECSClient({ region: process.env.AWS_REGION || process.env.AWS_DEFAULT_REGION || "us-west-2" });
+  const response = await client.send(new DescribeTasksCommand({
+    cluster: process.env.MBOP_SCHEDULER_CLUSTER || "mbop-cluster1", tasks: [taskArn],
+  }));
+  return response.tasks?.[0] ?? null;
 }
 
 function csvEnv(name: string, fallback: string[]) {

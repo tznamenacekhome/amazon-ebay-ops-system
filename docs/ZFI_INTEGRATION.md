@@ -1,5 +1,10 @@
 # ZFI Integration
 
+## ZFI Buying extension (2026-09-07)
+
+The operator has authorized a narrow read-only purchase-facts pull and a fixed purchase-ingestion trigger/status API, in addition to the existing outbound summaries. ZFI continues to own all Buying Power and YNAB reconciliation logic. The view, fields, server credentials, historical coverage, concurrency and pending activation are documented in [ZFI Buying integration](ZFI_BUYING_INTEGRATION.md). No production deployment has been performed.
+
+
 Last updated: 2026-07-14
 
 ## 2026-07-14 MBOP Retirement Update

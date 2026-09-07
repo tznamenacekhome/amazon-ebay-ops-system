@@ -594,6 +594,14 @@ def main() -> int:
         return result.returncode
     print(f"Starting sync group={args.group} run_id={run_id}")
     print(started_at)
+    from integrations.purchase_ingestion_lock import claim, required
+    if required(selected_jobs):
+        task_arn = str(get_ecs_metadata().get("TaskARN") or os.getenv("ECS_TASK_ARN") or "") or None
+        reservation = claim(telemetry_client(), run_id, task_arn)
+        if not reservation["acquired"]:
+            print(f"Purchase ingestion already active: run_id={reservation['run_id']}", flush=True)
+            return 0
+        os.environ["MBOP_PURCHASE_INGESTION_LOCK_RUN_ID"] = run_id
     start_scheduler_run(run_id=run_id, group=args.group, jobs=selected_jobs, started_at=started_at)
 
     active_run = find_active_distributed_group_run(args.group, run_id, selected_jobs)
@@ -1072,6 +1080,11 @@ def finish_scheduler_run(
         ).eq("run_id", run_id).execute()
 
     telemetry_safe(write)
+    # Safe no-op for groups without a purchase-ingestion reservation. Final
+    # status polling also reconciles telemetry/ECS if this write is interrupted.
+    if os.getenv("MBOP_PURCHASE_INGESTION_LOCK_RUN_ID") == run_id:
+        from integrations.purchase_ingestion_lock import finish
+        telemetry_safe(lambda: finish(client, run_id, status, finished_at))
 
 
 def upsert_scheduler_job_definitions(client, jobs: list[SyncJob], group: str) -> None:

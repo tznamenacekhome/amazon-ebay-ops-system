@@ -1,5 +1,10 @@
 # MBOP to ZFI Boundary Summary
 
+## Authorized ZFI Buying exception (2026-09-07)
+
+ZFI may read the dedicated MBOP eBay purchase-facts contract and request/poll the fixed purchase-ingestion workflow using server-only scoped tokens. This extends the prior summary-only default; it does not expose arbitrary operational tables or let MBOP read ZFI/YNAB data. See [ZFI Buying](ZFI_BUYING_INTEGRATION.md).
+
+
 ## 2026-07-14 Status
 
 The replacement is now verified. MBOP has removed active YNAB sync,
