@@ -1,8 +1,8 @@
 # CURRENT_STATE.md
 
-## ZFI Buying integration (2026-09-07, local implementation)
+## ZFI Buying integration (2026-09-07, active)
 
-The narrow purchase-facts view and server-only read/refresh/status API are implemented and locally tested. Partial USD multi-product refunds flow proportionally into purchase-item/FIFO source costs. Production migration, credentials and deployment are pending; existing schedules remain unchanged. See [ZFI Buying integration](docs/ZFI_BUYING_INTEGRATION.md).
+Production migration and dedicated read/refresh/status access are active. Scheduler 84 and web 136 use commit 3c1273029d18. A real refresh succeeded and overlapping POSTs produced one ECS task. All 20 schedule configurations were compared: only the two purchase-ingestion target revisions changed; cadence and other fields are unchanged. No business purchase facts or historical sales COGS were changed. [Activation and credential handoff](docs/ZFI_BUYING_ACTIVATION_2026-09-07.md).
 
 
 Last Updated: 2026-08-22

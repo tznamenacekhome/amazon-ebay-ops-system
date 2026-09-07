@@ -1,8 +1,9 @@
 # ZFI Buying integration
 
-Version: 2026-09-07. Status: implemented and locally tested; NOT deployed.
-The migration has NOT been applied to production. No service credentials have
-been provisioned and no existing EventBridge schedules have been changed.
+Version: 2026-09-07. **ACTIVE in production**, verified 2026-09-07.
+Migration applied; scheduler revision 84 and stable web revision 136 use
+commit 3c1273029d18. Read/auth/history and concurrent-refresh smoke tests
+passed. [Activation report and secure credential handoff](ZFI_BUYING_ACTIVATION_2026-09-07.md).
 
 ## Ownership and accounting
 
@@ -203,7 +204,7 @@ credentials: its tokens authorize only this fixed HTTP contract. The refresh
 token also permits fact/status reads. Equal read/refresh token values fail
 closed rather than silently granting write capability to the read token.
 
-Activation order (NOT performed in this task):
+Activation order (authorized on 2026-09-07):
 
 1. Review the exact migration above, verify MBOP project
    froeucjkcepuhgwisped, run supabase migration list, and reconcile the COMPLETE
@@ -214,8 +215,8 @@ Activation order (NOT performed in this task):
    launcher before enabling the ZFI refresh API. Older deployed workers do
    not participate in the lock. Preserving cadence/group arguments is required;
    do not enable refresh while old scheduler revisions can bypass the guard.
-   The current instruction leaves schedule definitions untouched, so this is
-   a future coordinated rollout prerequisite, not a claim of live protection.
+   Activation updates only the task revision in the two purchase-ingestion
+   schedule targets. Every other schedule field remains unchanged.
 3. Provision the two secrets and web IAM permissions. Configure narrowly
    scoped ALB forward rules for the three Buying paths so server requests reach
    their own bearer-token checks instead of Cognito redirects. Do not bypass
@@ -224,17 +225,17 @@ Activation order (NOT performed in this task):
    server-token GET access, then enable refresh and verify one run plus a
    concurrent already_running response in AWS. Verify status and updated facts.
 
-No secrets, ALB rules, IAM policies, schedules or production data were changed
-by this implementation. No production API behavior is claimed from local
-build/tests. Roll back API enablement first if needed; never roll back workers
-to lock-unaware code while the ZFI trigger remains enabled.
+Production activation provisions dedicated secrets, narrow host/method/path
+ALB rules, scoped secret/status IAM permissions and updated worker/web task
+revisions. Existing schedules retain their cadence and all other settings.
+Roll back API enablement first if needed; never roll back workers to
+lock-unaware code while the ZFI trigger remains enabled.
 
 ## Tests
 
-Local verification on 2026-09-07 passed: 12 buyer/refund tests, 3 worker-lock
+Local verification on 2026-09-07 passed: 12 buyer/refund tests, 4 worker-lock
 tests, 3 PostgreSQL migration/concurrency tests, the Node API contract harness,
-targeted ESLint, and the Next.js production build/type check. These are local
-results; AWS-hosted behavior remains unverified until authorized activation.
+targeted ESLint, and the Next.js production build/type check. Production HTTPS/ECS verification also passed; see the activation report.
 
 - Buyer-sync tests verify proportional refunds, quantity, shipping weights,
   repeated calculations, cent rounding, cancellation behavior and FIFO cost flow.

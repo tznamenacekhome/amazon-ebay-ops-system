@@ -8,15 +8,15 @@ Last reviewed: 2026-08-22
 
 ## ZFI Buying Acquisition-Cost Preflight
 
-Status: ZFI BUYING IMPLEMENTED LOCALLY / PRODUCTION ACTIVATION PENDING
+Status: RESOLVED / PRODUCTION ACTIVATED 2026-09-07
 
-The proportional multi-product refund fix is verified through purchase-item
-payloads and FIFO source lots. The operator removed rare sales-tax differences
-as a blocker under the reseller-permit assumption. The dedicated ZFI Buying
-view and read/refresh/status API are implemented and locally tested. Production
-schema, credentials, shared-lock worker rollout and API activation remain
-pending. No existing schedules or historical costs were changed.
-See [ZFI Buying integration](docs/ZFI_BUYING_INTEGRATION.md).
+The proportional multi-product refund fix is deployed and verified through
+purchase-item payloads and FIFO source lots. The approved Buying contract,
+credentials and shared-lock ECS refresh are active. Rare sales-tax differences
+remain outside this scope by operator instruction. No historical cost backfill
+or sales COGS recalculation was performed. Normal ingestion only changed
+import-batch metadata during smoke testing; business facts were unchanged.
+See [activation evidence](docs/ZFI_BUYING_ACTIVATION_2026-09-07.md).
 
 ## Sourcing Catalog Transient Supabase Delays
 

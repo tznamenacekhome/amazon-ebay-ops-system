@@ -2,7 +2,7 @@
 
 ## ZFI Buying integration implementation (2026-09-07)
 
-Local view/API/shared-lock implementation and tests are complete. Remaining activation work: authorize/apply the migration through MBOP's complete shared ledger; deploy the refund/shared-lock worker runtime to all ingestion launchers without changing cadence; configure separate credentials and narrow ALB/IAM access; verify production read and concurrent refresh. Keep refresh disabled until all workers honor the lock. No deployment or schedule changes were made. Details: [ZFI Buying](docs/ZFI_BUYING_INTEGRATION.md).
+Production activation is complete: migration, shared-lock runtime, separate credentials, narrow ALB/IAM access, read tests and concurrent refresh passed. ZFI now needs to configure its own server with the documented base URL and credentials; no ZFI code is implemented here. Existing schedule cadence is unchanged. [Activation report](docs/ZFI_BUYING_ACTIVATION_2026-09-07.md).
 
 
 # Midnight Blue Operations Platform

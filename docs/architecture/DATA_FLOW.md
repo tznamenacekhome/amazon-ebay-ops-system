@@ -2,7 +2,7 @@
 
 ## ZFI Buying extension (2026-09-07)
 
-ZFI server -> authenticated MBOP purchase-ingestion request -> existing ECS pipeline -> ZFI status poll -> bounded MBOP purchase facts -> ZFI-owned reconciliation/Buying Power. No ZFI finance data flows into MBOP. [Contract and pending activation](../ZFI_BUYING_INTEGRATION.md).
+ZFI server -> authenticated MBOP purchase-ingestion request -> existing ECS pipeline -> ZFI status poll -> bounded MBOP purchase facts -> ZFI-owned reconciliation/Buying Power. No ZFI finance data flows into MBOP. [Contract and activation](../ZFI_BUYING_INTEGRATION.md).
 
 
 Status: Phase A final
