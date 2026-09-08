@@ -1,9 +1,12 @@
 # ZFI Buying integration
 
-Version: 2026-09-07. **ACTIVE in production**, verified 2026-09-07.
-Migration applied; scheduler revision 84 and stable web revision 136 use
-commit 3c1273029d18. Read/auth/history and concurrent-refresh smoke tests
-passed. [Activation report and secure credential handoff](ZFI_BUYING_ACTIVATION_2026-09-07.md).
+Version: 2026-09-07 contract. **ACTIVE in production**.
+Original read/auth/history and concurrent-refresh smoke tests passed September 7.
+The September 8 sourcing release uses scheduler revision 86 and web revision
+138, commit `11dfabd0a41c`; the ZFI worker pin was updated to 86 and the
+authenticated read contract reverified with HTTP 200. Contract and credential
+semantics are unchanged. [Original activation and secure credential handoff](ZFI_BUYING_ACTIVATION_2026-09-07.md).
+[Current deployment evidence](RELEASE_2026-09-08_SOURCING_OFFERS.md).
 
 ## Ownership and accounting
 

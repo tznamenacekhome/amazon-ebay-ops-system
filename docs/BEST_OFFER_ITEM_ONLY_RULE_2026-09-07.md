@@ -34,10 +34,9 @@ cases cover $100/free shipping at a $60 landed cap; $100 + $10 shipping failing
 at a $60 cap; and that same paid-shipping listing passing at a $70 cap with a
 $60 item offer. Unknown-shipping detail eligibility is preserved.
 
-Deployment status: NOT DEPLOYED. Automatic approval review rejected the
-combined commit/deployment action because it requires explicit deployment
-authorization for this request. No commit, image registration or schedule
-change occurred. The tested code and documentation remain in the working tree.
-Production activation requires explicit permission, a scheduler image/revision,
-and changing only the sourcing schedule's task revision while preserving its
-cadence and all other settings. No web deployment or schema migration is needed.
+Deployment status: activated September 8, 2026 in scheduler revision 86,
+source commit `11dfabd0a41c`. The operator authorized the complete pending
+release. The sourcing schedule cadence and all non-task fields were preserved.
+The item-only rule itself needs no schema migration; it shipped alongside the
+declined-offer integration's additive migration and web release.
+See `RELEASE_2026-09-08_SOURCING_OFFERS.md` for activation and rollback evidence.

@@ -1,6 +1,8 @@
 # Declined eBay offers in sourcing
 
-Status: implemented and locally tested; migration/import writes and AWS deployment are pending.
+Status: migration applied and import activated September 8, 2026. Scheduler
+revision 86 and web revision 138 use release commit `11dfabd0a41c`.
+See `RELEASE_2026-09-08_SOURCING_OFFERS.md` for deployment verification.
 
 ## Behavior
 
@@ -74,7 +76,7 @@ a distinct listing. A later counteroffer does not erase a prior observed decline
   maximum $14.07; listing `257716145551`, ASIN `B097FP294Y`, declined $27 versus
   maximum $22.08.
 - Zero production database writes during verification.
-- 102 sourcing Python tests and 6 buyer-offer import tests passed.
+- 102 sourcing Python tests and 7 buyer-offer/import-stream tests passed.
 - Node declined-offer tests passed (amount boundaries, reappearance, listing
   identity, currency/variation handling, Watch/history, batching, DB failure).
 - `npm.cmd run build` passed. This is local compile/type verification, not

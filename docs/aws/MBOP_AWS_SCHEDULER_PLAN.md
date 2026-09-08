@@ -1,5 +1,16 @@
 # MBOP AWS Scheduler Plan
 
+## September 8, 2026 sourcing/offer release
+
+`mbop-sourcing-catalog` and both `mbop-purchase-ingestion-*` schedules now use
+`mbop-scheduler-task:86`, commit `11dfabd0a41c`. All 20 schedule configurations
+were compared to their saved pre-release definitions: only those three task
+revisions changed. Web revision 138 pins ZFI purchase refresh to revision 86.
+The new buyer-decline import precedes purchase/catalog work; scoring remains
+streamed in batches of 100. Revision 85 is superseded and must not be used.
+See [release evidence](../RELEASE_2026-09-08_SOURCING_OFFERS.md).
+Older revision references below are historical deployment snapshots.
+
 ## ZFI Buying on-demand extension (2026-09-07, active)
 
 Purchase-ingestion hourly/catchup targets now use mbop-scheduler-task:84, built from 3c1273029d18. The web/API uses revision 136 with separate Secrets Manager credentials and a pinned purchase revision. Every orchestrator group containing the buyer importer uses the shared reservation, including existing Purchases/Dashboard refresh. All cadence, timezone, state, retry, network and command settings are unchanged. The existing schedule-target smoke and concurrent ZFI refresh passed. [Activation evidence and rollback](../ZFI_BUYING_ACTIVATION_2026-09-07.md).

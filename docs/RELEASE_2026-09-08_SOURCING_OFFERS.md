@@ -54,10 +54,53 @@ corrected release and must not be used for catalog scoring.
 - Rollback configuration saved for all 20 schedules, web task 136, scheduler task
   84, and current web service in Git-ignored
   `logs/diagnostics/declined-offers-release-20260908/`.
-- Release source tests: 102 sourcing tests, 6 importer tests, 5 scheduler
+- Release source tests: 102 sourcing tests, 7 importer/stream tests, 5 scheduler
   diagnostics tests; Node declined-offer and blocked-ASIN tests passed.
 - Local web production build passed during implementation. Deployment smoke
-  results and immutable task revisions will be recorded after rollout.
+  results and immutable task revisions are recorded below.
+
+## Deployed revisions
+
+- Implementation: `ccee005a8ce4`; streamed-scoring correction/release source:
+  `11dfabd0a41c`, both pushed to origin/main.
+- Scheduler: `mbop-scheduler-task:86`, image digest
+  `sha256:13d2d19ad82042be59f7666d1d465429f7a4a1abdcdf68b91ec62395a7a49a06`.
+- Web: `mbop-web-task:138`, image digest
+  `sha256:85313930cc92ba7f1108b4c5a1801e0d74b2c2944a5b607e45c340fdd6b50e2d`.
+- `MBOP_ZFI_PURCHASE_TASK_DEFINITION=mbop-scheduler-task:86` verified in the
+  production web task. Existing ZFI authenticated read returned HTTP 200.
+- Corrected scheduler smoke task `7ecf09d30db34d64a3a1e5a3b994eec7` exited 0:
+  both job-group lists correct, 36 declined listings imported, and two real
+  candidates scored successfully in a one-seed dry run. No scoring writes.
+- Evidence retained after imports: 36 listings. RLS enabled; anon/authenticated
+  read privileges and anon RPC execution are false; service-role read is true.
+- All 20 schedules verified after activation: only the three intended task
+  revisions changed. No schedule cadence or network access was changed.
+- Web rollout reached `COMPLETED` with one running task, zero pending, and a
+  healthy ALB target. The prior web task was drained normally.
+
+The open Best Offer smoke scope currently returns an empty queue because existing
+eligibility rules already cover its 69 stored open rows: 65 active sales-velocity
+suppressions, two blocked ASINs, and two ended listings. This was investigated
+using a bounded production aggregate rather than treating an empty response as
+proof of decline suppression. Watch is used for the non-empty API smoke.
+
+Watch API smoke task `2b69f0e6f6854f3ca63c1639f94970d5`, production image/task
+revision 138, returned HTTP 200 and 33 opportunities against 36 retained
+decline records. Zero returned opportunities had a recommended item offer at
+or below their listing's declined amount. Reported build was `11dfabd0a41c`.
+
+Browser automation reported no available browser, so an authenticated visual
+check cannot be claimed. The public sourcing URL still returns a Cognito login
+redirect. A separate Fargate task runs the same compiled production web image
+and production configuration to smoke-test the API; this is not a local dev
+server and does not replace the unavailable Cognito/browser workflow check.
+
+Outstanding issues remain as documented in the sourcing log review: disk
+headroom, quota-counter discrepancies, and availability success classification.
+Image dependency installation also reported five npm vulnerability findings
+(one moderate, three high, one critical); the existing lockfile was unchanged
+and dependency remediation is separate work.
 
 ## Activation scope / rollback
 
