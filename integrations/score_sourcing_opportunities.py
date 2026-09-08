@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import datetime as dt
 import time
+from itertools import islice
 from typing import Any
 
 from sourcing_common import chunked, fetch_settings, get_supabase_client, paginate_table, to_float
@@ -34,19 +35,9 @@ def main() -> int:
     owned_units_by_asin = fetch_owned_units_by_asin(supabase, seeds)
     historical_status_by_key = fetch_historical_status_by_key(supabase)
     matching_context = fetch_matching_context(supabase)
-    matching_context["declined_offers"] = fetch_declines(supabase, candidates)
-    rows = [
-        score_candidate(
-            candidate,
-            seed_by_id.get(candidate.get("seed_id")),
-            settings,
-            keepa_prices_by_asin,
-            historical_status_by_key,
-            matching_context,
-            owned_units_by_asin=owned_units_by_asin,
-        )
-        for candidate in candidates
-    ]
+    rows = list(score_candidate_batches(supabase, candidates, seed_by_id, settings,
+                                       keepa_prices_by_asin, historical_status_by_key,
+                                       matching_context, owned_units_by_asin))
     rows = [row for row in rows if row]
     rows.sort(key=lambda row: to_float(row.get("score"), 0), reverse=True)
 
@@ -86,6 +77,17 @@ def main() -> int:
     print(f"Duplicate open ASIN opportunities dismissed: {duplicate_cleanup['dismissed_duplicate_opportunities']}")
     print(f"Initial listing snapshots created: {snapshots}")
     return 0
+
+
+def score_candidate_batches(supabase, candidates, seed_by_id, settings, keepa_prices,
+                            historical_status, matching_context, owned_units):
+    iterator = iter(candidates)
+    while batch := list(islice(iterator, 100)):
+        context = {**matching_context, "declined_offers": fetch_declines(supabase, batch)}
+        for candidate in batch:
+            yield score_candidate(candidate, seed_by_id.get(candidate.get("seed_id")), settings,
+                                  keepa_prices, historical_status, context,
+                                  owned_units_by_asin=owned_units)
 
 
 def scoring_run_update(count: int, preserve_run_status: bool) -> dict[str, Any]:

@@ -15,6 +15,21 @@ def xml(status="Declined", amount="60.00", currency="USD", pages=1, ack="Success
 
 
 class BuyingOfferTests(unittest.TestCase):
+    def test_scoring_keeps_stream_and_bounds_raw_candidate_memory(self):
+        from score_sourcing_opportunities import score_candidate_batches
+        candidates = ({"seed_id": "seed", "candidate_id": n} for n in range(205))
+        batch_sizes = []
+        def lookup(db, rows):
+            batch_sizes.append(len(rows))
+            return {"123": 60}
+        def score(candidate, seed, settings, keepa, history, context, **kwargs):
+            self.assertEqual(context["declined_offers"], {"123": 60})
+            return candidate["candidate_id"]
+        with patch("score_sourcing_opportunities.fetch_declines", side_effect=lookup), patch("score_sourcing_opportunities.score_candidate", side_effect=score):
+            result = list(score_candidate_batches(None, candidates, {"seed": {}}, None, {}, {}, {}, {}))
+        self.assertEqual(result, list(range(205)))
+        self.assertEqual(batch_sizes, [100, 100, 5])
+
     def test_explicit_declines_only(self):
         for status in ["Active", "Countered", "Expired", "Accepted", "Pending", "BuyerCounterOffer", "SellerCounterOffer", "Unknown"]:
             self.assertEqual(declined_evidence(parse_page(xml(status=status))[0]), [])

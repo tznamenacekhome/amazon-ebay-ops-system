@@ -31,6 +31,14 @@ change, including work predating declined-offer suppression.
 No eBay offers are submitted or modified. Purchase/COGS data, ZFI contract
 semantics, scheduler cadence, and unrelated operational jobs are unchanged.
 
+Release review caught a stream-consumption defect in the initial decline lookup:
+it exhausted the scorer's generator before scoring. The three schedule targets
+were restored immediately to their captured prior revisions. The corrected
+implementation fetches decline evidence and scores in batches of 100, preserving
+the existing bounded-memory design. A 205-candidate generator regression checks
+all candidates are scored in 100/100/5 batches. Revision 85 is superseded by the
+corrected release and must not be used for catalog scoring.
+
 ## Activation evidence
 
 - AWS account verified: `297464765814`, `us-west-2`, profile `mbop-admin`.
