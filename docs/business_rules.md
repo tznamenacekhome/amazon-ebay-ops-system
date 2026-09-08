@@ -165,6 +165,11 @@ Carrier/status syncs must not downgrade workflow-owned statuses.
 - Best Offer guidance subtracts eBay shipping from the landed cap and evaluates
   the item offer against the eBay asking price before shipping. Best Offer caps
   use the lower of stored Keepa 90-day price and current Amazon market price.
+  Search prefiltering must use the same rule: minimum acceptable item offer is
+  60% of item price (or the configured percentage), plus FULL known shipping
+  for profitability. For a $100 item, the floor is $60 with either free or $10
+  shipping; the latter requires a profitable landed budget of at least $70.
+  If only $60 landed is profitable, reject the $100 + $10 shipping listing.
 - Watch replaces ROI Snoozed in the sourcing operator workflow. A watched row
   can return to open Replenishment only when normal scoring passes and either
   the eBay purchase-cost reference falls below the watched baseline or the
@@ -437,3 +442,11 @@ Carrier/status syncs must not downgrade workflow-owned statuses.
 - Buyable/discoverable Amazon catalog metadata issues are ignored unless inventory becomes suppressed/non-buyable or unsellable.
 - Snoozes hide advisory rows from the default queue for 30 days and do not change inventory state.
 - Keepa competition data must come from stored snapshots or explicit operator-run scripts, not from page-load token spending.
+# Declined buyer offers
+
+Best-offer sourcing opportunities must not be presented when the highest observed
+declined USD item offer for that same eBay listing is at or above MBOP's current
+maximum profitable item offer. Recomputed ASIN pricing must support a strictly
+higher offer before the listing qualifies again. Shipping remains fully included
+in profitability, separately from the offer. Pending/countered/expired offers
+are not declines. See `DECLINED_EBAY_OFFERS_2026-09-08.md` for rollout and limits.

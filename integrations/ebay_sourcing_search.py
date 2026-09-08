@@ -416,7 +416,11 @@ def candidate_decision(
                 economic_reject = True
                 economic_reason = "auction_current_price_above_landed_cap"
         elif best_offer:
-            if item_price > pricing["max_profitable_landed_cost"] / min_offer_fraction:
+            # Only the merchandise price is negotiable. Shipping is payable
+            # in full even at the minimum acceptable item offer. Unknown
+            # shipping stays eligible for detail lookup when otherwise viable.
+            minimum_landed_offer = item_price * min_offer_fraction + to_float(candidate.get("shipping_cost"), 0)
+            if minimum_landed_offer > pricing["max_profitable_landed_cost"]:
                 economic_reject = True
                 economic_reason = "best_offer_ask_above_minimum_offer_ceiling"
         elif item_price > pricing["max_profitable_landed_cost"]:

@@ -165,6 +165,17 @@ class EbaySourcingSearchTests(unittest.TestCase):
         )
         self.assertTrue(decision["economic_reject"])
 
+    def test_best_offer_floor_discounts_item_only_and_reserves_shipping(self) -> None:
+        for shipping, cap, rejected in [(0, 60, False), (10, 60, True), (10, 70, False), (None, 60, False)]:
+            with self.subTest(shipping=shipping, cap=cap), patch(
+                "ebay_sourcing_search.price_context_for_seed",
+                return_value={"max_profitable_landed_cost": cap},
+            ):
+                candidate = mapped_candidate("Mario Kart 8 Deluxe Switch", price=100,
+                    shipping_cost=shipping, buying_options=["FIXED_PRICE", "BEST_OFFER"])
+                decision = candidate_decision(candidate, seed("Mario Kart 8 Deluxe", "Switch"), settings(), {}, {})
+                self.assertEqual(decision["economic_reject"], rejected)
+
     def test_auction_current_price_above_cap_rejects_before_detail(self) -> None:
         candidate = mapped_candidate("Mario Kart 8 Deluxe Switch", price=35, shipping_cost=None, buying_options=["AUCTION"])
         candidate["current_bid"] = 35

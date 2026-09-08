@@ -67,6 +67,13 @@ def days_ago_iso(days: int) -> str:
 
 JOBS: tuple[SyncJob, ...] = (
     SyncJob(
+        name="eBay buyer declined offers",
+        command=static_command("integrations/sync_ebay_buying_offers.py", "--apply"),
+        groups=("core", "purchases", "dashboard", "purchase-ingestion", "daily", "catalog", "sourcing-catalog"),
+        blocking=False,
+        timeout_seconds=5 * 60,
+    ),
+    SyncJob(
         name="eBay buyer purchases",
         command=static_command(
             "integrations/ebay_sync_buyer_purchases.py",

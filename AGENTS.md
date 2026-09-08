@@ -173,10 +173,10 @@ SQL as the immediate next step for the operator to apply before continuing
 dependent development.
 
 Codex may apply schema SQL directly only when all of the following are true:
-- the operator explicitly asks Codex to apply the SQL
 - the exact SQL file or command has been shown or is committed in the repo
 - the target project/environment is verified before execution
 - the command uses the documented Supabase/AWS workflow for the project
+- the command is non-destructive
 
 After the SQL is applied by either the operator or Codex, resume implementation
 and verification.

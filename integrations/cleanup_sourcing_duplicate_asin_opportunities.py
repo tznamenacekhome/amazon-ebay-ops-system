@@ -10,6 +10,7 @@ from typing import Any
 
 from refresh_sourcing_listing_availability_trading_fallback import chunks, fetch_eligible_opportunities, legacy_item_id
 from sourcing_common import get_supabase_client
+from sourcing_declined_offers import fetch_declines, is_suppressed
 
 
 DISMISS_REASON = "duplicate_open_asin_opportunity"
@@ -71,6 +72,8 @@ def enforce_one_open_opportunity_per_asin(supabase) -> dict[str, Any]:
 
 def plan_duplicate_cleanup(supabase) -> dict[str, Any]:
     rows = fetch_eligible_opportunities(supabase, None)
+    declines = fetch_declines(supabase, [row.get("sourcing_ebay_candidates") or {} for row in rows])
+    rows = [row for row in rows if not is_suppressed(row.get("sourcing_ebay_candidates") or {}, row.get("opportunity_type"), row.get("max_offer_price"), declines)]
     groups = group_by_asin(rows)
     keepers, duplicates = choose_duplicates(groups)
     return {

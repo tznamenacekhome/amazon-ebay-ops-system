@@ -168,6 +168,15 @@ class SourcingProgressiveBatchTests(unittest.TestCase):
 
         self.assertIsNone(suggested_offer(candidate, 16, settings))
 
+    def test_item_only_offer_floor_keeps_full_shipping_in_profitability(self):
+        settings = SimpleNamespace(best_offer_min_ask_percent=60)
+        free = {"best_offer_enabled": True, "price": 100, "shipping_cost": 0}
+        paid = {**free, "shipping_cost": 10}
+        self.assertEqual(suggested_offer(free, 60, settings), 60)
+        self.assertIsNone(suggested_offer(paid, 60, settings))
+        self.assertEqual(suggested_offer(paid, 70, settings), 60)
+        self.assertEqual(required_offer_percent(paid, 60), 60)
+
     def test_best_offer_with_valid_offer_price_scores_open(self):
         settings = SimpleNamespace(
             best_offer_min_ask_percent=60,
@@ -213,6 +222,20 @@ class SourcingProgressiveBatchTests(unittest.TestCase):
         self.assertIsNotNone(scored)
         self.assertEqual(scored["opportunity_type"], "best_offer")
         self.assertEqual(scored["status"], "open")
+
+        candidate["ebay_item_id"] = "v1|123456789012|0"
+        context = {"declined_offers": {"123456789012": 60}}
+        suppressed = score_candidate(candidate, seed, settings, {}, {}, context)
+        self.assertEqual(suppressed["status"], "rejected")
+        self.assertTrue(suppressed["matching_diagnostics_json"]["declined_offer_suppressed"])
+        higher_price_seed = {**seed, "target_sale_price": 110}
+        returned = score_candidate(candidate, higher_price_seed, settings, {}, {}, context)
+        self.assertEqual(returned["status"], "open")
+        self.assertGreater(returned["max_offer_price"], 60)
+        # A stale high seed must not override a lower ASIN average.
+        still_suppressed = score_candidate(candidate, higher_price_seed, settings,
+                                          {"BTEST12345": {"avg90_price": 100}}, {}, context)
+        self.assertEqual(still_suppressed["status"], "rejected")
 
     def test_suggested_max_bid_subtracts_shipping_from_landed_cap(self):
         candidate = {"shipping_cost": 7.5}

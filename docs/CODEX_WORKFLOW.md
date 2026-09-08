@@ -34,10 +34,10 @@ SQL change workflow:
 - Already-applied migrations must never be edited or removed.
 - Never delete, revert, or alter a migration owned by the other application.
 - Default to giving the operator schema or migration SQL to apply.
-- Codex may apply schema SQL directly only when the operator explicitly asks,
-  the exact SQL file or command is visible in the repo or prompt, the target
-  project/environment is verified first, and the project-documented CLI workflow
-  is used.
+- Codex may apply non-destructive schema SQL directly when the exact SQL file
+  or command is visible in the repo or prompt, the target project/environment
+  is verified first, and the project-documented CLI workflow is used, in
+  accordance with AGENTS.md. A separate per-command approval is not required.
 - Do not apply schema SQL directly to the linked database during normal
   development.
 - When an emergency direct application is unavoidable, verify the entire

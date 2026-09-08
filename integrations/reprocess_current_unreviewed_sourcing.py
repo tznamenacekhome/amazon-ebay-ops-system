@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any
 
 from sourcing_common import chunked, fetch_settings, get_supabase_client
+from sourcing_declined_offers import fetch_declines
 from score_sourcing_opportunities import (
     fetch_historical_status_by_key,
     fetch_keepa_price_context_by_asin,
@@ -31,6 +32,7 @@ def main() -> int:
     )
     historical = fetch_historical_status_by_key(supabase)
     matching_context = fetch_matching_context(supabase)
+    matching_context["declined_offers"] = fetch_declines(supabase, [r.get("sourcing_ebay_candidates") or {} for r in opportunities])
 
     results = []
     for opportunity in opportunities:

@@ -15,6 +15,7 @@ from sourcing_match_rules import evaluate_static_match_rules, meaningful_title_t
 from system_detection import detect_system_from_title, normalize_system
 from title_cleaning import clean_marketplace_title_for_search
 from cleanup_sourcing_duplicate_asin_opportunities import enforce_one_open_opportunity_per_asin
+from sourcing_declined_offers import fetch_declines, is_suppressed
 
 
 NEED_POINTS = {"critical": 40, "high": 28, "medium": 14, "low": 4}
@@ -33,6 +34,7 @@ def main() -> int:
     owned_units_by_asin = fetch_owned_units_by_asin(supabase, seeds)
     historical_status_by_key = fetch_historical_status_by_key(supabase)
     matching_context = fetch_matching_context(supabase)
+    matching_context["declined_offers"] = fetch_declines(supabase, candidates)
     rows = [
         score_candidate(
             candidate,
@@ -647,6 +649,12 @@ def score_candidate(
             "raw_estimated_fees": raw_estimated_fees or None,
         },
     }
+    if is_suppressed(candidate, opportunity_type, max_offer_price, (matching_context or {}).get("declined_offers", {})):
+        if status == "open":
+            status = "rejected"
+        flags.append("Declined offer: no higher profitable item offer available")
+        matching_diagnostics["declined_offer_suppressed"] = True
+        score_reason = "Seller declined an item offer at or above the current profitable offer limit"
     matching_diagnostics = enrich_sourcing_diagnostics(
         matching_diagnostics,
         status=status,
@@ -1129,6 +1137,8 @@ def suggested_offer(candidate: dict[str, Any], max_profitable_landed_cost: float
     if item_price <= 0:
         return None
     max_item_offer = max(max_profitable_landed_cost - shipping_price, 0)
+    # The offer and percentage floor are item-only; full shipping has already
+    # been reserved from the profitable landed-cost budget above.
     target_offer = min(max_item_offer, item_price * 0.95)
     if target_offer >= item_price - 0.009:
         return None

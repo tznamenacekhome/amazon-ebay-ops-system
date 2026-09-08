@@ -5,6 +5,7 @@ param(
   [string]$Service = "mbop-web-service",
   [string]$RepositoryUri = "297464765814.dkr.ecr.us-west-2.amazonaws.com/mbop-web",
   [string]$ContainerName = "mbop-web",
+  [string]$ZfiPurchaseTaskDefinition = "",
   [switch]$AllowDirty,
   [switch]$NoWait
 )
@@ -131,6 +132,12 @@ Set-ContainerEnv $container "CLOUD_DEPLOYMENT" "true"
 Set-ContainerEnv $container "LOCAL_SYNC_ENABLED" "false"
 Set-ContainerEnv $container "MBOP_BUILD_SHA" $gitSha
 Set-ContainerEnv $container "NEXT_PUBLIC_MBOP_BUILD_SHA" $gitSha
+if ($ZfiPurchaseTaskDefinition) {
+  if ($ZfiPurchaseTaskDefinition -notmatch '^mbop-scheduler-task:[0-9]+$') {
+    throw "ZfiPurchaseTaskDefinition must be an immutable mbop-scheduler-task:<revision>."
+  }
+  Set-ContainerEnv $container "MBOP_ZFI_PURCHASE_TASK_DEFINITION" $ZfiPurchaseTaskDefinition
+}
 
 $taskFile = Join-Path ([System.IO.Path]::GetTempPath()) "mbop-web-task-$gitSha.json"
 $newTaskDefinition | ConvertTo-Json -Depth 100 | Set-Content -LiteralPath $taskFile -Encoding ascii

@@ -170,8 +170,8 @@ def fetch_eligible_opportunities(supabase, limit: int | None) -> list[dict[str, 
         response = (
             supabase.table("sourcing_opportunities")
             .select(
-                "opportunity_id,candidate_id,status,opportunity_type,asin,ebay_item_id,score,ai_flags,matching_diagnostics_json,created_at,"
-                "sourcing_ebay_candidates(ebay_item_id,ebay_legacy_item_id,ebay_title,listing_status,auction_end_time)"
+                "opportunity_id,candidate_id,status,opportunity_type,max_offer_price,asin,ebay_item_id,score,ai_flags,matching_diagnostics_json,created_at,"
+                "sourcing_ebay_candidates(ebay_item_id,ebay_legacy_item_id,ebay_title,listing_status,auction_end_time,offer_price:raw_ebay_json->price)"
             )
             .in_("status", list(ACTIVE_SOURCING_STATUSES))
             .not_.is_("ebay_item_id", "null")
