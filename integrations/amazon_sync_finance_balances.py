@@ -17,6 +17,7 @@ from dotenv import load_dotenv
 from supabase import create_client
 
 from amazon_spapi_client import AmazonSPAPIClient, AmazonSPAPIError
+from finance_payload_archive import archive_new_snapshot
 
 LOGGER = logging.getLogger("amazon_finance_balance_sync")
 DEFAULT_LOOKBACK_DAYS = 180
@@ -51,6 +52,11 @@ def main() -> int:
             LOGGER.info("Dry run complete. No Supabase writes performed.")
             return 0
 
+        try:
+            snapshot = archive_new_snapshot(snapshot)
+        except Exception as error:
+            # Preserve ingestion and the entire source payload during an archive outage.
+            LOGGER.warning("Finance archive unavailable (%s); preserving inline payload", type(error).__name__)
         supabase.table("amazon_finance_balance_snapshots").insert(snapshot).execute()
         LOGGER.info(
             "Amazon finance balance snapshot inserted: total_cash=%s in_transit=%s",
