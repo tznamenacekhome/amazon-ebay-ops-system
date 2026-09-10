@@ -1,0 +1,185 @@
+{
+  "start": "2025-09-01",
+  "end_exclusive": "2026-09-01",
+  "posted_costs": {
+    "carrier": 794.54,
+    "placement": 873.89,
+    "storage": 349.16,
+    "aged": 347.53,
+    "storage_adjustment": -0.02
+  },
+  "transaction_counts": {
+    "carrier": 23,
+    "placement": 30,
+    "storage": 14,
+    "aged": 12,
+    "storage_adjustment": 1
+  },
+  "inbound": {
+    "carrier": {
+      "shipments": 23,
+      "units": 3238,
+      "cost": 794.54,
+      "weighted_per_unit": 0.2453798641136504,
+      "median_shipment_per_unit": 0.16491525423728814,
+      "p25": 0.10229121863799283,
+      "p75": 0.6650171962004585,
+      "min": 0.0638125,
+      "max": 4.68,
+      "game_units": 2488,
+      "allocated_game_cost": 329.9649348581593,
+      "allocated_per_game": 0.13262256224202545,
+      "box_sample_shipments": 8,
+      "boxes": 14,
+      "cost_per_box": 16.679285714285715,
+      "units_per_box": 84.64285714285714,
+      "weight_allocation_shipments": 22,
+      "weight_allocation_game_units": 2295,
+      "weight_allocated_game_cost": 289.639976723819,
+      "weight_allocated_per_game": 0.12620478288619566,
+      "same_weight_sample_unit_allocated_per_game": 0.13418625128823553
+    },
+    "placement": {
+      "shipments": 23,
+      "units": 3304,
+      "cost": 873.89,
+      "weighted_per_unit": 0.2644945520581114,
+      "median_shipment_per_unit": 0.30766129032258066,
+      "p25": 0.2571976401179941,
+      "p75": 0.42746753246753244,
+      "min": 0.16014150943396227,
+      "max": 3.12,
+      "game_units": 2565,
+      "allocated_game_cost": 602.8948390244256,
+      "allocated_per_game": 0.23504672086722245,
+      "box_sample_shipments": 8,
+      "boxes": 14,
+      "cost_per_box": 25.042857142857144,
+      "units_per_box": 84.64285714285714,
+      "weight_allocation_shipments": 21,
+      "weight_allocation_game_units": 1953,
+      "weight_allocated_game_cost": 449.87600033945466,
+      "weight_allocated_per_game": 0.23035125465409867,
+      "same_weight_sample_unit_allocated_per_game": 0.2440378038565207
+    },
+    "combined": {
+      "shipments": 20,
+      "units": 2802,
+      "cost": 1482.5,
+      "weighted_per_unit": 0.5290863668807995,
+      "median_shipment_per_unit": 0.409923320994183,
+      "p25": 0.3884225077706203,
+      "p75": 1.0979584717607973,
+      "min": 0.2994759825327511,
+      "max": 7.8,
+      "game_units": 2146,
+      "allocated_game_cost": 823.8697036519769,
+      "allocated_per_game": 0.38390946116121943,
+      "box_sample_shipments": 8,
+      "boxes": 14,
+      "cost_per_box": 41.722142857142856,
+      "units_per_box": 84.64285714285714,
+      "weight_allocation_shipments": 19,
+      "weight_allocation_game_units": 1953,
+      "weight_allocated_game_cost": 699.2754800159865,
+      "weight_allocated_per_game": 0.35805196109369514,
+      "same_weight_sample_unit_allocated_per_game": 0.3802726573786522
+    }
+  },
+  "storage": {
+    "all": {
+      "months": 12,
+      "game_unit_months": 7486.63,
+      "game_base_cost": 114.586,
+      "weighted_rate": 0.015305417791449557,
+      "asin_months": 3449,
+      "median_asin_month_rate": 0.0098
+    },
+    "Jan-Sep": {
+      "months": 9,
+      "game_unit_months": 5849.75,
+      "game_base_cost": 62.767,
+      "weighted_rate": 0.010729860250438053,
+      "asin_months": 2857,
+      "median_asin_month_rate": 0.009433333333333334
+    },
+    "Q4": {
+      "months": 3,
+      "game_unit_months": 1636.88,
+      "game_base_cost": 51.819,
+      "weighted_rate": 0.03165717706856947,
+      "asin_months": 592,
+      "median_asin_month_rate": 0.02704751739284014
+    }
+  },
+  "holding_scenarios": [
+    {
+      "days": 30,
+      "inventory_weighted_history": 0.015095754534032441,
+      "calendar_season_min": 0.010582875863445751,
+      "calendar_season_max": 0.031223517108726055
+    },
+    {
+      "days": 60,
+      "inventory_weighted_history": 0.030191509068064882,
+      "calendar_season_min": 0.021165751726891502,
+      "calendar_season_max": 0.06244703421745211
+    },
+    {
+      "days": 90,
+      "inventory_weighted_history": 0.04528726360209732,
+      "calendar_season_min": 0.03174862759033725,
+      "calendar_season_max": 0.09367055132617817
+    },
+    {
+      "days": 180,
+      "inventory_weighted_history": 0.09057452720419464,
+      "calendar_season_min": 0.0634972551806745,
+      "calendar_season_max": 0.12679522166620077
+    },
+    {
+      "days": 365,
+      "inventory_weighted_history": 0.1836650134973947,
+      "calendar_season_min": 0.1920562894907829,
+      "calendar_season_max": 0.1920562894907829
+    }
+  ],
+  "storage_report_rows": 12413,
+  "storage_game_asins": 809,
+  "storage_report_total": 347.2081,
+  "storage_utilization_surcharge": 0.0,
+  "storage_months": [
+    "2025-09",
+    "2025-10",
+    "2025-11",
+    "2025-12",
+    "2026-01",
+    "2026-02",
+    "2026-03",
+    "2026-04",
+    "2026-05",
+    "2026-06",
+    "2026-07",
+    "2026-08"
+  ],
+  "aged": {
+    "months": [
+      "2025-09",
+      "2025-10",
+      "2025-11",
+      "2025-12",
+      "2026-01",
+      "2026-02",
+      "2026-03",
+      "2026-04",
+      "2026-05",
+      "2026-06",
+      "2026-07",
+      "2026-08"
+    ],
+    "report_cost": 347.99,
+    "game_cost": 100.6,
+    "game_asins": 113,
+    "game_unit_assessments": 1451.0
+  }
+}
