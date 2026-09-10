@@ -1,0 +1,777 @@
+﻿dimension,value,title,units_sold,returned_units_observed,return_rate,fee_reconciled_units,basis_known_units,gross_fees_reconciled,fee_credits_reconciled,net_transaction_cost_reconciled,reimbursements_linked,known_impairment,known_economic_components_partial_coverage,known_loss_fee_reconciled_subset,zero_recovery_known_components_plus_known_basis,unknown_impairment_known_basis,unknown_impairment_missing_basis_units,mean_transaction_cost_reconciled,median_transaction_cost_reconciled,mean_known_loss_fee_reconciled,known_cost_per_unit_sold_partial_coverage,zero_recovery_cost_per_unit_sold_partial_coverage,full_maximum_loss,original_fba_fees,original_referral_fees,referral_credits,fba_credits,refund_admin_fees,return_processing_fees,removal_fees
+asin,B00005BZC7,Shrek 2 - PlayStation 2,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B00005QI53,Freddi Fish Water Worries (Jewel Case) - PC,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B00006F2ZS,Dance Dance Revolution DDR Max,2,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B00008DHNV,Finding Nemo - PlayStation 2,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B00008KTRS,Shin Megami Tensei: Digital Devil Saga - PlayStation 2,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B00009VE6E,Lord of The Rings: The Return of The King,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B0002CHIUQ,Ace Combat 5: The Unsung War,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B0002IQCSY,Need for Speed Underground 2 - PlayStation 2,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B0002IQOOQ,Dance Dance Revolution Extreme [PlayStation2],1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B0006ACWEQ,Ranchmark OpenX Dual Blade Universal Package Opener 7L x 1 1/2H inches,10,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B000930DQ4,Harry Potter and the Goblet of Fire - PlayStation 2,2,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B0009WPZPY,Mortal Kombat Unchained - Sony PSP,8,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B0009Z3LGQ,Namco Museum Battle Collection,2,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B000AAZC08,Star Wars Battlefront II (Greatest Hits) - Sony PSP,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B000CEXDVW,Blazing Angels Squadrons of WWII - Xbox 360,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B000CPKIT6,Command and Conquer the First Decade,3,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B000FII8KQ,Tekken 6 (Greatest Hits) - Playstation 3,8,1,0.125,1,1,13.85,8.89,4.96,0,0,4.96,4.96,4.96,0,0,4.96,4.96,4.96,0.62,0.62,,3.54,7.09,7.09,0,1.42,0,0
+asin,B000GCJ6MK,Microsoft Flight Simulator X Deluxe DVD - PC [Windows XP],1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B000HGOHWO,Tom Clancy's Rainbow Six Vegas - Playstation 3,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B000L422L0,Brooktown High: Senior Year - Sony PSP,16,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B000MTF072,Surfs Up - Playstation 3,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B000N4MSAS,Brothers In Arms: Hell's Highway - Playstation 3 [PlayStation 3],1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B000NJDKA0,Shrek The Third - Sony PSP [Sony PSP],1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B000P0SETO,Madden NFL 08 - Playstation 3,2,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B000PS4XB4,Blazing Angels 2: Secret Missions of WWII - Playstation 3,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B000QB059Y,The Simpsons Game [PlayStation2],1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B000QB05BM,Mercenaries 2: World in Flames - PC,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B000QD7BBM,Carnival Games - Nintendo Wii,3,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B000QJLQCQ,Pinball Hall of Fame: The Williams Collection - Nintendo Wii,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B000R3BN42,Thrillville: Off the Rails,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B000R3BNDI,Lego Star Wars: The Complete Saga - Nintendo Wii,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B000RHZJIO,FIFA 08 - PlayStation 2,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B000S1L000,Ultimate Board Game Collection - Nintendo Wii,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B000S1MMGQ,Cars: Mater-National Championship,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B000SFK0L6,Cabelas Big Game Hunter,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B000TEJFK8,Tony Hawk's Proving Ground - PlayStation 2 [PlayStation2],2,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B000TPTCR8,Amf Bowling Pinbusters - Nintendo Wii,3,1,0.3333333333333333,1,0,10.04,5.88,4.16,0,0,4.16,4.16,4.16,0,0,4.16,4.16,4.16,1.386666666666666666666666667,1.386666666666666666666666667,,3.34,4.08,4.08,0,0.82,0,0
+asin,B000WPY4OG,NCAA March Madness 08 - Xbox 360,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B000X44XTM,Sega Bass Fishing - Nintendo Wii,3,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B000ZKBJYG,Lego Batman - Nintendo Wii,2,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B00104KJ4M,Lego Indiana Jones: The Original Adventures - Nintendo Wii,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B00114XU4M,Incredible Hulk,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B0012N3ZXS,Street Fighter IV [Video Game] [2009] Capcom U S A Inc,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B0013E9HP6,Wii Play,9,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B0014FMHDS,Kung Fu Panda - Playstation 3,3,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B00168ESPI,Deca Sports,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B0017ZDGWG,Mortal Kombat vs. DC Universe - Xbox 360,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B00182QCXS,DEAL OR NO DEAL WII [Nintendo Wii],8,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B00187VQDO,Tom Clancys H.A.W.X. (Xbox 360) [Xbox 360],1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B0018RWMRS,Game Party 2 - Nintendo Wii,4,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B001989B4S,Fight Night Round 4 - Xbox 360 [Xbox 360],5,1,0.2,1,0,12.02,7.37,4.65,0,0,4.65,4.65,4.65,0,1,4.65,4.65,4.65,0.93,0.93,,3.54,5.57,5.57,0,1.11,0,0
+asin,B001ABK1LQ,Guitar Hero World Tour - Playstation 3 (Game only),3,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B001AZ7RJ6,Command & Conquer: Red Alert 3 [Xbox 360],1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B001B1W3HA,Carnival Games: MiniGolf - Nintendo Wii,4,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B001B8Y0CE,The Price is Right - PC,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B001BXA9CE,Rock Band 2 - Nintendo Wii (Game only),1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B001D8PFIK,Sonic and the Black Knight - Nintendo Wii,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B001DO3NEW,Wii Music,15,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B001F03MY0,Rock Band Track Pack: Vol. 2 - PlayStation 2,2,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B001IK5TJI,Dragon Age: Origins - Playstation 3 [PlayStation 3],1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B001IX4CM0,Trivial Pursuit - Nintendo Wii,2,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B001IX4CMK,Trivial Pursuit - Playstation 3,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B001KAMZ8E,AC/DC Live: Rock Band Track Pack - Playstation 3,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B001KX504C,Gold's Gym Cardio Workout - Nintendo Wii,3,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B001LJPAAO,AC/DC Live: Rock Band Track Pack - Nintendo Wii,5,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B001QRWE14,Transformers: Revenge of the Fallen - PC,4,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B001QRWE28,Transformers: Revenge of the Fallen - Nintendo Wii,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B001SIFNXW,Mario and Sonic at the Olympic Winter Games - Nintendo Wii,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B001TOQ8K2,Punch-Out!!,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B001TOQ8LG,The Beatles: Rock Band (Game Only) - Nintendo Wii [Nintendo Wii],1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B001U2BMF4,Tiger Woods PGA Tour 10 - Nintendo Wii,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B001YI0Z2U,Bayonetta - Xbox 360 [Xbox 360],1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B00242KD7W,Cloudy with a Chance of Meatballs - Sony PSP,2,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B0026FCARI,Scooby Doo First Frights - Nintendo Wii,5,1,0.2,1,1,11.66,7.04,4.62,0,0,4.62,4.62,4.62,0,0,4.62,4.62,4.62,0.924,0.924,,3.57,5.24,5.24,0,1.05,0,0
+asin,B0026IUSXI,Toy Story Mania! - Nintendo Wii,2,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B0028ZJ4O8,Guitar Hero 5 - Xbox 360 (Game only) [Xbox 360],1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B0028ZNWWS,Band Hero featuring Taylor Swift - Stand Alone Software - Nintendo Wii,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B0028ZNWZK,Band Hero Stand Alone Software - PlayStation 2,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B002912SN0,Bakugan - PlayStation 2,4,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B002ARW2CA,Rock Band: Country Track Pack - PlayStation 2,2,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B002BDTZU0,"Ergodyne GloWear 8289 Safety T-Shirt, High Visibility Polyester, ANSI-Compliant Reflective, Chest Pocket, Type R, Class 2",6,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B002BRYXRQ,Left 4 Dead 2 [Windows Vista | Windows XP],1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B002BRZ9G0,New Super Mario Bros,2,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B002BSA20M,Halo Reach,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B002BSC54I,The Legend of Zelda: Skyward Sword with Music CD,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B002BUUM00,Marvel Super Hero Squad - Nintendo Wii,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B002C7RBPQ,NBA 2K10 - Sony PSP,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B002CZ7P04,Walk It Out - Nintendo Wii,2,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B002E1M632,WWE SmackDown vs. Raw 2010 - Nintendo Wii,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B002EWD04A,Family Feud: 2010 Edition,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B002EZLP4E,"Press Your Luck, 2010 Edition",1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B002GPPPS4,Castlevania Lords of Shadow,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B002I08ESA,Madden NFL 11 - Nintendo Wii,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B002I08WVY,Tales of the Abyss,2,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B002I0GXWO,Dissidia 012 [duodecim] Final Fantasy - Sony PSP,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B002I0H1DY,Castlevania: Lords of Shadow Mirror Fate,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B002I0H79C,Gears of War 3,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B002I0HEI6,Sonic Free Riders - Xbox 360,4,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B002I0IIPY,Sonic Colors - Nintendo Wii,2,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B002I0JFCO,EA Sports Active 2 - Xbox 360 [Xbox 360],1,1,1.0,1,0,17.63,9.75,7.88,0,0,7.88,7.88,7.88,0,1,7.88,7.88,7.88,7.88,7.88,,6.29,7.95,7.95,0,1.59,0,0
+asin,B002I0JGDM,Fable III - Xbox 360,1,1,1.0,1,1,10.61,6.17,4.44,0,0,4.44,4.44,17.43,12.99,0,4.44,4.44,4.44,4.44,17.43,,3.57,4.37,4.37,0,0.87,0,0
+asin,B002I0K3M0,Nintendo Land,14,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B002I0K50U,Hitman: Absolution,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B002I0K5W8,SSX - Playstation 3,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B002K9VIAU,Game Party 3 - Nintendo Wii,5,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B002MWSY3O,Just Dance - Nintendo Wii,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B002SKDIKE,The Stronghold Collection - PC,3,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B0030CV356,UFC Undisputed 2010 - Xbox 360 [Xbox 360],7,1,0.14285714285714285,1,0,8.82,4.7,4.12,0,0,4.12,4.12,4.12,0,0,4.12,4.12,4.12,0.5885714285714285714285714286,0.5885714285714285714285714286,,3.54,2.9,2.9,0,0.58,0,0
+asin,B0030GBU2I,Prince of Persia: The Forgotten Sands - Playstation 3 [PlayStation 3],15,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B00337KBZG,How To Train Your Dragon - Nintendo Wii,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B0037TPGHI,Brunswick Pro Bowling [PlayStation 3],1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B0037TPGJG,Brunswick Pro Bowling (Requires Kinect) - Xbox 360,2,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B00386VMZA,Tiger Woods PGA Tour 11 - Nintendo Wii,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B0038TT8QM,Sid Meier's Civilization V - PC,6,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B0039XZGXG,WipeOut: The Game,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B003AMOK9M,The Sims 3: Ambitions,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B003C1I06U,Batman: Arkham Asylum (Game of the Year Edition) - Playstation 3,2,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B003DNH95K,Lord of the Rings: War in the North - Xbox 360,3,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B003HO0RPE,Deal or No Deal Special Edition - Nintendo Wii,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B003IE9V28,Marvel vs. Capcom 3: Fate of Two Worlds - Xbox 360,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B003KMJ90C,Monopoly Streets - Playstation 3,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B003KMJ9FC,Monopoly Streets - Nintendo Wii [Nintendo Wii],1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B003LDKIUA,Pac-Man Party - Nintendo Wii,7,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B003M986Z2,Hasbro Family Game Night 3 - Nintendo Wii,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B003N5XSRG,Guitar Hero: Warriors of Rock Stand-Alone Software - Nintendo Wii,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B003O6E3C8,Portal 2 - Playstation 3,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B003O6E6CA,Tiger Woods PGA TOUR 12: The Masters - Nintendo Wii,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B003O6E986,Forza Motorsport 4 - Xbox 360,10,1,0.1,1,1,14.78,9.44,5.34,0,0,5.34,5.34,5.34,0,0,5.34,5.34,5.34,0.534,0.534,,3.81,7.64,7.64,0,1.53,0,0
+asin,B003OZZJGS,Gold's Gym Dance Workout - Nintendo Wii [Nintendo Wii],5,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B003QWI21S,New Carnival Games - Nintendo Wii,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B003R7H5TC,Need for Speed Hot Pursuit - Playstation 3,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B003RS8I92,Rock Band 3 - Playstation 3 (Game),1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B003S2JI6O,Wheel of Fortune - Nintendo Wii,16,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B003S2JI82,Jeopardy - Nintendo Wii,3,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B003S2QS12,WWE All Stars - Nintendo Wii,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B003TK1HSM,Nickelodeon Fit [Nintendo Wii],4,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B003UT9XJM,Game Party: In Motion - Xbox 360,4,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B003VJKJG2,Plants Vs. Zombies,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B003VJO0OY,Rapala Pro Bass Fishing 2010 - PlayStation 2 [PlayStation2],1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B003VKLA5K,Rapala Pro Bass Fishing with Rod Peripheral - Nintendo Wii,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B003VKLA8C,Bakugan Battle Brawlers: Defenders of the Core - Playstation 3,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B003VN0U1M,Dora Big Birthday Adventure,2,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B003ZHMMEM,Donkey Kong Country Returns,7,1,0.14285714285714285,1,0,13.10,8.24,4.86,0,0,4.86,4.86,4.86,0,0,4.86,4.86,4.86,0.6942857142857142857142857143,0.6942857142857142857142857143,,3.57,6.44,6.44,0,1.29,0,0
+asin,B003ZUWLYU,Family Feud Decades - Nintendo Wii,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B0042GW7CC,Namco Museum Megamix,3,1,0.3333333333333333,1,1,20.97,16.61,4.36,0,0,4.36,4.36,4.36,0,0,4.36,4.36,4.36,1.453333333333333333333333333,1.453333333333333333333333333,,3.42,4.72,4.72,0,0.94,0,0
+asin,B0042YM9GI,Michael Jackson: The Experience,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B0045ZB66I,Dragon Age Origins: Ultimate Edition - PC [Windows Vista | Windows XP],3,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B0047TG2R0,Dragon Age 2 - Xbox 360,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B0048C8VKM,NASCAR The Game 2011 - Xbox 360,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B00498RQEW,You Don't Know Jack,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B004BXAL0G,Major League Baseball 2K11 - PlayStation 2,2,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B004FS8LYK,Tomb Raider,2,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B004FUI84G,Prototype 2 - Playstation 3,8,1,0.125,1,1,12.56,7.92,4.64,0,0,4.64,4.64,4.64,0,0,4.64,4.64,4.64,0.58,0.58,,3.42,6.12,6.12,0,1.22,0,0
+asin,B004J30X4W,Country Dance Wii,2,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B004LWVHIM,Carnival Games: Monkey See Monkey Do - Xbox 360,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B004NB1BV4,Rio - Nintedo Wii [Nintendo Wii],1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B004U4C25S,UFC Personal Trainer - Nintendo Wii,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B004XV9EWW,Mario & Sonic at the London 2012 Olympic Games,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B00503E9UO,Call of Duty: Modern Warfare 3 - Nintendo Wii,2,1,0.5,1,1,10.10,6.09,4.01,0,0,4.01,4.01,17.74,13.73,0,4.01,4.01,4.01,2.005,8.87,,3.15,4.29,4.29,0,0.86,0,0
+asin,B0050SWALO,Kinect Sports Ultimate Collection,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B0050SYPV2,Sniper: Ghost Warrior 2 - Xbox 360,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B0050SYW1U,The Adventures Of Tintin: The Game - Xbox 360,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B0050SYY5E,Halo: Combat Evolved Anniversary,2,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B0050SYYEK,Dance Central 2 - Xbox 360 [Xbox 360],6,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B0050SYZ2G,Kinect Sports Season Two,3,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B0050SZ980,Mass Effect Trilogy - PC,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B0050SZE2G,Far Cry 3 - PC,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B0051TLAF4,LEGO Harry Potter: Years 5-7 - Xbox 360,3,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B0051TLAZ4,LEGO Harry Potter: Years 5-7 - Playstation 3,7,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B0051TLC9I,LEGO Harry Potter: Years 5-7 - Nintendo 3DS,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B0052VPDMM,Family Game Night 4: The Game Show - Xbox 360 [Xbox 360],2,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B0053BCMAC,Paper Mario: Sticker Star,2,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B0053BG122,Just Dance 3,3,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B0053BQQ6I,WWE '12 [Nintendo Wii],1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B0053BQU4G,WWE '12,2,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B0053BSOD6,UFC Undisputed 3,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B0054U4A4I,STAR WARS: THE FORCE UNLEASHED II XBOX (XBOX 360),2,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B0056GJVQW,Just Dance Summer Party - Nintendo Wii,2,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B0057PERPM,Country Dance 2 - Nintendo Wii,7,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B0058LTE5S,The Black Eyed Peas Experience - Nintendo Wii,3,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B005EHAFTA,Advance Tabco K-00 Faucet Repair Kit,11,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B005EW6BU2,Monster High: Ghoul Spirit - Nintendo Wii,2,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B005EYRAUK,Sonic Generations - Nintendo 3DS,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B005N4HBE6,Red Dead Redemption: Game of the Year Edition - Xbox One and Xbox 360,3,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B005VBVQDI,Devil May Cry HD Collection - Playstation 3,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B0060ZN5T2,NEW Just Dance 3 Wii (Videogame Software),16,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B0062KIC2A,Take 2 GTA V Grand Theft Auto 5 Xbox 360,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B0062VM8LU,Final Fantasy XIII-2 Collector's Edition - Playstation 3,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B00647630Y,Major League Baseball 2K12 - Xbox 360 [Xbox 360],1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B0065NP6NC,Fallout: New Vegas - Xbox 360 Ultimate Edition,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B006D3JT1E,Tiger Woods PGA TOUR 13 - Playstation 3 [PlayStation 3],2,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B006D3JWR0,Tiger Woods PGA TOUR 13 - Xbox 360,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B006ZPAYMI,Kinect Rush: A Disney Pixar Adventure - Xbox 360,11,2,0.18181818181818182,2,2,26.53,16.98,9.55,0,0,9.55,9.55,9.55,0,0,4.775,4.775,4.775,0.8681818181818181818181818182,0.8681818181818181818181818182,,6.88,13.38,13.38,0,2.67,0,0
+asin,B007BJNR6C,Assassin's Creed III: Liberation,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B007FQUEZ8,Metal Gear Solid HD Collection,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B007MM9E2E,Disney Epic Mickey 2: The Power of Two - Playstation 3 [PlayStation 3],2,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B007MM9E42,Disney Epic Mickey 2: The Power of Two - Nintendo Wii,24,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B007V9NHMQ,007 Legends - Playstation 3,2,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B0081AWU4A,Just Dance Greatest Hits - Nintendo Wii [Nintendo Wii],1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B0083RDTA0,NASCAR The Game: Inside Line - Playstation 3,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B0086V5TVU,Just Dance 4 - Playstation 3,2,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B0086V5UEG,Just Dance 4,2,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B0086V5UF0,Just Dance 4 - Nintendo Wii,3,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B0087OXXGY,Harry Potter for Kinect - Xbox 360,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B0088I7KYU,Injustice: Gods Among Us - Xbox 360,5,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B0088I86SO,Just Dance 4 - Nintendo Wii U [Nintendo Wii U],1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B0088I8M0Q,Just Dance: Disney Party XBOX 360,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B0088I8M10,Just Dance: Disney Party - Nintendo Wii,3,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B0088MVP4M,LEGO Lord of the Rings - Nintendo Wii,3,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B008AT68UE,The Sims 3 Supernatural,2,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B008BERGYU,Zumba Fitness Core (Street 10/16),2,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B008DNUXA8,Wreck-It Ralph - Nintendo Wii,3,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B008E6ZXRC,Wipeout 3 - Xbox 360 [Xbox 360],1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B008E6ZXXG,Toy Story Mania for Xbox 360 Kinect,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B008E6ZYCQ,Wipeout 3 - Nintendo Wii,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B008HHTEE6,Cabela's Hunting Expeditions - Nintendo Wii [Nintendo Wii],2,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B008J16AG0,The Hip Hop Dance Experience - Nintendo Wii,5,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B008J16AH4,Angry Birds Trilogy - Playstation 3,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B008J16AHE,The Hip Hop Dance Experience - Xbox 360,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B008J16APQ,The Walking Dead: Survival Instinct - Playstation 3 [PlayStation 3],1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B008QLUS16,The Sims 3 Plus Seasons,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B008QLUTHO,The Sims 3 Seasons,5,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B009716CFK,Activision Skylanders Giants 3 Pack Sonic Boom Sprocket Stump Smash,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B009E480RS,Dance Central 3 - Xbox 360 [Xbox 360],1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B00A39IEMY,The Sims 3 University Life,2,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B00A8TDADW,"Fat Daddio's Hemisphere Ball Cake Pans - Set of 3 Different Sizes: 4-inch, 5-inch, and 8-inch Silver Whimsical Hemisphere Cake Pans",1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B00ARCWQOO,MLB 2K13 - Xbox 360 [Xbox 360],2,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B00AXI9XIE,DISNEY INFINITY Starter Pack PS3,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B00B98HBTA,Lego: Marvel Super Heroes - PlayStation 3,2,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B00B98HF1O,"Lego: Marvel Super Heroes, XBOX 360",3,1,0.3333333333333333,1,0,9.99,5.84,4.15,0,0,4.15,4.15,4.15,0,0,4.15,4.15,4.15,1.383333333333333333333333333,1.383333333333333333333333333,,3.34,4.04,4.04,0,0.81,0,0
+asin,B00BMFIXZG,Assassin's Creed IV Black Flag - PC,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B00BSELY9I,PS3 NCAA FOOTBALL 13,2,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B00C4PCCL4,The Sims 3 Expansion Bundle - PC/Mac,2,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B00C7103DO,Batman: Arkham Origins - Playstation 3,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B00CD90R72,FIFA 14 - Playstation 3,7,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B00CMQTTZ2,Quantum Break - Xbox One,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B00CMQTUCE,Kinect Sports: Rivals - Xbox One,2,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B00CSLJ1L8,Pac-Man and the Ghostly Adventures - Nintendo 3DS,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B00CX6XKK6,Call of Duty: Ghosts - Xbox One,6,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B00CXCCI8A,FIFA 14 - PlayStation 4,2,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B00CYS5DU8,Madden NFL 25 - PlayStation 4,2,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B00D3RBZHY,Need for Speed: Rivals,4,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B00D7QX9WK,Rocksmith 2014 Edition - No Cable Included for Rocksmith Owners [Xbox 360],1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B00D7UHT0E,Just Dance 2014 - Nintendo Wii [Nintendo Wii],5,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B00D8IAND0,Just Dance 2014 - Nintendo Wii U,2,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B00D8S4GLK,Just Dance 2014,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B00D8S4GNS,Just Dance 2014 - Xbox 360,2,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B00D8S4GRY,Just Dance 2014 - PlayStation 4,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B00DB9JV5W,Halo 5: Guardians - Xbox One,4,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B00DBF813Y,Final Fantasy XV - Xbox One,5,1,0.2,1,1,10.58,6.33,4.25,0,0,4.25,4.25,4.25,0,0,4.25,4.25,4.25,0.85,0.85,,3.34,4.53,4.53,0,0.91,0,0
+asin,B00DC7G0GG,Super Mario 3D World,11,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B00DC7G2W8,Mario Kart 8 - Wii U,2,1,0.5,1,1,14.74,9.41,5.33,0,0,5.33,5.33,5.33,0,0,5.33,5.33,5.33,2.665,2.665,,3.81,7.61,7.61,0,1.52,0,0
+asin,B00DD0B1R0,Super Smash Brothers - Nintendo 3DS,2,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B00DHF39KS,Wolfenstein: The New Order - PlayStation 4 [PlayStation 4],1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B00DND7CZM,Sound Percussion Labs Hickory Drumsticks 4-Pack 5A Nylon,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B00DND7H9S,Sound Percussion Labs Hickory Drumsticks 4-Pack 5B Nylon,5,1,0.2,0,1,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B00DNGQTG2,Zumba Fitness World Party - Xbox One,3,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B00DRHNLEK,Sound Percussion Labs Hickory Drumsticks 4-Pack 5A Wood,3,1,0.3333333333333333,0,1,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B00DS0MQUQ,Battlefield 4 - PlayStation 4,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B00DWXV074,Teenage Mutant Ninja Turtles - Nintendo Wii,3,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B00E9GQ3WK,Wipeout: Create & Crash - Xbox 360,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B00ECOBFA4,The LEGO Movie Videogame - Xbox 360 Standard Edition,2,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B00ECOBFCC,The LEGO Movie Videogame - PlayStation 3,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B00EFRN2IQ,The Sims 4 - PC/Mac,5,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B00FF5KWQW,Angry Birds: Star Wars - Xbox One,2,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B00FM5IY4W,Forza Motorsport 5,5,2,0.4,2,0,29.70,20.09,9.61,0,0,9.61,9.61,9.61,0,1,4.805,4.805,4.805,1.922,1.922,,6.31,16.49,16.49,0,3.30,0,0
+asin,B00FS2XRIC,Kingdom Hearts HD 2.5 ReMIX Limited Edition,2,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B00GANWVJE,The Legend of Zelda: A Link Between Worlds,4,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B00GMFKYH6,Middle Earth: Shadow of Mordor - Xbox 360,2,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B00HD4R5WC,Metal Gear Solid V: Ground Zeroes - Xbox One Standard Edition,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B00I19TXNC,Alien: Isolation - Xbox One,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B00I6E6SH6,Minecraft - Xbox One [Xbox One],3,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B00I9UVY30,EA Sports 2014 FIFA World Cup Brazil - PlayStation 3,20,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B00IQCRKP2,Kinect Sports Rivals - XBOX One [Xbox One],1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B00JUFT1F6,Dragon Age Inquisition - Standard Edition - PlayStation 4,2,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B00K1JBLO4,NBA 2K15 - PlayStation 4,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B00K2O5360,The Wolf Among Us - PlayStation 4,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B00K2O54V4,The Walking Dead: The Complete First Season - PlayStation 4,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B00K586O7A,NHL 15 - PlayStation 3,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B00KBZHSV8,WWE 2K15 - PlayStation 4,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B00KG5HSSG,Sherlock Holmes: Crimes & Punishments - Xbox One,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B00KL4PNWA,Alien: Isolation - Nostromo Edition (Xbox One) [Xbox One],2,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B00KLMOY4K,Plants vs Zombies Garden Warfare(Online Play Required) - PlayStation 4,33,7,0.21212121212121213,6,7,62.09,36.71,25.38,0,0,25.38,25.38,75.38,50.00,0,4.23,4.21,4.23,0.7690909090909090909090909091,2.284242424242424242424242424,,20.20,25.91,25.91,0,5.18,0,0
+asin,B00KTNU40E,Just Dance 2015 - Xbox One,2,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B00KVL0SIM,Tom Clancy's The Division - PC,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B00KWEHBAG,Zelda Hyrule Warriors,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B00KWF366S,Yoshi Woolly World,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B00KWFCV32,Splatoon,4,3,0.75,3,3,37.34,23.37,13.97,0,0,13.97,13.97,41.91,27.94,0,4.656666666666666666666666667,4.62,4.656666666666666666666666667,3.4925,10.4775,,10.38,17.97,17.97,0,3.59,0,0
+asin,B00KWG4HG0,Mario Party 10,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B00MU1YEYU,Call of Duty: Advanced Warfare - PlayStation 3,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B00MU1YEZY,Call of Duty: Advanced Warfare - PlayStation 4,1,1,1.0,1,1,11.98,7.33,4.65,0,0,4.65,4.65,4.65,0,0,4.65,4.65,4.65,4.65,4.65,,3.54,5.53,5.53,0,1.11,0,0
+asin,B00NGXUBR0,Assassin's Creed: The Americas Collection - PlayStation 3 Standard Edition,2,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B00PB9LZQI,The Legend of Zelda: Majora's Mask 3D,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B00R9NWEFK,EA SPORTS Rory McIlroy PGA TOUR - PlayStation 4,2,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B00SVVUOGU,Forza Motorsport 6 - Xbox One,3,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B00SXEONTO,LEGO Jurassic World - PlayStation 3,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B00SXEONXK,LEGO Jurassic World - Nintendo 3DS,3,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B00SXEOOHU,LEGO Jurassic World - Xbox 360 Standard Edition,3,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B00T57U7V6,LEGO Marvel's Avengers - Xbox 360,2,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B00UA55LDQ,Farming Simulator 15 - Xbox 360,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B00VU4J8YY,Call of Duty: Black Ops III - Standard Edition - Xbox One,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B00WOK8YX4,Middle Earth: Shadow of Mordor Game of the Year - PlayStation 4,2,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B00X87MH0I,Assassin's Creed Syndicate - Xbox One [Xbox One],1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B00XR3YBFW,WWE 2K16 - Xbox 360 [Xbox 360],2,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B00XUZBCEK,ea sports nhl legacy edition - Xbox 360 [Xbox 360],1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B00XWQZPQ8,Need for Speed - Xbox One,2,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B00YC7DZ3G,FIFA 16 - Standard Edition - Xbox 360,2,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B00YC7ECXS,FIFA 16 - Standard Edition - PlayStation 4,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B00YC7ED0K,FIFA 16 - Standard Edition - PlayStation 3,8,1,0.125,1,1,11.31,6.94,4.37,0,0,4.37,4.37,4.37,0,0,4.37,4.37,4.37,0.54625,0.54625,,3.34,5.14,5.14,0,1.03,0,0
+asin,B00YI79BJC,Skylanders SuperChargers Racing Starter Pack - Wii [Nintendo Wii],1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B00YX0Z3XW,Call of Duty: Black Ops III - Multiplayer Edition - PlayStation 3,3,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B00YX0Z40Y,Call of Duty: Black Ops III - Standard Edition - Xbox 360,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B00ZE360GG,Just Dance 2016 - Wii [Nintendo Wii],6,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B00ZGPJ30M,Plants vs. Zombies Garden Warfare 2 - PlayStation 4 [PlayStation 4],3,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B00ZJ211Q6,Destiny: The Taken King - Legendary Edition - Xbox One,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B00ZJBSCJQ,South Park: The Fractured but Whole - PlayStation 4,4,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B00ZJBSW2S,TrackMania Turbo - Xbox One,1,1,1.0,1,1,9.52,5.36,4.16,0,0,4.16,4.16,4.16,0,0,4.16,4.16,4.16,4.16,4.16,,3.45,3.56,3.56,0,0.71,0,0
+asin,B00ZMBLKPG,Gears of War: Ultimate Edition - Xbox One,3,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B00ZPT59YS,Sea of Thieves: Standard Edition - Xbox One,7,2,0.2857142857142857,2,0,25.77,16.34,9.43,0,0,9.43,9.43,9.43,0,1,4.715,4.715,4.715,1.347142857142857142857142857,1.347142857142857142857142857,,6.88,12.74,12.74,0,2.55,0,0
+asin,B00ZPTMX60,Gears of War 4 - Xbox One,2,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B00ZS80PC2,Final Fantasy VII: Remake - PlayStation 4,6,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B0131M671Y,Just Dance Disney Party 2 - Xbox 360 Standard Edition,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B0131M675K,Just Dance Disney Party 2 - Wii U Standard Edition,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B013KZ3P2G,Far Cry 4 Complete Edition - Xbox One,2,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B0140Z6T3W,Game of Thrones - A Telltale Games Series - Xbox One [Xbox One],1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B014N4RTS4,YO-KAI WATCH - 3DS,7,2,0.2857142857142857,2,1,30.50,20.17,10.33,0,0,10.33,10.33,10.33,0,0,5.165,5.165,5.165,1.475714285714285714285714286,1.475714285714285714285714286,,7.02,16.57,16.57,0,3.31,0,0
+asin,B014XCWYOK,Minecraft: Story Mode - Season Disc - PlayStation 4,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B015HAL2OA,Kingdom Hearts HD 2.8 Final Chapter Prologue - PlayStation 4,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B0166QDR9W,Borderlands Triple Pack - PlayStation 3,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B0167HR2OG,Borderlands Triple Pack - Xbox 360,3,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B016KAKD7S,"18"" Bendable Muslin DollNew by: CC",35,2,0.05714285714285714,1,2,10.08,3.47,6.61,0,0,6.61,6.61,24.59,17.98,0,6.61,6.61,6.61,0.1888571428571428571428571429,0.7025714285714285714285714286,,5.92,3.47,3.47,0,0.69,0,0
+asin,B017V6Y34E,EA Sports UFC 2 - PlayStation 4,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B017W16ZNA,Bravely Second: End Layer - Nintendo 3DS,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B017W16ZUI,Dragon Quest VIII: Journey of the Cursed King - Nintendo 3DS Standard Edition,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B018F6NVFQ,Granblue Fantasy: Versus [PlayStation 4],2,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B01AC3ZD06,Nintendo Selects: Super Mario 3D World - Wii U Standard Edition,47,3,0.06382978723404255,3,1,40.24,26.11,14.13,0,0,14.13,14.13,14.13,0,1,4.71,4.71,4.71,0.3006382978723404255319148936,0.3006382978723404255319148936,,9.99,20.71,20.71,0,4.14,0,0
+asin,B01AC3ZE5K,Nintendo Selects: Super Mario All-Stars - Wii Standard Edition,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B01B298Q0S,Teenage Mutant Ninja Turtles: Mutants in Manhattan - Xbox One,2,1,0.5,1,0,15.87,10.74,5.13,0,0,5.13,5.13,5.13,0,0,5.13,5.13,5.13,2.565,2.565,,3.34,8.94,8.94,0,1.79,0,0
+asin,B01BXAFRT4,Tales from the Borderlands - PlayStation 4,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B01BXAFRU8,Tales from the Borderlands - Xbox One,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B01BYDV5M8,Pokemon Rumble World - Nintendo 3DS Standard Edition,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B01CKH0XQ6,Kirby amiibo - Nintendo Switch,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B01CVS3424,Ghostbusters - PlayStation 4,2,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B01E6239QY,NBA 2K17 - Early Tip Off Edition - Xbox One,2,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B01EJNUMQ0,Ori and the Blind Forest: Definitive Edition - Xbox One,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B01EZA0D8O,Call of Duty: Infinite Warfare - Standard Edition - Xbox One,14,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B01F9HMO2K,Battlefield 1 - PlayStation 4,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B01FEHJYUU,Sid Meier's Civilization VI - PC,18,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B01G2E4DV4,Birds Choice Oriole Feeder Replacement Cup,101,1,0.009900990099009901,1,0,7.33,2.7,4.63,0,0,4.63,4.63,4.63,0,0,4.63,4.63,4.63,0.04584158415841584158415841584,0.04584158415841584158415841584,,4.09,2.7,2.7,0,0.54,0,0
+asin,B01GKGVIDK,Titanfall 2 Deluxe Edition - PlayStation 4 [PlayStation 4],1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B01GKH5QMI,FIFA 17 - PlayStation 3,3,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B01GOK4FX2,NHL 17 Deluxe Edition - PlayStation 4,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B01GVN0D1U,Resident Evil 7 Biohazard (Xbox One),14,1,0.07142857142857142,1,0,11.00,6.68,4.32,0,0,4.32,4.32,4.32,0,0,4.32,4.32,4.32,0.3085714285714285714285714286,0.3085714285714285714285714286,,3.34,4.88,4.88,0,0.98,0,0
+asin,B01GW3LRD2,Forza Horizon 3 - Xbox One,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B01GW8XJVU,The Elder Scrolls V: Skyrim Special Edition - PlayStation 4,2,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B01GW8Y9SM,Prey - PlayStation 4,7,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B01GWGX74Q,Just Dance 2017 - Wii,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B01GWGX7TG,Just Dance 2017 - Xbox 360,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B01GWLIXY0,Steep - Xbox One,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B01HDJFJLK,Farming Simulator 17 - PlayStation 4,3,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B01HIZGKOE,Air Conflicts - Double Pack - PlayStation 4,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B01HTRJFGQ,NBA 2K17 Standard Edition - PlayStation 4,2,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B01IH3T6BA,Pro Evolution Soccer 2017 - Xbox One Standard Edition,4,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B01IW7Z67E,Nintendo Selects: Luigi's Mansion: Dark Moon - Nintendo 3DS,2,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B01IW7Z746,Nintendo Selects: Nintendo Land - Wii U,4,1,0.25,1,0,14.96,9.59,5.37,0,0,5.37,5.37,5.37,0,1,5.37,5.37,5.37,1.3425,1.3425,,3.81,7.79,7.79,0,1.56,0,0
+asin,B01J4PHT3C,Yakuza 0 - PlayStation Hits - PlayStation 4,3,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B01JCUNNA2,Darksiders: Warmastered Edition - Xbox One,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B01JCUV50W,"Dead Rising 2 - Xbox One, Standard Edition [Xbox One]",1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B01JCV1QGE,Dead Rising,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B01JY2YLHW,Vikings - Wolves of Midgard - Xbox One,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B01K63R7EW,Destiny The Collection - Xbox One Standard Edition [Xbox One],5,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B01K63R7HY,Destiny The Collection - PlayStation 4 Standard Edition,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B01KIH8ADS,NBA 2K17 Standard Edition - PlayStation 3,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B01LDFGIT2,Livewire Advantage Instrument Cable 10 ft. Black,31,2,0.06451612903225806,2,2,18.63,8.4,10.23,0,0,10.23,10.23,20.71,10.48,0,5.115,5.115,5.115,0.33,0.6680645161290322580645161290,,8.55,8.4,8.4,0,1.68,0,0
+asin,B01LYGJRVP,Assassin's Creed The Ezio Collection - Xbox One [Xbox One],2,1,0.5,1,1,13.50,8.6,4.90,0,0,4.90,4.90,26.85,21.95,0,4.90,4.90,4.90,2.45,13.425,,3.54,6.8,6.8,0,1.36,0,0
+asin,B01LYS7YYE,Hasbro Family Fun Pack Conquest Edition - Xbox One,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B01MDNZOZP,Star Wars Battlefront Ultimate Edition - PlayStation 4 [PlayStation 4],1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B01MTJ0TA9,Mass Effect Andromeda Deluxe - PlayStation 4,2,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B01N03NM02,"Harmony Good Dog Ceramic Dog Bowl, 1 Cup",104,23,0.22115384615384615,19,23,171.70,66.77,104.93,0,5.99,110.92,104.93,188.79,77.87,0,5.522631578947368421052631579,5.51,5.522631578947368421052631579,1.066538461538461538461538462,1.815288461538461538461538462,,91.58,66.77,66.77,0,13.35,0,0
+asin,B01N157LDC,Tom Clancy's Rainbow Six Siege Year 2 Gold Edition (Includes Extra Content + Year 2 Pass Subscription) - PlayStation 4,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B01N1GRUUC,"Harmony Good Dog Ceramic Dog Bowl, 6 Cups",93,12,0.12903225806451613,10,12,131.19,51.93,79.26,0,0,79.26,79.26,156.19,76.93,0,7.926,7.95,7.926,0.8522580645161290322580645161,1.679462365591397849462365591,,68.88,51.93,51.93,0,10.38,0,0
+asin,B01N3NNPAB,Mass Effect Andromeda Deluxe - Xbox One [Xbox One],1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B01N4PIC40,Utawarerumono: Mask of Truth - PlayStation Vita,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B01N54QSH6,"Harmony Good Dog Ceramic Dog Bowl, 3 Cups",93,18,0.1935483870967742,17,11,210.72,90.69,120.03,0,0,120.03,120.03,171.47,51.44,2,7.060588235294117647058823529,7.07,7.060588235294117647058823529,1.290645161290322580645161290,1.843763440860215053763440860,,101.89,90.69,90.69,0,18.14,0,0
+asin,B01N9QA6LY,LEGO City Undercover - PlayStation 4,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B01N9QVIRV,Switch Title 3 -,41,2,0.04878048780487805,2,2,27.38,18.00,9.38,0,0,9.38,9.38,9.38,0,0,4.69,4.69,4.69,0.2287804878048780487804878049,0.2287804878048780487804878049,,6.50,14.40,14.40,0,2.88,0,0
+asin,B01NAGTKX3,Crash Bandicoot N. Sane Trilogy - PlayStation 4 Standard Edition,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B06WWF1N6M,Middle-Earth: Shadow Of War Gold Edition - Xbox One,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B06XDN21W5,Paradise Treasure Trove Brown White Football Coin Piggy Bank Sports Stitching,61,6,0.09836065573770492,5,4,53.85,19.5,34.35,0,0,34.35,34.35,61.32,26.97,2,6.87,6.91,6.87,0.5631147540983606557377049180,1.005245901639344262295081967,,30.45,19.5,19.5,0,3.90,0,0
+asin,B06XWXF5WK,Cars 3: Driven to Win - Xbox One,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B06ZY2129H,Miitopia - Nintendo 3DS,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B071FK2WRT,Pro Evolution Soccer 2018 - PlayStation 4 Standard Edition [PlayStation 4],1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B071FZ9WXZ,Just Dance 2018 - Xbox 360,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B071G5JJDW,Monster Hunter: World - Xbox One Standard Edition,5,1,0.2,1,1,11.92,7.45,4.47,0,0,4.47,4.47,22.44,17.97,0,4.47,4.47,4.47,0.894,4.488,,3.34,5.65,5.65,0,1.13,0,0
+asin,B071G8WL76,LEGO Marvel Superheroes 2 Deluxe - Xbox One,2,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B071JCYKK4,Need for Speed Payback - XBOX One,2,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B071L89ZGC,Madden NFL 18: G.O.A.T. Edition - Xbox One,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B071WPL1L8,The Evil Within 2 - PlayStation 4,9,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B071X7QQKZ,Fire Emblem Warriors - Nintendo Switch [Nintendo Switch],9,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B071Y1RXHG,Star Wars Battlefront II - Xbox One [Xbox One],3,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B071Z6HJQY,Portal Knights - Nintendo Switch,3,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B071ZZZ3K9,FIFA 18 Standard Edition - PlayStation 4,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B0721JX2WR,The Evil Within 2 - PS4,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B0727Y69TY,NBA 2K18 - Xbox 360 [Xbox 360],1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B072JSM93F,Just Dance 2018 - Nintendo Switch [Nintendo Switch],1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B072JY7NX5,Wolfenstein II: The New Colossus - PlayStation 4,12,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B072JZ7HJR,FIFA 18 Legacy Edition (PS3),1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B072JZB85B,FIFA 18 (PS4),1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B072L395L5,Nintendo Splatoon 2 - Action/Adventure Game - Nintendo Switch [Nintendo Switch],1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B072MK1CL1,Code Vein - PlayStation 4,2,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B072MKR1P5,Forza Motorsport 7 - Standard Edition - Xbox One,2,1,0.5,1,0,19.26,13.57,5.69,0,0,5.69,5.69,5.69,0,1,5.69,5.69,5.69,2.845,2.845,,3.34,11.77,11.77,0,2.35,0,0
+asin,B072NQJCW5,Call of Duty: WWII - Xbox One Standard Edition,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B072QG6SWN,FIFA 18 Ronaldo Edition - Xbox One,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B073VY62G9,Minecraft: Story Mode - Season 2 - Xbox One Standard Edition,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B073VYS9FC,Minecraft: Story Mode - Season 2 - PlayStation 4 Standard Edition,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B0748VH8ZF,The Sims 4 - Xbox One [Xbox One],11,1,0.09090909090909091,1,1,10.98,6.5,4.48,0,0,4.48,4.48,4.48,0,0,4.48,4.48,4.48,0.4072727272727272727272727273,0.4072727272727272727272727273,,3.54,4.7,4.7,0,0.94,0,0
+asin,B0748XK1KM,The Sims 4 - PlayStation 4,3,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B074B2CB6G,Wolfenstein: The Two-Pack - PlayStation 4,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B074B5F8LD,Wolfenstein: The Two-Pack - Xbox One,5,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B074NJWFXH,NBA LIVE 18: The One Edition - PlayStation 4,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B074RYSTNS,"Chevrolet 20"" Genuine Distressed Vintage Style Bowtie Chevy Red White and Blue American Flag Oval Metal Embossed Sign",10,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B074ZQ9F4S,Dissidia Final Fantasy NT Steelbook Brawler Edition - PlayStation 4,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B075M5MCDF,Mario Party: The Top 100 - Nintendo 3DS,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B075MSL3BV,ARK: Survival Evolved - Xbox One,11,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B075MSRBVC,MX vs ATV All Out - Xbox One,3,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B075QWP3N3,Zoo Tycoon: Ultimate Animal Collection - Xbox One,3,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B076B97YKL,Monster Energy Supercross: The Official Videogame - Nintendo Switch,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B07795WNJV,"Calvin Klein Women's Form Lightly Lined Demi Bra, -black, 38B",2,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B077ZNDMST,Wolfenstein II: The New Colossus - Nintendo Switch,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B0787NN56S,Street Fighter 30th Anniversary Collection - Xbox One Standard Edition,3,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B078HH451K,Adventure Time: Pirates of the Enchiridion - PlayStation 4 Edition,2,1,0.5,1,0,12.37,7.76,4.61,0,0,4.61,4.61,4.61,0,0,4.61,4.61,4.61,2.305,2.305,,3.42,5.96,5.96,0,1.19,0,0
+asin,B078YS5X59,South Park: The Stick of Truth - Xbox One Standard Edition,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B0794QSXP5,Dragon Ball Fighterz - Xbox One,12,1,0.08333333333333333,1,1,13.43,8.54,4.89,0,0,4.89,4.89,4.89,0,0,4.89,4.89,4.89,0.4075,0.4075,,3.54,6.74,6.74,0,1.35,0,0
+asin,B079P7T594,Hello Neighbor - Nintendo Switch,8,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B07B99WHXS,South Park and The Fractured But Whole (Nintendo Switch) [Nintendo Switch],1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B07B9QZX6H,Crash Bandicoot N. Sane Trilogy - Xbox One Standard Edition,2,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B07B9XCN31,Crash Bandicoot N. Sane Trilogy - Nintendo Switch Standard Edition,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B07BB4Q8YX,Shadow of the Tomb Raider (Limited Steelbook Edition) - Xbox One,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B07BHHDTL4,Sonic Mania Plus - PlayStation 4,2,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B07BVTTLGX,No Man's Sky - Xbox One,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B07BY4CHNY,Spyro Trilogy Reignited (Xbox One),2,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B07CDSX3Z5,Spyro Reignited Trilogy - Xbox One,8,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B07D767FMV,Battlefield V - PlayStation 4,11,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B07D77HYR5,Madden NFL 19 - PlayStation 4,8,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B07D8K6Q27,Battlefield V Deluxe Edition - Xbox One [Xbox One],1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B07D8KQJ8J,Battlefield V Deluxe Edition - PlayStation 4,1,1,1.0,1,1,15.47,10.02,5.45,0,0,5.45,5.45,22.84,17.39,0,5.45,5.45,5.45,5.45,22.84,,3.81,8.22,8.22,0,1.64,0,0
+asin,B07D8KZ5NK,Team Sonic Racing - PlayStation 4,5,1,0.2,1,1,13.56,8.82,4.74,0,0,4.74,4.74,27.13,22.39,0,4.74,4.74,4.74,0.948,5.426,,3.34,7.02,7.02,0,1.4,0,0
+asin,B07D8LQR6Q,Team Sonic Racing - Nintendo Switch,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B07D9QWSG1,Overwatch Legendary Edition - PlayStation 4,3,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B07DD7T1CS,Just Dance 2019 - PlayStation 4 Standard Edition,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B07DDD9CPN,Just Dance 2019 - Wii Standard Edition,12,1,0.08333333333333333,1,1,14.08,9.25,4.83,0,0,4.83,4.83,4.83,0,0,4.83,4.83,4.83,0.4025,0.4025,,3.34,7.45,7.45,0,1.49,0,0
+asin,B07DF43L23,Starlink Battle for Atlas - Nintendo Switch Starter Edition,11,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B07DJY4FRP,Gears 5: Standard Edition - Xbox One,11,3,0.2727272727272727,3,3,37.15,23.21,13.94,0,0,13.94,13.94,13.94,0,0,4.646666666666666666666666667,4.65,4.646666666666666666666666667,1.267272727272727272727272727,1.267272727272727272727272727,,10.38,17.81,17.81,0,3.56,0,0
+asin,B07DJZB39M,Kingdom Hearts III - PlayStation 4 Deluxe Edition,3,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B07DKT3WJ2,Assassin's Creed Odyssey Standard Edition - Xbox One,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B07DL1N1Q9,Jump Force: Standard Edition - Xbox One,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B07DL2SY2B,FIFA 19 - Standard - PlayStation 4,3,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B07DL3763M,NBA Live 19 - PlayStation 4,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B07DLM26P5,Anthem: Legion of Dawn Edition - Xbox One,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B07DLSQFL8,Hitman 2 - PlayStation 4 [PlayStation 4],10,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B07DPZ1WQ9,Super Mario Party - [Nintendo Switch],3,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B07DQ43VFQ,NBA 2K19 - Nintendo Switch,6,1,0.16666666666666666,1,1,12.24,7.65,4.59,0,0,4.59,4.59,4.59,0,0,4.59,4.59,4.59,0.765,0.765,,3.42,5.85,5.85,0,1.17,0,0
+asin,B07DQMMPML,NBA 2K19 - PlayStation 4,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B07DTMGFKG,WWE 2K19 - PlayStation 4,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B07DXBLL69,Dead or Alive 6 - Xbox One,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B07F3ZDD83,Carnival Games (Nintendo Switch),7,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B07FF3F7F9,Subnautica - Xbox One,2,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B07FYN3JDL,Nintendo Labo Toy-Con 03: Vehicle Kit - Switch,4,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B07G8SYSDS,Tom Clancy's The Division 2 - PlayStation 4 Gold Steelbook Edition,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B07G8SYY97,Tom Clancy's The Division 2 - Xbox One Gold Steelbook Edition,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B07GMS9P7M,Party Arcade - Nintendo Switch,3,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B07GRV89TK,Nickelodeon Kart Racers - Xbox One [Xbox One],1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B07GVWXRBP,Goosebumps The Game - Nintendo Switch,5,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B07GW1PYL4,Big Buck Hunter Arcade for Nintendo Switch,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B07H4DZD1B,NBA 2K Playgrounds 2 - Nintendo Switch,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B07HBFM7T6,8 to Glory - PlayStation 4,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B07HBWXFNC,Minecraft: Master Collection - Xbox One [Xbox One],1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B07HFMJ4R5,Minecraft: Starter Collection - Xbox One,48,4,0.08333333333333333,4,4,52.20,33.33,18.87,0,0,18.87,18.87,42.36,23.49,0,4.7175,4.535,4.7175,0.393125,0.8825,,13.64,26.13,26.13,0,5.23,0,0
+asin,B07HH8ZSMM,Sid Meier's Civilization VI - Nintendo Switch [Nintendo Switch],2,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B07HMGM3XS,Sports Party (Nintendo Switch) (Nintendo Switch),2,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B07J5PD8ZM,Monster Energy Supercross - The Official Videogame 2 Day One Edition,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B07JMHZMX1,Minecraft - Xbox One,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B07KN77NXY,FIFA 19/NHL 19 Bundle PlayStation 4 [PlayStation 4],12,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B07KTFL61P,Bendy and the Ink Machine (XB1) - Xbox One [Xbox One],4,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B07KX13568,Hello Neighbor Nintendo Switch [Nintendo Switch],1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B07KYYZZFR,Crash Team Racing - Nitro Fueled - Xbox One,3,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B07L1FTG1H,Far Cry New Dawn - Xbox One Standard Edition,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B07L69TMY4,Judgment - PlayStation 4,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B07L6PV2GJ,Katamari Damacy Reroll - Nintendo Switch,3,1,0.3333333333333333,1,0,14.01,9.27,4.74,0,0,4.74,4.74,4.74,0,1,4.74,4.74,4.74,1.58,1.58,,3.25,7.47,7.47,0,1.49,0,0
+asin,B07L73DW8M,Mortal Kombat 11 (Nintendo Switch),1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B07MTZN8P3,B07MTZN8P3 AmazonUs/BETH3,7,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B07NBDYK99,A Plague Tale: Innocence (PS4) - PlayStation 4 [PlayStation 4],1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B07NZVN8T7,World War Z - PlayStation 4,2,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B07P5TL4SH,Pokémon Shield - Nintendo Switch,8,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B07PBKLFWV,Trine Ultimate Collection (PS4) - PlayStation 4,2,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B07PK5MYPR,Nintendo Labo Toy-Con 04: VR Kit - Starter Set + Blaster - Switch,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B07RP42TMG,Tom Clancy's Ghost Recon Breakpoint - Xbox One,4,1,0.25,1,0,8.99,5.01,3.98,0,0,3.98,3.98,3.98,0,0,3.98,3.98,3.98,0.995,0.995,,3.34,3.21,3.21,0,0.64,0,0
+asin,B07RQ1JYNF,World War Z PS4 (PS4),1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B07RQ33XDG,Tom Clancy's Ghost Recon Breakpoint Steelbook Gold Edition - Xbox One,8,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B07RT6NN3M,Race with Ryan - Nintendo Switch,3,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B07RXW74N5,Race with Ryan - Xbox One [Xbox One],1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B07S2245D3,NASCAR Heat 4 - Xbox One,2,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B07S5BRQX4,Killer Queen Black - Nintendo Switch,10,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B07SHJ3ZQR,FIFA 20 Standard Edition - PlayStation 4,12,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B07SK37PK2,Just Dance 2020 for Nintendo Switch [Nintendo Switch],1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B07SK56TM6,Marvel's Avengers - Xbox One,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B07SL77MHX,No More Heroes 3,35,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B07SMBNTSJ,Elden Ring - Xbox Series X,14,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B07SSD8V81,Baldur's Gate: Enhanced Edition - Xbox One,2,1,0.5,1,0,23.61,16.8,6.81,0,0,6.81,6.81,6.81,0,0,6.81,6.81,6.81,3.405,3.405,,3.81,15.0,15.0,0,3.0,0,0
+asin,B07T3Y9GKN,St. Nicholas Square Red and White 21 Inches Christmas Knit Stocking Letter F,4,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B07THWLT73,NBA 2K20 Nintendo Switch,5,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B07TMHPV38,ICE AGE: Scrat's Nutty Adventure - Xbox One [Xbox One],3,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B07TN3KXCJ,Call of Cthulhu (NSW) - Nintendo Switch,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B07TY1G21N,Konami Yu-Gi-Oh! Legacy of The Duelist Nintendo Switch,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B07TZKVT8W,Atelier Ryza: Ever Darkness & The Secret Hideout - Nintendo Switch,2,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B07VWCR94W,WWE 2K20 - PlayStation 4,10,1,0.1,1,1,11.59,7.01,4.58,0,0,4.58,4.58,4.58,0,0,4.58,4.58,4.58,0.458,0.458,,3.54,5.21,5.21,0,1.04,0,0
+asin,B07VYFV84L,WWE 2K20 - Xbox One,3,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B07W6CF4Z7,Farming Simulator 19 Platinum Edition (Xb1) - Xbox One,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B07WX729QC,Let's Sing Country: 2-Mic Bundle Edition - PlayStation 4,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B07X35GXG3,Nighthawk Interactive Disney Classic Games: Aladdin and The Lion King - Nintendo Switch,5,1,0.2,1,0,11.19,6.84,4.35,0,0,4.35,4.35,4.35,0,1,4.35,4.35,4.35,0.87,0.87,,3.34,5.04,5.04,0,1.01,0,0
+asin,B07XGW61PX,Plants Vs. Zombies: Battle for Neighborville - Xbox One,13,1,0.07692307692307693,1,1,10.73,6.46,4.27,0,0,4.27,4.27,4.27,0,0,4.27,4.27,4.27,0.3284615384615384615384615385,0.3284615384615384615384615385,,3.34,4.66,4.66,0,0.93,0,0
+asin,B07XKBZ7F7,Trials of Mana (Nintendo Switch),2,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B07XV4NHHN,Ring Fit Adventure - Nintendo Switch,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B07YFF2KWG,The Sims 4 Plus Island Living Bundle - PlayStation 4,4,1,0.25,1,0,12.43,8.03,4.40,0,0,4.40,4.40,4.40,0,0,4.40,4.40,4.40,1.10,1.10,,3.15,6.23,6.23,0,1.25,0,0
+asin,B07YZ4QVZY,Sniper Ghost Warrior: Contracts PS4,20,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B07ZWBF157,Doom Slayers Collection - PlayStation 4 Standard Edition,4,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B081472NC7,Sea of Thieves: Anniversary Edition - Xbox One [Xbox One],3,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B081HFQLF8,My Friend Pedro,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B081KKGY4M,"Champion Women's Jogger, Gfs Silver Grey-Y06146, X Large",1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B081W4X9RW,Persona 5 Royal: Phantom Thieves,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B0829G5T83,AO Tennis 2 (NSW) - Nintendo Switch,2,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B082LQ4Q9Y,Resident Evil 3 - Xbox One,4,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B082QL63JB,Fast & Furious Crossroads - Xbox One,10,1,0.1,1,0,11.33,7.03,4.30,0,0,4.30,4.30,4.30,0,0,4.30,4.30,4.30,0.43,0.43,,3.25,5.23,5.23,0,1.05,0,0
+asin,B0833XB257,Snowrunner - PlayStation 4,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B083N38FMT,Sonic Mania - Nintendo Switch,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B084B1HT8F,Dragon Quest Builders - PlayStation 4,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B084F358N1,The Outer Worlds - Nintendo Switch [Nintendo Switch],2,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B085PS9F4H,Persona 5 Royal: Standard Edition - PlayStation 4 [PlayStation 4],2,1,0.5,1,0,14.33,9.29,5.04,0,0,5.04,5.04,5.04,0,1,5.04,5.04,5.04,2.52,2.52,,3.54,7.49,7.49,0,1.5,0,0
+asin,B086CSWT12,The Wonderful 101: Remastered for Nintendo Switch,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B086G788Y2,Bravely Default II - Nintendo Switch,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B08746VVF1,The Dark Pictures: Little Hope - PlayStation 4,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B087XRPCBD,NASCAR Heat 5 - Xbox One,2,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B087XTT5GZ,Assassin's Creed Valhalla PlayStation 4 Standard Edition with Free Upgrade to the Digital PS5 Version,5,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B088HYTLRG,Tony Hawk's Pro Skater 1 + 2 - Xbox One,4,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B089CY37LB,Madden NFL 21 MVP Edition - PlayStation 4 [PlayStation 4],1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B089DFJJGR,Madden NFL 21 - PlayStation 4,9,1,0.1111111111111111,1,0,7.12,3.45,3.67,0,0,3.67,3.67,3.67,0,1,3.67,3.67,3.67,0.4077777777777777777777777778,0.4077777777777777777777777778,,3.34,1.65,1.65,0,0.33,0,0
+asin,B089F8R1CZ,FIFA 21 Champions Edition - PlayStation 4,2,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B089F8V86C,FIFA 21 Legacy Edition - Nintendo Switch,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B08BXGHG48,NBA 2K21 - Nintendo Switch,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B08C7DV96B,Chivalry 2 - Xbox One,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B08C7PWNFV,Chivalry 2 - PlayStation 4,2,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B08CGCZTYQ,Cobra Kai Karate Kid Saga - PS4 - PlayStation 4,11,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B08CGDMP2Z,Cobra Kai Karate Kid Saga - One - Xbox One,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B08CV5DL45,Bakugan: Champions of Vestroia - Nintendo Switch,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B08D7DX16N,NBA 2K21 Mamba Forever Edition - PlayStation 5 Mamba Forever Edition,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B08DD5559K,Minecraft Dungeons: Hero Edition - Xbox Series X & Xbox One,13,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B08DSYRT33,Power Rangers: Battle for the Grid Collector's Edition (XB1) - Xbox One,2,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B08DWJDY9S,Atelier Ryza 2: Lost Legends & The Secret Fairy - Nintendo Switch,4,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B08F3CXZJQ,Minecraft Dungeons Hero Edition - Nintendo Switch,4,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B08FP5NMQV,My Universe: School Teacher - Nintendo Switch,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B08FS6BB8W,Far Cry 6 PlayStation 5 Standard Edition [PlayStation 5],2,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B08GR2SCLF,Puyo Puyo Tetris 2: Launch Edition - PlayStation 5,4,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B08GR4GNRK,Call of Duty: Black Ops Cold War (PS5),2,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B08GR4QMC9,Call of Duty: Black Ops Cold War (PS4),5,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B08GSP1HBM,"Goosebumps: Dead of Night, Cosmic Forces - Nintendo Switch",24,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B08GZ3M2ZV,Monster Hunter Rise - Nintendo Switch [Nintendo Switch],1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B08HQ4XV5G,Overcooked! All You Can Eat - Xbox Series X,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B08HTHJ9L2,Riders Republic PlayStation 4 Standard Edition with free upgrade to the digital PS5 version,3,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B08HTP8BKG,Riders Republic PlayStation 5 Standard Edition,2,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B08J4P22MF,Assassin's Creed Valhalla - PlayStation 5,2,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B08JDTJ9V5,Fitness Boxing 2: Rhythm & Exercise - Nintendo Switch,4,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B08JDTR143,Balan Wonderworld - Nintendo Switch,3,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B08JJ37XVW,Monster Hunter Rise - Nintendo Switch Standard Edition,12,2,0.16666666666666666,2,2,32.09,22.77,9.32,0,0,9.32,9.32,25.79,16.47,0,4.66,4.66,4.66,0.7766666666666666666666666667,2.149166666666666666666666667,,6.88,12.18,12.18,0,2.44,0,0
+asin,B08L91Z6VK,Family Feud - Nintendo Switch Standard Edition,4,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B08L9569L4,Family Feud - PlayStation 4 Standard Edition,2,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B08LNFTXN4,Spirit of The North - PlayStation 5 Standard Edition,2,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B08LX14TGL,Dying Light Anniversary Edition - Xbox One,2,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B08M1RYMCF,My Universe - Pet Clinic: Cats & Dogs (PS4) - PlayStation 4,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B08M2CGLLY,My Universe - Pet Clinic: Cats & Dogs Nintendo Switch,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B08MG4PK68,Hitman 3 for Xbox One & Xbox Series X,10,1,0.1,1,0,15.56,10.2,5.36,0,0,5.36,5.36,5.36,0,0,5.36,5.36,5.36,0.536,0.536,,3.68,8.4,8.4,0,1.68,0,0
+asin,B08MG5FYS6,Hitman 3 - PlayStation 5 Standard Edition [PlayStation 5],4,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B08MXTDGN6,Mass Effect Legendary Edition - PlayStation 4,4,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B08NDYPWK7,DEATHLOOP Standard Edition - PlayStation 5,8,1,0.125,1,1,11.06,6.57,4.49,0,0,4.49,4.49,4.49,0,0,4.49,4.49,4.49,0.56125,0.56125,,3.54,4.77,4.77,0,0.95,0,0
+asin,B08NMQNSX3,Madden NFL 21 Next Level Edition - PlayStation 5,11,2,0.18181818181818182,2,0,16.72,8.96,7.76,0,0,7.76,7.76,7.76,0,0,3.88,3.88,3.88,0.7054545454545454545454545455,0.7054545454545454545454545455,,6.68,5.36,5.36,0,1.08,0,0
+asin,B08PCN2Y3G,Monster Energy Supercross 4 - PlayStation 5,3,1,0.3333333333333333,1,1,10.67,6.41,4.26,0,0,4.26,4.26,4.26,0,0,4.26,4.26,4.26,1.42,1.42,,3.34,4.61,4.61,0,0.92,0,0
+asin,B08PTHJNK7,Monster Energy Supercross 4 - PlayStation 4,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B08QV493TK,Calvin Klein Pure Ribbed Lightly Lined Bralette White,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B08S2SNBTH,The Last Kids On Earth and the Staff of Doom - Nintendo Switch,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B08S2Y128Z,The Last Kids On Earth and the Staff of Doom - PlayStation 4,4,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B08SZ1F5FB,Control Ultimate Edition - Xbox Series X,2,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B08WWHTM61,DC Super Hero Girls: Teen Power - Nintendo Switch,8,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B08WWQ382K,"La Blanca Women's Rouched Body Lingerie Mio One Piece Swimsuit, White/Linea Costa, 10",1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B08X2FS1TV,"Magicsuit Women's Peace Out Aubrey High Neck Soft Cup One Piece Swimsuit, Black/Multi, 10",4,2,0.5,2,1,32.09,15.26,16.83,0,0,16.83,16.83,16.83,0,0,8.415,8.415,8.415,4.2075,4.2075,,13.78,15.26,15.26,0,3.05,0,0
+asin,B08X8NTNYY,Tony Hawk Pro Skater 1+2 - Xbox Series X Standard Edition [Xbox Series X],3,1,0.3333333333333333,1,1,12.74,8.07,4.67,0,0,4.67,4.67,21.11,16.44,0,4.67,4.67,4.67,1.556666666666666666666666667,7.036666666666666666666666667,,3.42,6.27,6.27,0,1.25,0,0
+asin,B08YJXP2P3,Monster Harvest - Nintendo Switch Standard Edition [Nintendo Switch],1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B091DBFGWF,RBI BASEBALL 21 NINTENDO SWITCH - NINTENDO SWITCH,19,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B0924651ZP,Alex Kidd In Miracle World Dx - Nintendo Switch Standard Edition,10,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B093B218BN,Tales of Arise - PlayStation 5,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B095ZS64GT,Sonic Colors Ultimate: Launch Edition - Xbox Series X,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B096HSJ6PJ,Battlefield 2042 - PlayStation 5,6,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B096TBJC6Z,Paw Patrol The Movie Adventure City Calls - PlayStation 4 [PlayStation 4],5,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B096WVGQMJ,Marvel's Guardians of the Galaxy - Xbox Series X/Xbox One,7,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B096WVJ9Q4,Marvel's Guardians of the Galaxy PlayStation 4 with Free Upgrade to the Digital PS5 Version,15,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B096WZFCHR,Marvel's Guardians of the Galaxy - PlayStation 5,14,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B0972TKPMW,Farming Simulator 22 - Xbox One,6,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B0973KMCFG,Just Dance 2022 - Nintendo Switch,3,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B097FP294Y,Aliens Fireteam Elite - PlayStation 5,9,1,0.1111111111111111,0,1,0,0,0,0,0,0,0,20.18,20.18,0,,,,0,2.242222222222222222222222222,,0,0,0,0,0,0,0
+asin,B097PJX3Z9,Shin Megami Tensei V: Steelbook Launch Edition - Nintendo Switch,5,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B098V87FNX,Among Us: Crewmate Edition (PS4) - PlayStation 4,6,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B098Y94S29,NBA 2K22 - PlayStation 4,11,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B098Y96VKP,NBA 2K22 - Nintendo Switch,11,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B099JL5K7P,Nerf Legends - Nintendo Switch [Nintendo Switch],3,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B099JPMZCZ,Nickelodeon All Star Brawl - Nintendo Switch,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B09C1167RV,Street Outlaws 2: Winner Takes All (Xbox Series X/),17,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B09CQQ7T2L,Halo Infinite - Xbox Series X & Xbox One [Xbox Series X],2,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B09D2J1Y9G,Game Mill Nerf Legends Nintendo Switch,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B09D643D8F,Call of Duty: Vanguard,16,2,0.125,2,1,31.61,20.98,10.63,0,0,10.63,10.63,10.63,0,1,5.315,5.315,5.315,0.664375,0.664375,,7.15,17.38,17.38,0,3.48,0,0
+asin,B09D6GLY7N,Call of Duty: Vanguard - Xbox One [Xbox One],1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B09D6QWQHD,Call of Duty: Vanguard,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B09FCXXGT5,Big Brain Academy: Brain vs. Brain - Nintendo Switch,9,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B09GCPH2HR,Beyond A Steel Sky: Beyond A SteelBook Edition (PS5),2,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B09GCQNP2B,Beyond A Steel Sky: Beyond A SteelBook Edition Nintendo Switch,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B09GCXZKBZ,My Universe: Puppies and Kittens - PlayStation 4,14,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B09GJP8BPZ,Fortnite Minty Legends Pack(code in Box),10,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B09HVVCTQM,MechWarrior 5: Mercenaries - PlayStation 5,4,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B09JTKFSR4,Skyrim Anniversary Edition - Xbox One,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B09K2FBZDX,"Columbia Women's Facet Sierra Outdry, Black/Black, 8",2,1,0.5,1,0,24.27,13.34,10.93,0,0,10.93,10.93,10.93,0,0,10.93,10.93,10.93,5.465,5.465,,8.26,13.34,13.34,0,2.67,0,0
+asin,B09K2RT1MR,"Columbia Women's Facet Sierra Outdry, Black/Black, 10",2,1,0.5,1,1,23.06,12.0,11.06,0,0,11.06,11.06,50.06,39.00,0,11.06,11.06,11.06,5.53,25.03,,8.66,12.0,12.0,0,2.4,0,0
+asin,B09KRKD3P2,Fire Emblem Warriors: Three Hopes - Switch [Nintendo Switch],1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B09MZQ84SR,GRID Legends (PS5),1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B09NZBP951,Vampire: The Masquerade - Swansong (PS5),1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B09Q3Q893F,Monster Energy Supercross 5 - PlayStation 5,6,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B09Q6TZT15,WWE 2K22 - PlayStation 4,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B09R1T4G9P,Comfortiva Alesha Gold 8.5 M (B),4,4,1.0,4,4,51.84,15.49,36.35,0,0,36.35,36.35,36.35,0,0,9.0875,7.985,9.0875,9.0875,9.0875,,29.26,15.49,15.49,0,3.10,3.99,0
+asin,B09RQ79V7R,Sifu: Vengeance Edition (PS4),1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B09RRHYD97,Ghostwire: Tokyo Standard Edition - PlayStation 5,6,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B09RTX4Q5P,MLB The Show 22 for Xbox One,4,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B09S3GYF2P,Demon Slayer: The Hinokami Chronicles - Nintendo Switch,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B09S65Q9XV,MLB The Show 22 for PlayStation 4,13,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B09TCCF84R,A Plague Tale: Requiem PS5,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B09W39YNQV,Teenage Mutant Ninja Turtles Cowabunga Collection NSW,4,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B09YD56K12,Way of the Hunter - PlayStation 5,3,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B09YMGZC96,art of rally collector's edition - Nintendo Switch [Nintendo Switch],3,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B09YMP944F,"Cora Organic Applicator Tampons | Super Absorbency | 100% Cotton Core, Unscented, BPA-Free Compact Applicator | Leak Protection, Easy Insertion and Re",10,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B09ZZ9L123,Gotham Knights Deluxe Edition - PlayStation 5,2,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B0B18Y88N2,Rabbids®: Party of Legends - Nintendo Switch [Nintendo Switch],4,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B0B1P1SGVG,DEEEER Simulator: Your Average Everyday Deer Game Nintendo Switch,2,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B0B2KSPC2W,Madden NFL 23 - PlayStation 4,2,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B0B359B45Q,Little League World Series PS4,11,1,0.09090909090909091,0,1,0,0,0,0,0,0,0,21.56,21.56,0,,,,0,1.96,,0,0,0,0,0,0,0
+asin,B0B3GHCTQB,Call of Duty: Modern Warfare II - PlayStation 4,10,1,0.1,1,0,13.25,8.56,4.69,0,0,4.69,4.69,4.69,0,1,4.69,4.69,4.69,0.469,0.469,,3.34,6.76,6.76,0,1.35,0,0
+asin,B0B3H227Z5,Call of Duty: Modern Warfare II - PlayStation 5,2,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B0B57TLKMM,"Brooks Women's Plunge Sports Bra for Running, Workouts & Sports - Navy/Ice Blue/Burnt Olive - XS",1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B0B57TXPTH,PAC-MAN World Re-PAC - PlayStation 4,17,1,0.058823529411764705,0,1,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B0B5B7BMSP,NBA 2K23 - PlayStation 5,2,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B0B6JQHB4P,FIFA 23 - PlayStation 4,12,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B0B6SMNLQ8,Taos Footwear Women's Starline Blue Sneaker 8 W,2,1,0.5,1,0,13.71,5.59,8.12,0,0,8.12,8.12,8.12,0,0,8.12,8.12,8.12,4.06,4.06,,7.0,5.59,5.59,0,1.12,0,0
+asin,B0B727GNYP,NASCAR Rivals for Nintendo Switch,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B0B8JH4CTN,World of Outlaws - Dirt Racing,12,1,0.08333333333333333,1,1,17.16,11.82,5.34,0,0,5.34,5.34,5.34,0,0,5.34,5.34,5.34,0.445,0.445,,3.34,10.02,10.02,0,2.0,0,0
+asin,B0B8VV9VXW,Taos Footwear Women's Captain Brown Boot 9-9.5 (M) US,1,1,1.0,1,1,38.08,21.59,16.49,0,0,16.49,16.49,16.49,0,0,16.49,16.49,16.49,16.49,16.49,,7.98,21.59,21.59,0,4.32,4.19,0
+asin,B0B92459CC,Dragon Quest Treasures - Nintendo Switch,2,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B0B94SHMRP,Dead Island 2: Day 1 Edition - PlayStation 4,9,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B0B94THZRT,Dead Island 2: Day 1 Edition - PlayStation 5,9,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B0B94XBQZ6,Dead Island 2: Day 1 Edition - Xbox Series X,4,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B0B9H39Q9Q,Miraculous: Rise of the Sphinx - PlayStation 5 [PlayStation 5],3,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B0B9H3JDL5,Miraculous: Rise of the Sphinx - PlayStation 4,6,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B0B9XFCXSG,Taos Footwear Women's Captain Brown Boot 11-11.5 (M) US,2,1,0.5,1,0,32.6,21.0,11.6,0,0,11.6,11.6,11.6,0,0,11.6,11.6,11.6,5.8,5.8,,7.4,21.0,21.0,0,4.2,0,0
+asin,B0BBXD3P63,God of Rock (PS5),9,1,0.1111111111111111,1,1,14.96,9.7,5.26,0,0,5.26,5.26,5.26,0,0,5.26,5.26,5.26,0.5844444444444444444444444444,0.5844444444444444444444444444,,3.68,7.9,7.9,0,1.58,0,0
+asin,B0BDT4CQJD,Fortnite - Anime Legends- PlayStation 4,7,1,0.14285714285714285,1,1,14.58,9.67,4.91,0,0,4.91,4.91,34.65,29.74,0,4.91,4.91,4.91,0.7014285714285714285714285714,4.95,,3.34,7.87,7.87,0,1.57,0,0
+asin,B0BDT654XQ,Fortnite - Anime Legends- Xbox Series X,9,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B0BFHY5FCP,Persona 5 Royal: Steelbook Launch Edition - PlayStation 5,2,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B0BFT3XGY7,Atelier Ryza 3: Alchemist of the End & the Secret Key - Nintendo Switch,2,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B0BNQS48Q4,Atomic Heart PS5,2,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B0BP5CKT2F,Star Wars Jedi: Survivor Deluxe - Xbox Series X,5,1,0.2,1,1,15.87,10.35,5.52,0,0,5.52,5.52,5.52,0,0,5.52,5.52,5.52,1.104,1.104,,3.81,8.55,8.55,0,1.71,0,0
+asin,B0BPPQWQW2,Diablo IV - PlayStation 4,8,1,0.125,1,0,11.52,7.12,4.40,0,0,4.40,4.40,4.40,0,0,4.40,4.40,4.40,0.55,0.55,,3.34,5.32,5.32,0,1.06,0,0
+asin,B0BPYW4DDB,Rustic Pistol Table Lamp - Realistic Novelty Outdoor Lamp - Tabletop Lantern w/ Brushed Black Finish & Gold Detailing - Gun Decorations for Man Cave -,28,2,0.07142857142857142,1,1,14.93,5.96,8.97,0,0,8.97,8.97,28.96,19.99,1,8.97,8.97,8.97,0.3203571428571428571428571429,1.034285714285714285714285714,,7.78,5.96,5.96,0,1.19,0,0
+asin,B0BRNY8987,The Witcher 3: Wild Hunt Complete Edition - Xbox Series X [Xbox Series X],1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B0BSJZQK5L,"Anno 1800 - Standard Edition, PlayStation 5",3,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B0BSNX28Y4,Minecraft Legends Deluxe Edition: Xbox Series X and Xbox One,8,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B0BV9NKGJ4,The Legend of Zelda: Tears of the Kingdom Collector's Edition,2,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B0BXTDQRCD,"Jessica Simpson Nellah Ash Blue HIgh Heel Platform Pump Thick Heel Rounded Toe (Ash Blue, 8.5)",3,2,0.6666666666666666,2,1,31.35,10.50,20.85,0,0,20.85,20.85,20.85,0,0,10.425,10.425,10.425,6.95,6.95,,14.76,10.50,10.50,0,2.10,3.99,0
+asin,B0C1YQ4JPV,Super Bomberman R 2 - Xbox Series X|Xbox One,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B0C2F82HSS,Paleo Pines: The Dino Valley (XSX),1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B0C3KRX4X4,Super Mega Baseball 4 - PlayStation 4,2,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B0C4V8CL2N,Agatha Christie: Hercule Poirot - The London Case (PS4) [PlayStation 4],1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B0C5RZRG44,Mortal Kombat 1 Premium Edition - Xbox Series X,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B0C5S29VWZ,Mortal Kombat 1 - Xbox Series X,5,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B0C6NLXMB8,Madden NFL 24 - PlayStation 4,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B0C7K581PT,Fae Farm - Nintendo Switch (US Version),1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B0C7PN2L5V,Starfield: Standard Edition - Xbox Series X,22,2,0.09090909090909091,2,0,29.72,19.8,9.92,40.20,0,-30.28,-30.28,-30.28,0,0,4.96,4.96,-15.14,-1.376363636363636363636363636,-1.376363636363636363636363636,,6.68,16.2,16.2,0,3.24,0,0
+asin,B0C7RNTFLY,"Just Dance 2024 Edition - Standard Edition, Nintendo Switch (Code in Box & Ubisoft Connect Code)",1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B0C7SM1W4K,"Avatar: Frontiers of Pandora - Limited Edition, PlayStation 5",1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B0C8VHKLTM,Persona 5 Tactica - Nintendo Switch,5,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B0C9R3949C,RollerCoaster Tycoon Adventures Deluxe - PlayStation 5,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B0C9VW1KGR,EA SPORTS FC 24 - Nintendo Switch,12,1,0.08333333333333333,1,0,12.19,7.91,4.28,0,0,4.28,4.28,4.28,0,0,4.28,4.28,4.28,0.3566666666666666666666666667,0.3566666666666666666666666667,,3.06,6.11,6.11,0,1.22,0,0
+asin,B0CBL3NZMJ,NBA 2K24 Kobe Bryant Edition - Nintendo Switch,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B0CBNJ3QPK,Wildshade: Unicorn Champions Nintendo Switch,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B0CFTFG12B,Call of Duty Modern Warfare III - Xbox,23,1,0.043478260869565216,1,0,13.82,9.03,4.79,0,0,4.79,4.79,4.79,0,1,4.79,4.79,4.79,0.2082608695652173913043478261,0.2082608695652173913043478261,,3.34,7.23,7.23,0,1.45,0,0
+asin,B0CGY12KNV,EA SPORTS WRC - PS5,3,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B0CGY48TGT,EA SPORTS WRC - Xbox Series X,5,1,0.2,1,1,11.61,7.19,4.42,0,0,4.42,4.42,4.42,0,0,4.42,4.42,4.42,0.884,0.884,,3.34,5.39,5.39,0,1.08,0,0
+asin,B0CHN2DVSX,Hobby Lobby Fudge Brownie Candle Tin,20,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B0CNDGN7DL,Suicide Squad: Kill the Justice League Deluxe Edition - PlayStation 5,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B0CTKWX9PW,MLB The Show 24 - Xbox Series X (For Series X only),1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B0CTKX44NG,MLB The Show 24 - Nintendo Switch,12,2,0.16666666666666666,1,2,21.24,15.02,6.22,0,0,6.22,6.22,6.22,0,0,6.22,6.22,6.22,0.5183333333333333333333333333,0.5183333333333333333333333333,,3.58,13.22,13.22,0,2.64,0,0
+asin,B0CV9PYCVR,Granblue Fantasy Relink (PlayStation 5),1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B0CVSJ1JVC,Elden Ring Shadow of the Erdtree - PlayStation 5,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B0CW1NRMPZ,MX vs ATV Legends - 2024 Monster Energy Supercross Edition - Xbox Seris X,2,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B0CWN5YJWR,Shin Megami Tensei V: Vengeance Steelbook Launch Edition - Nintendo Switch,1,1,1.0,1,0,15.73,10.21,5.52,0,0,5.52,5.52,5.52,0,0,5.52,5.52,5.52,5.52,5.52,,3.84,8.41,8.41,0,1.68,0,0
+asin,B0D187PJHJ,"Star Wars Outlaws - Limited Edition (Amazon Exclusive), PlayStation 5",1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B0D18YSQG9,Farming Simulator Kids (Code in Box) - Nintendo Switch,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B0D3P4HV27,Madden NFL 25 - Xbox Series X,11,1,0.09090909090909091,1,0,9.56,5.48,4.08,0,0,4.08,4.08,4.08,0,0,4.08,4.08,4.08,0.3709090909090909090909090909,0.3709090909090909090909090909,,3.34,3.68,3.68,0,0.74,0,0
+asin,B0D3P668DV,Madden NFL 25 - PlayStation 4,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B0D9MKMN6Y,Barbie Project Friendship - Xbox Series X/Xbox One,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B0DCMT516X,Dragon Age: The Veilguard Deluxe - Xbox Series X,2,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+asin,B0DHHM6BZ2,LEGO Horizon Adventures,15,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+system,Nintendo 3DS,,22,2,0.09090909090909091,2,1,30.50,20.17,10.33,0,0,10.33,10.33,10.33,0,0,5.165,5.165,5.165,0.4695454545454545454545454545,0.4695454545454545454545454545,,7.02,16.57,16.57,0,3.31,0,0
+system,Nintendo Switch,,361,11,0.030470914127423823,10,7,146.07,97.67,48.40,0,0,48.40,48.40,64.87,16.47,2,4.84,4.69,4.84,0.1340720221606648199445983380,0.1796952908587257617728531856,,33.87,72.68,72.68,0,14.53,0,0
+system,Nintendo Wii,,260,6,0.023076923076923078,6,4,79.95,53.11,26.84,0,0,26.84,26.84,40.57,13.73,0,4.473333333333333333333333333,4.49,4.473333333333333333333333333,0.1032307692307692307692307692,0.1560384615384615384615384615,,20.39,32.22,32.22,0,6.45,0,0
+system,Nintendo Wii U,,72,8,0.1111111111111111,8,5,107.28,68.48,38.80,0,0,38.80,38.80,66.74,27.94,2,4.85,4.72,4.85,0.5388888888888888888888888889,0.9269444444444444444444444444,,27.99,54.08,54.08,0,10.81,0,0
+system,PC,,50,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+system,PS Vita,,1,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+system,PSP,,30,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+system,PlayStation 2,,21,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+system,PlayStation 3,,133,3,0.022556390977443608,3,3,37.72,23.75,13.97,0,0,13.97,13.97,13.97,0,0,4.656666666666666666666666667,4.64,4.656666666666666666666666667,0.1050375939849624060150375940,0.1050375939849624060150375940,,10.30,18.35,18.35,0,3.67,0,0
+system,PlayStation 4,,455,20,0.04395604395604396,17,14,200.29,123.77,76.52,0,0,76.52,76.52,217.60,141.08,3,4.501176470588235294117647059,4.40,4.501176470588235294117647059,0.1681758241758241758241758242,0.4782417582417582417582417582,,57.90,93.17,93.17,0,18.62,0,0
+system,PlayStation 4/PlayStation 5,,23,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+system,PlayStation 5,,154,8,0.05194805194805195,7,5,85.02,52.62,32.40,0,0,32.40,32.40,52.58,20.18,1,4.628571428571428571428571429,4.49,4.628571428571428571428571429,0.2103896103896103896103896104,0.3414285714285714285714285714,,24.39,40.02,40.02,0,8.01,0,0
+system,Unclassified,,808,81,0.10024752475247525,69,65,865.43,364.19,501.24,0,5.99,507.23,501.24,827.89,320.66,5,7.264347826086956521739130435,7.07,7.264347826086956521739130435,0.6277599009900990099009900990,1.024616336633663366336633663,,416.24,364.19,364.19,0,72.83,12.17,0
+system,Xbox,,25,1,0.04,1,0,13.82,9.03,4.79,0,0,4.79,4.79,4.79,0,1,4.79,4.79,4.79,0.1916,0.1916,,3.34,7.23,7.23,0,1.45,0,0
+system,Xbox 360,,120,8,0.06666666666666667,8,4,100.38,60.25,40.13,0,0,40.13,40.13,53.12,12.99,2,5.01625,4.65,5.01625,0.3344166666666666666666666667,0.4426666666666666666666666667,,30.97,45.85,45.85,0,9.16,0,0
+system,Xbox One,,356,24,0.06741573033707865,24,14,315.54,202.04,113.50,0,0,113.50,113.50,176.91,63.41,3,4.729166666666666666666666667,4.605,4.729166666666666666666666667,0.3188202247191011235955056180,0.4969382022471910112359550562,,81.72,158.84,158.84,0,31.78,0,0
+system,Xbox One/Xbox 360,,3,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+system,Xbox Series X,,116,7,0.0603448275862069,7,4,96.66,62.71,33.95,40.20,0,-6.25,-6.25,10.19,16.44,0,4.85,4.94,-0.8928571428571428571428571429,-0.05387931034482758620689655172,0.08784482758620689655172413793,,23.93,50.11,50.11,0,10.02,0,0
+system,Xbox Series X/Xbox One,,42,1,0.023809523809523808,1,0,15.56,10.2,5.36,0,0,5.36,5.36,5.36,0,0,5.36,5.36,5.36,0.1276190476190476190476190476,0.1276190476190476190476190476,,3.68,8.4,8.4,0,1.68,0,0
+month,2025-09,,154,6,0.03896103896103896,6,2,71.09,36.89,34.20,0,0,34.20,34.20,47.93,13.73,1,5.70,5.45,5.70,0.2220779220779220779220779221,0.3112337662337662337662337662,,27.90,31.49,31.49,0,6.30,0,0
+month,2025-10,,281,17,0.060498220640569395,15,9,201.60,113.96,87.64,0,0,87.64,87.64,148.09,60.45,3,5.842666666666666666666666667,4.71,5.842666666666666666666666667,0.3118861209964412811387900356,0.5270106761565836298932384342,,68.09,97.76,97.76,0,19.55,0,0
+month,2025-11,,384,26,0.06770833333333333,23,10,308.76,186.80,121.96,40.20,0,81.76,81.76,156.49,74.73,9,5.302608695652173913043478261,4.79,3.554782608695652173913043478,0.2129166666666666666666666667,0.4075260416666666666666666667,,91.43,152.60,152.60,0,30.53,0,0
+month,2025-12,,323,20,0.06191950464396285,19,12,222.11,130.02,92.09,0,0,92.09,92.09,166.51,74.42,2,4.846842105263157894736842105,4.40,4.846842105263157894736842105,0.2851083591331269349845201238,0.5155108359133126934984520124,,71.84,101.22,101.22,0,20.25,0,0
+month,2026-01,,144,14,0.09722222222222222,11,14,133.33,57.01,76.32,0,0,76.32,76.32,209.72,133.40,0,6.938181818181818181818181818,6.80,6.938181818181818181818181818,0.53,1.456388888888888888888888889,,65.29,55.21,55.21,0,11.03,0,0
+month,2026-02,,177,8,0.04519774011299435,6,8,60.91,25.62,35.29,0,0,35.29,35.29,67.24,31.95,0,5.881666666666666666666666667,5.235,5.881666666666666666666666667,0.1993785310734463276836158192,0.3798870056497175141242937853,,30.53,23.82,23.82,0,4.76,0,0
+month,2026-03,,255,14,0.054901960784313725,13,14,171.38,94.97,76.41,0,0,76.41,76.41,96.38,19.97,0,5.877692307692307692307692308,5.35,5.877692307692307692307692308,0.2996470588235294117647058824,0.3779607843137254901960784314,,59.95,82.37,82.37,0,16.46,0,0
+month,2026-04,,380,25,0.06578947368421052,23,20,318.43,187.50,130.93,0,0,130.93,130.93,229.89,98.96,0,5.692608695652173913043478261,5.45,5.692608695652173913043478261,0.3445526315789473684210526316,0.6049736842105263157894736842,,101.22,148.61,148.61,0,29.71,0,0
+month,2026-05,,332,17,0.05120481927710843,16,15,197.70,109.60,88.10,0,0,88.10,88.10,157.48,69.38,1,5.50625,5.35,5.50625,0.2653614457831325301204819277,0.4743373493975903614457831325,,70.82,86.41,86.41,0,17.28,0,0
+month,2026-06,,227,10,0.04405286343612335,9,7,106.68,49.42,57.26,0,5.99,63.25,57.26,63.25,0,0,6.362222222222222222222222222,5.51,6.362222222222222222222222222,0.2786343612334801762114537445,0.2786343612334801762114537445,,44.46,44.02,44.02,0,8.81,3.99,0
+month,2026-07,,204,19,0.09313725490196079,18,12,254.56,134.59,119.97,0,0,119.97,119.97,158.90,38.93,2,6.665,5.51,6.665,0.5880882352941176470588235294,0.7789215686274509803921568627,,88.11,118.39,118.39,0,23.68,8.18,0
+month,2026-08,,191,4,0.020942408376963352,4,3,47.67,21.61,26.06,0,0,26.06,26.06,43.04,16.98,1,6.515,6.73,6.515,0.1364397905759162303664921466,0.2253403141361256544502617801,,22.10,19.81,19.81,0,3.96,0,0
+reason,APPAREL_TOO_LARGE,,0,6,,6,5,88.23,34.21,54.02,0,0,54.02,54.02,65.01,10.99,0,9.003333333333333333333333333,8.35,9.003333333333333333333333333,,,,43.18,34.21,34.21,0,6.85,3.99,0
+reason,APPAREL_TOO_SMALL,,0,7,,7,4,115.89,55.46,60.43,0,0,60.43,60.43,75.41,14.98,0,8.632857142857142857142857143,7.07,8.632857142857142857142857143,,,,45.35,55.46,55.46,0,11.09,3.99,0
+reason,DAMAGED_BY_CARRIER,,0,5,,3,4,38.90,16.11,22.79,0,0,22.79,22.79,52.27,29.48,1,7.596666666666666666666666667,7.95,7.596666666666666666666666667,,,,19.57,16.11,16.11,0,3.22,0,0
+reason,DAMAGED_BY_FC,,0,14,,7,12,92.49,49.70,42.79,0,5.99,48.78,42.79,160.27,111.49,2,6.112857142857142857142857143,5.45,6.112857142857142857142857143,,,,34.29,42.50,42.50,0,8.50,0,0
+reason,DEFECTIVE,,0,13,,12,7,139.46,77.64,61.82,0,0,61.82,61.82,180.97,119.15,5,5.151666666666666666666666667,4.69,5.151666666666666666666666667,,,,49.18,63.24,63.24,0,12.64,0,0
+reason,DID_NOT_LIKE_COLOR,,0,1,,1,1,10.54,2.84,7.70,0,0,7.70,7.70,7.70,0,0,7.70,7.70,7.70,,,,7.13,2.84,2.84,0,0.57,0,0
+reason,FOUND_BETTER_PRICE,,0,4,,4,4,45.97,23.76,22.21,0,0,22.21,22.21,42.70,20.49,0,5.5525,5.58,5.5525,,,,18.18,20.16,20.16,0,4.03,0,0
+reason,MISSED_ESTIMATED_DELIVERY,,0,3,,3,3,35.27,20.01,15.26,0,0,15.26,15.26,15.26,0,0,5.086666666666666666666666667,5.26,5.086666666666666666666666667,,,,11.98,16.41,16.41,0,3.28,0,0
+reason,MISSING_PARTS,,0,3,,1,2,14.01,9.27,4.74,0,0,4.74,4.74,32.72,27.98,1,4.74,4.74,4.74,,,,3.25,7.47,7.47,0,1.49,0,0
+reason,NOT_AS_DESCRIBED,,0,24,,24,15,337.43,187.54,149.89,0,0,149.89,149.89,250.27,100.38,4,6.245416666666666666666666667,5.50,6.245416666666666666666666667,,,,114.28,157.15,157.15,0,31.42,4.19,0
+reason,NOT_COMPATIBLE,,0,14,,14,10,179.61,112.52,67.09,0,0,67.09,67.09,83.53,16.44,3,4.792142857142857142857142857,4.68,4.792142857142857142857142857,,,,49.27,89.12,89.12,0,17.82,0,0
+reason,NO_REASON_GIVEN,,0,2,,2,1,20.02,11.52,8.50,0,0,8.50,8.50,8.50,0,0,4.25,4.25,4.25,,,,6.91,7.92,7.92,0,1.59,0,0
+reason,ORDERED_WRONG_ITEM,,0,33,,31,21,387.12,224.06,163.06,40.20,0,122.86,122.86,205.69,82.83,1,5.26,4.84,3.963225806451612903225806452,,,,126.18,184.46,184.46,0,36.88,0,0
+reason,POOR_FIT,,0,12,,12,12,120.78,48.85,71.93,0,0,71.93,71.93,95.89,23.96,0,5.994166666666666666666666667,5.51,5.994166666666666666666666667,,,,62.16,48.85,48.85,0,9.77,0,0
+reason,QUALITY_UNACCEPTABLE,,0,2,,2,2,36.03,17.25,18.78,0,0,18.78,18.78,57.78,39.00,0,9.39,9.39,9.39,,,,15.33,17.25,17.25,0,3.45,0,0
+reason,SWITCHEROO,,0,3,,1,2,15.73,10.21,5.52,0,0,5.52,5.52,5.52,0,0,5.52,5.52,5.52,,,,3.84,8.41,8.41,0,1.68,0,0
+reason,UNDELIVERABLE_UNKNOWN,,0,6,,6,3,86.10,55.73,30.37,0,0,30.37,30.37,30.37,0,0,5.061666666666666666666666667,4.60,5.061666666666666666666666667,,,,23.04,36.64,36.64,0,7.33,0,0
+reason,UNWANTED_ITEM,,0,28,,27,18,330.64,191.31,139.33,0,0,139.33,139.33,175.06,35.73,2,5.160370370370370370370370370,4.71,5.160370370370370370370370370,,,,108.62,153.51,153.51,0,30.71,0,0
+disposition,CUSTOMER_DAMAGED,,0,80,,67,59,823.43,431.13,392.30,0,5.99,398.29,392.30,1003.25,604.96,18,5.855223880597014925373134328,5.45,5.855223880597014925373134328,,,,318.31,370.14,370.14,0,73.99,0,0
+disposition,DEFECTIVE,,0,3,,3,2,36.82,17.93,18.89,0,0,18.89,18.89,46.83,27.94,1,6.296666666666666666666666667,5.19,6.296666666666666666666666667,,,,15.67,16.13,16.13,0,3.22,0,0
+disposition,SELLABLE,,0,97,,93,65,1233.97,698.93,535.04,40.20,0,494.84,494.84,494.84,0,0,5.753118279569892473118279570,4.86,5.320860215053763440860215054,,,,407.76,575.44,575.44,0,115.11,12.17,0
+sale_price_band,$20–39.99,,1720,110,0.06395348837209303,99,88,1127.30,550.35,576.95,0,5.99,582.94,576.95,996.74,413.80,7,5.827777777777777777777777778,5.51,5.827777777777777777777777778,0.3389186046511627906976744186,0.5795,,479.68,466.46,466.46,0,93.28,3.99,0
+sale_price_band,$40–59.99,,847,49,0.05785123966942149,46,26,663.76,421.00,242.76,40.20,0,202.56,202.56,376.67,174.11,10,5.277391304347826086956521739,4.895,4.403478260869565217391304348,0.2391499409681227863046044864,0.4447107438016528925619834711,,171.45,336.61,336.61,0,67.32,3.99,0
+sale_price_band,$60+,,219,11,0.0502283105022831,10,7,233.72,148.20,85.52,0,0,85.52,85.52,124.52,39.00,1,8.552,6.515,8.552,0.3905022831050228310502283105,0.5685844748858447488584474886,,53.86,137.40,137.40,0,27.47,4.19,0
+sale_price_band,Under $20,,266,10,0.03759398496240601,8,5,69.44,28.44,41.00,0,0,41.00,41.00,46.99,5.99,1,5.125,4.375,5.125,0.1541353383458646616541353383,0.1766541353383458646616541353,,36.75,21.24,21.24,0,4.25,0,0
+sale_price_band,Unknown,,0,0,,0,0,0,0,0,0,0,0,0,0,0,0,,,,,,,0,0,0,0,0,0,0
+cost_band,$20–39.99,,740,34,0.04594594594594595,31,34,447.29,266.92,180.37,0,0,180.37,180.37,386.62,206.25,0,5.818387096774193548387096774,4.91,5.818387096774193548387096774,0.2437432432432432432432432432,0.5224594594594594594594594595,,132.01,221.92,221.92,0,44.37,3.99,0
+cost_band,$40–59.99,,45,1,0.022222222222222223,1,1,38.08,21.59,16.49,0,0,16.49,16.49,16.49,0,0,16.49,16.49,16.49,0.3664444444444444444444444444,0.3664444444444444444444444444,,7.98,21.59,21.59,0,4.32,4.19,0
+cost_band,$60+,,3,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,,,,0,0,,0,0,0,0,0,0,0
+cost_band,Under $20,,1936,91,0.04700413223140496,77,91,876.49,437.09,439.40,0,5.99,445.39,439.40,872.04,426.65,0,5.706493506493506493506493506,5.45,5.706493506493506493506493506,0.2300568181818181818181818182,0.4504338842975206611570247934,,366.59,364.21,364.21,0,72.81,0,0
+cost_band,Unknown,,328,54,0.16463414634146342,54,0,732.36,422.39,309.97,40.20,0,269.77,269.77,269.77,0,19,5.740185185185185185185185185,4.85,4.995740740740740740740740741,0.8224695121951219512195121951,0.8224695121951219512195121951,,235.16,353.99,353.99,0,70.82,3.99,0
