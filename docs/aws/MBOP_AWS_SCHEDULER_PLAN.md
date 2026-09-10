@@ -1,5 +1,17 @@
 # MBOP AWS Scheduler Plan
 
+## September 10, 2026 finance payload archive
+
+Only `mbop-finance-refresh-morning`, `mbop-finance-refresh-afternoon`, and
+`mbop-finance-refresh-evening` now use `mbop-scheduler-task:88`, source commit
+`d1f739eb1469`. This task preserves revision 66's configuration except for the
+new image and `MBOP_FINANCE_PAYLOAD_ARCHIVE=1`. All 20 schedule definitions
+were verified: only those three task references changed; cadence is unchanged.
+Production smoke task `c823722011484fb4815801eea9a58579` exited zero after
+verifying worker IAM, archive recovery, and unchanged balance fields without
+database writes. See [finance storage](../FINANCE_PAYLOAD_STORAGE_2026-09-10.md).
+Sourcing and purchase ingestion remain on their previous targets.
+
 ## September 8, 2026 sourcing/offer release
 
 `mbop-sourcing-catalog` and both `mbop-purchase-ingestion-*` schedules now use

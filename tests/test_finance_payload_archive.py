@@ -3,7 +3,8 @@ import os
 import sys
 import unittest
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import patch, MagicMock
+from types import SimpleNamespace
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "integrations"))
 from finance_payload_archive import archive_new_snapshot, archive_payload, restore_payload, BUCKET
@@ -59,6 +60,37 @@ class ArchiveTests(unittest.TestCase):
         s3.get_object = lambda **kwargs: (_ for _ in ()).throw(RuntimeError('unavailable'))
         with self.assertRaises(RuntimeError):
             archive_payload(s3, {'transactions': [1]})
+
+    def test_importer_keeps_inline_source_if_archive_fails(self):
+        import amazon_sync_finance_balances as importer
+        row = {'total_amazon_cash': 10, 'in_transit_to_bank': 2,
+               'raw_transactions_json': {'transactions': [{'amount': 10}]}}
+        args = SimpleNamespace(apply=True, lookback_days=180, transaction_lookback_days=60,
+                               unmatched_completed_transfer_lookback_days=14)
+        db = MagicMock()
+        with patch.object(importer, 'parse_args', return_value=args), \
+             patch.object(importer, 'get_supabase_client', return_value=db), \
+             patch.object(importer.AmazonSPAPIClient, 'from_env'), \
+             patch.object(importer, 'build_finance_snapshot', return_value=row), \
+             patch.object(importer, 'print_summary'), \
+             patch.object(importer, 'archive_new_snapshot', side_effect=RuntimeError('S3 unavailable')):
+            self.assertEqual(importer.main(), 0)
+        db.table.return_value.insert.assert_called_once_with(row)
+
+    def test_importer_dry_run_does_not_archive_or_write(self):
+        import amazon_sync_finance_balances as importer
+        args = SimpleNamespace(apply=False, lookback_days=180, transaction_lookback_days=60,
+                               unmatched_completed_transfer_lookback_days=14)
+        db = MagicMock()
+        with patch.object(importer, 'parse_args', return_value=args), \
+             patch.object(importer, 'get_supabase_client', return_value=db), \
+             patch.object(importer.AmazonSPAPIClient, 'from_env'), \
+             patch.object(importer, 'build_finance_snapshot', return_value={}), \
+             patch.object(importer, 'print_summary'), \
+             patch.object(importer, 'archive_new_snapshot') as archive:
+            self.assertEqual(importer.main(), 0)
+            archive.assert_not_called()
+        db.table.assert_not_called()
 
 
 if __name__ == '__main__':

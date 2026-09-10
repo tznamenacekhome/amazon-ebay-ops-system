@@ -70,6 +70,13 @@ Prefer optimization first when:
 
 ## MBOP Optimization Priorities
 
+September 10, 2026: finance transaction source payloads now have a private,
+lossless S3 archive path. Balance snapshots and transfer breakdowns remain in
+PostgreSQL; historical cleanup retains the newest seven days inline. See
+[finance payload storage](FINANCE_PAYLOAD_STORAGE_2026-09-10.md) for production
+activation, access, verification, and restore commands. Do not remove FBA or
+Keepa history based on PostgreSQL's stale row estimates.
+
 Before increasing sync volume, check or improve:
 
 - snapshot retention for Amazon FBA, Amazon listings, Keepa, Informed, and InventoryLab tables.

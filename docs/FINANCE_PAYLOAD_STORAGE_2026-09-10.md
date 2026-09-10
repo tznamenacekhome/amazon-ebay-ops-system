@@ -45,15 +45,16 @@ Other jobs do not use this setting. Without it, the importer writes the original
 inline payload. An archive failure logs a warning and keeps the full inline
 payload, so ingestion and finance balances remain available.
 
-The intended activation changes only the three existing finance-refresh task
-targets. Preserve their complete schedule definitions and cadence. No web
+Activation changed only the three existing finance-refresh task
+targets. Their complete schedule definitions and cadence were preserved. No web
 deployment or schema migration is required. Do not launch sourcing as part of
 this change.
 
 ## Maintenance and rollback
 
 `scripts/archive-finance-payloads.py` is dry-run by default, allows at most 300
-rows per invocation, keeps seven days inline during historical cleanup, and
+rows per invocation, uses one worker by default (up to three with `--workers`),
+keeps seven days inline during historical cleanup, and
 verifies all non-payload fields after each update. Snapshot import is append-only;
 do not run another maintenance writer concurrently. Recovery manifests live in
 ignored `logs/diagnostics/finance-archive-20260910/manifest.jsonl`.
@@ -77,4 +78,40 @@ restored successfully before the larger historical batch.
 
 Deletion/update alone does not prove physical disk reclamation. Report actual
 filesystem measurements after cleanup. Any table rewrite requires a separate
-bounded maintenance operation with lock timeout and adequate free space.
+bounded maintenance operation with lock avoidance and adequate free space.
+
+## Production results
+
+- Source commit `d1f739eb1469`; finance task revision `mbop-scheduler-task:88`.
+  Image digest `sha256:fb06d0cf52a2307429bbc75f6f53a485a9b93ed85b293d9e59c15f0e91636235`.
+  The dirty image tag reflects unrelated untracked documentation; committed
+  application source was used. Revision 87 was the build helper's intermediate
+  registration; no schedules target it.
+- The three finance schedules previously used revision 66. Revision 88 copies
+  that configuration and changes only image and archive opt-in environment flag.
+  All 20 schedule definitions were compared; only three task references changed.
+- Worker smoke `c823722011484fb4815801eea9a58579` exited zero: real ECS role
+  uploaded/recovered a real source payload and verified unchanged balance fields.
+  The smoke made no database writes and did not call Amazon.
+- Archived 257 snapshots older than seven days; retained 21 recent snapshots
+  inline. All 278 rows remain. Every archived row's non-payload fields matched
+  its original fingerprint both before and after physical compaction.
+- Verified full-row backups and original payload objects are retained in S3.
+  One production row was restored successfully as a rollback test before cleanup.
+- `sql/2026-09-10_compact_finance_payload_storage.sql` ran as standalone
+  maintenance through the Supabase Management query API on the verified project.
+  There were zero locks on the target table at preflight. The single-table
+  `VACUUM (FULL, ANALYZE, SKIP_LOCKED)` returned successfully in 0.78 seconds.
+  No schema migration or migration-ledger change was made.
+- Table size: 364,486,656 -> 24,264,704 bytes; reclaimed 340,221,952 bytes (93.3%).
+  Database size afterward: 6,286,740,627 bytes. Free filesystem space:
+  1,568,641,024 / 8,416,882,688 bytes (18.64%). Capacity guard returns no blocking
+  reason. These are observations, not a guarantee of future growth headroom.
+- Eight archive/importer tests passed, including dry-run and archive-outage
+  fallback behavior. Python compile checks and the scheduler Docker build passed.
+  No web code changed or web build/deployment was needed.
+- No sourcing run was launched; the operator plans to run it later in the day.
+
+This phase leaves the larger FBA, Keepa, and sourcing histories intact. Further
+reductions need a separately validated history/diagnostic storage design; no
+retention deletion or blanket raw-JSON removal is justified by this work.
