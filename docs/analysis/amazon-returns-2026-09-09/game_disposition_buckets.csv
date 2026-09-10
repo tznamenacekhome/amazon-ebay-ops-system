@@ -1,0 +1,6 @@
+﻿bucket,units,share_of_returns,fee_reconciled_units,net_transaction_cost,mean_transaction_cost,median_transaction_cost,basis_known_units,basis_missing_units,known_inventory_basis,average_known_basis,known_reimbursements,known_recovery_proceeds,known_inventory_impairment,unknown_impairment_units,known_economic_loss_components,known_components_per_observed_return,known_components_per_sold_game,known_basis_with_unknown_recovery,zero_recovery_known_components,share_of_net_known_components
+A. Sellable,67,0.6767676767676768,65,306.34,4.712923076923076923076923077,4.62,44,23,887.79,20.17704545454545454545454545,0,,0,0,306.34,4.572238805970149253731343284,0.1365151515151515151515151515,0,306.34,0.7567874700461967933990464191
+B. Unsellable / unfulfillable,31,0.31313131313131315,28,133.71,4.775357142857142857142857143,4.71,17,14,312.24,18.36705882352941176470588235,0,,0,31,133.71,4.313225806451612903225806452,0.05958556149732620320855614973,312.24,445.95,0.3303194248869784332616912473
+C. Amazon reimbursed,1,0.010101010101010102,1,4.94,4.94,4.94,0,1,0,,40.20,,0,0,-35.26,-35.26,-0.01571301247771836007130124777,0,-35.26,-0.08710689493317522666073766644
+D. Removed / disposed / recovered,0,0.0,0,0,,,0,0,0,,0,,0,0,0,,0,0,0,0E+2
+E. Unknown,0,0.0,0,0,,,0,0,0,,0,,0,0,0,,0,0,0,0E+2
