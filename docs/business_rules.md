@@ -444,6 +444,8 @@ Carrier/status syncs must not downgrade workflow-owned statuses.
 - Keepa competition data must come from stored snapshots or explicit operator-run scripts, not from page-load token spending.
 # Declined buyer offers
 
+Sourcing workspace review contract (2026-09-12): Buy List retains existing buying policy. Business Excluded requires a supported exact product pair plus a recorded failed business gate; identity uncertainty alone does not qualify. Active velocity records without supported pairs remain separately visible. Confirm Match and corrections are evidence-only pending the matching-repair safety gate, and never clear holds or authorize buying. See `sourcing_matching_repair_and_feedback_2026-09-12.md` for the contract and limitations.
+
 Best-offer sourcing opportunities must not be presented when the highest observed
 declined USD item offer for that same eBay listing is at or above MBOP's current
 maximum profitable item offer. Recomputed ASIN pricing must support a strictly

@@ -1,35 +1,48 @@
 # Sourcing matching repair handoff
 
-Completed: **Phase 1 — diagnostics and frozen audit**, deployed 2026-09-12 16:57 UTC, with the authenticated UI access limitation below. This session stops here per the supplied work order. Next session begins Phase 2.
+Phases 1 and 2 are complete and deployed, with the authenticated production UI access gap documented below. Stop after Phase 2 this session. Next session starts Phase 3 of the original work order in C:\Users\timz\Downloads\MBOP_Codex_Sourcing_Matching_Repair_Buy_List_Business_Excluded.md.
 
-Read `docs/sourcing_matching_repair_and_feedback_2026-09-12.md`, its companion manifest, and the original `MBOP_Codex_Sourcing_Matching_Repair_Buy_List_Business_Excluded.md` before continuing.
+Read the original work order and docs/sourcing_matching_repair_and_feedback_2026-09-12.md. Do not repeat the Phase 1 audit. Phase 3 owns matching heuristics, positive safety gates and bounded reprocessing. No sourcing/provider job or production synthetic review ran in Phase 2.
 
-## Contract
+## Implemented contract
 
-- Canonical engine: integrations/video_game_identity.py. `identity_comparison.evidenceDecision` is diagnostic-only; existing admission `result`/`hard_block` are unchanged.
-- Per-side `fields` carry value/state/sources/parserVersion/evidenceVersion/expectation/availability. States can represent supported, inferred, unknown, explicitly_absent, not_applicable, conflicting_sources; absence/not-applicable must never be inferred merely from missing evidence.
-- integrations/sourcing_decision_trace.py emits canonicalDecision with evaluation ID/time/version, productIdentityVerdict, businessEligibility/businessReasons, presentationDecision and lifecycleStatus.
-- API diagnosticComparison v3 exposes row comparisonResult/comparisonReason and Amazon/eBay evidence; evaluation availability is new/legacy/unavailable. Missing historical evaluation IDs/times remain null. Legacy adapter does not run a new evaluator.
-- Current diagnostic panel still uses existing field-feedback semantics. Do not confuse allAssumptionsCorrect with explicit exact-pair match confirmation. Phase 2 must add the requested shared feedback without rewriting old actions.
+- Canonical parser/evidence contract remains video_game_identity.py and sourcing_decision_trace.py. Identity admission thresholds remain unchanged.
+- Buy List preserves existing scopes/order/buying controls. Closest Excluded preserves default 50, ranking and never-presented scope. Reviewed exact pairs leave its unreviewed view.
+- Business Excluded requires exact-ASIN canonical positive evidence or latest explicit exact-pair confirmation, plus a real business check/active hold. Unknown identities are never treated as positive. Completed/human-dismissed rows are not new opportunities. All 33 active velocity suppression records remain separately visible even without a positive listing; synced release rules remain authoritative.
+- Business qualification projects only verdicts, checks and hold inputs, then hydrates full evidence by qualifying IDs. Actual live transfer fell from 114,602,897 to 3,246,708 bytes with identical results (0 supported excluded opportunities in the bounded scope, 33 suppression records); elapsed 12.404 vs 2.253 seconds. These are observations, not billing guarantees.
+- Scorer businessEligibilityChecks records existing classify/offer policy outcomes and inputs independently of identity. Existing inventory/ROI holds can be exposed without rescoring. Missing/stale legacy inputs stay explicit. An allowed profitable offer/auction does not fail solely on asking-price ROI.
+- Shared dialog supports Dismiss, green Confirm Match, Not Sure via verdict selection, and collapsed Correct Details. Field feedback, pair verdict, business reason and photo evidence are separate. Cancel saves nothing; errors keep the dialog open. Block ASIN retains confirmation. Bulk dismissal uses per-row stable request IDs and snapshots.
+- matching_feedback_v3 is explicit operator evidence; legacy normalization stays v2/legacy_mixed. Available evidence is not counted as explicitly used evidence. Corrections retain original values/source snapshot separately. eBay scope is pair-only; Amazon ASIN scope is explicit. Latest per-field correction history and latest exact-pair verdict load independently across views.
+- Action aliases: mark_valid_match -> confirmed_valid_match; confirm_exclusion -> confirmed_exclusion; save_match_feedback -> matching_feedback. Dismiss/watch aliases remain readable. Confirm Exclusion requires a concrete reason. Empty/unsure feedback is unlabeled; low ROI/velocity is not an identity negative; seller/photo feedback stays exact-pair scoped.
+- **New v3 feedback is evidence-only for admission in Phase 2.** is_explicit_pair_review excludes it from automatic scoring/title memory pending Phase 3 validation. Confirm Match does not promote, release holds, purchase or certify parser fields. No new re-entry override was added. Phase 3 must validate admission use, supersession/conflicts and reference-correction application.
 
-## Preserved audit and limits
+## Database
 
-Private frozen evidence is in ignored tmp/sourcing-phase1, cutoff 2026-09-12T16:39:55.421289Z. 1,000 provenance-filtered dismissal candidates, newest 250, 1,000 action snapshots, 33 holds, 5,356 positive-label candidates. Separate historical/current/replay files; no production rows changed.
+Verified project: froeucjkcepuhgwisped / amazon-ebay-ops. Only MBOP public objects changed.
 
-Exact API baseline: Buy List 0/0 at limit150; Closest Excluded 50/141 at limit50. Exact excluded IDs and ranking are frozen. Both ordered ID lists and summaries unchanged. 1,000 legacy scoring replays unchanged. API response capture is large (~333 MB); reuse offline fixtures instead of repeatedly reading raw production payloads.
+Migration 20260912171310_mbop_atomic_sourcing_review.sql is **applied**; the complete 17-entry shared local/remote ledger matches. Never edit this applied migration. It expands snapshot events without a historical snapshot scan, adds a partial review index and sourcing_save_review / sourcing_latest_reviews.
 
-Positive candidate source reconciliation found no explicit exact-pair confirmations in that cohort. 1,995 raw identifier pairs are available for safety review; purchase/receiving flags are not automatically certified positives. Preserve all tiers and unresolved conflicts when building Phase 3 gates.
+The save RPC atomically appends action/snapshot/intelligence evidence and applicable dismissal/block/velocity writes. Request ID/fingerprint/actor retries are idempotent; stale ASIN/candidate/item/evaluation writes fail. Purchased/completed lifecycle rows and existing hold conditions are protected. Both functions are SECURITY INVOKER, callable by service_role, not anon/authenticated; production permission readback passed.
 
-## Validation and access gap
+Capacity preflight: tiny read passed; DB 6,417,230,995 bytes, sourcing_actions 11,886,592 bytes. Disk IO budget was not exposed; capacity warning was given. No broad sync/backfill or historical relabel was performed.
 
-32 Python tests and the actual TypeScript adapter/panel-render test pass; local and Docker builds pass. Four exact examples are traced through action snapshot/current stored API/read-only replay/offline rendered HTML; all four screenshots were visually inspected. Authenticated production browser access is unavailable; fixture screenshots/read-only API-equivalent evidence must not be described as a production UI check.
+## Tests and evidence
 
-## Active deployment
+- 109 sourcing Python tests + 10 feedback tests passed; relevant Python compile checks passed.
+- Actual shared-dialog handlers, diagnostic adapter/panel, blocked-ASIN API, Business Excluded GET/projection/hydration/hold-source tests passed.
+- Actual action API -> disposable PostgreSQL -> latest-review reload -> actual Python analyzer passed for positive/negative/unsure/corrections. Tested auth, stale pair, blocked-ASIN confirmation, explicit ASIN correction scope, idempotent retries, failed-label full rollback and protected purchase.
+- Disposable schema: tests/fixtures/sourcing_review_schema.sql; load before the migration in a new local PostgreSQL container, then set MBOP_REVIEW_TEST_CONTAINER for node web/app/api/sourcing/reviewActions.test.mjs. Never use production. Test schema omits unrelated foreign-key dependencies and contains no production rows.
+- Production/local Docker web builds pass. Packaged scheduler's four review/offer-policy tests pass with Docker networking disabled. Focused lint: no errors, nine existing unused helper/type warnings in page.tsx.
+- Frozen API exact ordered IDs and summaries unchanged: Buy List 0/0; Closest Excluded 50/141. These are frozen baseline counts.
+- Production Business Excluded GET-equivalent: actual handler + live read-only Supabase calls, HTTP 200, 0 supported excluded pairs in scope, 33 hold records. No redirect was counted as success.
+- Browser inventory again returned no apps/browsers. Authenticated production UI remains unverified under the work order's explicit fallback. Actual offline dialog screenshot was visually inspected: tmp/sourcing-phase2/review.png and review.html. Original four examples remain in tmp/sourcing-phase1.
 
-- Web: commit 32c3e5638a2b, task 139, digest c48f32c09ddff8fafedf32b71642c55be63a9ab802376012527c0707a2c0b72f; rollout COMPLETED, one running task, healthy ALB target.
-- Scheduler: commit 6f2ccb74cee8, task 91, digest 2cfead5e99ee699375e75a2dcd8195f8c3f685618d2a1a7ca33ce8d6a9bef2ab. The mbop-sourcing-catalog schedule actually targets 91. Manual sourcing uses the latest scheduler-family revision. No quota-consuming job was launched.
-- Both commits pushed. All 20 schedules compared; only sourcing task revision changed. Task and service settings preserved except expected images/build identifiers. Unrelated wholesale discovery document untouched.
+Private Phase 2 artifacts: verification.json, live-api.json, database-health.json, function-permissions.json, cli-migration-list.txt, aws-before.json, aws-after.json and aws-verification.json under tmp/sourcing-phase2. Preserve/reuse large Phase 1 fixtures. Unrelated wholesale discovery document remains untouched.
 
-## Next
+## Runtime and next step
 
-Next session starts **Phase 2** of the original work order: Buy List naming, Business Excluded semantics and shared single/bulk feedback. Do not change numeric/edition admission thresholds yet; do not launch sourcing searches or historical backfills. No schema migration has been created in Phase 1.
+Scheduler revision 92 is registered and mbop-sourcing-catalog now targets it. Runtime source 92674f8cb8f0, digest sha256:0545ef77294d675a7315246b8d8f3be57f94c5e369049a5439585a94fa5c1019. All 20 schedules were compared: only sourcing-catalog changed TaskDefinition 91 -> 92; other settings are preserved.
+
+Final web source 17a49ed94cb4 includes narrow querying, correct inventory-hold evidence selection and fresh IDs for each completed review (retries retain the in-flight ID). Verified 2026-09-12T17:54:23.639224+00:00: web task 144, image sha256:3f10ad423897c16e9b22d96c92db7293cfda2eb25e4d485964745bd244a6e5e5, rollout COMPLETED, one running task, zero pending and its exact ALB target healthy. Runtime commits are pushed. See docs/sourcing_phase2_manifest_2026-09-12.json.
+
+Continuation: complete Phase 3 only, following its full false-positive/false-negative tests, evidence tiers, exact current-row manifests and safe write gate. Do not re-run provider searches or reprocess history merely to test deployment. Matching fixes and bounded current decision refresh remain outstanding; the full work order is not complete.

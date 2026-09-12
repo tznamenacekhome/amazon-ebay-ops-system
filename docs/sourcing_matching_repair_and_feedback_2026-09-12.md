@@ -1,8 +1,8 @@
-# Sourcing matching repair — Phase 1
+# Sourcing matching repair — Phases 1 and 2
 
-Phase 1 is implemented and deployed, with the authenticated production UI access limitation below. Buy List admission is unchanged. Phases 2 and 3 are intentionally deferred under the supplied work order.
+Phases 1 and 2 are implemented and deployed, with the authenticated production UI access limitation below. Buy List admission is unchanged. Phase 3 matching repairs and bounded current-row refresh remain outstanding under the supplied work order.
 
-## Changes
+## Phase 1 changes
 
 - The existing Python identity engine now emits `evidenceDecision` and per-side `fields`. Values carry state, bounded source spans/hashes, snapshot references when available, parser/evidence versions, and labeled expectations. Unsupported Standard/Complete/Physical/base defaults are not observed values. Confidence remains explicitly an uncalibrated parser heuristic.
 - The evidence view uses the existing comparator on evidenced values. Generic `Main Game`/franchise equality does not establish a positive identity verdict. Comparable conflicting source values require review; a missing counterpart remains an unknown comparison. Existing `result`, `hard_block`, recommendations, numeric/edition rules and score adjustments remain unchanged for admission.
@@ -12,7 +12,7 @@ Phase 1 is implemented and deployed, with the authenticated production UI access
 - The dismissal analyzer excludes duplicate cleanup, any cleanup_source key and availability/refresh provenance, adds a stable action-ID ordering and optional cutoff, includes raw feedback/action-time comparisons in JSON/CSV, labels empty feedback as unlabeled, and no longer treats mere item-specific/description presence as causal proof.
 - The legacy `derived_identity` alias does not duplicate the new evidence payload. Source spans are bounded to 240 characters and three references per field; original evidence remains in the stored snapshot.
 
-No schema migration, marketplace/AI calls, feedback writes, opportunity reprocessing, admission-policy change, business-hold release, or sourcing search was performed.
+During Phase 1, no schema migration, marketplace/AI calls, feedback writes, opportunity reprocessing, admission-policy change, business-hold release, or sourcing search was performed.
 
 ## Frozen audit
 
@@ -87,7 +87,7 @@ Web rollout is COMPLETED with one running revision-139 task and a healthy ALB ta
 
 Private AWS readbacks/proof: aws-before.json, aws-after.json, aws-verification.json. Dirty image-tag suffixes reflect only the unrelated wholesale discovery document, which is outside the web build context and scheduler COPY paths; it was neither committed nor deployed. No sourcing job was triggered. Authenticated production UI remains the explicitly documented verification gap.
 
-## Next phase
+## Phase 1 handoff (historical)
 
 Continue from `docs/sourcing_matching_repair_and_feedback_handoff.md`. Phase 2 owns Buy List/Business Excluded tabs and shared feedback. Phase 3 alone owns policy changes and gated current-row reprocessing.
 
@@ -108,3 +108,14 @@ Validation so far: 109 sourcing Python tests plus 10 feedback tests; actual Type
 Database preflight: target froeucjkcepuhgwisped verified; tiny read passed; database 6,417,230,995 bytes and sourcing_actions 11,886,592 bytes. Capacity warning given. Complete shared ledger has 16 applied migrations reconciled; dry-run contains only the new MBOP migration. Deployment and final ledger readback will be recorded below. No sourcing/provider job or production synthetic review has been run.
 
 Live API verification found unnecessary raw-payload transfer during Business Excluded qualification. The final query selects only stored verdicts, business checks and hold inputs, then hydrates full evidence by qualifying opportunity IDs. Buy List and Closest Excluded queries are unchanged. Actual GET contract tests cover positive-row hydration and unknown-row non-hydration. Identical live results (0 matched exclusions in the bounded scope, 33 active suppression records) required 114,602,897 bytes / 12,404 ms before narrowing versus 3,246,708 bytes / 2,253 ms afterward, both 23 reads. This is about 97% less transfer for this observed workload, not a guaranteed billing reduction or universal latency benchmark. Private readback: `tmp/sourcing-phase2/live-api.json`; no production row was mutated by these checks.
+
+
+## Phase 2 final deployment
+
+Verified 2026-09-12T17:54:23.639224+00:00: web task 144, runtime source 17a49ed94cb4, image sha256:3f10ad423897c16e9b22d96c92db7293cfda2eb25e4d485964745bd244a6e5e5; rollout COMPLETED, one running task, zero pending and its exact private-IP ALB target healthy. Scheduler task 92 uses source 92674f8cb8f0 and image sha256:0545ef77294d675a7315246b8d8f3be57f94c5e369049a5439585a94fa5c1019. Its actual mbop-sourcing-catalog target is revision 92. All 20 schedules and task/service settings were compared: only the intended sourcing TaskDefinition changed (91 -> 92), apart from expected image/build identifiers. Runtime commits are pushed. Earlier web revisions 140/141/142/143 were superseded by 144.
+
+The MBOP migration is applied and all 17 shared ledger entries match. Live permission checks confirm both functions are SECURITY INVOKER and service-role-only. Final live API-equivalent read returned HTTP 200, 0 supported excluded pairs in its bounded scope and the same 33 holds, transferring 3,246,708 bytes in 2.355 seconds. Actual persisted API reviews also passed through the Python analyzer with distinct positive, negative, unsure and correction evidence. The local test container was stopped after testing.
+
+Offline actual UI screenshots for Buy List, Closest Excluded, Business Excluded and the shared review dialog were inspected under tmp/sourcing-phase2. Tab order, shared controls and suppression records render correctly; photos are omitted and local asset limitations are explicit. Browser inventory remains empty, so these are test screenshots, not authenticated production UI verification. No provider search, production synthetic review, business override or historical reprocessing was run. The unrelated wholesale discovery document remains untouched.
+
+Phase 2 is complete with the documented browser-access gap. Phase 3 matching repairs and gated bounded current-row refresh remain outstanding. Continue using the handoff; stop this session. Deployment manifest: sourcing_phase2_manifest_2026-09-12.json.

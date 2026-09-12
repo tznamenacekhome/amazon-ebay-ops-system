@@ -1,0 +1,70 @@
+{
+  "phase": 2,
+  "status": "implemented_and_deployed_with_documented_ui_access_gap",
+  "verifiedAt": "2026-09-12T17:54:23.639224+00:00",
+  "project": "froeucjkcepuhgwisped",
+  "account": "297464765814",
+  "web": {
+    "source": "17a49ed94cb4",
+    "task": "arn:aws:ecs:us-west-2:297464765814:task-definition/mbop-web-task:144",
+    "image": "297464765814.dkr.ecr.us-west-2.amazonaws.com/mbop-web@sha256:3f10ad423897c16e9b22d96c92db7293cfda2eb25e4d485964745bd244a6e5e5",
+    "rollout": "COMPLETED",
+    "healthyTarget": true
+  },
+  "scheduler": {
+    "source": "92674f8cb8f0",
+    "task": "arn:aws:ecs:us-west-2:297464765814:task-definition/mbop-scheduler-task:92",
+    "image": "297464765814.dkr.ecr.us-west-2.amazonaws.com/mbop-scheduler@sha256:0545ef77294d675a7315246b8d8f3be57f94c5e369049a5439585a94fa5c1019",
+    "schedule": "mbop-sourcing-catalog"
+  },
+  "scheduleVerification": {
+    "scheduleCount": 20,
+    "changedSchedules": [
+      "mbop-sourcing-catalog"
+    ],
+    "onlyScheduleChange": "TaskDefinition 91 -> 92",
+    "taskDefinitionSettingsPreserved": true,
+    "webServiceSettingsPreserved": true,
+    "webTask": "arn:aws:ecs:us-west-2:297464765814:task-definition/mbop-web-task:144",
+    "webRollout": "COMPLETED"
+  },
+  "migration": "20260912171310_mbop_atomic_sourcing_review.sql",
+  "ledgerEntriesMatched": 17,
+  "pythonTests": 119,
+  "liveBusinessExcluded": {
+    "supportedPairsInBoundedScope": 0,
+    "activeSuppressionRecords": 33
+  },
+  "queryTransferBytes": {
+    "before": 114602897,
+    "after": 3246708
+  },
+  "frozenApi": {
+    "all_open": {
+      "sameOrderedIds": true,
+      "summary": {
+        "total": 0,
+        "returned": 0,
+        "buyNow": 0,
+        "bestOffer": 0,
+        "auction": 0,
+        "multiUnit": 0
+      }
+    },
+    "closest_excluded": {
+      "sameOrderedIds": true,
+      "summary": {
+        "total": 141,
+        "returned": 50,
+        "buyNow": 0,
+        "bestOffer": 0,
+        "auction": 0,
+        "multiUnit": 0
+      }
+    }
+  },
+  "productionSyntheticFeedbackWrites": 0,
+  "providerJobsStarted": 0,
+  "authenticatedProductionUiVerified": false,
+  "nextPhase": 3
+}

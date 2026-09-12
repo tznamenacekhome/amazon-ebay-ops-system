@@ -2,6 +2,8 @@
 
 Date: 2026-08-02
 
+Superseded for new operator reviews on 2026-09-12 by matching_feedback_v3: explicit pair verdict, explicit evidence provenance, scoped corrections and atomic persistence. Legacy v2 remains readable. See [the Phase 2 report](sourcing_matching_repair_and_feedback_2026-09-12.md); the original design below is historical.
+
 ## Scope
 
 This change refines sourcing dismissal diagnostics feedback. It does not change matching rules, rescore production opportunities, call AI, call marketplaces, or perform marketplace writes.
