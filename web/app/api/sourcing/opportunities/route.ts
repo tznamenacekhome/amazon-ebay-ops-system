@@ -7,6 +7,9 @@ import { excludeBlockedOpportunities, fetchBlockedAsins } from "../blockedAsins"
 import { excludeDeclinedOffers } from "../declinedOffers";
 
 type OpportunityRow = {
+  business_checks?: unknown;
+  identity_verdict?: string | null;
+  fallback_identity_verdict?: string | null;
   opportunity_id: string;
   candidate_id?: string | null;
   ebay_item_id?: string | null;
@@ -320,6 +323,7 @@ async function getOpportunities(request: NextRequest) {
         status: scope === "closest_excluded" ? "all" : requestedStatus,
         type,
         queryLimit,
+        select: businessMode ? BUSINESS_OPPORTUNITY_SELECT : OPPORTUNITY_SELECT,
       });
   if (error) return jsonNoStore({ error: error.message }, { status: 500 });
 
@@ -327,15 +331,18 @@ async function getOpportunities(request: NextRequest) {
   let rows = (data ?? []) as OpportunityRow[];
   if (businessMode) {
     // Include manageable holds outside the latest run window without a raw-table scan.
-    const {data:held,error:heldError}=await supabase.from("sourcing_opportunities").select(OPPORTUNITY_SELECT)
+    const {data:held,error:heldError}=await supabase.from("sourcing_opportunities").select(BUSINESS_OPPORTUNITY_SELECT)
       .in("status",["inventory_snoozed","roi_snoozed","watching"]).order("created_at",{ascending:false}).limit(queryLimit);
     if(heldError)throw new Error(heldError.message);
-    rows=[...new Map([...rows,...(held??[]) as OpportunityRow[]].map(row=>[row.opportunity_id,row])).values()];
+    // Qualification projections intentionally omit display/evidence columns;
+    // qualifying IDs are hydrated before any display mapping below.
+    rows=[...new Map([...rows,...(held??[]) as unknown as OpportunityRow[]].map(row=>[row.opportunity_id,row])).values()];
   } else {
     rows = await excludeBlockedOpportunities(rows);
     rows = await excludeDeclinedOffers(rows);
     if (status === "open" && scope !== "closest_excluded") rows = rows.filter(row=>!activeSuppressionByAsin.has(row.asin?.toUpperCase()));
   }
+  if(businessMode) rows=rows.map(row=>({...row,matching_diagnostics_json:{businessEligibilityChecks:row.business_checks??[],static_rules:{identity_comparison:{evidenceDecision:{productIdentityVerdict:row.identity_verdict??row.fallback_identity_verdict??"unknown"}}}}}));
   const latestReviews=await fetchLatestReviews(rows);
   const reviewFor=(row:OpportunityRow)=>latestReviews.get(`${row.asin}|${row.ebay_item_id}`);
   const blockedAsins=businessMode?await fetchBlockedAsins(rows.map(row=>row.asin)):new Set<string>();
@@ -362,9 +369,15 @@ async function getOpportunities(request: NextRequest) {
   const qualifyingClosestExcludedRows = scope === "closest_excluded"
     ? rows.filter((row) => !reviewFor(row)?.actionId && isClosestExcludedCandidate(row, closestExcludedContext))
     : [];
-  const eligibleRows = scope === "closest_excluded"
+  let eligibleRows = scope === "closest_excluded"
     ? qualifyingClosestExcludedRows
     : businessMode ? rows.filter(row=>businessReasonFor(row)!==null) : rows.filter(isPresentationEligibleOpportunity);
+  if (businessMode && eligibleRows.length) {
+    const eligibleById=new Map(eligibleRows.map(row=>[row.opportunity_id,row]));
+    const {data:details,error:detailError}=await fetchBatchOpportunities([...eligibleById.keys()],"all",type);
+    if(detailError)throw new Error(detailError.message);
+    eligibleRows=(details??[]).map(row=>({...row,matching_diagnostics_json:{...(row.matching_diagnostics_json as Record<string,unknown>??{}),businessEligibilityChecks:(eligibleById.get(row.opportunity_id)?.matching_diagnostics_json as Record<string,unknown>)?.businessEligibilityChecks??[]}}));
+  }
   const presentationByOpportunityId = scope === "closest_excluded"
     ? new Map<string, PresentationMetadata>()
     : await fetchPresentationMetadataByOpportunityId(
@@ -571,22 +584,32 @@ type OpportunityQueryResult = {
   error: { message: string } | null;
 };
 
+// Business qualification needs stored decisions/hold inputs, not raw descriptions
+// or catalog payloads. Hydrate full evidence only for qualifying exact IDs.
+const BUSINESS_OPPORTUNITY_SELECT = `opportunity_id,candidate_id,sourcing_run_id,asin,ebay_item_id,status,opportunity_type,created_at,score,
+  business_checks:matching_diagnostics_json->businessEligibilityChecks,
+  identity_verdict:matching_diagnostics_json->static_rules->identity_comparison->evidenceDecision->>productIdentityVerdict,
+  fallback_identity_verdict:matching_diagnostics_json->identity_comparison->evidenceDecision->>productIdentityVerdict,
+  sourcing_seed_asins(asin,current_inventory_units),sourcing_ebay_candidates(listing_status)`;
+
 async function fetchRunOpportunities({
   runId,
   latestRunIds,
   status,
   type,
   queryLimit,
+  select = OPPORTUNITY_SELECT,
 }: {
   runId: string | null;
   latestRunIds: string[];
   status: string;
   type: string;
   queryLimit: number;
+  select?: string;
 }): Promise<OpportunityQueryResult> {
   let query = supabase
     .from("sourcing_opportunities")
-    .select(OPPORTUNITY_SELECT)
+    .select(select)
     .order("score", { ascending: false })
     .order("created_at", { ascending: false })
     .limit(queryLimit);
