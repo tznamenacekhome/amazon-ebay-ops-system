@@ -1,6 +1,6 @@
 # Sourcing matching repair handoff
 
-Current phase: **Phase 1 — diagnostics and frozen audit**. Implementation and focused tests are complete; deployment readbacks must be recorded before closing this phase. Stop this session after Phase 1, per the supplied work order.
+Completed: **Phase 1 — diagnostics and frozen audit**, deployed 2026-09-12 16:57 UTC, with the authenticated UI access limitation below. This session stops here per the supplied work order. Next session begins Phase 2.
 
 Read `docs/sourcing_matching_repair_and_feedback_2026-09-12.md`, its companion manifest, and the original `MBOP_Codex_Sourcing_Matching_Repair_Buy_List_Business_Excluded.md` before continuing.
 
@@ -22,8 +22,14 @@ Positive candidate source reconciliation found no explicit exact-pair confirmati
 
 ## Validation and access gap
 
-31 Python tests and the actual TypeScript adapter/panel-render test pass; local build passes. Four exact examples are traced through action snapshot/current stored API/read-only replay/offline rendered HTML. Authenticated production browser access is unavailable; fixture screenshots/read-only API-equivalent evidence must not be described as a production UI check.
+32 Python tests and the actual TypeScript adapter/panel-render test pass; local and Docker builds pass. Four exact examples are traced through action snapshot/current stored API/read-only replay/offline rendered HTML; all four screenshots were visually inspected. Authenticated production browser access is unavailable; fixture screenshots/read-only API-equivalent evidence must not be described as a production UI check.
+
+## Active deployment
+
+- Web: commit 32c3e5638a2b, task 139, digest c48f32c09ddff8fafedf32b71642c55be63a9ab802376012527c0707a2c0b72f; rollout COMPLETED, one running task, healthy ALB target.
+- Scheduler: commit 6f2ccb74cee8, task 91, digest 2cfead5e99ee699375e75a2dcd8195f8c3f685618d2a1a7ca33ce8d6a9bef2ab. The mbop-sourcing-catalog schedule actually targets 91. Manual sourcing uses the latest scheduler-family revision. No quota-consuming job was launched.
+- Both commits pushed. All 20 schedules compared; only sourcing task revision changed. Task and service settings preserved except expected images/build identifiers. Unrelated wholesale discovery document untouched.
 
 ## Next
 
-After final Phase 1 deployment readback, next session starts **Phase 2** of the original work order: Buy List naming, Business Excluded semantics and shared single/bulk feedback. Do not change numeric/edition admission thresholds yet; do not launch sourcing searches or historical backfills. No schema migration has been created in Phase 1.
+Next session starts **Phase 2** of the original work order: Buy List naming, Business Excluded semantics and shared single/bulk feedback. Do not change numeric/edition admission thresholds yet; do not launch sourcing searches or historical backfills. No schema migration has been created in Phase 1.

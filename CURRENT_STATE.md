@@ -1,5 +1,9 @@
 # CURRENT_STATE.md
 
+## Sourcing evidence diagnostics (2026-09-12)
+
+Phase 1 of the matching-repair work order is deployed to web 139 / sourcing scheduler 91. Diagnostics distinguish observed values from unsupported defaults, preserve unknowns and use recorded comparisons. Admission policy is unchanged: 1,000 frozen scoring replays and exact API membership/order comparisons passed. Four production examples remain identity-unknown; policy repairs belong to Phase 3. Phase 2 is next. Authenticated production UI access was unavailable; offline screenshots and API-equivalent evidence are documented in [the phase report](docs/sourcing_matching_repair_and_feedback_2026-09-12.md) and [handoff](docs/sourcing_matching_repair_and_feedback_handoff.md).
+
 ## ZFI Buying integration (2026-09-07, active)
 
 Production migration and dedicated read/refresh/status access are active. Scheduler 84 and web 136 use commit 3c1273029d18. A real refresh succeeded and overlapping POSTs produced one ECS task. All 20 schedule configurations were compared: only the two purchase-ingestion target revisions changed; cadence and other fields are unchanged. No business purchase facts or historical sales COGS were changed. [Activation and credential handoff](docs/ZFI_BUYING_ACTIVATION_2026-09-07.md).

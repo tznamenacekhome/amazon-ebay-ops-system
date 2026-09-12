@@ -1,11 +1,11 @@
 # Sourcing matching repair — Phase 1
 
-Phase 1 implements truthful diagnostics without changing Buy List admission. Phases 2 and 3 are intentionally deferred under the supplied work order. Runtime deployment details are recorded below after verification.
+Phase 1 is implemented and deployed, with the authenticated production UI access limitation below. Buy List admission is unchanged. Phases 2 and 3 are intentionally deferred under the supplied work order.
 
 ## Changes
 
 - The existing Python identity engine now emits `evidenceDecision` and per-side `fields`. Values carry state, bounded source spans/hashes, snapshot references when available, parser/evidence versions, and labeled expectations. Unsupported Standard/Complete/Physical/base defaults are not observed values. Confidence remains explicitly an uncalibrated parser heuristic.
-- The evidence view uses the existing comparator on evidenced values. Generic `Main Game`/franchise equality does not establish a positive identity verdict. Conflicting source values require review. Existing `result`, `hard_block`, recommendations, numeric/edition rules and score adjustments remain unchanged for admission.
+- The evidence view uses the existing comparator on evidenced values. Generic `Main Game`/franchise equality does not establish a positive identity verdict. Comparable conflicting source values require review; a missing counterpart remains an unknown comparison. Existing `result`, `hard_block`, recommendations, numeric/edition rules and score adjustments remain unchanged for admission.
 - The existing decision trace adds `canonicalDecision`: product verdict, business eligibility/reasons, presentation decision, lifecycle status, evaluation UUID/version/time. Unknown business evidence is not a product mismatch. This is a scoring-time assessment, not an assertion that all subsequently updated holds were evaluated.
 - The API adapts both new and legacy JSON. Legacy rows retain their recorded evaluation time or null, never a fabricated current evaluation. The adapter does not reparse titles or infer a fresh verdict. Required seed context is projected; mismatched/missing seed ASIN cannot supply Amazon identity/title/catalog metadata. Exact-ASIN cached Keepa title remains the existing fallback.
 - The real diagnostics panel keeps unknown core/edition/installment fields visible; reads recorded comparison results for indicators; removes Country of Origin, Features and Format/Type substitutions; reconciles packageType; includes generation/theme; and uses plain collapsed descriptions, existing small thumbnails and provenance tooltips.
@@ -67,14 +67,25 @@ The current parser's evidence verdict is unknown for all four; exposing this lim
 
 - 1,000 frozen current-evidence replays: **zero changes to any legacy static scoring output**, after stripping only new observational keys.
 - Actual GET handler against frozen responses: exact ordered IDs and summaries unchanged for both scopes. Buy List preservation is vacuous on the empty current sample; nonempty identity/admission regression fixtures also pass.
-- 21 existing identity tests, 4 existing decision-trace tests and 6 new evidence/provenance tests pass. Node tests exercise the actual API adapter and render the actual panel/helper functions, including nulls, legacy defaults, canonical indicators and ASIN changes.
+- 21 existing identity tests, 4 existing decision-trace tests and 7 new evidence/provenance tests pass (32 Python tests). Node tests exercise the actual API adapter and render the actual panel/helper functions, including nulls, legacy defaults, canonical indicators and ASIN changes.
 - Local Next.js production build/type check passed. Deployment image build is a separate verification step.
-- Offline exact-example HTML artifacts and Chrome screenshot(s) are under tmp/sourcing-phase1. The Dirt screenshot was visually inspected: required unknown rows present, platform comparison consistent, plain collapsed description, no raw developer output. Screenshots are fixture rendering, not authenticated production UI proof.
+- Offline exact-example HTML artifacts and four Chrome screenshots are under tmp/sourcing-phase1. All four were visually inspected: required unknown rows present, platform comparison consistent, plain collapsed description, no raw developer output. External photos were omitted from these offline test artifacts; the application's existing thumbnail rendering remains. Screenshots are fixture rendering, not authenticated production UI proof.
 - CUA exposed no available browser; an in-app browser creation attempt failed. Authenticated production UI remains unverified. No Cognito redirect is being counted as verification.
 
 ## Deployment
 
-Pre-deployment AWS readback: web task 138, sourcing scheduler task 90, 20 schedules recorded. Account 297464765814, us-west-2. Source commit/runtime digests and final service/schedule readbacks will be appended after deployment. Unrelated wholesale discovery document is excluded from this work.
+Verified at **2026-09-12 16:57 UTC**, account 297464765814, us-west-2:
+
+| Consumer | Runtime source commit | Active revision | Image digest |
+|---|---|---|---|
+| Web | 32c3e5638a2b | mbop-web-task:139 (previous 138) | sha256:c48f32c09ddff8fafedf32b71642c55be63a9ab802376012527c0707a2c0b72f |
+| Sourcing scheduler | 6f2ccb74cee8 | mbop-scheduler-task:91 (previous 90) | sha256:2cfead5e99ee699375e75a2dcd8195f8c3f685618d2a1a7ca33ce8d6a9bef2ab |
+
+Both runtime commits are pushed to origin/main. The second commit changes only Python evidence comparison handling and its regression test; web code remains identical. Both Docker builds passed. The scheduler image additionally passed a packaged evidence-contract check with Docker networking disabled.
+
+Web rollout is COMPLETED with one running revision-139 task and a healthy ALB target; the prior target was draining during readback. All 20 schedules were compared semantically: only mbop-sourcing-catalog changed its TaskDefinition, 90 -> 91. Cadence, timezone, overrides, IAM, networking and other target properties are identical. Scheduler/web task settings are identical apart from expected image/build identifiers. Web service networking, load balancers, desired count, capacity strategy and deployment configuration are preserved. Manual sourcing launch uses the scheduler family default, whose new revision is 91.
+
+Private AWS readbacks/proof: aws-before.json, aws-after.json, aws-verification.json. Dirty image-tag suffixes reflect only the unrelated wholesale discovery document, which is outside the web build context and scheduler COPY paths; it was neither committed nor deployed. No sourcing job was triggered. Authenticated production UI remains the explicitly documented verification gap.
 
 ## Next phase
 

@@ -355,8 +355,41 @@
     "manifest.json": "3f627e533e3f919b1e9bb2877bc5bd10302f9f5977e3135bc9237f1de44549a9",
     "newest250.json": "d22552820f2b98a9ce8c97f2e61bfd88c273925188e47b1d9f37f657ccf06201",
     "positive-candidates.json": "c0d0df7b871bed2fa90bd5d3e041ace3c4646c04550d96d7e3375359b2b74979",
-    "read-only-replay.json": "811c57d166aeebcdd6d9443676ada2825ae70eefaa046186f378ee57e2127145",
+    "read-only-replay.json": "0559a32bed0be4ec2b0f620137396786e3c618c00b9596d75b02aba70cc47c59",
     "settings.json": "7896d2d145c129b98f46ec706bedc54a6434432f29e1fcd9315e53ddd9c9aa3c",
     "verification.json": "74d588596598fa1dfa88c7a94b8c4e2705bba97cced0a8151615e59498dbbe07"
+  },
+  "newest250Reasons": {
+    "wrong_edition_version": 77,
+    "missing_shrink_wrap": 53,
+    "suspected_reseal": 7,
+    "non_north_american_version": 12,
+    "nfr": 6,
+    "packaging_damage": 23,
+    "asin_blocked": 14,
+    "sales_velocity_too_low": 10,
+    "listing_error": 4,
+    "roi_too_low": 12,
+    "digital_item": 5,
+    "wrong_product": 14,
+    "wrong_platform": 9,
+    "incomplete_product": 4
+  },
+  "feedbackCounts": {
+    "matchingFeedbackObjects": 507,
+    "explicitFailedFields": 31,
+    "allCorrect": 0,
+    "newest250ExplicitFailedFields": 0
+  },
+  "deployment": {
+    "scheduleCount": 20,
+    "changedSchedules": [
+      "mbop-sourcing-catalog"
+    ],
+    "onlyScheduleChange": "TaskDefinition 90 -> 91",
+    "taskDefinitionSettingsPreserved": true,
+    "webServiceSettingsPreserved": true,
+    "webTask": "arn:aws:ecs:us-west-2:297464765814:task-definition/mbop-web-task:139",
+    "webRollout": "COMPLETED"
   }
 }
