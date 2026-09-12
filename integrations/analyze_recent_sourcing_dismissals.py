@@ -26,7 +26,7 @@ from sourcing_match_rules import (
 )
 
 
-SYSTEM_REASONS = {"no_longer_available"}
+SYSTEM_REASONS = {"no_longer_available", "duplicate_open_asin_opportunity"}
 CONDITION_REASONS = {"missing_shrink_wrap", "suspected_reseal", "packaging_damage", "packaging_condition_issue"}
 MAIN_EXCLUDED_REASONS = SYSTEM_REASONS
 DEFAULT_REPORT = Path("docs/sourcing_dismissal_pattern_audit_latest_1000_2026-08-01.md")
@@ -181,6 +181,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--json", type=Path)
     parser.add_argument("--report", type=Path, default=DEFAULT_REPORT)
     parser.add_argument("--fetch-multiplier", type=int, default=4)
+    parser.add_argument("--cutoff", help="Inclusive ISO timestamp for a reproducible action selection.")
     return parser.parse_args()
 
 
@@ -198,10 +199,13 @@ def fetch_operator_dismissals(supabase, args: argparse.Namespace) -> tuple[list[
             .select("*")
             .eq("action_type", "dismissed")
             .order("created_at", desc=True)
+            .order("action_id", desc=True)
             .range(start, end)
         )
         if since:
             query = query.gte("created_at", since.isoformat())
+        if getattr(args, "cutoff", None):
+            query = query.lte("created_at", args.cutoff)
         response = query.execute()
         batch = response.data or []
         if not batch:
@@ -225,6 +229,8 @@ def is_system_action(action: dict[str, Any]) -> bool:
         return True
     context = action.get("raw_action_context")
     if isinstance(context, dict):
+        if "cleanup_source" in context:
+            return True
         source = " ".join(str(context.get(key) or "") for key in ("source", "actionType", "job", "reason")).casefold()
         if "availability" in source or "refresh" in source:
             return True
@@ -332,6 +338,9 @@ def fetch_latest_by_key(
 
 
 def analyze_action(action: dict[str, Any], evidence: dict[str, dict[str, dict[str, Any]]], settings) -> dict[str, Any]:
+    action_context = action.get("raw_action_context") if isinstance(action.get("raw_action_context"), dict) else {}
+    feedback = action_context.get("matchingFeedback") or action_context.get("diagnosticsFeedback") or {}
+    feedback = feedback if isinstance(feedback, dict) else {}
     opportunity = evidence["opportunities"].get(str(action.get("opportunity_id") or "")) or {}
     candidate = opportunity.get("sourcing_ebay_candidates") or evidence["candidates"].get(str(action.get("candidate_id") or opportunity.get("candidate_id") or "")) or {}
     seed = opportunity.get("sourcing_seed_asins") or evidence["seeds"].get(str(opportunity.get("seed_id") or candidate.get("seed_id") or "")) or {}
@@ -357,6 +366,12 @@ def analyze_action(action: dict[str, Any], evidence: dict[str, dict[str, dict[st
         "rank": None,
         "action_id": action.get("action_id"),
         "action_date": action.get("created_at"),
+        "action_time_diagnostic_comparison": action_context.get("diagnosticComparison"),
+        "matching_feedback": feedback,
+        "feedback_label": "fields_all_correct" if feedback.get("allAssumptionsCorrect") is True else "fields_failed" if feedback.get("failedRuleFamilies") or feedback.get("incorrectRows") else "unlabeled",
+        "failed_rule_families": feedback.get("failedRuleFamilies") or [],
+        "evidence_sources": feedback.get("evidenceSources") or [],
+        "evidence_temporality": "current stored evidence replay; action-time comparison retained separately",
         "dismiss_reason": normalize_reason(action.get("dismiss_reason")),
         "dismissal_note": notes,
         "asin": action.get("asin") or opportunity.get("asin") or candidate.get("asin") or seed.get("asin") or snapshot.get("asin"),
@@ -375,7 +390,8 @@ def analyze_action(action: dict[str, Any], evidence: dict[str, dict[str, dict[st
         "item_specifics_present": bool(fields["aspects"]),
         "detected_ebay_platform": ", ".join((diagnostics.get("platform_rule") or {}).get("candidate_systems") or []),
         "game_name": "; ".join(fields["game_name_values"]),
-        "region_code": "; ".join(fields["region_code_values"] + fields["country_of_origin_values"]),
+        "region_code": "; ".join(fields["region_code_values"]),
+        "country_of_origin": "; ".join(fields["country_of_origin_values"]),
         "format": "; ".join(fields["format_values"]),
         "type": "; ".join(fields["type_values"]),
         "features": "; ".join(fields["features_values"]),
@@ -555,9 +571,9 @@ def classify_rule_miss(
     if current_warnings or diagnostics.get("recommendation") in {"Review", "Probable Non-Match"}:
         return "current rule produces review/probable non-match"
     if fields["description"] and not nested(stored, "normalized_evidence", "description"):
-        return "evidence unavailable before detail but available afterward"
+        return "current description present; action-time availability unverified"
     if reason in CONDITION_REASONS and fields["primary_image_url"]:
-        return "evidence exists only in images"
+        return "image review may be required; causal evidence unverified"
     if reason in {"other"}:
         return "operator dismissal may be ambiguous or incorrectly categorized"
     return "no current deterministic rule covers pattern"
@@ -578,10 +594,7 @@ def classify_dependency(action: dict[str, Any], diagnostics: dict[str, Any], fie
         return "title_only"
     if any(token in hard_and_warn for token in ["platform mismatch", "game name", "category"]):
         return "title_plus_item_specifics_or_category"
-    if fields["aspects"] or fields["category_ids"] or fields["category_names"]:
-        return "title_plus_item_specifics_or_category"
-    if fields["description"]:
-        return "description"
+    # Presence alone cannot establish that a source caused the mismatch.
     return "unclear"
 
 
@@ -676,6 +689,13 @@ def write_csv(path: Path, rows: list[dict[str, Any]]) -> None:
         "opportunity_id",
         "candidate_id",
         "snapshot_id",
+        "feedback_label",
+        "failed_rule_families",
+        "evidence_sources",
+        "matching_feedback",
+        "action_time_diagnostic_comparison",
+        "evidence_temporality",
+        "country_of_origin",
     ]
     with path.open("w", newline="", encoding="utf-8") as handle:
         writer = csv.DictWriter(handle, fieldnames=fields, extrasaction="ignore")

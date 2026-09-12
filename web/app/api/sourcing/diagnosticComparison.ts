@@ -9,10 +9,18 @@ export type DiagnosticComparisonRow = {
   kind: "identity" | "evidence" | "context";
   ruleFamily?: string;
   evidenceSource?: string;
+  comparisonResult?: "match" | "conflict" | "review" | "unknown";
+  comparisonReason?: string;
+  amazonEvidence?: JsonRecord;
+  ebayEvidence?: JsonRecord;
 };
 
 export type DiagnosticComparison = {
-  version: "diagnostic_comparison_v2";
+  version: string;
+  productIdentityVerdict: string;
+  businessEligibility: string;
+  businessReason: string | null;
+  evaluation: JsonRecord;
   recommendation: string | null;
   hardBlocks: string[];
   warnings: string[];
@@ -31,6 +39,9 @@ export function buildDiagnosticComparison({
   candidate: JsonRecord;
   diagnostics: unknown;
 }): DiagnosticComparison {
+  const seedMatches = Boolean(seed.asin && String(seed.asin).toUpperCase() === String(opportunity.asin).toUpperCase());
+  const originalSeed = seed;
+  if (!seedMatches) seed = {};
   const rawEbay = objectValue(candidate.raw_ebay_json);
   const aspects = itemSpecifics(rawEbay.localizedAspects);
   const staticRules = objectValue(objectValue(diagnostics).static_rules);
@@ -42,7 +53,10 @@ export function buildDiagnosticComparison({
   const categoryRule = objectValue(staticRules.category ?? objectValue(diagnostics).category);
   const incompleteRule = objectValue(staticRules.incomplete_product ?? objectValue(diagnostics).incomplete_product);
   const digitalRule = objectValue(staticRules.digital_download ?? objectValue(diagnostics).digital_download);
-  const derivedIdentity = objectValue(staticRules.derived_identity ?? objectValue(diagnostics).derived_identity);
+  const derivedIdentity = objectValue(staticRules.identity_comparison ?? objectValue(diagnostics).identity_comparison ?? staticRules.derived_identity ?? objectValue(diagnostics).derived_identity);
+  const evidenceDecision = objectValue(derivedIdentity.evidenceDecision);
+  const canonicalDecision = objectValue(objectValue(diagnostics).canonicalDecision);
+  const comparisons = objectValue(evidenceDecision.comparisons ?? derivedIdentity.comparisons);
   const amazonIdentity = objectValue(derivedIdentity.amazon);
   const ebayIdentity = objectValue(derivedIdentity.ebay);
   const recommendation = textValue(objectValue(diagnostics).recommendation ?? staticRules.recommendation);
@@ -57,7 +71,19 @@ export function buildDiagnosticComparison({
   const amazonRegion = firstText(regionRule.amazon, objectValue(seed.raw_context_json).region);
 
   return {
-    version: "diagnostic_comparison_v2",
+    version: "diagnostic_comparison_v3",
+    productIdentityVerdict: seedMatches ? String(evidenceDecision.productIdentityVerdict ?? "unknown") : "unknown",
+    businessEligibility: String(canonicalDecision.businessEligibility ?? "unknown"),
+    businessReason: firstText(objectValue(Array.isArray(canonicalDecision.businessReasons) ? canonicalDecision.businessReasons[0] : null).summary),
+    evaluation: {
+      availability: canonicalDecision.version ? "new" : derivedIdentity.version ? "legacy" : "unavailable",
+      id: canonicalDecision.evaluationId ?? null,
+      version: canonicalDecision.version ?? derivedIdentity.version ?? null,
+      evaluatedAt: canonicalDecision.evaluatedAt ?? objectValue(objectValue(diagnostics).presentationDecision).evaluatedAt ?? null,
+      metadataAsin: originalSeed.asin ?? null,
+      metadataMatchesOpportunity: seedMatches,
+      policyRole: "diagnostic_only_legacy_admission_unchanged",
+    },
     recommendation,
     hardBlocks,
     warnings,
@@ -65,10 +91,12 @@ export function buildDiagnosticComparison({
     rows: [
       identityRow("core_game_identity", "Core Game", "core_game_identity", amazonIdentity.coreGame, ebayIdentity.coreGame, sharedTokensText(titleOverlap)),
       identityRow("installment_number", "Installment / Sequel", "numeric_installment", amazonIdentity.installment, ebayIdentity.installment, numericExplanation(numeric)),
+      identityRow("generation", "Generation", "numeric_installment", amazonIdentity.generation, ebayIdentity.generation, null),
+      identityRow("theme", "Theme", "core_game_identity", amazonIdentity.theme, ebayIdentity.theme, null),
       identityRow("platform_system", "Platform", "platform", amazonIdentity.platform ?? amazonSystem, ebayIdentity.platform ?? aspects.Platform ?? platformRule.ebay_system, formatDiagnosticValue(platformRule.result)),
       identityRow("edition_version", "Edition / Version", "edition_version", amazonIdentity.edition ?? amazonEdition, ebayIdentity.edition ?? editionRule.ebay, formatDiagnosticValue(editionRule.result)),
       identityRow("region", "Region", "region", amazonIdentity.region ?? amazonRegion, ebayIdentity.region ?? aspects["Region Code"] ?? aspects.Region ?? regionRule.ebay, formatDiagnosticValue(regionRule.result)),
-      identityRow("package_bundle_contents", "Package Contents", "completeness", amazonIdentity.packageContents, ebayIdentity.packageContents, "Package or bundle evidence"),
+      identityRow("package_bundle_contents", "Package Contents", "completeness", amazonIdentity.packageType ?? amazonIdentity.packageContents, ebayIdentity.packageType ?? ebayIdentity.packageContents, "Package or bundle evidence"),
       identityRow("completeness", "Completeness", "completeness", amazonIdentity.completeness, ebayIdentity.completeness, formatDiagnosticValue(incompleteRule.reason)),
       identityRow("digital_physical", "Digital vs Physical", "digital_physical", amazonIdentity.digitalPhysical, ebayIdentity.digitalPhysical, formatDiagnosticValue(digitalRule.reason)),
       identityRow("category_product_type", "Category / Product Type", "category_product_type", null, formatDiagnosticValue(categoryName(rawEbay) ?? categoryRule.ebay), formatDiagnosticValue(categoryRule.result)),
@@ -81,14 +109,42 @@ export function buildDiagnosticComparison({
       evidenceRow("photos", "Photos", "primary_image", imageCount(rawEbay)),
       evidenceRow("category", "Category", "category", formatDiagnosticValue(categoryName(rawEbay) ?? categoryRule.ebay)),
       evidenceRow("platform_metadata", "Platform Metadata", "platform_metadata", formatDiagnosticValue(aspects.Platform ?? platformRule.ebay_system)),
-      evidenceRow("amazon_catalog_metadata", "Amazon Catalog Metadata", "amazon_catalog_metadata", amazonCatalogSummary(seed, platformRule, editionRule, regionRule)),
+      evidenceRow("amazon_catalog_metadata", "Amazon Catalog Metadata", "amazon_catalog_metadata", seedMatches ? amazonCatalogSummary(seed, platformRule, editionRule, regionRule) : "Exact-ASIN metadata unavailable"),
       contextRow("final_recommendation", "Final recommendation", null, recommendation, "Backend scoring recommendation"),
       contextRow("hard_blocks", "Hard-block reasons", null, hardBlocks.join("; ") || null, "Backend hard blocks"),
       contextRow("warnings", "Warnings", null, warnings.join("; ") || null, "Backend warnings"),
       contextRow("confidence_summary", "Confidence/evidence summary", null, evidenceSummary(diagnostics, titleOverlap), "Backend diagnostics"),
       contextRow("opportunity_context", "Opportunity context", asin, textValue(candidate.ebay_item_id), "ASIN and eBay identity"),
-    ],
+    ].map((row) => adaptIdentityRow(row, comparisons, amazonIdentity, ebayIdentity, seedMatches)),
   };
+}
+
+const FIELD_KEYS: Record<string, string> = {
+  core_game_identity: "coreGame", installment_number: "installment", generation: "generation", theme: "theme",
+  platform_system: "platform", edition_version: "edition", region: "region", package_bundle_contents: "packageType",
+  completeness: "completeness", digital_physical: "digitalPhysical",
+};
+
+function adaptIdentityRow(row: DiagnosticComparisonRow, comparisons: JsonRecord, amazon: JsonRecord, ebay: JsonRecord, exactAsin: boolean): DiagnosticComparisonRow {
+  if (row.kind !== "identity") return row;
+  const key = FIELD_KEYS[row.key];
+  const comparison = objectValue(comparisons[key]);
+  function field(identity: JsonRecord, side: string): JsonRecord {
+    const current = objectValue(objectValue(identity.fields)[key]);
+    if (Object.keys(current).length && (side !== "amazon" || exactAsin)) return current;
+    const raw = key === "packageType" ? identity.packageType ?? identity.packageContents : identity[key];
+    const unsupported = ["Base / Standard", "Standard software", "None / Base title", "Complete", "Physical"].includes(String(raw));
+    const value = unsupported || (side === "amazon" && !exactAsin) ? null : raw ?? null;
+    return { value, state: value ? "inferred" : "unknown", availability: "legacy", sources: [],
+      parserVersion: null, evidenceVersion: null, expectation: unsupported ? raw : null,
+      reason: side === "amazon" && !exactAsin ? "Stored Amazon evidence is not verified for this ASIN" : "Legacy provenance unavailable" };
+  }
+  const left = field(amazon, "amazon"), right = field(ebay, "ebay");
+  const result = left.value && right.value && ["match", "conflict", "review"].includes(String(comparison.result))
+    ? comparison.result as "match" | "conflict" | "review" : "unknown";
+  return {...row, amazon: textValue(left.value), ebay: textValue(right.value), amazonEvidence: left, ebayEvidence: right,
+    comparisonResult: result, comparisonReason: result === "unknown" ? "Evidence or stored comparison unavailable" : String(comparison.reason ?? "Stored legacy comparison"),
+    evidence: result === "unknown" ? "Not identified; no positive comparison evidence" : String(comparison.reason ?? "Stored legacy comparison")};
 }
 
 function identityRow(
@@ -215,7 +271,8 @@ function itemSpecificSummary(aspects: JsonRecord) {
 
 function amazonCatalogSummary(seed: JsonRecord, platformRule: JsonRecord, editionRule: JsonRecord, regionRule: JsonRecord) {
   const rawContext = objectValue(seed.raw_context_json);
-  const catalogIdentity = objectValue(rawContext.amazon_catalog_identity);
+  const cachedIdentity = objectValue(rawContext.amazon_catalog_identity);
+  const catalogIdentity = cachedIdentity.asin && String(cachedIdentity.asin).toUpperCase() === String(seed.asin).toUpperCase() ? cachedIdentity : {};
   const entries = [
     labeledValue("ASIN", seed.asin),
     labeledValue("System", catalogIdentity.normalized_platform ?? seed.system ?? rawContext.inferred_system ?? platformRule.amazon_system),

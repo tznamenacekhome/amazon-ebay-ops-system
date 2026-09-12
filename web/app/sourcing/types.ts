@@ -135,6 +135,10 @@ export type DecisionTraceRow = {
 
 export type DiagnosticComparison = {
   version: string;
+  productIdentityVerdict?: string;
+  businessEligibility?: string;
+  businessReason?: string | null;
+  evaluation?: Record<string, unknown>;
   recommendation: string | null;
   hardBlocks: string[];
   warnings: string[];
@@ -148,6 +152,10 @@ export type DiagnosticComparison = {
     kind?: "identity" | "evidence" | "context";
     ruleFamily?: string;
     evidenceSource?: string;
+    comparisonResult?: "match" | "conflict" | "review" | "unknown";
+    comparisonReason?: string;
+    amazonEvidence?: Record<string, unknown>;
+    ebayEvidence?: Record<string, unknown>;
   }>;
 };
 

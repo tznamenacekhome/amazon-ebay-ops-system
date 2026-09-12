@@ -1,0 +1,362 @@
+{
+  "cutoff": "2026-09-12T16:39:55.421289+00:00",
+  "project": "froeucjkcepuhgwisped",
+  "selectionSQL": "select * from public.sourcing_actions where action_type='dismissed' and created_at <= '2026-09-12T16:39:55.421289+00:00'\nand coalesce(dismiss_reason,'') not in ('no_longer_available','duplicate_open_asin_opportunity')\nand not coalesce(raw_action_context ? 'cleanup_source',false)\nand concat_ws(' ',raw_action_context->>'source',raw_action_context->>'actionType',raw_action_context->>'job',raw_action_context->>'reason') !~* 'availability|refresh'\norder by created_at desc,action_id desc limit 1000",
+  "actions": {
+    "file": "tmp\\sourcing-phase1\\actions.json",
+    "rows": 1000,
+    "sha256": "89d9ecd8f5aa7f3d910951b14b5d129f85001c27330a72ed2ea9f67be04ea4c3"
+  },
+  "newest250": {
+    "file": "tmp\\sourcing-phase1\\newest250.json",
+    "rows": 250,
+    "sha256": "d22552820f2b98a9ce8c97f2e61bfd88c273925188e47b1d9f37f657ccf06201"
+  },
+  "reasons": {
+    "wrong_edition_version": 387,
+    "missing_shrink_wrap": 128,
+    "suspected_reseal": 17,
+    "non_north_american_version": 32,
+    "nfr": 10,
+    "packaging_damage": 45,
+    "asin_blocked": 82,
+    "sales_velocity_too_low": 52,
+    "listing_error": 4,
+    "roi_too_low": 22,
+    "digital_item": 26,
+    "wrong_product": 128,
+    "wrong_platform": 22,
+    "incomplete_product": 36,
+    "seller_listing_mismatch": 3,
+    "other": 6
+  },
+  "currentStoredEvidence": {
+    "file": "tmp\\sourcing-phase1\\current-evidence.json",
+    "rows": 1000,
+    "sha256": "7d77925fb36a5ccfb65f01a7691414c63a7457ccdb3582f2903193825997c4c2"
+  },
+  "actionSnapshots": {
+    "file": "tmp\\sourcing-phase1\\action-snapshots.json",
+    "rows": 1000,
+    "sha256": "8c1d0cf65313bd0c4b252164a6d45496a73c9603d4d88f024606fdd9f6a03116"
+  },
+  "businessHolds": {
+    "file": "tmp\\sourcing-phase1\\holds.json",
+    "rows": 33,
+    "sha256": "d02c65ec167eb283833329ed6c4fdfacf920acb6a77c31a8475f927aa55d7480"
+  },
+  "positiveCandidates": {
+    "file": "tmp\\sourcing-phase1\\positive-candidates.json",
+    "rows": 5356,
+    "sha256": "c0d0df7b871bed2fa90bd5d3e041ace3c4646c04550d96d7e3375359b2b74979"
+  },
+  "positiveSourceCounts": {
+    "purchase_items / verified_purchase_item": 3460,
+    "sourcing_purchase_matches / purchase_matched": 828,
+    "sourcing_actions / purchased": 632,
+    "matching_intelligence_receiving_outcomes / receiving_outcome": 421,
+    "manual_item_matches / manual_match": 15
+  },
+  "positiveLimitation": "Candidate labels only: purchase/watch/receiving rows are not verified exact-pair truth without reconciled explicit confirmation. Cap 10000.",
+  "settings": {
+    "file": "tmp\\sourcing-phase1\\settings.json",
+    "rows": 1,
+    "sha256": "7896d2d145c129b98f46ec706bedc54a6434432f29e1fcd9315e53ddd9c9aa3c"
+  },
+  "baselineSource": "ff6e65d960bd0a6209ee06bc9a6dc00dd7470030",
+  "apiSelection": {
+    "all_open": {
+      "params": "status=open&type=all&sourceMode=all&scope=all_open&limit=150",
+      "summary": {
+        "total": 0,
+        "returned": 0,
+        "buyNow": 0,
+        "bestOffer": 0,
+        "auction": 0,
+        "multiUnit": 0
+      },
+      "orderedRows": []
+    },
+    "closest_excluded": {
+      "params": "status=open&type=all&sourceMode=all&scope=closest_excluded&limit=50",
+      "summary": {
+        "total": 141,
+        "returned": 50,
+        "buyNow": 0,
+        "bestOffer": 0,
+        "auction": 0,
+        "multiUnit": 0
+      },
+      "orderedRows": [
+        {
+          "opportunityId": "88425bfe-9b97-44fa-8432-f27b2de33973",
+          "asin": "B07XV4NHHN",
+          "nearMissRank": 101
+        },
+        {
+          "opportunityId": "7f5baa10-ef48-466d-9fb7-497fe5e61b17",
+          "asin": "B003RS8I92",
+          "nearMissRank": 101
+        },
+        {
+          "opportunityId": "15b93e10-477e-4b62-b00a-79069c09e5c4",
+          "asin": "B002I0J998",
+          "nearMissRank": 101
+        },
+        {
+          "opportunityId": "29796e93-97fc-4cfa-824c-2799510327b1",
+          "asin": "B002I0IUM0",
+          "nearMissRank": 101
+        },
+        {
+          "opportunityId": "e26b3eab-2d75-474f-8ec6-bc78e1b6fc0f",
+          "asin": "B003VJKJG2",
+          "nearMissRank": 100
+        },
+        {
+          "opportunityId": "9449a16e-e069-4698-b6ba-4f087599cf1d",
+          "asin": "B0050SYBL6",
+          "nearMissRank": 98
+        },
+        {
+          "opportunityId": "bd305ff8-0ae6-4c81-937e-c3f822175758",
+          "asin": "B002I0J998",
+          "nearMissRank": 98
+        },
+        {
+          "opportunityId": "13aba38e-00da-47d9-a6f3-bd02a1b37bd1",
+          "asin": "B097RB8JJB",
+          "nearMissRank": 97
+        },
+        {
+          "opportunityId": "361f36dd-e09c-4096-9f22-b21cb95c00d7",
+          "asin": "B097RB8JJB",
+          "nearMissRank": 97
+        },
+        {
+          "opportunityId": "56b512f9-7631-4183-a99d-b3d42d56833f",
+          "asin": "B097RB8JJB",
+          "nearMissRank": 96
+        },
+        {
+          "opportunityId": "6a47b41f-2bf7-4e89-a120-48adcb276459",
+          "asin": "B00VMB5RDQ",
+          "nearMissRank": 95
+        },
+        {
+          "opportunityId": "7f86c983-35e5-441c-a607-e0d9f510a3b8",
+          "asin": "B07P5TL4SH",
+          "nearMissRank": 93
+        },
+        {
+          "opportunityId": "688d9510-5645-4e9c-94fa-23082a65f651",
+          "asin": "B07P5TL4SH",
+          "nearMissRank": 93
+        },
+        {
+          "opportunityId": "e493de9a-0ba3-486d-b296-174155ce8a49",
+          "asin": "B002I0J998",
+          "nearMissRank": 92
+        },
+        {
+          "opportunityId": "12edcfab-ba63-4a72-94b6-0cac59574abe",
+          "asin": "B002I0K3M0",
+          "nearMissRank": 90
+        },
+        {
+          "opportunityId": "732d60f2-7ee4-429d-a7fd-d3ab680103ae",
+          "asin": "B08H9KGMWK",
+          "nearMissRank": 88
+        },
+        {
+          "opportunityId": "681ee187-02ee-4ae3-b01d-3550c3c7adc8",
+          "asin": "B097RB8JJB",
+          "nearMissRank": 88
+        },
+        {
+          "opportunityId": "df85a464-7001-4af5-b4a8-0aa55d542279",
+          "asin": "B002I0J998",
+          "nearMissRank": 88
+        },
+        {
+          "opportunityId": "a71a0af2-00a9-4349-9091-7ca2469ac5b4",
+          "asin": "B0D3P668DV",
+          "nearMissRank": 86
+        },
+        {
+          "opportunityId": "ef61607b-1269-4437-b550-dde1a9ee9349",
+          "asin": "B097RB8JJB",
+          "nearMissRank": 85
+        },
+        {
+          "opportunityId": "30b5aaeb-6755-4fab-b854-89aebf5d0dc6",
+          "asin": "B07SVNLBY9",
+          "nearMissRank": 85
+        },
+        {
+          "opportunityId": "3701cbc3-1220-429d-b7c5-18a9ca442315",
+          "asin": "B0028IBTL6",
+          "nearMissRank": 85
+        },
+        {
+          "opportunityId": "e60b3d50-fdc4-408c-bf42-ce115e9121c5",
+          "asin": "B002I0J998",
+          "nearMissRank": 84
+        },
+        {
+          "opportunityId": "1a106691-db5c-455b-95dc-eeed8472eab9",
+          "asin": "B097RB8JJB",
+          "nearMissRank": 83
+        },
+        {
+          "opportunityId": "ef581cb9-ef93-4c31-9d10-68a8df77cce5",
+          "asin": "B097RB8JJB",
+          "nearMissRank": 83
+        },
+        {
+          "opportunityId": "ff7ff18e-c81e-40c3-ad5c-1f0cb17db3d9",
+          "asin": "B0050SVFWE",
+          "nearMissRank": 83
+        },
+        {
+          "opportunityId": "a257c97c-2d2a-4d02-86be-52c951ea157e",
+          "asin": "B01F9HMO2K",
+          "nearMissRank": 82
+        },
+        {
+          "opportunityId": "6a8ef021-33e1-4866-8fb8-b3b504dbc27e",
+          "asin": "B006WN5UKO",
+          "nearMissRank": 82
+        },
+        {
+          "opportunityId": "8c3bd934-8786-4ccb-86f6-cf425876ee29",
+          "asin": "B002I0J998",
+          "nearMissRank": 81
+        },
+        {
+          "opportunityId": "dd950404-d071-40b4-8128-5fc65a8b909e",
+          "asin": "B097RB8JJB",
+          "nearMissRank": 80
+        },
+        {
+          "opportunityId": "e8d49dcd-664d-4ddd-9e8a-558aee1e4bbb",
+          "asin": "B097RB8JJB",
+          "nearMissRank": 80
+        },
+        {
+          "opportunityId": "4b55eb6a-a434-4005-8ef6-41545873de97",
+          "asin": "B002I0J998",
+          "nearMissRank": 80
+        },
+        {
+          "opportunityId": "66bc3057-a0eb-4b9d-84be-3f00086a92af",
+          "asin": "B0CDDT433X",
+          "nearMissRank": 80
+        },
+        {
+          "opportunityId": "b05be8f7-8b4e-49d3-b577-e574c0d7acf2",
+          "asin": "B097RB8JJB",
+          "nearMissRank": 79
+        },
+        {
+          "opportunityId": "2b084a20-224b-4918-a6cf-4fff82f96591",
+          "asin": "B08DD5559K",
+          "nearMissRank": 77
+        },
+        {
+          "opportunityId": "8de639e9-aac0-48bf-8651-5dd70909a120",
+          "asin": "B004Y6DPQM",
+          "nearMissRank": 77
+        },
+        {
+          "opportunityId": "2207078e-1bba-4779-9a39-77f74858fa06",
+          "asin": "B004Y6DPQM",
+          "nearMissRank": 77
+        },
+        {
+          "opportunityId": "aef366ce-8a6e-462d-9867-d81e3fa61202",
+          "asin": "B003O6E986",
+          "nearMissRank": 77
+        },
+        {
+          "opportunityId": "64837894-8509-4394-8c73-be86bde423be",
+          "asin": "B08T488259",
+          "nearMissRank": 76
+        },
+        {
+          "opportunityId": "98af630a-5e1f-47f7-8bd9-229c188ff80d",
+          "asin": "B08T488259",
+          "nearMissRank": 76
+        },
+        {
+          "opportunityId": "2bbfadd3-86a0-42fb-8793-f24ed9900200",
+          "asin": "B097RB8JJB",
+          "nearMissRank": 75
+        },
+        {
+          "opportunityId": "2be2b047-e0bb-4008-84ac-d9bf68f4ad26",
+          "asin": "B00118T6FU",
+          "nearMissRank": 74
+        },
+        {
+          "opportunityId": "9b0413ce-9def-4766-82e4-7c44e6da55c5",
+          "asin": "B00CMQTUCE",
+          "nearMissRank": 70
+        },
+        {
+          "opportunityId": "550e9180-43ee-406e-815d-c7b563128385",
+          "asin": "B074F2HDRV",
+          "nearMissRank": 70
+        },
+        {
+          "opportunityId": "bd7791f2-fdb0-490a-9ca2-b08f45fce8c0",
+          "asin": "B097RB8JJB",
+          "nearMissRank": 69
+        },
+        {
+          "opportunityId": "e37bfe70-8aa1-44e3-89f6-399b8ad5dc8d",
+          "asin": "B07RL5648S",
+          "nearMissRank": 69
+        },
+        {
+          "opportunityId": "e5162dfe-f616-4c7c-a25b-f92f75a86c92",
+          "asin": "B074XPKMVZ",
+          "nearMissRank": 69
+        },
+        {
+          "opportunityId": "f2fa5cef-4554-48e1-a26a-8ff8aed6a2cb",
+          "asin": "B00005BZC7",
+          "nearMissRank": 69
+        },
+        {
+          "opportunityId": "d23ff501-d5a1-439b-82ca-e7edfa058002",
+          "asin": "B000TGB4V4",
+          "nearMissRank": 68
+        },
+        {
+          "opportunityId": "a48f9a95-9fe0-416b-9a3e-aa5bcbc2b4d0",
+          "asin": "B00006F2ZS",
+          "nearMissRank": 66
+        }
+      ]
+    }
+  },
+  "privateArtifactHashes": {
+    "action-snapshots.json": "8c1d0cf65313bd0c4b252164a6d45496a73c9603d4d88f024606fdd9f6a03116",
+    "actions.json": "89d9ecd8f5aa7f3d910951b14b5d129f85001c27330a72ed2ea9f67be04ea4c3",
+    "api-after.json": "178597cfb6dcb5323cdbc1d03584880ec93ba469995cdae824359d4f95b7fcca",
+    "api-before.json": "f9ac69dd159766cb7c216e4bcc906028c41dd7ec0e8da13f13ec30c631d1ede4",
+    "api-calls-after.json": "3308a17987246466e299b9c7f9f01aba003dbd100a0dd1bcfcad83dd347562da",
+    "api-calls-before.json": "3308a17987246466e299b9c7f9f01aba003dbd100a0dd1bcfcad83dd347562da",
+    "api-responses.json": "4e461d9268006e1a293c46e1243356840c4c1b053601274c203f1d3c954a0c83",
+    "current-evidence.json": "7d77925fb36a5ccfb65f01a7691414c63a7457ccdb3582f2903193825997c4c2",
+    "exact-example-traces.json": "22737df5c07c0f6daddccedead9eac47600b6e473fe436cc35fe86f9e2234a73",
+    "holds.json": "d02c65ec167eb283833329ed6c4fdfacf920acb6a77c31a8475f927aa55d7480",
+    "manifest.json": "3f627e533e3f919b1e9bb2877bc5bd10302f9f5977e3135bc9237f1de44549a9",
+    "newest250.json": "d22552820f2b98a9ce8c97f2e61bfd88c273925188e47b1d9f37f657ccf06201",
+    "positive-candidates.json": "c0d0df7b871bed2fa90bd5d3e041ace3c4646c04550d96d7e3375359b2b74979",
+    "read-only-replay.json": "811c57d166aeebcdd6d9443676ada2825ae70eefaa046186f378ee57e2127145",
+    "settings.json": "7896d2d145c129b98f46ec706bedc54a6434432f29e1fcd9315e53ddd9c9aa3c",
+    "verification.json": "74d588596598fa1dfa88c7a94b8c4e2705bba97cced0a8151615e59498dbbe07"
+  }
+}

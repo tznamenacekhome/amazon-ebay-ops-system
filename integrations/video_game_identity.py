@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import re
+import hashlib
 from typing import Any
 
 from system_detection import detect_system_from_title, normalize_system
@@ -193,11 +194,20 @@ def build_identity_comparison(
         game_names=usable_game_names(evidence),
         item_specifics=evidence,
     )
+    catalog = catalog_identity(seed)
+    if catalog and (not catalog.get("asin") or str(catalog["asin"]).upper() != str(seed.get("asin") or "").upper()):
+        for key in ("platform", "edition", "region"):
+            field = amazon_identity["fields"][key]
+            if any(source["field"].startswith("raw_context_json.amazon_catalog_identity.") for source in field["sources"]):
+                field.update(value=None, state="unknown", sources=[], reason="Catalog ASIN not verified against seed")
     comparisons = compare_identities(amazon_identity, ebay_identity)
     overall = overall_result(comparisons)
     reason = reason_for_result(comparisons)
     return {
         "version": "video_game_identity_v1",
+        # Phase 1: evidence diagnostics are additive. These legacy result and
+        # hard_block fields remain the admission policy until the policy phase.
+        "evidenceDecision": evidence_decision(amazon_identity, ebay_identity),
         "amazon": amazon_identity,
         "ebay": ebay_identity,
         "comparisons": comparisons,
@@ -242,7 +252,118 @@ def parse_video_game_identity(
         "confidence": parsed.get("confidence", 0.35 if primary else 0),
         "evidence": parsed.get("evidence", []) + field_evidence(side, sources, catalog_identity, normalized_platform, edition, region),
     }
+    field_sources = sources + [{"source": "platform_values", "text": str(value)} for value in item_specifics.get("platform_values", [])]
+    identity["fields"] = identity_fields(identity, field_sources, catalog_identity, side)
+    identity["confidenceKind"] = "uncalibrated_parser_heuristic"
     return identity
+
+
+EVIDENCE_VERSION = "video_game_evidence_v2"
+IDENTITY_FIELDS = ("franchise", "coreProduct", "coreGame", "installment", "generation", "theme",
+                   "edition", "packageType", "platform", "region", "completeness", "digitalPhysical")
+
+
+def identity_fields(identity, sources, catalog, side):
+    """Attach provenance to the existing parser; never feed this view to admission.
+
+    Absence of a negative term is not evidence of the expected positive value.
+    Unsupported legacy defaults remain available only as labeled expectations.
+    """
+    fields = {}
+    defaults = {"edition": "Base / Standard", "packageType": "Standard software",
+                "installment": "None / Base title", "completeness": "Complete", "digitalPhysical": "Physical"}
+    identity_keys = {"franchise", "coreProduct", "coreGame", "installment", "generation", "theme"}
+    for key in IDENTITY_FIELDS:
+        value = identity.get(key)
+        expectation = value if value and value == defaults.get(key) else None
+        provenance = []
+        if key in identity_keys:
+            provenance = [dict(field=row["source"], span=row["value"], snapshot=None)
+                          for row in identity["evidence"] if row.get("field") == "identity"]
+        elif key in {"edition", "region"}:
+            catalog_key = "normalized_" + key
+            if catalog.get(catalog_key):
+                provenance = [dict(field="raw_context_json.amazon_catalog_identity." + catalog_key,
+                                   span=str(catalog[catalog_key]), snapshot=catalog.get("snapshot_id") or catalog.get("captured_at"))]
+            else:
+                parser = first_edition if key == "edition" else first_region
+                provenance = [dict(field=row["source"], span=row["text"], snapshot=None) for row in sources
+                              if row["source"] != "country_of_origin_values" and parser([row]) == value and value]
+        elif key == "platform":
+            provenance = [dict(field=row["source"], span=row["text"], snapshot=None) for row in sources
+                          if detect_system_from_title(row["text"]) or row["source"] == "platform_values"]
+            if catalog.get("normalized_platform"):
+                provenance = [dict(field="raw_context_json.amazon_catalog_identity.normalized_platform",
+                                   span=str(catalog["normalized_platform"]), snapshot=catalog.get("snapshot_id") or catalog.get("captured_at"))]
+        else:
+            provenance = [dict(field=row["source"], span=row["text"], snapshot=None) for row in sources
+                          if row["source"] not in {"country_of_origin_values", "region_code_values"}]
+        if expectation:
+            value = None
+        if key == "region" and not provenance:
+            value = None
+        if key == "generation" and value == "1.0" and not any("1.0" in row["span"] for row in provenance):
+            expectation, value = value, None
+        state = "inferred" if value and provenance else "unknown"
+        if value and provenance and all(row["field"].startswith("raw_context_json.amazon_catalog_identity.") for row in provenance):
+            state = "supported"
+        # Edition words such as 'complete with manual' do not establish an edition.
+        if key == "edition" and value == "Complete Edition" and not catalog.get("normalized_edition"):
+            if not any("complete edition" in normalize_text(row["span"]) for row in provenance):
+                expectation, value, state = value, None, "unknown"
+        if key in identity_keys and value:
+            source_values = []
+            for source in sources:
+                parsed = parse_known_identity([source])
+                parsed_value = display_core_game(parsed) if key == "coreGame" else parsed.get(key)
+                if parsed_value:
+                    source_values.append((parsed_value, source))
+            if len({str(item[0]) for item in source_values}) > 1:
+                state = "conflicting_sources"
+                provenance = [dict(field=source["source"], span=source["text"], snapshot=None) for _, source in source_values]
+        if not provenance:
+            value, state = None, "unknown"
+        # Keep diagnostic JSON bounded; full evidence remains in the source snapshot.
+        provenance = [{**source, "span": source["span"][:240],
+                       "spanTruncated": len(source["span"]) > 240,
+                       "sourceHash": hashlib.sha256(source["span"].encode()).hexdigest()}
+                      for source in provenance[:3]]
+        fields[key] = {"value": value, "state": state, "sources": provenance if value else [],
+                       "parserVersion": "video_game_identity_v1", "evidenceVersion": EVIDENCE_VERSION,
+                       "side": side, "expectation": expectation,
+                       "availability": "new", "confidenceKind": "uncalibrated_parser_heuristic"}
+    return fields
+
+
+def evidence_decision(amazon, ebay):
+    """Use the existing comparator on evidenced values, for diagnostics only."""
+    sides = {}
+    for side, identity in (("amazon", amazon), ("ebay", ebay)):
+        sides[side] = {key: field["value"] for key, field in identity["fields"].items()}
+        sides[side]["installmentNormalized"] = identity.get("installmentNormalized") if sides[side].get("installment") else None
+    comparisons = compare_identities(sides["amazon"], sides["ebay"])
+    comparisons["coreGame"] = compare_field(sides["amazon"], sides["ebay"], "coreGame", conflict=True)
+    for key, comparison in comparisons.items():
+        comparison["reason"] = ("Evidence missing on one or both sides" if comparison["result"] == "unknown"
+                                else "Normalized evidence agrees" if comparison["result"] == "match"
+                                else "Normalized evidence differs")
+        comparison["amazonEvidenceRef"] = "amazon.fields." + key
+        comparison["ebayEvidenceRef"] = "ebay.fields." + key
+        if any(identity["fields"][key]["state"] == "conflicting_sources" for identity in (amazon, ebay)):
+            comparison["result"] = "review"
+            comparison["reason"] = "Sources disagree within one listing"
+    result = "unknown"
+    if any(row["result"] == "conflict" for row in comparisons.values()):
+        result = "non-match"
+    elif any(row["result"] == "review" for row in comparisons.values()):
+        result = "needs_review"
+    elif comparisons["coreGame"]["result"] == "match" and (
+        comparisons["installment"]["result"] == "match"
+        or (comparisons["coreProduct"]["result"] == "match" and amazon.get("coreProduct") != "Main Game")
+    ):
+        result = "match"
+    return {"version": EVIDENCE_VERSION, "productIdentityVerdict": result, "comparisons": comparisons,
+            "policyRole": "diagnostic_only_legacy_admission_unchanged"}
 
 
 def evidence_texts(title: Any, game_names: list[str] | None, item_specifics: dict[str, Any]) -> list[dict[str, str]]:

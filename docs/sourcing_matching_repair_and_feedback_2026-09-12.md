@@ -1,0 +1,81 @@
+# Sourcing matching repair — Phase 1
+
+Phase 1 implements truthful diagnostics without changing Buy List admission. Phases 2 and 3 are intentionally deferred under the supplied work order. Runtime deployment details are recorded below after verification.
+
+## Changes
+
+- The existing Python identity engine now emits `evidenceDecision` and per-side `fields`. Values carry state, bounded source spans/hashes, snapshot references when available, parser/evidence versions, and labeled expectations. Unsupported Standard/Complete/Physical/base defaults are not observed values. Confidence remains explicitly an uncalibrated parser heuristic.
+- The evidence view uses the existing comparator on evidenced values. Generic `Main Game`/franchise equality does not establish a positive identity verdict. Conflicting source values require review. Existing `result`, `hard_block`, recommendations, numeric/edition rules and score adjustments remain unchanged for admission.
+- The existing decision trace adds `canonicalDecision`: product verdict, business eligibility/reasons, presentation decision, lifecycle status, evaluation UUID/version/time. Unknown business evidence is not a product mismatch. This is a scoring-time assessment, not an assertion that all subsequently updated holds were evaluated.
+- The API adapts both new and legacy JSON. Legacy rows retain their recorded evaluation time or null, never a fabricated current evaluation. The adapter does not reparse titles or infer a fresh verdict. Required seed context is projected; mismatched/missing seed ASIN cannot supply Amazon identity/title/catalog metadata. Exact-ASIN cached Keepa title remains the existing fallback.
+- The real diagnostics panel keeps unknown core/edition/installment fields visible; reads recorded comparison results for indicators; removes Country of Origin, Features and Format/Type substitutions; reconciles packageType; includes generation/theme; and uses plain collapsed descriptions, existing small thumbnails and provenance tooltips.
+- The dismissal analyzer excludes duplicate cleanup, any cleanup_source key and availability/refresh provenance, adds a stable action-ID ordering and optional cutoff, includes raw feedback/action-time comparisons in JSON/CSV, labels empty feedback as unlabeled, and no longer treats mere item-specific/description presence as causal proof.
+- The legacy `derived_identity` alias does not duplicate the new evidence payload. Source spans are bounded to 240 characters and three references per field; original evidence remains in the stored snapshot.
+
+No schema migration, marketplace/AI calls, feedback writes, opportunity reprocessing, admission-policy change, business-hold release, or sourcing search was performed.
+
+## Frozen audit
+
+Target: `amazon-ebay-ops`, Supabase `froeucjkcepuhgwisped`, MBOP public objects only. Health probe at 16:38:22 UTC: Postgres up, approximately 733 MiB available RAM, 454 MiB free swap, 1.34 GiB filesystem headroom. Disk IO Budget was not observable from that probe. Reads were bounded; no retry/backfill orchestration was launched.
+
+Action cutoff: **2026-09-12T16:39:55.421289Z**. Filter: dismissed; exclude no_longer_available and duplicate_open_asin_opportunity, any cleanup_source key, and availability/refresh in concatenated source/actionType/job/reason. Order created_at DESC, action_id DESC. This is a provenance-filtered human-candidate cohort, not proof that every possible automation signature has been discovered.
+
+The 1,000 candidates match the supplied audit counts: 387 wrong edition, 128 wrong product, 128 missing shrink wrap, 82 blocked ASIN, 52 velocity, 45 packaging damage, 36 incomplete, 32 region, 26 digital, 22 ROI, 22 platform, 17 reseal, 10 NFR, 6 other, 4 listing error and 3 seller/listing mismatch. The newest 250 are separately frozen. Current evidence and action-linked snapshots were found for all 1,000; 534 actions have an action-time diagnosticComparison; 507 have matchingFeedback. None of the latter explicitly marks all fields correct. Empty feedback is not negative feedback.
+
+Private artifacts live in ignored `tmp/sourcing-phase1/`: actions.json, newest250.json, action-snapshots.json, current-evidence.json, holds.json, positive-candidates.json, settings.json, read-only-replay.json, exact-example-traces.json, api-before.json, api-after.json and the recorded GET responses. Action snapshots, action-time comparisons, current stored diagnostics and fresh read-only replay remain separate. No historical record was updated.
+
+`manifest.json` stores the exact selection SQL, cutoff and SHA-256 hashes. The checked-in companion manifest records counts and ordered excluded IDs. Private audit files are intentionally not committed.
+
+### Exact API scope and limits
+
+Executed the actual opportunities GET handler with a read-only Supabase client and captured its GET responses. This is API-equivalent database evidence, **not an authenticated production HTTP/browser test**.
+
+- Buy List: status=open, type=all, sourceMode=all, scope=all_open, limit=150; query limit 3,000. Returned **0**, API total **0**. This does not assert there are no open database records: the handler fetched 71 before existing presentation/filter gates.
+- Closest Excluded: same defaults, scope=closest_excluded, limit=50; query limit 1,000. Returned **50**, scoped total **141**. The source fetch returned 877 rows.
+- Existing selection uses the latest 20 completed daily_catalog_sourcing/recent_sales/full_listings runs, score/created_at source ordering, block/declined-offer/hold/history/presentation gates, exact-listing deduplication, then descending nearMissRank. Buy List uses its existing ASIN-priority grouping. The 50 IDs/order in the manifest are the displayed selection, not an unrelated latest-500 sample.
+- Totals are within these existing bounded API windows, not a full-history census. Related presentation lookup has an existing 5,000-row cap. The capture spans several minutes rather than one database transaction. Before/after comparisons use the identical frozen responses, eliminating later user activity as a comparison confounder.
+- Existing GET response bodies were approximately 333 MB in the private fixture file (including raw stored payloads). Replays are offline. This exposes existing read amplification; do not repeatedly recapture the entire fixture to verify UI-only changes.
+
+### Positive evidence reconciliation
+
+5,356 positive_identity-labeled records were captured without hitting the 10,000 cap:
+
+| Existing source | Records | Interpretation for later policy validation |
+|---|---:|---|
+| purchase_items / verified_purchase_item | 3,460 | Workflow evidence; label name alone is not exact-pair confirmation |
+| sourcing_purchase_matches | 828 | Purchase linkage, not independent identity verification |
+| sourcing_actions / purchased | 632 | Operator purchasing intent; all 632 feedback objects have allAssumptionsCorrect=false |
+| receiving outcomes | 421 | Receiving evidence requiring reconciliation of exact listing/product |
+| manual_item_matches | 15 | Title/system/ASIN memory; no exact listing ID in these records |
+
+3,087 records contain an ASIN/listing pair, representing 1,995 distinct raw identifier pairs; 2,269 lack an exact listing ID. No explicit exact-pair identity confirmation or all-fields-correct confirmation was found in this captured positive-label cohort. These records remain useful safety-review candidates, not newly certified ground truth. Do not reuse the older 2,353 “authoritative positives” headline without source reconciliation. Exact-pair identity, field accuracy and buy eligibility remain separate; Phase 2 will add explicit shared feedback.
+
+### Four exact examples
+
+All have their action-linked snapshot and action-time comparison preserved. `exact-example-traces.json` links action/snapshot IDs, current API fields, read-only replay fields and offline HTML rendering.
+
+| ASIN | Exact opportunity | Observed Phase 1 result |
+|---|---|---|
+| B00ZMBLKPG | c3f0249f-8e52-45bd-81aa-005a5d56fafd | Gears Ultimate vs Ultimate/Rare Replay: core/edition unknown remain visible; no fabricated base/standard assertion |
+| B000QL0T36 | 919606c5-9527-45a6-93aa-c4cf49ec4b0d | Dirt vs DiRT 3: installment/core unknown; platform comparison remains the stored match |
+| B001IK1BJ0 | 7078668d-09aa-4b83-9302-69ad454200f5 | Origins vs Awakening: unknown remains explicit; no Phase 1 expansion/admission rule added |
+| B08H9KGMWK | c2a7158e-30fa-40f7-acdb-c25a210edafa | Mario Set title agreement is not treated as proof of the operator's unstated mismatch reason |
+
+The current parser's evidence verdict is unknown for all four; exposing this limitation is intentional. Resolving the product rules belongs to Phase 3.
+
+## Verification
+
+- 1,000 frozen current-evidence replays: **zero changes to any legacy static scoring output**, after stripping only new observational keys.
+- Actual GET handler against frozen responses: exact ordered IDs and summaries unchanged for both scopes. Buy List preservation is vacuous on the empty current sample; nonempty identity/admission regression fixtures also pass.
+- 21 existing identity tests, 4 existing decision-trace tests and 6 new evidence/provenance tests pass. Node tests exercise the actual API adapter and render the actual panel/helper functions, including nulls, legacy defaults, canonical indicators and ASIN changes.
+- Local Next.js production build/type check passed. Deployment image build is a separate verification step.
+- Offline exact-example HTML artifacts and Chrome screenshot(s) are under tmp/sourcing-phase1. The Dirt screenshot was visually inspected: required unknown rows present, platform comparison consistent, plain collapsed description, no raw developer output. Screenshots are fixture rendering, not authenticated production UI proof.
+- CUA exposed no available browser; an in-app browser creation attempt failed. Authenticated production UI remains unverified. No Cognito redirect is being counted as verification.
+
+## Deployment
+
+Pre-deployment AWS readback: web task 138, sourcing scheduler task 90, 20 schedules recorded. Account 297464765814, us-west-2. Source commit/runtime digests and final service/schedule readbacks will be appended after deployment. Unrelated wholesale discovery document is excluded from this work.
+
+## Next phase
+
+Continue from `docs/sourcing_matching_repair_and_feedback_handoff.md`. Phase 2 owns Buy List/Business Excluded tabs and shared feedback. Phase 3 alone owns policy changes and gated current-row reprocessing.

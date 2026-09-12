@@ -607,6 +607,11 @@ def evaluate_static_match_rules(
         recommendation = lower_recommendation(recommendation, "Review")
 
     derived_identity = dict(identity_comparison)
+    # Keep the legacy alias readable without storing a second evidence contract.
+    derived_identity.pop("evidenceDecision", None)
+    for side in ("amazon", "ebay"):
+        derived_identity[side] = {key: value for key, value in identity_comparison[side].items()
+                                  if key not in {"fields", "confidenceKind"}}
     if identity_comparison.get("result") == "conflict":
         conflicts = set(identity_comparison.get("conflicts") or [])
         if "installment" in conflicts:

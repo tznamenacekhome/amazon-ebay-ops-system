@@ -35,6 +35,7 @@ type OpportunityRow = {
     inventory_need_level: string | null;
     last_sold_at: string | null;
     units_sold_90d: number | null;
+    raw_context_json?: unknown;
   } | null;
   sourcing_ebay_candidates?: {
     ebay_item_id: string | null;
@@ -357,10 +358,10 @@ async function getOpportunities(request: NextRequest) {
       const targetSalePrice = row.target_sale_price ?? row.sourcing_seed_asins?.target_sale_price ?? null;
       const asinKey = row.asin.toUpperCase();
       const keepaContext = keepaByAsin.get(asinKey) ?? null;
-      const seedAsin = row.sourcing_seed_asins?.asin?.toUpperCase() ?? asinKey;
+      const seedAsin = row.sourcing_seed_asins?.asin?.toUpperCase() ?? "";
       const amazonTitle = asinKey === seedAsin
         ? row.sourcing_seed_asins?.amazon_title ?? keepaContext?.amazonTitle ?? ""
-        : keepaContext?.amazonTitle ?? row.sourcing_seed_asins?.amazon_title ?? "";
+        : keepaContext?.amazonTitle ?? "";
       const lastSale = lastSaleByAsin.get(row.asin.toUpperCase()) ?? null;
       const myListing = myListingByAsin.get(row.asin.toUpperCase()) ?? null;
       const landedCost = row.sourcing_ebay_candidates?.landed_cost ?? null;
@@ -449,7 +450,7 @@ async function getOpportunities(request: NextRequest) {
         aiFlags: mergeFlags(row.ai_flags, diagnosticFlags(row.matching_diagnostics_json)),
         matchingDiagnostics: row.matching_diagnostics_json ?? null,
         diagnosticComparison: buildDiagnosticComparison({
-          opportunity: row as unknown as Record<string, unknown>,
+          opportunity: { ...row, amazon_title: amazonTitle } as unknown as Record<string, unknown>,
           seed: (row.sourcing_seed_asins ?? {}) as unknown as Record<string, unknown>,
           candidate: (row.sourcing_ebay_candidates ?? {}) as unknown as Record<string, unknown>,
           diagnostics: row.matching_diagnostics_json,
@@ -496,6 +497,7 @@ async function getOpportunities(request: NextRequest) {
 const OPPORTUNITY_SELECT = `
   *,
   sourcing_seed_asins (
+    raw_context_json,
     amazon_title,
     asin,
     amazon_image_url,

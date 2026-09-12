@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import datetime as dt
+import uuid
 from copy import deepcopy
 from typing import Any
 
@@ -120,6 +121,22 @@ def enrich_sourcing_diagnostics(
         "ruleVersion": RULE_VERSION,
     }
     enriched["decisionTrace"] = trace
+    identity = record(record(enriched.get("static_rules")).get("identity_comparison")) or record(enriched.get("identity_comparison"))
+    identity_view = record(identity.get("evidenceDecision"))
+    business_failures = [row for row in trace if row.get("result") == "fail"
+                         and row.get("reasonCode") in {"seller_policy", "unavailable_listing", "profitability"}]
+    enriched["canonicalDecision"] = {
+        "version": "sourcing_evidence_decision_v2",
+        "evaluationId": str(uuid.uuid4()),
+        "evaluatedAt": enriched["presentationDecision"]["evaluatedAt"],
+        "productIdentityVerdict": identity_view.get("productIdentityVerdict", "unknown"),
+        "businessEligibility": "excluded" if business_failures else "eligible" if eligible else "unknown",
+        "businessReasons": business_failures,
+        "presentationDecision": deepcopy(enriched["presentationDecision"]),
+        "lifecycleStatus": status,
+        "policyRole": "diagnostic_only_legacy_admission_unchanged",
+        "availability": "new" if identity_view else "legacy",
+    }
     return enriched
 
 

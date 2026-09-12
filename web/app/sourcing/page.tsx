@@ -1171,7 +1171,7 @@ function DiagnosticComparisonPanel({
   const rows = comparison?.rows ?? [];
   const identityRows = diagnosticsIdentityRows(row, rows);
   const evidenceRows = diagnosticsEvidenceRows(row, rows);
-  const summaryRows = diagnosticsSummaryRows(identityRows, comparison?.hardBlocks ?? [], comparison?.warnings ?? []);
+  const summaryRows = diagnosticsSummaryRows(identityRows);
   const hardBlocks = cleanDiagnosticMessages(comparison?.hardBlocks ?? []);
   const warnings = cleanDiagnosticMessages(comparison?.warnings ?? []);
   const failed = new Set(failedRuleFamilies);
@@ -1180,8 +1180,13 @@ function DiagnosticComparisonPanel({
     <aside className="max-h-[72vh] overflow-auto border-t border-slate-200 bg-slate-50 p-3 lg:border-l lg:border-t-0">
       <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
         <div>
-          <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">Why MBOP Matched These</div>
-          <div className="text-sm text-slate-700">Parsed identity on each side, followed by the listing evidence MBOP used.</div>
+          <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">Product identity: {(comparison?.productIdentityVerdict ?? "unknown").replaceAll("_", " ")}</div>
+          <div className="text-sm text-slate-700">{comparison?.businessEligibility === "excluded" ? comparison.businessReason ?? "Business eligibility excluded" : "Evidence and recorded field comparisons"}</div>
+          <details className="mt-1 text-xs text-slate-500"><summary>Evaluation details</summary>
+            <div>{String(comparison?.evaluation?.availability ?? "unavailable")} · {String(comparison?.evaluation?.version ?? "Version unavailable")}</div>
+            <div>{String(comparison?.evaluation?.evaluatedAt ?? "Evaluation time unavailable")}</div>
+            <div>Presentation still uses the existing admission rules. Lifecycle status: {row.status}.</div>
+          </details>
         </div>
         <label className="flex items-center gap-2 rounded-md border border-slate-300 bg-white px-3 py-2 text-xs font-medium text-slate-700">
           <input
@@ -1210,12 +1215,12 @@ function DiagnosticComparisonPanel({
           {identityRows.length ? identityRows.map((diagnosticRow) => {
             const family = diagnosticRow.ruleFamily ?? diagnosticRow.key;
             const active = failed.has(family);
-            const status = summaryStatusForRow(diagnosticRow, hardBlocks, warnings);
+            const status = summaryStatusForRow(diagnosticRow);
             return (
               <div key={diagnosticRow.key} className={`grid grid-cols-[150px_minmax(0,1fr)_minmax(0,1fr)_64px] items-center gap-2 px-2 py-2 text-xs ${status === "fail" ? "bg-rose-50" : status === "warning" ? "bg-amber-50" : ""}`}>
-                <div className="font-medium text-slate-800">{diagnosticRow.label}</div>
-                <div className="break-words text-slate-700">{formatCompactDiagnosticCell(diagnosticRow.amazon)}</div>
-                <div className="break-words text-slate-700">{formatCompactDiagnosticCell(diagnosticRow.ebay)}</div>
+                <div className="font-medium text-slate-800" title={diagnosticRow.comparisonReason}>{diagnosticRow.label} <span aria-label={status}>{summaryIcon(status)}</span></div>
+                <div className="break-words text-slate-700" title={evidenceTooltip(diagnosticRow.amazonEvidence)}>{diagnosticRow.amazon ? formatCompactDiagnosticCell(diagnosticRow.amazon) : "Not identified"}</div>
+                <div className="break-words text-slate-700" title={evidenceTooltip(diagnosticRow.ebayEvidence)}>{diagnosticRow.ebay ? formatCompactDiagnosticCell(diagnosticRow.ebay) : "Not identified"}</div>
                 <label className="inline-flex items-center justify-center text-slate-700">
                   <input
                     type="checkbox"
@@ -1254,9 +1259,6 @@ function DiagnosticComparisonPanel({
               {item.label}
             </span>
           ))}
-          <span className="ml-auto inline-flex items-center gap-2 rounded bg-slate-900 px-2 py-1 text-xs font-semibold text-white">
-            Overall <span>{friendlyRecommendation(comparison?.recommendation, hardBlocks)}</span>
-          </span>
         </div>
       </div>
     </aside>
@@ -1273,6 +1275,10 @@ type DiagnosticsDisplayRow = {
   ruleFamily?: string;
   evidenceSource?: string;
   photoUrls?: string[];
+  comparisonResult?: "match" | "conflict" | "review" | "unknown";
+  comparisonReason?: string;
+  amazonEvidence?: Record<string, unknown>;
+  ebayEvidence?: Record<string, unknown>;
 };
 
 type SummaryStatus = "pass" | "warning" | "fail" | "unknown";
@@ -1280,6 +1286,8 @@ type SummaryStatus = "pass" | "warning" | "fail" | "unknown";
 const DIAGNOSTIC_IDENTITY_KEYS = [
   "core_game_identity",
   "installment_number",
+  "generation",
+  "theme",
   "platform_system",
   "edition_version",
   "region",
@@ -1300,6 +1308,9 @@ const DIAGNOSTIC_EVIDENCE_KEYS = [
 
 const SUMMARY_LABELS: Record<string, string> = {
   core_game_identity: "Core Game",
+  installment_number: "Installment",
+  generation: "Generation",
+  theme: "Theme",
   platform_system: "Platform",
   edition_version: "Edition",
   region: "Region",
@@ -1310,24 +1321,20 @@ function diagnosticsIdentityRows(row: SourcingOpportunity, rows: NonNullable<Sou
   return DIAGNOSTIC_IDENTITY_KEYS
     .map((key) => byKey.get(key))
     .filter((item): item is NonNullable<typeof item> => Boolean(item))
-    .map((item) => identityDisplayRow(row, item))
-    .filter((item) => hasUsefulDiagnosticValue(item.amazon) || hasUsefulDiagnosticValue(item.ebay));
+    .map((item) => identityDisplayRow(row, item));
 }
 
 function identityDisplayRow(row: SourcingOpportunity, item: NonNullable<SourcingOpportunity["diagnosticComparison"]>["rows"][number]): DiagnosticsDisplayRow {
-  const diagnostics = diagnosticRecord(row.matchingDiagnostics);
-  const staticRules = diagnosticRecord(diagnostics.static_rules);
-  const evidence = diagnosticRecord(staticRules.normalized_evidence ?? diagnostics.normalized_evidence);
-  const platform = firstArrayText(evidence.platform_values);
-  const region = firstArrayText(evidence.region_code_values) ?? firstArrayText(evidence.country_of_origin_values);
-  const features = firstArrayText(evidence.features_values);
-  const format = firstArrayText(evidence.format_values) ?? firstArrayText(evidence.type_values);
-
-  if (item.key === "platform_system") return { ...item, ebay: platform ?? item.ebay };
-  if (item.key === "region") return { ...item, ebay: region ?? item.ebay };
-  if (item.key === "package_bundle_contents") return { ...item, ebay: features ?? item.ebay };
-  if (item.key === "digital_physical") return { ...item, ebay: format ?? item.ebay };
   return item;
+}
+
+function evidenceTooltip(field?: Record<string, unknown>) {
+  if (!field) return "Provenance unavailable";
+  const sources = Array.isArray(field.sources) ? field.sources.map((source) => {
+    const record = diagnosticRecord(source);
+    return `${record.field ?? "Unknown source"}: ${record.span ?? "Span unavailable"}`;
+  }).join("; ") : "";
+  return [field.state, field.availability, sources, field.expectation ? `Expectation only: ${field.expectation}` : null].filter(Boolean).join(" · ");
 }
 
 function diagnosticsEvidenceRows(row: SourcingOpportunity, rows: NonNullable<SourcingOpportunity["diagnosticComparison"]>["rows"]): DiagnosticsDisplayRow[] {
@@ -1345,6 +1352,9 @@ function diagnosticsEvidenceRows(row: SourcingOpportunity, rows: NonNullable<Sou
 }
 
 function EvidenceRow({ row }: { row: DiagnosticsDisplayRow }) {
+  if (row.key === "ebay_description") {
+    return <details className="px-2 py-2 text-slate-600"><summary>Description</summary><div className="mt-1 break-words">{formatCompactDiagnosticCell(row.ebay)}</div></details>;
+  }
   if (row.key === "photos") {
     const urls = row.photoUrls ?? [];
     return (
@@ -1510,20 +1520,18 @@ function cleanDiagnosticMessages(messages: string[]) {
   return messages.map((message) => message.replace(/^Blocked:\s*/i, "").trim()).filter(Boolean);
 }
 
-function diagnosticsSummaryRows(identityRows: DiagnosticsDisplayRow[], hardBlocks: string[], warnings: string[]) {
+function diagnosticsSummaryRows(identityRows: DiagnosticsDisplayRow[]) {
   return identityRows
     .filter((item) => item.key in SUMMARY_LABELS)
-    .map((item) => ({ label: SUMMARY_LABELS[item.key], status: summaryStatusForRow(item, hardBlocks, warnings) }));
+    .map((item) => ({ label: SUMMARY_LABELS[item.key], status: summaryStatusForRow(item) }));
 }
 
-function summaryStatusForRow(row: DiagnosticsDisplayRow, hardBlocks: string[], warnings: string[]): SummaryStatus {
-  const haystack = [row.key, row.ruleFamily, row.label, row.amazon, row.ebay, row.evidence].join(" ").toLowerCase();
-  const blockText = hardBlocks.join(" ").toLowerCase();
-  const warningText = warnings.join(" ").toLowerCase();
-  if (blockText && summaryTerms(row).some((term) => blockText.includes(term))) return "fail";
-  if (warningText && summaryTerms(row).some((term) => warningText.includes(term))) return "warning";
-  if (haystack.includes("not available")) return "unknown";
-  return "pass";
+function summaryStatusForRow(row: DiagnosticsDisplayRow): SummaryStatus {
+  if (!row.amazon || !row.ebay) return "unknown";
+  if (row.comparisonResult === "conflict") return "fail";
+  if (row.comparisonResult === "review") return "warning";
+  if (row.comparisonResult === "match") return "pass";
+  return "unknown";
 }
 
 function summaryTerms(row: DiagnosticsDisplayRow) {
