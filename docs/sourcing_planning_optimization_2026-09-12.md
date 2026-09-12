@@ -58,3 +58,21 @@ Evidence: ignored `logs/diagnostics/planning-optimization-20260912/`.
 Retain workload diagnostics and capacity guards for the next complete nightly
 run; do not infer a particular bill reduction or a permanent incident fix from
 the isolated benchmark.
+
+## Deployment result
+
+Source commit `f904a321e351`; scheduler revision 90 uses image
+`sha256:442ee38fb3cc7e9248e3f358a1a74cc465b60370a859c9482753d5221f752258`.
+The image's dirty suffix reflects the unrelated untracked wholesale document;
+all integration changes were committed before building.
+All 39 tests also passed in the exact Linux image. AWS read-only smoke task
+`fdea41cb47484a878b891bed18968927` exited zero and verified three real ASIN
+lookups, the compact projection, and cache reuse without eBay calls or workflow
+writes. The 1,104-ASIN benchmark above used the same applied production RPC.
+
+Only `mbop-sourcing-catalog` changed from task revision 89 to 90. All 20 schedule
+definitions were compared, preserving timing, state, overrides and network
+configuration. Rollback target is revision 89; leave the additive migration
+and history intact. No new full discovery run was launched for this release.
+End-to-end runtime and overnight capacity results remain pending the next
+scheduled run, with the existing workload collector and capacity guards active.
