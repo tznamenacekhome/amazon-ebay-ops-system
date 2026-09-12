@@ -38,6 +38,7 @@ def wait_for_database(supabase, *, attempts=11, interval=30):
     if url != 'https://froeucjkcepuhgwisped.supabase.co' or not key:
         raise DatabasePressureError('Missing or unexpected Supabase configuration')
     for attempt in range(attempts):
+        values = None
         try:
             response = requests.get(url + '/customer/v1/privileged/metrics', auth=('username', key), timeout=8)
             response.raise_for_status()
@@ -49,7 +50,7 @@ def wait_for_database(supabase, *, attempts=11, interval=30):
                 return
         except Exception as error:
             reason = type(error).__name__
-        emit('database_guard_wait', reason=reason, attempt=attempt + 1)
+        emit('database_guard_wait', reason=reason, attempt=attempt + 1, values=values)
         if attempt + 1 < attempts:
             time.sleep(interval)
     raise DatabasePressureError('Catalog paused: database capacity did not recover within the bounded wait')

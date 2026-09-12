@@ -137,7 +137,7 @@ def install(*, monitor_database=False):
             raise
 
     httpx.Client.send = traced_send
-    emit("process_start", diagnostics_version=1, **memory())
+    emit("process_start", diagnostics_version=2, **memory())
     atexit.register(lambda: emit("process_exit", **memory()))
 
     def heartbeat():
@@ -148,3 +148,5 @@ def install(*, monitor_database=False):
     threading.Thread(target=heartbeat, daemon=True).start()
     if monitor_database:
         threading.Thread(target=pressure_loop, daemon=True).start()
+        from .sourcing_workload_diagnostics import workload_loop
+        threading.Thread(target=workload_loop, daemon=True).start()
