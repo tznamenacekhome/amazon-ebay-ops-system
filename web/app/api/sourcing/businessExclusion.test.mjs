@@ -17,6 +17,13 @@ const cache=new Map();function load(file){file=resolve(file);if(cache.has(file))
  if(name.startsWith('.'))return load(resolve(dirname(file),name+'.ts'));return require(name);
 },out);return out;}
 const route=load(resolve(root,'opportunities/route.ts'));
+const {selectRecordedHold,recordedHoldCheck}=load(resolve(root,'businessExclusion.ts'));
+const activeInventory=selectRecordedHold({asin:'EXACT',status:'inventory_snoozed',ebay_item_id:'pair'},[
+ {asin:'EXACT',action_type:'watching',ebay_item_id:'other'},
+ {asin:'EXACT',action_type:'inventory_snoozed',raw_action_context:{inventorySnooze:{representAtUnits:9}},created_at:'2026-09-12'},
+]);
+assert.equal(activeInventory.action_type,'inventory_snoozed');
+assert.equal(recordedHoldCheck({status:'inventory_snoozed',sourcing_seed_asins:{current_inventory_units:10}},activeInventory)[0].threshold,9);
 const response=await route.GET({url:'https://example.test/api/sourcing/opportunities?status=business_excluded&limit=50'});
 assert.equal(response.status,200,JSON.stringify(response.body));assert.equal(response.body.opportunities.length,1);
 const row=response.body.opportunities[0];assert.equal(row.ebayTitle,'Listing title');assert.equal(row.diagnosticComparison.productIdentityVerdict,'match');assert.equal(row.exclusionReason.code,'roi');

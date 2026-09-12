@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabase, toNumber } from "../_supabase";
 import { buildDiagnosticComparison } from "../diagnosticComparison";
-import { businessExclusion, recordedHoldCheck } from "../businessExclusion";
+import { businessExclusion, recordedHoldCheck, selectRecordedHold } from "../businessExclusion";
 import { fetchLatestReviews } from "../reviewActions";
 import { excludeBlockedOpportunities, fetchBlockedAsins } from "../blockedAsins";
 import { excludeDeclinedOffers } from "../declinedOffers";
@@ -358,7 +358,7 @@ async function getOpportunities(request: NextRequest) {
     rows=rows.map(row=>{
       const diagnostics=(row.matching_diagnostics_json && typeof row.matching_diagnostics_json === "object" ? row.matching_diagnostics_json : {}) as Record<string,unknown>;
       const existing=Array.isArray(diagnostics.businessEligibilityChecks)?diagnostics.businessEligibilityChecks:[];
-      const action=holdActions.find(action=>action.asin===row.asin && (action.ebay_item_id===row.ebay_item_id || row.status==="inventory_snoozed"));
+      const action=selectRecordedHold(row,holdActions);
       return {...row,matching_diagnostics_json:{...diagnostics,businessEligibilityChecks:[...existing,...recordedHoldCheck(row,action)]}};
     });
   }

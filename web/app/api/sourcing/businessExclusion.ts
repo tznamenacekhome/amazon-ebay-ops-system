@@ -5,6 +5,12 @@ const obj=(v:unknown):Obj=>v&&typeof v==="object"&&!Array.isArray(v)?v as Obj:{}
 export type BusinessCheck={code:string;label:string;actual:unknown;threshold:unknown;units:string;result:string;blocking:boolean;scenario:string;evaluatedAt:string|null;source:string;explanation?:string};
 export type VelocityHold={asin:string|null;current_velocity:number|null;required_velocity:number|null;metric_window_days:number|null;last_evaluated_at:string|null;status:string|null};
 
+export function selectRecordedHold(row:{asin:string;ebay_item_id?:string|null;status:string|null},actions:Obj[]):Obj|undefined {
+  return actions.find(action=>action.asin===row.asin && (row.status==="inventory_snoozed"
+    ? ["inventory_snoozed","inventory_snooze"].includes(String(action.action_type))
+    : action.ebay_item_id===row.ebay_item_id && ["roi_snoozed","watching","watch"].includes(String(action.action_type))));
+}
+
 export function recordedHoldCheck(row:{status:string|null;sourcing_seed_asins?:{current_inventory_units:number|null}|null},action:Obj|undefined):BusinessCheck[] {
   if(!action)return [];
   const context=obj(action.raw_action_context);
