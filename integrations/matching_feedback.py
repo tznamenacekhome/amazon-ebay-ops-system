@@ -10,7 +10,7 @@ from __future__ import annotations
 from typing import Any
 
 
-VERSION = "matching_feedback_v2"
+VERSION = "matching_feedback_v3"
 
 RULE_FAMILIES = {
     "core_game_identity",
@@ -86,7 +86,8 @@ def normalize_matching_feedback(value: Any) -> dict[str, Any]:
     if isinstance(nested, dict):
         record = nested
 
-    all_correct = bool(record.get("allAssumptionsCorrect"))
+    current = record.get("version") == VERSION
+    all_correct = record.get("allAssumptionsCorrect") is True
     legacy_rows = string_list(record.get("legacyIncorrectRows"))
     legacy_rows.extend(item for item in string_list(record.get("incorrectRows")) if item not in legacy_rows)
 
@@ -95,20 +96,26 @@ def normalize_matching_feedback(value: Any) -> dict[str, Any]:
         failed = legacy_rule_families(legacy_rows)
 
     evidence = normalize_values(record.get("evidenceSources"), EVIDENCE_SOURCES)
-    evidence.extend(item for item in legacy_evidence_sources(legacy_rows) if item not in evidence)
-    evidence.extend(item for item in evidence_for_rule_families(failed) if item not in evidence)
+    if not current:
+        evidence.extend(item for item in legacy_evidence_sources(legacy_rows) if item not in evidence)
+        evidence.extend(item for item in evidence_for_rule_families(failed) if item not in evidence)
 
     if all_correct:
         failed = []
-        evidence = []
+        if not current:
+            evidence = []
 
     return {
-        "version": VERSION,
+        "version": VERSION if current else "matching_feedback_v2",
         "allAssumptionsCorrect": all_correct,
         "failedRuleFamilies": failed,
         "evidenceSources": evidence,
         "legacyIncorrectRows": [] if all_correct else legacy_rows,
         "note": clean_note(record.get("note")),
+        "pairVerdict": record.get("pairVerdict") if current and record.get("pairVerdict") in {"correct","incorrect","unsure"} else "not_provided",
+        "corrections": [dict(c) for c in record.get("corrections",[]) if isinstance(c,dict)] if current and isinstance(record.get("corrections"),list) else [],
+        "availableEvidenceSources": normalize_values(record.get("availableEvidenceSources"),EVIDENCE_SOURCES),
+        "evidenceProvenance": "explicit" if current else "legacy_mixed",
     }
 
 

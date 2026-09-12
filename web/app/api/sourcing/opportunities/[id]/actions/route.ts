@@ -6,6 +6,7 @@ import { normalizeMatchingFeedback } from "../../../matchingFeedback";
 import { normalizeAsin, resolveAsinMetadata } from "../../../../_asinMetadata";
 import { requireAdminApiToken } from "../../../../_server";
 import { fetchBlockedAsins } from "../../../blockedAsins";
+import { reviewActions, saveMatchingReview } from "../../../reviewActions";
 
 const actionStatus: Record<string, string> = {
   block_asin: "dismissed",
@@ -25,6 +26,7 @@ const actionRecordType: Record<string, string> = {
   inventory_snooze: "inventory_snoozed",
   mark_valid_match: "confirmed_valid_match",
   confirm_exclusion: "confirmed_exclusion",
+  save_match_feedback: "matching_feedback",
   update_asin: "asin_updated",
 };
 
@@ -51,7 +53,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   const myReceivedQuantity = integerOrNull(body.myReceivedQuantity);
   const myOutboundQuantity = integerOrNull(body.myOutboundQuantity);
   const diagnosticsFeedback = normalizeLegacyDiagnosticsFeedback(body.diagnosticsFeedback);
-  const matchingFeedback = normalizeMatchingFeedback(body.diagnosticsFeedback);
+  const matchingFeedback = normalizeMatchingFeedback(reviewActions.has(actionType) ? null : body.diagnosticsFeedback);
   const newStatus = actionStatus[actionType];
   const requestedAsin = actionType === "update_asin" ? normalizeAsin(body.asin) : "";
 
@@ -79,8 +81,10 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     return NextResponse.json({ error: opportunityError.message }, { status: 500 });
   }
 
+  if (reviewActions.has(actionType)) return saveMatchingReview(request, opportunity, body);
+
   // Recheck stale browser rows before allowing a buying action or ASIN change.
-  if (["watch", "purchased", "snooze_roi", "inventory_snooze", "mark_valid_match", "update_asin"].includes(actionType)) {
+  if (["watch", "purchased", "snooze_roi", "inventory_snooze", "update_asin"].includes(actionType)) {
     try {
       const targetAsin = actionType === "update_asin" ? requestedAsin : String(opportunity.asin ?? "");
       if ((await fetchBlockedAsins([targetAsin])).has(targetAsin.trim().toUpperCase())) {

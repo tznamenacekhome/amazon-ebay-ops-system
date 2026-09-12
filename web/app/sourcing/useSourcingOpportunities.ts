@@ -12,6 +12,7 @@ export function useSourcingOpportunities(
   inventoryFilter = "all",
 ) {
   const [rows, setRows] = useState<SourcingOpportunity[]>([]);
+  const [businessSuppressions,setBusinessSuppressions]=useState<Array<{asin:string;current_velocity:number|null;required_velocity:number|null;last_evaluated_at:string|null}>>([]);
   const [summary, setSummary] = useState<Record<string, number>>({});
   const [batch, setBatch] = useState<SourcingBatch | null>(null);
   const [loading, setLoading] = useState(false);
@@ -31,6 +32,7 @@ export function useSourcingOpportunities(
       const payload = await response.json();
       if (!response.ok) throw new Error(payload.error ?? "Failed to load sourcing opportunities.");
       setRows(payload.opportunities ?? []);
+      setBusinessSuppressions(payload.businessSuppressions ?? []);
       setSummary(payload.summary ?? {});
       setBatch(payload.batch ?? null);
     } catch (err) {
@@ -54,7 +56,7 @@ export function useSourcingOpportunities(
     });
   }, []);
 
-  return { rows, summary, batch, loading, error, reload: load, removeRows, setError };
+  return { rows, businessSuppressions, summary, batch, loading, error, reload: load, removeRows, setError };
 }
 
 function summarizeRows(rows: SourcingOpportunity[]) {

@@ -154,6 +154,14 @@ def build_sourcing_examples(supabase, limit: int | None, snapshot_sink=None):
         label, label_type = label_for_action(action_type, reason)
         action_context = action.get("raw_action_context") if isinstance(action.get("raw_action_context"), dict) else {}
         matching_feedback = matching_feedback_from_context(action_context)
+        if matching_feedback["evidenceProvenance"] == "explicit":
+            verdict = matching_feedback["pairVerdict"]
+            if verdict == "correct":
+                label,label_type = "match","positive_identity"
+            elif verdict == "incorrect":
+                label,label_type = "non_match","negative_identity"
+            elif verdict == "unsure" or not reason:
+                label,label_type = "needs_review","unknown"
         if needs_backfill:
             snapshots.append(snapshot)
         examples.append(
@@ -169,6 +177,8 @@ def build_sourcing_examples(supabase, limit: int | None, snapshot_sink=None):
                 evidence_strength="medium",
                 raw_context={
                     "action": action,
+                    "learningScope": action_context.get("learningScope"),
+                    "feedbackCategory": action_context.get("feedbackCategory"),
                     "matchingFeedback": matching_feedback,
                     "ruleFeedback": {
                         "failedRuleFamilies": matching_feedback["failedRuleFamilies"],
@@ -205,14 +215,14 @@ def iter_action_evidence(supabase, actions):
 
 
 def label_for_action(action_type: str, reason: Any) -> tuple[str, str]:
-    if action_type == "dismissed":
+    if action_type in {"dismissed", "dismiss"}:
         return label_for_dismiss_reason(reason)
     if action_type == "purchased":
         return "match", "positive_identity"
-    if action_type == "confirmed_valid_match":
+    if action_type in {"confirmed_valid_match", "mark_valid_match"}:
         return "match", "positive_identity"
-    if action_type == "confirmed_exclusion":
-        return "non_match", "negative_identity"
+    if action_type in {"confirmed_exclusion", "confirm_exclusion"}:
+        return label_for_dismiss_reason(reason) if reason else ("needs_review", "unknown")
     if action_type == "roi_snoozed":
         return "valid_match_poor_opportunity", "business_issue"
     return "needs_review", "unknown"

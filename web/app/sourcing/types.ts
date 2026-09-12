@@ -1,5 +1,7 @@
 export type SourcingOpportunity = {
+  latestReview?: {pairVerdict:string|null;feedback:Record<string,unknown>|null;actionId:string|null;createdAt:string|null;corrections?:unknown[]} | null;
   opportunityId: string;
+  candidateId?: string | null;
   runId: string;
   asin: string;
   amazonTitle: string;

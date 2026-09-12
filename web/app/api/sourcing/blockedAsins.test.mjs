@@ -53,13 +53,15 @@ new Function("require", "exports", actionJs)((name) => {
   if (name.endsWith("/_server")) return { requireAdminApiToken: () => null };
   if (name.endsWith("/_asinMetadata")) return { normalizeAsin: (value) => String(value ?? "").toUpperCase() };
   if (name.endsWith("/matchingFeedback")) return { normalizeMatchingFeedback: () => ({}) };
+  if (name.endsWith("/reviewActions")) return {reviewActions:new Set(["mark_valid_match"]),saveMatchingReview:async()=>({status:200})};
   return {};
 }, actionExports);
 failure = false;
-for (const actionType of ["watch", "purchased", "snooze_roi", "inventory_snooze", "mark_valid_match", "update_asin"]) {
+for (const actionType of ["watch", "purchased", "snooze_roi", "inventory_snooze", "update_asin"]) {
   const response = await actionExports.POST({ json: async () => ({ actionType, asin: "B001C0L7QI" }) }, { params: Promise.resolve({ id: "existing" }) });
   assert.equal(response.status, 409, actionType);
 }
+assert.equal((await actionExports.POST({json:async()=>({actionType:"mark_valid_match"})},{params:Promise.resolve({id:"existing"})})).status,200);
 failure = true;
 assert.equal((await actionExports.POST({ json: async () => ({ actionType: "watch" }) }, { params: Promise.resolve({ id: "existing" }) })).status, 503);
-console.log("Stale blocked-ASIN action tests passed: six actions rejected; lookup failure returns 503.");
+console.log("Stale blocked-ASIN action tests passed: five buying actions rejected; review allowed; lookup failure returns 503.");

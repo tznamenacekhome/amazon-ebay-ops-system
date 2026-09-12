@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import Link from "next/link";
 import {
@@ -15,7 +15,10 @@ import { dismissReasons } from "./matchingTaxonomy";
 import { mutationHeaders } from "../mutationHeaders";
 import { KeepaPriceIndicator } from "../components/KeepaPriceIndicator";
 
-const tabs = ["Replenishment", "Closest Excluded", "Sales Velocity Suppressed", "Coverage Cycle", "Watchlist", "Purchased Pending Match", "Sourcing History", "Matching Intelligence", "Settings"] as const;
+import { MatchingReviewControls } from "./MatchingReviewControls";
+import type { MatchingFeedback } from "../api/sourcing/matchingFeedback";
+
+const tabs = ["Buy List", "Closest Excluded", "Business Excluded", "Coverage Cycle", "Watchlist", "Purchased Pending Match", "Sourcing History", "Matching Intelligence", "Settings"] as const;
 const opportunityTypes = ["all", "buy_now", "multi_unit", "best_offer", "auction", "watch"] as const;
 const inventoryFilters = ["all", "exclude_in_stock", "only_in_stock"] as const;
 const GIXEN_URL = "https://www.gixen.com/main/index.php";
@@ -39,18 +42,17 @@ type OpportunitySort = {
 };
 type SourcingActionPayload = {
   actionType: string;
+  requestId?: string;
+  sourceTab?: string;
+  expectedAsin?: string;
+  expectedEbayItemId?: string | null;
+  expectedCandidateId?: string | null;
+  expectedEvaluationId?: unknown;
   asin?: string;
   reason?: string;
   notes?: string;
   imageClues?: string[];
-  diagnosticsFeedback?: {
-    allAssumptionsCorrect: boolean;
-    incorrectRows: string[];
-    failedRuleFamilies?: string[];
-    evidenceSources?: string[];
-    legacyIncorrectRows?: string[];
-    note?: string | null;
-  };
+  diagnosticsFeedback?: Partial<MatchingFeedback>;
   requiredMaxLandedCost?: number;
   requiredRoiPercent?: number;
   expectedPurchaseCost?: number;
@@ -63,7 +65,7 @@ type SourcingActionPayload = {
 };
 
 export default function SourcingPage() {
-  const [activeTab, setActiveTab] = useState<(typeof tabs)[number]>("Replenishment");
+  const [activeTab, setActiveTab] = useState<(typeof tabs)[number]>("Buy List");
   const [status, setStatus] = useState("open");
   const [type, setType] = useState("all");
   const [sourceMode, setSourceMode] = useState("all");
@@ -73,19 +75,19 @@ export default function SourcingPage() {
   const effectiveStatus =
     activeTab === "Closest Excluded"
       ? "all"
-      : activeTab === "Sales Velocity Suppressed"
-        ? "sales_velocity_suppressed"
+      : activeTab === "Business Excluded"
+        ? "business_excluded"
         : activeTab === "Watchlist"
           ? "watching"
           : activeTab === "Purchased Pending Match"
             ? "purchased_pending_match"
             : status;
-  const { rows, summary, batch, loading, error, reload, removeRows, setError } = useSourcingOpportunities(
+  const { rows, businessSuppressions, summary, batch, loading, error, reload, removeRows, setError } = useSourcingOpportunities(
     effectiveStatus,
     type,
     searchText,
     sourceMode,
-    activeTab === "Closest Excluded" ? "closest_excluded" : activeTab === "Replenishment" ? scope : "all_open",
+    activeTab === "Closest Excluded" ? "closest_excluded" : activeTab === "Buy List" ? scope : "all_open",
     inventoryFilter,
   );
   const [actionBusyId, setActionBusyId] = useState<string | null>(null);
@@ -97,13 +99,21 @@ export default function SourcingPage() {
 
   const visibleRows = useMemo(() => {
     if (activeTab === "Purchased Pending Match") return rows.filter((row) => row.status === "purchased_pending_match");
-    if (activeTab === "Replenishment" || activeTab === "Watchlist" || activeTab === "Closest Excluded" || activeTab === "Sales Velocity Suppressed") return rows;
+    if (activeTab === "Buy List" || activeTab === "Watchlist" || activeTab === "Closest Excluded" || activeTab === "Business Excluded") return rows;
     return [];
   }, [activeTab, rows]);
   const selectedRows = useMemo(
     () => visibleRows.filter((row) => selectedIds.has(row.opportunityId)),
     [selectedIds, visibleRows],
   );
+
+  const reviewRequests = useRef(new Map<string, string>());
+  function reviewPayload(row: SourcingOpportunity, payload: SourcingActionPayload) {
+    if (!["dismiss","block_asin","mark_valid_match","confirm_exclusion","save_match_feedback"].includes(payload.actionType)) return payload;
+    const key = JSON.stringify([row.opportunityId,payload]);
+    if (!reviewRequests.current.has(key)) reviewRequests.current.set(key,crypto.randomUUID());
+    return {...payload,requestId:reviewRequests.current.get(key),sourceTab:activeTab,expectedAsin:row.asin,expectedEbayItemId:row.ebayItemId,expectedCandidateId:row.candidateId??null,expectedEvaluationId:row.diagnosticComparison?.evaluation?.id??null};
+  }
 
   async function act(row: SourcingOpportunity, payload: SourcingActionPayload) {
     setActionBusyId(row.opportunityId);
@@ -112,14 +122,17 @@ export default function SourcingPage() {
       const response = await fetch(`/api/sourcing/opportunities/${row.opportunityId}/actions`, {
         method: "POST",
         headers: mutationHeaders({ "Content-Type": "application/json" }),
-        body: JSON.stringify(payload),
+        body: JSON.stringify(reviewPayload(row,payload)),
       });
       const result = await response.json();
       if (!response.ok) throw new Error(result.error ?? "Action failed.");
       if (payload.actionType === "update_asin") await reload();
-      else removeRows([row.opportunityId]);
+      else if (["mark_valid_match","save_match_feedback","confirm_exclusion"].includes(payload.actionType)) await reload();
+      else { removeRows([row.opportunityId]); await reload(); }
+      return true;
     } catch (err) {
       setError(err instanceof Error ? err.message : "Action failed.");
+      return false;
       } finally {
       setActionBusyId(null);
     }
@@ -134,15 +147,19 @@ export default function SourcingPage() {
         const response = await fetch(`/api/sourcing/opportunities/${row.opportunityId}/actions`, {
           method: "POST",
           headers: mutationHeaders({ "Content-Type": "application/json" }),
-          body: JSON.stringify(payloadForRow(row)),
+          body: JSON.stringify(reviewPayload(row,payloadForRow(row))),
         });
         const result = await response.json();
         if (!response.ok) throw new Error(result.error ?? "Action failed.");
+        removeRows([row.opportunityId]);
       }
       setSelectedIds(new Set());
       removeRows(rowsToUpdate.map((row) => row.opportunityId));
+      await reload();
+      return true;
     } catch (err) {
       setError(err instanceof Error ? err.message : "Bulk action failed.");
+      return false;
     } finally {
       setActionBusyId(null);
     }
@@ -181,7 +198,7 @@ export default function SourcingPage() {
         <div>
           <h1 className="text-2xl font-semibold tracking-normal">Sourcing Workspace</h1>
           <p className="text-sm text-slate-600">
-            Replenishment candidates from Amazon demand, eBay supply, and MBOP scoring.
+            Buy List candidates from Amazon demand, eBay supply, and MBOP scoring.
           </p>
         </div>
       </div>
@@ -215,14 +232,11 @@ export default function SourcingPage() {
         <SourcingSettingsPanel onApplied={reload} />
       ) : (
         <>
-          <div className="mb-3 grid grid-cols-2 gap-3 md:grid-cols-5">
-            <Metric label={activeTab === "Replenishment" ? "Actionable Rows" : "Open Rows"} value={summary.total ?? visibleRows.length} />
-            <Metric label="Buy Now" value={summary.buyNow ?? 0} />
-            <Metric label="Best Offer" value={summary.bestOffer ?? 0} />
-            <Metric label="Auction" value={summary.auction ?? 0} />
-            <Metric label="Multi-Unit" value={summary.multiUnit ?? 0} />
-          </div>
-          {activeTab === "Replenishment" ? (
+          {activeTab === "Business Excluded" ? <div className="mb-3 flex gap-3"><Metric label="Matched business exclusions" value={summary.total??0}/><Metric label="Active suppression records" value={businessSuppressions.length}/></div> : <div className="mb-3 grid grid-cols-2 gap-3 md:grid-cols-5">
+            <Metric label={activeTab === "Buy List" ? "Actionable Rows" : "Open Rows"} value={summary.total ?? visibleRows.length} />
+            <Metric label="Buy Now" value={summary.buyNow ?? 0} /><Metric label="Best Offer" value={summary.bestOffer ?? 0} /><Metric label="Auction" value={summary.auction ?? 0} /><Metric label="Multi-Unit" value={summary.multiUnit ?? 0} />
+          </div>}
+          {activeTab === "Buy List" ? (
             <BatchStatus batch={batch} busy={batchContinueRunning} onContinue={() => void continueSourcingBatch()} />
           ) : null}
 
@@ -236,7 +250,7 @@ export default function SourcingPage() {
                 placeholder="Search ASIN, Amazon title, or eBay title"
               />
             </div>
-            {activeTab === "Replenishment" ? (
+            {activeTab === "Buy List" ? (
               <select
                 value={scope}
                 onChange={(event) => setScope(event.target.value)}
@@ -247,7 +261,7 @@ export default function SourcingPage() {
                 <option value="prior_unreviewed">Prior Unreviewed</option>
               </select>
             ) : null}
-            {activeTab === "Replenishment" ? (
+            {activeTab === "Buy List" ? (
               <select
                 value={status}
                 onChange={(event) => setStatus(event.target.value)}
@@ -295,6 +309,10 @@ export default function SourcingPage() {
             </select>
           </div>
 
+          {activeTab === "Business Excluded" ? <details className="mb-3 rounded border bg-white p-3" open><summary>Suppression records ({businessSuppressions.length})</summary>
+            <p className="my-2 text-xs text-slate-600">Active ASIN holds, including those without a positively matched listing. Synced sales metrics control release. Values below are recorded values; check the evaluation date.</p>
+            <div className="max-h-48 overflow-auto"><table className="w-full text-xs"><thead><tr><th>ASIN</th><th>Recorded velocity</th><th>Required velocity</th><th>Last evaluated</th></tr></thead><tbody>{businessSuppressions.map(hold=><tr key={hold.asin}><td>{hold.asin}</td><td>{hold.current_velocity??"Unavailable"} units/month</td><td>{hold.required_velocity??"Unavailable"} units/month</td><td>{hold.last_evaluated_at??"Unavailable"}</td></tr>)}</tbody></table></div>
+          </details> : null}
           <ReplenishmentTable
             rows={visibleRows}
             loading={loading}
@@ -328,23 +346,20 @@ export default function SourcingPage() {
             }}
             purchasedMode={activeTab === "Purchased Pending Match"}
             closestExcludedMode={activeTab === "Closest Excluded"}
-            salesVelocitySuppressedMode={activeTab === "Sales Velocity Suppressed"}
+            salesVelocitySuppressedMode={activeTab === "Business Excluded"}
+            onReviewRow={activeTab === "Buy List" || activeTab === "Closest Excluded" || activeTab === "Business Excluded" ? setDismissRow : undefined}
             onUpdateAsin={(row, asin) => void act(row, { actionType: "update_asin", asin })}
           />
           {dismissRow ? (
             <DismissOpportunityDialog
               key={dismissRow.opportunityId}
+              saveError={error}
               row={dismissRow}
               actionBusyId={actionBusyId}
-              initialDiagnosticsOpen={activeTab === "Replenishment" || activeTab === "Closest Excluded"}
+              initialDiagnosticsOpen={activeTab === "Buy List" || activeTab === "Closest Excluded"}
               onClose={() => setDismissRow(null)}
-              onBlockAsin={async (notes, imageClues) => {
-                await act(dismissRow, { actionType: "block_asin", notes, imageClues });
-                setDismissRow(null);
-              }}
-              onDismiss={async (reason, notes, imageClues, diagnosticsFeedback) => {
-                await act(dismissRow, { actionType: "dismiss", reason, notes, imageClues, diagnosticsFeedback });
-                setDismissRow(null);
+              onReview={async (payload) => {
+                if (await act(dismissRow, payload)) setDismissRow(null);
               }}
             />
           ) : null}
@@ -354,12 +369,10 @@ export default function SourcingPage() {
               busy={actionBusyId === "bulk"}
               onClose={() => setBulkDismissOpen(false)}
               onBlockAsins={async (notes, imageClues) => {
-                await bulkAct(selectedRows, () => ({ actionType: "block_asin", notes, imageClues }));
-                setBulkDismissOpen(false);
+                if (await bulkAct(selectedRows, () => ({ actionType: "block_asin", notes, imageClues }))) setBulkDismissOpen(false);
               }}
               onDismiss={async (reason, notes, imageClues) => {
-                await bulkAct(selectedRows, () => ({ actionType: "dismiss", reason, notes, imageClues }));
-                setBulkDismissOpen(false);
+                if (await bulkAct(selectedRows, () => ({ actionType: "dismiss", reason, notes, imageClues }))) setBulkDismissOpen(false);
               }}
             />
           ) : null}
@@ -426,6 +439,7 @@ function ReplenishmentTable({
   purchasedMode,
   closestExcludedMode,
   salesVelocitySuppressedMode,
+  onReviewRow,
   onUpdateAsin,
 }: {
   rows: SourcingOpportunity[];
@@ -442,6 +456,7 @@ function ReplenishmentTable({
   purchasedMode: boolean;
   closestExcludedMode: boolean;
   salesVelocitySuppressedMode: boolean;
+  onReviewRow?: (row:SourcingOpportunity)=>void;
   onUpdateAsin: (row: SourcingOpportunity, asin: string) => void;
 }) {
   const [sort, setSort] = useState<OpportunitySort | null>(null);
@@ -472,9 +487,10 @@ function ReplenishmentTable({
                       <button disabled={bulkDisabled} onClick={onBulkWatch} className="bulk-button">Watch selected</button>
                       <button disabled={bulkDisabled} onClick={onBulkWaitForSellThrough} className="bulk-button">Wait for sell-through</button>
                       <button disabled={bulkDisabled} onClick={onBulkPurchased} className="bulk-button">Mark selected purchased / offer made</button>
-                      <button disabled={bulkDisabled} onClick={onBulkDismiss} className="bulk-button-danger">Dismiss selected</button>
+                      
                     </>
                   ) : null}
+                  {!purchasedMode ? <button disabled={bulkDisabled} onClick={onBulkDismiss} className="bulk-button-danger">{selectedCount === 1 && onReviewRow ? "Review selected" : "Dismiss selected"}</button> : null}
                 </div>
               </th>
             </tr>
@@ -548,7 +564,7 @@ function ReplenishmentTable({
                     ) : null}
                     <div className="mt-1 text-sm text-slate-600">
                       <span>{row.amazonTitle}</span>{" "}
-                      <AsinCorrectionInput row={row} disabled={actionBusyId === row.opportunityId} onUpdateAsin={onUpdateAsin} />
+                      <AsinCorrectionInput key={`${row.opportunityId}:${row.asin}`} row={row} disabled={actionBusyId === row.opportunityId} onUpdateAsin={onUpdateAsin} />
                     </div>
                     <div className="mt-1 flex flex-wrap gap-2 text-xs text-slate-500">
                       <span>{row.sellerUsername ?? "unknown seller"}</span>
@@ -557,8 +573,9 @@ function ReplenishmentTable({
                       <span>qty {row.quantityAvailable ?? "--"}</span>
                       {closestExcludedMode ? <span>near miss {number(row.nearMissRank)}</span> : null}
                     </div>
-                    {closestExcludedMode ? <ExcludedBecause reason={row.exclusionReason ?? null} /> : null}
-                    {salesVelocitySuppressedMode ? <SalesVelocitySuppressionSummary row={row} /> : null}
+                    {closestExcludedMode || salesVelocitySuppressedMode ? <ExcludedBecause reason={row.exclusionReason ?? null} /> : null}
+                    {onReviewRow ? <button onClick={()=>onReviewRow(row)} className="mt-2 rounded border px-2 py-1 text-xs">Review match / Dismiss</button> : null}
+                    {row.latestReview ? <div className="text-xs text-slate-600">Operator pair verdict: {row.latestReview.pairVerdict ?? "not provided"}</div> : null}
                   </td>
                   <td className="px-2 py-2 whitespace-nowrap">
                     <CostCell row={row} />
@@ -731,9 +748,6 @@ function AsinCorrectionInput({
 }) {
   const [draft, setDraft] = useState(row.asin);
 
-  useEffect(() => {
-    setDraft(row.asin);
-  }, [row.asin]);
 
   function commit() {
     const normalized = draft.trim().toUpperCase();
@@ -933,29 +947,6 @@ function ExcludedBecause({ reason }: { reason: SourcingOpportunity["exclusionRea
   );
 }
 
-function SalesVelocitySuppressionSummary({ row }: { row: SourcingOpportunity }) {
-  const suppression = row.salesVelocitySuppression;
-  if (!suppression) return null;
-  return (
-    <div className="mt-2 max-w-xl rounded-md border border-sky-200 bg-sky-50 px-2 py-1.5 text-xs text-sky-950">
-      <div className="flex flex-wrap items-center gap-1.5">
-        <span className="font-semibold text-sky-900">Sales Velocity Suppressed</span>
-        <span className={`rounded px-1.5 py-0.5 text-[11px] font-medium ${
-          suppression.releaseEligible ? "bg-emerald-50 text-emerald-700" : "bg-white text-sky-800"
-        }`}>
-          {suppression.releaseEligible ? "Release eligible" : "Waiting"}
-        </span>
-      </div>
-      <div className="mt-1 text-sky-800">
-        Dismissed at {number(suppression.velocityAtDismissal)} / mo; current {number(suppression.currentVelocity)} / mo; required {number(suppression.requiredVelocity)} / mo
-      </div>
-      <div className="mt-0.5 text-[11px] text-sky-700">
-        Window {suppression.metricWindowDays ?? "--"} days / last evaluated {dateOnly(suppression.lastEvaluatedAt)}
-      </div>
-    </div>
-  );
-}
-
 function OpportunityTypeCell({ row }: { row: SourcingOpportunity }) {
   if (row.opportunityType === "auction" && row.ebayItemId) {
     return (
@@ -992,32 +983,9 @@ function AmountLine({ label: lineLabel, row, amountUsd }: { label: string; row: 
   return <div className="text-xs text-slate-500">{lineLabel} {offerBidAmountLabel(row, amountUsd)}</div>;
 }
 
-function DismissOpportunityDialog({
-  row,
-  actionBusyId,
-  initialDiagnosticsOpen,
-  onClose,
-  onBlockAsin,
-  onDismiss,
-}: {
-  row: SourcingOpportunity;
-  actionBusyId: string | null;
-  initialDiagnosticsOpen: boolean;
-  onClose: () => void;
-  onBlockAsin: (notes: string, imageClues: string[]) => Promise<void>;
-  onDismiss: (
-    reason: string,
-    notes: string,
-    imageClues: string[],
-    diagnosticsFeedback: {
-      allAssumptionsCorrect: boolean;
-      failedRuleFamilies: string[];
-      evidenceSources: string[];
-      legacyIncorrectRows: string[];
-      incorrectRows: string[];
-      note?: string | null;
-    },
-  ) => Promise<void>;
+function DismissOpportunityDialog({row,actionBusyId,initialDiagnosticsOpen,onClose,onReview,saveError}: {
+  row:SourcingOpportunity; actionBusyId:string|null; initialDiagnosticsOpen:boolean; onClose:()=>void;
+  onReview:(payload:SourcingActionPayload)=>Promise<void>; saveError?:string|null;
 }) {
   const [notes, setNotes] = useState("");
   const [imageClues, setImageClues] = useState<string[]>([]);
@@ -1025,20 +993,23 @@ function DismissOpportunityDialog({
   const [allAssumptionsCorrect, setAllAssumptionsCorrect] = useState(false);
   const [failedRuleFamilies, setFailedRuleFamilies] = useState<string[]>([]);
   const busy = actionBusyId === row.opportunityId;
-  const diagnosticsFeedback = {
-    allAssumptionsCorrect,
-    failedRuleFamilies: allAssumptionsCorrect ? [] : failedRuleFamilies,
-    evidenceSources: allAssumptionsCorrect ? [] : evidenceSourcesForRuleFamilies(failedRuleFamilies),
-    legacyIncorrectRows: allAssumptionsCorrect ? [] : legacyRowsForRuleFamilies(failedRuleFamilies),
-    incorrectRows: allAssumptionsCorrect ? [] : legacyRowsForRuleFamilies(failedRuleFamilies),
-    note: notes.trim() || null,
+  const [reason,setReason] = useState("");
+  const [pairVerdict,setPairVerdict] = useState<MatchingFeedback["pairVerdict"]>("not_provided");
+  const [corrections,setCorrections] = useState<MatchingFeedback["corrections"]>([]);
+  const [usedEvidence,setUsedEvidence] = useState<string[]>([]);
+  const diagnosticsFeedback: Partial<MatchingFeedback> = {
+    version:"matching_feedback_v3", allAssumptionsCorrect,
+    failedRuleFamilies:allAssumptionsCorrect?[]:failedRuleFamilies,
+    evidenceSources:usedEvidence, pairVerdict, corrections, note:notes.trim()||null,
   };
+  function save(actionType:string) { void onReview({actionType,reason:actionType === "dismiss"?reason:undefined,notes,imageClues,diagnosticsFeedback}); }
 
   return (
     <div className="fixed inset-0 z-40 flex items-center justify-center bg-slate-950/20 p-4">
-      <div className={`w-full rounded-md border border-slate-200 bg-white shadow-2xl ${diagnosticsOpen ? "max-w-7xl" : "max-w-lg"}`}>
+      <div className={`max-h-[95vh] overflow-auto w-full rounded-md border border-slate-200 bg-white shadow-2xl ${diagnosticsOpen ? "max-w-7xl" : "max-w-lg"}`}>
         <div className="border-b border-slate-200 px-4 py-3">
-          <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">Dismiss Opportunity</div>
+          <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">Review Match / Dismiss</div>
+          {saveError ? <p role="alert" className="text-sm text-red-700">{saveError}</p> : null}
           <div className="mt-1 text-sm font-medium text-slate-950">{row.ebayTitle}</div>
           <div className="mt-1 font-mono text-xs text-slate-500">{row.asin}</div>
         </div>
@@ -1046,13 +1017,15 @@ function DismissOpportunityDialog({
           <div className="space-y-3 px-4 py-3">
             <DismissReasonButtons
               busy={busy}
-              onChoose={(reason) => void onDismiss(reason, notes, imageClues, diagnosticsFeedback)}
+              onChoose={setReason}
             />
+            {reason ? <div className="text-xs">Selected reason: {label(reason)}</div> : null}
+            <MatchingReviewControls verdict={pairVerdict} onVerdict={setPairVerdict} corrections={corrections} onCorrections={setCorrections} evidence={usedEvidence} onEvidence={setUsedEvidence}/>
             <ImageClueButtons selected={imageClues} onChange={setImageClues} />
             <button
               type="button"
               disabled={busy}
-              onClick={() => void onBlockAsin(notes, imageClues)}
+              onClick={() => {if(window.confirm(`Block ${row.asin} from future sourcing?`)) save("block_asin");}}
               className="inline-flex h-9 items-center gap-2 rounded-md border border-red-300 bg-white px-3 text-sm font-medium text-red-700 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
             >
               <Ban className="h-4 w-4" />
@@ -1086,7 +1059,10 @@ function DismissOpportunityDialog({
             />
           ) : null}
         </div>
-        <div className="flex justify-end gap-2 border-t border-slate-200 px-4 py-3">
+        <div className="flex flex-wrap justify-end gap-2 border-t border-slate-200 px-4 py-3">
+          <button disabled={busy} onClick={()=>save("mark_valid_match")} className="rounded bg-emerald-700 px-3 py-2 text-sm text-white">Confirm Match</button>
+          <button disabled={busy} onClick={()=>save("save_match_feedback")} className="rounded border px-3 py-2 text-sm text-slate-700">Save feedback</button>
+          <button disabled={busy||!reason} onClick={()=>save("dismiss")} className="rounded bg-red-700 px-3 py-2 text-sm text-white disabled:opacity-50">Dismiss</button>
           <button onClick={onClose} disabled={busy} className="rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-700 hover:bg-slate-50">
             Cancel
           </button>
@@ -1198,6 +1174,7 @@ function DiagnosticComparisonPanel({
           All matching assumptions are correct
         </label>
       </div>
+      {row.latestReview ? <details className="mb-2 text-xs"><summary>Latest operator feedback: {row.latestReview.pairVerdict ?? "not provided"}</summary><pre className="whitespace-pre-wrap">{JSON.stringify({feedback:row.latestReview.feedback,corrections:row.latestReview.corrections},null,2)}</pre></details> : null}
       {hardBlocks.length || warnings.length ? (
         <div className="mb-3 grid gap-2 text-xs md:grid-cols-2">
           {hardBlocks.length ? <DiagnosticMessageList title="Hard Blocks" messages={hardBlocks} tone="danger" /> : null}
@@ -1205,11 +1182,11 @@ function DiagnosticComparisonPanel({
         </div>
       ) : null}
       <div className="overflow-hidden rounded-md border border-slate-200 bg-white">
-        <div className="grid grid-cols-[150px_minmax(0,1fr)_minmax(0,1fr)_64px] border-b border-slate-100 bg-slate-100 px-2 py-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
+        <div className="grid grid-cols-[150px_minmax(0,1fr)_minmax(0,1fr)_128px] border-b border-slate-100 bg-slate-100 px-2 py-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
           <div>Derived Identity</div>
           <div>Amazon</div>
           <div>eBay</div>
-          <div className="text-center">Wrong</div>
+          <div className="text-center normal-case"><span className="whitespace-nowrap">Operator Feedback</span><br/><span className="whitespace-nowrap">Incorrect Match</span></div>
         </div>
         <div className="divide-y divide-slate-100">
           {identityRows.length ? identityRows.map((diagnosticRow) => {
@@ -1217,7 +1194,7 @@ function DiagnosticComparisonPanel({
             const active = failed.has(family);
             const status = summaryStatusForRow(diagnosticRow);
             return (
-              <div key={diagnosticRow.key} className={`grid grid-cols-[150px_minmax(0,1fr)_minmax(0,1fr)_64px] items-center gap-2 px-2 py-2 text-xs ${status === "fail" ? "bg-rose-50" : status === "warning" ? "bg-amber-50" : ""}`}>
+              <div key={diagnosticRow.key} className={`grid grid-cols-[150px_minmax(0,1fr)_minmax(0,1fr)_128px] items-center gap-2 px-2 py-2 text-xs ${status === "fail" ? "bg-rose-50" : status === "warning" ? "bg-amber-50" : ""}`}>
                 <div className="font-medium text-slate-800" title={diagnosticRow.comparisonReason}>{diagnosticRow.label} <span aria-label={status}>{summaryIcon(status)}</span></div>
                 <div className="break-words text-slate-700" title={evidenceTooltip(diagnosticRow.amazonEvidence)}>{diagnosticRow.amazon ? formatCompactDiagnosticCell(diagnosticRow.amazon) : "Not identified"}</div>
                 <div className="break-words text-slate-700" title={evidenceTooltip(diagnosticRow.ebayEvidence)}>{diagnosticRow.ebay ? formatCompactDiagnosticCell(diagnosticRow.ebay) : "Not identified"}</div>
@@ -1242,7 +1219,7 @@ function DiagnosticComparisonPanel({
         </div>
       </div>
       <div className="mt-3 overflow-hidden rounded-md border border-slate-200 bg-white">
-        <div className="border-b border-slate-100 bg-slate-100 px-2 py-2 text-xs font-semibold uppercase tracking-wide text-slate-500">Evidence Used</div>
+        <div className="border-b border-slate-100 bg-slate-100 px-2 py-2 text-xs font-semibold uppercase tracking-wide text-slate-500">Supporting Evidence</div>
         <div className="grid gap-0 divide-y divide-slate-100 text-xs md:grid-cols-2 md:divide-x md:divide-y-0">
           {evidenceRows.map((diagnosticRow) => (
             <EvidenceRow key={diagnosticRow.key} row={diagnosticRow} />
@@ -1564,38 +1541,6 @@ function summaryClass(status: SummaryStatus) {
 
 function titleCase(value: string) {
   return value.replace(/\b\w/g, (letter) => letter.toUpperCase()).trim();
-}
-
-function evidenceSourcesForRuleFamilies(families: string[]) {
-  const defaults: Record<string, string[]> = {
-    core_game_identity: ["amazon_title", "ebay_title", "ebay_game_name"],
-    numeric_installment: ["amazon_title", "ebay_title", "ebay_item_specifics"],
-    platform: ["amazon_title", "ebay_title", "platform_metadata", "ebay_item_specifics"],
-    edition_version: ["amazon_title", "ebay_title", "ebay_item_specifics"],
-    region: ["ebay_item_specifics", "category"],
-    completeness: ["ebay_title", "ebay_item_specifics", "ebay_description", "primary_image", "additional_images"],
-    digital_physical: ["ebay_title", "ebay_item_specifics", "ebay_description", "category"],
-    category_product_type: ["category", "ebay_item_specifics", "ebay_title"],
-    seller_listing_photo_consistency: ["primary_image", "additional_images", "ebay_title"],
-    other: ["other"],
-  };
-  return [...new Set(families.flatMap((family) => defaults[family] ?? ["other"]))];
-}
-
-function legacyRowsForRuleFamilies(families: string[]) {
-  const legacy: Record<string, string[]> = {
-    core_game_identity: ["core_game_identity"],
-    numeric_installment: ["installment_number"],
-    platform: ["platform_system"],
-    edition_version: ["edition_version"],
-    region: ["region"],
-    completeness: ["completeness", "package_bundle_contents"],
-    digital_physical: ["digital_physical"],
-    category_product_type: ["category", "format_type"],
-    seller_listing_photo_consistency: ["seller_listing_photo_consistency"],
-    other: ["opportunity_context"],
-  };
-  return [...new Set(families.flatMap((family) => legacy[family] ?? ["opportunity_context"]))];
 }
 
 function DismissReasonButtons({

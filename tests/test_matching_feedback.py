@@ -18,7 +18,7 @@ class MatchingFeedbackTests(unittest.TestCase):
 
     def test_closest_excluded_action_labels(self) -> None:
         self.assertEqual(label_for_action("confirmed_valid_match", None), ("match", "positive_identity"))
-        self.assertEqual(label_for_action("confirmed_exclusion", None), ("non_match", "negative_identity"))
+        self.assertEqual(label_for_action("confirmed_exclusion", None), ("needs_review", "unknown"))
 
     def test_receiving_sourcing_false_positive_is_negative_identity(self) -> None:
         self.assertEqual(

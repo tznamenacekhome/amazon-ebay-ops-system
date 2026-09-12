@@ -373,7 +373,7 @@ def fetch_matching_context(supabase) -> dict[str, Any]:
     examples = paginate_table(
         supabase,
         "matching_intelligence_examples",
-        "asin,amazon_system,detected_system,ebay_item_id,ebay_legacy_item_id,ebay_title,match_label,label_type,dismiss_reason,source_weight,evidence_strength,created_at",
+        "asin,amazon_system,detected_system,ebay_item_id,ebay_legacy_item_id,ebay_title,match_label,label_type,dismiss_reason,source_weight,evidence_strength,created_at,review_feedback:raw_context_json->matchingFeedback",
         order_column="created_at",
         desc=True,
     )
@@ -657,6 +657,31 @@ def score_candidate(
         flags.append("Declined offer: no higher profitable item offer available")
         matching_diagnostics["declined_offer_suppressed"] = True
         score_reason = "Seller declined an item offer at or above the current profitable offer limit"
+    # Record outcomes of the existing business policy separately from identity.
+    # Reuse classify/suggested_offer; this does not change admission or thresholds.
+    economic_passes = profit is not None and roi is not None and profit >= settings.min_profit_dollars and roi >= settings.min_roi_percent
+    economic_type = classify(candidate, buying_options, landed_cost, best_offer_cap, economic_passes, settings, shipping_unknown, False)
+    economics_block = economic_type not in {"buy_now", "multi_unit", "best_offer", "auction"}
+    checked_at = dt.datetime.now(dt.UTC).isoformat()
+    checks = []
+    def check(code, label, actual, threshold, units, failed, explanation="", scenario="asking price"):
+        checks.append(dict(code=code,label=label,actual=actual,threshold=threshold,units=units,
+                           result="unknown" if actual is None else "fail" if failed else "pass",blocking=bool(failed),
+                           scenario=scenario,evaluatedAt=checked_at,source="score_sourcing_opportunities.business_checks_v1",explanation=explanation))
+    check("shipping", "Required shipping cost", candidate.get("shipping_cost") if not shipping_unknown else None, "known", "USD", shipping_unknown, "Shipping cost unavailable" if shipping_unknown else "")
+    check("minimum_profit", "Estimated profit", profit, settings.min_profit_dollars, "USD", economics_block and not shipping_unknown and (profit is None or profit < settings.min_profit_dollars), scenario=economic_type)
+    check("minimum_roi", "Estimated ROI", roi, settings.min_roi_percent, "%", economics_block and not shipping_unknown and (roi is None or roi < settings.min_roi_percent), scenario=economic_type)
+    if candidate.get("best_offer_enabled") and economics_block and not shipping_unknown:
+        offer_budget = round(max(best_offer_cap - to_float(candidate.get("shipping_cost"),0),0),2)
+        check("offer_floor", "Maximum profitable item offer", offer_budget, round(item_price*settings.best_offer_min_ask_percent/100,2), "USD", max_offer_price is None, scenario="Best Offer item-only policy")
+    if historical_status and status in {"roi_snoozed","watching"}:
+        check("roi_hold", "Stored price-improvement hold", watch_reference_purchase_cost(opportunity_type,landed_cost,item_price,max_offer_price), historical_status.get("expected_purchase_cost"), "USD", True, "Release requires an improved purchase price or improved sale-price cost cap; original hold retained.", "active operator hold")
+    if historical_status and status == "inventory_snoozed":
+        inventory_context = (historical_status.get("raw_action_context") or {}).get("inventorySnooze") or {}
+        check("inventory_hold", "Inventory sell-through hold", current_owned_units, inventory_context.get("representAtUnits"), "units", True, "Original sell-through release condition retained.", "active operator hold")
+    if matching_diagnostics.get("declined_offer_suppressed"):
+        check("declined_offer", "Declined profitable offer", max_offer_price, None, "USD", True, "No higher profitable offer is available under the existing declined-offer policy.", "declined offer")
+    matching_diagnostics["businessEligibilityChecks"] = checks
     matching_diagnostics = enrich_sourcing_diagnostics(
         matching_diagnostics,
         status=status,
@@ -913,7 +938,9 @@ def matching_diagnostics_for_candidate(
     exact_example_count = len(examples)
     if not examples:
         examples.extend(title_memory_examples(candidate, seed, matching_context, asin))
-    examples = dedupe_examples(examples)
+    # Phase 2 operator reviews are append-only evidence. Admission consumption
+    # is gated by Phase 3 safety validation; never promote on confirmation alone.
+    examples = [row for row in dedupe_examples(examples) if not is_explicit_pair_review(row)]
 
     positive_examples = [row for row in examples if row.get("match_label") == "match"]
     negative_examples = [
@@ -996,6 +1023,12 @@ def matching_diagnostics_for_candidate(
     }
 
 
+def is_explicit_pair_review(row: dict[str, Any]) -> bool:
+    context = row.get("raw_context_json") or {}
+    feedback = row.get("review_feedback") or (context.get("matchingFeedback") if isinstance(context,dict) else {}) or {}
+    return isinstance(feedback,dict) and (feedback.get("evidenceProvenance") == "explicit" or feedback.get("version") == "matching_feedback_v3" and feedback.get("evidenceProvenance") != "legacy_mixed")
+
+
 def title_memory_examples(
     candidate: dict[str, Any],
     seed: dict[str, Any],
@@ -1013,6 +1046,8 @@ def title_memory_examples(
     candidate_system = detect_system_from_title(str(candidate.get("ebay_title") or ""))
     examples = []
     for example in (matching_context.get("examples_by_asin") or {}).get(asin, []):
+        if is_explicit_pair_review(example):
+            continue
         example_key = title_memory_key(example.get("ebay_title"))
         if not example_key or example_key != candidate_key:
             continue

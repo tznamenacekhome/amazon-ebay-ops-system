@@ -17,6 +17,7 @@ from typing import Any
 
 from matching_feedback import matching_feedback_from_context
 from sourcing_common import get_supabase_client
+from analyze_recent_sourcing_dismissals import is_system_action
 
 
 DEFAULT_REPORT = Path("docs/sourcing_matching_feedback_report.md")
@@ -96,8 +97,16 @@ def summarize_feedback_rows(rows: list[dict[str, Any]], *, limit: int = 1000) ->
     examples: list[dict[str, Any]] = []
     dates: list[str] = []
     feedback_count = 0
+    automation_count = 0
+    empty_count = 0
+    verdict_counts: Counter[str] = Counter()
+    provenance_counts: Counter[str] = Counter()
+    correction_count = 0
 
     for row in rows[:limit]:
+        if is_system_action(row):
+            automation_count += 1
+            continue
         context = row.get("raw_action_context")
         feedback = matching_feedback_from_context(context)
         has_feedback = bool(
@@ -105,10 +114,16 @@ def summarize_feedback_rows(rows: list[dict[str, Any]], *, limit: int = 1000) ->
             or feedback["failedRuleFamilies"]
             or feedback["evidenceSources"]
             or feedback["legacyIncorrectRows"]
+            or feedback["pairVerdict"] != "not_provided"
+            or feedback["corrections"]
         )
         if not has_feedback:
+            empty_count += 1
             continue
         feedback_count += 1
+        verdict_counts[feedback["pairVerdict"]] += 1
+        provenance_counts[feedback["evidenceProvenance"]] += 1
+        correction_count += len(feedback["corrections"])
         if row.get("created_at"):
             dates.append(str(row["created_at"]))
         if row.get("dismiss_reason"):
@@ -121,6 +136,11 @@ def summarize_feedback_rows(rows: list[dict[str, Any]], *, limit: int = 1000) ->
             examples.append(
                 {
                     "action_id": row.get("action_id"),
+                    "pair_verdict": feedback["pairVerdict"],
+                    "corrections": feedback["corrections"],
+                    "evidence_provenance": feedback["evidenceProvenance"],
+                    "source_tab": (context or {}).get("sourceTab"),
+                    "actor": (context or {}).get("actor"),
                     "created_at": row.get("created_at"),
                     "action_type": row.get("action_type"),
                     "dismiss_reason": row.get("dismiss_reason"),
@@ -135,6 +155,11 @@ def summarize_feedback_rows(rows: list[dict[str, Any]], *, limit: int = 1000) ->
     return {
         "actions_scanned": len(rows[:limit]),
         "actions_with_feedback": feedback_count,
+        "automation_actions": automation_count,
+        "empty_feedback_unlabeled": empty_count,
+        "pair_verdict_counts": verdict_counts,
+        "evidence_provenance_counts": provenance_counts,
+        "correction_count": correction_count,
         "date_range": {
             "start": min(dates) if dates else None,
             "end": max(dates) if dates else None,

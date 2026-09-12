@@ -1,11 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabase, toNumber } from "../_supabase";
 import { buildDiagnosticComparison } from "../diagnosticComparison";
-import { excludeBlockedOpportunities } from "../blockedAsins";
+import { businessExclusion, recordedHoldCheck } from "../businessExclusion";
+import { fetchLatestReviews } from "../reviewActions";
+import { excludeBlockedOpportunities, fetchBlockedAsins } from "../blockedAsins";
 import { excludeDeclinedOffers } from "../declinedOffers";
 
 type OpportunityRow = {
   opportunity_id: string;
+  candidate_id?: string | null;
+  ebay_item_id?: string | null;
   sourcing_run_id: string;
   asin: string;
   opportunity_type: string | null;
@@ -306,7 +310,8 @@ async function getOpportunities(request: NextRequest) {
     });
   }
 
-  const requestedStatus = status === "sales_velocity_suppressed" ? "all" : status;
+  const businessMode = status === "business_excluded" || status === "sales_velocity_suppressed";
+  const requestedStatus = businessMode ? "all" : status;
   const { data, error } = scope === "new_this_run" && latestBatchOpportunityIds
     ? await fetchBatchOpportunities(latestBatchOpportunityIds, requestedStatus, type)
     : await fetchRunOpportunities({
@@ -319,22 +324,47 @@ async function getOpportunities(request: NextRequest) {
   if (error) return jsonNoStore({ error: error.message }, { status: 500 });
 
   const activeSuppressionByAsin = await fetchActiveSalesVelocitySuppressions();
-  let rows = await excludeBlockedOpportunities((data ?? []) as OpportunityRow[]);
-  rows = await excludeDeclinedOffers(rows);
-  if (status === "sales_velocity_suppressed") {
-    rows = rows.filter((row) => activeSuppressionByAsin.has(row.asin?.toUpperCase()));
-  } else if (status === "open" && scope !== "closest_excluded") {
-    rows = rows.filter((row) => !activeSuppressionByAsin.has(row.asin?.toUpperCase()));
+  let rows = (data ?? []) as OpportunityRow[];
+  if (businessMode) {
+    // Include manageable holds outside the latest run window without a raw-table scan.
+    const {data:held,error:heldError}=await supabase.from("sourcing_opportunities").select(OPPORTUNITY_SELECT)
+      .in("status",["inventory_snoozed","roi_snoozed","watching"]).order("created_at",{ascending:false}).limit(queryLimit);
+    if(heldError)throw new Error(heldError.message);
+    rows=[...new Map([...rows,...(held??[]) as OpportunityRow[]].map(row=>[row.opportunity_id,row])).values()];
+  } else {
+    rows = await excludeBlockedOpportunities(rows);
+    rows = await excludeDeclinedOffers(rows);
+    if (status === "open" && scope !== "closest_excluded") rows = rows.filter(row=>!activeSuppressionByAsin.has(row.asin?.toUpperCase()));
   }
+  const latestReviews=await fetchLatestReviews(rows);
+  const reviewFor=(row:OpportunityRow)=>latestReviews.get(`${row.asin}|${row.ebay_item_id}`);
+  const blockedAsins=businessMode?await fetchBlockedAsins(rows.map(row=>row.asin)):new Set<string>();
+  if(businessMode) {
+    const heldAsins=[...new Set(rows.filter(row=>["inventory_snoozed","roi_snoozed","watching"].includes(row.status??"")).map(row=>row.asin))];
+    const holdActions:Array<Record<string,unknown>>=[];
+    for(let index=0;index<heldAsins.length;index+=100) {
+      const {data:actions,error:actionsError}=await supabase.from("sourcing_actions").select("asin,ebay_item_id,action_type,created_at,raw_action_context,expected_purchase_cost,required_max_landed_cost")
+        .in("asin",heldAsins.slice(index,index+100)).in("action_type",["inventory_snoozed","inventory_snooze","roi_snoozed","watching","watch"]).order("created_at",{ascending:false}).limit(1000);
+      if(actionsError)throw new Error(actionsError.message);
+      holdActions.push(...actions??[]);
+    }
+    rows=rows.map(row=>{
+      const diagnostics=(row.matching_diagnostics_json && typeof row.matching_diagnostics_json === "object" ? row.matching_diagnostics_json : {}) as Record<string,unknown>;
+      const existing=Array.isArray(diagnostics.businessEligibilityChecks)?diagnostics.businessEligibilityChecks:[];
+      const action=holdActions.find(action=>action.asin===row.asin && (action.ebay_item_id===row.ebay_item_id || row.status==="inventory_snoozed"));
+      return {...row,matching_diagnostics_json:{...diagnostics,businessEligibilityChecks:[...existing,...recordedHoldCheck(row,action)]}};
+    });
+  }
+  const businessReasonFor=(row:OpportunityRow)=>businessExclusion(row,reviewFor(row),activeSuppressionByAsin.get(row.asin?.toUpperCase()),blockedAsins.has(row.asin?.toUpperCase()));
   const closestExcludedContext = scope === "closest_excluded"
     ? await buildClosestExcludedContext(rows)
     : null;
   const qualifyingClosestExcludedRows = scope === "closest_excluded"
-    ? rows.filter((row) => isClosestExcludedCandidate(row, closestExcludedContext))
+    ? rows.filter((row) => !reviewFor(row)?.actionId && isClosestExcludedCandidate(row, closestExcludedContext))
     : [];
   const eligibleRows = scope === "closest_excluded"
     ? qualifyingClosestExcludedRows
-    : rows.filter(isPresentationEligibleOpportunity);
+    : businessMode ? rows.filter(row=>businessReasonFor(row)!==null) : rows.filter(isPresentationEligibleOpportunity);
   const presentationByOpportunityId = scope === "closest_excluded"
     ? new Map<string, PresentationMetadata>()
     : await fetchPresentationMetadataByOpportunityId(
@@ -366,11 +396,13 @@ async function getOpportunities(request: NextRequest) {
       const myListing = myListingByAsin.get(row.asin.toUpperCase()) ?? null;
       const landedCost = row.sourcing_ebay_candidates?.landed_cost ?? null;
       const conservativeProfit = conservativeDisplayedProfit(targetSalePrice, landedCost, row.profit);
-      const exclusionReason = scope === "closest_excluded" ? closestExcludedReason(row) : null;
+      const exclusionReason = businessMode ? businessReasonFor(row) : scope === "closest_excluded" ? closestExcludedReason(row) : null;
       const decisionTrace = scope === "closest_excluded" ? persistedDecisionTrace(row.matching_diagnostics_json) : [];
       const velocitySuppression = activeSuppressionByAsin.get(row.asin.toUpperCase()) ?? null;
       return {
+        latestReview: reviewFor(row) ?? null,
         opportunityId: row.opportunity_id,
+        candidateId: row.candidate_id ?? null,
         runId: row.sourcing_run_id,
         asin: row.asin,
         amazonTitle,
@@ -471,7 +503,7 @@ async function getOpportunities(request: NextRequest) {
     })
     .filter((row) => {
       if (scope === "prior_unreviewed" && row.isNewThisRun) return false;
-      if (row.status === "open" && row.listingStatus === "ended") return false;
+      if (!businessMode && row.status === "open" && row.listingStatus === "ended") return false;
       if (sourceMode !== "all" && row.sourceMode !== sourceMode) return false;
       if (inventoryFilter === "exclude_in_stock" && row.myQuantity > 0) return false;
       if (inventoryFilter === "only_in_stock" && row.myQuantity <= 0) return false;
@@ -490,6 +522,7 @@ async function getOpportunities(request: NextRequest) {
     scope,
     summary: summarizeMappedRows(sortedRows, opportunities.length),
     opportunities,
+    businessSuppressions: businessMode ? [...activeSuppressionByAsin.values()].filter(hold=>!queryText||hold.asin?.toLowerCase().includes(queryText.toLowerCase())) : [],
     batch: latestBatch,
   });
 }
@@ -837,6 +870,11 @@ function isOperatorActionType(actionType: string | null | undefined) {
     "dismiss",
     "block_asin",
     "mark_valid_match",
+    "confirmed_valid_match",
+    "confirmed_exclusion",
+    "matching_feedback",
+    "dismissed",
+    "watching",
     "confirm_exclusion",
     "seller_listing_mismatch",
     "inventory_snoozed",
