@@ -12,4 +12,8 @@ assert.notEqual(positiveAgain,first,'A later positive after intervening negative
 assert.notEqual(positiveAgain,negative);
 requests.cancel();assert.notEqual(requests.get('pair:positive'),positiveAgain,'Closing a review ends that attempt');
 assert.notEqual(requests.get('otherPair:positive'),requests.get('pair:positive'),'Bulk rows have independent IDs');
+const uncertain=requests.get('edited-dialog:positive');
+requests.get('edited-dialog:negative');requests.complete('edited-dialog:negative');
+requests.cancel(); // Successful dialog close also discards abandoned payload attempts.
+assert.notEqual(requests.get('edited-dialog:positive'),uncertain);
 console.log('Review request IDs passed: retry stability, completed-attempt renewal, intervening verdict, cancel, independent bulk rows.');

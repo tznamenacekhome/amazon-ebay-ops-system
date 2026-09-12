@@ -362,7 +362,7 @@ export default function SourcingPage() {
               initialDiagnosticsOpen={activeTab === "Buy List" || activeTab === "Closest Excluded"}
               onClose={() => {reviewRequests.current.cancel();setDismissRow(null);}}
               onReview={async (payload) => {
-                if (await act(dismissRow, payload)) setDismissRow(null);
+                if (await act(dismissRow, payload)) {reviewRequests.current.cancel();setDismissRow(null);}
               }}
             />
           ) : null}
@@ -372,10 +372,10 @@ export default function SourcingPage() {
               busy={actionBusyId === "bulk"}
               onClose={() => {reviewRequests.current.cancel();setBulkDismissOpen(false);}}
               onBlockAsins={async (notes, imageClues) => {
-                if (await bulkAct(selectedRows, () => ({ actionType: "block_asin", notes, imageClues }))) setBulkDismissOpen(false);
+                if (await bulkAct(selectedRows, () => ({ actionType: "block_asin", notes, imageClues }))) {reviewRequests.current.cancel();setBulkDismissOpen(false);}
               }}
               onDismiss={async (reason, notes, imageClues) => {
-                if (await bulkAct(selectedRows, () => ({ actionType: "dismiss", reason, notes, imageClues }))) setBulkDismissOpen(false);
+                if (await bulkAct(selectedRows, () => ({ actionType: "dismiss", reason, notes, imageClues }))) {reviewRequests.current.cancel();setBulkDismissOpen(false);}
               }}
             />
           ) : null}
