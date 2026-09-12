@@ -17,6 +17,7 @@ import { KeepaPriceIndicator } from "../components/KeepaPriceIndicator";
 
 import { MatchingReviewControls } from "./MatchingReviewControls";
 import type { MatchingFeedback } from "../api/sourcing/matchingFeedback";
+import { ReviewRequestIds } from "./reviewRequestIds";
 
 const tabs = ["Buy List", "Closest Excluded", "Business Excluded", "Coverage Cycle", "Watchlist", "Purchased Pending Match", "Sourcing History", "Matching Intelligence", "Settings"] as const;
 const opportunityTypes = ["all", "buy_now", "multi_unit", "best_offer", "auction", "watch"] as const;
@@ -107,11 +108,10 @@ export default function SourcingPage() {
     [selectedIds, visibleRows],
   );
 
-  const reviewRequests = useRef(new Map<string, string>());
+  const reviewRequests = useRef(new ReviewRequestIds());
   function reviewPayload(row: SourcingOpportunity, payload: SourcingActionPayload) {
     if (!["dismiss","block_asin","mark_valid_match","confirm_exclusion","save_match_feedback"].includes(payload.actionType)) return payload;
     const key = JSON.stringify([row.opportunityId,payload]);
-    if (!reviewRequests.current.has(key)) reviewRequests.current.set(key,crypto.randomUUID());
     return {...payload,requestId:reviewRequests.current.get(key),sourceTab:activeTab,expectedAsin:row.asin,expectedEbayItemId:row.ebayItemId,expectedCandidateId:row.candidateId??null,expectedEvaluationId:row.diagnosticComparison?.evaluation?.id??null};
   }
 
@@ -126,6 +126,7 @@ export default function SourcingPage() {
       });
       const result = await response.json();
       if (!response.ok) throw new Error(result.error ?? "Action failed.");
+      reviewRequests.current.complete(JSON.stringify([row.opportunityId,payload]));
       if (payload.actionType === "update_asin") await reload();
       else if (["mark_valid_match","save_match_feedback","confirm_exclusion"].includes(payload.actionType)) await reload();
       else { removeRows([row.opportunityId]); await reload(); }
@@ -144,13 +145,15 @@ export default function SourcingPage() {
     setError(null);
     try {
       for (const row of rowsToUpdate) {
+        const payload=payloadForRow(row);
         const response = await fetch(`/api/sourcing/opportunities/${row.opportunityId}/actions`, {
           method: "POST",
           headers: mutationHeaders({ "Content-Type": "application/json" }),
-          body: JSON.stringify(reviewPayload(row,payloadForRow(row))),
+          body: JSON.stringify(reviewPayload(row,payload)),
         });
         const result = await response.json();
         if (!response.ok) throw new Error(result.error ?? "Action failed.");
+        reviewRequests.current.complete(JSON.stringify([row.opportunityId,payload]));
         removeRows([row.opportunityId]);
       }
       setSelectedIds(new Set());
@@ -357,7 +360,7 @@ export default function SourcingPage() {
               row={dismissRow}
               actionBusyId={actionBusyId}
               initialDiagnosticsOpen={activeTab === "Buy List" || activeTab === "Closest Excluded"}
-              onClose={() => setDismissRow(null)}
+              onClose={() => {reviewRequests.current.cancel();setDismissRow(null);}}
               onReview={async (payload) => {
                 if (await act(dismissRow, payload)) setDismissRow(null);
               }}
@@ -367,7 +370,7 @@ export default function SourcingPage() {
             <BulkDismissOpportunityDialog
               rows={selectedRows}
               busy={actionBusyId === "bulk"}
-              onClose={() => setBulkDismissOpen(false)}
+              onClose={() => {reviewRequests.current.cancel();setBulkDismissOpen(false);}}
               onBlockAsins={async (notes, imageClues) => {
                 if (await bulkAct(selectedRows, () => ({ actionType: "block_asin", notes, imageClues }))) setBulkDismissOpen(false);
               }}

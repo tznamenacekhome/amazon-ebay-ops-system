@@ -85,4 +85,10 @@ result=await rpc('sourcing_latest_reviews',{p_pairs:[{asin:op.asin,ebay_item_id:
 sql(`update public.sourcing_opportunities set status='purchased_pending_match' where opportunity_id=${quote(id)}`);
 assert.equal((await post({...body,requestId:randomUUID(),actionType:'dismiss',reason:'wrong_product'})).status,200);
 assert.equal(sql(`select status from public.sourcing_opportunities where opportunity_id=${quote(id)}`),'purchased_pending_match');
+const persisted=sql(`select jsonb_agg(to_jsonb(a)) from public.sourcing_actions a where opportunity_id=${quote(id)}`);
+const analyzerCode=`import sys,json;sys.path.insert(0,${JSON.stringify(resolve(root,'../../../../integrations')).replaceAll('\\','/')});from analyze_matching_feedback import summarize_feedback_rows;print(json.dumps(summarize_feedback_rows(json.load(sys.stdin))))`;
+const analyzed=JSON.parse(execFileSync(resolve(root,'../../../../.venv/Scripts/python.exe'),['-c',analyzerCode],{input:persisted,encoding:'utf8'}));
+assert.equal(analyzed.pair_verdict_counts.correct,1);assert.equal(analyzed.pair_verdict_counts.unsure,1);assert.equal(analyzed.pair_verdict_counts.incorrect,1);
+assert(analyzed.correction_count>=1);assert.equal(analyzed.evidence_provenance_counts.explicit,3);
 console.log('Actual action API → PostgreSQL → reload passed: auth, stale pair, blocked-ASIN positive, correction, unknown, idempotency, full rollback, protected purchase');
+console.log('Persisted API review actions also survive the actual Python analyzer with distinct positive, negative, unsure and correction evidence.');
