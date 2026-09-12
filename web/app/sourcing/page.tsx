@@ -487,7 +487,7 @@ function ReplenishmentTable({
                       <button disabled={bulkDisabled} onClick={onBulkWatch} className="bulk-button">Watch selected</button>
                       <button disabled={bulkDisabled} onClick={onBulkWaitForSellThrough} className="bulk-button">Wait for sell-through</button>
                       <button disabled={bulkDisabled} onClick={onBulkPurchased} className="bulk-button">Mark selected purchased / offer made</button>
-                      
+
                     </>
                   ) : null}
                   {!purchasedMode ? <button disabled={bulkDisabled} onClick={onBulkDismiss} className="bulk-button-danger">{selectedCount === 1 && onReviewRow ? "Review selected" : "Dismiss selected"}</button> : null}
