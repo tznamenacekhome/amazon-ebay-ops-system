@@ -43,9 +43,10 @@ def build_unified_priority_queue(
 ) -> QueueBuildResult:
     settings = settings or fetch_settings(supabase)
     exclude_asins = {clean_asin(asin) for asin in (exclude_asins or set()) if clean_asin(asin)}
-    recent = build_recent_sales_seeds(supabase, settings, limit)
+    planning_cache: dict[str, dict[str, Any]] = {}
+    recent = build_recent_sales_seeds(supabase, settings, limit, planning_cache=planning_cache)
     purchased = build_purchased_not_sent_seeds(supabase, settings, limit)
-    catalog = build_full_listing_seeds(supabase, settings, limit)
+    catalog = build_full_listing_seeds(supabase, settings, limit, planning_cache=planning_cache)
 
     by_asin: dict[str, dict[str, Any]] = {}
     for priority, seeds in (

@@ -112,7 +112,7 @@ def create_run(supabase, run_id: str, mode: str, settings, *, dry_run: bool) -> 
     ).execute()
 
 
-def build_recent_sales_seeds(supabase, settings, limit: int) -> list[dict[str, Any]]:
+def build_recent_sales_seeds(supabase, settings, limit: int, *, planning_cache=None) -> list[dict[str, Any]]:
     cutoff = dt.datetime.now(dt.UTC) - dt.timedelta(days=settings.sales_lookback_days)
     orders = paginate_table(
         supabase,
@@ -134,7 +134,6 @@ def build_recent_sales_seeds(supabase, settings, limit: int) -> list[dict[str, A
         max_rows=20000,
     )
     inventory_by_asin = latest_inventory_by_asin(supabase)
-    planning_by_asin = latest_inventory_planning_by_asin(supabase)
     catalog_by_asin = latest_catalog_context_by_asin(supabase)
     blocked_asins = fetch_blocked_asins(supabase)
 
@@ -172,6 +171,7 @@ def build_recent_sales_seeds(supabase, settings, limit: int) -> list[dict[str, A
         if fees > 0:
             current["fee_samples"].append(round(fees / quantity, 2))
 
+    planning_by_asin = latest_inventory_planning_by_asin(supabase, by_asin, cache=planning_cache)
     return finalize_seeds(
         by_asin.values(),
         inventory_by_asin,
@@ -184,7 +184,7 @@ def build_recent_sales_seeds(supabase, settings, limit: int) -> list[dict[str, A
     )
 
 
-def build_full_listing_seeds(supabase, settings, limit: int) -> list[dict[str, Any]]:
+def build_full_listing_seeds(supabase, settings, limit: int, *, planning_cache=None) -> list[dict[str, Any]]:
     listing_rows = paginate_table(
         supabase,
         "amazon_skus",
@@ -206,7 +206,6 @@ def build_full_listing_seeds(supabase, settings, limit: int) -> list[dict[str, A
     )
     keepa_by_asin = {str(row.get("asin") or "").upper(): row for row in keepa_rows}
     inventory_by_asin = latest_inventory_by_asin(supabase)
-    planning_by_asin = latest_inventory_planning_by_asin(supabase)
     catalog_by_asin = latest_catalog_context_by_asin(supabase)
     blocked_asins = fetch_blocked_asins(supabase)
 
@@ -285,6 +284,7 @@ def build_full_listing_seeds(supabase, settings, limit: int) -> list[dict[str, A
             },
         }
 
+    planning_by_asin = latest_inventory_planning_by_asin(supabase, by_asin, cache=planning_cache)
     return finalize_seeds(
         by_asin.values(),
         inventory_by_asin,
@@ -454,25 +454,23 @@ def keepa_image_url(row: dict[str, Any]) -> str | None:
     return f"https://images-na.ssl-images-amazon.com/images/I/{image_name}"
 
 
-def latest_inventory_planning_by_asin(supabase) -> dict[str, dict[str, Any]]:
-    rows = paginate_table(
-        supabase,
-        "amazon_inventory_planning_snapshots",
-        (
-            "asin,snapshot_date,captured_at,available_quantity,sales_shipped_last_30_days,"
-            "inv_age_0_to_90_days,inv_age_91_to_180_days,inv_age_181_to_270_days,"
-            "inv_age_271_to_365_days,inv_age_365_plus_days,raw_planning_json"
-        ),
-        max_rows=20000,
-        order_column="captured_at",
-        desc=True,
-    )
-    by_asin: dict[str, dict[str, Any]] = {}
-    for row in rows:
-        asin = str(row.get("asin") or "").upper()
-        if asin and asin not in by_asin:
-            by_asin[asin] = row
-    return by_asin
+def latest_inventory_planning_by_asin(supabase, asins, *, cache=None) -> dict[str, dict[str, Any]]:
+    # Scope the cache to a single queue build, including ASINs with no report.
+    # Never fall back to the historical scan if the RPC is unavailable.
+    cache = {} if cache is None else cache
+    wanted = sorted({str(asin).strip().upper() for asin in asins if asin and str(asin).strip()})
+    for batch in chunked([asin for asin in wanted if asin not in cache], 100):
+        rows = supabase.rpc("sourcing_latest_inventory_planning", {"requested_asins": batch}).execute().data
+        if not isinstance(rows, list):
+            raise ValueError("Invalid sourcing planning response")
+        found = {}
+        for row in rows:
+            asin = row.get("asin")
+            if asin not in batch or asin in found:
+                raise ValueError("Unexpected or duplicate ASIN in sourcing planning response")
+            found[asin] = row
+        cache.update({asin: found.get(asin, {}) for asin in batch})
+    return {asin: cache[asin] for asin in wanted if cache[asin]}
 
 
 def latest_catalog_context_by_asin(supabase) -> dict[str, dict[str, Any]]:
