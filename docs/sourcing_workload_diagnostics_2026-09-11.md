@@ -40,3 +40,41 @@ remaining Supabase Disk IO Budget; free disk space is a separate measurement.
 Counter semantics follow PostgreSQL 17 documentation:
 [statement statistics](https://www.postgresql.org/docs/17/pgstatstatements.html)
 and [activity/statistics views](https://www.postgresql.org/docs/17/monitoring-stats.html).
+
+## Deployment and first live evidence
+
+Source commit `ed6f2e11ae21`; scheduler revision 89 pins image
+`sha256:273a7adf0e1ec27f5a326e9cb528a0f70cf25da6fcb9cf7a0c1204f6dfb8bf00`.
+The task was cloned from the catalog's revision 86, retaining its runtime
+configuration. All 20 MBOP schedules were compared before/after: only
+`mbop-sourcing-catalog` changed from revision 86 to 89. Its cadence is unchanged.
+Rollback target is revision 86. The dirty build suffix reflects the unrelated
+untracked wholesale-discovery document; deployed integration changes are committed.
+
+All 20 targeted tests passed both locally and in the Linux image. AWS read-only
+smoke task `20a426ac14014256b5023bb50a74ab8d` exited zero and emitted workload,
+statement baseline, and memory records plus successful child/grandchild logging
+and a tiny database read. No schema was applied.
+
+The authorized full sourcing run launched as task
+`0830d53b18b149b4be21f85108d337f9`, scheduler run
+`a2971730-be17-4feb-8f59-b25b5d1ac161`, starting September 11 at 18:57 Pacific.
+No other active scheduler telemetry was present at launch. The initial metrics
+passed existing guards; disk remained tight at approximately 1.38 GiB free.
+This records a launch and early observations, not a completed run or a durable fix.
+
+The first 61.6-second statement interval identified query
+`-4429572817857345153`: 40 calls, 8.90 seconds cumulative execution time and
+480,408 temporary blocks written (approximately 3.66 GiB with 8 KiB blocks).
+Its normalized shape reads `amazon_inventory_planning_snapshots`, including
+`raw_planning_json`, ordered by `captured_at DESC`, with limit/offset pagination.
+It maps to `latest_inventory_planning_by_asin` in `build_sourcing_seed_asins.py`,
+which reads up to 20,000 rows and is used in both seed-building paths.
+A read-only EXPLAIN (without ANALYZE) confirms a parallel sequential scan,
+sort, and gather merge for a late page. This is measured startup amplification,
+not proof of the query's memory footprint or the cause of prior guard failures.
+No query optimization or guard change is bundled into this instrumentation release.
+
+Evidence and rollback metadata are retained under the ignored
+`logs/diagnostics/workload-deploy-20260911/` directory; the live CloudWatch stream
+is `scheduled/mbop-scheduler/0830d53b18b149b4be21f85108d337f9`.
