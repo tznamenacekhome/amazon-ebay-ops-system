@@ -349,7 +349,7 @@ def evidence_decision(amazon, ebay):
                                 else "Normalized evidence differs")
         comparison["amazonEvidenceRef"] = "amazon.fields." + key
         comparison["ebayEvidenceRef"] = "ebay.fields." + key
-        if any(identity["fields"][key]["state"] == "conflicting_sources" for identity in (amazon, ebay)):
+        if comparison["result"] != "unknown" and any(identity["fields"][key]["state"] == "conflicting_sources" for identity in (amazon, ebay)):
             comparison["result"] = "review"
             comparison["reason"] = "Sources disagree within one listing"
     result = "unknown"

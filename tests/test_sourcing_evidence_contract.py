@@ -36,6 +36,12 @@ class EvidenceContractTests(unittest.TestCase):
         result = build_identity_comparison(amazon_title="Dirt", ebay_title="Dirt", evidence={"country_of_origin_values": ["Japan"]})
         self.assertIsNone(result["ebay"]["fields"]["region"]["value"])
 
+    def test_unknown_counterpart_does_not_become_completed_comparison(self):
+        result = build_identity_comparison(amazon_title="Unrecognized game", ebay_title="Shrek 2",
+                                           evidence={"game_name_values": ["Shrek 3"]})
+        self.assertEqual("conflicting_sources", result["ebay"]["fields"]["installment"]["state"])
+        self.assertEqual("unknown", result["evidenceDecision"]["comparisons"]["installment"]["result"])
+
     def test_lifecycle_is_separate_from_identity(self):
         result = enrich_sourcing_diagnostics({}, status="rejected", opportunity_type="no_profitable_source_found", profit=1, roi_percent=2)
         decision = result["canonicalDecision"]
