@@ -8,9 +8,109 @@ payloads remain readable through the same normalization path.
 from __future__ import annotations
 
 from typing import Any
+from copy import deepcopy
+from datetime import datetime
 
 
 VERSION = "matching_feedback_v3"
+
+
+def apply_scoped_reviews(comparison, candidate, seed, reviews, *, evaluated_at):
+    """Offline Phase 3 application of action-linked v3 evidence.
+
+    Exact identifiers (including variation) are never reduced to a legacy ID.
+    Later labels are excluded at the evaluation cutoff. Corrections and verdict
+    supersession are independent. Unverifiable/changed snapshots require review.
+    This function cannot write, clear a hold, or change a lifecycle status.
+    """
+    from video_game_identity import evidence_hash, phase3_comparison, IDENTITY_FIELDS, normalize_number_value, normalize_system, platform_display
+
+    def instant(value):
+        return datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+
+    def material(snapshot, side):
+        if side == "amazon":
+            return {"title": snapshot.get("amazon_title"), "system": snapshot.get("amazon_system")}
+        raw = snapshot.get("raw_ebay_json") or {}
+        return {"title": snapshot.get("ebay_title"), "aspects": raw.get("localizedAspects"),
+                "description": raw.get("description") or raw.get("shortDescription"),
+                "image": raw.get("image"), "additionalImages": raw.get("additionalImages"),
+                "condition": snapshot.get("ebay_condition")}
+
+    current = {"amazon_title": seed.get("amazon_title"), "amazon_system": seed.get("system"),
+               "ebay_title": candidate.get("ebay_title"), "raw_ebay_json": candidate.get("raw_ebay_json"),
+               "ebay_condition": candidate.get("condition")}
+    identity = deepcopy(comparison)
+    audit, eligible = [], []
+    cutoff = instant(evaluated_at)
+    for row in reviews:
+        feedback = (row.get("raw_action_context") or {}).get("matchingFeedback") or {}
+        if row.get("asin") != seed.get("asin") or feedback.get("version") != VERSION or feedback.get("evidenceProvenance") != "explicit":
+            continue
+        if not row.get("action_id") or not row.get("created_at"):
+            continue
+        try:
+            when = instant(row["created_at"])
+            if when > cutoff: continue
+        except (ValueError, TypeError):
+            continue
+        eligible.append((when, str(row["action_id"]), row, feedback))
+    eligible.sort(key=lambda row: row[:2], reverse=True)
+    correction_keys = set()
+    verdict_row = None
+    for _, action_id, row, feedback in eligible:
+        exact = row.get("ebay_item_id") == candidate.get("ebay_item_id")
+        snapshot = row.get("snapshot") or {}
+        snapshot_ok = snapshot.get("action_id") == action_id and snapshot.get("asin") == seed.get("asin") and snapshot.get("ebay_item_id") == row.get("ebay_item_id")
+        unchanged = {side: snapshot_ok and evidence_hash(material(snapshot, side)) == evidence_hash(material(current, side)) for side in ("amazon", "ebay")}
+        # Catalog metadata was not stored in v3 listing snapshots. Until its
+        # reviewed source can be reconciled, never assume it was unchanged.
+        if (seed.get("raw_context_json") or {}).get("amazon_catalog_identity"):
+            unchanged["amazon"] = False
+        if exact and verdict_row is None and feedback.get("pairVerdict") in {"correct", "incorrect", "unsure"}:
+            verdict_row = (action_id, feedback["pairVerdict"], all(unchanged.values()))
+        for correction in feedback.get("corrections") or []:
+            key, side, scope = correction.get("field"), correction.get("side"), correction.get("scope")
+            if key not in IDENTITY_FIELDS or side not in {"amazon", "ebay"}: continue
+            if scope != "pair" and not (scope == "asin" and side == "amazon"): continue
+            if scope == "pair" and not exact: continue
+            correction_key = (key, side)
+            if correction_key in correction_keys: continue
+            correction_keys.add(correction_key)
+            entry = {"actionId": action_id, "field": key, "side": side, "scope": scope,
+                     "operatorBefore": correction.get("before"), "snapshotId": snapshot.get("listing_snapshot_id")}
+            state = correction.get("state")
+            valid = state in {"supported", "inferred", "unknown", "explicit_absence"} and (state in {"unknown", "explicit_absence"} or bool(correction.get("value")))
+            if not valid or not unchanged[side]:
+                audit.append({**entry, "result": "needs_review", "reason": "Invalid correction or changed/unverifiable source snapshot"})
+                continue
+            old = deepcopy(identity[side]["fields"][key])
+            value = None if state == "unknown" else correction.get("value")
+            if state == "explicit_absence": value = "Explicitly absent"
+            elif value and key == "platform": value = platform_display(normalize_system(value)) or value
+            elif value and key == "installment": value = normalize_number_value(value)
+            identity[side]["fields"][key].update(value=value, state=state, sources=[{"field": "operator_correction", "actionId": action_id,
+                "snapshot": snapshot.get("listing_snapshot_id"), "scope": scope}], before=old)
+            identity[side][key] = value
+            if key == "installment": identity[side]["installmentNormalized"] = value
+            audit.append({**entry, "result": "applied"})
+    result = phase3_comparison(identity["amazon"], identity["ebay"])
+    result.update({key: comparison[key] for key in ("reference", "materialEvidenceHash") if key in comparison})
+    if verdict_row:
+        action_id, verdict, unchanged = verdict_row
+        applied_verdict = {"correct": "match", "incorrect": "non-match", "unsure": "needs_review"}[verdict] if unchanged else "needs_review"
+        result["evidenceDecision"]["productIdentityVerdict"] = applied_verdict
+        verdict_time = next(row[2]['created_at'] for row in eligible if row[1] == action_id)
+        result["evidenceDecision"]["operatorVerdict"] = {"actionId": action_id, "createdAt": verdict_time, "verdict": verdict, "result": "applied" if unchanged else "needs_review", "reason": "Exact reviewed sources unchanged" if unchanged else "New or unverifiable material evidence"}
+        result["result"] = {"match": "match", "non-match": "conflict", "needs_review": "review"}[applied_verdict]
+        result["hard_block"] = applied_verdict == "non-match"
+        result["reason"] = "Exact-pair operator verdict: " + applied_verdict
+    if any(row["result"] == "needs_review" for row in audit):
+        result["evidenceDecision"]["productIdentityVerdict"] = "needs_review"
+        result["result"], result["hard_block"] = "review", False
+        result["reason"] = "Field correction requires re-review of changed or unverifiable evidence"
+    result["correctionApplication"] = audit
+    return result
 
 RULE_FAMILIES = {
     "core_game_identity",

@@ -431,6 +431,9 @@ def evaluate_static_match_rules(
     *,
     excluded_keywords: list[str] | None = None,
     allowed_item_location_countries: list[str] | None = None,
+    identity_policy: str = "legacy",
+    scoped_reviews: list[dict[str, Any]] | None = None,
+    review_cutoff: str | None = None,
 ) -> dict[str, Any]:
     amazon_title = str(seed.get("amazon_title") or "")
     ebay_title = str(candidate.get("ebay_title") or "")
@@ -439,6 +442,24 @@ def evaluate_static_match_rules(
     combined_text = evidence["searchable_text"]
     description_text = str(evidence.get("description") or "").casefold()
     title_text = ebay_title.casefold()
+    exact_seed = seed if not candidate.get("asin") or candidate.get("asin") == seed.get("asin") else {}
+    canonical = build_identity_comparison(amazon_title=amazon_title if exact_seed else None, ebay_title=ebay_title,
+        seed=exact_seed, evidence=evidence, policy=identity_policy) if identity_policy != "legacy" else None
+    if canonical and scoped_reviews:
+        if not review_cutoff:
+            raise ValueError("Review evaluation cutoff required")
+        from matching_feedback import apply_scoped_reviews
+        canonical = apply_scoped_reviews(canonical, candidate, seed, scoped_reviews, evaluated_at=review_cutoff)
+
+    def identity_rule(key):
+        row = canonical["comparisons"][key]
+        operator = canonical["evidenceDecision"].get("operatorVerdict") or {}
+        if operator.get("result") == "applied" and operator.get("verdict") == "correct":
+            return {**row, "comparisonResult": row["result"], "result": "pass", "reason": "Exact pair confirmed; field comparison preserved separately",
+                    "shared_tokens": [canonical["amazon"]["coreGame"]] if key == "coreGame" else []}
+        return {**row, "result": "blocked" if row["result"] == "conflict" else
+                "review" if row["result"] == "review" else "pass" if row["result"] == "match" else "unknown",
+                "reason": row["reason"], "shared_tokens": [canonical["amazon"]["coreGame"]] if key == "coreGame" and row["result"] == "match" else []}
 
     flags: list[str] = []
     hard_blocks: list[str] = []
@@ -458,7 +479,7 @@ def evaluate_static_match_rules(
         score_adjustment -= 10
         recommendation = lower_recommendation(recommendation, "Probable Non-Match")
 
-    title_overlap = title_overlap_rule(amazon_title, ebay_title)
+    title_overlap = identity_rule("coreGame") if canonical else title_overlap_rule(amazon_title, ebay_title)
     if title_overlap["result"] == "blocked":
         hard_blocks.append(title_overlap["reason"])
         flags.append(f"Blocked: {title_overlap['reason']}")
@@ -531,7 +552,7 @@ def evaluate_static_match_rules(
         score_adjustment -= 12
         recommendation = lower_recommendation(recommendation, "Review")
 
-    game_name = game_name_rule(amazon_title, evidence)
+    game_name = identity_rule("coreGame") if canonical else game_name_rule(amazon_title, evidence)
     if game_name["result"] == "blocked":
         hard_blocks.append(game_name["reason"])
         flags.append(f"Blocked: {game_name['reason']}")
@@ -543,7 +564,7 @@ def evaluate_static_match_rules(
         score_adjustment -= 12
         recommendation = lower_recommendation(recommendation, "Review")
 
-    numeric = numeric_identity_rule(amazon_title, ebay_title, evidence)
+    numeric = identity_rule("installment") if canonical else numeric_identity_rule(amazon_title, ebay_title, evidence)
     if numeric["result"] == "blocked":
         hard_blocks.append(numeric["reason"])
         flags.append(f"Blocked: {numeric['reason']}")
@@ -555,7 +576,7 @@ def evaluate_static_match_rules(
         score_adjustment -= 12
         recommendation = lower_recommendation(recommendation, "Review")
 
-    edition = edition_rule(amazon_title, ebay_title, evidence)
+    edition = identity_rule("edition") if canonical else edition_rule(amazon_title, ebay_title, evidence)
     if edition["result"] == "blocked":
         hard_blocks.append(edition["reason"])
         flags.append(f"Blocked: {edition['reason']}")
@@ -589,7 +610,7 @@ def evaluate_static_match_rules(
         score_adjustment -= 30
         recommendation = "Blocked"
 
-    identity_comparison = build_identity_comparison(
+    identity_comparison = canonical or build_identity_comparison(
         amazon_title=amazon_title,
         ebay_title=ebay_title,
         seed=seed,

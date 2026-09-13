@@ -4,6 +4,9 @@ from __future__ import annotations
 
 import re
 import hashlib
+import json
+from copy import deepcopy
+from functools import lru_cache
 from typing import Any
 
 from system_detection import detect_system_from_title, normalize_system
@@ -178,7 +181,12 @@ def build_identity_comparison(
     ebay_title: Any,
     seed: dict[str, Any] | None = None,
     evidence: dict[str, Any] | None = None,
+    policy: str = "legacy",
 ) -> dict[str, Any]:
+    if policy == "phase3_shadow":
+        return evaluated_identity(amazon_title, ebay_title, seed or {}, evidence or {})
+    if policy != "legacy":
+        raise ValueError("Unapproved identity policy")
     seed = seed or {}
     evidence = evidence or {}
     amazon_identity = parse_video_game_identity(
@@ -677,3 +685,160 @@ def normalize_text(value: Any) -> str:
     text = re.sub(r"[/|:_\-+]+", " ", text)
     text = re.sub(r"\s+", " ", text)
     return text.strip()
+
+
+# Candidate Phase 3 policy. Only explicit offline callers can select it; the
+# deployed scorer stays on legacy until the complete visibility gate passes.
+PHASE3_VERSION = "video_game_identity_phase3_shadow_v1"
+PHASE3_EDITIONS = [
+    ("Complete Edition", r"\bcomplete\s+edition\b"),
+    ("GOTY", r"\b(?:goty|game\s+of\s+the\s+year)(?:\s+edition)?\b"),
+    ("Anniversary", r"\b\d+(?:st|nd|rd|th)\s+anniversary(?:\s+edition)?\b"),
+    *[(label.title() + " Edition", rf"\b{label}\s+edition\b") for label in
+      ("standard", "ultimate", "deluxe", "gold", "definitive", "limited", "special", "premium")],
+    ("Collector's Edition", r"\bcollector\s*s?\s+edition\b"),
+    *[(label, re.escape(label.casefold())) for label in
+      ("Greatest Hits", "Nintendo Selects", "PlayStation Hits", "Platinum Hits")],
+]
+PHASE3_PLATFORM = re.compile(
+    r"\b(?:(?:sony\s+)?play\s*station\s*[1-5]?|ps\s*[1-5]|"
+    r"(?:microsoft\s+)?xbox\s*(?:360|one(?:\s+x)?|series\s*[xs])?|"
+    r"(?:nintendo\s+)?(?:switch(?:\s+2)?|3ds|nds|ds|wii\s+u|wii(?!\s+play))|"
+    r"nintendo|windows|pc|mac)\b", re.I)
+
+
+def evidence_hash(value):
+    return hashlib.sha256(json.dumps(value, sort_keys=True, ensure_ascii=True, separators=(",", ":")).encode()).hexdigest()
+
+
+def general_product_fields(value):
+    """Keep the full named retail product; no franchise is required to parse it.
+
+    This is identity normalization, not fuzzy matching or an Amazon search.
+    In particular the search cleaner intentionally shortens Wii Play Motion;
+    it cannot replace raw identity evidence here.
+    """
+    text = normalize_text(value)
+    # Release metadata in parentheses is not a sequel; annual titles outside
+    # parentheses (FIFA 2011 etc.) retain their numbers.
+    text = re.sub(r"\([^)]*\)", lambda m: re.sub(r"\b(?:19|20)\d{2}\b", " ", m[0]), str(value).casefold())
+    text = normalize_text(text)
+    text = PHASE3_PLATFORM.sub(" ", text)
+    text = re.sub(r"\b(?:sku|stock|item)\s*#?\s*[a-z0-9-]+\b|\blot\s+of\s+\d+\b", " ", text)
+    text = re.sub(r"\b(?:brand\s+new|factory\s+seal(?:ed)?|new\s+(?:and\s+)?sealed|sealed\s+new|sealed|free\s+shipping|(?:super\s+)?fast\s+shipping|"
+                  r"shipping\s+fluff|ships\s+fast|shrink\s+wrapped|video\s+game|brand\s+new)\b", " ", text)
+    # Standalone leading New is ambiguous and is retained. Never strip New
+    # from New Super Mario Bros. / New Carnival Games.
+    text = re.sub(r"^new\s*/?\s*sealed\s+", "", text)
+    edition_values = []
+    for label, pattern in PHASE3_EDITIONS:
+        found = re.search(pattern, text)
+        if found:
+            edition_values.append(found[0] if label == "Anniversary" else label)
+            text = re.sub(pattern, " ", text)
+    text = re.sub(r"\bcomplete\s+(?:with\s+)?(?:case|manual)\b|\b(?:with\s+)?case\s+and\s+manual\b", " ", text)
+    text = re.sub(r"\bnew\s*$", "", text.strip())
+    text = re.sub(r"\b(?:for|on)\s*$", "", text.strip())
+    text = re.sub(r"\b(?:the\s+)?(first|second|third|fourth|fifth)\b", lambda m: ORDINAL_VALUES[m[1]], text)
+    text = re.sub(r"\b(" + "|".join(sorted(ROMAN_NUMERAL_VALUES, key=len, reverse=True)) + r")\b",
+                  lambda m: ROMAN_NUMERAL_VALUES[m[1]], text)
+    text = re.sub(r"[^\w\s.'+&]", " ", text)
+    text = re.sub(r"\s+", " ", text).strip(" .!")
+    text = re.sub(r"\b(?:new|rare)\s*$", "", text).strip()
+    text = re.sub(r"\b(?:by|for)\s*$", "", text).strip()
+    numbers = re.findall(r"\b(?:2k)?(\d+(?:\.\d+)?)\b", text)
+    product = text if text not in IGNORED_GAME_NAMES and re.search(r"[a-z]", text) else None
+    packages = [label for label in ("starter pack", "track pack", "expansion pack", "bundle", "game only", "steelbook only") if label in text]
+    fields = {"coreGame": product, "coreProduct": product,
+              "installment": numbers[0] if len(numbers) == 1 else None,
+              "edition": " + ".join(sorted(set(edition_values))) or None,
+              "packageType": " + ".join(packages) or None}
+    # Family rules refine only fields they actually evidence. They never supply
+    # a default generation/package or replace the full general product name.
+    known = parse_known_identity([{"source": "title", "text": str(value)}])
+    fields["franchise"] = known.get("franchise")
+    if known.get("franchise") == "Disney Infinity":
+        fields["generation"] = next((n for n in numbers if n in {"1.0", "2.0", "3.0"}), None)
+        fields["theme"] = known.get("theme")
+    if "track pack" in text:
+        fields["theme"] = next((x for x in ("classic rock", "country", "metal") if x in text), None)
+    return fields
+
+
+def phase3_side(title, side, evidence=None, catalog=None, platform=None):
+    evidence, catalog = evidence or {}, catalog or {}
+    rows = [{"source": "title", "text": str(title)}] if title else []
+    rows += [{"source": "game_name", "text": value} for value in usable_game_names(evidence)]
+    parsed = [(row, general_product_fields(row["text"])) for row in rows]
+    output = {}
+    for key in IDENTITY_FIELDS:
+        values = [(values.get(key), row) for row, values in parsed if values.get(key) is not None]
+        if key == "platform":
+            values = [(platform_display(detect_system_from_title(row["text"])), row) for row in rows if detect_system_from_title(row["text"])]
+            values += [(platform_display(normalize_system(v)), {"source": "platform_values", "text": v}) for v in evidence.get("platform_values", []) if normalize_system(v)]
+            if not values and platform:
+                values = [(platform_display(normalize_system(platform)), {"source": "seed.system", "text": platform})]
+        if key == "region":
+            allowed = rows + [{"source": "region_code_values", "text": v} for v in evidence.get("region_code_values", [])]
+            values = [(first_region([row]), row) for row in allowed if first_region([row])]
+        catalog_key = "normalized_" + key
+        if key in {"edition", "platform", "region"} and catalog.get(catalog_key):
+            val = catalog[catalog_key]
+            if key == "edition": val = general_product_fields(val)["edition"] or val
+            if key == "platform": val = platform_display(normalize_system(val))
+            values.append((val, {"source": "exact_asin_catalog." + catalog_key, "text": str(catalog[catalog_key])}))
+        distinct = {str(v).casefold() for v, _ in values}
+        state = "conflicting_sources" if len(distinct) > 1 else "supported" if values else "unknown"
+        sources = [{"field": row["source"], "span": row["text"][:240], "sourceHash": evidence_hash(row["text"]),
+                    "snapshot": catalog.get("snapshot_id") if row["source"].startswith("exact_asin") else None} for _, row in values]
+        output[key] = {"value": values[0][0] if values else None, "state": state, "sources": sources[:3],
+                       "side": side, "parserVersion": PHASE3_VERSION, "evidenceVersion": PHASE3_VERSION,
+                       "expectation": None, "confidenceKind": "uncalibrated_parser_heuristic"}
+    result = {key: field["value"] for key, field in output.items()}
+    result.update(fields=output, installmentNormalized=result["installment"], confidenceKind="uncalibrated_parser_heuristic")
+    return result
+
+
+@lru_cache(maxsize=2048)
+def _exact_reference(asin, title, system, serialized_catalog):
+    return phase3_side(title, "amazon", catalog=json.loads(serialized_catalog), platform=system)
+
+
+def evaluated_identity(amazon_title, ebay_title, seed, evidence):
+    asin = str(seed.get("asin") or "").upper()
+    catalog = catalog_identity(seed)
+    verified_catalog = catalog if asin and str(catalog.get("asin") or "").upper() == asin else {}
+    amazon = deepcopy(_exact_reference(asin, str(amazon_title or ""), seed.get("system"), json.dumps(verified_catalog, sort_keys=True)))
+    ebay = phase3_side(ebay_title, "ebay", evidence=evidence)
+    result = phase3_comparison(amazon, ebay)
+    result["reference"] = {"asin": asin or None, "catalogAccepted": bool(verified_catalog),
+                           "catalogRejected": bool(catalog and not verified_catalog), "version": PHASE3_VERSION}
+    result["materialEvidenceHash"] = evidence_hash({"asin": asin, "amazonTitle": amazon_title,
+        "catalog": verified_catalog, "ebayTitle": ebay_title, "evidence": evidence})
+    return result
+
+
+def phase3_comparison(amazon, ebay):
+    comparisons = {}
+    for key in IDENTITY_FIELDS:
+        left, right = amazon["fields"][key], ebay["fields"][key]
+        if any(v["state"] == "conflicting_sources" for v in (left, right)):
+            outcome, reason = "review", "Strong sources disagree within a side"
+        elif left["state"] == "unknown" or right["state"] == "unknown":
+            outcome, reason = "unknown", "Omitted information is not a contradiction or a pass"
+        elif str(left["value"]).casefold() == str(right["value"]).casefold() or key == "platform" and platforms_compatible(str(left["value"]), str(right["value"])):
+            outcome, reason = "match", "Supported normalized values agree"
+        else:
+            outcome = "conflict" if key in {"coreGame", "coreProduct", "installment", "generation", "theme", "edition", "packageType"} else "review"
+            reason = "Supported values differ"
+        comparisons[key] = {"field": key, "result": outcome, "amazon": left["value"], "ebay": right["value"], "reason": reason,
+                            "amazonEvidenceRef": "amazon.fields." + key, "ebayEvidenceRef": "ebay.fields." + key}
+    outcomes = {c["result"] for c in comparisons.values()}
+    verdict = "non-match" if "conflict" in outcomes else "needs_review" if "review" in outcomes else "match" if comparisons["coreGame"]["result"] == "match" else "unknown"
+    if verdict == "match" and any(bool(amazon[k]) != bool(ebay[k]) for k in ("edition", "packageType", "generation")):
+        verdict = "needs_review"
+    result = {"match": "match", "non-match": "conflict", "needs_review": "review", "unknown": "unknown"}[verdict]
+    decision = {"version": PHASE3_VERSION, "productIdentityVerdict": verdict, "comparisons": comparisons, "policyRole": "shadow_only"}
+    return {"version": PHASE3_VERSION, "amazon": amazon, "ebay": ebay, "comparisons": comparisons,
+            "evidenceDecision": decision, "result": result, "hard_block": result == "conflict",
+            "conflicts": [k for k, v in comparisons.items() if v["result"] == "conflict"], "reason": reason_for_result(comparisons)}

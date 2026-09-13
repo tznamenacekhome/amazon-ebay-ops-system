@@ -929,6 +929,9 @@ def matching_diagnostics_for_candidate(
         seed,
         excluded_keywords=list(getattr(settings, "excluded_keywords", []) or []),
         allowed_item_location_countries=list(getattr(settings, "item_location_countries", []) or []),
+        identity_policy=matching_context.get("offline_identity_policy", "legacy"),
+        scoped_reviews=matching_context.get("offline_scoped_reviews"),
+        review_cutoff=matching_context.get("offline_review_cutoff"),
     )
     asin = clean_asin(seed.get("asin") or candidate.get("asin"))
     examples_by_key = matching_context.get("examples_by_key") or {}
@@ -941,6 +944,19 @@ def matching_diagnostics_for_candidate(
     # Phase 2 operator reviews are append-only evidence. Admission consumption
     # is gated by Phase 3 safety validation; never promote on confirmation alone.
     examples = [row for row in dedupe_examples(examples) if not is_explicit_pair_review(row)]
+    operator = ((static_rules.get("identity_comparison") or {}).get("evidenceDecision") or {}).get("operatorVerdict") or {}
+    if operator.get("result") == "applied" and operator.get("verdict") == "correct":
+        # Supersede only older exact-pair memory. Undated/newer evidence is not
+        # discarded, and title memory never inherits a v3 pair confirmation.
+        cutoff = dt.datetime.fromisoformat(operator["createdAt"].replace("Z", "+00:00"))
+        def superseded(row):
+            if not exact_example_count: return False
+            when = row.get("reviewed_at") or row.get("created_at")
+            try:
+                return bool(when) and dt.datetime.fromisoformat(str(when).replace("Z", "+00:00")) < cutoff
+            except (TypeError, ValueError):
+                return False
+        examples = [row for row in examples if not superseded(row)]
 
     positive_examples = [row for row in examples if row.get("match_label") == "match"]
     negative_examples = [
@@ -963,6 +979,14 @@ def matching_diagnostics_for_candidate(
     score_adjustment = int(static_rules.get("score_adjustment") or 0)
     recommendation = static_rules.get("recommendation") or "Review"
     if negative_examples:
+        if operator.get("result") == "applied" and operator.get("verdict") == "correct":
+            identity = static_rules["identity_comparison"]
+            identity["evidenceDecision"]["productIdentityVerdict"] = "needs_review"
+            identity["evidenceDecision"]["operatorVerdict"]["result"] = "needs_review"
+            identity["evidenceDecision"]["operatorVerdict"]["reason"] = "Newer or undated negative memory conflicts with the reviewed pair"
+            identity["result"] = "review"
+            identity["hard_block"] = False
+            identity["reason"] = identity["evidenceDecision"]["operatorVerdict"]["reason"]
         label = negative_examples[0].get("match_label")
         reason = negative_examples[0].get("dismiss_reason") or label
         flags.append(f"Blocked: historical {label} ({reason})")

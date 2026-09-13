@@ -96,7 +96,9 @@ def enrich_sourcing_diagnostics(
         roi_percent=roi_percent,
         listing_status=listing_status,
     )
-    reasons = reasons_from_trace(trace, status=status, opportunity_type=opportunity_type)
+    identity_version = str(record(record(enriched.get("static_rules")).get("identity_comparison")).get("version") or "")
+    reasons = reasons_from_trace(trace, status=status, opportunity_type=opportunity_type,
+                                infer_profitability=not identity_version.startswith("video_game_identity_phase3_shadow"))
     eligible = is_currently_presentable(
         status=status,
         opportunity_type=opportunity_type,
@@ -151,6 +153,10 @@ def build_decision_trace(
 ) -> list[dict[str, Any]]:
     trace: list[dict[str, Any]] = []
     static_rules = record(diagnostics.get("static_rules"))
+    phase3 = str(record(static_rules.get("identity_comparison")).get("version") or "").startswith("video_game_identity_phase3_shadow")
+    economics = [row for row in diagnostics.get("businessEligibilityChecks", [])
+                 if row.get("code") in {"shipping", "minimum_profit", "minimum_roi", "offer_floor"}]
+    economics_pass = phase3 and bool(economics) and all(row.get("result") == "pass" and not row.get("blocking") for row in economics)
     checks = [
         ("title_overlap", "Title overlap", "title_overlap"),
         ("identity_comparison", "Video game identity", "core_game_identity"),
@@ -171,7 +177,10 @@ def build_decision_trace(
         if not value:
             continue
         result = result_name(value)
-        trace.append(trace_row(label, diagnostic_key, result, summary_for_check(key, value), reason_code_for_check(key, value)))
+        code = reason_code_for_check(key, value)
+        if phase3 and result == "warning" and key in {"identity_comparison", "game_name", "title_overlap", "numeric_identity", "edition_version"}:
+            code = "review_threshold"
+        trace.append(trace_row(label, diagnostic_key, result, summary_for_check(key, value), code))
 
     if diagnostics.get("historical_negative_count"):
         trace.append(trace_row("Historical feedback", "confidence_summary", "fail", "Historical negative example matched.", "historical_exact_negative"))
@@ -192,7 +201,7 @@ def build_decision_trace(
     final_recommendation = recommendation(diagnostics)
     if profit is None or roi_percent is None:
         trace.append(trace_row("Profitability", "opportunity_context", "fail", "Profit or ROI could not be calculated.", "profitability"))
-    elif status == "rejected" and (
+    elif not economics_pass and status == "rejected" and (
         opportunity_type == "no_profitable_source_found"
         or (opportunity_type in PRESENTABLE_TYPES and final_recommendation in PRESENTABLE_RECOMMENDATIONS)
     ):
@@ -208,7 +217,7 @@ def build_decision_trace(
         trace.append(trace_row("Final recommendation", "final_recommendation", "warning", f"Final recommendation is {final_recommendation or 'not available'}.", "review_threshold"))
 
     if opportunity_type not in PRESENTABLE_TYPES:
-        trace.append(trace_row("Presentation gate", "opportunity_context", "fail", f"Opportunity type is {opportunity_type or 'not available'}.", "profitability"))
+        trace.append(trace_row("Presentation gate", "opportunity_context", "fail", f"Opportunity type is {opportunity_type or 'not available'}.", "review_threshold" if economics_pass else "profitability"))
     elif status != "open":
         trace.append(trace_row("Presentation gate", "opportunity_context", "fail", f"Opportunity status is {status or 'not available'}."))
     else:
@@ -216,7 +225,7 @@ def build_decision_trace(
     return trace
 
 
-def reasons_from_trace(trace: list[dict[str, Any]], *, status: str | None, opportunity_type: str | None) -> list[dict[str, Any]]:
+def reasons_from_trace(trace: list[dict[str, Any]], *, status: str | None, opportunity_type: str | None, infer_profitability: bool = True) -> list[dict[str, Any]]:
     found: dict[str, dict[str, Any]] = {}
     for row in trace:
         if row.get("result") not in {"fail", "warning"}:
@@ -225,7 +234,7 @@ def reasons_from_trace(trace: list[dict[str, Any]], *, status: str | None, oppor
         if not code:
             continue
         found.setdefault(str(code), reason(str(code)))
-    if status == "rejected" and opportunity_type == "no_profitable_source_found":
+    if infer_profitability and status == "rejected" and opportunity_type == "no_profitable_source_found":
         found.setdefault("profitability", reason("profitability"))
     priority = {code: index for index, (code, *_rest) in enumerate(REASON_PRIORITY)}
     return sorted(found.values(), key=lambda item: priority.get(str(item.get("code")), 999))
