@@ -1,6 +1,6 @@
-# Sourcing matching repair — Phases 1 and 2
+# Sourcing matching repair — implementation and validation
 
-Phases 1 and 2 are implemented and deployed, with the authenticated production UI access limitation below. Buy List admission is unchanged. Phase 3 matching repairs and bounded current-row refresh remain outstanding under the supplied work order.
+Phases 1 and 2 are implemented and deployed, with the authenticated production UI access limitation below. Phase 3 was tested on 2026-09-13 and failed the positive-visibility safety gate; its candidate remains shadow-only. Production admission is unchanged, and Phase 3 activation and bounded refresh remain outstanding.
 
 ## Phase 1 changes
 
@@ -119,3 +119,66 @@ The MBOP migration is applied and all 17 shared ledger entries match. Live permi
 Offline actual UI screenshots for Buy List, Closest Excluded, Business Excluded and the shared review dialog were inspected under tmp/sourcing-phase2. Tab order, shared controls and suppression records render correctly; photos are omitted and local asset limitations are explicit. Browser inventory remains empty, so these are test screenshots, not authenticated production UI verification. No provider search, production synthetic review, business override or historical reprocessing was run. The unrelated wholesale discovery document remains untouched.
 
 Phase 2 is complete with the documented browser-access gap. Phase 3 matching repairs and gated bounded current-row refresh remain outstanding. Continue using the handoff; stop this session. Deployment manifest: sourcing_phase2_manifest_2026-09-12.json.
+
+
+## Phase 3 — shadow candidate; safety gate failed (2026-09-13)
+
+**Phase 3 is not complete or deployed.** Candidate commit `1b2aae1af404` is deliberately opt-in through `offline_identity_policy=phase3_shadow`; production defaults remain legacy. No runtime schedule, production row, action-time snapshot, threshold or business-hold release condition changed. The failed gate forbids deployment/refresh. This is a resumable shadow checkpoint, not an activated repair.
+
+### Candidate implementation and boundaries
+
+The existing identity entry point now supports a shadow evaluation with general full product-name extraction, contextual Arabic/Roman/ordinal/decimal tokens, explicit edition/package qualifiers and independently parsed eBay sources. It retains New in product names, Rare Replay, Awakening and Track Pack themes. Unknown does not default to Standard, Complete or installment 1. Exact-ASIN seed/catalog checks reject mismatched catalog and seed references. A bounded in-process reference cache keys ASIN plus actual title/system/catalog content; persistent cross-run reference/correction ingestion is not yet activated.
+
+The candidate static scorer routes title, Game Name, numeric and edition checks through the same evaluated comparisons. Existing platform/cross-generation, location (including Canada), condition, pricing/Best Offer and lifecycle rules remain. Shadow traces now distinguish matching Review from genuine profitability failures, using recorded business checks. All three Phase 2 tabs, shared controls and query projections are unchanged. No related-ASIN, wholesale or eBay-first discovery was added.
+
+Explicit v3 review application is tested offline: exact variation identifiers, evaluation cutoff, latest verdict including Unsure, field-only actions independent of verdict, per-field correction supersession, pair versus explicit Amazon-ASIN scope, original/source provenance, unchanged action-linked snapshots, changed images/text and newer/undated negative memory. Confirm Match cannot clear business rules or lifecycle holds. Legacy v3 snapshots do not preserve the full reviewed Amazon catalog context; catalog-bearing corrections/confirmations conservatively require re-review until that provenance can be reconciled. Live review ingestion remains disabled behind the failed gate. No explicit v3 actions existed at the initial current capture; subsequent actions in the final readback were inventory snoozes, not v3 confirmations.
+
+### Data, coverage and correctness
+
+Reused and hash-verified the Phase 1 1,000-dismissal cohort, newest 250, action snapshots and 5,356 positive candidates. No repeat dismissal audit or provider search. Positive source tiers remain workflow/memory candidates, not purchase-status ground truth: 2,520 distinct complete-title pairs could be replayed; 658 source records lack Amazon titles, 1,475 lack eBay titles, and 2,269 lack an exact listing ID. Those counts overlap. The title-only candidate replay is not certified positive-match accuracy. NERF ASIN B099JP9NQZ was reconciled between frozen purchase reference metadata and the same purchase item's correct-item receiving evidence. Dead Rising base reference B01JCV1QGE was verified in frozen seed/purchase metadata and was never replaced with Dead Rising 4.
+
+The purposive reviewed set contains 12 real title pairs across supplied and held-out families, with 50 annotated field expectations. Eleven use full current/frozen listing sources; the NERF case is a bounded textual fixture with reconciled reference provenance. This is analyst textual validation, not physical/photo or operator certification, and not a population accuracy estimate.
+
+| Measure | Before | Shadow after |
+|---|---:|---:|
+| Correct annotated field/state expectations | 16/50 (32%) | 43/50 (86%) |
+| Amazon core-name coverage, frozen 1,000 | 133/1,000 | 1,000/1,000 |
+| eBay core-name coverage without source conflict, frozen 1,000 | 106/1,000 | 363/1,000 |
+| Amazon installment coverage | 57/1,000 | 347/1,000 |
+| eBay installment coverage | 25/1,000 | 474/1,000 |
+| Definitive non-matches among 4 reviewed wrong pairs | 0/4 | 2/4 |
+| Reviewed wrong pairs excluded, including Review | — | 4/4 |
+
+Coverage means an available non-conflicting field, not correctness. Full per-field/per-family coverage, source states and before/after decisions are in `tmp/sourcing-phase3/safety-summary.json` and `replay.json`. Generic extraction still retains seller/publisher tokens, treats abbreviations/omissions too aggressively, and leaves completeness/digital evidence extraction incomplete. Broad identity classification is therefore not validated.
+
+Of 7 reviewed good pairs, **4 remain eligible, 0 recover and 3 are lost**. Three retained rows are current Buy List rows; NERF is a controlled profitable fixture. A separate populated synthetic fixture demonstrates recovery when credible Game Name establishes an omitted Deluxe edition; it is not counted as a recovered production opportunity. Exact known-good losses, all Review-based rather than new hard blocks:
+
+| ASIN / opportunity | Cause |
+|---|---|
+| B000FQBPCQ / b40f3e0a-ae02-4b81-aa12-0200d5c86095 | Zelda: Twilight Princess title retains NWT, conflicting with Game Name. |
+| B07RP42TMG / 664f232d-1cac-47b2-8d8d-f61e27785a58 | Ghost Recon Breakpoint retains publisher Ubisoft / Game wording. |
+| B07Y686RM7 / da586db5-97c6-4f69-bf47-ef920ea8c1a5 | Roller Coaster Tycoon Classic versus abbreviated RollerCoaster Tycoon Game Name. |
+
+Full-source Gears/Rare Replay and Castlevania/sequel are definitive non-matches. DiRT/DiRT 3 and Origins/Awakening are excluded through Review because source normalization still disagrees; they are not counted as definitive catches. Mario Kart Live Mario Set remains an unresolved operator label, not a newly explained textual mismatch or an approved recovery. Title-only test successes must not replace these full-source results.
+
+Across the frozen 1,000, shadow verdicts are 151 match / 237 non-match / 612 needs-review versus 26 / 38 / 7 plus 929 unknown before. The newest 250 become 52 match / 46 non-match / 152 needs-review versus 4 match / 246 unknown. Controlled scorer replay shows 646 departures (460 without new hard blocks) and 5 entries on the historical dismissal inputs; these are hypothetical current evaluations, not historical rewrites or verified recoveries. The 609 current rows show 81 controlled departures (74 without new hard blocks) and 14 entries. These counts do not include fully reconciled current history/price/hold reactivation, so they cannot authorize writes.
+
+### Current manifest and write gate
+
+Initial API-equivalent capture: 2026-09-13T16:26:30.714Z to 2026-09-13T16:27:17.175Z, verified project `froeucjkcepuhgwisped`. Actual GET handlers used read-only Supabase requests; this is not Cognito/browser verification. Views: Buy List 37 (2 Buy Now, 30 Best Offer, 4 auction, 1 multi-unit), Closest Excluded 50 of scoped total 131, Business Excluded 2, plus 33 active suppression records. Existing bounded run/presentation windows apply.
+
+Union contribution order: 108 open rows + 50 exact Closest Excluded + 2 Business Excluded + 449 additional rows from the latest 500 status-rejected candidates = **609 distinct rows**. Reused 245 hydrated API rows; fetched only 364 missing rows. The rejected cohort is provisional until final operator-history/eligibility screening; no rejected promotion is authorized. All before images, raw identifiers, hashes, timestamps and exact ordered view IDs are private in `row-manifest.json`, `current.json` and `current-evidence.json`. The API response capture transferred 321,195,889 bytes, primarily the existing Closest Excluded path; it was reused offline. No broad sync/backfill was run; disk I/O budget remains unavailable.
+
+The proposed identity filter would remove 24 of the captured 37 Buy List rows, retain 13 in the existing order, and flag 49/50 Closest Excluded and 1/2 Business Excluded rows as not positively admitted. This is not a recomputed approved API membership/ranking: every affected row's reason/comparison is retained for reconciliation. No candidate was silently promoted.
+
+At 2026-09-13T16:38:55.528555+00:00, a metadata-only readback checked all 609 rows: **11 changed since capture**, with **9 subsequent inventory-snooze actions**. The one initially protected inventory-snoozed row remained unchanged. Zero write attempts, zero refresh writes, zero actual write-skips (nothing was attempted), zero historical/action snapshot mutations. The manifest is stale for future writes. A later refresh must recapture/reconcile operator activity and use an atomic stale-state check; the legacy reprocess scripts are not approved to apply this candidate directly. Full current routing reconciliation and the guarded write path remain outstanding because the identity safety gate failed first.
+
+### Verification and runtime
+
+156 Python tests passed (125 sourcing, 21 identity, 10 feedback); 16 Phase 3 tests also passed in the locally built scheduler image with Docker networking disabled. Python compile checks, focused lint and Next.js production build/type checks passed. Actual API/Business Excluded/dialog/retry regression tests passed. 120 Python → actual API adapter → actual UI indicator checks passed, with real panel rendering. The existing production-default static output is exactly unchanged on all 1,000 frozen replays. Passing unit tests is not a passing safety gate.
+
+Offline screenshots `tmp/sourcing-phase3/B000QL0T36.png` and `B000FQBPCQ.png` were inspected; they show honest unknowns/Review and source evidence. Photos are omitted. Browser inventory returned no apps/browsers; authenticated production UI remains unverified. No redirect is treated as feature proof.
+
+AWS readback: web task 144, source 17a49ed94cb4, digest sha256:3f10ad423897c16e9b22d96c92db7293cfda2eb25e4d485964745bd244a6e5e5, rollout COMPLETED, one running task. Sourcing schedule still targets scheduler 92, source 92674f8cb8f0, digest sha256:0545ef77294d675a7315246b8d8f3be57f94c5e369049a5439585a94fa5c1019. All 20 schedule configurations are unchanged from the Phase 2 readback. Phase 3 was not deployed; the local test image is not a production revision. No schema/migration changes or provider/marketplace calls/writes were made.
+
+Resume **Phase 3 only** from the handoff. Fix source reconciliation/general extraction, retain these positive counterexamples, validate the complete current routing and feedback provenance, and rerun the full safety gate before activation or an idempotent bounded refresh. Do not weaken guards or replace held-out examples to pass. Manifest: `docs/sourcing_phase3_manifest_2026-09-13.json`.

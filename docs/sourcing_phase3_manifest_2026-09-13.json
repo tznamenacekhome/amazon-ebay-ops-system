@@ -1,0 +1,154 @@
+{
+  "phase": 3,
+  "status": "safety_failed_shadow_only",
+  "shadowCommit": "1b2aae1af404b2121f7b6b32d84b9e73951a3452",
+  "gate": {
+    "passed": false,
+    "checks": {
+      "noKnownPositiveVisibilityLoss": false,
+      "fullCurrentRoutingReconciled": false,
+      "sourceConflictPolicyValidated": false
+    },
+    "blockers": [
+      {
+        "code": "known_positive_visibility_loss",
+        "asins": [
+          "B000FQBPCQ",
+          "B07RP42TMG",
+          "B07Y686RM7"
+        ],
+        "reasons": [
+          "coreProduct review: Amazon the legend of zelda twilight princess, eBay the legend of zelda twilight princess nwt; coreGame review: Amazon the legend of zelda twilight princess, eBay the legend of zelda twilight princess nwt",
+          "coreProduct review: Amazon tom clancy s ghost recon breakpoint, eBay ubisoft tom clancy s ghost recon breakpoint game; coreGame review: Amazon tom clancy s ghost recon breakpoint, eBay ubisoft tom clancy s ghost recon breakpoint game",
+          "coreProduct review: Amazon roller coaster tycoon classic, eBay roller coaster tycoon classic; coreGame review: Amazon roller coaster tycoon classic, eBay roller coaster tycoon classic"
+        ]
+      },
+      {
+        "code": "full_current_routing_reconciliation_not_approved",
+        "detail": "Controlled scorer replay does not yet reconcile all current operator memory, price references and exact API routing."
+      },
+      {
+        "code": "source_conflict_policy_not_validated",
+        "detail": "Meaningful source disagreement and harmless seller/catalog wording are not reliably separated across the frozen cohort."
+      }
+    ],
+    "deploymentAllowed": false,
+    "refreshAllowed": false
+  },
+  "capturedAt": {
+    "start": "2026-09-13T16:26:30.714Z",
+    "end": "2026-09-13T16:27:17.175Z"
+  },
+  "project": "froeucjkcepuhgwisped",
+  "currentCohortCounts": {
+    "open": 108,
+    "latest500rejected": 500,
+    "buy_list": 37,
+    "closest_excluded": 50,
+    "business_excluded": 2
+  },
+  "deduplicatedRows": 609,
+  "currentViewCounts": {
+    "buy_list": 37,
+    "closest_excluded": 50,
+    "business_excluded": 2
+  },
+  "activeSuppressionRecords": 33,
+  "reviewedResults": {
+    "annotationBasis": "Analyst review of public title/platform text in frozen MBOP evidence; not purchase-status labels, physical/photo verification, or operator certification. Families in heldout were not used to add parser patterns.",
+    "accuracy": {
+      "before": {
+        "correct": 16,
+        "total": 50
+      },
+      "after": {
+        "correct": 43,
+        "total": 50
+      }
+    },
+    "positives": {
+      "total": 7,
+      "retained": 4,
+      "recovered": 0,
+      "lost": 3,
+      "lossAsins": [
+        "B000FQBPCQ",
+        "B07RP42TMG",
+        "B07Y686RM7"
+      ],
+      "stillExcluded": 0
+    },
+    "negatives": {
+      "total": 4,
+      "caughtBefore": 0,
+      "caughtAfter": 2,
+      "missedAfter": 2,
+      "excludedAfterIncludingReview": 4
+    },
+    "unresolved": [
+      "B08H9KGMWK"
+    ]
+  },
+  "proposedViewFiltering": {
+    "buy_list": {
+      "before": 37,
+      "identityExclusions": 24,
+      "remainingInSameOrder": 13
+    },
+    "closest_excluded": {
+      "before": 50,
+      "identityExclusions": 49,
+      "remainingInSameOrder": 1
+    },
+    "business_excluded": {
+      "before": 2,
+      "identityExclusions": 1,
+      "remainingInSameOrder": 1
+    }
+  },
+  "validation": {
+    "frozenDefaultPolicyComparisons": 1000,
+    "defaultPolicyDifferences": 0,
+    "beforeImagesUnchanged": 609,
+    "protectedBeforeImages": [
+      "18a42399-3b36-4bda-a962-5c25f22c5482"
+    ],
+    "phase3Writes": 0,
+    "phase3Deployments": 0,
+    "providerCalls": 0,
+    "apiIndicators": 120,
+    "localPythonTests": 156,
+    "packagedSchedulerPhase3Tests": 16,
+    "gatePassed": false
+  },
+  "readback": {
+    "at": "2026-09-13T16:38:55.528555+00:00",
+    "checked": 609,
+    "changedSinceCapture": 11,
+    "subsequentInventorySnoozeActions": 9,
+    "writeAttempts": 0
+  },
+  "production": {
+    "webTask": "arn:aws:ecs:us-west-2:297464765814:task-definition/mbop-web-task:144",
+    "webRollout": "COMPLETED",
+    "sourcingTask": "arn:aws:ecs:us-west-2:297464765814:task-definition/mbop-scheduler-task:92",
+    "scheduleCount": 20,
+    "scheduleConfigsUnchanged": true,
+    "deployments": 0,
+    "refreshWrites": 0,
+    "providerCalls": 0,
+    "authenticatedUiVerified": false
+  },
+  "artifactSha256": {
+    "current.json": "7f7ecf6142026bfa48267ffaae028608389d1e537f76ec8fa1269fe46ba99eea",
+    "responses.json": "a668274e3d26c74f49663b3505792fb684ac7d6628c96f7355e9d2229abccd41",
+    "current-evidence.json": "615f542012b44f5785d4c97e29e50211075c808d1b9515a04319874a75c862a2",
+    "row-manifest.json": "044e4c17aed03f0010b9b4884fd7139253377ecf34e2807b58ee1993f8e15082",
+    "replay.json": "654cb35116fea5d9f99ba709c4f1ca4610bbfbc396624fd8a20e2f007ff4c2ae",
+    "safety-summary.json": "d6d408087affe97075b88efdfdcd6a41e95dba6d007342b7fcc341687011ea0d",
+    "positive-candidate-replay.json": "d398b3bc46feaf119b40ea1cb63f4bb41c9f113e3d4fb1247e06579365948d9e",
+    "readback.json": "26ecc91de79d1100b32ba9a8429d11317eb6bb2a553b2808a9f06707d3864e25",
+    "aws-after.json": "859120cfc3553e5895df9d7845b5c434a84ca6782a582f87f3217477167f5a57"
+  },
+  "next": "Resume Phase 3 source reconciliation and full safety gate. Do not activate or refresh from this stale manifest."
+}

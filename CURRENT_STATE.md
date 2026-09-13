@@ -1,5 +1,9 @@
 # CURRENT_STATE.md
 
+## Sourcing Phase 3 shadow safety failure (2026-09-13)
+
+Phase 3 candidate matching changes remain shadow-only. The reviewed safety set loses three good current Buy List pairs through Review; no Phase 3 deployment or bounded refresh was performed. Web144 / sourcing92 remain deployed. The 609-row manifest is stale after 11 row changes / 9 inventory-snooze actions. Resume Phase 3 from [the handoff](docs/sourcing_matching_repair_and_feedback_handoff.md); see [the failed-gate manifest](docs/sourcing_phase3_manifest_2026-09-13.json) and [implementation report](docs/sourcing_matching_repair_and_feedback_2026-09-12.md).
+
 ## Sourcing evidence diagnostics (2026-09-12)
 
 Phases 1 and 2 are deployed: web 144 / sourcing scheduler 92. Buy List, Closest Excluded and Business Excluded share atomic operator review; explicit verdicts, field corrections and business reasons stay separate. The review migration and 17-entry shared ledger are verified. Frozen Buy List/Closest Excluded IDs/order are unchanged; 119 Python tests plus actual API/database/analyzer and UI contract tests pass. Business Excluded live read shows 33 active suppression records and no supported positive exclusions in its bounded scope; narrowing qualification reduced observed transfer about 97%. No thresholds, hold release conditions or provider jobs changed. Phase 3 matching repairs and bounded refresh are next. Authenticated production UI remains unavailable; offline screenshots/read-only evidence are documented in [the report](docs/sourcing_matching_repair_and_feedback_2026-09-12.md), [manifest](docs/sourcing_phase2_manifest_2026-09-12.json) and [handoff](docs/sourcing_matching_repair_and_feedback_handoff.md).

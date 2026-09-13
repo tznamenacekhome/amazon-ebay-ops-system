@@ -1,10 +1,23 @@
 # Sourcing matching repair handoff
 
-Phases 1 and 2 are complete and deployed, with the authenticated production UI access gap documented below. Stop after Phase 2 this session. Next session starts Phase 3 of the original work order in C:\Users\timz\Downloads\MBOP_Codex_Sourcing_Matching_Repair_Buy_List_Business_Excluded.md.
+**Phase 3 safety failed on 2026-09-13. Shadow only; no Phase 3 deployment or refresh.** Phases 1 and 2 remain deployed. Shadow checkpoint `1b2aae1af404` contains the candidate, offline validator and tests. Do not restart Phase 1 or reimplement Phase 2. Read the original work order at `C:\Users\timz\Downloads\MBOP_Codex_Sourcing_Matching_Repair_Buy_List_Business_Excluded.md`, the Phase 3 section of `docs/sourcing_matching_repair_and_feedback_2026-09-12.md`, and `docs/sourcing_phase3_manifest_2026-09-13.json`.
 
-Read the original work order and docs/sourcing_matching_repair_and_feedback_2026-09-12.md. Do not repeat the Phase 1 audit. Phase 3 owns matching heuristics, positive safety gates and bounded reprocessing. No sourcing/provider job or production synthetic review ran in Phase 2.
+## Resume Phase 3 only
 
-## Implemented contract
+- Canonical entry points use `identity_policy="phase3_shadow"` / matching context `offline_identity_policy`; production defaults are legacy. Do not enable the candidate or deploy it as an active repair.
+- Blocking counterexamples: Zelda NWT, Ghost Recon publisher/Game wording and abbreviated RollerCoaster Tycoon Game Name. All three are good current Buy List pairs newly hidden through Review. The reviewed set has 4 retained / 0 recovered / 3 lost positives; only 2/4 negatives are definitively identified, although all four are excluded including Review. Full-source DiRT and Origins still require review. Mario Set dismissal remains unresolved.
+- Field/state accuracy on the 12-pair/50-field purposive subset is 16/50 -> 43/50. Do not generalize it to all production rows. Preserve held-out families and full source payloads; do not substitute clean title-only fixtures for exact examples.
+- Fix general normalization and source conflict/omission reconciliation. Preserve exact-ASIN reference selection, independent eBay parsing, explicit unknowns, numeric/package distinctions and approved platform policies. No broad rule relaxation or franchise whitelist expansion.
+- `apply_scoped_reviews` tests cutoff/supersession, exact variation scope, corrected-field provenance and changed/newer evidence. Full live ingestion/reference reuse is not activated; reviewed Amazon catalog context is not fully present in legacy v3 snapshots and must be reconciled before using it. Confirm Match must not bypass holds/business rules.
+- Offline replay: `.venv\Scripts\python.exe integrations/validate_sourcing_matching_phase3.py`. Inputs default to `tmp/sourcing-phase1` and `tmp/sourcing-phase3`. This command has no write mode and reuses frozen data. It records the failed gate, not write approval.
+- Current manifest captured 2026-09-13 16:26–16:27 UTC: 37 Buy List, 50 Closest Excluded, 2 Business Excluded, 33 holds; deduplicated union 609. Initial cohorts contribute 108+50+2+449. The final readback found 11 changed rows / 9 inventory snoozes. **Do not write from this stale manifest.** One initially protected inventory-snoozed row was unchanged.
+- After identity safety passes, finish exact API routing/history/pricing reconciliation, rejected eligibility screening and an atomic operator-activity stale-state write guard. Only then follow the original deployment + bounded refresh sequence. Never run old `--write` reprocessing against this candidate without those safeguards.
+- Validation: 156 Python tests, 16 packaged scheduler tests, 120 API/UI indicator comparisons, Phase 2 API/dialog/retry contracts, compile/lint/build. Production-default static output unchanged in 1,000 frozen comparisons. No production synthetic feedback or provider search.
+- AWS remains web144 / sourcing92, all 20 schedules unchanged. Browser inventory empty: carry the authenticated UI gap forward. Offline screenshots are in `tmp/sourcing-phase3`; no redirect is feature verification.
+
+Private artifacts: `current.json`, `responses.json`, `current-evidence.json`, `row-manifest.json`, `replay.json`, `safety-summary.json`, `positive-candidate-replay.json`, `readback.json`, `aws-after.json`, `final-checks.json`, and offline PNG/HTML under `tmp/sourcing-phase3`. Raw data stays ignored. Unrelated wholesale discovery document is untouched. Phase 3 and the overall work order remain incomplete. Stop this session; next session resumes this same phase.
+
+## Deployed Phase 2 contract
 
 - Canonical parser/evidence contract remains video_game_identity.py and sourcing_decision_trace.py. Identity admission thresholds remain unchanged.
 - Buy List preserves existing scopes/order/buying controls. Closest Excluded preserves default 50, ranking and never-presented scope. Reviewed exact pairs leave its unreviewed view.
