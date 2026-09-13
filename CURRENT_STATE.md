@@ -1,8 +1,13 @@
 # CURRENT_STATE.md
 
+
+## Sourcing review UI deployed (2026-09-13)
+
+Web145 / source ac617406851d is healthy. All three sourcing views share inline Wrong-checkbox field corrections and atomic Incorrect Match; confirmations and field-only feedback remain independent. Scheduler92 and all 20 schedules are unchanged. Production-default matching/scoring is unchanged on 1,609 frozen inputs; the compiled image retains populated Buy List/Closest/Business rows 37/50/2 in order. No refresh/provider calls or synthetic production feedback. Authenticated UI remains unverified; see [the report](docs/sourcing_incorrect_match_review_2026-09-13.md) and [manifest](docs/sourcing_review_ui_manifest_2026-09-13.json). **Phase 3 remains shadow-only and its safety gate is still failed.**
+
 ## Sourcing Phase 3 shadow safety failure (2026-09-13)
 
-Phase 3 candidate matching changes remain shadow-only. The reviewed safety set loses three good current Buy List pairs through Review; no Phase 3 deployment or bounded refresh was performed. Web144 / sourcing92 remain deployed. The 609-row manifest is stale after 11 row changes / 9 inventory-snooze actions. Resume Phase 3 from [the handoff](docs/sourcing_matching_repair_and_feedback_handoff.md); see [the failed-gate manifest](docs/sourcing_phase3_manifest_2026-09-13.json) and [implementation report](docs/sourcing_matching_repair_and_feedback_2026-09-12.md).
+Phase 3 candidate matching changes remain shadow-only. The reviewed safety set loses three good current Buy List pairs through Review; no Phase 3 deployment or bounded refresh was performed. Matching admission remains legacy; web145 now contains the isolated review UI refinement and sourcing92 is unchanged. The 609-row manifest is stale after 11 row changes / 9 inventory-snooze actions. Resume Phase 3 from [the handoff](docs/sourcing_matching_repair_and_feedback_handoff.md); see [the failed-gate manifest](docs/sourcing_phase3_manifest_2026-09-13.json) and [implementation report](docs/sourcing_matching_repair_and_feedback_2026-09-12.md).
 
 ## Sourcing evidence diagnostics (2026-09-12)
 

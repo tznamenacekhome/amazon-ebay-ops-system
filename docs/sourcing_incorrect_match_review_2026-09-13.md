@@ -1,4 +1,4 @@
-﻿# Incorrect Match and inline row corrections — 2026-09-13
+# Incorrect Match and inline row corrections — 2026-09-13
 
 The shared single-record review dialog now supports checking a field, editing either marketplace value, and saving **Incorrect Match** in one action. This is a UI/feedback-capture change. **Phase 3 remains shadow-only and its safety gate is still failed.** The Zelda, Ghost Recon, and Roller Coaster Tycoon counterexamples and stale 609-row manifest remain untouched.
 
@@ -37,3 +37,25 @@ Before deployment AWS reads confirmed web144 and both scheduled/on-demand sourci
 The web Docker build context is `web/` and the runtime copies only the built Next.js output, public assets, startup scripts and production Node dependencies. It does not include Python integrations. Compiled server-route inspection found neither `phase3_shadow` nor `offline_identity_policy`. Web launch configuration retains CLOUD_DEPLOYMENT=true / LOCAL_SYNC_ENABLED=false; normal launch functions accept no identity-policy argument. Existing on-demand scheduler family resolves to unchanged revision92. Packaged-image checks and final deployment evidence follow below.
 
 No scoring refresh, historical backfill, provider search, marketplace write, hold release, migration, or synthetic production review is part of this task. The stale Phase 3 manifest is not used for writes. Next matching work remains general seller-noise/source-omission reconciliation with all three good-match counterexamples and fresh stale-state validation, not a whitelist or broad relaxation.
+## Reproducing the bounded tests
+
+From the repository root, run `node web/app/sourcing/MatchingReviewControls.test.mjs`, then set `MBOP_REVIEW_TEST_CONTAINER` to a disposable PostgreSQL container loaded with `tests/fixtures/sourcing_review_schema.sql` and the applied review migration, and run `node web/app/api/sourcing/reviewActions.test.mjs`. Never point that fixture at production. The test creates only synthetic rows in that disposable container.
+
+With the frozen private fixtures present, run `node web/app/api/sourcing/reviewRouting.test.mjs`. `tests/verify_sourcing_review_runtime.cjs` exercises the compiled production route directly; set `REVIEW_APP` to the built app directory and `REVIEW_FIXTURES` to the frozen Phase 3 directory. In Docker, mount the script and fixtures read-only and use `--network none`. `tests/verify_sourcing_review_defaults.py <integrations-directory> <output-json>` compares deterministic default static/scorer output using the frozen 1,000 + 609 inputs; run against the archived production source and current source, then compare output hashes. These commands cannot authorize Phase 3 activation.
+
+Screenshots: [original dialog](../tmp/sourcing-review-ui/original.png), [Prey corrections](../tmp/sourcing-review-ui/prey.png), [valid-pair correction](../tmp/sourcing-review-ui/valid.png). These are actual React component renderings, with test-driven pending state, not a live authenticated browser session.
+
+The existing production dependency install reported five audit findings (one moderate, three high, one critical); package manifests and lockfiles were unchanged by this bounded task. Dependency remediation was not folded into the UI change.
+
+
+## Final deployment evidence
+
+Completed at 2026-09-13T17:32:04Z. Runtime commits `e8a74957c18a` and `ac617406851d` are pushed. Deployed from a clean detached worktree using the normal `scripts/deploy-web.ps1` workflow; ECS/ALB readback and `scripts/aws-web-status.ps1` verify web **145**, source **ac617406851d**, one running task, zero pending, rollout **COMPLETED**, exact target **172.31.39.177 healthy**.
+
+Pinned ECR image: `sha256:ced396963d4da7d939e659100b4e673ce98bb390b1a66304b5dc02f25856ad51`. Its runtime layers and configuration exactly match the locally tested Docker image (attestation/manifest-list identifiers differ). The actual compiled API inside that image passed the populated 37/50/2 routing replay with Docker networking disabled. No Python integrations or Phase 3 activation keys are present in the compiled web server. All web task configuration is unchanged except image/build IDs. Scheduler/on-demand target **92** and **all 20 schedules** are unchanged.
+
+An initial deployment wrapper stopped on PowerShell's handling of Docker stderr before service changes. Capturing the unchanged deployment script's native output resolved this; only web145 was registered/rolled out for this task. No provider job was launched.
+
+The disposable PostgreSQL container is stopped. Zero production synthetic feedback, scoring refresh, protected-row edits, history rewrites, provider calls, or marketplace mutations. All nine frozen failed-Phase-3 artifact hashes remain unchanged. Authenticated production UI is still unverified; the browser inventory returned no surfaces. See `docs/sourcing_review_ui_manifest_2026-09-13.json` for validation/deployment metadata and private artifact hashes.
+
+This UI/feedback task is complete with the documented authentication gap. **Phase 3 remains shadow-only and its safety gate is still failed.** Stop here; do not run sourcing or refresh scores as part of this task.

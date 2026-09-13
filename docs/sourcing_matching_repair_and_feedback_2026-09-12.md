@@ -182,3 +182,8 @@ Offline screenshots `tmp/sourcing-phase3/B000QL0T36.png` and `B000FQBPCQ.png` we
 AWS readback: web task 144, source 17a49ed94cb4, digest sha256:3f10ad423897c16e9b22d96c92db7293cfda2eb25e4d485964745bd244a6e5e5, rollout COMPLETED, one running task. Sourcing schedule still targets scheduler 92, source 92674f8cb8f0, digest sha256:0545ef77294d675a7315246b8d8f3be57f94c5e369049a5439585a94fa5c1019. All 20 schedule configurations are unchanged from the Phase 2 readback. Phase 3 was not deployed; the local test image is not a production revision. No schema/migration changes or provider/marketplace calls/writes were made.
 
 Resume **Phase 3 only** from the handoff. Fix source reconciliation/general extraction, retain these positive counterexamples, validate the complete current routing and feedback provenance, and rerun the full safety gate before activation or an idempotent bounded refresh. Do not weaken guards or replace held-out examples to pass. Manifest: `docs/sourcing_phase3_manifest_2026-09-13.json`.
+
+
+## Subsequent UI-only work order (2026-09-13)
+
+The inline field-correction / Incorrect Match refinement is deployed as web145, source ac617406851d. Scheduler92, schedules, production matching/scoring and the failed Phase 3 gate remain unchanged. No bounded refresh or provider run occurred. See [the UI task report](sourcing_incorrect_match_review_2026-09-13.md) for transaction tests, frozen populated routing/scoring preservation, actual component screenshots, deployment isolation and the continuing authenticated UI verification gap. Phase 3 remains shadow-only and its safety gate is still failed.

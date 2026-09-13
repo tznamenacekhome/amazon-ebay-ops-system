@@ -1,0 +1,64 @@
+{
+  "task": "incorrect_match_inline_corrections",
+  "status": "web_deployed_with_authenticated_ui_gap",
+  "runtimeCommits": [
+    "e8a74957c18a",
+    "ac617406851d"
+  ],
+  "deployment": {
+    "verifiedAt": "2026-09-13T17:32:04.078874+00:00",
+    "source": "ac617406851d",
+    "webTask": "arn:aws:ecs:us-west-2:297464765814:task-definition/mbop-web-task:145",
+    "image": "297464765814.dkr.ecr.us-west-2.amazonaws.com/mbop-web@sha256:ced396963d4da7d939e659100b4e673ce98bb390b1a66304b5dc02f25856ad51",
+    "taskArn": "arn:aws:ecs:us-west-2:297464765814:task/mbop-cluster1/8fbdd703acf14caca0e0275dba1035ec",
+    "targetIp": "172.31.39.177",
+    "targetHealth": "healthy",
+    "rollout": "COMPLETED",
+    "running": 1,
+    "pending": 0,
+    "sourcingTarget": "arn:aws:ecs:us-west-2:297464765814:task-definition/mbop-scheduler-task:92",
+    "unchangedSchedules": 20,
+    "webConfigUnchangedExceptImageBuild": true,
+    "authenticatedUiVerified": false,
+    "providerCalls": 0,
+    "productionFeedbackWrites": 0,
+    "refreshWrites": 0,
+    "phase3GatePassed": false
+  },
+  "validation": {
+    "pythonTests": 156,
+    "legacyDiagnosticIndicatorChecks": 120,
+    "defaultStaticAndScorerInputs": 1609,
+    "defaultStaticDifferences": 0,
+    "defaultScoringDifferences": 0,
+    "frozenOrderedRouting": {
+      "buyList": 37,
+      "closestExcluded": 50,
+      "businessExcluded": 2
+    },
+    "sameRuntimeConfigAndLayersAsTestedImage": true,
+    "apiDatabaseAnalyzerRoundTrip": true,
+    "actualComponentScreenshotsInspected": true,
+    "phase3ArtifactHashesUnchanged": 9
+  },
+  "artifactSha256": {
+    "original.png": "b434c9337a33f4446df7f17f6525c6f745de64b7b800c7287769feffff300fc7",
+    "prey.png": "430519c46c7c044ca42cab4faee11283886aabe06bd43e802c629e6656dc8299",
+    "valid.png": "eda2c6ae1a34aa3381db8a6461076e285cd818904f72e1acfeb647ac75e7cf75",
+    "prey-payload.json": "d5201dac7c3848aff0cee1a7b4c6396428e22cacd73a6582e5c5f1ed00d87d44",
+    "routing.json": "41f073bf627c06faccdcd935d1874cd29db5faecb3f554e96b9f5f96981535a8",
+    "default-equivalence.json": "44c1ff9b08338d10fb66f29f08c584f33944e6911737dd497a8a724324bb47e4",
+    "packaged-validation.json": "7c11b91f183aea0d82456b2dce994a47f96007ee8d61092178e85fc44e85f1fd",
+    "live-readonly.json": "834b53bbfef95a1f6cbb2a020a06dbea486e3569407df6fb9fd41bd8db4d2112",
+    "aws-before.json": "859120cfc3553e5895df9d7845b5c434a84ca6782a582f87f3217477167f5a57",
+    "aws-after.json": "0e1556bcb1a6a16d89094f0e38e9c769e710319e34dbf06a129e583428ffc0b0",
+    "deployment-verification.json": "8a240fe013d2ddc46c22010e06db64839ebe0dac34472594bae0cd4b17dff063",
+    "deploy.log": "5ee7dcf977b80ed9f9dad7b7a708c2e270d92e2176cdec5de836ab507cde171e"
+  },
+  "limitations": [
+    "Authenticated production UI unavailable; offline actual components and read-only API evidence only",
+    "Phase 3 safety still failed; candidate and feedback admission stay inactive",
+    "Existing package audit findings and unused helper warnings remain"
+  ],
+  "next": "Stop UI task. Future matching work must reconcile seller noise and source omissions without sacrificing the three good-match counterexamples or writing from the stale manifest."
+}
