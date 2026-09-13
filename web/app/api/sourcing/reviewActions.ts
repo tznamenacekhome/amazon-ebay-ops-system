@@ -5,6 +5,7 @@ import { buildDiagnosticComparison } from "./diagnosticComparison";
 import { buildListingSnapshot } from "./matchingIntelligence";
 import { normalizeMatchingFeedback, reviewSemantics } from "./matchingFeedback";
 import { dismissReasons } from "../../sourcing/matchingTaxonomy";
+import { openingCell, reviewFieldKeys, type SavedCorrection } from "../../sourcing/reviewFields";
 
 type RecordValue = Record<string, unknown>;
 const record = (v: unknown): RecordValue => v && typeof v === "object" && !Array.isArray(v) ? v as RecordValue : {};
@@ -29,12 +30,23 @@ export async function saveMatchingReview(request: Request, opportunity: RecordVa
     const comparison = buildDiagnosticComparison({opportunity,seed,candidate,diagnostics:opportunity.matching_diagnostics_json});
     if((body.expectedEvaluationId??null)!==(comparison.evaluation.id??null)) return NextResponse.json({error:"The displayed evaluation changed. Reload before saving."},{status:409});
     feedback.availableEvidenceSources = comparison.rows.filter(row=>row.kind==="evidence"&&(row.amazon||row.ebay)).map(row=>row.evidenceSource).filter((value):value is string=>Boolean(value));
-    const fieldKeys: Record<string,string> = {coreGame:"core_game_identity",installment:"installment_number",generation:"generation",theme:"theme",platform:"platform_system",edition:"edition_version",region:"region",packageType:"package_bundle_contents",completeness:"completeness",digitalPhysical:"digital_physical"};
-    feedback.corrections = feedback.corrections.map(correction => ({...correction,before:comparison.rows.find(row=>row.key===fieldKeys[correction.field])?.[correction.side] ?? null}));
+    const latest = feedback.corrections.length ? (await fetchLatestReviews([{asin:String(opportunity.asin),ebay_item_id:String(opportunity.ebay_item_id)}])).get(`${opportunity.asin}|${opportunity.ebay_item_id}`) : null;
+    for (const correction of feedback.corrections) {
+      const field = comparison.rows.find(row=>reviewFieldKeys[row.key]===correction.field)!;
+      const opening = openingCell(field,correction.side,(latest?.corrections ?? []) as SavedCorrection[]);
+      const before = {value:opening.value,state:opening.state,actionId:opening.correction?.actionId??null};
+      if(opening.correction?.actionId===requestId) continue; // The RPC verifies the original actor/fingerprint on retries.
+      const expected=record(correction.before);
+      if(correction.before && (expected.value!==before.value || expected.state!==before.state || (expected.actionId??null)!==before.actionId)) return NextResponse.json({error:"A field correction changed since this review opened. Reload and review your edits before saving."},{status:409});
+      correction.before = before;
+    }
     const raw = record(candidate.raw_ebay_json);
     const context = {
       actionType,sourceTab:String(body.sourceTab ?? "legacy"),matchingFeedback:feedback,
       feedbackCategory:semantics.category,learningScope:semantics.learningScope,
+      selectedReason:dismissReasons.some(([value])=>value===body.selectedReason)?body.selectedReason:null,
+      failureClassification:{reportedExtractionFields:feedback.flaggedFields,reportedRuleFamilies:feedback.failedRuleFamilies,pipelineStage:"unspecified",
+        reportType:feedback.failedRuleFamilies.length ? "operator_reported_field_error" : feedback.pairVerdict==="incorrect" ? "pair_non_match_without_component" : "unspecified"},
       pair:{opportunityId:opportunity.opportunity_id,candidateId:opportunity.candidate_id,asin:opportunity.asin,
         ebayItemId:opportunity.ebay_item_id,ebayLegacyItemId:candidate.ebay_legacy_item_id ?? null,
         variationId:String(opportunity.ebay_item_id ?? "").split("|")[2] ?? null,itemGroupId:raw.itemGroupId ?? null},

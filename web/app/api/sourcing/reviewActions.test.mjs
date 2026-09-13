@@ -58,6 +58,8 @@ if(!container){console.log('Local PostgreSQL integration skipped (container not 
 const id=randomUUID(),candidate=randomUUID();
 let op={opportunity_id:id,candidate_id:candidate,asin:'B000TEST01',ebay_item_id:'v1|123|456',status:'open',opportunity_type:'buy_now',sourcing_seed_asins:{asin:'B000TEST01',amazon_title:'Test'},sourcing_ebay_candidates:{ebay_item_id:'v1|123|456',ebay_title:'Test'}};
 sql(`insert into public.sourcing_opportunities(opportunity_id,candidate_id,asin,ebay_item_id,status,opportunity_type) values(${quote(id)},${quote(candidate)},'B000TEST01','v1|123|456','open','buy_now'); insert into public.sourcing_blocked_asins(asin) values('B000TEST01') on conflict do nothing;`);
+sql("insert into public.sourcing_sales_velocity_suppressions(asin,metric_window_days,required_velocity,current_velocity) values('B000TEST01',90,0.3333,0.1) on conflict do nothing");
+const originalHold=sql("select to_jsonb(s) from public.sourcing_sales_velocity_suppressions s where asin='B000TEST01' and status='active'");
 const route=load(resolve(root,'opportunities/[id]/actions/route.ts'));
 const post=body=>route.POST({headers:new Headers(),json:async()=>body},{params:Promise.resolve({id})});
 const body={actionType:'mark_valid_match',requestId:randomUUID(),expectedAsin:op.asin,expectedEbayItemId:op.ebay_item_id,expectedCandidateId:candidate,expectedEvaluationId:null,sourceTab:'Closest Excluded',diagnosticsFeedback:{version:'matching_feedback_v3',pairVerdict:'correct',failedRuleFamilies:['edition_version'],evidenceSources:['ebay_game_name'],corrections:[{field:'edition',side:'amazon',scope:'asin',state:'unknown',value:null}]}};
@@ -92,3 +94,32 @@ assert.equal(analyzed.pair_verdict_counts.correct,1);assert.equal(analyzed.pair_
 assert(analyzed.correction_count>=1);assert.equal(analyzed.evidence_provenance_counts.explicit,3);
 console.log('Actual action API → PostgreSQL → reload passed: auth, stale pair, blocked-ASIN positive, correction, unknown, idempotency, full rollback, protected purchase');
 console.log('Persisted API review actions also survive the actual Python analyzer with distinct positive, negative, unsure and correction evidence.');
+// Mandatory Prey: consume payload emitted by the actual checkbox/paste/dialog test.
+execFileSync(process.execPath,['web/app/sourcing/MatchingReviewControls.test.mjs'],{stdio:'pipe'});
+const fixture=JSON.parse(readFileSync('tests/fixtures/sourcing_review_prey.json','utf8'));
+const prey=JSON.parse(readFileSync('tmp/sourcing-review-ui/prey-payload.json','utf8'));
+op={...op,asin:fixture.opportunity.asin,ebay_item_id:`v1|${randomUUID()}|456`,status:'open',sourcing_seed_asins:fixture.seed,sourcing_ebay_candidates:fixture.candidate,matching_diagnostics_json:fixture.diagnostics};
+sql(`update public.sourcing_opportunities set asin=${quote(op.asin)},ebay_item_id=${quote(op.ebay_item_id)},status='open',matching_diagnostics_json=${quote(fixture.diagnostics)} where opportunity_id=${quote(id)}`);
+const preyBody={...body,...prey,requestId:randomUUID(),expectedAsin:op.asin,expectedEbayItemId:op.ebay_item_id};
+result=await post(preyBody);assert.equal(result.status,200,JSON.stringify(result));assert.equal((await post(preyBody)).body.review.replayed,true);
+assert.equal(sql(`select status from public.sourcing_opportunities where opportunity_id=${quote(id)}`),'dismissed');
+let latest=(await rpc('sourcing_latest_reviews',{p_pairs:[{asin:op.asin,ebay_item_id:op.ebay_item_id}]})).data[0];
+assert.equal(latest.pairVerdict,'incorrect');assert.equal(latest.corrections.length,2);assert.equal(latest.corrections.find(c=>c.side==='ebay').value,'IL-2 Sturmovik Birds of Prey');
+assert.equal(latest.corrections.find(c=>c.side==='ebay').before.value,'Prey');assert.equal(latest.corrections.find(c=>c.side==='ebay').before.state,'inferred');
+const snap=JSON.parse(sql(`select to_jsonb(s) from public.sourcing_listing_snapshots s where action_id=${quote(preyBody.requestId)}`));assert.equal(snap.ebay_title,fixture.candidate.ebay_title);assert.equal(snap.amazon_title,fixture.seed.amazon_title);assert.equal(snap.raw_context_json.diagnosticComparison.rows.find(r=>r.key==='core_game_identity').ebay,'Prey');
+assert.equal(snap.raw_context_json.failureClassification.pipelineStage,'unspecified');assert.equal(snap.raw_context_json.failureClassification.reportType,'operator_reported_field_error');
+// New field-only correction must retain the explicit verdict and other saved cells.
+const only={...preyBody,requestId:randomUUID(),actionType:'save_match_feedback',reason:undefined,diagnosticsFeedback:{version:'matching_feedback_v3',pairVerdict:'not_provided',failedRuleFamilies:['edition_version'],corrections:[{field:'edition',side:'ebay',scope:'pair',state:'unknown',value:null}]}};
+assert.equal((await post(only)).status,200);latest=(await rpc('sourcing_latest_reviews',{p_pairs:[{asin:op.asin,ebay_item_id:op.ebay_item_id}]})).data[0];assert.equal(latest.pairVerdict,'incorrect');assert.equal(latest.corrections.length,3);
+assert.equal((await post({...preyBody,requestId:randomUUID()})).status,409,'Stale opening correction rejected');
+assert.equal((await post({...only,requestId:randomUUID(),expectedEvaluationId:'changed'})).status,409);
+const correct={...only,requestId:randomUUID(),actionType:'mark_valid_match'};assert.equal((await post(correct)).status,200);assert.equal(sql(`select status from public.sourcing_opportunities where opportunity_id=${quote(id)}`),'dismissed','Confirmation never reopens rejected/dismissed opportunities');
+const noFields={...preyBody,requestId:randomUUID(),diagnosticsFeedback:{version:'matching_feedback_v3',pairVerdict:'incorrect'}};assert.equal((await post(noFields)).status,200);
+const noContext=JSON.parse(sql(`select raw_action_context from public.sourcing_actions where action_id=${quote(noFields.requestId)}`));assert.equal(noContext.failureClassification.reportType,'pair_non_match_without_component');assert.equal(noContext.failureClassification.pipelineStage,'unspecified');assert.deepEqual(noContext.matchingFeedback.failedRuleFamilies,[]);
+const exactSibling=(await rpc('sourcing_latest_reviews',{p_pairs:[{asin:op.asin,ebay_item_id:op.ebay_item_id+'OTHER'}]})).data[0];assert.deepEqual(exactSibling.corrections,[]);
+const actualActions=sql(`select jsonb_agg(to_jsonb(a)) from public.sourcing_actions a where action_id in (${[preyBody,only,correct,noFields].map(b=>quote(b.requestId)).join(',')})`);
+const stats=JSON.parse(execFileSync(resolve(root,'../../../../.venv/Scripts/python.exe'),['-c',analyzerCode],{input:actualActions,encoding:'utf8'}));assert.equal(stats.pair_verdict_counts.incorrect,2);assert.equal(stats.pair_verdict_counts.correct,1);assert.equal(stats.correction_count,4);
+assert.equal(sql("select to_jsonb(s) from public.sourcing_sales_velocity_suppressions s where asin='B000TEST01' and status='active'"),originalHold);
+assert.deepEqual(snap.raw_context_json.matchingFeedback.flaggedFields,['coreGame']);
+assert.equal(snap.raw_context_json.selectedReason,'roi_too_low');
+console.log('Mandatory actual Prey dialog → API → PostgreSQL → reload → Python analyzer passed; original source/evaluation preserved; correction-only retains verdict; no-component non-match unspecified; no silent reopening.');

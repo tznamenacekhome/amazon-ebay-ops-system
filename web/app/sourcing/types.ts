@@ -136,6 +136,7 @@ export type DecisionTraceRow = {
 };
 
 export type DiagnosticComparison = {
+  tokenHandling?: { ignored: string[]; unclassified: string[]; assigned: string[] };
   version: string;
   productIdentityVerdict?: string;
   businessEligibility?: string;

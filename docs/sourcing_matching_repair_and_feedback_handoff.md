@@ -1,5 +1,10 @@
 # Sourcing matching repair handoff
 
+## Incorrect Match UI work order (2026-09-13)
+
+The temporary UI/feedback task is implemented and validated; web-only deployment evidence is tracked in [the review report](sourcing_incorrect_match_review_2026-09-13.md). Single-row review now uses inline Wrong-checkbox corrections and an atomic Incorrect Match action. Confirm Match and correction-only saves remain independent. Existing v3 admission remains disabled. **Phase 3 remains shadow-only and its safety gate is still failed.** Read the new report before treating the older Phase 2 dialog description below as current. The next matching task remains source/noise/omission reconciliation, preserving all three known good-match losses and the stale-manifest prohibition.
+
+
 **Phase 3 safety failed on 2026-09-13. Shadow only; no Phase 3 deployment or refresh.** Phases 1 and 2 remain deployed. Shadow checkpoint `1b2aae1af404` contains the candidate, offline validator and tests. Do not restart Phase 1 or reimplement Phase 2. Read the original work order at `C:\Users\timz\Downloads\MBOP_Codex_Sourcing_Matching_Repair_Buy_List_Business_Excluded.md`, the Phase 3 section of `docs/sourcing_matching_repair_and_feedback_2026-09-12.md`, and `docs/sourcing_phase3_manifest_2026-09-13.json`.
 
 ## Resume Phase 3 only

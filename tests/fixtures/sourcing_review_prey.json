@@ -1,0 +1,7 @@
+{
+  "opportunity": {"asin":"B000PREY01"},
+  "seed": {"asin":"B000PREY01","amazon_title":"Prey - Xbox 360"},
+  "candidate": {"ebay_title":"IL-2 Sturmovik Birds of Prey (Microsoft Xbox 360 2009) Sealed Brand New","ebay_item_id":"v1|123|456"},
+  "diagnostics": {"static_rules":{"identity_comparison":{"version":"video_game_identity_v1","amazon":{"coreGame":"Pre","platform":"Xbox 360"},"ebay":{"coreGame":"Prey","platform":"Xbox 360"}}}},
+  "corrections": {"amazon":"Prey","ebay":"IL-2 Sturmovik Birds of Prey"}
+}

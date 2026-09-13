@@ -11,11 +11,12 @@ import {
 } from "lucide-react";
 import type { SourcingBatch, SourcingOpportunity, SourcingRun, SourcingSettings } from "./types";
 import { useSourcingOpportunities } from "./useSourcingOpportunities";
+import { incorrectMatchReason, reviewFieldKeys } from "./reviewFields";
 import { dismissReasons } from "./matchingTaxonomy";
 import { mutationHeaders } from "../mutationHeaders";
 import { KeepaPriceIndicator } from "../components/KeepaPriceIndicator";
 
-import { MatchingReviewControls } from "./MatchingReviewControls";
+import { MatchingReviewControls, ReviewEvidence } from "./MatchingReviewControls";
 import type { MatchingFeedback } from "../api/sourcing/matchingFeedback";
 import { ReviewRequestIds } from "./reviewRequestIds";
 
@@ -51,6 +52,7 @@ type SourcingActionPayload = {
   expectedEvaluationId?: unknown;
   asin?: string;
   reason?: string;
+  selectedReason?: string;
   notes?: string;
   imageClues?: string[];
   diagnosticsFeedback?: Partial<MatchingFeedback>;
@@ -986,15 +988,16 @@ function AmountLine({ label: lineLabel, row, amountUsd }: { label: string; row: 
   return <div className="text-xs text-slate-500">{lineLabel} {offerBidAmountLabel(row, amountUsd)}</div>;
 }
 
-function DismissOpportunityDialog({row,actionBusyId,initialDiagnosticsOpen,onClose,onReview,saveError}: {
+function DismissOpportunityDialog({row,actionBusyId,onClose,onReview,saveError}: {
   row:SourcingOpportunity; actionBusyId:string|null; initialDiagnosticsOpen:boolean; onClose:()=>void;
   onReview:(payload:SourcingActionPayload)=>Promise<void>; saveError?:string|null;
 }) {
   const [notes, setNotes] = useState("");
   const [imageClues, setImageClues] = useState<string[]>([]);
-  const [diagnosticsOpen, setDiagnosticsOpen] = useState(initialDiagnosticsOpen);
-  const [allAssumptionsCorrect, setAllAssumptionsCorrect] = useState(false);
-  const [failedRuleFamilies, setFailedRuleFamilies] = useState<string[]>([]);
+  const diagnosticsOpen = true;
+  const allAssumptionsCorrect = false;
+  const [wrongRows, setWrongRows] = useState<string[]>([]);
+  const failedRuleFamilies = [...new Set((row.diagnosticComparison?.rows ?? []).filter(r=>wrongRows.includes(r.key)).map(r=>r.ruleFamily).filter((v):v is string=>Boolean(v)))];
   const busy = actionBusyId === row.opportunityId;
   const [reason,setReason] = useState("");
   const [pairVerdict,setPairVerdict] = useState<MatchingFeedback["pairVerdict"]>("not_provided");
@@ -1002,14 +1005,14 @@ function DismissOpportunityDialog({row,actionBusyId,initialDiagnosticsOpen,onClo
   const [usedEvidence,setUsedEvidence] = useState<string[]>([]);
   const diagnosticsFeedback: Partial<MatchingFeedback> = {
     version:"matching_feedback_v3", allAssumptionsCorrect,
-    failedRuleFamilies:allAssumptionsCorrect?[]:failedRuleFamilies,
+    failedRuleFamilies, flaggedFields:wrongRows.map(key=>reviewFieldKeys[key]),
     evidenceSources:usedEvidence, pairVerdict, corrections, note:notes.trim()||null,
   };
-  function save(actionType:string) { void onReview({actionType,reason:actionType === "dismiss"?reason:undefined,notes,imageClues,diagnosticsFeedback}); }
+  function save(actionType:string, verdict = pairVerdict, dismissReason = reason) { void onReview({actionType,reason:actionType === "dismiss"?dismissReason:undefined,selectedReason:reason||undefined,notes,imageClues,diagnosticsFeedback:{...diagnosticsFeedback,pairVerdict:verdict}}); }
 
   return (
     <div className="fixed inset-0 z-40 flex items-center justify-center bg-slate-950/20 p-4">
-      <div className={`max-h-[95vh] overflow-auto w-full rounded-md border border-slate-200 bg-white shadow-2xl ${diagnosticsOpen ? "max-w-7xl" : "max-w-lg"}`}>
+      <div className={`max-h-[95vh] overflow-auto w-full rounded-md border border-slate-200 bg-white text-slate-800 shadow-2xl ${diagnosticsOpen ? "max-w-7xl" : "max-w-lg"}`}>
         <div className="border-b border-slate-200 px-4 py-3">
           <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">Review Match / Dismiss</div>
           {saveError ? <p role="alert" className="text-sm text-red-700">{saveError}</p> : null}
@@ -1020,10 +1023,11 @@ function DismissOpportunityDialog({row,actionBusyId,initialDiagnosticsOpen,onClo
           <div className="space-y-3 px-4 py-3">
             <DismissReasonButtons
               busy={busy}
+              single
               onChoose={setReason}
             />
             {reason ? <div className="text-xs">Selected reason: {label(reason)}</div> : null}
-            <MatchingReviewControls verdict={pairVerdict} onVerdict={setPairVerdict} corrections={corrections} onCorrections={setCorrections} evidence={usedEvidence} onEvidence={setUsedEvidence}/>
+            <ReviewEvidence verdict={pairVerdict} onVerdict={setPairVerdict} evidence={usedEvidence} onEvidence={setUsedEvidence}/>
             <ImageClueButtons selected={imageClues} onChange={setImageClues} />
             <button
               type="button"
@@ -1034,36 +1038,16 @@ function DismissOpportunityDialog({row,actionBusyId,initialDiagnosticsOpen,onClo
               <Ban className="h-4 w-4" />
               Block ASIN
             </button>
-            <button
-              type="button"
-              onClick={() => setDiagnosticsOpen((current) => !current)}
-              className="ml-2 inline-flex h-9 items-center gap-2 rounded-md border border-blue-200 bg-blue-50 px-3 text-sm font-medium text-blue-700 hover:bg-blue-100"
-            >
-              {diagnosticsOpen ? "Hide Diagnostics" : "Matching Diagnostics"}
-            </button>
             <label className="block text-sm font-medium text-slate-700">
               Notes
               <textarea value={notes} onChange={(event) => setNotes(event.target.value)} className="mt-1 min-h-12 w-full rounded-md border border-slate-300 p-2 text-sm" />
             </label>
           </div>
-          {diagnosticsOpen ? (
-            <DiagnosticComparisonPanel
-              row={row}
-              allAssumptionsCorrect={allAssumptionsCorrect}
-              failedRuleFamilies={failedRuleFamilies}
-              onAllCorrectChange={(checked) => {
-                setAllAssumptionsCorrect(checked);
-                if (checked) setFailedRuleFamilies([]);
-              }}
-              onFailedRuleFamiliesChange={(families) => {
-                setFailedRuleFamilies(families);
-                if (families.length) setAllAssumptionsCorrect(false);
-              }}
-            />
-          ) : null}
+          <MatchingReviewControls row={row} corrections={corrections} onCorrections={setCorrections} wrongRows={wrongRows} onWrongRows={setWrongRows}/>
         </div>
         <div className="flex flex-wrap justify-end gap-2 border-t border-slate-200 px-4 py-3">
-          <button disabled={busy} onClick={()=>save("mark_valid_match")} className="rounded bg-emerald-700 px-3 py-2 text-sm text-white">Confirm Match</button>
+          <button disabled={busy} onClick={()=>save("mark_valid_match", "correct")} className="rounded bg-emerald-700 px-3 py-2 text-sm text-white">Confirm Match</button>
+          <button disabled={busy} onClick={()=>save("dismiss", "incorrect", incorrectMatchReason(failedRuleFamilies))} className="rounded bg-red-700 px-3 py-2 text-sm text-white">Incorrect Match</button>
           <button disabled={busy} onClick={()=>save("save_match_feedback")} className="rounded border px-3 py-2 text-sm text-slate-700">Save feedback</button>
           <button disabled={busy||!reason} onClick={()=>save("dismiss")} className="rounded bg-red-700 px-3 py-2 text-sm text-white disabled:opacity-50">Dismiss</button>
           <button onClick={onClose} disabled={busy} className="rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-700 hover:bg-slate-50">
@@ -1547,17 +1531,19 @@ function titleCase(value: string) {
 }
 
 function DismissReasonButtons({
+  single = false,
   busy,
   onChoose,
 }: {
   busy: boolean;
   onChoose: (reason: string) => void;
+  single?: boolean;
 }) {
   return (
     <div>
       <div className="mb-2 text-sm font-medium text-slate-700">Choose reason to dismiss</div>
       <div className="grid gap-2 sm:grid-cols-2">
-        {dismissReasons.map(([value, reasonLabel]) => (
+        {dismissReasons.filter(([value])=>!single || !["wrong_platform","wrong_edition_version"].includes(value)).map(([value, reasonLabel]) => (
           <button
             key={value}
             disabled={busy}

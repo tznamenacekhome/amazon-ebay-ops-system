@@ -1,4 +1,5 @@
 const VERSION = "matching_feedback_v3";
+const correctionFields = new Set(["coreGame", "installment", "generation", "theme", "platform", "edition", "region", "packageType", "completeness", "digitalPhysical"]);
 
 const ruleFamilies = new Set([
   "core_game_identity",
@@ -71,6 +72,7 @@ export type MatchingFeedback = {
   version: typeof VERSION | "matching_feedback_v2";
   allAssumptionsCorrect: boolean;
   failedRuleFamilies: string[];
+  flaggedFields?: string[];
   evidenceSources: string[];
   legacyIncorrectRows: string[];
   note: string | null;
@@ -113,6 +115,7 @@ export function normalizeMatchingFeedback(value: unknown): MatchingFeedback {
     version: current ? VERSION : "matching_feedback_v2",
     allAssumptionsCorrect,
     failedRuleFamilies,
+    flaggedFields: Array.isArray(record.flaggedFields) ? [...new Set(record.flaggedFields.map(String).filter(f=>correctionFields.has(f)))] : [],
     evidenceSources: normalizedEvidenceSources,
     legacyIncorrectRows: allAssumptionsCorrect ? [] : legacyIncorrectRows,
     note: typeof record.note === "string" && record.note.trim() ? record.note.trim() : null,
@@ -126,14 +129,14 @@ export function normalizeMatchingFeedback(value: unknown): MatchingFeedback {
 export function normalizeCorrections(value: unknown): MatchingFeedback["corrections"] {
   if (!Array.isArray(value)) return [];
   if (value.length > 20) throw new Error("At most 20 field corrections can be saved together.");
-  const fields = new Set(["coreGame", "installment", "generation", "theme", "platform", "edition", "region", "packageType", "completeness", "digitalPhysical"]);
+  const fields = correctionFields;
   return value.map((item) => {
     const row = objectRecord(item);
     if (!fields.has(String(row.field)) || !["amazon", "ebay"].includes(String(row.side)) || !["pair", "asin"].includes(String(row.scope)) || (row.scope === "asin" && row.side !== "amazon")) throw new Error("Invalid correction field, side or scope.");
     if (!["value", "unknown", "explicitly_absent", "not_applicable"].includes(String(row.state))) throw new Error("Choose a correction value or an explicit unknown/absent/not-applicable state.");
-    const text = typeof row.value === "string" ? row.value.trim().slice(0, 500) : null;
+    const text = typeof row.value === "string" ? row.value.trim() : null;
     if (row.state === "value" && !text) throw new Error("A corrected value is required.");
-    return {field: String(row.field), side: row.side as "amazon" | "ebay", scope: row.scope as "pair" | "asin", state: String(row.state), value: row.state === "value" ? text : null, note: typeof row.note === "string" ? row.note.slice(0,500) : null};
+    return {field: String(row.field), side: row.side as "amazon" | "ebay", scope: row.scope as "pair" | "asin", state: String(row.state), value: row.state === "value" ? text : null, note: typeof row.note === "string" ? row.note.slice(0,500) : null, before: row.before};
   });
 }
 

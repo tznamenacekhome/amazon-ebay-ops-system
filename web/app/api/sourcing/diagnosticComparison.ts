@@ -25,6 +25,7 @@ export type DiagnosticComparison = {
   hardBlocks: string[];
   warnings: string[];
   evidenceSummary: string | null;
+  tokenHandling?: { ignored: string[]; unclassified: string[]; assigned: string[] };
   rows: DiagnosticComparisonRow[];
 };
 
@@ -88,6 +89,11 @@ export function buildDiagnosticComparison({
     hardBlocks,
     warnings,
     evidenceSummary: evidenceSummary(diagnostics, titleOverlap),
+    tokenHandling: {
+      ignored: stringArray(derivedIdentity.ignored_tokens),
+      unclassified: stringArray(derivedIdentity.unclassified_tokens),
+      assigned: [labeledValue("Platform numbers",numeric.ignored_platform_numbers),labeledValue("Release years",numeric.ignored_release_years),labeledValue("Quantities",numeric.ignored_quantity_numbers)].filter((v):v is string=>Boolean(v)),
+    },
     rows: [
       identityRow("core_game_identity", "Core Game", "core_game_identity", amazonIdentity.coreGame, ebayIdentity.coreGame, sharedTokensText(titleOverlap)),
       identityRow("installment_number", "Installment / Sequel", "numeric_installment", amazonIdentity.installment, ebayIdentity.installment, numericExplanation(numeric)),
