@@ -56,3 +56,5 @@ mkdirSync('tmp/sourcing-review-ui',{recursive:true});for(const [name,html] of Ob
 console.log('Actual dialog and row controls passed: toggles/paste/side edits/undo/discard/unknowns; negative/positive/unchanged/unsure; saved overlays; three views/single selection; bulk isolation; no photos/duplicate panels.');
 
 state.length=0;cursor=0;let bulkSaved=null;const bulkTree=BulkDismissOpportunityDialog({rows:[props.row,{...props.row,asin:"OTHER"}],busy:false,onClose(){},onBlockAsins(){},onDismiss:(...args)=>bulkSaved=args});nodes(bulkTree).find(n=>n.type?.name==="DismissReasonButtons").props.onChoose("wrong_platform");assert.deepEqual(bulkSaved,["wrong_platform","",[]]);
+
+state.length=0;props.row.diagnosticComparison.rows.find(r=>r.key==="core_game_identity").amazonEvidence={state:"conflicting_sources"};props.row.diagnosticComparison.rows.find(r=>r.key==="core_game_identity").amazon=null;change("Core Game Wrong",true);assert.equal(control("Core Game amazon state").props.value,"unknown");assert.equal(named("MatchingReviewControls").props.corrections.length,0);

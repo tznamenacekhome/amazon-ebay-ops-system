@@ -60,7 +60,7 @@ export function MatchingReviewControls({row,corrections,onCorrections,wrongRows,
         return <td key={side} className="break-words p-2">
           {wrongRows.includes(item.key)?<>
             <textarea aria-label={`${item.label} ${side} value`} className="min-h-14 w-full rounded border p-1" value={value??""} onChange={e=>edit(e.target.value||null,e.target.value?"value":"unknown")}/>
-            <select aria-label={`${item.label} ${side} state`} className="w-full rounded border" value={["value","unknown","not_applicable","explicitly_absent"].includes(state)?state:"value"} onChange={e=>edit(e.target.value==="value"?value:null,e.target.value)}>
+            <select aria-label={`${item.label} ${side} state`} className="w-full rounded border" value={["value","unknown","not_applicable","explicitly_absent"].includes(state)?state:value?"value":"unknown"} onChange={e=>edit(e.target.value==="value"?value:null,e.target.value)}>
               <option value="value">Known value</option><option value="unknown">Unknown / cleared</option><option value="not_applicable">Not applicable</option><option value="explicitly_absent">Known absent</option>
             </select>
             {side==="amazon"&&pending?<label className="block"><input type="checkbox" checked={pending.scope==="asin"} onChange={e=>onCorrections(corrections.map(c=>c===pending?{...c,scope:e.target.checked?"asin":"pair"}:c))}/> Apply to this ASIN</label>:null}
