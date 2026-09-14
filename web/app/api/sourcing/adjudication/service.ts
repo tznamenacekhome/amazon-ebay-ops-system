@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import { adjudicationExclusion, normalizePlatformRelationships } from "../../../sourcing/adjudication/evidence";
 import queueData from "./queue.json";
 import { supabase } from "../_supabase";
 import { buildDiagnosticComparison, type DiagnosticComparisonRow } from "../diagnosticComparison";
@@ -42,15 +43,27 @@ export function summarize(row:QueueRow,state:ReviewState) {
   }
   const pairVerdict=applicable ? String(record(context?.matchingFeedback).pairVerdict) : null;
   const newerCorrection=Boolean(verdict&&(corrections.some(c=>(c.recordedAt??"")>verdict.created_at) || pair.some(a=>a.created_at>verdict.created_at && ((record(a.raw_action_context.matchingFeedback).flaggedFields??[]) as unknown[]).length>0)));
-  const tierA=pairVerdict==="correct" && context?.identityAttested===true && context?.variationVerified===true && !newerCorrection;
+  const relationshipAction=pair.find(a=>Array.isArray(record(a.raw_action_context.matchingFeedback).fieldRelationships) && (record(a.raw_action_context.matchingFeedback).fieldRelationships as {field:string}[]).some(r=>record(r).field==="platform"));
+  let platformRelationship=null;
+  let relationshipInvalid=false;
+  if(relationshipAction) {
+    const ctx=relationshipAction.raw_action_context;
+    try {
+      if(relationshipAction.ebay_item_id!==row.ebayItemId || ctx.source!=="identity_adjudication_queue" || ctx.queueSnapshotHash!==row.snapshotHash) throw new Error("Unverified relationship source");
+      const feedback=normalizePlatformRelationships(record(ctx.matchingFeedback).fieldRelationships)[0];
+      if(feedback) platformRelationship={...feedback,actor:ctx.actor??null,reviewedAt:relationshipAction.created_at,actionId:relationshipAction.action_id,snapshotId:relationshipAction.listing_snapshot_id,evaluationId:ctx.queueSnapshotHash,source:ctx.source};
+    } catch {relationshipInvalid=true;}
+  }
+  const newerRelationship=Boolean(verdict&&relationshipAction&&relationshipAction.created_at>verdict.created_at);
+  const tierA=!adjudicationExclusion(row) && !relationshipInvalid && !newerRelationship && pairVerdict==="correct" && context?.identityAttested===true && context?.variationVerified===true && !newerCorrection;
   return {pairVerdict,actionId:verdict?.action_id??null,createdAt:verdict?.created_at??null,
-    feedback:context ? record(context.matchingFeedback) : null,corrections,tierA,
+    feedback:context ? record(context.matchingFeedback) : null,corrections,tierA,platformRelationship,
     variationResolution:context?.variationResolution??null,actor:context?.actor??null,snapshotId:verdict?.listing_snapshot_id??null,
     evaluationId:context?.queueSnapshotHash??null,source:context?.source??null,
-    requiresReReview:Boolean(verdict&&(!applicable||newerCorrection)),
+    requiresReReview:Boolean(relationshipInvalid || verdict&&(!applicable||newerCorrection||newerRelationship)),
     lineage:pair.map(a=>({actionId:a.action_id,createdAt:a.created_at,snapshotId:a.listing_snapshot_id,
       verdict:record(a.raw_action_context.matchingFeedback).pairVerdict,actor:a.raw_action_context.actor,
-      source:a.raw_action_context.source,evaluationId:a.raw_action_context.queueSnapshotHash}))};
+      source:a.raw_action_context.source,evaluationId:a.raw_action_context.queueSnapshotHash,fieldRelationships:record(a.raw_action_context.matchingFeedback).fieldRelationships??[]}))};
 }
 export async function loadState(row:QueueRow):Promise<ReviewState> {
   const {data,error}=await supabase.rpc("sourcing_adjudication_state",{p_asin:row.asin,p_ebay_item_id:row.ebayItemId});
@@ -61,13 +74,14 @@ export async function loadQueue() {
   return Promise.all(queue.map(async row=>{
     let state:ReviewState={revision:"unavailable",actions:[]};let unavailableReason:string|null=null;
     try {state=await loadState(row);} catch(error) {unavailableReason=error instanceof Error?error.message:"Evidence storage unavailable";}
-    return {...row,available:!unavailableReason,unavailableReason,revision:state.revision,diagnosticComparison:comparisonFor(row),additionalRows:additionalRows(row),latestReview:summarize(row,state)};
+    return {...row,adjudicationEligible:!adjudicationExclusion(row),adjudicationExclusionReason:adjudicationExclusion(row),available:!unavailableReason,unavailableReason,revision:state.revision,diagnosticComparison:comparisonFor(row),additionalRows:additionalRows(row),latestReview:summarize(row,state)};
   }));
 }
 export async function saveAdjudication(body:RecordValue,actor:string) {
   const row=queue.find(q=>q.queueId===body.queueId);
   if(!row) throw new Error("The requested row is not in this exact 16-row queue.");
   if(row.asin!==body.expectedAsin || row.ebayItemId!==body.expectedEbayItemId || row.snapshotHash!==body.expectedSnapshotHash) return {status:409,error:"Frozen pair/evaluation changed. Reload before saving."};
+  if(adjudicationExclusion(row)) return {status:409,error:"Excluded from adjudication / informational only. No review was saved."};
   const requestId=String(body.requestId??"");
   if(!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(requestId)) throw new Error("Stable request ID required.");
   const feedback=normalizeMatchingFeedback({...record(body.feedback),version:"matching_feedback_v3",allAssumptionsCorrect:false});
@@ -81,7 +95,7 @@ export async function saveAdjudication(body:RecordValue,actor:string) {
     for(const correction of feedback.corrections) {
       const field=[...comparison.rows,...additionalRows(row)].find(r=>reviewFieldKeys[r.key]===correction.field);
       if(!field) throw new Error("Unsupported correction field.");
-      if(!(feedback.flaggedFields??[]).includes(correction.field)) throw new Error("Mark the corrected field Wrong before editing.");
+      if(!(feedback.flaggedFields??[]).includes(correction.field) && !(correction.field==="platform" && feedback.fieldRelationships?.length)) throw new Error("Mark the corrected field Wrong before editing.");
       const opening=openingCell(field,correction.side,latest.corrections);
       correction.before={value:opening.value,state:opening.state,actionId:opening.correction?.actionId??null};
     }
@@ -89,6 +103,7 @@ export async function saveAdjudication(body:RecordValue,actor:string) {
   const context={source:"identity_adjudication_queue",sourceTab:"Identity Adjudication",queueId:row.queueId,
     queueSnapshotHash:row.snapshotHash,snapshotPolicy:"frozen_historical",sourceSnapshotId:row.sourceSnapshotId,
     sourceTimestamp:row.sourceTimestamp,matchingFeedback:feedback,diagnosticComparison:comparison,
+    platformEvidence:{amazon:row.identity.amazon.platform,ebay:row.identity.ebay.platform},
     pair:{asin:row.asin,ebayItemId:row.ebayItemId,variationId:row.variationId,opportunityId:row.opportunityId},
     purchaseItemId:row.purchaseItemId,receivingId:row.receivingId,
     identityAttested:body.identityAttested===true,variationVerified:body.variationVerified===true,

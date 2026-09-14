@@ -1,4 +1,5 @@
 "use client";
+import type { ReactNode } from "react";
 import type { MatchingFeedback } from "../api/sourcing/matchingFeedback";
 import type { SourcingOpportunity } from "./types";
 import type { DiagnosticComparisonRow } from "../api/sourcing/diagnosticComparison";
@@ -24,10 +25,11 @@ export function ReviewEvidence({verdict,onVerdict,evidence,onEvidence}: {
   </div>;
 }
 
-export function MatchingReviewControls({row,corrections,onCorrections,wrongRows,onWrongRows,additionalRows=[]}: {
+export function MatchingReviewControls({row,corrections,onCorrections,wrongRows,onWrongRows,additionalRows=[],platformReview}: {
   row:Pick<SourcingOpportunity,"diagnosticComparison"|"latestReview"|"amazonTitle"|"ebayTitle">;corrections:Corrections;onCorrections:(v:Corrections)=>void;
   wrongRows:string[];onWrongRows:(v:string[])=>void;
   additionalRows?:DiagnosticComparisonRow[];
+  platformReview?:ReactNode;
 }) {
   const comparison=row.diagnosticComparison;
   const saved=(row.latestReview?.corrections ?? []) as SavedCorrection[];
@@ -47,6 +49,7 @@ export function MatchingReviewControls({row,corrections,onCorrections,wrongRows,
     </div>
     <table className="w-full table-fixed border-collapse text-xs"><thead><tr className="bg-slate-100 text-left"><th className="w-1/5 p-2">Field</th><th className="p-2">Amazon</th><th className="p-2">eBay</th><th className="w-14 p-2">Wrong</th></tr></thead><tbody>
       {rows.map(item=><tr key={item.key} className="border-b align-top"><th className="p-2 text-left font-medium">{item.label}
+        {item.key==="platform_system" ? platformReview : null}
         <details className="mt-1 font-normal text-slate-500"><summary>Original / source</summary>{(["amazon","ebay"] as const).map(side=><p key={side}>{side}: {item[side] ?? "Unknown"} ({String((side==="amazon"?item.amazonEvidence:item.ebayEvidence)?.state ?? "unknown")}); {String((side==="amazon"?item.amazonEvidence:item.ebayEvidence)?.reason ?? "Source provenance unavailable")} {sourceText(side==="amazon"?item.amazonEvidence:item.ebayEvidence)}</p>)}</details>
         {corrections.some(c=>c.field===reviewFieldKeys[item.key])?<button type="button" className="mt-1 text-blue-700 underline" onClick={()=>undo(item.key)}>Undo row</button>:null}
       </th>{(["amazon","ebay"] as const).map(side=>{
@@ -69,7 +72,7 @@ export function MatchingReviewControls({row,corrections,onCorrections,wrongRows,
           </>:<span>{value??(state==="unknown"?"Unknown":state.replaceAll("_"," "))}</span>}
           {pending?<div className="text-amber-800">Corrected · pending</div>:original.correction?<div className="text-blue-700">Operator correction · {original.correction.scope} · {original.correction.recordedAt}</div>:null}
         </td>;
-      })}<td className="p-2">{reviewFieldKeys[item.key]?<input type="checkbox" aria-label={`${item.label} Wrong`} checked={wrongRows.includes(item.key)} onChange={e=>toggle(item.key,e.target.checked)}/>:<span title={item.evidence??undefined}>Read-only</span>}</td></tr>)}
+      })}<td className="p-2">{item.key==="platform_system" && platformReview ? <span>See relationship</span> : reviewFieldKeys[item.key]?<input type="checkbox" aria-label={`${item.label} Wrong`} checked={wrongRows.includes(item.key)} onChange={e=>toggle(item.key,e.target.checked)}/>:<span title={item.evidence??undefined}>Read-only</span>}</td></tr>)}
     </tbody></table>
     <p className="mt-2 text-xs text-slate-500">Wrong flags an unreliable field; it does not judge the pair. Unedited fields are not certified.</p>
     <details className="mt-3 text-xs"><summary>Source details</summary>{comparison?.rows.filter(r=>["ebay_description","ebay_item_specifics","ebay_game_name"].includes(r.key)).map(r=><p className="my-2 whitespace-pre-wrap" key={r.key}><strong>{r.label}:</strong> {r.ebay??"Unavailable"}</p>)}</details>

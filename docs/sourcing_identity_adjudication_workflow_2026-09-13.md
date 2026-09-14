@@ -1,5 +1,10 @@
 # Exact-pair identity adjudication workflow - 2026-09-13
 
+
+## Adjudication refinements - 2026-09-13
+
+Listing links and separate Platform Match/Compatible/Wrong/Unknown feedback are implemented; rollout is pending. See [semantics, storage, sample policy and verification](sourcing_adjudication_links_platform_2026-09-13.md). The frozen queue keeps all 16 identities, with the specified mixed-lot row informational-only and excluded from the 15-row progress/Tier A denominator. Compatibility is not a pair verdict or a correction. No migration, Python matcher change, sourcing routing effect, provider search or refresh. Earlier 16-review denominator and web146 notes below describe the prior release.
+
 ## Checkpoint
 
 **Deployed web146 from a2552110df37; rollout COMPLETED, exact ALB target healthy.** Scheduler92 and all 20 schedules remain unchanged. **Phase 3 remains shadow-only.** No production synthetic adjudication, sourcing refresh, provider search, marketplace write or automatic historical relabel occurred. The operator has not yet created a Tier A corpus.

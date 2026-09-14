@@ -1,3 +1,4 @@
+import { normalizePlatformRelationships, type PlatformRelationshipFeedback } from "../../sourcing/adjudication/evidence";
 const VERSION = "matching_feedback_v3";
 const correctionFields = new Set(["coreGame", "installment", "generation", "theme", "platform", "edition", "region", "packageType", "completeness", "digitalPhysical", "coreProduct", "includedContents", "releaseYear"]);
 
@@ -73,6 +74,7 @@ export type MatchingFeedback = {
   allAssumptionsCorrect: boolean;
   failedRuleFamilies: string[];
   flaggedFields?: string[];
+  fieldRelationships?: PlatformRelationshipFeedback[];
   evidenceSources: string[];
   legacyIncorrectRows: string[];
   note: string | null;
@@ -121,6 +123,7 @@ export function normalizeMatchingFeedback(value: unknown): MatchingFeedback {
     note: typeof record.note === "string" && record.note.trim() ? record.note.trim() : null,
     pairVerdict: ["correct", "incorrect", "unsure"].includes(String(record.pairVerdict)) ? record.pairVerdict as "correct" | "incorrect" | "unsure" : "not_provided",
     corrections: normalizeCorrections(record.corrections),
+    ...(record.fieldRelationships !== undefined ? {fieldRelationships: normalizePlatformRelationships(record.fieldRelationships)} : {}),
     availableEvidenceSources: normalizeValues(record.availableEvidenceSources, evidenceSources),
     evidenceProvenance: current ? "explicit" : "legacy_mixed",
   };

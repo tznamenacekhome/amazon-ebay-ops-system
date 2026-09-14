@@ -20,7 +20,7 @@ new Function('require','exports',js)(name=>{if(name==='next/server')return {Next
 const service=load('web/app/api/sourcing/adjudication/service.ts'),route=load('web/app/api/sourcing/adjudication/route.ts');
 assert.equal(service.queue.length,16);const manifest=JSON.parse(readFileSync('docs/sourcing_identity_adjudication_manifest_2026-09-13.json'));
 assert.deepEqual(service.queue.map(x=>[x.queueId,x.asin,x.ebayLegacyItemId]).sort(),manifest.manualReviewQueue.map(x=>[x.sourceId,x.asin,x.ebayItemId]).sort());
-const row=service.queue.find(x=>!x.opportunityId);assert(row,'Exercise a historic pair with no live opportunity');
+const row=service.queue.find(x=>!x.opportunityId && x.asin!=="B072JZB85B");assert(row,'Exercise a historic pair with no live opportunity');
 const before=sql("select jsonb_build_object('op',(select jsonb_agg(to_jsonb(t)) from sourcing_opportunities t),'holds',(select jsonb_agg(to_jsonb(t)) from sourcing_sales_velocity_suppressions t),'blocks',(select jsonb_agg(to_jsonb(t)) from sourcing_blocked_asins t))");
 const state=await service.loadState(row);let body={queueId:row.queueId,requestId:randomUUID(),expectedAsin:row.asin,expectedEbayItemId:row.ebayItemId,expectedSnapshotHash:row.snapshotHash,expectedRevision:state.revision,identityAttested:true,variationVerified:true,notes:'Synthetic disposable test only',feedback:{pairVerdict:'correct',corrections:[]}};
 const post=body=>route.POST({headers:new Headers(),json:async()=>body});
@@ -54,9 +54,33 @@ const raceRevision=(await service.loadState(row)).revision;
 const race=()=>new Promise(resolve=>{const args={...lastSave,p_request_id:randomUUID(),p_expected_revision:raceRevision};const proc=spawn('docker',['exec','-i',container,'psql','-U','postgres','-At','-v','ON_ERROR_STOP=1']);proc.stdout.resume();proc.stderr.resume();proc.on('close',resolve);proc.stdin.end(`select public.sourcing_save_adjudication(${Object.entries(args).map(([k,v])=>k+'=>'+quote(v)).join(',')})`);});
 assert.deepEqual((await Promise.all([race(),race()])).sort(),[0,3],'One concurrent writer wins; the other rejects stale state');
 for (const field of ['coreProduct','includedContents','releaseYear']) {latest=await save({pairVerdict:'incorrect',flaggedFields:[field],corrections:[{field,side:'ebay',scope:'pair',state:'unknown',value:null}]});assert(latest.corrections.some(c=>c.field===field));}
+// Cross-generation relationship evidence uses the supplied Xbox pair, never matcher exceptions.
+const xbox=service.queue.find(r=>r.asin==='B07FF3F7F9'&&r.ebayItemId==='v1|267725836968|0');assert(xbox);
+const originalPlatforms=JSON.stringify([xbox.identity.amazon.platform,xbox.identity.ebay.platform]);
+let xboxBody;
+async function xboxSave(verdict,relationship,corrections=[]) {
+ const state=await service.loadState(xbox);
+ xboxBody={queueId:xbox.queueId,requestId:randomUUID(),expectedAsin:xbox.asin,expectedEbayItemId:xbox.ebayItemId,expectedSnapshotHash:xbox.snapshotHash,expectedRevision:state.revision,identityAttested:true,variationVerified:true,
+ feedback:{pairVerdict:verdict,corrections,flaggedFields:corrections.map(c=>c.field),fieldRelationships:[{field:'platform',operatorRelationship:relationship,compatiblePlatforms:{amazon:['Xbox One'],ebay:['Xbox One','Xbox Series X']}}]}};
+ const saved=await post(xboxBody);assert.equal(saved.status,200,JSON.stringify(saved));
+ const latest=service.summarize(xbox,await service.loadState(xbox));assert.equal(latest.platformRelationship.operatorRelationship,relationship);assert(latest.platformRelationship.actor&&latest.platformRelationship.snapshotId&&latest.platformRelationship.reviewedAt);return latest;
+}
+for(const relationship of ['match','compatible','wrong','unknown']) await xboxSave('unsure',relationship);
+let xr=await xboxSave('correct','compatible');assert(xr.tierA);assert.equal(xr.pairVerdict,'correct');assert.deepEqual(xr.platformRelationship.compatiblePlatforms.ebay,['Xbox One','Xbox Series X']);
+assert.equal((await post(xboxBody)).body.review.replayed,true);
+xr=await xboxSave('incorrect','compatible');assert(!xr.tierA);assert.equal(xr.pairVerdict,'incorrect');
+xr=await xboxSave('unsure','compatible');assert(!xr.tierA);assert.equal(xr.pairVerdict,'unsure');
+xr=await xboxSave('correct','wrong',[{field:'platform',side:'ebay',scope:'pair',state:'value',value:'Xbox One / Xbox Series X'}]);
+xr=await xboxSave('not_provided','compatible');assert.equal(xr.pairVerdict,'correct');assert(!xr.tierA,'Later field relationship requires renewed pair confirmation');assert(xr.lineage.some(a=>a.fieldRelationships.some(r=>r.operatorRelationship==='wrong')));assert(xr.corrections.some(c=>c.field==='platform'));
+xr=await xboxSave('correct','compatible',[{field:'platform',side:'amazon',scope:'pair',state:'value',value:'Xbox One'}]);assert(xr.tierA);assert.equal(JSON.stringify([xbox.identity.amazon.platform,xbox.identity.ebay.platform]),originalPlatforms);
+const latestXboxState=await service.loadState(xbox);const malformed={...latestXboxState.actions[0],action_id:randomUUID(),created_at:'2099-01-01T00:00:00Z',raw_action_context:{...latestXboxState.actions[0].raw_action_context,matchingFeedback:{fieldRelationships:[null,{field:'platform',operatorRelationship:'invalid'}]}}};const invalidSummary=service.summarize(xbox,{revision:'test',actions:[malformed,...latestXboxState.actions]});assert(invalidSummary.requiresReReview);assert(!invalidSummary.tierA);
+const report=(await route.GET({headers:new Headers(),nextUrl:new URL('https://example.test/?report=1')})).body;
+const exportedXbox=report.positives.find(r=>r.asin===xbox.asin);assert(exportedXbox);assert.equal(exportedXbox.platform_operator_relationship,'compatible');assert.equal(exportedXbox.platform_amazon,xbox.identity.amazon.platform);assert.equal(exportedXbox.platform_ebay,xbox.identity.ebay.platform);assert.equal(exportedXbox.pair_verdict,'correct');assert(exportedXbox.platform_corrections.length);assert(exportedXbox.platform_relationship_provenance.actionId);
+assert.equal((await post({...xboxBody,requestId:randomUUID(),feedback:{pairVerdict:'unsure',fieldRelationships:[{field:'edition',operatorRelationship:'compatible'}]}})).status,400);
+const mixed=service.queue.find(r=>r.asin==='B072JZB85B');assert.equal((await post({...xboxBody,queueId:mixed.queueId,expectedAsin:mixed.asin,expectedEbayItemId:mixed.ebayItemId,expectedSnapshotHash:mixed.snapshotHash})).status,409);assert.equal(report.total,15);assert.equal(report.excluded[0].asin,mixed.asin);
 const after=sql("select jsonb_build_object('op',(select jsonb_agg(to_jsonb(t)) from sourcing_opportunities t),'holds',(select jsonb_agg(to_jsonb(t)) from sourcing_sales_velocity_suppressions t),'blocks',(select jsonb_agg(to_jsonb(t)) from sourcing_blocked_asins t))");assert.equal(before,after);
 assert(latest.lineage.length>=6);
-const exported=await route.GET({headers:new Headers(),nextUrl:new URL('https://example.test/?report=1')});assert.equal(exported.status,200);assert.equal(exported.body.positives.length+exported.body.negatives.length+exported.body.unresolved.length,16);
-const listed=await route.GET({headers:new Headers(),nextUrl:new URL('https://example.test/')});assert.equal(listed.body.total,16);assert.equal(listed.body.reviewed,listed.body.rows.filter(r=>r.latestReview.pairVerdict).length);
+const exported=await route.GET({headers:new Headers(),nextUrl:new URL('https://example.test/?report=1')});assert.equal(exported.status,200);assert.equal(exported.body.positives.length+exported.body.negatives.length+exported.body.unresolved.length,15);
+const listed=await route.GET({headers:new Headers(),nextUrl:new URL('https://example.test/')});assert.equal(listed.body.total,15);assert.equal(listed.body.storedTotal,16);assert.equal(exported.body.excluded.length,1);assert.equal(listed.body.reviewed,listed.body.rows.filter(r=>r.adjudicationEligible&&r.latestReview.pairVerdict).length);
 const all=await service.loadQueue();assert.equal(all.length,16);assert(all.find(x=>x.queueId===row.queueId).latestReview.pairVerdict==='incorrect');
 console.log('Exact 16-row API -> disposable PostgreSQL -> reload/export contracts passed; no provider path. RPC calls:',calls);

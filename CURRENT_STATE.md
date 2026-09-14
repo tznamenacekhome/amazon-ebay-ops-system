@@ -1,6 +1,11 @@
 # CURRENT_STATE.md
 
 
+## Adjudication refinements - 2026-09-13
+
+Listing links and separate Platform Match/Compatible/Wrong/Unknown feedback are implemented; rollout is pending. See [semantics, storage, sample policy and verification](docs/sourcing_adjudication_links_platform_2026-09-13.md). The frozen queue keeps all 16 identities, with the specified mixed-lot row informational-only and excluded from the 15-row progress/Tier A denominator. Compatibility is not a pair verdict or a correction. No migration, Python matcher change, sourcing routing effect, provider search or refresh. Earlier 16-review denominator and web146 notes below describe the prior release.
+
+
 ## Repository closeout - 2026-09-13
 
 All remaining shadow repair, evidence-reconciliation, regression fixture and wholesale-discovery work is documented in the [complete file inventory and validation record](docs/sourcing_uncommitted_work_closeout_2026-09-13.md). This repository checkpoint does not deploy or activate Phase 3. Historical no-commit/as-of-runtime statements remain historical; current deployed runtime is the web146 / scheduler92 adjudication release. Operator review of the 16-row queue remains the next functional step.
