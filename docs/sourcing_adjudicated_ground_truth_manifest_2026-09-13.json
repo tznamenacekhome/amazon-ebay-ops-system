@@ -2,8 +2,10 @@
   "status": "ADJUDICATED EVIDENCE INSUFFICIENT \u2014 MORE OPERATOR REVIEW REQUIRED",
   "phase3Complete": false,
   "baseCommit": "b2d0bac1ad732df72b0238c06a2270329dec3af6",
-  "commitsCreated": [],
-  "worktreeState": "Implementation closeout prepared for commit and push; see the subsequent handoff closeout entry for the immutable implementation commit. No deployment authorized.",
+  "commitsCreated": [
+    "62908e775b3f98a7ac203ca2d775044c2641d361"
+  ],
+  "worktreeState": "Implementation committed; this subsequent documentation checkpoint records its immutable hash. Consult Git history and remote tracking for final delivery status. Deployment remains prohibited.",
   "readCapture": {
     "project": "froeucjkcepuhgwisped",
     "startedAt": "2026-09-14T02:04:37.325428+00:00",
@@ -5692,7 +5694,7 @@
     "tmp\\sourcing-adjudicated-ground-truth\\final-curated-replay\\replay.json": "d1f8fd3289851e083e1cc573c70e8599a932cceb910222b1c5c399dd8485403c",
     "tmp\\sourcing-adjudicated-ground-truth\\final-curated-replay\\safety-summary.json": "1d44954123ef06529c49c6499d10d243c8774088ca9a310412c753744c7f9402"
   },
-  "commitMetadataScope": "commitsCreated records the pre-commit evidence checkpoint; final repository commit is recorded separately in the handoff to avoid self-reference.",
+  "commitMetadataScope": "commitsCreated identifies the implementation/evidence commit only; this later documentation commit deliberately does not embed its own hash.",
   "closeoutValidation": {
     "artifactHashesMatched": 25,
     "candidateCodeHashesMatched": 8,
