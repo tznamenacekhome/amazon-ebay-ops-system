@@ -18,10 +18,18 @@ Scope: web UI and read-only sourcing API. No matcher, scheduler, schema, decisio
 - One live read-only API-handler capture: 81,967,279 database response bytes versus earlier 117,028,006 (~30% less). The earlier capture already compacted the supporting listing-key lookup, so this comparison understates that additional deployed improvement. Captures are different times, not a controlled latency benchmark.
 - Live optimized handler timings: Buy List 4.101 s, Closest Excluded 9.188 s, Business Excluded 4.253 s. Same counts as frozen replay. This is API-equivalent verification, not browser timing. Evidence: tmp/sourcing-tab-performance/live/current-manifest.json.
 - Hook regression covers cancellation/out-of-order completion, cache hit/expiry, mutation/removal invalidation, inactive tabs, inline errors and search debounce.
-- Actual Business Excluded handler regression covers compact qualification, visible evidence hydration, vanished rows and exclusion of unknown identity. Existing declined-offer and diagnostic-comparison regressions passed. TypeScript noEmit passed.
+- Actual Business Excluded handler regression covers compact qualification, visible evidence hydration, vanished rows and exclusion of unknown identity. Existing declined-offer and diagnostic-comparison regressions passed. TypeScript noEmit and Docker production Next.js build passed. Focused lint passed with zero errors and ten existing unused-code warnings in page.tsx.
 
 ## Remaining limits
 
 Cold requests still read persisted diagnostics for qualification and sorting across the existing bounded candidate set. Closest Excluded is the heaviest cold tab. No smaller candidate window, changed rank, weakened business filter or incomplete review evidence is used to claim faster loads.
 
-Deployment and final verification are recorded after the implementation commit.
+## Deployment
+
+Implementation commit: `74de23a0478b`. Web task revision: `mbop-web-task:152`.
+
+Image: `sha256:633eb8036a43e9cd4a2e98507d3111a21fcbd2812dc3e4e66111510f8e5f1964`.
+
+ECS rollout completed with one desired/running task and zero pending. The exact running web152 task's load-balancer target is healthy. The previous target may remain listed as draining during deregistration; it is not the active task. Runtime container configuration matches web151 except image/build identifiers. Verification: tmp/sourcing-tab-performance/deployment-verification.json. No scheduler or sourcing decision writes were performed by this task.
+
+A follow-up commit records this deployment and removes an unused variable from the test fixture only; deployed runtime source remains the implementation commit above. Browser inventory was empty and opening the in-app browser returned "Browser is not available: iab". API-handler production reads are verified separately above; no authenticated browser timing or click-through is claimed.

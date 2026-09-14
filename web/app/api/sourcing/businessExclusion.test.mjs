@@ -13,7 +13,7 @@ const db={rpc:async()=>({data:[],error:null}),from(table){let select='',held=fal
  const query=new Proxy({}, {get(_,method){if(method==='then')return done=>{let data=[];if(table==='sourcing_opportunities') {
  if(held)data=[];
  else if(ids&&select==='opportunity_id,sourcing_ebay_candidates(raw_ebay_json)')data=missingEvidence?[]:[full];
- else if(ids){const {raw_ebay_json,...candidate}=full.sourcing_ebay_candidates;data=[{...full,sourcing_ebay_candidates:{...candidate,display_price:{currency:'USD'},display_shipping:[]}}];}
+ else if(ids){const candidate={...full.sourcing_ebay_candidates};delete candidate.raw_ebay_json;data=[{...full,sourcing_ebay_candidates:{...candidate,display_price:{currency:'USD'},display_shipping:[]}}];}
  else data=[{...minimal,identity_verdict:positive?'match':'unknown'}];
  }reads.push({table,select,ids});return Promise.resolve(done({data,error:null}));};return (...args)=>{if(method==='select')select=args[0];if(method==='in'&&args[0]==='status')held=true;if(method==='in'&&args[0]==='opportunity_id')ids=args[1];return query;};}});return query;}};
 const cache=new Map();function load(file){file=resolve(file);if(cache.has(file))return cache.get(file);const out={};cache.set(file,out);new Function('require','exports',ts.transpileModule(readFileSync(file,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText)(name=>{
