@@ -1,5 +1,10 @@
 # Sourcing matching repair handoff
 
+## Identity adjudication workflow checkpoint ? 2026-09-13
+
+The exact 16-row workflow is implemented and offline-tested; see [workflow, evidence and deployment checkpoint](sourcing_identity_adjudication_workflow_2026-09-13.md). `/sourcing/adjudication` captures explicit v3 verdicts and scoped corrections into existing evidence tables. It does not route sourcing rows, release holds, or certify historical positives automatically. Concurrency, stale state, retries and transaction rollback pass; web Docker replay preserves 37/50/2 exact routing rows and order. AWS SSO was renewed and the current baseline verified: web145/scheduler92, 20 schedules, healthy running web service. Deployment is pending; the remote migration remains unapplied. Authenticated UI remains unverified. Phase 3 remains shadow-only, with no sourcing refresh/provider searches. Next: finish isolated web rollout, then operator adjudication; do not resume matcher repair automatically.
+
+
 ## Incorrect Match UI work order (2026-09-13)
 
 The temporary UI/feedback task is complete: web145 / source ac617406851d is healthy, sourcing92 and all 20 schedules are unchanged. Deployment completed 2026-09-13T17:32Z. The packaged web API retained all frozen 37/50/2 rows in order, and 1,609 production-default static/scorer outputs are unchanged. No production feedback, refresh, or provider job ran. Authenticated UI remains unverified; actual offline screenshots and four exact-row read-only API checks are documented. Web-only deployment evidence is tracked in [the review report](sourcing_incorrect_match_review_2026-09-13.md). Single-row review now uses inline Wrong-checkbox corrections and an atomic Incorrect Match action. Confirm Match and correction-only saves remain independent. Existing v3 admission remains disabled. **Phase 3 remains shadow-only and its safety gate is still failed.** Read the new report before treating the older Phase 2 dialog description below as current. The next matching task remains source/noise/omission reconciliation, preserving all three known good-match losses and the stale-manifest prohibition.

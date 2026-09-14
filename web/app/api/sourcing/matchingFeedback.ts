@@ -1,5 +1,5 @@
 const VERSION = "matching_feedback_v3";
-const correctionFields = new Set(["coreGame", "installment", "generation", "theme", "platform", "edition", "region", "packageType", "completeness", "digitalPhysical"]);
+const correctionFields = new Set(["coreGame", "installment", "generation", "theme", "platform", "edition", "region", "packageType", "completeness", "digitalPhysical", "coreProduct", "includedContents", "releaseYear"]);
 
 const ruleFamilies = new Set([
   "core_game_identity",

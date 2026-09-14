@@ -202,6 +202,7 @@ export default function SourcingPage() {
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-semibold tracking-normal">Sourcing Workspace</h1>
+          <Link href="/sourcing/adjudication" className="text-sm text-blue-700 underline">Identity Adjudication · 16-row review queue</Link>
           <p className="text-sm text-slate-600">
             Buy List candidates from Amazon demand, eBay supply, and MBOP scoring.
           </p>

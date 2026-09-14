@@ -1,6 +1,7 @@
 "use client";
 import type { MatchingFeedback } from "../api/sourcing/matchingFeedback";
 import type { SourcingOpportunity } from "./types";
+import type { DiagnosticComparisonRow } from "../api/sourcing/diagnosticComparison";
 import { openingCell, reviewFieldKeys, type SavedCorrection } from "./reviewFields";
 
 export type Corrections = MatchingFeedback["corrections"];
@@ -23,13 +24,14 @@ export function ReviewEvidence({verdict,onVerdict,evidence,onEvidence}: {
   </div>;
 }
 
-export function MatchingReviewControls({row,corrections,onCorrections,wrongRows,onWrongRows}: {
-  row:SourcingOpportunity;corrections:Corrections;onCorrections:(v:Corrections)=>void;
+export function MatchingReviewControls({row,corrections,onCorrections,wrongRows,onWrongRows,additionalRows=[]}: {
+  row:Pick<SourcingOpportunity,"diagnosticComparison"|"latestReview"|"amazonTitle"|"ebayTitle">;corrections:Corrections;onCorrections:(v:Corrections)=>void;
   wrongRows:string[];onWrongRows:(v:string[])=>void;
+  additionalRows?:DiagnosticComparisonRow[];
 }) {
   const comparison=row.diagnosticComparison;
   const saved=(row.latestReview?.corrections ?? []) as SavedCorrection[];
-  const rows=(comparison?.rows ?? []).filter(r=>reviewFieldKeys[r.key]);
+  const rows=[...(comparison?.rows ?? []).filter(r=>reviewFieldKeys[r.key]),...additionalRows];
   function undo(key:string) { onCorrections(corrections.filter(c=>c.field!==reviewFieldKeys[key])); }
   function toggle(key:string,checked:boolean) {
     if(!checked && corrections.some(c=>c.field===reviewFieldKeys[key]) && !window.confirm("Discard the unsaved edits in this row?")) return;
@@ -64,10 +66,10 @@ export function MatchingReviewControls({row,corrections,onCorrections,wrongRows,
               <option value="value">Known value</option><option value="unknown">Unknown / cleared</option><option value="not_applicable">Not applicable</option><option value="explicitly_absent">Known absent</option>
             </select>
             {side==="amazon"&&pending?<label className="block"><input type="checkbox" checked={pending.scope==="asin"} onChange={e=>onCorrections(corrections.map(c=>c===pending?{...c,scope:e.target.checked?"asin":"pair"}:c))}/> Apply to this ASIN</label>:null}
-          </>:<span>{value??state.replaceAll("_"," ")}</span>}
+          </>:<span>{value??(state==="unknown"?"Unknown":state.replaceAll("_"," "))}</span>}
           {pending?<div className="text-amber-800">Corrected · pending</div>:original.correction?<div className="text-blue-700">Operator correction · {original.correction.scope} · {original.correction.recordedAt}</div>:null}
         </td>;
-      })}<td className="p-2"><input type="checkbox" aria-label={`${item.label} Wrong`} checked={wrongRows.includes(item.key)} onChange={e=>toggle(item.key,e.target.checked)}/></td></tr>)}
+      })}<td className="p-2">{reviewFieldKeys[item.key]?<input type="checkbox" aria-label={`${item.label} Wrong`} checked={wrongRows.includes(item.key)} onChange={e=>toggle(item.key,e.target.checked)}/>:<span title={item.evidence??undefined}>Read-only</span>}</td></tr>)}
     </tbody></table>
     <p className="mt-2 text-xs text-slate-500">Wrong flags an unreliable field; it does not judge the pair. Unedited fields are not certified.</p>
     <details className="mt-3 text-xs"><summary>Source details</summary>{comparison?.rows.filter(r=>["ebay_description","ebay_item_specifics","ebay_game_name"].includes(r.key)).map(r=><p className="my-2 whitespace-pre-wrap" key={r.key}><strong>{r.label}:</strong> {r.ebay??"Unavailable"}</p>)}</details>

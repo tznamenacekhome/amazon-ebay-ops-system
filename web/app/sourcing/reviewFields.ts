@@ -2,6 +2,7 @@ import type { DiagnosticComparisonRow } from "../api/sourcing/diagnosticComparis
 import type { MatchingFeedback } from "../api/sourcing/matchingFeedback";
 
 export const reviewFieldKeys: Record<string, string> = {
+  derived_base: "coreProduct", included_contents: "includedContents", release_year: "releaseYear",
   core_game_identity: "coreGame", installment_number: "installment", generation: "generation",
   theme: "theme", platform_system: "platform", edition_version: "edition", region: "region",
   package_bundle_contents: "packageType", completeness: "completeness", digital_physical: "digitalPhysical",

@@ -1,5 +1,10 @@
 # CURRENT_STATE.md
 
+## Identity adjudication workflow checkpoint ? 2026-09-13
+
+The exact 16-row workflow is implemented and offline-tested; see [workflow, evidence and deployment checkpoint](docs/sourcing_identity_adjudication_workflow_2026-09-13.md). `/sourcing/adjudication` captures explicit v3 verdicts and scoped corrections into existing evidence tables. It does not route sourcing rows, release holds, or certify historical positives automatically. Concurrency, stale state, retries and transaction rollback pass; web Docker replay preserves 37/50/2 exact routing rows and order. AWS SSO was renewed and the current baseline verified: web145/scheduler92, 20 schedules, healthy running web service. Deployment is pending; the remote migration remains unapplied. Authenticated UI remains unverified. Phase 3 remains shadow-only, with no sourcing refresh/provider searches. Next: finish isolated web rollout, then operator adjudication; do not resume matcher repair automatically.
+
+
 
 ## Sourcing review UI deployed (2026-09-13)
 
