@@ -38,3 +38,19 @@ Production migration, measured timings and final web revision will be recorded a
 First migration applied successfully; all 20 ledger entries matched. CLI emitted a local pg-delta catalog-cache certificate-path warning after applying; ledger reconciliation and the live service-role RPC/computed projection independently verified success. No migration was reapplied or edited.
 
 Intermediate live profile (before final offer-array and list-JSON slimming): Buy List 3.142 s cold / 115 ms cache hit; Closest Excluded 6.143 s / 97 ms; Business Excluded 3.083 s / 62 ms. A hit reads only the 32-byte cache-version RPC result. Cold combined transfer 32,300,127 bytes. Exact counts remained 102 / 122 (50 returned) / 19. Evidence: tmp/sourcing-run-cache/live-final/. Final measurements follow after the second additive projection.
+
+## Final live validation
+
+Both additive migrations are applied; all 21 local/remote ledger entries match. Final source-query capture (no recorder query cache) and warm-repeat measurements:
+
+| View | Cold API-equivalent build | Server cache hit | Cold DB response bytes | Browser JSON bytes |
+| --- | ---: | ---: | ---: | ---: |
+| Buy List | 2,739 ms | 72 ms | 6,614,756 | 273,216 |
+| Closest Excluded | 5,969 ms | 67 ms | 12,597,485 | 283,162 |
+| Business Excluded | 2,931 ms | 68 ms | 5,020,934 | 71,062 |
+
+Every server hit performs only the small version RPC (32-byte result), not another listing/enrichment build. Browser-memory hits make no list request. Compared with the web152 capture, combined DB transfer fell from 81,967,279 to 24,233,326 bytes (~70%); browser JSON fell from 10,636,980 to 627,440 bytes (~94%). Captures occurred at different times, so these are observed checks rather than a controlled browser benchmark. Counts remain 102 / 122 total (50 returned) / 19. Cold Closest Excluded still performs bounded history/qualification and enrichment queries; source-version caching and preloading avoid repeating those queries on tab selection.
+
+Evidence: `tmp/sourcing-run-cache/final-measurement/` (current/manifest/query metrics), and `tmp/sourcing-run-cache/lazy-evidence/` (two fresh full-comparison and pair-ID parity checks). Browser inventory remained empty; no authenticated browser timing or click-through is claimed. TypeScript and focused lint pass (only ten existing unused-code warnings in page.tsx).
+
+Web deployment revision and image digest are appended after stable-rollout verification.

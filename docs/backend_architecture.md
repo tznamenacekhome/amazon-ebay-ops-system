@@ -364,3 +364,7 @@ MBOP no longer reconciles completed Amazon transfers against MBOP-owned YNAB
 Business deposit history. Completed transfer IDs and amounts may remain in the
 raw Amazon Finance snapshot for audit/reference, but they are not counted as
 in-transit once Amazon reports them completed/succeeded.
+
+## Sourcing read cache
+
+Sourcing list GETs validate a committed-data revision through the server-only sourcing_cache_version RPC. Database statements on the 27 sourcing/list-annotation sources mark their backend dirty transactionally; freshness reads drain committed markers without waiting on operational writers. Lists use compact computed SQL fields, bounded server/browser caches, Buy List first and serial background tab preloading. Full review evidence loads from the exact-opportunity evidence API; frontend counts remain API-owned. See [implementation and validation](sourcing_run_cache_2026-09-14.md).

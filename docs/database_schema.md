@@ -223,3 +223,7 @@ Inventory reconciliation tables are derived and additive. Workflow corrections m
 Retired pending cleanup:
 
 - `vw_latest_ynab_category_balance_snapshot`
+
+## Sourcing cache metadata (2026-09-14)
+
+Additive MBOP migrations 20260914193000 and 20260914193100 add sourcing_cache_dirty (per-backend transactional dirty marker), sourcing_cache_state (cache revision), sourcing_cache_version(), statement invalidation triggers on the documented 27 read dependencies, sourcing_list_diagnostics_json()/sourcing_list_diagnostics() and sourcing_keepa_has_offers(). Metadata is RLS protected, and cache/projection RPC execution is service-role only. They do not change operational rows or matching decisions. See [source coverage, concurrency tests and recovery](sourcing_run_cache_2026-09-14.md).
