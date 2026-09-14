@@ -1,74 +1,37 @@
-# Phase 3 reference metadata repaired; operational guard blocked
+# Phase 3 numeric guard repaired; inventory protection gate failed
 
-PHASE 3 NOT DEPLOYED — METADATA/ADMISSION SAFETY GATE FAILED
+PHASE 3 NOT DEPLOYED — ATOMIC GUARD SAFETY GATE FAILED
 
-The metadata/admission repair passes the full required identity gate. The original operational work order resumed, including local atomic-guard implementation, mutation tests, a fresh production read-only capture and migration-ledger reconciliation. An expanded guard test then exposed numeric fingerprint instability. Work stopped before production SQL, deployment or refresh. The final status denotes the failed overall deployment gate; it does not mean the metadata repair lost its passing results.
+The numeric false-stale defect is repaired locally. All 59 numeric/timestamp/JSON and existing guard checks pass. A subsequent compatibility check against the production scorer exposed a separate protected-state failure. Per the work order, operational work stopped immediately before fresh production reads, remote SQL, deployment or refresh. Phase 3 remains incomplete.
 
-## Exact metadata loss and repair
+## Numeric root cause and repair
 
-All four curated references had `seed.system=null`. Their titles omitted platform. The old resolver read `raw_context_json.inferred_system`, with `inferred_system_source=keepa_category_tree`; the previous canonical constructor accepted only `seed.system`. Its effective Amazon platform therefore became unknown, and the downstream canonical-only platform check removed admission.
+The old fingerprint hashed `jsonb::text`, so stored `25.00` and client `25.0` produced different hashes despite native numeric equality. `sourcing_guard_canonical` now recursively removes numeric scale using exact PostgreSQL `numeric`/`trim_scale`, preserves null and booleans, uses deterministic object ordering, preserves array order and exact text/identifiers, and normalizes allowlisted native timestamps to UTC at six-digit microsecond precision. Embedded raw JSON strings are not interpreted as dates. Request fingerprints use the same canonical representation, including normalized before-state, so equivalent retries remain idempotent.
 
-| Reference | ASIN | Lost inferred_system | Restored canonical platform | Full scorer |
-| --- | --- | --- | --- | --- |
-| Zelda: Twilight Princess | B000FQBPCQ | Wii | Nintendo Wii | open |
-| White Knight Chronicles II | B004WL4LOY | PS 3 | PlayStation 3 | open |
-| Persona 5 Royal: Phantom Thieves | B081W4X9RW | PS 4 | PlayStation 4 | open |
-| New Super Mario Bros. 2 | B0088MVPFQ | 3DS | Nintendo 3DS | open |
+The transaction compares the full canonical state with database-native JSONB equality while holding the existing non-waiting locks. Hash equality alone cannot admit a write. Critical opportunity UPDATE predicates additionally use native UUID, text, timestamp and numeric equality against the captured database row. Locks, bounds, protected-state checks, append-only audit and rollback behavior remain in place. The [field audit](sourcing_guard_field_audit_2026-09-13.md) classifies every selected column and the history projection. This unshipped migration has only been loaded into the disposable database, never production.
 
-`resolve_seed_system` moved unchanged to `system_detection.py` and is shared by static and canonical construction. `_exact_reference` caches the complete reference metadata inputs, resolves the fallback before comparison, preserves the original raw context and exact-ASIN catalog metadata, and records normalized system, source and inference provenance. Metadata changes affect the cache key and material-evidence hash. Cross-ASIN catalog data is retained only as source provenance; it is not accepted as parser input.
+## Exact new blocker
 
-Corrections still overlay a deep copy of the constructed identity. Corrected fields retain their `before` value and underlying source spans, with correction provenance added. Unrelated Amazon/eBay fields, catalog, generation, package/theme and compatibility metadata are preserved. Platform, digital/physical, completeness and region overlay preservation is covered. Stored source snapshots are never mutated. No title/ASIN whitelist or platform relaxation was introduced.
+The scorer's `fetch_historical_status_by_key` recognizes an action with `action_type=roi_snoozed` and `raw_action_context.actionType=inventory_snooze` as an **ASIN-wide inventory hold**. The guard only recognizes literal `inventory_snoozed` as ASIN-wide; its `roi_snoozed` protection requires the same listing ID.
 
-The source files changed are `system_detection.py`, `video_game_identity.py`, `sourcing_match_rules.py` and `matching_feedback.py`. Tests add four exact captured metadata fixtures and overlay/cache coverage to `test_sourcing_effective_identity.py`. The original Crystal Harbor/static consistency repair remains intact.
+The regression creates two listings of one ASIN, stores that legacy inventory action on one, and tries to refresh the other. Expected: `protected_skip`, unchanged state, zero audit writes. Actual: `written`, state changed, one disposable refresh-log row. This is a real local protection failure, unlike the previous numeric test's mislabeled bypass. No production row was involved. The failing test remains in the repo and the migration remains explicitly unapproved. No protection repair or further deployment gate was attempted after this failure.
 
-## Identity and application gates
+## Validation and operational checkpoint
 
-- Crystal Harbor raw PS4, valid exact-pair correction to PS5: canonical Match, static Probable Match, no stale platform hard block, scorer open.
-- Uncorrected PS4/PS5: canonical Conflict, static Blocked, scorer rejected. Stale/wrong-scope/wrong-variation corrections remain ignored; supersession and correction-to-Xbox conflict checks pass.
-- 12/12 Tier A positives Match; three adjudicated negatives excluded as two nonmatches and one Review. The BIGS remains Review, never Match.
-- All 15 curated positives eligible; all 18 curated negatives excluded. All four prior losses restored.
-- All 17 scoped corrections apply. Twelve variation qualifications remain Not Applicable. Saved Compatible examples remain zero; synthetic compatibility tests are not operator attestations.
-- Minecraft remains identity Match with its independent condition-related block. Disney unnumbered=1.0 policy and explicit later-generation conflicts remain intact.
-- 170 Python tests at the metadata stage, 66 tests in the final networking-disabled image, 257 disposable API/RPC calls, and 150 Python-to-API-to-UI indicators across 15 rendered panels pass.
-- All 1,609 legacy static/full scorer outputs are identical to the prior baseline. An incidental dash-encoding edit was restored exactly before the final default replay and final image build. The image and final replay contain the restored expression.
-- Frozen shadow identity counts remain 187 Match/746 nonmatch/67 Review; current frozen-input counts remain 114/378/108. These are offline cohorts, not production routing counts.
+- 59 checks passed: exact numeric equivalence including 25/25.0/25.00/25.000, zero/negative zero, 1.5/1.50 and arbitrary-precision SQL tokens; actual numeric changes; null/zero/empty/false distinctions; timestamp offset/precision equivalence and retry; actual microsecond changes; nested JSON key ordering/value changes; all prior stale, lifecycle, action, business-hold, bounded-write, retry, rollback and concurrent-insert checks.
+- One additional inventory compatibility regression failed. Frozen proof: `tmp/sourcing-guard-canonicalization/inventory-compatibility.json`.
+- No parser/matcher/runtime changes. The last passing identity evidence remains 12/12 Tier A Match; 3/3 adjudicated negatives excluded (2 nonmatch, 1 Review); 15/15 curated positives eligible; 18/18 curated negatives excluded; Crystal Harbor corrected platform passes; genuine PS4/PS5 blocked; Disney first-generation convention intact; 1,609 default outputs unchanged. These were **not rerun in this attempt**, because the guard failed first.
+- Previous validation evidence remains 170 Python tests, 66 packaged container tests, 257 API/RPC transaction calls and 150 API/UI indicators. No new full-suite/lint/image-build result is claimed. Narrow Python compilation and `git diff --check` are closeout checks only.
+- No new production manifest or dry run. Previous capture is historical only: Buy List 28, Closest Excluded 50 of 129, Business Excluded 2; 33 active holds; 500 rejected; 529 deduplicated rows. It must not be reused for writes. The prior 324 MB supporting capture is preserved, not repeated.
+- No new production image or revision. Historical local image `mbop-scheduler:reference-metadata-final`: `sha256:905302756651d8ff2a6e3a88e378c737b7bb16935a135827908d4f3d85115403`; it predates this SQL candidate and is not a deployable proof of this repair. Last recorded production revisions are web151/scheduler92, not freshly inspected.
+- All 20 schedules untouched; no new comparison. No remote migration application or ledger change. No final pre-write recapture, write plan execution, refresh or postdeployment routing verification.
+- Production writes, protected rows touched, historical action/review rewrites, business holds changed, provider searches and marketplace writes: all zero. Production stale/protected skip counts are not applicable because no write attempt occurred.
+- Disposable `mbop-phase2-review-test` stopped. Rollback not needed because production was unchanged; fresh rollback targets are still required before any deployment.
 
-## Operational work resumed
+## Continuation requirements
 
-The new, unshipped migration `supabase/migrations/20260914045624_mbop_guarded_sourcing_decision_refresh.sql` adds a service-role-only state reader, guarded decision RPC and append-only refresh log. It constrains explicit bounded IDs and decision fields, compares full opportunity/source/action/history/hold/settings state inside a transaction, protects lifecycle and exact-pair operator history, and uses non-waiting locks to skip concurrent writers. It includes ASIN-wide inventory-hold and declined-offer state. Short locks cover operator paths that do not share the review advisory lock. No production application occurred.
+Resolve the legacy ASIN-wide inventory protection mismatch without weakening the guard or rewriting history. Rerun the failing regression and the full guard suite before continuing the strict identity suite and complete authorized operational order. A production transport must preserve exact decimal tokens. Fresh bounded manifest, read-only routing dry run, production images/rollback targets, all twenty schedule comparisons, deployment health, immediate pre-write recapture, guarded refresh and post-refresh API verification remain outstanding. Do not treat the passing numeric fix as deployment approval.
 
-The initial 31 disposable guard checks passed, including stale source/variation changes, newer actions/reviews, protected states, historical dismissals, retry idempotency, failure rollback, bounded IDs and concurrent operator insertion. The expanded acceptance run did not pass.
+The previous metadata repair and failed numeric checkpoint remain in Git at `5ad2b27` / `fbb52da`. The current [manifest](sourcing_phase3_final_manifest_2026-09-13.json) preserves their evidence and separately records this attempt. Commit IDs are recorded in a subsequent handoff update to avoid self-reference.
 
-### Exact blocker: unchanged numeric state is falsely stale
-
-For the disposable Best Offer row capped at $20 with a saved $25 decline, PostgreSQL emits the numeric value as `25.00`; the JSON client round-trip serializes it as `25.0`. PostgreSQL confirms the two `jsonb` states are semantically equal, but the guard hashes their textual representations and obtains different fingerprints:
-
-- Server state: `c07d8fe15187522899a04e4d39daeeefb9f8a8db959e176020d9ee1b86cf2541`
-- Client round-trip: `49d37e045cae947b43acf1f950ff90ca8f9c8602c2c24079260932e63496e52b`
-
-The state is skipped at `before_hash` before business-hold validation. The test originally expected a SQL business rejection and mislabeled the returned skip as a bypass. **Audit log count for that case is zero: no declined-offer bypass or write was observed.** The assertion now describes false staleness explicitly. The actual operational blocker is failure to accept unchanged numeric state reliably, so the guard is not approved for production. No fingerprint repair was attempted after this gate failure. A continuation must establish a representation-stable fingerprint without weakening semantic stale-state or operator-activity comparison, then rerun the complete guard suite.
-
-The implementation follows PostgreSQL's [explicit locking semantics](https://www.postgresql.org/docs/current/explicit-locking.html); this reference does not establish that the candidate guard passes acceptance.
-
-## Fresh production capture and stopped closeout
-
-1. Fresh actual-handler API-equivalent views: Buy List 28; Closest Excluded 50 returned of 129; Business Excluded 2, with 33 active velocity holds captured.
-2. Bounded latest rejected scope: 500; displayed view selections: 80; distinct union: 529, including one inventory-snoozed row. The artifact's legacy `open` array name denotes displayed selections, not 80 open lifecycle rows.
-3. Scoped actions captured: 2,899. Exact ordered IDs, source rows, latest action/review references, variation identities and evaluation metadata are persisted in ignored artifacts and the continuation index.
-4. Capture is multi-read, not an atomic write manifest. Final database guard-state recapture was not performed. Do not use these artifacts for writes without fresh state checks.
-5. Actual API capture read 324,117,970 bytes. The Closest Excluded handler accounted for about 308 MB of additional supporting reads. This unexpected volume is a Supabase I/O risk; reuse the capture and avoid blindly repeating that broad supporting query. Full source hydration used 18 additional requests over the explicit 529 IDs.
-6. No duplicate listing identities were found within the three captured views. No authenticated production browser verification was performed.
-7. Shared migration ledger: all 18 applied migrations match; only this new local guard migration is pending. No shared or College Planner migration was modified/applied remotely.
-8. Full production routing dry run and deployable write plan: not completed because the expanded guard gate failed. The earlier frozen replay is not a substitute.
-9. Deployment: none. Last recorded web151/scheduler92 were not freshly inspected. All twenty schedules remain untouched; no new configuration comparison is claimed.
-10. Final local image: `mbop-scheduler:reference-metadata-final`, digest `sha256:905302756651d8ff2a6e3a88e378c737b7bb16935a135827908d4f3d85115403`. Built/tested locally, never pushed or deployed. Guard SQL was tested separately in the disposable DB.
-11. Final pre-write recapture and bounded refresh: not started. Production evaluated-for-write/written/stale-skip/protected-skip counts are all zero.
-12. Buy List/Closest Excluded/Business Excluded after refresh: not applicable; there was no refresh.
-13. Protected production rows touched, historical reviews/actions rewritten, business holds changed, provider searches, marketplace writes, runtime/schema/scheduler changes: all zero.
-14. No rollback is needed because production runtime/data was not changed. A future deployment still needs fresh rollback targets and a pre-write recapture.
-15. Disposable `mbop-phase2-review-test` was stopped. No test data was written to production.
-16. The candidate and failed operational gate are checkpointed separately from documentation commit metadata. The metadata fix is passing; the guard migration remains unapproved for production application. Phase 3 is incomplete.
-
-Evidence: `tmp/sourcing-reference-metadata/` and `tmp/sourcing-phase3-final-fresh/`. Exact metadata loss traces, curated/strict/defaults proofs, test logs, numeric fingerprint proof, fresh read-only responses and source hashes are indexed by the [manifest](sourcing_phase3_final_manifest_2026-09-13.json). Earlier failed-candidate records remain in Git at `682c46e` and `1aa82cb`.
-
-PHASE 3 NOT DEPLOYED — METADATA/ADMISSION SAFETY GATE FAILED
+PHASE 3 NOT DEPLOYED — ATOMIC GUARD SAFETY GATE FAILED

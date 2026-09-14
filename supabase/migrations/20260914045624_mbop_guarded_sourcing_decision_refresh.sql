@@ -1,4 +1,4 @@
--- UNAPPROVED CANDIDATE: numeric fingerprint acceptance failed; do not apply remotely.
+-- UNAPPROVED CANDIDATE: legacy ASIN-wide inventory protection failed; do not apply remotely.
 -- See docs/sourcing_phase3_final_deployment_2026-09-13.md before continuing.
 -- MBOP: bounded decision refresh only. No provider, review or lifecycle writes.
 -- This migration is not an activation flag. Legacy scoring remains unchanged.
@@ -14,6 +14,62 @@ create table public.sourcing_decision_refresh_log (
 alter table public.sourcing_decision_refresh_log enable row level security;
 revoke all on public.sourcing_decision_refresh_log from public, anon, authenticated;
 grant select, insert on public.sourcing_decision_refresh_log to service_role;
+
+-- Exact numbers and native timestamp columns have one transport representation.
+-- Embedded JSON strings remain exact; array order remains significant.
+create function public.sourcing_guard_canonical(p_value jsonb, p_path text[] default '{}')
+returns jsonb language plpgsql stable security invoker set search_path = ''
+set timezone = 'UTC' set datestyle = 'ISO, YMD' as $$
+declare result jsonb;
+begin
+  case jsonb_typeof(p_value)
+    when 'number' then return to_jsonb(trim_scale((p_value #>> '{}')::numeric));
+    when 'object' then
+      select coalesce(jsonb_object_agg(k,public.sourcing_guard_canonical(v,p_path||k) order by k),'{}'::jsonb)
+      into result from jsonb_each(p_value) e(k,v);
+      return result;
+    when 'array' then
+      select coalesce(jsonb_agg(public.sourcing_guard_canonical(v,p_path||array['*']) order by n),'[]'::jsonb)
+      into result from jsonb_array_elements(p_value) with ordinality e(v,n);
+      return result;
+    when 'string' then
+      if array_to_string(p_path,'.') = any(array['actions.*.created_at',
+        'blockedAsin.blocked_at',
+        'blockedAsin.updated_at',
+        'declinedOffers.*.first_seen_at',
+        'declinedOffers.*.last_seen_at',
+        'candidate.auction_end_time',
+        'candidate.first_seen_at',
+        'candidate.last_seen_at',
+        'opportunity.created_at',
+        'opportunity.updated_at',
+        'velocityHolds.*.dismissed_at',
+        'velocityHolds.*.last_evaluated_at',
+        'velocityHolds.*.reactivated_at',
+        'velocityHolds.*.created_at',
+        'velocityHolds.*.updated_at',
+        'seed.last_sold_at',
+        'seed.created_at',
+        'settings.*.created_at',
+        'settings.*.updated_at',
+        'pairHistory.*.updated_at']) then
+        return to_jsonb(to_char((p_value #>> '{}')::timestamptz at time zone 'UTC',
+          'YYYY-MM-DD"T"HH24:MI:SS.US"Z"'));
+      end if;
+      return p_value;
+    else return p_value;
+  end case;
+end;
+$$;
+revoke all on function public.sourcing_guard_canonical(jsonb,text[]) from public, anon, authenticated;
+grant execute on function public.sourcing_guard_canonical(jsonb,text[]) to service_role;
+
+create function public.sourcing_guard_hash(p_value jsonb)
+returns text language sql stable security invoker set search_path = '' as $$
+  select encode(sha256(convert_to(public.sourcing_guard_canonical(p_value)::text,'UTF8')),'hex');
+$$;
+revoke all on function public.sourcing_guard_hash(jsonb) from public, anon, authenticated;
+grant execute on function public.sourcing_guard_hash(jsonb) to service_role;
 
 create function public.sourcing_decision_guard_state(p_opportunity_id uuid)
 returns jsonb language sql stable security invoker set search_path = '' as $$
@@ -45,6 +101,8 @@ create function public.sourcing_refresh_decision_guarded(
 declare
   current_state jsonb;
   after_state jsonb;
+  expected_state jsonb;
+  canonical_state jsonb;
   fingerprint text;
   saved public.sourcing_decision_refresh_log%rowtype;
   changed jsonb;
@@ -63,8 +121,9 @@ begin
     or jsonb_typeof(p_patch->'matching_diagnostics_json') is distinct from 'object' then
     raise exception 'Only decision fields and mutable statuses may be refreshed' using errcode='22023';
   end if;
-  fingerprint := encode(sha256(convert_to(jsonb_build_object('id',p_opportunity_id,'ids',p_allowed_ids,
-    'before',p_before_state,'hash',p_before_hash,'patch',p_patch)::text,'UTF8')),'hex');
+  expected_state := public.sourcing_guard_canonical(p_before_state);
+  fingerprint := public.sourcing_guard_hash(jsonb_build_object('id',p_opportunity_id,'ids',p_allowed_ids,
+    'before',expected_state,'hash',p_before_hash,'patch',p_patch));
   perform pg_advisory_xact_lock(hashtextextended('decision-refresh|'||p_request_id::text,0));
   select * into saved from public.sourcing_decision_refresh_log where request_id=p_request_id;
   if found then
@@ -84,13 +143,15 @@ begin
       public.sourcing_settings, public.sourcing_declined_ebay_offers in share row exclusive mode nowait;
     current_state := public.sourcing_decision_guard_state(p_opportunity_id);
     if p_before_state is null or p_before_hash is distinct from
-      encode(sha256(convert_to(p_before_state::text,'UTF8')),'hex') then
+      public.sourcing_guard_hash(p_before_state) then
       return jsonb_build_object('result','stale_state_skip','changed',jsonb_build_array('before_hash'));
     end if;
-    if current_state is distinct from p_before_state then
+    canonical_state := public.sourcing_guard_canonical(current_state);
+    -- Full database JSONB equality is authoritative, never hash equality alone.
+    if canonical_state is distinct from expected_state then
       select jsonb_agg(k order by k) into changed from
         (select jsonb_object_keys(coalesce(current_state,'{}'::jsonb)||p_before_state) k) keys
-        where current_state->k is distinct from p_before_state->k;
+        where canonical_state->k is distinct from expected_state->k;
       return jsonb_build_object('result','stale_state_skip','changed',coalesce(changed,'["missing_row"]'::jsonb));
     end if;
     op := current_state->'opportunity';
@@ -119,7 +180,17 @@ begin
       score=case when p_patch ? 'score' then (p_patch->>'score')::numeric else score end,
       score_reason=case when p_patch ? 'score_reason' then p_patch->>'score_reason' else score_reason end,
       ai_flags=case when p_patch ? 'ai_flags' then array(select jsonb_array_elements_text(p_patch->'ai_flags')) else ai_flags end,
-      updated_at=clock_timestamp() where opportunity_id=p_opportunity_id;
+      updated_at=clock_timestamp() where opportunity_id=p_opportunity_id
+      and asin is not distinct from op->>'asin'
+      and ebay_item_id is not distinct from op->>'ebay_item_id'
+      and candidate_id is not distinct from (op->>'candidate_id')::uuid
+      and seed_id is not distinct from (op->>'seed_id')::uuid
+      and status is not distinct from op->>'status'
+      and updated_at is not distinct from (op->>'updated_at')::timestamptz
+      and max_offer_price is not distinct from (op->>'max_offer_price')::numeric;
+    if not found then
+      return jsonb_build_object('result','stale_state_skip','changed',jsonb_build_array('typed_opportunity_state'));
+    end if;
     after_state := public.sourcing_decision_guard_state(p_opportunity_id);
     outcome := jsonb_build_object('result','written','opportunityId',p_opportunity_id,'requestId',p_request_id,
       'beforeStatus',op->>'status','afterStatus',p_patch->>'status');

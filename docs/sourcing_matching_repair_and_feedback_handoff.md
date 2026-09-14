@@ -1,5 +1,9 @@
 # Sourcing matching repair handoff
 
+## Numeric guard passed; legacy inventory protection failed
+
+The numeric/timestamp/JSON canonicalization repair passes 59 disposable guard checks. A separate regression proves that the guard writes another listing despite a same-ASIN legacy inventory hold (`roi_snoozed` plus `raw_action_context.actionType=inventory_snooze`), which the production scorer treats as ASIN-wide. Expected protected skip; actual one local write. Operational work stopped immediately. No production reads/writes, remote SQL, deployment, refresh, provider search or marketplace write in this attempt. The failing regression is preserved and the disposable container stopped. Prior strict identity results remain historical passing evidence, not a new rerun. Phase 3 is incomplete. [Exact blocker and continuation](sourcing_phase3_final_deployment_2026-09-13.md).
+
 ## Reference metadata gate passed; atomic fingerprint gate blocked
 
 Implementation checkpoint: `5ad2b27ca7cdc2370cfcd43dc6249b7962991955`. This follow-up documentation commit records the immutable source hash. The guard migration remains unapproved for remote application; this is not Phase 3 completion.

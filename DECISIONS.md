@@ -1,5 +1,9 @@
 # DECISIONS.md
 
+## Numeric guard passed; legacy inventory protection failed
+
+The numeric/timestamp/JSON canonicalization repair passes 59 disposable guard checks. A separate regression proves that the guard writes another listing despite a same-ASIN legacy inventory hold (`roi_snoozed` plus `raw_action_context.actionType=inventory_snooze`), which the production scorer treats as ASIN-wide. Expected protected skip; actual one local write. Operational work stopped immediately. No production reads/writes, remote SQL, deployment, refresh, provider search or marketplace write in this attempt. The failing regression is preserved and the disposable container stopped. Prior strict identity results remain historical passing evidence, not a new rerun. Phase 3 is incomplete. [Exact blocker and continuation](docs/sourcing_phase3_final_deployment_2026-09-13.md).
+
 ## Reference metadata gate passed; atomic fingerprint gate blocked
 
 Canonical reference construction now preserves the existing inferred platform metadata. All four prior losses are restored: 15/15 curated positives eligible, 12/12 Tier A Match, 3/3 adjudicated and 18/18 curated negatives excluded; Crystal Harbor passes and genuine PS4/PS5 remains blocked. All 1,609 legacy outputs are unchanged. Operational work resumed: local guard implementation, initial 31 mutation checks, fresh 529-row bounded capture (28 Buy List / 50 of 129 Closest Excluded / 2 Business Excluded) and an 18-migration ledger reconciliation. Expanded guard acceptance exposed false staleness after numeric JSON round-trip (`25.00` vs `25.0`), with zero writes in the failed case. Guard is not production-approved; no deployment, remote SQL, refresh or provider search occurred. [Exact blocker, tests, capture and continuation](docs/sourcing_phase3_final_deployment_2026-09-13.md). Phase 3 remains incomplete. Earlier reports below are historical.

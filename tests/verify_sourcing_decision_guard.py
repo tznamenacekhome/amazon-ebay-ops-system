@@ -39,7 +39,7 @@ def seed(status='open', asin=None, item=None):
 
 
 def capture(row):
-    return json.loads(sql(f"select jsonb_build_object('state',s,'hash',encode(sha256(convert_to(s::text,'UTF8')),'hex')) "
+    return json.loads(sql(f"select jsonb_build_object('state',s,'hash',sourcing_guard_hash(s)) "
                           f"from (select sourcing_decision_guard_state('{row['op']}') s) t"))
 
 
@@ -79,6 +79,65 @@ record('unchanged row writes with before/after audit and no source/action change
 assert apply(row, before, request)['replayed']
 assert capture(row) == after
 record('retry idempotency')
+
+# Exercise raw JSON numeric tokens without routing them through binary floats.
+for values in [('25', '25.0', '25.00', '25.000'), ('0', '0.0', '-0.00'), ('1.5', '1.50'),
+               ('12345678901234567890.123456789', '12345678901234567890.1234567890')]:
+    hashes = [sql(f"select sourcing_guard_hash('{{\"value\":{value}}}'::jsonb)") for value in values]
+    assert len(set(hashes)) == 1, values
+    record('exact numeric equivalence ' + '/'.join(values))
+
+for left, right in [('25.00', '25.01'), ('25', '26'), ('0', 'null'),
+                    ('null', '""'), ('false', 'null'), ('[1,2]', '[2,1]'), ('"ID"', '"id"')]:
+    assert sql(f"select sourcing_guard_hash({quote(left)}::jsonb) <> sourcing_guard_hash({quote(right)}::jsonb)") == 't'
+    record('distinct JSON values ' + left + '/' + right)
+
+for left, right in [('25', '25.0'), ('25.0', '25.00'), ('0', '-0.00'), ('1.5', '1.50')]:
+    row = seed()
+    sql(f"update sourcing_opportunities set max_offer_price={left} where opportunity_id='{row['op']}'")
+    before = capture(row)
+    # Numeric equality must work in the actual guarded transaction as well.
+    before['state']['opportunity']['max_offer_price'] = float(right)
+    assert apply(row, before)['result'] == 'written'
+    record('numeric transaction equivalence ' + left + '/' + right)
+
+for left, right in [('25.00', '25.01'), ('25', '26'), ('0', 'null')]:
+    row = seed()
+    sql(f"update sourcing_opportunities set max_offer_price={left} where opportunity_id='{row['op']}'")
+    before = capture(row)
+    sql(f"update sourcing_opportunities set max_offer_price={right} where opportunity_id='{row['op']}'")
+    changed = capture(row)
+    assert apply(row, before)['result'] == 'stale_state_skip'
+    assert capture(row) == changed
+    record('numeric transaction mutation ' + left + '/' + right)
+
+row = seed()
+sql(f"update sourcing_opportunities set updated_at='2026-09-13T12:00:00.120000Z' where opportunity_id='{row['op']}'")
+before = capture(row)
+before['state']['opportunity']['updated_at'] = '2026-09-13T05:00:00.12-07:00'
+before['state']['pairHistory'][0]['updated_at'] = '2026-09-13 12:00:00.120+00'
+request = str(uuid4())
+assert apply(row, before, request)['result'] == 'written'
+before['state']['opportunity']['updated_at'] = '2026-09-13T12:00:00.120Z'
+assert apply(row, before, request)['replayed']
+record('equivalent timestamp offsets and precision write and replay')
+
+row = seed(); before = capture(row)
+sql(f"update sourcing_opportunities set updated_at=updated_at+interval '1 microsecond' where opportunity_id='{row['op']}'")
+assert apply(row, before)['result'] == 'stale_state_skip'
+record('actual microsecond timestamp change skips')
+
+for left, right, equal in [('{"a":25.00,"b":[false,null]}', '{"b":[false,null],"a":25}', True),
+                           ('{"a":25}', '{"a":26}', False),
+                           ('{"a":null}', '{"a":0}', False),
+                           ('{"a":null}', '{"a":""}', False),
+                           ('{"a":false}', '{"a":null}', False)]:
+    row = seed()
+    sql(f"update sourcing_ebay_candidates set raw_ebay_json={quote(left)}::jsonb where candidate_id='{row['candidate']}'")
+    before = capture(row)
+    sql(f"update sourcing_ebay_candidates set raw_ebay_json={quote(right)}::jsonb where candidate_id='{row['candidate']}'")
+    assert apply(row, before)['result'] == ('written' if equal else 'stale_state_skip')
+    record('nested JSON transaction ' + left + '/' + right)
 
 mutations = {
     'updated_at': lambda r: f"update sourcing_opportunities set updated_at=clock_timestamp() where opportunity_id='{r['op']}'",
@@ -180,5 +239,5 @@ assert writer.returncode == 0
 assert capture(row)['state']['opportunity']['score'] is None
 record('concurrent operator insert skips without overwriting')
 
-Path('tmp/sourcing-reference-metadata/guard-tests.json').write_text(json.dumps({'passed': True, 'checks': checks, 'count': len(checks)}, indent=2), encoding='utf-8')
+Path(os.environ.get('MBOP_GUARD_TEST_OUTPUT', 'tmp/sourcing-guard-canonicalization/guard-tests.json')).write_text(json.dumps({'passed': True, 'checks': checks, 'count': len(checks)}, indent=2), encoding='utf-8')
 print(f'{len(checks)} disposable database guard checks passed')
