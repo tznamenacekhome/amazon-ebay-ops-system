@@ -1,5 +1,9 @@
 # Phase 3 strict adjudicated safety gate after variation follow-up
 
+## Completed-scope rerun: Disney is the sole observed blocker
+
+All 12 confirmations now qualify. Strict replay: 11 Match / 1 Review (Disney); three negatives remain excluded (2 Conflict / 1 Review). No matcher change is justified by the missing reference generation/package evidence. [Focused analysis and current result](sourcing_phase3_disney_gate_rerun_2026-09-13.md). No deployment or refresh. Phase 3 remains shadow-only and incomplete. Earlier counts below are historical.
+
 ADJUDICATED EVIDENCE STILL INSUFFICIENT — MORE OPERATOR REVIEW REQUIRED
 
 Phase 3 remains incomplete and shadow-only. This is a fresh bounded persisted-evidence capture and offline replay, not a deployment or refresh. The supplied completion premise differs from storage: 10 of 12 variation follow-ups are saved. No state was inferred from UI labels.

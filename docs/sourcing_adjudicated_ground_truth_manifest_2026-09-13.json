@@ -1,40 +1,41 @@
 {
-  "status": "ADJUDICATED EVIDENCE STILL INSUFFICIENT \u2014 MORE OPERATOR REVIEW REQUIRED",
+  "status": "STRICT ADJUDICATED SAFETY GATE FAILED \u2014 MATCHER REMAINS SHADOW ONLY",
   "phase3Complete": false,
-  "baseCommit": "64851ae2cc2380b69a9a6789d344791d0a191d0f",
+  "baseCommit": "e5bee300d581024fe90bbfc68f0e3185d645929d",
   "commitMetadataScope": "This base is the immutable source used for replay. Evidence documentation commit is available from Git history; no self-referential hash.",
   "previousManifest": {
-    "file": "docs\\sourcing_adjudicated_ground_truth_manifest_before_variation_2026-09-13.json",
-    "sha256": "f92bd5188a48b774c135ebe1a6c423da499b6c0b81a2afec0e724715c20d0dae"
+    "gitCommit": "eff0a0a",
+    "file": "docs\\sourcing_adjudicated_ground_truth_manifest_2026-09-13.json",
+    "capturedFile": "tmp\\sourcing-phase3-strict-rerun\\previous-manifest.json",
+    "sha256": "c3fbb7417b2508f857c365e2bd8d43aea8dbe1dc13b35f5fa2cf526f6d7e6c83"
   },
   "capture": {
-    "file": "tmp\\sourcing-phase3-strict-gate\\capture.json",
+    "file": "tmp\\sourcing-phase3-strict-rerun\\capture.json",
     "project": "froeucjkcepuhgwisped",
-    "startedAt": "2026-09-14T03:51:14.422503+00:00",
-    "finishedAt": "2026-09-14T03:51:17.506492+00:00",
+    "startedAt": "2026-09-14T04:20:43.130916+00:00",
+    "finishedAt": "2026-09-14T04:20:47.311690+00:00",
+    "readRequests": 34,
+    "bytes": 2139786,
+    "uniqueActions": 27,
+    "linkedAndSourceSnapshots": 41,
     "stableAcrossReadback": true,
-    "readRequests": 33,
-    "bytes": 2011579,
-    "uniqueActions": 25,
-    "linkedAndSourceSnapshots": 39,
-    "originalActionsUnchanged": 15,
-    "newVariationOnlyEvents": 10
+    "priorActionsUnchanged": 25,
+    "newVariationOnlyEvents": 2
   },
   "counts": {
     "queue": 16,
     "reviewable": 15,
-    "tierAPositive": 10,
+    "tierAPositive": 12,
     "verifiedNegative": 3,
     "unresolvedNotSure": 0,
-    "unqualifiedConfirmations": 2,
+    "unqualifiedConfirmations": 0,
     "informationalExcluded": 1,
     "confirmMatch": 12,
     "incorrectMatch": 3,
     "notSure": 0,
-    "variationScopeReviewed": 10,
+    "variationScopeReviewed": 12,
     "variationDistributionConfirmed": {
-      "not_applicable": 10,
-      "unknown": 2
+      "not_applicable": 12
     },
     "platformCompatible": 0,
     "corrections": 17,
@@ -47,10 +48,10 @@
   },
   "strictGate": {
     "passed": false,
-    "evidenceComplete": false,
+    "evidenceComplete": true,
     "knownQualifiedPositiveSafetyPassed": false,
     "tierAPositiveResults": {
-      "Match": 9,
+      "Match": 11,
       "Conflict": 0,
       "Review": 1,
       "Unknown": 0
@@ -61,9 +62,7 @@
       "Review": 1,
       "Unknown": 0
     },
-    "unqualifiedConfirmationDiagnostics": {
-      "Match": 2
-    },
+    "unqualifiedConfirmationDiagnostics": {},
     "reviewBasedPositiveLosses": 1,
     "positiveLossPairs": [
       [
@@ -86,22 +85,6 @@
       ],
       "classification": "insufficient evidence",
       "detail": "Qualified positive remains Review: reference generation/installment unknown, listing 1.0 and separate 3.0 disc/accessories. Core corrections do not establish missing reference generation or whole-package equivalence. No general matcher change justified."
-    },
-    {
-      "pair": [
-        "B01KIH8ADS",
-        "v1|227032903283|0"
-      ],
-      "classification": "operator/provenance issue",
-      "detail": "No persisted variation follow-up; latest scope unknown/false."
-    },
-    {
-      "pair": [
-        "B01LDUYU60",
-        "v1|295925010221|0"
-      ],
-      "classification": "operator/provenance issue",
-      "detail": "No persisted variation follow-up; latest scope unknown/false."
     }
   ],
   "negativeReviewExplanation": "The BIGS 2 / The BIGS retains omitted-versus-conflicting installment distinction and is excluded as Review, satisfying negative exclusion. No Match.",
@@ -132,23 +115,34 @@
       }
     },
     "cohortsOverlap": true,
-    "source": "Frozen reconciled historical evidence; no new broad production reads."
+    "source": "Frozen reconciled historical evidence; no new broad production reads.",
+    "rerunThisTask": false,
+    "reason": "Focused Disney-only investigation requested; prior diagnostics retained with identical runtime hashes."
   },
   "tests": {
-    "python": 160,
-    "apiRpcCalls": 257,
-    "containerPython": 20,
-    "apiUiIndicators": 150,
-    "panels": 15,
-    "componentControlsDiagnostics": "passed",
-    "pyCompile": "passed",
-    "focusedLint": "passed",
-    "productionDefaultOutputsUnchanged": 1609,
-    "shadowVerdictsUnchanged": 1600,
-    "businessChecksUnchanged": 1600,
-    "schedulerBuild": "Not needed: no Python runtime change; existing image with current source mounted readonly and network disabled.",
-    "nextBuild": "Not needed: no web code change.",
-    "disposableDatabase": "stopped"
+    "pythonRerun": 75,
+    "actualFrozenExport": "12 Tier A, 3 negatives, 0 unresolved/unqualified, 1 excluded; 32 offline RPC responses",
+    "curatedRerun": "15 positives retained, 18 negatives definite nonmatch",
+    "fullShadowReplay": "1600 verdicts and business checks unchanged",
+    "productionDefaultOutputs": "Prior 1609-output proof retained; all relevant runtime hashes identical",
+    "priorBroadValidation": {
+      "python": 160,
+      "apiRpcCalls": 257,
+      "containerPython": 20,
+      "apiUiIndicators": 150,
+      "panels": 15,
+      "componentControlsDiagnostics": "passed",
+      "pyCompile": "passed",
+      "focusedLint": "passed",
+      "productionDefaultOutputsUnchanged": 1609,
+      "shadowVerdictsUnchanged": 1600,
+      "businessChecksUnchanged": 1600,
+      "schedulerBuild": "Not needed: no Python runtime change; existing image with current source mounted readonly and network disabled.",
+      "nextBuild": "Not needed: no web code change.",
+      "disposableDatabase": "stopped"
+    },
+    "runtimeCodeChanged": false,
+    "builds": "Not required; no runtime code change"
   },
   "productionChanges": {
     "deployments": 0,
@@ -838,7 +832,7 @@
       "sourceSnapshotId": "e32ae720-02b5-4297-9099-f81e19159cfa",
       "frozenEvaluationId": "30214f7008eb4e627acaceb03601b17d37cc24a64a3e290d063caa50c1d1b8ae",
       "evidence": {
-        "class": "unqualified_confirmation",
+        "class": "tier_a_positive",
         "verdict": "correct",
         "verdictActionId": "75d18bec-0144-426b-9e8b-b53aae2c9793",
         "verdictTimestamp": "2026-09-14T01:46:11.662734+00:00",
@@ -847,21 +841,20 @@
         "snapshotId": "1d130fe6-8a41-4b0e-8dc6-e9993413a41d",
         "evaluationId": "30214f7008eb4e627acaceb03601b17d37cc24a64a3e290d063caa50c1d1b8ae",
         "identityAttested": true,
-        "variationVerified": false,
-        "variationResolution": "unknown",
+        "variationVerified": true,
+        "variationResolution": "not_applicable",
         "exactVariationId": null,
         "variationProvenance": {
-          "actionId": "75d18bec-0144-426b-9e8b-b53aae2c9793",
+          "actionId": "2ad2c64b-c144-4c6f-8734-78dd9bb19e75",
           "actor": "b8f14380-e031-70e8-2e94-a6387670b338",
-          "timestamp": "2026-09-14T01:46:11.662734+00:00",
-          "targetActionId": null,
+          "timestamp": "2026-09-14T04:18:41.107671+00:00",
+          "targetActionId": "75d18bec-0144-426b-9e8b-b53aae2c9793",
           "provenanceErrors": [],
-          "snapshotId": "1d130fe6-8a41-4b0e-8dc6-e9993413a41d"
+          "snapshotId": "78265213-f844-42bf-af3c-5f902b8343a5"
         },
         "source": "identity_adjudication_queue",
         "qualificationReasons": [
-          "variation scope/not-applicable verification unchecked",
-          "variation resolution is unknown or invalid"
+          "verified exact-pair provenance; positive identity and variation assertions present"
         ],
         "verdictProvenanceErrors": [],
         "corrections": [
@@ -895,6 +888,13 @@
         "newerEvidenceActionIds": [],
         "lineage": [
           {
+            "actionId": "2ad2c64b-c144-4c6f-8734-78dd9bb19e75",
+            "timestamp": "2026-09-14T04:18:41.107671+00:00",
+            "verdict": "not_provided",
+            "snapshotId": "78265213-f844-42bf-af3c-5f902b8343a5",
+            "hash": "b4a8ade24fa74d7302fd9c9f9f92f60eef29c579c44ccc65e2d16e71d01c6ff3"
+          },
+          {
             "actionId": "75d18bec-0144-426b-9e8b-b53aae2c9793",
             "timestamp": "2026-09-14T01:46:11.662734+00:00",
             "verdict": "correct",
@@ -905,8 +905,8 @@
       },
       "referenceTitle": "NBA 2K17 Standard Edition - PlayStation 3 [video game]",
       "listingTitle": "NBA 2K17 Standard Edition - PlayStation 3, New PlayStation 3,PlayStation 3 Video",
-      "stateRevision": "1a6c75fd087d6ca22ed7da7e9490ce22",
-      "rawStateHash": "0a63562c911b6cc863efb7a877b26bd73f67fd5672b60d314c93e680b3a5703b",
+      "stateRevision": "703f165d0b8bbc06dc469e80713c0ba4",
+      "rawStateHash": "9f0f9a88dc9367cadf79e8578440e62ba7db490d5d6a1f034b382bc8d19f8821",
       "sourceInputHash": "97bbbd1cf4367e066f87c0032cdbb7ea237f5d5d35d1d67df5a29aed10fdb460",
       "exclusionState": false,
       "shadowIdentityVerdict": "match",
@@ -1294,7 +1294,7 @@
       "sourceSnapshotId": "5b1d653c-6f96-41f4-8643-9a8c61f482f8",
       "frozenEvaluationId": "f0e3e88eb172657adcb92605b84f253b63367348cf0b0d4ccb969fe3d1d5ff5a",
       "evidence": {
-        "class": "unqualified_confirmation",
+        "class": "tier_a_positive",
         "verdict": "correct",
         "verdictActionId": "3eb0daa2-012d-49c6-9014-07b3f8e2f827",
         "verdictTimestamp": "2026-09-14T01:47:03.843467+00:00",
@@ -1303,21 +1303,20 @@
         "snapshotId": "5f12af76-c4e9-407f-b360-a96eeef44b08",
         "evaluationId": "f0e3e88eb172657adcb92605b84f253b63367348cf0b0d4ccb969fe3d1d5ff5a",
         "identityAttested": true,
-        "variationVerified": false,
-        "variationResolution": "unknown",
+        "variationVerified": true,
+        "variationResolution": "not_applicable",
         "exactVariationId": null,
         "variationProvenance": {
-          "actionId": "3eb0daa2-012d-49c6-9014-07b3f8e2f827",
+          "actionId": "8c642064-5a70-471e-b234-786fdd09eb1b",
           "actor": "b8f14380-e031-70e8-2e94-a6387670b338",
-          "timestamp": "2026-09-14T01:47:03.843467+00:00",
-          "targetActionId": null,
+          "timestamp": "2026-09-14T04:19:05.477923+00:00",
+          "targetActionId": "3eb0daa2-012d-49c6-9014-07b3f8e2f827",
           "provenanceErrors": [],
-          "snapshotId": "5f12af76-c4e9-407f-b360-a96eeef44b08"
+          "snapshotId": "094c06d8-4443-41c5-91be-af958a409a7b"
         },
         "source": "identity_adjudication_queue",
         "qualificationReasons": [
-          "variation scope/not-applicable verification unchecked",
-          "variation resolution is unknown or invalid"
+          "verified exact-pair provenance; positive identity and variation assertions present"
         ],
         "verdictProvenanceErrors": [],
         "corrections": [
@@ -1351,6 +1350,13 @@
         "newerEvidenceActionIds": [],
         "lineage": [
           {
+            "actionId": "8c642064-5a70-471e-b234-786fdd09eb1b",
+            "timestamp": "2026-09-14T04:19:05.477923+00:00",
+            "verdict": "not_provided",
+            "snapshotId": "094c06d8-4443-41c5-91be-af958a409a7b",
+            "hash": "0a4d93497210ab6f1b5c9196d87cd37f8715759b79394e48ed146febe72fcfc6"
+          },
+          {
             "actionId": "3eb0daa2-012d-49c6-9014-07b3f8e2f827",
             "timestamp": "2026-09-14T01:47:03.843467+00:00",
             "verdict": "correct",
@@ -1361,8 +1367,8 @@
       },
       "referenceTitle": "Super Mario Maker for Nintendo 3DS - Nintendo 3DS",
       "listingTitle": "Super Mario Maker for 3DS Nintendo Selects Edition (Nintendo 3DS, 2019) Sealed",
-      "stateRevision": "182e608897bb3f8a5cd2a242e119ee99",
-      "rawStateHash": "ed94af187075cd1189247e46e008a650ebe2d9f8ea5e59a106627c8c4a21d0e6",
+      "stateRevision": "20145848a1bef1d0ea86da6d73af19c7",
+      "rawStateHash": "de7ac9d336cccc8858c6f74108d1ff10510c91ebcdd662cdb82bc21d3481b101",
       "sourceInputHash": "dda400983e69e6fb56e5eb1332751ef2e92bdc39f971ab21ee25fa0a486da4bc",
       "exclusionState": false,
       "shadowIdentityVerdict": "match",
@@ -3718,27 +3724,22 @@
     }
   ],
   "artifactHashes": {
-    "tmp\\sourcing-phase3-strict-gate\\additional-python-tests.log": "4ae014e09427e5d8527beff1c05c60c6dcae7c812f307bec1758e519791a243a",
-    "tmp\\sourcing-phase3-strict-gate\\api-tests.log": "3c827267b4eaa43345188fdc31ce95006cfc9d63da01297f9338239e868cda69",
-    "tmp\\sourcing-phase3-strict-gate\\capture.json": "e618462d63982061b8dec94c87501ca3c776c6ec19d685697767fb7543eac48e",
-    "tmp\\sourcing-phase3-strict-gate\\capture.py": "e0b94da7ac335956d7ae8174d32fea469a2b6d210ac4e7b75ec69331c4e7566e",
-    "tmp\\sourcing-phase3-strict-gate\\container-tests.log": "2cf8182d7387bc843ff22ac3f9bbe9fc6ff3eaab1186907e290d0892b0b19616",
-    "tmp\\sourcing-phase3-strict-gate\\defaults.json": "30fc9498b849f2cc8866b58b37f568c1bab357520511f754ea4ce7e2e0fd9e05",
-    "tmp\\sourcing-phase3-strict-gate\\document.py": "11b39f1fd5a7b6cf10256ad70d72e3c2c0585297fab6132c8bd2382d6b7f78bb",
-    "tmp\\sourcing-phase3-strict-gate\\export-verified.json": "71ec38db309936b06b6451976f2b0a6efbc6826b00df460ee12fbc61d3f4f60a",
-    "tmp\\sourcing-phase3-strict-gate\\indicator-checks.json": "40082267c3895a371d3ef9b9802b557533cb787675decbc3881c2c5764a587cd",
-    "tmp\\sourcing-phase3-strict-gate\\python-tests.log": "ebea39d3a7d3c2633b1c873e62664d666b664a6bc8eb71e20e876f552f5b2202",
-    "tmp\\sourcing-phase3-strict-gate\\regression-proof.json": "232a167b98512823c476a938fcb0bf6a72169c640abad7137f48f4eec4a723f2",
-    "tmp\\sourcing-phase3-strict-gate\\replay.log": "e7ee5fa923793f9a6d051c88beaa37b7d2f30e15a3e5c1d647ada22f291303b7",
-    "tmp\\sourcing-phase3-strict-gate\\snapshots.json": "d1c6e60569472a4e626ff019c44a797069f8be92147072089cf1231db398708b",
-    "tmp\\sourcing-phase3-strict-gate\\states-first.json": "e19641971c8eb5a0139733b3ae61502e8bb67ccefe2ffa4add5b15feaa9ee5a7",
-    "tmp\\sourcing-phase3-strict-gate\\states-second.json": "e19641971c8eb5a0139733b3ae61502e8bb67ccefe2ffa4add5b15feaa9ee5a7",
-    "tmp\\sourcing-phase3-strict-gate\\tier-bc-replay.json": "ad99694b5edadf679e6099fa332ba496956338654bc384f44a59b444b362722f",
-    "tmp\\sourcing-phase3-strict-gate\\tier-bc-summary.json": "ebb5f7c846ca6be8e839a894dcec65ce15609d7d182402dda259cd0b0928691e",
-    "tmp\\sourcing-phase3-strict-gate\\unchanged-replay.json": "e5cdc8412695ca16bcdc77f297be3206826dfd6b6867bfcd9fbc6aa14c66d22e",
-    "tmp\\sourcing-phase3-strict-gate\\verify-export.mjs": "949a6e03d426e75dce23d71335a0b3b4ef2e4f8bd523981ec1e8c2646b84513d",
-    "tmp\\sourcing-phase3-strict-gate\\verify-indicators.mjs": "70a7616637bf5139eeb9c30b78a06a163fb8797af8cd740471de2b8037b8fd0f",
-    "tmp\\sourcing-phase3-strict-gate\\curated-replay\\replay.json": "86273aee58b144c89ec410104659fc3b782d50b8115f137ada313625cfd2f664",
-    "tmp\\sourcing-phase3-strict-gate\\curated-replay\\safety-summary.json": "1d44954123ef06529c49c6499d10d243c8774088ca9a310412c753744c7f9402"
-  }
+    "tmp\\sourcing-phase3-strict-rerun\\capture.json": "fe6c2e8c7e455bb0a8b2f7614e610d127043874bc803d6ed750a65590861d885",
+    "tmp\\sourcing-phase3-strict-rerun\\capture.py": "e0b94da7ac335956d7ae8174d32fea469a2b6d210ac4e7b75ec69331c4e7566e",
+    "tmp\\sourcing-phase3-strict-rerun\\disney-analysis.json": "d009abb87ae7241a2ad217796e095e06d1b80d958279536ec48f450ea9009c75",
+    "tmp\\sourcing-phase3-strict-rerun\\disney-counterfactuals.json": "b84e9bbbbdd74080366e75076c58520c3812bc1ec81e932e30208b8f14be2d89",
+    "tmp\\sourcing-phase3-strict-rerun\\document.py": "aad16825de2e7f9ef86f208627fa4efeb755d7d3da22bec3d05f6c842571ada7",
+    "tmp\\sourcing-phase3-strict-rerun\\export-verified.json": "90134346eef0bdbfec50ac5eab03d17205e2c8d9282e36cf583d567334c77a79",
+    "tmp\\sourcing-phase3-strict-rerun\\previous-manifest.json": "c3fbb7417b2508f857c365e2bd8d43aea8dbe1dc13b35f5fa2cf526f6d7e6c83",
+    "tmp\\sourcing-phase3-strict-rerun\\python-tests.log": "2afe83a3ea64fe54cf204306e9d74318f5ca8284487a4187534ad16c9a6c8adc",
+    "tmp\\sourcing-phase3-strict-rerun\\replay.log": "e7ee5fa923793f9a6d051c88beaa37b7d2f30e15a3e5c1d647ada22f291303b7",
+    "tmp\\sourcing-phase3-strict-rerun\\snapshots.json": "20c657e18250fba5e9fb002188a0dfa703e912bba7b63fc2438a623d187cd634",
+    "tmp\\sourcing-phase3-strict-rerun\\states-first.json": "7cde07e3813abe0005b15babcd612d5089947d84fe4b2331cdce8e0b876c5431",
+    "tmp\\sourcing-phase3-strict-rerun\\states-second.json": "7cde07e3813abe0005b15babcd612d5089947d84fe4b2331cdce8e0b876c5431",
+    "tmp\\sourcing-phase3-strict-rerun\\unchanged-replay.json": "cabdf15330275b869d7550d781fa9265a90d74e3af09b357d9e59e3981979397",
+    "tmp\\sourcing-phase3-strict-rerun\\verify-export.mjs": "b0aa2ed588d5b3a13ce1a5a30e24336778226eca6b3c84c9766339e3ed8af656",
+    "tmp\\sourcing-phase3-strict-rerun\\curated-replay\\replay.json": "4abac86dd26c704445dc4256e0772394047210058b418e08f015ff44b63e2575",
+    "tmp\\sourcing-phase3-strict-rerun\\curated-replay\\safety-summary.json": "1d44954123ef06529c49c6499d10d243c8774088ca9a310412c753744c7f9402"
+  },
+  "disneyInvestigation": "tmp/sourcing-phase3-strict-rerun/disney-analysis.json"
 }

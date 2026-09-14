@@ -1,5 +1,9 @@
 # Sourcing matching repair handoff
 
+## Completed-scope rerun: Disney is the sole observed blocker
+
+All 12 confirmations now qualify. Strict replay: 11 Match / 1 Review (Disney); three negatives remain excluded (2 Conflict / 1 Review). No matcher change is justified by the missing reference generation/package evidence. [Focused analysis and current result](sourcing_phase3_disney_gate_rerun_2026-09-13.md). No deployment or refresh. Phase 3 remains shadow-only and incomplete. Earlier counts below are historical.
+
 ## Post-variation strict gate checkpoint
 
 Evidence/report commit: `eff0a0a` (`Freeze post-variation adjudicated safety gate evidence`). The following documentation closeout preserves the archived manifest bytes across Windows checkouts; its own commit is recorded in Git history.
