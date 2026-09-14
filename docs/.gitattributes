@@ -1,0 +1,2 @@
+# Preserve the archived manifest bytes used by the post-variation SHA-256 proof.
+sourcing_adjudicated_ground_truth_manifest_before_variation_2026-09-13.json -text

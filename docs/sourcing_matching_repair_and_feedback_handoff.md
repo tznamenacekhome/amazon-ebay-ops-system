@@ -2,6 +2,8 @@
 
 ## Post-variation strict gate checkpoint
 
+Evidence/report commit: `eff0a0a` (`Freeze post-variation adjudicated safety gate evidence`). The following documentation closeout preserves the archived manifest bytes across Windows checkouts; its own commit is recorded in Git history.
+
 Fresh persisted capture: 10 Tier A positives, 3 verified negatives, 2 unqualified confirmations and 1 informational exclusion; 10 of 12 scopes saved. Tier A replay is 9 Match / 1 Review (Disney Infinity); negatives are 2 Conflict / 1 Review, none admitted. All 17 corrections apply; 15 curated positives and 18 negatives pass. No matcher change, deployment or refresh. Phase 3 remains incomplete and shadow-only. [Full strict-gate report](sourcing_phase3_strict_adjudicated_gate_2026-09-13.md). Earlier zero-Tier-A reports below are frozen history.
 
 ## Dedicated variation save button - web151
