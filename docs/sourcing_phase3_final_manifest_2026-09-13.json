@@ -162,7 +162,10 @@
     "crossPlatformStaleWrongScopeSupersession": "passed",
     "curatedAdmission": "FAILED: 11/15",
     "newContainerTests": 0,
-    "newApiUiTests": 0
+    "newApiUiTests": 0,
+    "pyCompile": "passed",
+    "diffCheck": "passed",
+    "manifestValidation": "JSON, all artifact/source hashes, four loss rows and final report status verified"
   },
   "freshProductionManifest": null,
   "atomicGuard": {
@@ -207,5 +210,6 @@
     "tmp\\sourcing-effective-identity\\zelda-failure.json": "f9add946acc32355adefa1fc38b796115740edd76b21cf8bcd3a70f86d486606",
     "tmp\\sourcing-effective-identity\\curated-replay\\replay.json": "c503a12e2e2ee3b3530ac1d729cb857da46a0bb544f6473b4d1b95167fda53f4",
     "tmp\\sourcing-effective-identity\\curated-replay\\safety-summary.json": "13deb2e67316b4b2c74a7258cbe46ec24042aeb44edce41e44330044af07c96d"
-  }
+  },
+  "candidateCommit": "98d2166bea0d4044e10c5171664bb1c1a21853b3"
 }

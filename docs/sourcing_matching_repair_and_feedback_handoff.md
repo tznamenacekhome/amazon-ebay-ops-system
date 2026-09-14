@@ -2,6 +2,8 @@
 
 ## Correction/admission candidate stopped on curated regression
 
+Candidate checkpoint: `98d2166bea0d4044e10c5171664bb1c1a21853b3` (`Checkpoint scoped identity candidate with failed curated admission gate`). This subsequent documentation commit records the immutable candidate hash; it is not an approval to deploy.
+
 The local candidate now passes the exact scoped PS4-to-PS5 correction acceptance case. Its full gate fails: all 12 Tier A identities and all 15 curated identities remain Match, but four curated positives lose scorer eligibility (11/15 retained) because canonical reference platform omits metadata available to the previous static platform resolver. All three adjudicated and 18 curated negatives remain excluded; 167 Python tests and 1,609 unchanged legacy outputs pass. No further runtime repair, atomic guard, production capture, deployment or refresh followed the failed gate. [Exact losses, candidate implementation and evidence](sourcing_phase3_final_deployment_2026-09-13.md). This candidate is not approved for deployment. Phase 3 remains incomplete and shadow-only; earlier passing records below are historical.
 
 ## Authorized Disney first-generation convention: sampled strict gate passed
