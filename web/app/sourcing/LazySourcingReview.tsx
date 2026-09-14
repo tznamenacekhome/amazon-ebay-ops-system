@@ -27,7 +27,7 @@ export function LazySourcingReview({ row, children, onClose }: {
   if (loaded) return children(loaded);
   return <div className="fixed inset-0 z-40 flex items-center justify-center bg-slate-950/20">
     <div role="dialog" aria-label="Loading review evidence" className="rounded border bg-white p-5 shadow-lg">
-      <p role={error ? "alert" : "status"}>{error ?? "Loading review evidence?"}</p>
+      <p role={error ? "alert" : "status"}>{error ?? "Loading review evidence..."}</p>
       {error ? <button className="mr-3 mt-3 rounded border px-3 py-1" onClick={() => { setError(null); setAttempt(value => value + 1); }}>Retry</button> : null}
       <button className="mt-3 rounded border px-3 py-1" onClick={onClose}>Close</button>
     </div>
