@@ -33,7 +33,7 @@ Web152 still rebuilt each result on demand: bounded candidate selection, present
 
 Migrations: `20260914193000_mbop_sourcing_read_cache.sql` and `20260914193100_mbop_sourcing_keepa_offer_presence.sql`. The second projects offer-array presence as an exact boolean instead of transferring full Keepa offers (including the nonempty `[null]` edge case). It adds cache metadata/functions/triggers only. Reverting the web runtime to web152 remains compatible; full/default opportunity responses are preserved. Do not roll back or edit an applied shared migration. Cache metadata may remain safely installed with the old web runtime.
 
-Production migration, measured timings and final web revision will be recorded after verification. No authenticated browser session was available during the preceding web152 task; runtime verification must distinguish that limitation from API-equivalent checks.
+Production migration, measured timings and final web revision are recorded below. No authenticated browser session was available; runtime verification distinguishes that limitation from API-equivalent checks.
 
 First migration applied successfully; all 20 ledger entries matched. CLI emitted a local pg-delta catalog-cache certificate-path warning after applying; ledger reconciliation and the live service-role RPC/computed projection independently verified success. No migration was reapplied or edited.
 
@@ -53,4 +53,10 @@ Every server hit performs only the small version RPC (32-byte result), not anoth
 
 Evidence: `tmp/sourcing-run-cache/final-measurement/` (current/manifest/query metrics), and `tmp/sourcing-run-cache/lazy-evidence/` (two fresh full-comparison and pair-ID parity checks). Browser inventory remained empty; no authenticated browser timing or click-through is claimed. TypeScript and focused lint pass (only ten existing unused-code warnings in page.tsx).
 
-Web deployment revision and image digest are appended after stable-rollout verification.
+## Verified production release
+
+Deployed `mbop-web-task:154` from source commit `060592b35d5d` on 2026-09-14. Image digest: `sha256:1ef989bcfbada7f6bc41a60431196755e3c32b248a96dfcb0e6f3b67830ab5c1`. ECS services-stable passed; the only deployment is COMPLETED, desired/running counts are 1, pending is 0, and the exact running task's load-balancer target is healthy. The previous target was still draining at verification. Container configuration matches web152 except image/build identifiers.
+
+Implementation commits: `4f4ee31` (revision cache and preloading), `15c5526` (payload reduction and committed-version freshness), and `060592b` (plain loading punctuation). Documentation commit `5e7ebdd` preceded the final release. All are pushed to origin/main. Intermediate web153 was superseded by web154 for the loading-message punctuation correction. No scheduler, matcher, provider-search, marketplace-write or operational decision refresh was performed. Disposable validation containers are stopped.
+
+Deployment evidence: `tmp/sourcing-run-cache/deployment-verification.json`. Production Docker build/type checks passed. Authenticated browser click-through and browser latency remain unverified because browser inventory was empty. Reload the existing MBOP page to load the new client.
