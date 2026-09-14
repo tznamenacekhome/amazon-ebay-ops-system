@@ -1,5 +1,9 @@
 # Exact-pair identity adjudication workflow - 2026-09-13
 
+## Dedicated variation save button - web151
+
+Web151 (`29eab7a16cf9`) fixes the missing action in the normal adjudication dialog. Save variation scope is directly below the selector in both normal and filtered confirmed-row dialogs; it saves independently, keeps the dialog open, updates qualification and queue progress, and preserves verdicts/corrections/notes. Correction-only actions no longer carry variation fields. [Diagnosis, tests and release proof](sourcing_variation_save_button_fix_2026-09-13.md). Scheduler92 and all 20 schedules are unchanged. No matcher activation, sourcing refresh/provider search or synthetic production review. Phase 3 remains incomplete and shadow-only. Earlier web150 instructions below describe the superseded implementation.
+
 ## Variation-scope web150 checkpoint - 2026-09-13
 
 Web150 (`7de113fec445`) is stable and its exact target healthy. The three-state variation-only follow-up preserves saved verdicts, corrections, flags, notes and platform evidence. Production readback: 0 of 12 variation scopes reviewed; Tier A remains 0; three negatives and the informational mixed lot are unchanged. Scheduler92 and all 20 schedules are unchanged. No matcher activation, refresh, provider search or production test verdict. [Workflow, tests and release proof](sourcing_variation_scope_adjudication_2026-09-13.md). Operator follow-up must precede a rebuilt strict gate. Authenticated production browser verification remains unavailable. Phase 3 is incomplete and shadow-only.

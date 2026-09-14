@@ -1,0 +1,63 @@
+{
+  "verifiedAt": "2026-09-14T03:32:09.602545+00:00",
+  "releaseCommit": "29eab7a16cf9",
+  "baselineWebRevision": 150,
+  "webRevision": 151,
+  "schedulerRevision": 92,
+  "schedulerDefinitionUnchanged": true,
+  "schedulesUnchanged": 20,
+  "rollout": "COMPLETED",
+  "target": {
+    "ip": "172.31.41.133",
+    "port": 3103,
+    "health": "healthy"
+  },
+  "image": "297464765814.dkr.ecr.us-west-2.amazonaws.com/mbop-web@sha256:f5203b41d8ea2b8288ae4d55aaa8c17f4653521741983cf6e8d15a78a5ef5f1f",
+  "productionSyntheticReviews": 0,
+  "refreshes": 0,
+  "providerSearches": 0,
+  "matcherRuntimeChanges": 0,
+  "routingHoldLifecycleChanges": 0,
+  "schemaChanges": 0,
+  "authenticatedProductionUiVerified": false,
+  "browserLimitation": "No enabled browser surface. Exact-release normal-dialog browser regression uses only disposable local data.",
+  "tests": {
+    "apiRpcCalls": 257,
+    "uiContracts": "passed",
+    "diagnosticAndSharedControls": "passed",
+    "lintTypeScript": "passed",
+    "nextAndDockerBuild": "passed",
+    "exactImageBrowser": {
+      "image": "mbop-web:web-29eab7a16cf9",
+      "variationStatesPersisted": 3,
+      "normalDialogButton": true,
+      "buttonDirectlyBelowSelector": true,
+      "immediateQualification": true,
+      "queueProgressIncremented": true,
+      "pairVerdictHistoryUnchanged": true,
+      "confirmButtonNotUsed": true,
+      "originalEvidencePreserved": true,
+      "staleSelectionPreserved": true,
+      "qualifiedRowLeavesFollowup": true,
+      "reloadTierA": true,
+      "errors": []
+    },
+    "frozenRouting": {
+      "buyList": 37,
+      "closestExcluded": 50,
+      "businessExcluded": 2,
+      "reads": 110,
+      "networkCalls": 0
+    }
+  },
+  "artifactHashes": {
+    "tmp\\variation-save-button\\aws-before.json": "fc2dc859f50b2fff89ece1b8194f95257c5fa6f6af125cfcd7146f319d4ff9da",
+    "tmp\\variation-save-button\\aws-final.json": "03c05652162b5325a66a5b1a69fc8100ec84df4a9df3047445c971b3d03db612",
+    "tmp\\variation-save-button\\deploy.log": "16901dec790dc56e646f79d1732acc15f828d0d42fbec0209bcb19844c4d0a3d",
+    "tmp\\variation-save-button\\status.txt": "53972e9d747b1ec8a1346e7a7db65b7a41771b248878f8e3337e190c3cfc3497",
+    "tmp\\variation-save-button\\api-tests.log": "c9a50704c58a58fa44a750fa6bb19c4a9a41aa84b3b65debc39f74e7a587feda",
+    "tmp\\variation-save-button\\release-browser\\contracts.json": "2949dfc8537d0c7689a9ca8cf7fb215ca1df82437ca713f2bc2b2f1db67280b6",
+    "tmp\\variation-save-button\\release-browser\\variation-saved.png": "456f0855f78c03e97a357889a7f921aa9692e6cd748a047b026a18d76e580383",
+    "tmp\\variation-save-button\\release-browser\\variation-stale.png": "bf20c2945b67f8f8c555bc2b651ecb2208df4f58d35e0e5b86b4b282f17c9c2f"
+  }
+}
