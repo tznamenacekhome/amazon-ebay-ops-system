@@ -1,5 +1,9 @@
 # Exact-pair identity adjudication workflow - 2026-09-13
 
+## Variation-scope web150 checkpoint - 2026-09-13
+
+Web150 (`7de113fec445`) is stable and its exact target healthy. The three-state variation-only follow-up preserves saved verdicts, corrections, flags, notes and platform evidence. Production readback: 0 of 12 variation scopes reviewed; Tier A remains 0; three negatives and the informational mixed lot are unchanged. Scheduler92 and all 20 schedules are unchanged. No matcher activation, refresh, provider search or production test verdict. [Workflow, tests and release proof](sourcing_variation_scope_adjudication_2026-09-13.md). Operator follow-up must precede a rebuilt strict gate. Authenticated production browser verification remains unavailable. Phase 3 is incomplete and shadow-only.
+
 ## Explicit variation-scope follow-up — 2026-09-13
 
 The variation-only follow-up preserves the twelve confirmations and all existing evidence. Three explicit states replace the ambiguous checkbox; only Not Applicable or identifier-backed Verified can qualify Tier A. Read [implementation, tests and release checkpoint](sourcing_variation_scope_adjudication_2026-09-13.md). No operator follow-up or strict gate pass is invented. Phase 3 remains incomplete and shadow-only; earlier gate records below remain frozen history.

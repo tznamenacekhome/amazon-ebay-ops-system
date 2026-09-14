@@ -1,0 +1,76 @@
+{
+  "verifiedAt": "2026-09-14T03:12:49.111692+00:00",
+  "implementationCommit": "a0a466d",
+  "releaseCommit": "7de113fec445",
+  "webRevision": 150,
+  "schedulerRevision": 92,
+  "schedulerDefinitionUnchanged": true,
+  "schedulesUnchanged": 20,
+  "rollout": "COMPLETED",
+  "target": {
+    "ip": "172.31.16.207",
+    "port": 3103,
+    "health": "healthy"
+  },
+  "image": "297464765814.dkr.ecr.us-west-2.amazonaws.com/mbop-web@sha256:d039f7a2118778f1c2a5e90d6f2cfcd36f6d8473987a372f2be7445cff97bf83",
+  "variationProgress": {
+    "reviewed": 0,
+    "total": 12,
+    "remaining": 12
+  },
+  "corpusCounts": {
+    "tierA": 0,
+    "unqualifiedConfirmations": 12,
+    "verifiedNegatives": 3,
+    "notSure": 0,
+    "informational": 1
+  },
+  "readOnlyProductionRequests": 32,
+  "productionSyntheticReviews": 0,
+  "refreshes": 0,
+  "providerSearches": 0,
+  "matcherRuntimeChanges": 0,
+  "routingHoldLifecycleChanges": 0,
+  "schemaChanges": 0,
+  "authenticatedProductionUiVerified": false,
+  "browserLimitation": "No browser available; exact-image disposable browser proof is not authenticated production UI verification.",
+  "tests": {
+    "python": 75,
+    "apiRpcCalls": 257,
+    "uiContracts": "passed",
+    "reviewTransactions": "passed",
+    "diagnosticAndSharedControls": "passed",
+    "compileLintTypeScript": "passed",
+    "nextAndDockerBuild": "passed",
+    "exactImageBrowser": {
+      "image": "mbop-web:web-7de113fec445",
+      "variationStatesPersisted": 3,
+      "originalEvidencePreserved": true,
+      "staleSelectionPreserved": true,
+      "qualifiedRowLeavesFollowup": true,
+      "reloadTierA": true,
+      "errors": []
+    },
+    "frozenRouting": {
+      "buyList": 37,
+      "closestExcluded": 50,
+      "businessExcluded": 2,
+      "reads": 110,
+      "networkCalls": 0
+    }
+  },
+  "gateRerunPendingOperator": true,
+  "artifactHashes": {
+    "tmp\\variation-scope\\aws-before.json": "5597e289d9b36ab420117732042ce224c436ebb533f9acced06ab027c8ccd075",
+    "tmp\\variation-scope\\aws-final.json": "f25c91143cbceebd979e624e1a91b0e6f5f2e63304206b6819e25a3e17521532",
+    "tmp\\variation-scope\\production-read.json": "7d5ff367ca3c5934f02cd22cb8df3d53e72c3b381980c2eca96be10848f145b1",
+    "tmp\\variation-scope\\deploy.log": "1f48614cebfd0565cdbbb8faa4377496d59b2d2d6a2ac5c13cffe6812877d937",
+    "tmp\\variation-scope\\status.txt": "042f12eff6d1672d738ec141a12dbc3660a075d655949822cf1cdde58757f5f7",
+    "tmp\\variation-scope\\frozen-export.json": "76cf43d4c72319db13f8ac4f5f663249b2466f654c47ab96049d0815ef546de5",
+    "tmp\\variation-scope\\release-browser\\contracts.json": "19ac028ab47ea752cc88ed2eabf9d8be5701c04ad09c2e8d9dd3d77bc1c704ae",
+    "tmp\\variation-scope\\release-browser\\variation-not_applicable.png": "145685a1e478ca7a19b47afc14e2d39a780cd93fad94cf81f8782946cc42cdde",
+    "tmp\\variation-scope\\release-browser\\variation-stale.png": "1a35a27b07dbc8592c5bb346291a679fc74c14484c634cedf6a7177f8f53b65f"
+  },
+  "deploymentWrapperExitCode": 1,
+  "deploymentVerification": "The wrapper returned 1 although the deployment log ended Deploy complete. Independent AWS status and exact task/ALB readback verify web150 COMPLETED and healthy; no deployment success is inferred solely from the wrapper."
+}
