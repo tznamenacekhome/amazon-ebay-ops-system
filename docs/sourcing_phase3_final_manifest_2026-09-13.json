@@ -1,0 +1,78 @@
+{
+  "status": "PHASE 3 NOT DEPLOYED \u2014 FINAL SAFETY GATE FAILED",
+  "phase3Complete": false,
+  "baseCommit": "9685d2040a35c12b3ede8d7d9326505d8846aa7a",
+  "stopReason": "Valid exact-pair platform correction reaches canonical Match but independent static platform_rule blocks original title; full scorer rejected.",
+  "failedRequirements": [
+    "scoped corrections reach admission",
+    "final routing uses corrected canonical identity"
+  ],
+  "test": {
+    "test": "A valid exact-pair platform correction must reach both canonical comparison and final static/scorer admission",
+    "syntheticDisposableInput": true,
+    "networkCalls": 0,
+    "productionWrites": 0,
+    "canonicalVerdict": "match",
+    "platformComparison": {
+      "field": "platform",
+      "result": "match",
+      "relation": "same",
+      "amazon": "PlayStation 5",
+      "ebay": "PlayStation 5",
+      "reason": "Supported normalized values agree",
+      "amazonEvidenceRef": "amazon.fields.platform",
+      "ebayEvidenceRef": "ebay.fields.platform"
+    },
+    "correctionApplication": [
+      {
+        "actionId": "a",
+        "field": "platform",
+        "side": "ebay",
+        "scope": "pair",
+        "operatorBefore": null,
+        "snapshotId": "snapshot-a",
+        "submittedState": "value",
+        "result": "applied"
+      }
+    ],
+    "staticRecommendation": "Blocked",
+    "staticHardBlocks": [
+      "platform mismatch: Amazon PS 5, eBay PS 4"
+    ],
+    "scoredStatus": "rejected",
+    "passed": false
+  },
+  "freshProductionManifest": null,
+  "deployment": null,
+  "refresh": {
+    "evaluated": 0,
+    "written": 0,
+    "staleSkips": 0,
+    "protectedSkips": 0,
+    "started": false
+  },
+  "productionActions": {
+    "reads": 0,
+    "writes": 0,
+    "providerSearches": 0,
+    "marketplaceWrites": 0,
+    "schemaChanges": 0,
+    "schedulerChanges": 0,
+    "protectedRowsTouched": 0,
+    "historyRewrites": 0
+  },
+  "lastRecordedRuntimeNotFreshlyVerified": {
+    "web": 151,
+    "scheduler": 92
+  },
+  "evidence": {
+    "file": "tmp\\sourcing-phase3-final\\scoped-platform-acceptance.json",
+    "sha256": "a4225a7d4804f7bc9db3f8d15f9af2f7c2b3e4cd6a4feaaee16f62e5d38bbb7d"
+  },
+  "sourceHashes": {
+    "integrations/sourcing_match_rules.py": "fe2ecafa1daf76ad7c69fa5e5f16e9ca8d511372aaca52082118c9ed4c4e0ed2",
+    "integrations/matching_feedback.py": "69aae59b6def4e7438e586b2d03c94189a4de6f43249d7205ba97b862246bd98",
+    "integrations/score_sourcing_opportunities.py": "d24348085b7dbd0d4f8819192b17cac46899a866bd80d221793d3ee7dc148474",
+    "integrations/video_game_identity.py": "8efac2cda8234978c2bc8e20a77f210449dea805cd76c5f6c2b1c3511bdba25e"
+  }
+}

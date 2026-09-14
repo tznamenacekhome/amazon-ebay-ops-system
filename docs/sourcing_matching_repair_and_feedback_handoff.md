@@ -1,5 +1,9 @@
 # Sourcing matching repair handoff
 
+## Final Phase 3 operational gate stopped before deployment
+
+A required local scoped-platform acceptance check fails: a valid exact-pair platform correction yields canonical Match, but the independent static platform check still blocks the original title and the scorer rejects it. Per the operator's stop-on-failure instruction, no guard implementation, schema change, production read, deployment or refresh proceeded. [Exact blocker and stopped work-order report](sourcing_phase3_final_deployment_2026-09-13.md). The previous 12-row sampled gate pass does not prove this broader correction-to-admission requirement. Phase 3 remains incomplete and shadow-only.
+
 ## Authorized Disney first-generation convention: sampled strict gate passed
 
 The operator authorized unnumbered Disney Infinity as 1.0. Shadow-only inference now retains all 12 Tier A positives; all 3 adjudicated negatives remain excluded, 15 curated positives and 18 curated negatives pass, and 1,609 production-default outputs remain unchanged. [Policy, tests and limitations](sourcing_disney_first_generation_policy_2026-09-13.md). No deployment or refresh. Phase 3 remains incomplete pending the final write-guard/deployment task. Earlier failed results below predate this policy authorization.

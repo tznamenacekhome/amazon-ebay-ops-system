@@ -1,5 +1,9 @@
 # CURRENT_STATE.md
 
+## Final Phase 3 operational gate stopped before deployment
+
+A required local scoped-platform acceptance check fails: a valid exact-pair platform correction yields canonical Match, but the independent static platform check still blocks the original title and the scorer rejects it. Per the operator's stop-on-failure instruction, no guard implementation, schema change, production read, deployment or refresh proceeded. [Exact blocker and stopped work-order report](docs/sourcing_phase3_final_deployment_2026-09-13.md). The previous 12-row sampled gate pass does not prove this broader correction-to-admission requirement. Phase 3 remains incomplete and shadow-only.
+
 ## Dedicated variation save button - web151
 
 Web151 (`29eab7a16cf9`) fixes the missing action in the normal adjudication dialog. Save variation scope is directly below the selector in both normal and filtered confirmed-row dialogs; it saves independently, keeps the dialog open, updates qualification and queue progress, and preserves verdicts/corrections/notes. Correction-only actions no longer carry variation fields. [Diagnosis, tests and release proof](docs/sourcing_variation_save_button_fix_2026-09-13.md). Scheduler92 and all 20 schedules are unchanged. No matcher activation, sourcing refresh/provider search or synthetic production review. Phase 3 remains incomplete and shadow-only. Earlier web150 instructions below describe the superseded implementation.

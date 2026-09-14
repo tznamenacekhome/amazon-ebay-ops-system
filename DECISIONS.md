@@ -1,5 +1,9 @@
 # DECISIONS.md
 
+## Final Phase 3 operational gate stopped before deployment
+
+A required local scoped-platform acceptance check fails: a valid exact-pair platform correction yields canonical Match, but the independent static platform check still blocks the original title and the scorer rejects it. Per the operator's stop-on-failure instruction, no guard implementation, schema change, production read, deployment or refresh proceeded. [Exact blocker and stopped work-order report](docs/sourcing_phase3_final_deployment_2026-09-13.md). The previous 12-row sampled gate pass does not prove this broader correction-to-admission requirement. Phase 3 remains incomplete and shadow-only.
+
 ## Adjudication negative-save repair - 2026-09-13
 
 Deployed web149 (`1a12a4b4562a`), rollout complete and exact target healthy. Incorrect Match accepts no Wrong fields, no corrections and no positive/variation assertions. Saving/error/success states are explicit; a single exact-pair readback updates the queue instead of reloading 16 rows. API/RPC and exact-image browser regressions pass. Scheduler92, all 20 schedules and frozen 37/50/2 routing remain unchanged. No migration, matcher activation, refresh, provider search or production test verdict. Authenticated production click verification remains unavailable; see [diagnosis, validation and release evidence](docs/sourcing_adjudication_negative_save_2026-09-13.md). Phase 3 remains incomplete and shadow-only. Earlier web148 notes below are historical.
