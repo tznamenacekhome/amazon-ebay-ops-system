@@ -63,6 +63,9 @@ type OpportunityRow = {
     best_offer_enabled: boolean | null;
     listing_status: string | null;
     raw_ebay_json: unknown;
+    display_price?: unknown;
+    display_bid_price?: unknown;
+    display_shipping?: unknown;
   } | null;
 };
 
@@ -73,7 +76,10 @@ type KeepaSnapshotRow = {
   buy_box_price_avg90_cents: number | null;
   new_fba_price_current_cents: number | null;
   new_price_current_cents: number | null;
-  raw_keepa_json: unknown;
+  keepa_stats: unknown;
+  keepa_offers: unknown;
+  keepa_images: unknown;
+  keepa_images_csv: unknown;
 };
 
 type AmazonSkuListingRow = {
@@ -328,7 +334,14 @@ async function getOpportunities(request: NextRequest) {
   if (error) return jsonNoStore({ error: error.message }, { status: 500 });
 
   const activeSuppressionByAsin = await fetchActiveSalesVelocitySuppressions();
-  let rows = (data ?? []) as OpportunityRow[];
+  let rows: OpportunityRow[] = ((data ?? []) as OpportunityRow[]).map(row => ({
+    ...row,
+    sourcing_ebay_candidates: row.sourcing_ebay_candidates ? {
+      ...row.sourcing_ebay_candidates,
+      // Declined-offer suppression also needs the original currency.
+      raw_ebay_json: { price: row.sourcing_ebay_candidates.display_price },
+    } : row.sourcing_ebay_candidates,
+  }));
   if (businessMode) {
     // Include manageable holds outside the latest run window without a raw-table scan.
     const {data:held,error:heldError}=await supabase.from("sourcing_opportunities").select(BUSINESS_OPPORTUNITY_SELECT)
@@ -378,21 +391,23 @@ async function getOpportunities(request: NextRequest) {
     if(detailError)throw new Error(detailError.message);
     eligibleRows=(details??[]).map(row=>({...row,matching_diagnostics_json:{...(row.matching_diagnostics_json as Record<string,unknown>??{}),businessEligibilityChecks:(eligibleById.get(row.opportunity_id)?.matching_diagnostics_json as Record<string,unknown>)?.businessEligibilityChecks??[]}}));
   }
-  const presentationByOpportunityId = scope === "closest_excluded"
-    ? new Map<string, PresentationMetadata>()
-    : await fetchPresentationMetadataByOpportunityId(
-        eligibleRows.map((row) => row.opportunity_id),
-        new Set(latestBatchOpportunityIds ?? []),
-      );
-  const keepaByAsin = await fetchKeepaPriceContextByAsin(eligibleRows.map((row) => row.asin));
-  const myListingByAsin = await fetchMyListingContextByAsin(eligibleRows.map((row) => row.asin));
-  const amazonImageByAsin = await fetchAmazonImageFallbackByAsin(eligibleRows.map((row) => row.asin), keepaByAsin);
-  const lastSaleByAsin = await fetchLastSaleContextByAsin(eligibleRows.map((row) => row.asin));
+  const eligibleAsins = eligibleRows.map((row) => row.asin);
+  const [presentationByOpportunityId, keepaByAsin, myListingByAsin, lastSaleByAsin] = await Promise.all([
+    scope === "closest_excluded"
+      ? Promise.resolve(new Map<string, PresentationMetadata>())
+      : fetchPresentationMetadataByOpportunityId(
+          eligibleRows.map((row) => row.opportunity_id), new Set(latestBatchOpportunityIds ?? [])),
+    fetchKeepaPriceContextByAsin(eligibleAsins),
+    fetchMyListingContextByAsin(eligibleAsins),
+    fetchLastSaleContextByAsin(eligibleAsins),
+  ]);
+  const amazonImageByAsin = await fetchAmazonImageFallbackByAsin(eligibleAsins, keepaByAsin);
 
   const mappedRows = eligibleRows
     .map((row) => {
       const presentation = presentationByOpportunityId.get(row.opportunity_id) ?? emptyPresentationMetadata();
-      const rawEbay = row.sourcing_ebay_candidates?.raw_ebay_json;
+      const candidate = row.sourcing_ebay_candidates;
+      const rawEbay = { price: candidate?.display_price, currentBidPrice: candidate?.display_bid_price, shippingOptions: candidate?.display_shipping };
       const shippingQuoteStatus = getShippingQuoteStatus(
         rawEbay,
         row.sourcing_ebay_candidates?.shipping_cost ?? null,
@@ -529,6 +544,29 @@ async function getOpportunities(request: NextRequest) {
     ? dedupeExactEbayListings(mappedRows).sort((left, right) => (right.nearMissRank ?? 0) - (left.nearMissRank ?? 0))
     : groupByAsinPriority(dedupeExactEbayListings(mappedRows));
   const opportunities = sortedRows.slice(0, limit);
+  // Large descriptions/aspects are only needed by the visible rows' review panels.
+  // Keep qualification, ordering, deduplication and summary over the entire result set.
+  const eligibleById = new Map(eligibleRows.map(row => [row.opportunity_id, row]));
+  for (let index = 0; index < opportunities.length; index += 100) {
+    const visible = opportunities.slice(index, index + 100);
+    const { data: evidence, error: evidenceError } = await supabase.from("sourcing_opportunities")
+      .select("opportunity_id,sourcing_ebay_candidates(raw_ebay_json)")
+      .in("opportunity_id", visible.map(row => row.opportunityId));
+    if (evidenceError) throw new Error(`Visible listing evidence: ${evidenceError.message}`);
+    const evidenceById = new Map((evidence ?? []).map(item => [item.opportunity_id, item.sourcing_ebay_candidates]));
+    for (const display of visible) {
+      const row = eligibleById.get(display.opportunityId)!;
+      const candidate = evidenceById.get(display.opportunityId);
+      // A row removed during loading must not silently present incomplete evidence.
+      if (!evidenceById.has(display.opportunityId)) throw new Error("Sourcing rows changed while loading. Refresh this tab.");
+      display.diagnosticComparison = buildDiagnosticComparison({
+        opportunity: { ...row, amazon_title: display.amazonTitle } as unknown as Record<string, unknown>,
+        seed: (row.sourcing_seed_asins ?? {}) as unknown as Record<string, unknown>,
+        candidate: { ...row.sourcing_ebay_candidates, ...candidate } as unknown as Record<string, unknown>,
+        diagnostics: row.matching_diagnostics_json,
+      });
+    }
+  }
 
   return jsonNoStore({
     refreshedAt: new Date().toISOString(),
@@ -575,7 +613,9 @@ const OPPORTUNITY_SELECT = `
     bid_count,
     best_offer_enabled,
     listing_status,
-    raw_ebay_json
+    display_price:raw_ebay_json->price,
+    display_bid_price:raw_ebay_json->currentBidPrice,
+    display_shipping:raw_ebay_json->shippingOptions
   )
 `;
 
@@ -837,9 +877,11 @@ function isActionedOrPresentedStatus(status: string | null | undefined) {
 
 async function buildClosestExcludedContext(rows: OpportunityRow[]): Promise<ClosestExcludedContext> {
   const opportunityIds = rows.map((row) => row.opportunity_id).filter(Boolean);
-  const presentationByOpportunityId = await fetchPresentationMetadataByOpportunityId(opportunityIds, new Set());
-  const actionedOpportunityIds = await fetchActionedOpportunityIds(opportunityIds);
-  const presentedListingKeys = await fetchPresentedListingKeys(rows);
+  const [presentationByOpportunityId, actionedOpportunityIds, presentedListingKeys] = await Promise.all([
+    fetchPresentationMetadataByOpportunityId(opportunityIds, new Set()),
+    fetchActionedOpportunityIds(opportunityIds),
+    fetchPresentedListingKeys(rows),
+  ]);
   return { presentationByOpportunityId, actionedOpportunityIds, presentedListingKeys };
 }
 
@@ -914,35 +956,8 @@ async function fetchPresentedListingKeys(candidateRows: OpportunityRow[]) {
     const chunk = asins.slice(index, index + 75);
     const { data, error } = await supabase
       .from("sourcing_opportunities")
-      .select(`
-        opportunity_id,
-        sourcing_run_id,
-        asin,
-        status,
-        score,
-        matching_diagnostics_json,
-        created_at,
-        sourcing_ebay_candidates (
-          ebay_item_id,
-          ebay_legacy_item_id,
-          ebay_item_web_url,
-          ebay_title,
-          ebay_image_url,
-          seller_username,
-          item_location_country,
-          condition,
-          buying_options,
-          price,
-          shipping_cost,
-          landed_cost,
-          available_quantity,
-          auction_end_time,
-          bid_count,
-          best_offer_enabled,
-          listing_status,
-          raw_ebay_json
-        )
-      `)
+      // This lookup only compares listing identities; never transfer diagnostics or provider payloads.
+      .select("opportunity_id,asin,sourcing_ebay_candidates(ebay_item_id,ebay_legacy_item_id,ebay_item_web_url)")
       .in("asin", chunk)
       .limit(5000);
     if (error) throw new Error(`Presented listing identity lookup: ${error.message}`);
@@ -1643,26 +1658,28 @@ async function fetchKeepaPriceContextByAsin(asins: string[]) {
     const chunk = uniqueAsins.slice(index, index + 100);
     const { data, error } = await supabase
       .from("vw_latest_keepa_product_snapshot")
-      .select("asin,title,buy_box_price_current_cents,buy_box_price_avg90_cents,new_fba_price_current_cents,new_price_current_cents,raw_keepa_json")
+      .select("asin,title,buy_box_price_current_cents,buy_box_price_avg90_cents,new_fba_price_current_cents,new_price_current_cents,keepa_stats:raw_keepa_json->stats,keepa_offers:raw_keepa_json->offers,keepa_images:raw_keepa_json->images,keepa_images_csv:raw_keepa_json->imagesCSV")
       .in("asin", chunk);
     if (error) throw new Error(`Keepa snapshots: ${error.message}`);
 
     for (const row of (data ?? []) as KeepaSnapshotRow[]) {
+      // Keep historical price arrays and other unused provider data in the database.
+      const rawKeepa = { stats: row.keepa_stats, offers: row.keepa_offers, images: row.keepa_images, imagesCSV: row.keepa_images_csv };
       const asin = row.asin?.toUpperCase();
       if (asin) {
         const buyBoxCurrent = centsToDollars(row.buy_box_price_current_cents);
         const lowFbaCurrent = centsToDollars(row.new_fba_price_current_cents);
-        const lowFbmCurrent = keepaStatsCentsToDollars(row.raw_keepa_json, "current", 7);
+        const lowFbmCurrent = keepaStatsCentsToDollars(rawKeepa, "current", 7);
         const buyBoxAvg90 = centsToDollars(row.buy_box_price_avg90_cents);
-        const newAvg90 = keepaStatsCentsToDollars(row.raw_keepa_json, "avg90", 1);
+        const newAvg90 = keepaStatsCentsToDollars(rawKeepa, "avg90", 1);
         const current = keepaCurrentPriceContext({
-          hasOfferData: hasKeepaOfferData(row.raw_keepa_json),
+          hasOfferData: hasKeepaOfferData(rawKeepa),
           buyBoxCurrent,
-          buyBoxIsUsed: keepaBoolean(row.raw_keepa_json, "buyBoxIsUsed"),
-          buyBoxIsFba: keepaBoolean(row.raw_keepa_json, "buyBoxIsFBA"),
+          buyBoxIsUsed: keepaBoolean(rawKeepa, "buyBoxIsUsed"),
+          buyBoxIsFba: keepaBoolean(rawKeepa, "buyBoxIsFBA"),
           lowFbaCurrent,
           lowFbmCurrent,
-          usedCurrent: keepaStatsCentsToDollars(row.raw_keepa_json, "current", 2),
+          usedCurrent: keepaStatsCentsToDollars(rawKeepa, "current", 2),
         });
         byAsin.set(asin, {
           amazonTitle: row.title ?? null,
@@ -1673,7 +1690,7 @@ async function fetchKeepaPriceContextByAsin(asins: string[]) {
           currentPriceSource: current.source,
           currentPriceFulfillment: current.fulfillment,
           currentPriceIsBuyBox: current.isBuyBox,
-          imageUrl: keepaImageUrl(row.raw_keepa_json),
+          imageUrl: keepaImageUrl(rawKeepa),
         });
       }
     }
@@ -1684,8 +1701,10 @@ async function fetchKeepaPriceContextByAsin(asins: string[]) {
 
 async function fetchMyListingContextByAsin(asins: string[]) {
   const uniqueAsins = [...new Set(asins.map((asin) => asin?.toUpperCase()).filter(Boolean))];
-  const inventoryQuantityByAsin = await fetchLatestFbaInventoryQuantityByAsin(uniqueAsins);
-  const pipelineQuantityByAsin = await fetchPipelineQuantityByAsin(uniqueAsins);
+  const [inventoryQuantityByAsin, pipelineQuantityByAsin] = await Promise.all([
+    fetchLatestFbaInventoryQuantityByAsin(uniqueAsins),
+    fetchPipelineQuantityByAsin(uniqueAsins),
+  ]);
   const byAsin = new Map<string, MyListingContext>();
 
   for (const [asin, pipeline] of pipelineQuantityByAsin.entries()) {
@@ -2125,8 +2144,9 @@ async function fetchLastSaleContextByAsin(asins: string[]) {
   }
 
   const orderIds = [...new Set(orderItemRows.map((row) => row.amazon_order_id).filter(Boolean))] as string[];
-  const orderById = await fetchAmazonOrderContextById(orderIds);
-  const priceByAsinOrder = await fetchProfitabilityUnitPriceByAsinOrder(uniqueAsins);
+  const [orderById, priceByAsinOrder] = await Promise.all([
+    fetchAmazonOrderContextById(orderIds), fetchProfitabilityUnitPriceByAsinOrder(uniqueAsins),
+  ]);
   const cutoff90 = soldSinceIso(90);
   const cutoff120 = soldSinceIso(120);
   const cutoff365 = soldSinceIso(365);

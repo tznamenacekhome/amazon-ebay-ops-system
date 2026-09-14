@@ -1,5 +1,9 @@
 # Sourcing matching feature and runbook
 
+## Web performance
+
+The sourcing tabs use compact supporting queries, visible-row evidence hydration, concurrent enrichment and a short mutation-invalidated tab cache. See [performance validation](sourcing_tab_performance_2026-09-14.md). Matching and routing rules are unchanged.
+
 ## Workspace
 
 Buy List presents identity-positive, business-eligible opportunities. Closest Excluded presents existing near-miss/review/excluded scope, with its normal ordering and limits. Business Excluded explains real business restrictions on identity-positive or confirmed pairs. Identity Adjudication and normal feedback retain exact-pair evidence; no new queue is introduced by closeout.

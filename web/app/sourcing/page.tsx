@@ -92,6 +92,7 @@ export default function SourcingPage() {
     sourceMode,
     activeTab === "Closest Excluded" ? "closest_excluded" : activeTab === "Buy List" ? scope : "all_open",
     inventoryFilter,
+    ["Buy List", "Closest Excluded", "Business Excluded", "Watchlist", "Purchased Pending Match"].includes(activeTab),
   );
   const [actionBusyId, setActionBusyId] = useState<string | null>(null);
   const [dismissRow, setDismissRow] = useState<SourcingOpportunity | null>(null);
