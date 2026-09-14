@@ -1,6 +1,6 @@
 # Sourcing matching repair handoff
 
-## Explicit variation-scope follow-up ? 2026-09-13
+## Explicit variation-scope follow-up — 2026-09-13
 
 The variation-only follow-up preserves the twelve confirmations and all existing evidence. Three explicit states replace the ambiguous checkbox; only Not Applicable or identifier-backed Verified can qualify Tier A. Read [implementation, tests and release checkpoint](sourcing_variation_scope_adjudication_2026-09-13.md). No operator follow-up or strict gate pass is invented. Phase 3 remains incomplete and shadow-only; earlier gate records below remain frozen history.
 

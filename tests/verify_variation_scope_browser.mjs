@@ -51,7 +51,7 @@ try {
   await js(`[...document.querySelectorAll('button')].find(b=>b.textContent==='Review confirmation variation scope').click()`);
   const open=async()=>{await js(`[...document.querySelectorAll('tbody tr')].find(r=>r.textContent.includes('${row.asin}')).querySelector('button').click()`);await until(`!!document.querySelector('[role=dialog]')`);};
   for(const scope of ['unknown','verified','not_applicable']) {
-    await open();assert.equal(await js(`document.querySelector('[aria-label="Adjudication notes"]').value`),original.notes);
+    await open();assert(await js(`document.querySelector('[aria-label="Variation scope"]').textContent.includes('Not applicable \u2014 single-product listing')`));assert.equal(await js(`document.querySelector('[aria-label="Adjudication notes"]').value`),original.notes);
     await js(`{const e=document.querySelector('[aria-label="Variation scope"]');e.value='${scope}';e.dispatchEvent(new Event('change',{bubbles:true}));}`);
     if(scope==='verified') {
       assert(await js(`document.querySelector('[role=dialog]').textContent.includes('No exact variation identifier')`));

@@ -1,4 +1,4 @@
-# Explicit variation-scope adjudication ? 2026-09-13
+# Explicit variation-scope adjudication — 2026-09-13
 
 ## Scope
 
@@ -10,7 +10,7 @@ Open Sourcing > Identity Adjudication, then **Review confirmation variation scop
 
 Open a row and select exactly one state at the top of the editor:
 
-- **Not applicable ? single-product listing:** the operator verifies that the exact listing has no relevant product variation ambiguity. Saves `variationResolution=not_applicable`, `variationVerified=true`; no artificial variation ID is required.
+- **Not applicable — single-product listing:** the operator verifies that the exact listing has no relevant product variation ambiguity. Saves `variationResolution=not_applicable`, `variationVerified=true`; no artificial variation ID is required.
 - **Exact variation verified:** the operator verified the selectable variation. Saves `variationResolution=verified`, `variationVerified=true`; Tier A additionally requires a nonzero exact stored variation identity. The editor displays it or explains why qualification is blocked. It never creates an identifier.
 - **Unknown:** saves `variationResolution=unknown`, `variationVerified=false`. The pair stays Confirm Match evidence but does not qualify for Tier A.
 

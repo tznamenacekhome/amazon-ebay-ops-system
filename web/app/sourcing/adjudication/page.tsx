@@ -76,7 +76,7 @@ export function AdjudicationEditor({row,onClose,onSaved,variationOnly=false}:{ro
         <h2 id="variation-heading" className="font-semibold">Variation scope</h2>
         <p className="my-2 text-sm">This is only about whether the exact eBay listing/variation identity has been verified. It does not affect profitability or business rules.</p>
         <select required aria-label="Variation scope" className="w-full rounded border p-2" value={variation} onChange={e=>setVariation(e.target.value as VariationResolution)}>
-          <option value="not_applicable">Not applicable ? single-product listing</option>
+          <option value="not_applicable">Not applicable — single-product listing</option>
           <option value="verified">Exact variation verified</option>
           <option value="unknown">Unknown</option>
         </select>

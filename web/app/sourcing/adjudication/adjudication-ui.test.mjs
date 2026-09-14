@@ -16,7 +16,7 @@ function control(label){return nodes(render()).find(n=>n.props?.['aria-label']==
 function button(label){return nodes(render()).find(n=>n.type==='button'&&n.props.children===label);}
 function change(label,value){const n=control(label);assert(n,label);n.props.onChange({target:{value,checked:value}});}
 function reset(){state.length=0;stale=false;}
-const html=renderToStaticMarkup(render());assert(!html.includes('<img'));assert(html.includes('Unknown'));for(const field of ['Core Game','Installment / Sequel','Generation','Theme','Platform','Edition / Version','Region','Package Contents','Included contents','Assigned release year','Completeness','Digital vs Physical'])assert(html.includes(field),field);
+const html=renderToStaticMarkup(render());assert(!html.includes('<img'));assert(html.includes('Not applicable \u2014 single-product listing')); assert(html.includes('Unknown'));for(const field of ['Core Game','Installment / Sequel','Generation','Theme','Platform','Edition / Version','Region','Package Contents','Included contents','Assigned release year','Completeness','Digital vs Physical'])assert(html.includes(field),field);
 assert.equal(nodes(render()).filter(n=>n.type==='textarea').length,1);assert(button('Confirm Match').props.disabled);
 change('Core Game Wrong',true);assert(control('Core Game amazon value'));change('Core Game ebay value','Changed eBay');change('Core Game amazon value','Changed Amazon');assert.equal(state[0].length,2);
 button('Undo row').props.onClick();assert.equal(state[0].length,0);assert(control('Core Game Wrong').props.checked);
