@@ -329,4 +329,39 @@ class Phase3ResumeRegressions(unittest.TestCase):
         self.assertEqual('disney infinity',result['ebay']['coreGame'])
 
 
+class DisneyFirstGenerationPolicyTests(unittest.TestCase):
+    def test_unnumbered_and_explicit_first_generation_are_equivalent(self):
+        for left,right in [('Disney Infinity Starter Pack PS3','Disney Infinity 1.0 Starter Pack PS3'),
+                           ('Disney Infinity 1.0 PS3','Disney Infinity PS3')]:
+            result=compare(left,right)
+            self.assertEqual('match',result['result'])
+            inferred=result['amazon'] if '1.0' not in left else result['ebay']
+            self.assertEqual('inferred',inferred['fields']['generation']['state'])
+            self.assertEqual('identity_policy',inferred['fields']['generation']['sources'][0]['field'])
+
+    def test_later_generations_remain_conflicts(self):
+        for version in ('2.0','3.0'):
+            self.assertEqual('non-match',compare('Disney Infinity Starter Pack PS3',f'Disney Infinity {version} Starter Pack PS3')['evidenceDecision']['productIdentityVerdict'])
+
+    def test_abbreviated_support_does_not_infer_over_explicit_generation(self):
+        result=compare('Disney Infinity 2.0 PS3','Disney Infinity 2.0 PS3',game_name='Disney Infinity')
+        self.assertEqual('match',result['result'])
+        self.assertEqual('supported',result['ebay']['fields']['generation']['state'])
+        self.assertEqual('2.0',result['ebay']['generation'])
+        result=compare('Disney Infinity 2.0 PS3','Disney Infinity 2.0 PS3',game_name='Disney Infinity 3.0')
+        self.assertEqual('conflicting_sources',result['ebay']['fields']['generation']['state'])
+
+    def test_explicit_unrecognized_or_multiple_numbers_do_not_default(self):
+        for name in ('Disney Infinity 4.0 PS3','Disney Infinity 1.0 3.0 PS3'):
+            result=compare(name,name)
+            self.assertNotEqual('inferred',result['amazon']['fields']['generation']['state'])
+
+    def test_other_franchises_packages_and_platforms_are_not_relaxed(self):
+        result=compare('Crystal Harbor PS3','Crystal Harbor 1.0 PS3')
+        self.assertIsNone(result['amazon']['installment'])
+        self.assertNotEqual('match',result['result'])
+        self.assertEqual('non-match',compare('Disney Infinity Starter Pack PS3','Disney Infinity 1.0 Game Only PS3')['evidenceDecision']['productIdentityVerdict'])
+        self.assertNotEqual('match',compare('Disney Infinity PS3','Disney Infinity 1.0 Xbox 360')['evidenceDecision']['productIdentityVerdict'])
+
+
 if __name__=='__main__': unittest.main()

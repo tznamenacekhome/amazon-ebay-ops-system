@@ -845,12 +845,14 @@ def general_product_fields(value, publishers=()):
         fields["coreProduct"] = re.sub(r"(?<![\w-])(?:2k)?" + re.escape(numbers[0]) + r"\b", "", product)
         fields["coreProduct"] = re.sub(r"\s+", " ", fields["coreProduct"]).strip()
     fields["tokenHandling"] = {"ignored": ignored, "assignedInstallments": numbers}
-    # Family rules refine only fields they actually evidence. They never supply
-    # a default generation/package or replace the full general product name.
+    # Family rules keep typed generation separate from the product name.
+    # Omitted-generation policy is applied after all side sources reconcile.
     known = parse_known_identity([{"source": "title", "text": str(value)}])
     fields["franchise"] = known.get("franchise")
     if known.get("franchise") == "Disney Infinity":
         fields["generation"] = next((n for n in numbers if n in {"1.0", "2.0", "3.0"}), None)
+        if fields["generation"] and len(numbers) == 1:
+            fields["coreGame"] = fields["coreProduct"]
         fields["theme"] = known.get("theme")
     if "track pack" in text:
         fields["theme"] = next((x for x in ("classic rock", "country", "metal") if x in text), None)
@@ -931,6 +933,18 @@ def phase3_side(title, side, evidence=None, catalog=None, platform=None):
         output[key] = {"value": values[0][0] if values else None, "state": state, "sources": sources[:3],
                        "side": side, "parserVersion": PHASE3_VERSION, "evidenceVersion": PHASE3_VERSION,
                        "expectation": None, "sourceReconciliation": reconciliation, "confidenceKind": "uncalibrated_parser_heuristic"}
+    # Operator-approved Disney Infinity convention: an unnumbered release is
+    # generation 1.0. Reconcile every source first so an abbreviated Game Name
+    # cannot manufacture 1.0 against an explicit later generation. This is a
+    # policy inference, not a source observation or a saved operator correction.
+    if (output["franchise"]["value"] == "Disney Infinity"
+            and output["generation"]["state"] == "unknown"
+            and output["installment"]["state"] == "unknown"
+            and not any(v["tokenHandling"]["assignedInstallments"] for _, v in parsed)):
+        for key in ("generation", "installment"):
+            output[key].update(value="1.0", state="inferred",
+                sources=[{"field": "identity_policy", "policy": "disney_infinity_unnumbered_is_1.0",
+                          "basis": "Operator-approved unnumbered first-generation convention"}])
     result = {key: field["value"] for key, field in output.items()}
     result.update(fields=output, installmentNormalized=result["installment"], confidenceKind="uncalibrated_parser_heuristic",
                   tokenHandling=[{"source":r["source"],**v["tokenHandling"]} for r,v in parsed],

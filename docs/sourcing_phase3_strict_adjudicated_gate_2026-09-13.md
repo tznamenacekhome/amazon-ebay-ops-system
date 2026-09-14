@@ -1,5 +1,9 @@
 # Phase 3 strict adjudicated safety gate after variation follow-up
 
+## Authorized Disney first-generation convention: sampled strict gate passed
+
+The operator authorized unnumbered Disney Infinity as 1.0. Shadow-only inference now retains all 12 Tier A positives; all 3 adjudicated negatives remain excluded, 15 curated positives and 18 curated negatives pass, and 1,609 production-default outputs remain unchanged. [Policy, tests and limitations](sourcing_disney_first_generation_policy_2026-09-13.md). No deployment or refresh. Phase 3 remains incomplete pending the final write-guard/deployment task. Earlier failed results below predate this policy authorization.
+
 ## Completed-scope rerun: Disney is the sole observed blocker
 
 All 12 confirmations now qualify. Strict replay: 11 Match / 1 Review (Disney); three negatives remain excluded (2 Conflict / 1 Review). No matcher change is justified by the missing reference generation/package evidence. [Focused analysis and current result](sourcing_phase3_disney_gate_rerun_2026-09-13.md). No deployment or refresh. Phase 3 remains shadow-only and incomplete. Earlier counts below are historical.

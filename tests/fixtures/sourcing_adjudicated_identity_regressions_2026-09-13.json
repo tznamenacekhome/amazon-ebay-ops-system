@@ -209,6 +209,78 @@
       "operatorVerdict": "incorrect",
       "tierA": false,
       "expectedShadowVerdict": "needs_review"
+    },
+    {
+      "asin": "B00AXI9WFS",
+      "ebayItemId": "v1|318571029833|0",
+      "reference": {
+        "asin": "B00AXI9WFS",
+        "amazon_title": "DISNEY INFINITY Starter Pack Xbox 360",
+        "system": null
+      },
+      "candidate": {
+        "ebay_item_id": "v1|318571029833|0",
+        "ebay_legacy_item_id": "318571029833",
+        "ebay_title": "Xbox 360 Disney Infinity Starter Pack 1.0 & Accessories Lot New/Sealed",
+        "raw_ebay_json": {
+          "localizedAspects": [
+            {
+              "name": "Region Code",
+              "type": "STRING",
+              "value": "NTSC-U/C (US/Canada)"
+            },
+            {
+              "name": "Platform",
+              "type": "STRING",
+              "value": "Microsoft Xbox 360"
+            },
+            {
+              "name": "Rating",
+              "type": "STRING",
+              "value": "E10+ (Everyone 10+)"
+            },
+            {
+              "name": "Video Game Series",
+              "type": "STRING",
+              "value": "Disney Infinity"
+            },
+            {
+              "name": "Publisher",
+              "type": "STRING",
+              "value": "Disney"
+            },
+            {
+              "name": "Genre",
+              "type": "STRING",
+              "value": "Action & Adventure, Family/Kids"
+            },
+            {
+              "name": "Game Name",
+              "type": "STRING",
+              "value": "Disney Infinity"
+            }
+          ],
+          "description": "The Xbox 360 Disney Infinity Starter Pack 1.0 Lot includes the game Disney Infinity, suitable for players aged 10 and above. Published by Disney, this action and adventure game is part of the popular Disney Infinity series, offering a family-friendly and fun gaming experience for kids and adults alike. The NTSC-U/C (US/Canada) region code ensures compatibility with Xbox 360 consoles in that region, making it a great addition to any gaming collection. The Xbox 360 Disney Infinity Lot Includes: The Xbox 360 Disney Infinity Starter Pack 1.0 (Sealed/New-Box has some marks and imperfections due to shelf wear. Xbox 360 Disney Infinity 3.0 Disc (New/Sealed) Disney Infinity Power Disc Capsule (New/Sealed) 2 Disney Infinity Power Discs (New/Sealed) Prima Disney Infinity Strategy Guide (Excellent Condition)"
+        }
+      },
+      "corrections": [
+        {
+          "side": "ebay",
+          "field": "coreGame",
+          "scope": "pair",
+          "state": "value",
+          "value": "disney infinity starter pack"
+        },
+        {
+          "side": "ebay",
+          "field": "coreProduct",
+          "scope": "pair",
+          "state": "value",
+          "value": "disney infinity starter pack"
+        }
+      ],
+      "expectedShadowVerdict": "match",
+      "basis": "Operator-approved unnumbered Disney Infinity equals 1.0 policy; original exact source and scoped core corrections, no pair verdict override."
     }
   ]
 }

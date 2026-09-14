@@ -1,13 +1,13 @@
 {
-  "status": "STRICT ADJUDICATED SAFETY GATE FAILED \u2014 MATCHER REMAINS SHADOW ONLY",
+  "status": "STRICT ADJUDICATED SAFETY GATE PASSED \u2014 READY FOR FINAL WRITE-GUARD/DEPLOYMENT PHASE",
   "phase3Complete": false,
-  "baseCommit": "e5bee300d581024fe90bbfc68f0e3185d645929d",
+  "baseCommit": "af715890fc40c12bbfe555bdf02d2baf0e9f5fa9",
   "commitMetadataScope": "This base is the immutable source used for replay. Evidence documentation commit is available from Git history; no self-referential hash.",
   "previousManifest": {
-    "gitCommit": "eff0a0a",
+    "gitCommit": "af71589",
     "file": "docs\\sourcing_adjudicated_ground_truth_manifest_2026-09-13.json",
-    "capturedFile": "tmp\\sourcing-phase3-strict-rerun\\previous-manifest.json",
-    "sha256": "c3fbb7417b2508f857c365e2bd8d43aea8dbe1dc13b35f5fa2cf526f6d7e6c83"
+    "capturedFile": "tmp\\sourcing-disney-version-policy\\previous-manifest.json",
+    "sha256": "28738895a28ddc4bc3d50fb6aeb62b2df655e302331d2fdba132b856b21a56a1"
   },
   "capture": {
     "file": "tmp\\sourcing-phase3-strict-rerun\\capture.json",
@@ -47,13 +47,13 @@
     }
   },
   "strictGate": {
-    "passed": false,
+    "passed": true,
     "evidenceComplete": true,
-    "knownQualifiedPositiveSafetyPassed": false,
+    "knownQualifiedPositiveSafetyPassed": true,
     "tierAPositiveResults": {
-      "Match": 11,
+      "Match": 12,
       "Conflict": 0,
-      "Review": 1,
+      "Review": 0,
       "Unknown": 0
     },
     "verifiedNegativeResults": {
@@ -63,35 +63,23 @@
       "Unknown": 0
     },
     "unqualifiedConfirmationDiagnostics": {},
-    "reviewBasedPositiveLosses": 1,
-    "positiveLossPairs": [
-      [
-        "B00AXI9WFS",
-        "v1|318571029833|0"
-      ]
-    ],
-    "compatibleAdmission": "No persisted Compatible examples; synthetic qualification alone is not admission proof.",
+    "reviewBasedPositiveLosses": 0,
+    "positiveLossPairs": [],
+    "compatibleAdmission": "No saved Compatible examples in this corpus. No observed false conflict; relationship-based admission remains outside this demonstrated sample.",
     "curatedPositivesRetained": 15,
     "curatedNegativesDefiniteNonMatch": 18,
     "deploymentAllowed": false,
     "refreshAllowed": false
   },
-  "matcherChanges": [],
-  "disagreements": [
-    {
-      "pair": [
-        "B00AXI9WFS",
-        "v1|318571029833|0"
-      ],
-      "classification": "insufficient evidence",
-      "detail": "Qualified positive remains Review: reference generation/installment unknown, listing 1.0 and separate 3.0 disc/accessories. Core corrections do not establish missing reference generation or whole-package equivalence. No general matcher change justified."
-    }
+  "matcherChanges": [
+    "Operator-approved Disney Infinity unnumbered release inferred as generation/installment 1.0 after side source reconciliation.",
+    "Explicit Disney generation separated from coreGame so 1.0 and unnumbered spelling can agree; generation conflicts remain independent."
   ],
+  "disagreements": [],
   "negativeReviewExplanation": "The BIGS 2 / The BIGS retains omitted-versus-conflicting installment distinction and is excluded as Review, satisfying negative exclusion. No Match.",
   "separateBusinessOutcome": "Minecraft B07JMHZMX1 / v1|158089049996|0 is identity Match; condition disclaimer retains static Blocked for used condition. This is not an identity-positive loss.",
   "tierBCDiagnostics": {
     "rerunAfterStrictGateEvaluated": true,
-    "strictGateImpact": false,
     "results": {
       "strictRows": {
         "B": {
@@ -114,35 +102,98 @@
         }
       }
     },
-    "cohortsOverlap": true,
-    "source": "Frozen reconciled historical evidence; no new broad production reads.",
-    "rerunThisTask": false,
-    "reason": "Focused Disney-only investigation requested; prior diagnostics retained with identical runtime hashes."
+    "strictGateImpact": false,
+    "cohortsOverlap": true
   },
   "tests": {
-    "pythonRerun": 75,
-    "actualFrozenExport": "12 Tier A, 3 negatives, 0 unresolved/unqualified, 1 excluded; 32 offline RPC responses",
-    "curatedRerun": "15 positives retained, 18 negatives definite nonmatch",
-    "fullShadowReplay": "1600 verdicts and business checks unchanged",
-    "productionDefaultOutputs": "Prior 1609-output proof retained; all relevant runtime hashes identical",
-    "priorBroadValidation": {
-      "python": 160,
-      "apiRpcCalls": 257,
-      "containerPython": 20,
-      "apiUiIndicators": 150,
-      "panels": 15,
-      "componentControlsDiagnostics": "passed",
-      "pyCompile": "passed",
-      "focusedLint": "passed",
-      "productionDefaultOutputsUnchanged": 1609,
-      "shadowVerdictsUnchanged": 1600,
-      "businessChecksUnchanged": 1600,
-      "schedulerBuild": "Not needed: no Python runtime change; existing image with current source mounted readonly and network disabled.",
-      "nextBuild": "Not needed: no web code change.",
-      "disposableDatabase": "stopped"
-    },
-    "runtimeCodeChanged": false,
-    "builds": "Not required; no runtime code change"
+    "python": 157,
+    "containerPython": 70,
+    "apiUiIndicators": 150,
+    "panels": 15,
+    "curatedPositives": 15,
+    "curatedNegatives": 18,
+    "productionDefaultsUnchanged": 1609,
+    "businessChecksUnchanged": 1600,
+    "shadowChanges": [
+      {
+        "cohort": "frozen",
+        "id": "12dbe20c-9754-4591-93aa-30b5dc1ac8ac",
+        "asin": "B00AXI9WFS",
+        "title": "DISNEY INFINITY Starter Pack Xbox 360 [video game]",
+        "before": "needs_review",
+        "after": "non-match"
+      },
+      {
+        "cohort": "frozen",
+        "id": "1fab4838-2a0b-4080-943c-5b5d8ffbfbb8",
+        "asin": "B00AXI9WFS",
+        "title": "DISNEY INFINITY Starter Pack Xbox 360 [video game]",
+        "before": "needs_review",
+        "after": "non-match"
+      },
+      {
+        "cohort": "frozen",
+        "id": "f8d73e3f-0c48-4153-8b46-62a9bf78b0fc",
+        "asin": "B00AXI9WFS",
+        "title": "DISNEY INFINITY Starter Pack Xbox 360 [video game]",
+        "before": "needs_review",
+        "after": "non-match"
+      },
+      {
+        "cohort": "frozen",
+        "id": "5b6ecea9-c97e-4034-a8c9-0faba04cbe73",
+        "asin": "B00AXI9WFS",
+        "title": "DISNEY INFINITY Starter Pack Xbox 360",
+        "before": "needs_review",
+        "after": "non-match"
+      },
+      {
+        "cohort": "frozen",
+        "id": "bdee6861-091e-4912-a14e-315705ca6c8e",
+        "asin": "B00AXI9WFS",
+        "title": "DISNEY INFINITY Starter Pack Xbox 360",
+        "before": "needs_review",
+        "after": "non-match"
+      },
+      {
+        "cohort": "current",
+        "id": "0bdf32a3-37d9-4899-bc39-da1067b81441",
+        "asin": "B00AXI9WFS",
+        "title": "DISNEY INFINITY Starter Pack Xbox 360 [video game]",
+        "before": "needs_review",
+        "after": "non-match"
+      },
+      {
+        "cohort": "current",
+        "id": "1835ee62-d300-402c-8452-4399fc6226d6",
+        "asin": "B00AXI9WFS",
+        "title": "DISNEY INFINITY Starter Pack Xbox 360 [video game]",
+        "before": "needs_review",
+        "after": "non-match"
+      },
+      {
+        "cohort": "current",
+        "id": "5d91d9bc-4d11-4908-a712-09ece47e6cb7",
+        "asin": "B00AXI9WFS",
+        "title": "DISNEY INFINITY Starter Pack Xbox 360 [video game]",
+        "before": "needs_review",
+        "after": "non-match"
+      },
+      {
+        "cohort": "current",
+        "id": "6eba6463-570f-48a7-b874-5b9716480a3f",
+        "asin": "B00AXI9WFS",
+        "title": "DISNEY INFINITY Starter Pack Xbox 360 [video game]",
+        "before": "needs_review",
+        "after": "non-match"
+      }
+    ],
+    "schedulerBuild": "passed, local only",
+    "schedulerImage": "mbop-scheduler:disney-version-policy",
+    "imageDigest": "sha256:1090a7a354ed8407093fe240ae1a91ffb2540d9e5c60f0a6f2b35d0bed217fc0",
+    "pyCompile": "passed",
+    "diffCheck": "passed",
+    "webTests": "No web/API code change; prior API/RPC validation retained; current Python-to-API-to-UI indicators rerun."
   },
   "productionChanges": {
     "deployments": 0,
@@ -400,7 +451,11 @@
       },
       "reason": "coreProduct conflict: Amazon subnautica, eBay subnautica below zero s; coreGame conflict: Amazon subnautica, eBay subnautica below zero s",
       "correctionApplication": [],
-      "pairVerdictUsedAsInput": false
+      "pairVerdictUsedAsInput": false,
+      "policyInferences": {
+        "amazon": {},
+        "ebay": {}
+      }
     },
     {
       "queueId": "9ada02ce-14c4-4b90-9bbe-7c210ff07d38",
@@ -591,7 +646,11 @@
       },
       "reason": "Identity matched or unknown; unknown fields are not positive evidence.",
       "correctionApplication": [],
-      "pairVerdictUsedAsInput": false
+      "pairVerdictUsedAsInput": false,
+      "policyInferences": {
+        "amazon": {},
+        "ebay": {}
+      }
     },
     {
       "queueId": "b06ded4b-90cb-48c4-a670-d30a17dc90c0",
@@ -822,7 +881,11 @@
           "result": "applied"
         }
       ],
-      "pairVerdictUsedAsInput": false
+      "pairVerdictUsedAsInput": false,
+      "policyInferences": {
+        "amazon": {},
+        "ebay": {}
+      }
     },
     {
       "queueId": "33751f5c-b525-4991-8dad-30d3d949b729",
@@ -1053,7 +1116,11 @@
           "result": "applied"
         }
       ],
-      "pairVerdictUsedAsInput": false
+      "pairVerdictUsedAsInput": false,
+      "policyInferences": {
+        "amazon": {},
+        "ebay": {}
+      }
     },
     {
       "queueId": "063032b6-eeba-4661-99c5-b4581eeae259",
@@ -1284,7 +1351,11 @@
           "result": "applied"
         }
       ],
-      "pairVerdictUsedAsInput": false
+      "pairVerdictUsedAsInput": false,
+      "policyInferences": {
+        "amazon": {},
+        "ebay": {}
+      }
     },
     {
       "queueId": "4ec62dd8-def1-49a2-b51a-ec1b8e9857b2",
@@ -1515,7 +1586,11 @@
           "result": "applied"
         }
       ],
-      "pairVerdictUsedAsInput": false
+      "pairVerdictUsedAsInput": false,
+      "policyInferences": {
+        "amazon": {},
+        "ebay": {}
+      }
     },
     {
       "queueId": "ccaffed2-c7bb-48f7-987d-da39289ce622",
@@ -1783,7 +1858,11 @@
           "result": "applied"
         }
       ],
-      "pairVerdictUsedAsInput": false
+      "pairVerdictUsedAsInput": false,
+      "policyInferences": {
+        "amazon": {},
+        "ebay": {}
+      }
     },
     {
       "queueId": "2bab0023-6a49-4817-b36d-8a3e03b473c5",
@@ -1976,7 +2055,11 @@
       },
       "reason": "Identity matched or unknown; unknown fields are not positive evidence.",
       "correctionApplication": [],
-      "pairVerdictUsedAsInput": false
+      "pairVerdictUsedAsInput": false,
+      "policyInferences": {
+        "amazon": {},
+        "ebay": {}
+      }
     },
     {
       "queueId": "b32a22e5-e28e-4ea7-9811-b7fb5fa2baf3",
@@ -2167,7 +2250,11 @@
       },
       "reason": "Identity matched or unknown; unknown fields are not positive evidence.",
       "correctionApplication": [],
-      "pairVerdictUsedAsInput": false
+      "pairVerdictUsedAsInput": false,
+      "policyInferences": {
+        "amazon": {},
+        "ebay": {}
+      }
     },
     {
       "queueId": "1efb864b-a705-475e-a843-832ddf5713b6",
@@ -2435,7 +2522,11 @@
           "result": "applied"
         }
       ],
-      "pairVerdictUsedAsInput": false
+      "pairVerdictUsedAsInput": false,
+      "policyInferences": {
+        "amazon": {},
+        "ebay": {}
+      }
     },
     {
       "queueId": "52261d35-1318-431e-bbc2-7ab6b8816fc0",
@@ -2740,7 +2831,11 @@
           "result": "applied"
         }
       ],
-      "pairVerdictUsedAsInput": false
+      "pairVerdictUsedAsInput": false,
+      "policyInferences": {
+        "amazon": {},
+        "ebay": {}
+      }
     },
     {
       "queueId": "ec59476c-8dbb-4040-85b1-37fe658e98a3",
@@ -3034,7 +3129,11 @@
           "result": "applied"
         }
       ],
-      "pairVerdictUsedAsInput": false
+      "pairVerdictUsedAsInput": false,
+      "policyInferences": {
+        "amazon": {},
+        "ebay": {}
+      }
     },
     {
       "queueId": "d7a5c382-bc78-434a-9ce2-d49fa072f68f",
@@ -3225,7 +3324,11 @@
       },
       "reason": "Identity matched or unknown; unknown fields are not positive evidence.",
       "correctionApplication": [],
-      "pairVerdictUsedAsInput": false
+      "pairVerdictUsedAsInput": false,
+      "policyInferences": {
+        "amazon": {},
+        "ebay": {}
+      }
     },
     {
       "queueId": "74c55b1b-2c50-4637-86e8-7c2199049be1",
@@ -3335,10 +3438,10 @@
       "rawStateHash": "d7ffe8c09cf2f697924f9cfe26cb1f6fcbb481d0e3054149b36f7506b25e4e42",
       "sourceInputHash": "2e3cf0b9c7b41d321d1d51cc511bf8f69f14a15d3738ed6f2e073bc6648f7b9b",
       "exclusionState": false,
-      "shadowIdentityVerdict": "needs_review",
-      "finalIdentityAdmission": "Review",
-      "eligibleForNormalBusinessEvaluation": false,
-      "staticRecommendation": "Review",
+      "shadowIdentityVerdict": "match",
+      "finalIdentityAdmission": "Match",
+      "eligibleForNormalBusinessEvaluation": true,
+      "staticRecommendation": "Probable Match",
       "staticHardBlocks": [],
       "comparisons": {
         "franchise": {
@@ -3373,21 +3476,21 @@
         },
         "installment": {
           "field": "installment",
-          "result": "unknown",
-          "relation": "compatible_omission",
-          "amazon": null,
+          "result": "match",
+          "relation": "same",
+          "amazon": "1.0",
           "ebay": "1.0",
-          "reason": "Omitted information is not a contradiction or a pass",
+          "reason": "Supported normalized values agree",
           "amazonEvidenceRef": "amazon.fields.installment",
           "ebayEvidenceRef": "ebay.fields.installment"
         },
         "generation": {
           "field": "generation",
-          "result": "unknown",
-          "relation": "compatible_omission",
-          "amazon": null,
+          "result": "match",
+          "relation": "same",
+          "amazon": "1.0",
           "ebay": "1.0",
-          "reason": "Omitted information is not a contradiction or a pass",
+          "reason": "Supported normalized values agree",
           "amazonEvidenceRef": "amazon.fields.generation",
           "ebayEvidenceRef": "ebay.fields.generation"
         },
@@ -3462,7 +3565,7 @@
           "ebayEvidenceRef": "ebay.fields.digitalPhysical"
         }
       },
-      "reason": "Unresolved identity detail on one side: generation, installment",
+      "reason": "Identity matched or unknown; unknown fields are not positive evidence.",
       "correctionApplication": [
         {
           "actionId": "d0f1cd02-82c2-4280-96dc-fea73fad0017",
@@ -3493,7 +3596,46 @@
           "result": "applied"
         }
       ],
-      "pairVerdictUsedAsInput": false
+      "pairVerdictUsedAsInput": false,
+      "policyInferences": {
+        "amazon": {
+          "installment": {
+            "value": "1.0",
+            "state": "inferred",
+            "sources": [
+              {
+                "field": "identity_policy",
+                "policy": "disney_infinity_unnumbered_is_1.0",
+                "basis": "Operator-approved unnumbered first-generation convention"
+              }
+            ],
+            "side": "amazon",
+            "parserVersion": "video_game_identity_phase3_shadow_v3",
+            "evidenceVersion": "video_game_identity_phase3_shadow_v3",
+            "expectation": null,
+            "sourceReconciliation": [],
+            "confidenceKind": "uncalibrated_parser_heuristic"
+          },
+          "generation": {
+            "value": "1.0",
+            "state": "inferred",
+            "sources": [
+              {
+                "field": "identity_policy",
+                "policy": "disney_infinity_unnumbered_is_1.0",
+                "basis": "Operator-approved unnumbered first-generation convention"
+              }
+            ],
+            "side": "amazon",
+            "parserVersion": "video_game_identity_phase3_shadow_v3",
+            "evidenceVersion": "video_game_identity_phase3_shadow_v3",
+            "expectation": null,
+            "sourceReconciliation": [],
+            "confidenceKind": "uncalibrated_parser_heuristic"
+          }
+        },
+        "ebay": {}
+      }
     },
     {
       "queueId": "8f04afc0-f67d-4ddf-9708-88c9ae9cdd31",
@@ -3720,26 +3862,42 @@
           "result": "applied"
         }
       ],
-      "pairVerdictUsedAsInput": false
+      "pairVerdictUsedAsInput": false,
+      "policyInferences": {
+        "amazon": {},
+        "ebay": {}
+      }
     }
   ],
   "artifactHashes": {
-    "tmp\\sourcing-phase3-strict-rerun\\capture.json": "fe6c2e8c7e455bb0a8b2f7614e610d127043874bc803d6ed750a65590861d885",
-    "tmp\\sourcing-phase3-strict-rerun\\capture.py": "e0b94da7ac335956d7ae8174d32fea469a2b6d210ac4e7b75ec69331c4e7566e",
-    "tmp\\sourcing-phase3-strict-rerun\\disney-analysis.json": "d009abb87ae7241a2ad217796e095e06d1b80d958279536ec48f450ea9009c75",
-    "tmp\\sourcing-phase3-strict-rerun\\disney-counterfactuals.json": "b84e9bbbbdd74080366e75076c58520c3812bc1ec81e932e30208b8f14be2d89",
-    "tmp\\sourcing-phase3-strict-rerun\\document.py": "aad16825de2e7f9ef86f208627fa4efeb755d7d3da22bec3d05f6c842571ada7",
-    "tmp\\sourcing-phase3-strict-rerun\\export-verified.json": "90134346eef0bdbfec50ac5eab03d17205e2c8d9282e36cf583d567334c77a79",
-    "tmp\\sourcing-phase3-strict-rerun\\previous-manifest.json": "c3fbb7417b2508f857c365e2bd8d43aea8dbe1dc13b35f5fa2cf526f6d7e6c83",
-    "tmp\\sourcing-phase3-strict-rerun\\python-tests.log": "2afe83a3ea64fe54cf204306e9d74318f5ca8284487a4187534ad16c9a6c8adc",
-    "tmp\\sourcing-phase3-strict-rerun\\replay.log": "e7ee5fa923793f9a6d051c88beaa37b7d2f30e15a3e5c1d647ada22f291303b7",
-    "tmp\\sourcing-phase3-strict-rerun\\snapshots.json": "20c657e18250fba5e9fb002188a0dfa703e912bba7b63fc2438a623d187cd634",
-    "tmp\\sourcing-phase3-strict-rerun\\states-first.json": "7cde07e3813abe0005b15babcd612d5089947d84fe4b2331cdce8e0b876c5431",
-    "tmp\\sourcing-phase3-strict-rerun\\states-second.json": "7cde07e3813abe0005b15babcd612d5089947d84fe4b2331cdce8e0b876c5431",
-    "tmp\\sourcing-phase3-strict-rerun\\unchanged-replay.json": "cabdf15330275b869d7550d781fa9265a90d74e3af09b357d9e59e3981979397",
-    "tmp\\sourcing-phase3-strict-rerun\\verify-export.mjs": "b0aa2ed588d5b3a13ce1a5a30e24336778226eca6b3c84c9766339e3ed8af656",
-    "tmp\\sourcing-phase3-strict-rerun\\curated-replay\\replay.json": "4abac86dd26c704445dc4256e0772394047210058b418e08f015ff44b63e2575",
-    "tmp\\sourcing-phase3-strict-rerun\\curated-replay\\safety-summary.json": "1d44954123ef06529c49c6499d10d243c8774088ca9a310412c753744c7f9402"
+    "tmp\\sourcing-disney-version-policy\\build.log": "919c0a5abd6e07e7feb062159429e4c8cdec44eef8802e210124a5f81e0f74e1",
+    "tmp\\sourcing-disney-version-policy\\container-tests.log": "c69dcfb4d736f2d4c2afa890c6aedeab2d7e0baef4b09e8813806ebd026c3cb4",
+    "tmp\\sourcing-disney-version-policy\\defaults.json": "30fc9498b849f2cc8866b58b37f568c1bab357520511f754ea4ce7e2e0fd9e05",
+    "tmp\\sourcing-disney-version-policy\\document.py": "b1f6f2e4bb08989b025aa8a1747b45926ea57fdbedf116e76a0fce9360eb5cef",
+    "tmp\\sourcing-disney-version-policy\\indicator-checks.json": "40082267c3895a371d3ef9b9802b557533cb787675decbc3881c2c5764a587cd",
+    "tmp\\sourcing-disney-version-policy\\previous-manifest.json": "28738895a28ddc4bc3d50fb6aeb62b2df655e302331d2fdba132b856b21a56a1",
+    "tmp\\sourcing-disney-version-policy\\python-tests.log": "4854be4a216073ec4f427f1b555ea1a5ee0f0f4f9ef7d2879b7443a0e6a02f83",
+    "tmp\\sourcing-disney-version-policy\\regression-proof.json": "38b62686b292bb9ba1146ce9aadefadeaf9f3156e200589c281b9d2e271bbd8a",
+    "tmp\\sourcing-disney-version-policy\\replay.log": "e4f5d74fc5404b3f6037253a167917140a5cc09c9356979f6fdf167f078f3595",
+    "tmp\\sourcing-disney-version-policy\\tier-bc-replay.json": "9b91a5e751cc3da84c55457b6fbd22715fd41452cfefbbc1c805bac980d53225",
+    "tmp\\sourcing-disney-version-policy\\tier-bc-summary.json": "ebb5f7c846ca6be8e839a894dcec65ce15609d7d182402dda259cd0b0928691e",
+    "tmp\\sourcing-disney-version-policy\\verify-indicators.mjs": "a450d103cc2266f11bb8ac283812ca0f90b4cef4292ba4f46a19d38be03b03ca",
+    "tmp\\sourcing-disney-version-policy\\curated-replay\\replay.json": "0f20bfe1e7b8d859f7db3dad0640dee2e2cca3c33c2f7c48e246a7e567d31bcb",
+    "tmp\\sourcing-disney-version-policy\\curated-replay\\safety-summary.json": "bebe726eafe6bfb45dd11f2ede1b61058684fa504cc683b83d9b1cae040b52e3",
+    "tmp/sourcing-phase3-strict-rerun/version-policy-replay.json": "aaafb774d9b591ce17aa327fc474ac3292dd09a76744f2bab79bdae19dca2a30",
+    "tmp/sourcing-phase3-strict-rerun/capture.json": "fe6c2e8c7e455bb0a8b2f7614e610d127043874bc803d6ed750a65590861d885",
+    "tmp/sourcing-phase3-strict-rerun/unchanged-replay.json": "cabdf15330275b869d7550d781fa9265a90d74e3af09b357d9e59e3981979397"
   },
-  "disneyInvestigation": "tmp/sourcing-phase3-strict-rerun/disney-analysis.json"
+  "disneyInvestigation": "tmp/sourcing-phase3-strict-rerun/disney-analysis.json",
+  "policyAuthorization": {
+    "userInstruction": "assume no version indicator is equivalent to 1.0. Typically games done indicated 1.0, only subsequent versions.",
+    "scope": "Disney Infinity shadow policy, all ASINs; no blanket defaults for unrelated games.",
+    "state": "inferred",
+    "productionActivation": false
+  },
+  "candidateCodeHashes": {
+    "integrations/video_game_identity.py": "8efac2cda8234978c2bc8e20a77f210449dea805cd76c5f6c2b1c3511bdba25e",
+    "tests/test_sourcing_phase3.py": "8f313c7222a24708a24f27071b7484790f670aa45e476fed759c72ef0b2f2ae0",
+    "tests/fixtures/sourcing_adjudicated_identity_regressions_2026-09-13.json": "c0edc98634a2fa157f7ddb6d966d082324e4f04d0ef549c118dacc323d30bd85"
+  }
 }
