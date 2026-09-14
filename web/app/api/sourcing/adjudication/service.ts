@@ -106,7 +106,8 @@ export async function saveAdjudication(body:RecordValue,actor:string) {
     platformEvidence:{amazon:row.identity.amazon.platform,ebay:row.identity.ebay.platform},
     pair:{asin:row.asin,ebayItemId:row.ebayItemId,variationId:row.variationId,opportunityId:row.opportunityId},
     purchaseItemId:row.purchaseItemId,receivingId:row.receivingId,
-    identityAttested:body.identityAttested===true,variationVerified:body.variationVerified===true,
+    // A negative pair verdict never asserts that the listing is the ASIN product.
+    identityAttested:feedback.pairVerdict==="correct" && body.identityAttested===true,variationVerified:body.variationVerified===true,
     variationResolution:body.variationVerified===true ? (row.variationId && row.variationId!=="0" ? "verified_stored_variation" : "operator_confirmed_not_applicable") : "unknown",
     learningScope:"exact_pair",build:process.env.MBOP_BUILD_SHA??"local",evaluation:comparison.evaluation,
     notes:String(body.notes??"").slice(0,4000)};
@@ -117,5 +118,12 @@ export async function saveAdjudication(body:RecordValue,actor:string) {
   const {data,error}=await supabase.rpc("sourcing_save_adjudication",{p_request_id:requestId,p_asin:row.asin,
     p_ebay_item_id:row.ebayItemId,p_expected_revision:body.expectedRevision,p_actor:actor,
     p_request_hash:createHash("sha256").update(JSON.stringify(body)).digest("hex"),p_context:context,p_snapshot:snapshot});
-  return error ? {status:error.code==="40001"?409:400,error:error.message} : {status:200,review:data};
+  if(error) return {status:error.code==="40001"?409:400,error:error.message};
+  // The write has committed. A readback failure must not be reported as a failed save.
+  try {
+    const current=await loadState(row);
+    return {status:200,review:data,reviewState:{revision:current.revision,latestReview:summarize(row,current)}};
+  } catch(error) {
+    return {status:200,review:data,refreshError:error instanceof Error?error.message:"Saved review could not be reloaded."};
+  }
 }
