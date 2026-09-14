@@ -134,9 +134,9 @@ export async function saveAdjudication(body:RecordValue,actor:string) {
     purchaseItemId:row.purchaseItemId,receivingId:row.receivingId,
     // A negative pair verdict never asserts that the listing is the ASIN product.
     identityAttested:feedback.pairVerdict==="correct" && body.identityAttested===true,
-    variationVerified:body.variationResolution==="not_applicable" || body.variationResolution==="verified",
+    ...((variationOnly||feedback.pairVerdict!=="not_provided")?{variationVerified:body.variationResolution==="not_applicable" || body.variationResolution==="verified",
     variationResolution:variationResolution(body.variationResolution),
-    variationScopeReviewed:body.variationResolution!==undefined,
+    variationScopeReviewed:body.variationResolution!==undefined}:{}),
     ...(variationOnly?{reviewKind:"variation_scope",variationTargetActionId:body.variationTargetActionId}:{}),
     learningScope:"exact_pair",build:process.env.MBOP_BUILD_SHA??"local",evaluation:comparison.evaluation,
     notes:String(body.notes??"").slice(0,4000)};

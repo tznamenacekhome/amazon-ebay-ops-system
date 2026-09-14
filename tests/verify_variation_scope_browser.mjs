@@ -7,7 +7,7 @@ import {resolve} from 'node:path';
 const image=process.env.ADJUDICATION_TEST_IMAGE;
 assert(image?.startsWith('mbop-web:web-'),'An exact local web release image is required');
 const container='mbop-phase2-review-test',webContainer='mbop-adjudication-browser-test';
-const out=resolve(process.env.ADJUDICATION_TEST_OUTPUT??'tmp/variation-scope/browser');mkdirSync(out,{recursive:true});
+const out=resolve(process.env.ADJUDICATION_TEST_OUTPUT??'tmp/variation-save-button/browser');mkdirSync(out,{recursive:true});
 const sql=q=>execFileSync('docker',['exec','-i',container,'psql','-U','postgres','-At','-v','ON_ERROR_STOP=1'],{input:q,encoding:'utf8',windowsHide:true,maxBuffer:32*1024*1024}).trim();
 const quote=v=>v==null?'null':"'"+String(typeof v==='object'?JSON.stringify(v):v).replaceAll("'","''")+"'";
 const calls=[],errors=[];
@@ -44,14 +44,17 @@ try {
   const api=async(query='')=>(await fetch('http://localhost:3108/api/sourcing/adjudication'+query)).json();
   let current=(await api()).rows.find(r=>r.queueId===row.queueId);
   const seed={queueId:row.queueId,requestId:crypto.randomUUID(),expectedAsin:row.asin,expectedEbayItemId:row.ebayItemId,expectedSnapshotHash:row.snapshotHash,expectedRevision:current.revision,
-    identityAttested:true,variationResolution:'unknown',notes:'Preserve these saved operator notes',feedback:{pairVerdict:'correct',flaggedFields:['coreGame'],corrections:[{side:'ebay',scope:'pair',field:'coreGame',state:'value',value:'Preserved scoped correction'}],fieldRelationships:[{field:'platform',operatorRelationship:'compatible'}]}};
+    identityAttested:true,notes:'Preserve these saved operator notes',feedback:{pairVerdict:'correct',flaggedFields:['coreGame'],corrections:[{side:'ebay',scope:'pair',field:'coreGame',state:'value',value:'Preserved scoped correction'}],fieldRelationships:[{field:'platform',operatorRelationship:'compatible'}]}};
   const seeded=await fetch('http://localhost:3108/api/sourcing/adjudication',{method:'POST',headers:{'content-type':'application/json','x-mbop-csrf':'1','origin':'http://localhost:3108'},body:JSON.stringify(seed)});assert.equal(seeded.status,200,await seeded.text());
   current=(await api()).rows.find(r=>r.queueId===row.queueId);const original=structuredClone(current.latestReview);
   await cdp('Page.reload');await until(`document.querySelectorAll('tbody tr').length===16`);
-  await js(`[...document.querySelectorAll('button')].find(b=>b.textContent==='Review confirmation variation scope').click()`);
+  const progressStart=(await api()).variationFollowup;const progressBefore=progressStart.reviewed;
+  // Reproduce the production entry point: open directly from the full queue.
   const open=async()=>{await js(`[...document.querySelectorAll('tbody tr')].find(r=>r.textContent.includes('${row.asin}')).querySelector('button').click()`);await until(`!!document.querySelector('[role=dialog]')`);};
-  for(const scope of ['unknown','verified','not_applicable']) {
+  for(const scope of ['not_applicable','verified','unknown','not_applicable']) {
     await open();assert(await js(`document.querySelector('[aria-label="Variation scope"]').textContent.includes('Not applicable \u2014 single-product listing')`));assert.equal(await js(`document.querySelector('[aria-label="Adjudication notes"]').value`),original.notes);
+    assert(await js(`document.querySelector('[aria-label="Variation scope"]').nextElementSibling.textContent==='Save variation scope'`));
+    assert(await js(`[...document.querySelectorAll('[role=dialog] button')].find(b=>b.textContent==='Save variation scope').disabled`));
     await js(`{const e=document.querySelector('[aria-label="Variation scope"]');e.value='${scope}';e.dispatchEvent(new Event('change',{bubbles:true}));}`);
     if(scope==='verified') {
       assert(await js(`document.querySelector('[role=dialog]').textContent.includes('No exact variation identifier')`));
@@ -63,15 +66,25 @@ try {
       await js(`window.fetch=window.realFetch`);
     }
     const shot=await cdp('Page.captureScreenshot',{captureBeyondViewport:false});writeFileSync(resolve(out,'variation-'+scope+'.png'),Buffer.from(shot.data,'base64'));
-    await js(`[...document.querySelectorAll('[role=dialog] button')].find(b=>b.textContent==='Save variation scope').click()`);await until(`!document.querySelector('[role=dialog]')`);
+    await js(`[...document.querySelectorAll('[role=dialog] button')].find(b=>b.textContent==='Save variation scope').click()`);await until(`document.querySelector('[role=dialog] [role=status]')?.textContent==='Variation scope saved'`);
+    assert(await js(`!!document.querySelector('[role=dialog]')`));
+    assert(await js(`document.querySelector('[aria-labelledby="variation-heading"]').textContent.includes('Current saved qualification: ${scope==='not_applicable'?'Tier A':'Not Tier A'}')`));
+    assert(await js(`[...document.querySelectorAll('[role=dialog] button')].find(b=>b.textContent==='Save variation scope').disabled`));
+    const savedShot=await cdp('Page.captureScreenshot',{captureBeyondViewport:false});writeFileSync(resolve(out,'variation-saved.png'),Buffer.from(savedShot.data,'base64'));
+    await js(`[...document.querySelectorAll('[role=dialog] button')].find(b=>b.textContent==='Close').click()`);
+    await until(`!document.querySelector('[role=dialog]')`);
     current=(await api()).rows.find(r=>r.queueId===row.queueId);
     assert.equal(current.latestReview.variationResolution,scope);assert.equal(current.latestReview.tierA,scope==='not_applicable');
+    const verdicts=review=>review.lineage.filter(a=>['correct','incorrect','unsure'].includes(a.verdict));assert.deepEqual(verdicts(current.latestReview),verdicts(original));
+    assert.equal((await api()).variationFollowup.reviewed,progressBefore+1);
+    assert(await js(`document.body.textContent.includes('${progressBefore+1} of ${progressStart.total} variation scope reviewed')`));
     for(const key of ['actionId','feedback','corrections','notes','platformRelationship'])assert.deepEqual(current.latestReview[key],original[key],key);
   }
+  await js(`[...document.querySelectorAll('button')].find(b=>b.textContent==='Review confirmation variation scope').click()`);
   assert(!(await js(`[...document.querySelectorAll('tbody tr')].some(r=>r.textContent.includes('${row.asin}'))`)));
   await cdp('Page.reload');await until(`document.querySelectorAll('tbody tr').length===16`);
   assert(await js(`[...document.querySelectorAll('tbody tr')].find(r=>r.textContent.includes('${row.asin}')).textContent.includes('Tier A')`));
   assert.equal(errors.length,0);
-  writeFileSync(resolve(out,'contracts.json'),JSON.stringify({image,variationStatesPersisted:3,originalEvidencePreserved:true,staleSelectionPreserved:true,qualifiedRowLeavesFollowup:true,reloadTierA:true,errors},null,2));
+  writeFileSync(resolve(out,'contracts.json'),JSON.stringify({image,variationStatesPersisted:3,normalDialogButton:true,buttonDirectlyBelowSelector:true,immediateQualification:true,queueProgressIncremented:true,pairVerdictHistoryUnchanged:true,confirmButtonNotUsed:true,originalEvidencePreserved:true,staleSelectionPreserved:true,qualifiedRowLeavesFollowup:true,reloadTierA:true,errors},null,2));
   console.log('Packaged browser/API/RPC variation contracts passed: all states, preserved evidence, inline stale error, filtered queue and reload.');
 } finally {ws?.close();chrome?.kill();proxy.close();try{execFileSync('docker',['stop',webContainer],{windowsHide:true,stdio:'ignore'});}catch{}}
