@@ -178,7 +178,8 @@
       }
     },
     "pyCompile": "passed",
-    "diffCheck": "passed"
+    "diffCheck": "passed",
+    "candidateCommit": "07bdbcf2b546cfc4988610fb2ef7d4fb25604909"
   },
   "previousCheckpoint": {
     "baseCommit": "682c46e4189a10e6e65888c471bdb73ca7165329",
