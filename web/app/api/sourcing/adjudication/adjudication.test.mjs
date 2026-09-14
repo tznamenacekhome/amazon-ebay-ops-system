@@ -7,7 +7,9 @@ import {randomUUID} from 'node:crypto';
 import ts from 'typescript';
 const require=createRequire(import.meta.url),container=process.env.MBOP_REVIEW_TEST_CONTAINER;
 assert.equal(container,'mbop-phase2-review-test','Only the named disposable container is allowed');
-const sql=q=>execFileSync('docker',['exec','-i',container,'psql','-U','postgres','-At','-v','ON_ERROR_STOP=1'],{input:q,encoding:'utf8'}).trim();
+// Repeated disposable runs retain append-only history; a valid bounded state
+// can exceed Node's 1 MiB default stdout buffer without a database error.
+const sql=q=>execFileSync('docker',['exec','-i',container,'psql','-U','postgres','-At','-v','ON_ERROR_STOP=1'],{input:q,encoding:'utf8',maxBuffer:32*1024*1024}).trim();
 const quote=v=>v===null||v===undefined?'null':"'"+String(typeof v==='object'?JSON.stringify(v):v).replaceAll("'","''")+"'";
 let calls=0,denied=false,failSnapshot=false,lastSave,failReadback=false,failNextRead=false;
 const db={rpc:async(name,args)=>{calls++;assert(['sourcing_adjudication_state','sourcing_save_adjudication'].includes(name));try{

@@ -1,5 +1,9 @@
 # Sourcing matching repair handoff
 
+## Saved adjudication corpus gate - 2026-09-13
+
+**ADJUDICATED EVIDENCE INSUFFICIENT — MORE OPERATOR REVIEW REQUIRED.** Persisted sample: 12 Confirm Match, 3 Incorrect Match, 0 Not Sure, 1 informational mixed lot. All 12 confirmations lack variation verification, so Tier A remains 0; the actual export agrees. All 17 scoped corrections apply. Unchanged shadow: negatives 2 non-match/1 incorrect Match, unqualified confirmations 10 Match/2 Review. Local shadow fixes produce negatives 2 non-match/1 Review, confirmations 11 Match/1 Review; Disney generation/package remains unresolved. Curated 15 positives/18 negatives, 197 Python tests, 195 disposable RPC calls and 1,609 unchanged production-default outputs pass. No deployment, refresh/provider search or production write. Next: append verified variation-scope confirmations, resolve Disney scope, rerun this bounded gate before the final write-guard/deployment phase. [Full report](sourcing_adjudicated_ground_truth_2026-09-13.md) and [exact manifest](sourcing_adjudicated_ground_truth_manifest_2026-09-13.json). Earlier empty-review/checkpoint counts below remain historical.
+
 ## Adjudication negative-save repair - 2026-09-13
 
 Deployed web149 (`1a12a4b4562a`), rollout complete and exact target healthy. Incorrect Match accepts no Wrong fields, no corrections and no positive/variation assertions. Saving/error/success states are explicit; a single exact-pair readback updates the queue instead of reloading 16 rows. API/RPC and exact-image browser regressions pass. Scheduler92, all 20 schedules and frozen 37/50/2 routing remain unchanged. No migration, matcher activation, refresh, provider search or production test verdict. Authenticated production click verification remains unavailable; see [diagnosis, validation and release evidence](sourcing_adjudication_negative_save_2026-09-13.md). Phase 3 remains incomplete and shadow-only. Earlier web148 notes below are historical.

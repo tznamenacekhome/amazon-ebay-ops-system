@@ -1,0 +1,214 @@
+{
+  "basis": "Persisted exact-pair reviews and full frozen source. Confirmations still lack variation attestation; not Tier A. Pair verdicts never used as replay answers.",
+  "cases": [
+    {
+      "queueId": "b32a22e5-e28e-4ea7-9811-b7fb5fa2baf3",
+      "asin": "B009E480RS",
+      "ebayItemId": "v1|358716154387|0",
+      "reference": {
+        "asin": "B009E480RS",
+        "amazon_title": "Dance Central 3 - Xbox 360",
+        "system": null
+      },
+      "candidate": {
+        "ebay_item_id": "v1|358716154387|0",
+        "ebay_legacy_item_id": "358716154387",
+        "ebay_title": "Dance 3 Central Xbox 360 Game New Factory Sealed",
+        "raw_ebay_json": {
+          "localizedAspects": [
+            {
+              "name": "Region Code",
+              "type": "STRING",
+              "value": "NTSC-U/C (US/Canada)"
+            },
+            {
+              "name": "Platform",
+              "type": "STRING",
+              "value": "Microsoft Xbox 360"
+            },
+            {
+              "name": "Release Year",
+              "type": "STRING",
+              "value": "2012"
+            },
+            {
+              "name": "Rating",
+              "type": "STRING",
+              "value": "T-Teen"
+            },
+            {
+              "name": "Video Game Series",
+              "type": "STRING",
+              "value": "Dance Central Series"
+            },
+            {
+              "name": "Sub-Genre",
+              "type": "STRING",
+              "value": "Dance"
+            },
+            {
+              "name": "Features",
+              "type": "STRING",
+              "value": "Kinect Compatible"
+            },
+            {
+              "name": "Publisher",
+              "type": "STRING",
+              "value": "Electronic Arts"
+            },
+            {
+              "name": "Genre",
+              "type": "STRING",
+              "value": "Simulation"
+            },
+            {
+              "name": "Game Name",
+              "type": "STRING",
+              "value": "Dance Central 3"
+            },
+            {
+              "name": "UPC",
+              "type": "STRING",
+              "value": "0014633733891"
+            }
+          ],
+          "description": "Dance 3 Central Xbox 360 Game New Factory Sealed. See Pictures for Details It is being SOLD AS-IS...MEANING NO RETURN...SALE IS FINAL!!! Payment must be received within 3 days of auction end. SHIPPING RATE INCLUDES DELIVERY TRACKING CONFIRMATION E-mail with any questions BEFORE YOU BID/BUY and good bidding. Please leave me feedback after you receive your product. I will then know you have received your purchase and are satisfied. Do to the fact that I have given twice the amount of feedback than I have received, I will be leaving feedback for you as soon as I see that feedback has been left for me. Track Page Views With Auctiva's FREE Counter"
+        }
+      },
+      "corrections": [],
+      "sourceSnapshotId": "571d0cd4-ea08-40a4-a9bb-02999c5d898f",
+      "evaluationId": "a065c230c9b06d6c287d125927cb018a64441adb7f3e0bce50fb073f437b699d",
+      "reviewActionId": "e05c8ba8-1805-49ee-ac65-e22481dc7d8d",
+      "operatorVerdict": "correct",
+      "tierA": false,
+      "expectedShadowVerdict": "match"
+    },
+    {
+      "queueId": "ec59476c-8dbb-4040-85b1-37fe658e98a3",
+      "asin": "B001VLFCXW",
+      "ebayItemId": "v1|227432986138|0",
+      "reference": {
+        "asin": "B001VLFCXW",
+        "amazon_title": "The Bigs 2 - Nintendo Wii",
+        "system": null
+      },
+      "candidate": {
+        "ebay_item_id": "v1|227432986138|0",
+        "ebay_legacy_item_id": "227432986138",
+        "ebay_title": "The BIGS - Albert Pujols 2K Sports Nintendo Wii 2007 - New & Sealed",
+        "raw_ebay_json": {
+          "localizedAspects": [
+            {
+              "name": "Region Code",
+              "type": "STRING",
+              "value": "NTSC-U/C (US/Canada)"
+            },
+            {
+              "name": "Release Year",
+              "type": "STRING",
+              "value": "2007"
+            },
+            {
+              "name": "Sub-Genre",
+              "type": "STRING",
+              "value": "Baseball"
+            },
+            {
+              "name": "Features",
+              "type": "STRING",
+              "value": "Manual Included"
+            },
+            {
+              "name": "Country of Origin",
+              "type": "STRING",
+              "value": "United States"
+            },
+            {
+              "name": "UPC",
+              "type": "STRING",
+              "value": "0710425341786"
+            },
+            {
+              "name": "Platform",
+              "type": "STRING",
+              "value": "Nintendo Wii"
+            },
+            {
+              "name": "Rating",
+              "type": "STRING",
+              "value": "E-Everyone"
+            },
+            {
+              "name": "MPN",
+              "type": "STRING",
+              "value": "710425341984"
+            },
+            {
+              "name": "Publisher",
+              "type": "STRING",
+              "value": "2K Games"
+            },
+            {
+              "name": "Genre",
+              "type": "STRING",
+              "value": "Sports"
+            },
+            {
+              "name": "Game Name",
+              "type": "STRING",
+              "value": "Bigs"
+            }
+          ],
+          "description": "The BIGS - Albert Pujols 2K Sports Nintendo Wii 2007 - New & Sealed Feel free to contact with any questions. Please submit payment within three (3) days. Thank You!"
+        }
+      },
+      "corrections": [
+        {
+          "note": null,
+          "side": "ebay",
+          "field": "coreGame",
+          "scope": "pair",
+          "state": "value",
+          "value": "the bigs",
+          "before": {
+            "state": "supported",
+            "value": "the bigs albert pujols 2k sports",
+            "actionId": null
+          }
+        },
+        {
+          "note": null,
+          "side": "amazon",
+          "field": "coreGame",
+          "scope": "pair",
+          "state": "value",
+          "value": "the bigs",
+          "before": {
+            "state": "supported",
+            "value": "the bigs 2",
+            "actionId": null
+          }
+        },
+        {
+          "note": null,
+          "side": "ebay",
+          "field": "coreProduct",
+          "scope": "pair",
+          "state": "value",
+          "value": "the bigs",
+          "before": {
+            "state": "value",
+            "value": "the bigs albert pujols 2k sports",
+            "actionId": null
+          }
+        }
+      ],
+      "sourceSnapshotId": "8c7b4823-bf16-4f49-ba3c-c863105ebd7f",
+      "evaluationId": "eedf1665de0e886dc40352843ce25c98f6d5131746964bc0889cd24494d8ea40",
+      "reviewActionId": "4cc41143-cbb3-419b-a415-a056a80de081",
+      "operatorVerdict": "incorrect",
+      "tierA": false,
+      "expectedShadowVerdict": "needs_review"
+    }
+  ]
+}

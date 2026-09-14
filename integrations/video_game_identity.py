@@ -711,6 +711,19 @@ def evidence_hash(value):
     return hashlib.sha256(json.dumps(value, sort_keys=True, ensure_ascii=True, separators=(",", ":")).encode()).hexdigest()
 
 
+def split_game_names(value):
+    """Separate repeated names without tearing apart parenthesized metadata."""
+    parts, start, depth = [], 0, 0
+    for index, char in enumerate(value):
+        if char in "([": depth += 1
+        elif char in ")]": depth = max(0, depth - 1)
+        elif char == "," and depth == 0:
+            parts.append(value[start:index].strip())
+            start = index + 1
+    parts.append(value[start:].strip())
+    return [part for part in parts if part]
+
+
 def reconcile_listing_title(title, evidence):
     """Assign corroborated post-platform metadata without shortening a product.
 
@@ -754,7 +767,7 @@ def reconcile_listing_title(title, evidence):
     content_parts = [re.sub(r"\W*new\W*$", "", part, flags=re.I).strip(" *-()") for part in suffix.split("+")]
     inclusive = prefix_fields["edition"] in {"Complete Edition", "GOTY"}
     name_agrees = any(general_product_fields(part)["coreGame"] == prefix_fields["coreGame"]
-                      for name in names for part in name.split(","))
+                      for name in names for part in split_game_names(name))
     inclusion = re.search(r"\bincludes?\b[^.]{0,300}\bexpansions?\b", description, re.I)
     identified = sum(bool(part) and bool(inclusion) and normalize_text(part) in normalize_text(inclusion[0]) for part in content_parts)
     if inclusive and name_agrees and len(content_parts) >= 2 and identified >= 2:
@@ -850,6 +863,14 @@ def source_name_relation(title, supporting):
     compact = lambda text: re.sub(r"[^a-z0-9]", "", str(text).casefold())
     if compact(title) == compact(supporting): return "same"
     title_tokens, source_tokens = normalize_text(title).split(), normalize_text(supporting).split()
+    # A structured Game Name can corroborate a displaced standalone installment.
+    # Preserve word order, every product word and the exact number; this is not
+    # token-set matching, cross-market containment, or a missing-number default.
+    numbers = lambda tokens: [t for t in tokens if re.fullmatch(r"\d+(?:\.\d+)?", t)]
+    left_numbers, right_numbers = numbers(title_tokens), numbers(source_tokens)
+    if len(left_numbers) == len(right_numbers) == 1 and left_numbers == right_numbers:
+        if [t for t in title_tokens if t not in left_numbers] == [t for t in source_tokens if t not in right_numbers]:
+            return "same_typed_installment"
     remaining = iter(title_tokens)
     if all(any(token == candidate for candidate in remaining) for token in source_tokens):
         return "compatible_omission"
@@ -861,7 +882,7 @@ def phase3_side(title, side, evidence=None, catalog=None, platform=None):
     cleaned_title, assigned = reconcile_listing_title(title, evidence) if side == "ebay" else (title, [])
     rows = [{"source": "title", "text": str(cleaned_title), "originalText":str(title)}] if title else []
     rows += [{"source": "game_name", "text": part.strip(), "originalText":value}
-             for value in usable_game_names(evidence) for part in value.split(",") if part.strip()]
+             for value in usable_game_names(evidence) for part in split_game_names(value)]
     publishers = (evidence.get("aspects") or {}).get("publisher") or []
     # A publisher appearing in the structured product name may be part of
     # that identity (for example Disney Infinity), not an attribution.
@@ -896,7 +917,12 @@ def phase3_side(title, side, evidence=None, catalog=None, platform=None):
             # Game Name may omit a subtitle, attribution, or edition/package
             # qualifier. Keep the full listing title; never collapse it to the
             # supporting subset, and never use cross-market containment.
-            if all(r["relation"] in {"same", "compatible_omission"} for r in reconciliation):
+            if any(r["relation"] == "same_typed_installment" for r in reconciliation):
+                # Use the corroborating structured spelling; the source title,
+                # independent installment and original spans remain available.
+                primary = next((v for v in values if v[1]["source"] == "game_name" and
+                    source_name_relation(primary[0], v[0]) == "same_typed_installment"), primary)
+            if all(r["relation"] in {"same", "compatible_omission", "same_typed_installment"} for r in reconciliation):
                 values = [(primary[0], source) for _, source in values]
         distinct = {str(v).casefold() for v, _ in values}
         state = "conflicting_sources" if len(distinct) > 1 else "supported" if values else "unknown"
@@ -949,10 +975,12 @@ def phase3_comparison(amazon, ebay):
                             "amazonEvidenceRef": "amazon.fields." + key, "ebayEvidenceRef": "ebay.fields." + key}
     outcomes = {c["result"] for c in comparisons.values()}
     verdict = "non-match" if "conflict" in outcomes else "needs_review" if "review" in outcomes else "match" if comparisons["coreGame"]["result"] == "match" else "unknown"
-    if verdict == "match" and any(bool(amazon[k]) != bool(ebay[k]) for k in ("edition", "packageType", "generation")):
+    unresolved_required = [k for k in ("edition", "packageType", "generation", "installment") if bool(amazon[k]) != bool(ebay[k])]
+    if verdict == "match" and unresolved_required:
         verdict = "needs_review"
     result = {"match": "match", "non-match": "conflict", "needs_review": "review", "unknown": "unknown"}[verdict]
     decision = {"version": PHASE3_VERSION, "productIdentityVerdict": verdict, "comparisons": comparisons, "policyRole": "shadow_only"}
     return {"version": PHASE3_VERSION, "amazon": amazon, "ebay": ebay, "comparisons": comparisons,
             "evidenceDecision": decision, "result": result, "hard_block": result == "conflict",
-            "conflicts": [k for k, v in comparisons.items() if v["result"] == "conflict"], "reason": reason_for_result(comparisons)}
+            "conflicts": [k for k, v in comparisons.items() if v["result"] == "conflict"],
+            "reason": "Unresolved identity detail on one side: " + ", ".join(unresolved_required) if verdict == "needs_review" and unresolved_required else reason_for_result(comparisons)}
