@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { adjudicationExclusion, normalizePlatformRelationships } from "../../../sourcing/adjudication/evidence";
+import { adjudicationExclusion, normalizePlatformRelationships, variationResolution, variationQualified, exactVariationId } from "../../../sourcing/adjudication/evidence";
 import queueData from "./queue.json";
 import { supabase } from "../_supabase";
 import { buildDiagnosticComparison, type DiagnosticComparisonRow } from "../diagnosticComparison";
@@ -31,7 +31,13 @@ export function summarize(row:QueueRow,state:ReviewState) {
   const pair=actions.filter(a=>a.ebay_item_id===row.ebayItemId || (listingId(a.ebay_item_id)===listingId(row.ebayItemId) && (!a.ebay_item_id.startsWith("v1|")||!row.ebayItemId.startsWith("v1|"))));
   const verdict=pair.find(a=>["correct","incorrect","unsure"].includes(String(record(a.raw_action_context.matchingFeedback).pairVerdict)));
   const context=verdict?.raw_action_context;
-  const applicable=verdict?.ebay_item_id===row.ebayItemId && context?.source==="identity_adjudication_queue" && context?.queueSnapshotHash===row.snapshotHash;
+  const validOrigin=(a:Action|undefined) => Boolean(a && a.asin===row.asin && a.ebay_item_id===row.ebayItemId
+    && a.raw_action_context.source==="identity_adjudication_queue" && a.raw_action_context.queueSnapshotHash===row.snapshotHash
+    && a.raw_action_context.snapshotPolicy==="frozen_historical" && a.raw_action_context.actor
+    && a.raw_action_context.snapshotId===a.listing_snapshot_id && a.raw_action_context.requestId===a.action_id
+    && record(a.raw_action_context.pair).asin===row.asin && record(a.raw_action_context.pair).ebayItemId===row.ebayItemId
+    && record(a.raw_action_context.pair).variationId===row.variationId);
+  const applicable=validOrigin(verdict);
   const corrections:SavedCorrection[]=[];
   for(const action of actions) {
     const context=action.raw_action_context;
@@ -55,14 +61,26 @@ export function summarize(row:QueueRow,state:ReviewState) {
     } catch {relationshipInvalid=true;}
   }
   const newerRelationship=Boolean(verdict&&relationshipAction&&relationshipAction.created_at>verdict.created_at);
-  const tierA=!adjudicationExclusion(row) && !relationshipInvalid && !newerRelationship && pairVerdict==="correct" && context?.identityAttested===true && context?.variationVerified===true && !newerCorrection;
+  const variationAction=pair.find(a=>a.raw_action_context.reviewKind==="variation_scope" || ["correct","incorrect","unsure"].includes(String(record(a.raw_action_context.matchingFeedback).pairVerdict)));
+  const variationContext=variationAction?.raw_action_context;
+  const variationValid=validOrigin(variationAction) && (variationAction?.action_id===verdict?.action_id ||
+    variationContext?.variationTargetActionId===verdict?.action_id && variationContext?.reviewKind==="variation_scope");
+  const resolution=variationValid?variationResolution(variationContext?.variationResolution):"unknown";
+  const verified=variationValid && variationContext?.variationVerified===true;
+  const scopeQualified=variationQualified(resolution,verified,row);
+  const variationScopeReviewed=Boolean(variationValid && (variationContext?.variationScopeReviewed===true || scopeQualified));
+  const tierA=!adjudicationExclusion(row) && !relationshipInvalid && !newerRelationship && pairVerdict==="correct" && context?.identityAttested===true && scopeQualified && !newerCorrection;
   return {pairVerdict,actionId:verdict?.action_id??null,createdAt:verdict?.created_at??null,
     feedback:context ? record(context.matchingFeedback) : null,corrections,tierA,platformRelationship,
-    variationResolution:context?.variationResolution??null,actor:context?.actor??null,snapshotId:verdict?.listing_snapshot_id??null,
+    identityAttested:context?.identityAttested===true,notes:String(context?.notes??""),
+    variationResolution:resolution,variationVerified:verified,variationScopeReviewed,exactVariationId:exactVariationId(row),
+    variationProvenance:variationAction?{actionId:variationAction.action_id,actor:variationContext?.actor??null,
+      createdAt:variationAction.created_at,snapshotId:variationAction.listing_snapshot_id,targetActionId:variationContext?.variationTargetActionId??variationAction.action_id,valid:variationValid}:null,
+    actor:context?.actor??null,snapshotId:verdict?.listing_snapshot_id??null,
     evaluationId:context?.queueSnapshotHash??null,source:context?.source??null,
     requiresReReview:Boolean(relationshipInvalid || verdict&&(!applicable||newerCorrection||newerRelationship)),
     lineage:pair.map(a=>({actionId:a.action_id,createdAt:a.created_at,snapshotId:a.listing_snapshot_id,
-      verdict:record(a.raw_action_context.matchingFeedback).pairVerdict,actor:a.raw_action_context.actor,
+      variationResolution:a.raw_action_context.variationResolution,variationVerified:a.raw_action_context.variationVerified,reviewKind:a.raw_action_context.reviewKind,variationTargetActionId:a.raw_action_context.variationTargetActionId,verdict:record(a.raw_action_context.matchingFeedback).pairVerdict,actor:a.raw_action_context.actor,
       source:a.raw_action_context.source,evaluationId:a.raw_action_context.queueSnapshotHash,fieldRelationships:record(a.raw_action_context.matchingFeedback).fieldRelationships??[]}))};
 }
 export async function loadState(row:QueueRow):Promise<ReviewState> {
@@ -84,10 +102,18 @@ export async function saveAdjudication(body:RecordValue,actor:string) {
   if(adjudicationExclusion(row)) return {status:409,error:"Excluded from adjudication / informational only. No review was saved."};
   const requestId=String(body.requestId??"");
   if(!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(requestId)) throw new Error("Stable request ID required.");
-  const feedback=normalizeMatchingFeedback({...record(body.feedback),version:"matching_feedback_v3",allAssumptionsCorrect:false});
+  const variationOnly=body.reviewKind==="variation_scope";
+  if(body.variationResolution!==undefined && !["not_applicable","verified","unknown"].includes(String(body.variationResolution))) throw new Error("Choose a valid variation scope.");
+  if(variationOnly && body.variationResolution===undefined) throw new Error("Choose a variation scope.");
+  if(variationOnly && (body.feedback!==undefined || body.notes!==undefined || body.identityAttested!==undefined)) throw new Error("Variation-only saves cannot change review evidence.");
+  const feedback=normalizeMatchingFeedback({...record(variationOnly?{pairVerdict:"not_provided",corrections:[]}:body.feedback),version:"matching_feedback_v3",allAssumptionsCorrect:false});
   if(feedback.pairVerdict==="correct" && body.identityAttested!==true) throw new Error("Confirm the exact product identity before saving Confirm Match.");
   const comparison=comparisonFor(row);
   const state=await loadState(row);
+  const latest=summarize(row,state);
+  const replaying=state.actions.some(a=>a.action_id===requestId);
+  if(variationOnly && !replaying && (latest.pairVerdict!=="correct" || latest.actionId!==body.variationTargetActionId || latest.requiresReReview))
+    return {status:409,error:"The confirmation or its evidence changed. Reload before reviewing variation scope."};
   // A retry is checked atomically by fingerprint in the RPC, before its revision check.
   if(!state.actions.some(a=>a.action_id===requestId)) {
     if(body.expectedRevision!==state.revision) return {status:409,error:"A newer review or correction exists. Reload; your edits have not been saved."};
@@ -107,8 +133,11 @@ export async function saveAdjudication(body:RecordValue,actor:string) {
     pair:{asin:row.asin,ebayItemId:row.ebayItemId,variationId:row.variationId,opportunityId:row.opportunityId},
     purchaseItemId:row.purchaseItemId,receivingId:row.receivingId,
     // A negative pair verdict never asserts that the listing is the ASIN product.
-    identityAttested:feedback.pairVerdict==="correct" && body.identityAttested===true,variationVerified:body.variationVerified===true,
-    variationResolution:body.variationVerified===true ? (row.variationId && row.variationId!=="0" ? "verified_stored_variation" : "operator_confirmed_not_applicable") : "unknown",
+    identityAttested:feedback.pairVerdict==="correct" && body.identityAttested===true,
+    variationVerified:body.variationResolution==="not_applicable" || body.variationResolution==="verified",
+    variationResolution:variationResolution(body.variationResolution),
+    variationScopeReviewed:body.variationResolution!==undefined,
+    ...(variationOnly?{reviewKind:"variation_scope",variationTargetActionId:body.variationTargetActionId}:{}),
     learningScope:"exact_pair",build:process.env.MBOP_BUILD_SHA??"local",evaluation:comparison.evaluation,
     notes:String(body.notes??"").slice(0,4000)};
   const snapshot={asin:row.asin,ebay_item_id:row.ebayItemId,ebay_legacy_item_id:row.ebayLegacyItemId,

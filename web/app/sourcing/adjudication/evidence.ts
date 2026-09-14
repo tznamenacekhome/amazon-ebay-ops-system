@@ -40,3 +40,26 @@ export function adjudicationExclusion(row: {asin: string; ebayLegacyItemId: stri
     ? "not useful as exact single-product validation sample; mixed/random lot intentionally left as-is"
     : null;
 }
+
+export type VariationResolution = "not_applicable" | "verified" | "unknown";
+export function variationResolution(value: unknown): VariationResolution {
+  // Read historical explicit attestations without inventing new ones.
+  if (value === "operator_confirmed_not_applicable") return "not_applicable";
+  if (value === "verified_stored_variation") return "verified";
+  return value === "not_applicable" || value === "verified" ? value : "unknown";
+}
+export function exactVariationId(row: {variationId?: string | null; ebayItemId: string}) {
+  const stored = row.variationId?.trim();
+  const browse = /^v1\|[^|]+\|([^|]+)$/.exec(row.ebayItemId)?.[1];
+  if (stored && stored !== "0" && browse && browse !== "0" && stored !== browse) return null;
+  return stored && stored !== "0" ? stored : browse && browse !== "0" ? browse : null;
+}
+export function variationQualified(resolution: unknown, verified: unknown, row: {variationId?: string | null; ebayItemId: string}) {
+  const scope = variationResolution(resolution);
+  return verified === true && (scope === "not_applicable" || scope === "verified" && Boolean(exactVariationId(row)));
+}
+export function variationFollowup<T extends {adjudicationEligible: boolean; latestReview: {pairVerdict: string | null; variationScopeReviewed: boolean; tierA: boolean}}>(rows: T[]) {
+  const confirmed = rows.filter(r => r.adjudicationEligible && r.latestReview.pairVerdict === "correct");
+  return {rows: confirmed.filter(r => !r.latestReview.tierA), total: confirmed.length,
+    reviewed: confirmed.filter(r => r.latestReview.variationScopeReviewed).length};
+}

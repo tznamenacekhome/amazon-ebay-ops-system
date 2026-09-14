@@ -1,7 +1,7 @@
 "use client";
 import { useEffect,useState } from "react";
 import Link from "next/link";
-import { amazonListingUrl, ebayListingUrl, type PlatformRelationship } from "./evidence";
+import { amazonListingUrl, ebayListingUrl, variationFollowup, type VariationResolution, type PlatformRelationship } from "./evidence";
 import { MatchingReviewControls,type Corrections } from "../MatchingReviewControls";
 import { reviewFieldKeys } from "../reviewFields";
 import type { loadQueue } from "../../api/sourcing/adjudication/service";
@@ -15,9 +15,13 @@ export function ListingLinks({asin,ebayItemId,compact=false}:{asin?:string|null;
     <div><strong>eBay</strong><p className="break-all">Item: {ebayItemId??"Unknown"}</p>{ebay?<a className="text-blue-700 underline" href={ebay} target="_blank" rel="noopener noreferrer">Open eBay Listing {"\u2197"}</a>:<span>eBay link unavailable</span>}</div>
   </div>;
 }
-export function AdjudicationEditor({row,onClose,onSaved}:{row:Row;onClose:()=>void;onSaved:(verdict:string,reviewState?:Pick<Row,"revision"|"latestReview">)=>Promise<void>}) {
-  const [corrections,setCorrections]=useState<Corrections>([]),[wrong,setWrong]=useState<string[]>(()=>row.latestReview.platformRelationship?.operatorRelationship==="wrong"?["platform_system"]:[]);
-  const [notes,setNotes]=useState(""),[attested,setAttested]=useState(false),[variation,setVariation]=useState(false);
+export function AdjudicationEditor({row,onClose,onSaved,variationOnly=false}:{row:Row;variationOnly?:boolean;onClose:()=>void;onSaved:(verdict:string,reviewState?:Pick<Row,"revision"|"latestReview">)=>Promise<void>}) {
+  const [corrections,setCorrections]=useState<Corrections>([]);
+  const [wrong,setWrong]=useState<string[]>(()=>[...new Set([
+    ...Object.entries(reviewFieldKeys).filter(([,field])=>((row.latestReview.feedback?.flaggedFields??[]) as string[]).includes(field)).map(([key])=>key),
+    ...(row.latestReview.platformRelationship?.operatorRelationship==="wrong"?["platform_system"]:[])
+  ])]);
+  const [notes,setNotes]=useState(row.latestReview.notes),[attested,setAttested]=useState(row.latestReview.identityAttested),[variation,setVariation]=useState<VariationResolution>(row.latestReview.variationResolution);
   const [busy,setBusy]=useState(false),[error,setError]=useState<string|null>(null);
   const [pending,setPending]=useState<Record<string,unknown>|null>(null);
   const [savedVerdict,setSavedVerdict]=useState<string|null>(null);
@@ -44,10 +48,11 @@ export function AdjudicationEditor({row,onClose,onSaved}:{row:Row;onClose:()=>vo
       || JSON.stringify(supportList(ebaySupports))!==JSON.stringify(previousRelationship?.compatiblePlatforms?.ebay??[]);
     const payload=pending??{queueId:row.queueId,requestId:crypto.randomUUID(),expectedAsin:row.asin,
       expectedEbayItemId:row.ebayItemId,expectedSnapshotHash:row.snapshotHash,expectedRevision:row.revision,
-      identityAttested:verdict==="correct"&&attested,variationVerified:variation,notes,
+      ...(variationOnly?{reviewKind:"variation_scope",variationTargetActionId:row.latestReview.actionId,variationResolution:variation}:{
+      identityAttested:verdict==="correct"&&attested,variationResolution:variation,notes,
       feedback:{pairVerdict:verdict,corrections,flaggedFields:[...new Set([...wrong.map(k=>reviewFieldKeys[k]),...corrections.map(c=>c.field)])],
         ...(relationship&&relationshipChanged?{fieldRelationships:[{field:"platform",operatorRelationship:relationship,compatiblePlatforms:{amazon:supportList(amazonSupports),ebay:supportList(ebaySupports)}}]}:{}),
-        failedRuleFamilies:[...new Set(row.diagnosticComparison.rows.filter(r=>wrong.includes(r.key)).map(r=>r.ruleFamily).filter(Boolean))]}};
+        failedRuleFamilies:[...new Set(row.diagnosticComparison.rows.filter(r=>wrong.includes(r.key)).map(r=>r.ruleFamily).filter(Boolean))]}})};
     setPending(payload);
       const response=await fetch("/api/sourcing/adjudication",{method:"POST",headers:{"Content-Type":"application/json","x-mbop-csrf":"1"},body:JSON.stringify(payload),signal:AbortSignal.timeout(30000)});
       const data=await response.json().catch(()=>{throw new Error(`Save returned HTTP ${response.status} without a JSON response. Your session may need reauthentication.`);});
@@ -67,40 +72,58 @@ export function AdjudicationEditor({row,onClose,onSaved}:{row:Row;onClose:()=>vo
     {row.currentPurchaseAsin!==row.asin?<p className="my-2 bg-amber-50 p-2">Current purchase ASIN is {row.currentPurchaseAsin}. You are reviewing the original {row.asin} pair; no assignment will be changed.</p>:null}
     <p className="my-2 text-sm">{row.adjudicationExclusionReason??row.auditReason}</p>
     <fieldset disabled={busy||Boolean(pending)||savedVerdict!==null||!row.adjudicationEligible}>
+      <section className="my-4 border-t pt-3" aria-labelledby="variation-heading">
+        <h2 id="variation-heading" className="font-semibold">Variation scope</h2>
+        <p className="my-2 text-sm">This is only about whether the exact eBay listing/variation identity has been verified. It does not affect profitability or business rules.</p>
+        <select required aria-label="Variation scope" className="w-full rounded border p-2" value={variation} onChange={e=>setVariation(e.target.value as VariationResolution)}>
+          <option value="not_applicable">Not applicable ? single-product listing</option>
+          <option value="verified">Exact variation verified</option>
+          <option value="unknown">Unknown</option>
+        </select>
+        {variation==="verified"?<p className="my-2 text-sm">{row.latestReview.exactVariationId?`Exact stored variation: ${row.latestReview.exactVariationId}`:"No exact variation identifier is stored. You may save this selection, but it cannot qualify for Tier A. No identifier will be invented."}</p>:null}
+        {variation==="unknown"?<p className="my-2 text-sm">Unknown can be saved. Confirm Match remains evidence but does not qualify for Tier A.</p>:null}
+        <p className="my-2 text-sm">Current saved qualification: {row.latestReview.tierA?"Tier A":"Not Tier A"}. {variationOnly?"Only variation scope will be saved; existing review evidence is preserved.":"Unedited fields are not certified by Tier A."}</p>
+      </section>
+      <fieldset disabled={variationOnly}>
       <MatchingReviewControls row={{diagnosticComparison:row.diagnosticComparison,latestReview:row.latestReview,amazonTitle:row.reference.amazon_title,ebayTitle:row.candidate.ebay_title}} corrections={corrections} onCorrections={setCorrections} wrongRows={wrong} onWrongRows={setWrong} additionalRows={row.additionalRows} platformReview={platformReview}/>
       <details className="my-3"><summary>Stored parser token treatment</summary>{["amazon","ebay"].map(side=><pre key={side} className="whitespace-pre-wrap text-xs">{side}: {Object.keys(row.identity[side as "amazon"|"ebay"].tokenHandling??{}).length?JSON.stringify(row.identity[side as "amazon"|"ebay"].tokenHandling,null,2):"Token breakdown unavailable for this evaluation."}</pre>)}</details>
       <p className="text-xs">Derived base product, included contents and assigned year corrections are stored as separate v3 evidence. The frozen parser output is preserved.</p>
       <label className="my-3 block">Notes<textarea aria-label="Adjudication notes" className="block w-full rounded border p-2" value={notes} onChange={e=>setNotes(e.target.value)}/></label>
       <label className="block"><input type="checkbox" checked={attested} onChange={e=>setAttested(e.target.checked)}/> I explicitly verified this exact listing represents this exact ASIN product.</label>
-      <label className="block"><input type="checkbox" checked={variation} onChange={e=>setVariation(e.target.checked)}/> {row.variationId && row.variationId!=="0" ? `I verified the exact stored variation ${row.variationId}.` : "I verified that variation selection is not applicable to this exact listing."}</label>
+      </fieldset>
+
     </fieldset>
     <div className="sticky bottom-0 border-t bg-white py-3">
-    {busy?<p role="status">{savedVerdict!==null?`${labels[savedVerdict]??"Corrections"} saved. Updating queue…`:"Saving review…"}</p>:null}
-    {savedVerdict!==null&&!busy?<p role="status">{labels[savedVerdict]??"Corrections"} saved. The evidence is recorded.</p>:null}
+    {busy?<p role="status">{savedVerdict!==null?`${variationOnly?"Variation scope":labels[savedVerdict]??"Corrections"} saved. Updating queue…`:"Saving review…"}</p>:null}
+    {savedVerdict!==null&&!busy?<p role="status">{variationOnly?"Variation scope":labels[savedVerdict]??"Corrections"} saved. The evidence is recorded.</p>:null}
     {error?<p role="alert" className="my-3 text-red-800">{error} {savedVerdict!==null?"Close and reload the queue to see the saved review. Do not resubmit it.":error.includes("Reload")?"Close and reopen the queue after reloading. Unsaved edits remain visible here.":pending?"Retry uses the same request; your unsaved edits are retained.":"Your unsaved edits are retained."}</p>:null}
     {row.adjudicationEligible?<div className="mt-4 flex gap-3">
-      {savedVerdict!==null?<button disabled={busy} onClick={onClose}>Close saved review</button>:pending?<button disabled={busy} onClick={()=>save(String((pending.feedback as {pairVerdict:string}).pairVerdict))}>{busy?"Saving…":"Retry save"}</button>:<>
+      {savedVerdict!==null?<button disabled={busy} onClick={onClose}>Close saved review</button>:pending?<button disabled={busy} onClick={()=>save(variationOnly?"correct":String((pending.feedback as {pairVerdict:string}).pairVerdict))}>{busy?"Saving…":"Retry save"}</button>:variationOnly?<button className="rounded bg-blue-700 px-3 py-2 text-white" disabled={busy||row.latestReview.requiresReReview} onClick={()=>save("correct")}>Save variation scope</button>:<>
         <button className="rounded bg-green-700 px-3 py-2 text-white" disabled={busy||!attested} onClick={()=>save("correct")}>Confirm Match</button>
         <button className="rounded bg-red-700 px-3 py-2 text-white" disabled={busy} onClick={()=>save("incorrect")}>Incorrect Match</button>
         <button disabled={busy} onClick={()=>save("unsure")}>Not Sure</button>
         <button disabled={busy} onClick={()=>save("not_provided")}>Save corrections only</button>
       </>}
-    </div>:null}<p className="mt-2 text-xs">Incorrect Match rejects this exact pair without Wrong fields, corrections or either verification checkbox. Confirm Match requires identity verification; verified variation scope is required only for Tier A. Recheck is deferred; these are recorded evaluations.</p>
+    </div>:null}<p className="mt-2 text-xs">Incorrect Match rejects this exact pair without Wrong fields, corrections or variation verification. Confirm Match requires identity verification; verified variation scope is required only for Tier A. Recheck is deferred; these are recorded evaluations.</p>
     </div>
   </div></div>;
 }
 export default function AdjudicationPage() {
   const [rows,setRows]=useState<Row[]>([]),[error,setError]=useState<string|null>(null),[selected,setSelected]=useState<Row|null>(null);
   const [success,setSuccess]=useState<string|null>(null);
+  const [followupOnly,setFollowupOnly]=useState(false);
+  const followup=variationFollowup(rows);
+  const visibleRows=followupOnly?followup.rows:rows;
   async function reload(){const response=await fetch("/api/sourcing/adjudication",{cache:"no-store"});const data=await response.json();if(!response.ok)throw new Error(data.error??"Queue unavailable");setRows(data.rows);setError(null);}
   useEffect(()=>{let active=true;fetch("/api/sourcing/adjudication",{cache:"no-store"}).then(async response=>{const data=await response.json();if(!response.ok)throw new Error(data.error??"Queue unavailable");if(active)setRows(data.rows);}).catch(e=>{if(active)setError(e.message);});return()=>{active=false;};},[]);
   return <main className="bg-white p-6 text-slate-900"><Link href="/sourcing" className="text-blue-700 underline">Back to Sourcing</Link><h1 className="my-4 text-2xl font-semibold">Identity Adjudication</h1>
     <p>{rows.filter(r=>r.adjudicationEligible&&r.latestReview.pairVerdict).length} of {rows.filter(r=>r.adjudicationEligible).length} reviewed (1 informational row excluded) · Evidence only · Phase 3 remains shadow-only</p>
-    <div className="my-3 flex gap-4"><button onClick={()=>reload().catch(e=>setError(e.message))}>Reload queue</button><a href="/api/sourcing/adjudication?report=1" target="_blank" rel="noopener noreferrer">Export Tier A / negatives / unresolved</a></div>
+    <p className="my-2">{followup.reviewed} of {followup.total} variation scope reviewed. {followup.rows.length} confirmations remain unqualified.</p>
+    <div className="my-3 flex gap-4"><button aria-pressed={followupOnly} onClick={()=>setFollowupOnly(!followupOnly)}>{followupOnly?"Show all adjudication rows":"Review confirmation variation scope"}</button><button onClick={()=>reload().catch(e=>setError(e.message))}>Reload queue</button><a href="/api/sourcing/adjudication?report=1" target="_blank" rel="noopener noreferrer">Export adjudicated corpus</a></div>
     {error?<p role="alert">{error}. The frozen queue has not been replaced; reload when evidence storage is available.</p>:null}
     {success?<p role="status" className="my-3 rounded bg-green-50 p-3 text-green-900">{success}</p>:null}
-    <table className="w-full text-sm"><thead><tr>{["ASIN / item","Amazon","eBay","Shadow","Why selected","Review"].map(x=><th className="border p-2 text-left" key={x}>{x}</th>)}</tr></thead><tbody>{rows.map(row=><tr key={row.queueId}>
-      <td className="border p-2"><ListingLinks compact asin={row.asin} ebayItemId={row.ebayItemId}/></td><td className="border p-2">{row.reference.amazon_title}</td><td className="border p-2">{row.candidate.ebay_title}</td><td className="border p-2">{row.diagnosticComparison.productIdentityVerdict}</td><td className="max-w-lg border p-2">{row.adjudicationExclusionReason??row.auditReason}</td><td className="border p-2"><button className="text-blue-700 underline" disabled={!row.available} onClick={()=>setSelected(row)}>{!row.available ? "Unavailable" : !row.adjudicationEligible ? "Excluded from adjudication / informational only" : labels[row.latestReview.pairVerdict??""]??"Unreviewed"}</button>{row.unavailableReason?<p>{row.unavailableReason}</p>:null}{row.latestReview.requiresReReview?<p>Newer evidence: review again</p>:null}</td>
-    </tr>)}</tbody></table>{selected?<AdjudicationEditor key={selected.queueId} row={selected} onClose={()=>setSelected(null)} onSaved={async(verdict,reviewState)=>{setSuccess(`${labels[verdict]??"Corrections"} saved for ${selected.asin} / ${selected.ebayItemId}.`);if(reviewState)setRows(current=>current.map(r=>r.queueId===selected.queueId?{...r,...reviewState}:r));else await reload();}}/>:null}
+    <table className="w-full text-sm"><thead><tr>{["ASIN / item","Amazon","eBay","Shadow","Why selected","Review"].map(x=><th className="border p-2 text-left" key={x}>{x}</th>)}</tr></thead><tbody>{visibleRows.map(row=><tr key={row.queueId}>
+      <td className="border p-2"><ListingLinks compact asin={row.asin} ebayItemId={row.ebayItemId}/></td><td className="border p-2">{row.reference.amazon_title}</td><td className="border p-2">{row.candidate.ebay_title}</td><td className="border p-2">{row.diagnosticComparison.productIdentityVerdict}</td><td className="max-w-lg border p-2">{row.adjudicationExclusionReason??row.auditReason}</td><td className="border p-2"><button className="text-blue-700 underline" disabled={!row.available} onClick={()=>setSelected(row)}>{!row.available ? "Unavailable" : !row.adjudicationEligible ? "Excluded from adjudication / informational only" : labels[row.latestReview.pairVerdict??""]??"Unreviewed"}</button>{row.unavailableReason?<p>{row.unavailableReason}</p>:null}<p>{row.latestReview.tierA?"Tier A":row.latestReview.pairVerdict==="correct"?`Not Tier A: ${row.latestReview.variationResolution}`:""}</p>{row.latestReview.requiresReReview?<p>Newer evidence: review again</p>:null}</td>
+    </tr>)}</tbody></table>{selected?<AdjudicationEditor variationOnly={followupOnly} key={selected.queueId} row={selected} onClose={()=>setSelected(null)} onSaved={async(verdict,reviewState)=>{setSuccess(`${followupOnly?"Variation scope":labels[verdict]??"Corrections"} saved for ${selected.asin} / ${selected.ebayItemId}.`);if(reviewState)setRows(current=>current.map(r=>r.queueId===selected.queueId?{...r,...reviewState}:r));else await reload();}}/>:null}
   </main>;
 }

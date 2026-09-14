@@ -18,7 +18,7 @@ def action(row, verdict='correct', *, variation=True, attested=True, corrections
         'pair':{'asin':row['asin'],'ebayItemId':row['ebayItemId'],'variationId':row['variationId']},
         'source':'identity_adjudication_queue','snapshotPolicy':'frozen_historical','actor':'synthetic-test-reviewer',
         'requestHash':'test-request-hash','requestId':identity,'snapshotId':'snapshot-'+identity,'recordedAt':timestamp,
-        'identityAttested':attested,'variationVerified':variation,
+        'identityAttested':attested,'variationVerified':variation,'variationResolution':'not_applicable' if variation else 'unknown',
         'matchingFeedback':{'version':'matching_feedback_v3','evidenceProvenance':'explicit','pairVerdict':verdict,
             'corrections':corrections or [],'flaggedFields':flags or [],'fieldRelationships':relationships or []}}
     a={'action_id':identity,'asin':row['asin'],'ebay_item_id':row['ebayItemId'],'created_at':timestamp,
@@ -34,8 +34,24 @@ class AdjudicatedTruthTests(unittest.TestCase):
     def setUp(self):self.row=deepcopy(QUEUE[2])
     def select(self, actions, snapshots, row=None, queue=None):
         return select_evidence(row or self.row,actions,queue or [self.row],{s['listing_snapshot_id']:s for s in snapshots})
+    def test_explicit_variation_states_and_followup_lineage(self):
+        a,s=action(self.row,variation=False,flags=['coreGame'])
+        for scope,expected in [('not_applicable','tier_a_positive'),('verified','unqualified_confirmation'),('unknown','unqualified_confirmation')]:
+            b,t=action(self.row,'not_provided',identity='scope-'+scope,timestamp='2026-09-14T03:01:00+00:00')
+            b['raw_action_context'].update(reviewKind='variation_scope',variationTargetActionId=a['action_id'],variationResolution=scope,variationVerified=scope!='unknown')
+            t['raw_context_json']=deepcopy(b['raw_action_context'])
+            v=self.select([a,b],[s,t]);self.assertEqual(expected,v['class']);self.assertEqual(a['action_id'],v['verdictActionId']);self.assertEqual(scope,v['variationResolution']);self.assertEqual(['coreGame'],[f['field'] for f in v['flags']])
+            b['raw_action_context']['variationTargetActionId']='superseded';t['raw_context_json']=deepcopy(b['raw_action_context'])
+            self.assertEqual('unqualified_confirmation',self.select([a,b],[s,t])['class'])
+    def test_exact_variation_identifier_required(self):
+        row=deepcopy(self.row);row['variationId']='987';row['ebayItemId']='v1|123456789012|987'
+        a,s=action(row);a['raw_action_context']['variationResolution']='verified';s['raw_context_json']=deepcopy(a['raw_action_context'])
+        v=self.select([a],[s],row,[row]);self.assertEqual('tier_a_positive',v['class']);self.assertEqual('987',v['exactVariationId'])
+    def test_resolution_unknown_cannot_be_promoted_by_boolean(self):
+        a,s=action(self.row);a['raw_action_context']['variationResolution']='unknown';s['raw_context_json']=deepcopy(a['raw_action_context'])
+        self.assertEqual('unqualified_confirmation',self.select([a],[s])['class'])
     def test_missing_variation_is_not_tier_a(self):
-        a,s=action(self.row,variation=False);v=self.select([a],[s]);self.assertEqual('unresolved',v['class']);self.assertIn('verification unchecked',v['qualificationReasons'][0])
+        a,s=action(self.row,variation=False);v=self.select([a],[s]);self.assertEqual('unqualified_confirmation',v['class']);self.assertIn('verification unchecked',v['qualificationReasons'][0])
     def test_positive_with_exact_scope_is_tier_a(self):
         a,s=action(self.row);self.assertEqual('tier_a_positive',self.select([a],[s])['class'])
     def test_negative_requires_no_positive_assertions(self):
@@ -43,15 +59,15 @@ class AdjudicatedTruthTests(unittest.TestCase):
     def test_unsure_supersedes_positive_and_retains_history(self):
         a,s=action(self.row);b,t=action(self.row,'unsure',timestamp='2026-09-14T03:01:00+00:00',identity='newer');v=self.select([a,b],[s,t]);self.assertEqual('unsure',v['verdict']);self.assertEqual('unresolved',v['class']);self.assertEqual(2,len(v['lineage']))
     def test_invalid_newer_verdict_does_not_fall_back(self):
-        a,s=action(self.row);b,t=action(self.row,timestamp='2026-09-14T03:01:00+00:00',identity='newer');b['raw_action_context']['snapshotId']='wrong';v=self.select([a,b],[s,t]);self.assertEqual('newer',v['verdictActionId']);self.assertEqual('unresolved',v['class'])
+        a,s=action(self.row);b,t=action(self.row,timestamp='2026-09-14T03:01:00+00:00',identity='newer');b['raw_action_context']['snapshotId']='wrong';v=self.select([a,b],[s,t]);self.assertEqual('newer',v['verdictActionId']);self.assertEqual('unqualified_confirmation',v['class'])
     def test_newer_legacy_id_cannot_silently_leave_old_positive_current(self):
         a,s=action(self.row);b,t=action(self.row,'incorrect',timestamp='2026-09-14T03:01:00+00:00',identity='newer');b['ebay_item_id']=self.row['ebayLegacyItemId'];v=self.select([a,b],[s,t]);self.assertEqual('newer',v['verdictActionId']);self.assertEqual('unresolved',v['class'])
     def test_compatible_qualifies_without_rewriting_values(self):
         row=deepcopy(QUEUE[1]);a,s=action(row,relationships=[{'field':'platform','operatorRelationship':'compatible'}]);v=self.select([a],[s],row,[row]);self.assertEqual('tier_a_positive',v['class']);r=replay(row,v,[a],{s['listing_snapshot_id']:s},'2026-09-14T04:00:00+00:00');self.assertEqual('Xbox One',r['withCorrections']['amazon']['platform']);self.assertEqual('Xbox Series X',r['withCorrections']['ebay']['platform']);self.assertFalse(r['pairVerdictUsedAsInput']);self.assertEqual('non-match',r['identityVerdict'])
     def test_invalid_relationship_cannot_qualify(self):
-        a,s=action(self.row,relationships=[None]);self.assertEqual('unresolved',self.select([a],[s])['class'])
+        a,s=action(self.row,relationships=[None]);self.assertEqual('unqualified_confirmation',self.select([a],[s])['class'])
     def test_newer_wrong_flag_without_replacement(self):
-        a,s=action(self.row);b,t=action(self.row,'not_provided',timestamp='2026-09-14T03:01:00+00:00',identity='newer',flags=['coreGame']);v=self.select([a,b],[s,t]);self.assertEqual('unresolved',v['class']);r=replay(self.row,v,[a,b],{x['listing_snapshot_id']:x for x in [s,t]},'2026-09-14T04:00:00+00:00');self.assertFalse(r['normalBusinessEvaluationEligible']);self.assertEqual(['coreGame'],r['unreliableFieldsWithoutReplacement']);self.assertEqual([],r['correctionApplication'])
+        a,s=action(self.row);b,t=action(self.row,'not_provided',timestamp='2026-09-14T03:01:00+00:00',identity='newer',flags=['coreGame']);v=self.select([a,b],[s,t]);self.assertEqual('unqualified_confirmation',v['class']);r=replay(self.row,v,[a,b],{x['listing_snapshot_id']:x for x in [s,t]},'2026-09-14T04:00:00+00:00');self.assertFalse(r['normalBusinessEvaluationEligible']);self.assertEqual(['coreGame'],r['unreliableFieldsWithoutReplacement']);self.assertEqual([],r['correctionApplication'])
     def test_newer_empty_flags_supersede_old_flags(self):
         a,s=action(self.row,flags=['edition']);b,t=action(self.row,timestamp='2026-09-14T03:01:00+00:00',identity='newer');self.assertEqual([],self.select([a,b],[s,t])['flags'])
     def test_explicit_asin_scope_does_not_propagate_pair_correction(self):

@@ -83,7 +83,7 @@ def select_evidence(row, actions, queue, snapshots):
         if action['asin'] != row['asin']:
             continue
         if is_exact:
-            if not flags_seen:
+            if not flags_seen and ctx.get("reviewKind") != "variation_scope":
                 flags = [{'field':f, 'actionId':action['action_id']} for f in feedback.get('flaggedFields',[])]
                 flags_seen = True
             if not relationships_seen and feedback.get('fieldRelationships'):
@@ -120,23 +120,45 @@ def select_evidence(row, actions, queue, snapshots):
         any(c['actionId'] == a['action_id'] for c in corrections) or a in exact and (
             a['raw_action_context'].get('matchingFeedback', {}).get('flaggedFields') or
             a['raw_action_context'].get('matchingFeedback', {}).get('fieldRelationships')))]
+    variation_action = next((a for a in candidates if a['raw_action_context'].get('reviewKind') == 'variation_scope'
+        or a['raw_action_context'].get('matchingFeedback', {}).get('pairVerdict') in ('correct','incorrect','unsure')), None)
+    variation_ctx = variation_action['raw_action_context'] if variation_action else {}
+    variation_errors = action_errors(variation_action, queue, snapshots) if variation_action else ['no variation evidence']
+    if variation_action and verdict and variation_action['action_id'] != verdict['action_id']:
+        if variation_ctx.get('reviewKind') != 'variation_scope' or variation_ctx.get('variationTargetActionId') != verdict['action_id']:
+            variation_errors.append('variation evidence does not reference current confirmation')
+    resolution = {'operator_confirmed_not_applicable':'not_applicable','verified_stored_variation':'verified'}.get(
+        variation_ctx.get('variationResolution'), variation_ctx.get('variationResolution','unknown'))
+    stored = row.get('variationId')
+    browse = row['ebayItemId'].split('|')[-1] if row['ebayItemId'].startswith('v1|') else None
+    exact_variation = stored if stored and stored != '0' else browse if browse and browse != '0' else None
+    if stored and stored != '0' and browse and browse != '0' and stored != browse:
+        exact_variation = None
     qualification = list(verdict_errors)
     if pair_verdict == 'correct':
         if ctx.get('identityAttested') is not True:
             qualification.append('exact product identity was not explicitly attested')
-        if ctx.get('variationVerified') is not True:
+        qualification.extend(variation_errors)
+        if variation_ctx.get('variationVerified') is not True:
             qualification.append('variation scope/not-applicable verification unchecked')
+        if resolution not in ('not_applicable','verified'):
+            qualification.append('variation resolution is unknown or invalid')
+        if resolution == 'verified' and not exact_variation:
+            qualification.append('exact verified variation identity missing or inconsistent')
         if newer:
             qualification.append('newer correction/relationship evidence requires renewed pair confirmation')
         qualification.extend(problems)
     informational = row['asin'] == 'B072JZB85B' and row['ebayLegacyItemId'] == '233733278405'
-    ground_class = 'informational' if informational else 'tier_a_positive' if pair_verdict == 'correct' and not qualification else 'verified_negative' if pair_verdict == 'incorrect' and not verdict_errors else 'unresolved'
+    ground_class = 'informational' if informational else 'tier_a_positive' if pair_verdict == 'correct' and not qualification else 'verified_negative' if pair_verdict == 'incorrect' and not verdict_errors else 'unqualified_confirmation' if pair_verdict == 'correct' else 'unresolved'
     return {'class':ground_class,'verdict':pair_verdict,'verdictActionId':verdict['action_id'] if verdict else None,
         'verdictTimestamp':verdict['created_at'] if verdict else None,'actor':ctx.get('actor'),'notes':ctx.get('notes'),
         'snapshotId':verdict['listing_snapshot_id'] if verdict else None,'evaluationId':ctx.get('queueSnapshotHash'),
-        'identityAttested':ctx.get('identityAttested'),'variationVerified':ctx.get('variationVerified'),
-        'variationResolution':ctx.get('variationResolution'),'source':ctx.get('source'),
-        'qualificationReasons':qualification if ground_class == 'unresolved' else ['intentional informational mixed-lot exclusion'] if informational else ['verified exact-pair provenance; positive identity and variation assertions present'] if ground_class == 'tier_a_positive' else ['verified exact-pair negative; positive/variation assertions not required'],
+        'identityAttested':ctx.get('identityAttested'),'variationVerified':variation_ctx.get('variationVerified'),
+        'variationResolution':resolution,'exactVariationId':exact_variation,
+        'variationProvenance':{'actionId':variation_action['action_id'] if variation_action else None,'actor':variation_ctx.get('actor'),
+            'timestamp':variation_action['created_at'] if variation_action else None,'targetActionId':variation_ctx.get('variationTargetActionId'),
+            'provenanceErrors':variation_errors},'source':ctx.get('source'),
+        'qualificationReasons':qualification if ground_class in ('unresolved','unqualified_confirmation') else ['intentional informational mixed-lot exclusion'] if informational else ['verified exact-pair provenance; positive identity and variation assertions present'] if ground_class == 'tier_a_positive' else ['verified exact-pair negative; positive/variation assertions not required'],
         'verdictProvenanceErrors':verdict_errors,'corrections':corrections,'flags':flags,'relationships':relationships,
         'newerEvidenceActionIds':newer,'lineage':[{'actionId':a['action_id'],'timestamp':a['created_at'],
             'verdict':a['raw_action_context'].get('matchingFeedback', {}).get('pairVerdict'),
@@ -196,7 +218,7 @@ def validate(capture):
     negatives = [r for r in rows if r['evidence']['class'] == 'verified_negative']
     confirmed = [r for r in rows if r['evidence']['verdict'] == 'correct']
     counts = lambda group: dict(Counter(r['replay']['identityVerdict'] for r in group))
-    insufficient = not positives or any(r['evidence']['class']=='unresolved' and r['evidence']['verdict']!='unsure' for r in rows)
+    insufficient = not positives or any(r['evidence']['class']=='unqualified_confirmation' or r['evidence']['class']=='unresolved' and r['evidence']['verdict']!='unsure' for r in rows)
     failed = any(not r['replay']['normalBusinessEvaluationEligible'] for r in positives) or any(r['replay']['normalBusinessEvaluationEligible'] for r in negatives)
     changed = any(hashlib.sha256(Path(f).read_bytes()).hexdigest()!=h for f,h in capture.get('baselineCodeHashes',{}).items())
     return {'mode':'offline_shadow_only','matcherChanged':changed,'deploymentAllowed':False,'refreshAllowed':False,

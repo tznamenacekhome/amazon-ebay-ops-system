@@ -1,5 +1,6 @@
 import { NextRequest,NextResponse } from "next/server";
 import { requireAdminApiToken,isCloudDeployment } from "../../_server";
+import { variationFollowup } from "../../../sourcing/adjudication/evidence";
 import { loadQueue,saveAdjudication } from "./service";
 export const dynamic="force-dynamic";
 export async function GET(request:NextRequest) {
@@ -18,9 +19,12 @@ export async function GET(request:NextRequest) {
     if(request.nextUrl.searchParams.get("report")==="1") return NextResponse.json({source:"identity_adjudication_queue",total:eligible.length,storedTotal:rows.length,
       positives:eligible.filter(r=>r.latestReview.tierA).map(exportRow),
       negatives:eligible.filter(r=>r.latestReview.pairVerdict==="incorrect").map(exportRow),
-      unresolved:eligible.filter(r=>!r.latestReview.tierA&&r.latestReview.pairVerdict!=="incorrect").map(exportRow),
+      unqualifiedConfirmations:eligible.filter(r=>!r.latestReview.tierA&&r.latestReview.pairVerdict==="correct").map(exportRow),
+      unresolved:eligible.filter(r=>r.latestReview.pairVerdict==="unsure").map(exportRow),
+      unreviewed:eligible.filter(r=>!r.latestReview.pairVerdict).map(exportRow),
       excluded:rows.filter(r=>!r.adjudicationEligible).map(exportRow)});
-    return NextResponse.json({rows,reviewed:eligible.filter(r=>r.latestReview.pairVerdict).length,total:eligible.length,storedTotal:rows.length});
+    if(request.nextUrl.searchParams.get("followup")==="variation") return NextResponse.json(variationFollowup(rows));
+    return NextResponse.json({rows,variationFollowup:variationFollowup(rows),reviewed:eligible.filter(r=>r.latestReview.pairVerdict).length,total:eligible.length,storedTotal:rows.length});
   }catch(error){return NextResponse.json({error:error instanceof Error?error.message:"Queue unavailable"},{status:503});}
 }
 export async function POST(request:NextRequest) {

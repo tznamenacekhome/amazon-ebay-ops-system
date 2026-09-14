@@ -1,5 +1,9 @@
 # Sourcing matching repair handoff
 
+## Explicit variation-scope follow-up ? 2026-09-13
+
+The variation-only follow-up preserves the twelve confirmations and all existing evidence. Three explicit states replace the ambiguous checkbox; only Not Applicable or identifier-backed Verified can qualify Tier A. Read [implementation, tests and release checkpoint](sourcing_variation_scope_adjudication_2026-09-13.md). No operator follow-up or strict gate pass is invented. Phase 3 remains incomplete and shadow-only; earlier gate records below remain frozen history.
+
 ## Saved adjudication corpus gate - 2026-09-13
 
 Implementation/evidence commit: `62908e775b3f98a7ac203ca2d775044c2641d361` (`Preserve adjudicated sourcing evidence and tighten shadow identity gate`), based on `b2d0bac1ad732df72b0238c06a2270329dec3af6`. This subsequent documentation commit records that immutable implementation hash; its own hash and push status are available from Git history rather than embedded self-references. The ten intended files are inventoried in the full report. Closeout reconciled 25 artifact hashes, 8 candidate hashes, 17 prior hashes, all 16 manifest rows, 1,609 unchanged production-default outputs and the frozen 1,000/current 600 shadow counts; the 17 focused tests pass again. Disposable PostgreSQL is confirmed stopped. Saved Compatible relationships remain zero, and relationship-based admission is not yet proven by the synthetic qualification test. Phase 3 remains incomplete and shadow-only; no deployment, refresh, search, routing activation or production mutation is authorized.
