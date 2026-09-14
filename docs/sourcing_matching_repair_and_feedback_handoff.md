@@ -2,6 +2,8 @@
 
 ## Reference metadata gate passed; atomic fingerprint gate blocked
 
+Implementation checkpoint: `5ad2b27ca7cdc2370cfcd43dc6249b7962991955`. This follow-up documentation commit records the immutable source hash. The guard migration remains unapproved for remote application; this is not Phase 3 completion.
+
 Canonical reference construction now preserves the existing inferred platform metadata. All four prior losses are restored: 15/15 curated positives eligible, 12/12 Tier A Match, 3/3 adjudicated and 18/18 curated negatives excluded; Crystal Harbor passes and genuine PS4/PS5 remains blocked. All 1,609 legacy outputs are unchanged. Operational work resumed: local guard implementation, initial 31 mutation checks, fresh 529-row bounded capture (28 Buy List / 50 of 129 Closest Excluded / 2 Business Excluded) and an 18-migration ledger reconciliation. Expanded guard acceptance exposed false staleness after numeric JSON round-trip (`25.00` vs `25.0`), with zero writes in the failed case. Guard is not production-approved; no deployment, remote SQL, refresh or provider search occurred. [Exact blocker, tests, capture and continuation](sourcing_phase3_final_deployment_2026-09-13.md). Phase 3 remains incomplete. Earlier reports below are historical.
 
 ## Authorized Disney first-generation convention: sampled strict gate passed

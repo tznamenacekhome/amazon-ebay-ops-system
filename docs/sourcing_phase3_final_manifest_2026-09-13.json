@@ -354,7 +354,8 @@
     "digest": "sha256:905302756651d8ff2a6e3a88e378c737b7bb16935a135827908d4f3d85115403",
     "published": false,
     "deployed": false,
-    "contains": "tested metadata Python candidate; guard SQL validated separately in disposable DB"
+    "contains": "tested metadata Python candidate; guard SQL validated separately in disposable DB",
+    "limitation": "Test image predates trailing-blank-line cleanup in system_detection.py; no approved deploy image was produced."
   },
   "lastRecordedRuntimeNotFreshlyVerified": {
     "web": 151,
@@ -408,5 +409,6 @@
     "tmp\\sourcing-phase3-final-fresh\\responses.json": "008595cb215a524a924a378230ae6d33d76b651538f07d1903489a08e19276bc",
     "tmp\\sourcing-phase3-final-fresh\\row-manifest.json": "fc10cd68d233544b04baaf8cc6bddd8622bf4efc3581aaa4baa33d6025812145",
     "tmp\\sourcing-phase3-final-fresh\\continuation-state-index.json": "5e6c46c862f067cb66a7c6d9eca54a4417942e45af43c0b7b1de5c53c47c3b70"
-  }
+  },
+  "candidateCommit": "5ad2b27ca7cdc2370cfcd43dc6249b7962991955"
 }
