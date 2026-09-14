@@ -10,6 +10,8 @@ import {
   Search,
 } from "lucide-react";
 import type { SourcingBatch, SourcingOpportunity, SourcingRun, SourcingSettings } from "./types";
+import { fetchSourcing, sourcingResources } from "./sourcingResourceCache";
+import { LazySourcingReview } from "./LazySourcingReview";
 import { useSourcingOpportunities } from "./useSourcingOpportunities";
 import { incorrectMatchReason, reviewFieldKeys } from "./reviewFields";
 import { dismissReasons } from "./matchingTaxonomy";
@@ -68,6 +70,7 @@ type SourcingActionPayload = {
 };
 
 export default function SourcingPage() {
+  useEffect(() => sourcingResources.start(), []);
   const [activeTab, setActiveTab] = useState<(typeof tabs)[number]>("Buy List");
   const [status, setStatus] = useState("open");
   const [type, setType] = useState("all");
@@ -358,17 +361,19 @@ export default function SourcingPage() {
             onUpdateAsin={(row, asin) => void act(row, { actionType: "update_asin", asin })}
           />
           {dismissRow ? (
-            <DismissOpportunityDialog
+            <LazySourcingReview key={dismissRow.opportunityId} row={dismissRow} onClose={()=>setDismissRow(null)}>
+              {(reviewRow) => <DismissOpportunityDialog
               key={dismissRow.opportunityId}
               saveError={error}
-              row={dismissRow}
+              row={reviewRow}
               actionBusyId={actionBusyId}
               initialDiagnosticsOpen={activeTab === "Buy List" || activeTab === "Closest Excluded"}
               onClose={() => {reviewRequests.current.cancel();setDismissRow(null);}}
               onReview={async (payload) => {
-                if (await act(dismissRow, payload)) {reviewRequests.current.cancel();setDismissRow(null);}
+                if (await act(reviewRow, payload)) {reviewRequests.current.cancel();setDismissRow(null);}
               }}
-            />
+            />}
+            </LazySourcingReview>
           ) : null}
           {bulkDismissOpen ? (
             <BulkDismissOpportunityDialog
@@ -1629,11 +1634,11 @@ function SourcingHistory() {
   const [refreshedAt, setRefreshedAt] = useState<string | null>(null);
   const [serverRunCount, setServerRunCount] = useState<number | null>(null);
 
-  async function loadHistory() {
+  async function loadHistory(fresh = false) {
     setLoading(true);
     try {
       const params = new URLSearchParams({ limit: "50", _: String(Date.now()) });
-      const response = await fetch(`/api/sourcing/history?${params.toString()}`, { cache: "no-store" });
+      const response = await fetchSourcing(`/api/sourcing/history?${params.toString()}`, fresh);
       const payload = await response.json();
       if (!response.ok) throw new Error(payload.error ?? "Failed to load sourcing history.");
       setRuns(payload.runs ?? []);
@@ -1650,6 +1655,7 @@ function SourcingHistory() {
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     void loadHistory();
+    return sourcingResources.subscribe(() => { void loadHistory(); });
   }, []);
 
   useEffect(() => {
@@ -1669,7 +1675,7 @@ function SourcingHistory() {
         </div>
         <button
           type="button"
-          onClick={() => void loadHistory()}
+          onClick={() => void loadHistory(true)}
           disabled={loading}
           className="inline-flex h-8 items-center gap-2 rounded-md border border-slate-300 bg-white px-2 text-xs font-medium text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
         >
@@ -1727,9 +1733,9 @@ function CoverageCyclePanel() {
     setError(null);
     try {
       const [summaryResponse, itemsResponse, runsResponse] = await Promise.all([
-        fetch("/api/sourcing/coverage-cycle", { cache: "no-store" }),
-        fetch(`/api/sourcing/coverage-cycle/items?pageSize=50&search=${encodeURIComponent(queueSearch)}`, { cache: "no-store" }),
-        fetch("/api/sourcing/daily-runs?limit=20", { cache: "no-store" }),
+        fetchSourcing("/api/sourcing/coverage-cycle"),
+        fetchSourcing(`/api/sourcing/coverage-cycle/items?pageSize=50&search=${encodeURIComponent(queueSearch)}`),
+        fetchSourcing("/api/sourcing/daily-runs?limit=20"),
       ]);
       const [summaryPayload, itemsPayload, runsPayload] = await Promise.all([
         summaryResponse.json(),
@@ -1752,6 +1758,7 @@ function CoverageCyclePanel() {
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     void load();
+    return sourcingResources.subscribe(() => { void load(); });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -2096,7 +2103,7 @@ function MatchingIntelligencePanel() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetch("/api/sourcing/matching-intelligence", { cache: "no-store" })
+    const load = () => fetchSourcing("/api/sourcing/matching-intelligence")
       .then(async (response) => {
         const payload = await response.json();
         if (!response.ok) throw new Error(payload.error ?? "Failed to load matching intelligence.");
@@ -2105,6 +2112,8 @@ function MatchingIntelligencePanel() {
       })
       .catch((err) => setError(err instanceof Error ? err.message : "Failed to load matching intelligence."))
       .finally(() => setLoading(false));
+    void load();
+    return sourcingResources.subscribe(() => { void load(); });
   }, []);
 
   if (loading) return <div className="rounded-md border border-slate-200 bg-white p-6 text-sm text-slate-500">Loading matching intelligence...</div>;
@@ -2273,7 +2282,7 @@ function SourcingSettingsPanel({ onApplied }: { onApplied: () => Promise<void> }
   const [notice, setNotice] = useState<string | null>(null);
 
   useEffect(() => {
-    fetch("/api/sourcing/settings")
+    fetchSourcing("/api/sourcing/settings")
       .then((response) => response.json())
       .then((payload) => {
         setSettings(payload.settings);
@@ -2299,6 +2308,7 @@ function SourcingSettingsPanel({ onApplied }: { onApplied: () => Promise<void> }
       });
       const payload = await response.json();
       if (response.ok) {
+        sourcingResources.invalidate();
         setSettings(payload.settings);
         setItemCountriesText((payload.settings?.item_location_countries ?? []).join(", "));
         setExcludedKeywordsText((payload.settings?.excluded_keywords ?? []).join(", "));

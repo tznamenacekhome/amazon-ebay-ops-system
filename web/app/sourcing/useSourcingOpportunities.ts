@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { sourcingResources } from "./sourcingResourceCache";
 import type { SourcingBatch, SourcingOpportunity } from "./types";
 
 export function useSourcingOpportunities(
@@ -19,12 +20,6 @@ export function useSourcingOpportunities(
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const cache = useRef(new Map<string, { savedAt: number; payload: {
-    opportunities?: SourcingOpportunity[];
-    businessSuppressions?: typeof businessSuppressions;
-    summary?: Record<string, number>;
-    batch?: SourcingBatch | null;
-  } }>());
   const request = useRef<AbortController | null>(null);
   const [debouncedSearch, setDebouncedSearch] = useState(searchText);
   useEffect(() => {
@@ -36,35 +31,26 @@ export function useSourcingOpportunities(
     request.current?.abort();
     const controller = new AbortController();
     request.current = controller;
-    if (force) cache.current.clear();
+    if (force) sourcingResources.invalidate();
     if (!enabled) { setLoading(false); return; }
     setLoading(true);
     setError(null);
     try {
       const params = new URLSearchParams({ status, type, limit: scope === "closest_excluded" ? "50" : "150" });
       params.set("scope", scope);
+      params.set("format", "list");
       if (sourceMode !== "all") params.set("sourceMode", sourceMode);
       if (inventoryFilter !== "all") params.set("inventoryFilter", inventoryFilter);
       if (debouncedSearch.trim()) params.set("q", debouncedSearch.trim());
-      const key = params.toString();
-      const cached = cache.current.get(key);
-      const apply = (payload: NonNullable<typeof cached>["payload"]) => {
-        setRows(payload.opportunities ?? []);
-        setBusinessSuppressions(payload.businessSuppressions ?? []);
-        setSummary(payload.summary ?? {});
-        setBatch(payload.batch ?? null);
-      };
-      // A short, hook-local cache makes return visits instant. Every mutation reload
-      // invalidates every tab; nothing is shared across users or browser sessions.
-      if (cached && Date.now() - cached.savedAt < 15_000) { apply(cached.payload); return; }
-      setRows([]);
-      const response = await fetch(`/api/sourcing/opportunities?${params.toString()}`, { cache: "no-store", signal: controller.signal });
+      const response = await sourcingResources.get(`/api/sourcing/opportunities?${params}`, { fresh: force });
       const payload = await response.json();
       if (!response.ok) throw new Error(payload.error ?? "Failed to load sourcing opportunities.");
       if (controller.signal.aborted) return;
-      if (cache.current.size >= 8) cache.current.delete(cache.current.keys().next().value!);
-      cache.current.set(key, { savedAt: Date.now(), payload });
-      apply(payload);
+      setRows(payload.opportunities ?? []);
+      setBusinessSuppressions(payload.businessSuppressions ?? []);
+      setSummary(payload.summary ?? {});
+      setBatch(payload.batch ?? null);
+      if (status === "open" && scope !== "closest_excluded") sourcingResources.prefetchAfterBuyList();
     } catch (err) {
       if (controller.signal.aborted) return;
       setError(err instanceof Error ? err.message : "Failed to load sourcing opportunities.");
@@ -76,12 +62,13 @@ export function useSourcingOpportunities(
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     void load();
-    return () => request.current?.abort();
+    const unsubscribe = sourcingResources.subscribe(() => { void load(); });
+    return () => { request.current?.abort(); unsubscribe(); };
   }, [load]);
   const reload = useCallback(() => load(true), [load]);
 
   const removeRows = useCallback((opportunityIds: string[]) => {
-    cache.current.clear();
+    sourcingResources.invalidate();
     const ids = new Set(opportunityIds);
     setRows((currentRows) => {
       const nextRows = currentRows.filter((row) => !ids.has(row.opportunityId));

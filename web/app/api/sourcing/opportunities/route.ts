@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabase, toNumber } from "../_supabase";
+import { cachedSourcingList } from "../readCache";
 import { buildDiagnosticComparison } from "../diagnosticComparison";
 import { businessExclusion, recordedHoldCheck, selectRecordedHold } from "../businessExclusion";
 import { fetchLatestReviews } from "../reviewActions";
@@ -277,7 +278,21 @@ type SalesVelocitySuppressionRow = {
 
 export async function GET(request: NextRequest) {
   try {
-    return await getOpportunities(request);
+    const params = new URL(request.url).searchParams;
+    if (params.get("format") !== "list") return await getOpportunities(request);
+    const fresh = params.get("fresh") === "1";
+    params.delete("fresh"); params.delete("_"); params.sort();
+    const started = performance.now();
+    const result = await cachedSourcingList(params.toString(), fresh, async () => {
+      const response = await getOpportunities(request);
+      const body = await response.json();
+      if (!response.ok) throw new Error(body.error ?? "Sourcing list failed.");
+      return body;
+    });
+    const response = jsonNoStore(result.body);
+    response.headers.set("X-Sourcing-Cache", result.hit ? "HIT" : "MISS");
+    response.headers.set("Server-Timing", `sourcing;dur=${(performance.now()-started).toFixed(1)}`);
+    return response;
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to load sourcing opportunities.";
     console.error("Sourcing opportunities API failed", error);
@@ -287,6 +302,8 @@ export async function GET(request: NextRequest) {
 
 async function getOpportunities(request: NextRequest) {
   const { searchParams } = new URL(request.url);
+  const listOnly = searchParams.get("format") === "list";
+  const opportunitySelect = listOnly ? LIST_OPPORTUNITY_SELECT : OPPORTUNITY_SELECT;
   const status = searchParams.get("status") ?? "open";
   const type = searchParams.get("type") ?? "all";
   const runId = searchParams.get("runId");
@@ -322,14 +339,14 @@ async function getOpportunities(request: NextRequest) {
   const businessMode = status === "business_excluded" || status === "sales_velocity_suppressed";
   const requestedStatus = businessMode ? "all" : status;
   const { data, error } = scope === "new_this_run" && latestBatchOpportunityIds
-    ? await fetchBatchOpportunities(latestBatchOpportunityIds, requestedStatus, type)
+    ? await fetchBatchOpportunities(latestBatchOpportunityIds, requestedStatus, type, opportunitySelect)
     : await fetchRunOpportunities({
         runId,
         latestRunIds,
         status: scope === "closest_excluded" ? "all" : requestedStatus,
         type,
         queryLimit,
-        select: businessMode ? BUSINESS_OPPORTUNITY_SELECT : OPPORTUNITY_SELECT,
+        select: businessMode ? BUSINESS_OPPORTUNITY_SELECT : opportunitySelect,
       });
   if (error) return jsonNoStore({ error: error.message }, { status: 500 });
 
@@ -387,7 +404,7 @@ async function getOpportunities(request: NextRequest) {
     : businessMode ? rows.filter(row=>businessReasonFor(row)!==null) : rows.filter(isPresentationEligibleOpportunity);
   if (businessMode && eligibleRows.length) {
     const eligibleById=new Map(eligibleRows.map(row=>[row.opportunity_id,row]));
-    const {data:details,error:detailError}=await fetchBatchOpportunities([...eligibleById.keys()],"all",type);
+    const {data:details,error:detailError}=await fetchBatchOpportunities([...eligibleById.keys()],"all",type,opportunitySelect);
     if(detailError)throw new Error(detailError.message);
     eligibleRows=(details??[]).map(row=>({...row,matching_diagnostics_json:{...(row.matching_diagnostics_json as Record<string,unknown>??{}),businessEligibilityChecks:(eligibleById.get(row.opportunity_id)?.matching_diagnostics_json as Record<string,unknown>)?.businessEligibilityChecks??[]}}));
   }
@@ -508,7 +525,8 @@ async function getOpportunities(request: NextRequest) {
         totalProfitOpportunity: row.total_profit_opportunity,
         score: row.score,
         aiFlags: mergeFlags(row.ai_flags, diagnosticFlags(row.matching_diagnostics_json)),
-        matchingDiagnostics: row.matching_diagnostics_json ?? null,
+        ...(listOnly ? { reviewEvidenceLoaded: false } : {}),
+        matchingDiagnostics: listOnly ? null : row.matching_diagnostics_json ?? null,
         diagnosticComparison: buildDiagnosticComparison({
           opportunity: { ...row, amazon_title: amazonTitle } as unknown as Record<string, unknown>,
           seed: (row.sourcing_seed_asins ?? {}) as unknown as Record<string, unknown>,
@@ -547,7 +565,7 @@ async function getOpportunities(request: NextRequest) {
   // Large descriptions/aspects are only needed by the visible rows' review panels.
   // Keep qualification, ordering, deduplication and summary over the entire result set.
   const eligibleById = new Map(eligibleRows.map(row => [row.opportunity_id, row]));
-  for (let index = 0; index < opportunities.length; index += 100) {
+  for (let index = 0; !listOnly && index < opportunities.length; index += 100) {
     const visible = opportunities.slice(index, index + 100);
     const { data: evidence, error: evidenceError } = await supabase.from("sourcing_opportunities")
       .select("opportunity_id,sourcing_ebay_candidates(raw_ebay_json)")
@@ -626,6 +644,10 @@ type OpportunityQueryResult = {
 
 // Business qualification needs stored decisions/hold inputs, not raw descriptions
 // or catalog payloads. Hydrate full evidence only for qualifying exact IDs.
+// All admission/rank inputs are preserved by the database computed field.
+// Full identity evidence is fetched separately when a review opens.
+const LIST_OPPORTUNITY_SELECT = OPPORTUNITY_SELECT.replace("*", "opportunity_id,candidate_id,ebay_item_id,sourcing_run_id,seed_id,asin,opportunity_type,status,target_sale_price,profit,roi_percent,max_profitable_landed_cost,max_offer_price,required_offer_percent_of_ask,max_bid,total_profit_opportunity,score,ai_flags,created_at,matching_diagnostics_json:sourcing_list_diagnostics");
+
 const BUSINESS_OPPORTUNITY_SELECT = `opportunity_id,candidate_id,sourcing_run_id,asin,ebay_item_id,status,opportunity_type,created_at,score,
   business_checks:matching_diagnostics_json->businessEligibilityChecks,
   identity_verdict:matching_diagnostics_json->static_rules->identity_comparison->evidenceDecision->>productIdentityVerdict,
@@ -667,13 +689,14 @@ async function fetchBatchOpportunities(
   opportunityIds: string[],
   status: string,
   type: string,
+  select = OPPORTUNITY_SELECT,
 ): Promise<OpportunityQueryResult> {
   const rows: OpportunityRow[] = [];
   for (let index = 0; index < opportunityIds.length; index += 75) {
     const chunk = opportunityIds.slice(index, index + 75);
     let query = supabase
       .from("sourcing_opportunities")
-      .select(OPPORTUNITY_SELECT)
+      .select(select)
       .in("opportunity_id", chunk)
       .order("score", { ascending: false })
       .order("created_at", { ascending: false });
@@ -683,7 +706,7 @@ async function fetchBatchOpportunities(
 
     const { data, error } = await query;
     if (error) return { data: null, error };
-    rows.push(...((data ?? []) as OpportunityRow[]));
+    rows.push(...((data ?? []) as unknown as OpportunityRow[]));
   }
 
   rows.sort((left, right) => {

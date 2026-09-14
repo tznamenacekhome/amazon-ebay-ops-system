@@ -1,0 +1,16 @@
+import assert from "node:assert/strict";
+import {readFileSync} from "node:fs";
+import {createRequire} from "node:module";
+import ts from "typescript";
+const require=createRequire(import.meta.url);let revision=0,running=false,fail=false;
+const out={};new Function("require","exports",ts.transpileModule(readFileSync(new URL("./readCache.ts",import.meta.url),"utf8"),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText)(name=>name==='./_supabase'?{supabase:{rpc:async()=>({data:{revision,running},error:fail?{message:'Freshness failure'}:null})}}:require(name),out);
+let builds=0;const build=async()=>({value:++builds});
+assert.equal((await out.cachedSourcingList('q',false,build)).hit,false);
+assert.equal((await out.cachedSourcingList('q',false,build)).hit,true);assert.equal(builds,1);
+revision++;assert.equal((await out.cachedSourcingList('q',false,build)).hit,false);assert.equal(builds,2);
+await out.cachedSourcingList('q',true,build);assert.equal(builds,3);
+let finish;const deferred=new Promise(resolve=>finish=resolve);const a=out.cachedSourcingList('coalesce',false,()=>deferred),b=out.cachedSourcingList('coalesce',false,()=>{throw Error('Duplicate build');});await new Promise(r=>setImmediate(r));finish({value:'shared'});assert.deepEqual((await a).body,(await b).body);
+const unstable=await out.cachedSourcingList('moving',false,async()=>{revision++;return {value:'changed'};});assert.equal(unstable.body.cacheVersion,null,'Changed source cannot be cached');
+running=true;await out.cachedSourcingList('active',false,build);await out.cachedSourcingList('active',false,build);assert.equal(builds,5);
+fail=true;await assert.rejects(()=>out.cachedSourcingList('q',false,build),/Freshness failure/);assert.equal(builds,5,'Freshness failure does not serve old cache');
+console.log('Server cache: revision hits, invalidation, force refresh, coalescing, in-flight changes, active jobs and fail-closed freshness passed');

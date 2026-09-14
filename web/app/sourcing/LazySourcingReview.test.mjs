@@ -1,0 +1,18 @@
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import {createRequire} from 'node:module';
+import ts from 'typescript';
+const require=createRequire(import.meta.url);let slots=[],cursor=0,effects=[];
+const react={useState(value){const i=cursor++;if(!(i in slots))slots[i]=value;return[slots[i],v=>slots[i]=typeof v==='function'?v(slots[i]):v];},useEffect(fn,deps){const i=cursor++;if(!slots[i]||!deps.every((v,j)=>v===slots[i].deps[j])){const old=slots[i];slots[i]={deps};effects.push(()=>{old?.cleanup?.();slots[i].cleanup=fn();});}}};
+const out={};new Function('require','exports',ts.transpileModule(readFileSync(new URL('./LazySourcingReview.tsx',import.meta.url),'utf8'),{compilerOptions:{jsx:ts.JsxEmit.ReactJSX,module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText)(name=>name==='react'?react:require(name),out);
+const requests=[];globalThis.fetch=(url,options)=>new Promise(resolve=>requests.push({url,options,resolve}));
+const row={opportunityId:'fixture',asin:'ASIN',candidateId:'candidate',ebayItemId:'item',reviewEvidenceLoaded:false,diagnosticComparison:{evaluation:{id:'eval'}}};
+let shown=null;const props={row,onClose:()=>{},children:value=>(shown=value,'Ready')};
+const render=()=>{cursor=0;const value=out.LazySourcingReview(props);effects.splice(0).forEach(fn=>fn());return value;};
+const resolve=async(body,status=200)=>{requests.at(-1).resolve({ok:status===200,json:async()=>body});await new Promise(r=>setImmediate(r));};
+render();assert.equal(shown,null,'No incomplete review dialog');assert(requests[0].url.endsWith('/evidence'));assert.equal(requests[0].options.method,undefined,'Evidence is read-only');
+await resolve({...row,reviewEvidenceLoaded:true,matchingDiagnostics:{preserved:'full'},latestReview:{pairVerdict:'correct'}});assert.equal(render(),'Ready');assert.equal(shown.matchingDiagnostics.preserved,'full');assert.equal(shown.latestReview.pairVerdict,'correct');
+slots.forEach(s=>s?.cleanup?.());slots=[];shown=null;render();await resolve({...row,asin:'CHANGED'});render();assert.equal(shown,null);assert(slots.some(s=>typeof s==='string'&&s.includes('pair or evaluation changed')),'Stale pair remains visibly blocked');
+slots.forEach(s=>s?.cleanup?.());slots=[];render();await resolve({error:'Actual inline failure'},500);render();assert(slots.includes('Actual inline failure'));
+slots.forEach(s=>s?.cleanup?.());slots=[];render();slots.forEach(s=>s?.cleanup?.());assert(requests.at(-1).options.signal.aborted);await resolve({...row,reviewEvidenceLoaded:true});assert.equal(shown,null,'Closed dialog cannot be resurrected');
+console.log('Lazy review: read-only full evidence, preserved verdict, stale-pair rejection, inline errors and close cancellation passed');
