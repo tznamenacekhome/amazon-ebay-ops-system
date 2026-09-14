@@ -1,55 +1,181 @@
 {
-  "status": "PHASE 3 NOT DEPLOYED \u2014 FINAL SAFETY GATE FAILED",
+  "status": "PHASE 3 NOT DEPLOYED \u2014 CORRECTION/ADMISSION SAFETY GATE FAILED",
   "phase3Complete": false,
-  "baseCommit": "9685d2040a35c12b3ede8d7d9326505d8846aa7a",
-  "stopReason": "Valid exact-pair platform correction reaches canonical Match but independent static platform_rule blocks original title; full scorer rejected.",
-  "failedRequirements": [
-    "scoped corrections reach admission",
-    "final routing uses corrected canonical identity"
+  "candidateApproved": false,
+  "baseCommit": "1aa82cb57bd0fd5ef61c183a2faefa31720cf5d3",
+  "previousFailure": {
+    "commit": "1aa82cb",
+    "file": "docs/sourcing_phase3_final_manifest_2026-09-13.json"
+  },
+  "stopReason": "Four curated positives lose scorer eligibility because canonical reference platform omits platform resolved by the existing seed metadata fallback. No runtime repair after gate failure.",
+  "candidateChanges": [
+    "Static platform uses effective canonical comparison and retains raw provenance.",
+    "Valid scoped eBay digitalPhysical/completeness/region corrections feed their corresponding static checks.",
+    "Known unequal platforms are canonical conflicts.",
+    "Correction provenance includes createdAt and actor when supplied."
   ],
-  "test": {
-    "test": "A valid exact-pair platform correction must reach both canonical comparison and final static/scorer admission",
-    "syntheticDisposableInput": true,
-    "networkCalls": 0,
-    "productionWrites": 0,
-    "canonicalVerdict": "match",
-    "platformComparison": {
-      "field": "platform",
-      "result": "match",
-      "relation": "same",
-      "amazon": "PlayStation 5",
-      "ebay": "PlayStation 5",
-      "reason": "Supported normalized values agree",
-      "amazonEvidenceRef": "amazon.fields.platform",
-      "ebayEvidenceRef": "ebay.fields.platform"
+  "strictGate": {
+    "tierAMatch": 12,
+    "tierATotal": 12,
+    "adjudicatedNegatives": {
+      "nonmatch": 2,
+      "review": 1,
+      "match": 0
     },
-    "correctionApplication": [
+    "correctionsApplied": 17,
+    "compatibleExamples": 0,
+    "curatedIdentityMatch": 15,
+    "curatedEligible": 11,
+    "curatedTotal": 15,
+    "curatedNegativesExcluded": 18,
+    "passed": false,
+    "curatedLosses": [
       {
-        "actionId": "a",
-        "field": "platform",
-        "side": "ebay",
-        "scope": "pair",
-        "operatorBefore": null,
-        "snapshotId": "snapshot-a",
-        "submittedState": "value",
-        "result": "applied"
+        "asin": "B000FQBPCQ",
+        "opportunityId": "b40f3e0a-ae02-4b81-aa12-0200d5c86095",
+        "split": "heldout",
+        "expected": "match",
+        "evidenceBasis": "exact pinned reviewed title pair with full stored sources",
+        "beforeVerdict": "unknown",
+        "afterVerdict": "match",
+        "beforeRecommendation": "Probable Match",
+        "afterRecommendation": "Probable Non-Match",
+        "wasVisible": true,
+        "afterEligible": false,
+        "accuracy": {
+          "before": {
+            "correct": 2,
+            "total": 4,
+            "checks": [
+              {
+                "side": "amazon",
+                "field": "coreGame",
+                "expected": "the legend of zelda twilight princess",
+                "actual": null,
+                "state": "unknown",
+                "correct": false
+              },
+              {
+                "side": "amazon",
+                "field": "installment",
+                "expected": null,
+                "actual": null,
+                "state": "unknown",
+                "correct": true
+              },
+              {
+                "side": "ebay",
+                "field": "coreGame",
+                "expected": "the legend of zelda twilight princess",
+                "actual": null,
+                "state": "unknown",
+                "correct": false
+              },
+              {
+                "side": "ebay",
+                "field": "installment",
+                "expected": null,
+                "actual": null,
+                "state": "unknown",
+                "correct": true
+              }
+            ]
+          },
+          "after": {
+            "correct": 4,
+            "total": 4,
+            "checks": [
+              {
+                "side": "amazon",
+                "field": "coreGame",
+                "expected": "the legend of zelda twilight princess",
+                "actual": "the legend of zelda twilight princess",
+                "state": "supported",
+                "correct": true
+              },
+              {
+                "side": "amazon",
+                "field": "installment",
+                "expected": null,
+                "actual": null,
+                "state": "unknown",
+                "correct": true
+              },
+              {
+                "side": "ebay",
+                "field": "coreGame",
+                "expected": "the legend of zelda twilight princess",
+                "actual": "the legend of zelda twilight princess",
+                "state": "supported",
+                "correct": true
+              },
+              {
+                "side": "ebay",
+                "field": "installment",
+                "expected": null,
+                "actual": null,
+                "state": "unknown",
+                "correct": true
+              }
+            ]
+          }
+        },
+        "reason": "Identity matched or unknown; unknown fields are not positive evidence."
+      },
+      {
+        "opportunityId": "76c40cca-b987-4aa1-a55e-ca1458c30e41",
+        "asin": "B004WL4LOY",
+        "amazonTitle": "White Knight Chronicles II",
+        "ebayItemId": "v1|377491662609|0",
+        "afterVerdict": "match",
+        "afterRecommendation": "Probable Non-Match",
+        "afterStatus": "rejected",
+        "afterEligible": false
+      },
+      {
+        "opportunityId": "cf461d09-70b6-4d0b-9321-f8f07f0f7b36",
+        "asin": "B081W4X9RW",
+        "amazonTitle": "Persona 5 Royal: Phantom Thieves [video game]",
+        "ebayItemId": "v1|188863460111|0",
+        "afterVerdict": "match",
+        "afterRecommendation": "Probable Non-Match",
+        "afterStatus": "rejected",
+        "afterEligible": false
+      },
+      {
+        "opportunityId": "1971d3bd-a54b-4943-9d4b-2dec6d951149",
+        "asin": "B0088MVPFQ",
+        "amazonTitle": "New Super Mario Bros. 2 [video game]",
+        "ebayItemId": "v1|298628092084|0",
+        "afterVerdict": "match",
+        "afterRecommendation": "Probable Non-Match",
+        "afterStatus": "rejected",
+        "afterEligible": false
       }
-    ],
-    "staticRecommendation": "Blocked",
-    "staticHardBlocks": [
-      "platform mismatch: Amazon PS 5, eBay PS 4"
-    ],
-    "scoredStatus": "rejected",
-    "passed": false
+    ]
+  },
+  "tests": {
+    "pythonPassed": 167,
+    "newFocusedTests": 10,
+    "productionDefaultsUnchanged": 1609,
+    "crystalHarbor": "canonical Match; static Probable Match; scorer open",
+    "crossPlatformStaleWrongScopeSupersession": "passed",
+    "curatedAdmission": "FAILED: 11/15",
+    "newContainerTests": 0,
+    "newApiUiTests": 0
   },
   "freshProductionManifest": null,
+  "atomicGuard": {
+    "implemented": false,
+    "tested": false
+  },
   "deployment": null,
   "refresh": {
+    "started": false,
     "evaluated": 0,
     "written": 0,
     "staleSkips": 0,
-    "protectedSkips": 0,
-    "started": false
+    "protectedSkips": 0
   },
   "productionActions": {
     "reads": 0,
@@ -65,14 +191,21 @@
     "web": 151,
     "scheduler": 92
   },
-  "evidence": {
-    "file": "tmp\\sourcing-phase3-final\\scoped-platform-acceptance.json",
-    "sha256": "a4225a7d4804f7bc9db3f8d15f9af2f7c2b3e4cd6a4feaaee16f62e5d38bbb7d"
-  },
+  "disposableContainer": "mbop-phase2-review-test: exited",
   "sourceHashes": {
-    "integrations/sourcing_match_rules.py": "fe2ecafa1daf76ad7c69fa5e5f16e9ca8d511372aaca52082118c9ed4c4e0ed2",
-    "integrations/matching_feedback.py": "69aae59b6def4e7438e586b2d03c94189a4de6f43249d7205ba97b862246bd98",
-    "integrations/score_sourcing_opportunities.py": "d24348085b7dbd0d4f8819192b17cac46899a866bd80d221793d3ee7dc148474",
-    "integrations/video_game_identity.py": "8efac2cda8234978c2bc8e20a77f210449dea805cd76c5f6c2b1c3511bdba25e"
+    "integrations\\sourcing_match_rules.py": "00ec1694ff5f103def8061f245f1d888875733c03c5c4c35f4d94a59325cd881",
+    "integrations\\matching_feedback.py": "d747bfa55a3f5f4c240e1a7469c325458fdb5b8987f836b2ea9b022a0259ed0a",
+    "integrations\\video_game_identity.py": "a7f6629f16b2db871d45a55cdd200687d4ae0c76d8fdd3cb1120e153837a0661",
+    "tests\\test_sourcing_effective_identity.py": "bf9ff049021892c1f49ee3f2c2f17a0bd51e736aff7cd3c38e1d8c79eaeab771"
+  },
+  "artifactHashes": {
+    "tmp\\sourcing-effective-identity\\crystal-harbor-before-after.json": "7d107bc64f5408b4494413ba8c79544dc8646ea201b04e22aa0325f94ca27a66",
+    "tmp\\sourcing-effective-identity\\defaults.json": "30fc9498b849f2cc8866b58b37f568c1bab357520511f754ea4ce7e2e0fd9e05",
+    "tmp\\sourcing-effective-identity\\python-tests.log": "6946aed2cc72f73c4a5d563ad5aac0d5645104e4a75037a06696d00b1b82e4a6",
+    "tmp\\sourcing-effective-identity\\regression-proof.json": "8bc44a609b1533f2c696dad408948a245c98e5b5e0741ab427fbd3ff89020ddb",
+    "tmp\\sourcing-effective-identity\\strict-replay.json": "1159877a0126f2618f50b0c81a25c4954ebb1b4b7315634f039d79ea1b22e400",
+    "tmp\\sourcing-effective-identity\\zelda-failure.json": "f9add946acc32355adefa1fc38b796115740edd76b21cf8bcd3a70f86d486606",
+    "tmp\\sourcing-effective-identity\\curated-replay\\replay.json": "c503a12e2e2ee3b3530ac1d729cb857da46a0bb544f6473b4d1b95167fda53f4",
+    "tmp\\sourcing-effective-identity\\curated-replay\\safety-summary.json": "13deb2e67316b4b2c74a7258cbe46ec24042aeb44edce41e44330044af07c96d"
   }
 }

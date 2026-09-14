@@ -982,7 +982,7 @@ def phase3_comparison(amazon, ebay):
         elif str(left["value"]).casefold() == str(right["value"]).casefold() or key == "platform" and platforms_compatible(str(left["value"]), str(right["value"])):
             outcome, reason = "match", "Supported normalized values agree"
         else:
-            outcome = "conflict" if key in {"coreGame", "coreProduct", "installment", "generation", "theme", "edition", "packageType"} else "review"
+            outcome = "conflict" if key in {"coreGame", "coreProduct", "installment", "generation", "theme", "edition", "packageType", "platform"} else "review"
             reason = "Supported values differ"
         relation = "explicit_conflict" if outcome == "conflict" else "same" if outcome == "match" else "compatible_omission" if outcome == "unknown" and bool(left["value"]) != bool(right["value"]) else "unknown"
         comparisons[key] = {"field": key, "result": outcome, "relation": relation, "amazon": left["value"], "ebay": right["value"], "reason": reason,

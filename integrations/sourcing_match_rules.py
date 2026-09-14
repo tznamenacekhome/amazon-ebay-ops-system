@@ -468,6 +468,22 @@ def evaluate_static_match_rules(
     recommendation = "Review"
 
     platform = platform_rule(amazon_title, ebay_title, seed, evidence)
+    if canonical:
+        raw_platform = platform
+        left = canonical["amazon"]["fields"]["platform"]
+        right = canonical["ebay"]["fields"]["platform"]
+        # Apply corrections only in apply_scoped_reviews above. Admission reads
+        # that same effective identity, with raw extraction retained for audit.
+        platform = platform_rule("", "", {"system": left["value"]},
+                                 {"platform_values": [right["value"]] if right["value"] else []})
+        comparison = canonical["comparisons"]["platform"]
+        unsupported = any(system in UNSUPPORTED_CANDIDATE_SYSTEMS for system in platform["candidate_systems"])
+        if not unsupported:
+            platform["result"] = {"match": "pass", "conflict": "blocked"}.get(comparison["result"], "review")
+            platform["reason"] = (f"platform mismatch: Amazon {left['value']}, eBay {right['value']}"
+                                  if comparison["result"] == "conflict" else comparison["reason"])
+        platform.update(raw_rule=raw_platform, effective_fields={"amazon": left, "ebay": right},
+                        comparisonResult=comparison["result"])
     if platform["result"] == "blocked":
         hard_blocks.append(platform["reason"])
         flags.append(f"Blocked: {platform['reason']}")
@@ -498,7 +514,26 @@ def evaluate_static_match_rules(
         score_adjustment -= 30
         recommendation = "Blocked"
 
-    digital = keyword_hits(combined_text, sorted(DIGITAL_BLOCK_TERMS))
+    effective_checks = {}
+
+    def effective_hits(key, raw_hits, safe_values, blocked_values):
+        if not canonical or not any(row["result"] == "applied" and row["side"] == "ebay" and row["field"] == key
+                                    for row in canonical.get("correctionApplication", [])):
+            return raw_hits
+        field = canonical["ebay"]["fields"][key]
+        value = str(field["value"] or "").casefold().strip()
+        known = field["state"] in {"supported", "inferred"}
+        result = "pass" if known and value in safe_values else "blocked" if known and value in blocked_values else "review"
+        hits = [f"effective {key}: {field['value']}"] if result == "blocked" else []
+        effective_checks[key] = {"raw_hits": raw_hits, "effective_field": field, "hits": hits, "result": result}
+        if result == "review":
+            reason = f"Corrected {key} requires review for sourcing admission"
+            warnings.append(reason)
+            flags.append(reason)
+        return hits
+
+    digital = effective_hits("digitalPhysical", keyword_hits(combined_text, sorted(DIGITAL_BLOCK_TERMS)),
+                             {"physical"}, {"digital"})
     if digital:
         hard_blocks.append(f"digital/download listing: {', '.join(digital[:3])}")
         flags.append(f"Blocked: digital/download listing: {', '.join(digital[:3])}")
@@ -516,7 +551,8 @@ def evaluate_static_match_rules(
         score_adjustment -= 35
         recommendation = "Blocked"
 
-    incomplete = incomplete_hits(title_text, description_text)
+    incomplete = effective_hits("completeness", incomplete_hits(title_text, description_text),
+                                {"complete"}, {"incomplete"})
     not_game = keyword_hits(title_text, sorted(NOT_GAME_BLOCK_TERMS))
     structured_not_game = structured_not_game_hits(evidence)
     for hit in structured_not_game:
@@ -533,7 +569,8 @@ def evaluate_static_match_rules(
         score_adjustment -= 30
         recommendation = "Blocked"
 
-    region = keyword_hits(combined_text, sorted(REGION_BLOCK_TERMS))
+    region = effective_hits("region", keyword_hits(combined_text, sorted(REGION_BLOCK_TERMS)),
+                            {"ntsc-u/c", "ntsc-u", "north america", "region free"}, {"pal", "ntsc-j"})
     if region:
         hard_blocks.append(f"non-North-American version signal: {', '.join(region[:3])}")
         flags.append(f"Blocked: non-North-American version signal: {', '.join(region[:3])}")
@@ -654,11 +691,11 @@ def evaluate_static_match_rules(
         "platform_rule": platform,
         "title_overlap": title_overlap,
         "excluded_keywords": {"hits": excluded, "result": "blocked" if excluded else "pass"},
-        "digital_download": {"hits": digital, "result": "blocked" if digital else "pass"},
+        "digital_download": effective_checks.get("digitalPhysical", {"hits": digital, "result": "blocked" if digital else "pass"}),
         "condition_mismatch": {"hits": condition_mismatch, "result": "blocked" if condition_mismatch else "pass"},
-        "incomplete_listing": {"hits": incomplete, "result": "blocked" if incomplete else "pass"},
+        "incomplete_listing": effective_checks.get("completeness", {"hits": incomplete, "result": "blocked" if incomplete else "pass"}),
         "not_game": {"hits": not_game, "result": "blocked" if not_game else "pass"},
-        "region": {"hits": region, "result": "blocked" if region else "pass"},
+        "region": effective_checks.get("region", {"hits": region, "result": "blocked" if region else "pass"}),
         "normalized_evidence": evidence,
         "game_name": game_name,
         "numeric_identity": numeric,

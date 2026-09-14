@@ -1,8 +1,8 @@
 # Sourcing matching repair handoff
 
-## Final Phase 3 operational gate stopped before deployment
+## Correction/admission candidate stopped on curated regression
 
-A required local scoped-platform acceptance check fails: a valid exact-pair platform correction yields canonical Match, but the independent static platform check still blocks the original title and the scorer rejects it. Per the operator's stop-on-failure instruction, no guard implementation, schema change, production read, deployment or refresh proceeded. [Exact blocker and stopped work-order report](sourcing_phase3_final_deployment_2026-09-13.md). The previous 12-row sampled gate pass does not prove this broader correction-to-admission requirement. Phase 3 remains incomplete and shadow-only.
+The local candidate now passes the exact scoped PS4-to-PS5 correction acceptance case. Its full gate fails: all 12 Tier A identities and all 15 curated identities remain Match, but four curated positives lose scorer eligibility (11/15 retained) because canonical reference platform omits metadata available to the previous static platform resolver. All three adjudicated and 18 curated negatives remain excluded; 167 Python tests and 1,609 unchanged legacy outputs pass. No further runtime repair, atomic guard, production capture, deployment or refresh followed the failed gate. [Exact losses, candidate implementation and evidence](sourcing_phase3_final_deployment_2026-09-13.md). This candidate is not approved for deployment. Phase 3 remains incomplete and shadow-only; earlier passing records below are historical.
 
 ## Authorized Disney first-generation convention: sampled strict gate passed
 

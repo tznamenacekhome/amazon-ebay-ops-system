@@ -135,6 +135,7 @@ def apply_scoped_reviews(comparison, candidate, seed, reviews, *, evaluated_at):
             if correction_key in correction_keys: continue
             correction_keys.add(correction_key)
             entry = {"actionId": action_id, "field": key, "side": side, "scope": scope,
+                     "createdAt": row["created_at"], "actor": row.get("actor"),
                      "operatorBefore": correction.get("before"), "snapshotId": snapshot.get("listing_snapshot_id")}
             # UI v3 wire states and the older offline fixture states share one
             # evidence vocabulary. Preserve the submitted state in the audit.
@@ -149,7 +150,8 @@ def apply_scoped_reviews(comparison, candidate, seed, reviews, *, evaluated_at):
                 audit.append({**entry, "result": "needs_review", "reason": "Invalid correction or changed/unverifiable source snapshot"})
                 continue
             update_corrected_field(identity,side,key,state,value,[{"field":"operator_correction","actionId":action_id,
-                "snapshot":snapshot.get("listing_snapshot_id"),"scope":scope}])
+                "snapshot":snapshot.get("listing_snapshot_id"),"scope":scope,
+                "createdAt":row["created_at"],"actor":row.get("actor")}])
             audit.append({**entry, "result": "applied"})
     result = phase3_comparison(identity["amazon"], identity["ebay"])
     result.update({key: comparison[key] for key in ("reference", "materialEvidenceHash") if key in comparison})
