@@ -1,5 +1,11 @@
 # Sourcing matching repair handoff
 
+## Sourcing matching closeout completed — 2026-09-14
+
+Phase 3 is active on sourcing scheduler93 from `a2247102a9e6`; web151 is unchanged. The authorized 30-day cohort contained 50,239 rows; 31,455 were evaluated and 28,013 guarded writes reconciled. Explicit human review and protected lifecycle/history were excluded; protected/stale rows skipped. Protected rows touched, reviewed rows overwritten, historical review rewrites, provider searches launched by closeout and marketplace writes are all zero. All 20 schedules preserve configuration except the sourcing revision. [Final counts and verification](sourcing_matching_30_day_reprocess_2026-09-13.md); [feature/runbook](SOURCING_MATCHING_CURRENT_STATE.md).
+
+The earlier shadow-only/blocked entries below are historical and superseded by the final authorized closeout. Descriptive title ambiguity remains an ordinary feedback limitation, not a reason to reopen this completed bounded task.
+
 ## Inventory hold guard repaired; fresh routing safety blocked deployment
 
 Implementation/evidence checkpoint: `667bf79cd5caacb58d37e12426a5865434ec06c1`. This follow-up records the immutable commit; the migration remains unapproved for production application.

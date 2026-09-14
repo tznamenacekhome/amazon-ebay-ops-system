@@ -1,5 +1,11 @@
 # KNOWN_ISSUES.md
 
+## Sourcing matching closeout completed — 2026-09-14
+
+Phase 3 is active on sourcing scheduler93 from `a2247102a9e6`; web151 is unchanged. The authorized 30-day cohort contained 50,239 rows; 31,455 were evaluated and 28,013 guarded writes reconciled. Explicit human review and protected lifecycle/history were excluded; protected/stale rows skipped. Protected rows touched, reviewed rows overwritten, historical review rewrites, provider searches launched by closeout and marketplace writes are all zero. All 20 schedules preserve configuration except the sourcing revision. [Final counts and verification](docs/sourcing_matching_30_day_reprocess_2026-09-13.md); [feature/runbook](docs/SOURCING_MATCHING_CURRENT_STATE.md).
+
+The earlier shadow-only/blocked entries below are historical and superseded by the final authorized closeout. Descriptive title ambiguity remains an ordinary feedback limitation, not a reason to reopen this completed bounded task.
+
 ## Inventory hold guard repaired; fresh routing safety blocked deployment
 
 Legacy inventory snoozes now protect every listing of the ASIN and use existing sell-through release semantics with atomically guarded purchase/FBA pipeline inputs. Validation: 59 existing guard checks, the repaired legacy regression and 24 hold-scope checks; 170 Python tests, 257 API/RPC calls, 1,609 unchanged defaults; strict 12/12 Tier A, 15/15 curated positives, all 3 adjudicated and 18 curated negatives preserved. Fresh capture: 529 rows (28 Buy List / 50 of 129 Closest Excluded / 2 Business Excluded). The provisional dry run would incorrectly establish core-game conflicts from added wording for FIFA 23 / PS5 and Madden NFL 12 / Wii. Stopped before deployment/refresh; matcher changes were prohibited and none made. Eight dry-run protected rows, zero production writes. [Evidence and exact continuation](docs/sourcing_phase3_final_deployment_2026-09-13.md). Phase 3 remains incomplete; earlier sections below are historical.

@@ -1,0 +1,150 @@
+{
+  "completedAt": "2026-09-14T16:24:54.822877+00:00",
+  "status": "complete",
+  "implementationCommit": "a2247102a9e6aa4da62f78fc78c30dc4a87054f2",
+  "deployment": {
+    "implementationCommit": "a2247102a9e6",
+    "schedulerRevision": 93,
+    "webRevision": 151,
+    "imageDigest": "sha256:78cd26f23c2e5cdf04c25147d507d9eb5ea8dd80ba18c5e69ba338310152d44b",
+    "migration": "20260914045624_mbop_guarded_sourcing_decision_refresh.sql",
+    "migrationLedgerEntries": 19,
+    "packagedNetworkDisabledTests": 69,
+    "smokeTask": "3e3a5ff4b91f4a9ab42ded4335ed7462",
+    "smokeExitCode": 0,
+    "scheduleComparison": {
+      "count": 20,
+      "passed": true,
+      "changes": [
+        {
+          "name": "mbop-sourcing-catalog",
+          "old": "arn:aws:ecs:us-west-2:297464765814:task-definition/mbop-scheduler-task:92",
+          "new": "arn:aws:ecs:us-west-2:297464765814:task-definition/mbop-scheduler-task:93"
+        }
+      ]
+    },
+    "resumeNote": "Same frozen run resumed with tested batch size 25; stable request IDs and durable pending replay preserved.",
+    "status": "completed",
+    "transportInterruptions": [
+      {
+        "processed": 21165,
+        "written": 18077,
+        "error": "RemoteDisconnected: remote end closed connection without response",
+        "pendingWrite": false,
+        "tinyDatabaseRead": "passed",
+        "resolution": "Resume same frozen run and durable journal; no guard change"
+      }
+    ],
+    "completedAt": "2026-09-14T16:24:54.353061+00:00"
+  },
+  "run": {
+    "runId": "4e564247-26f7-4945-b143-106e1ad9d5a9",
+    "window": {
+      "startInclusive": "2026-08-15T07:00:00+00:00",
+      "endInclusive": "2026-09-14T06:22:13.607958+00:00",
+      "timezone": "America/Los_Angeles",
+      "calendarDays": 30
+    },
+    "write": true,
+    "policy": "phase3_shadow"
+  },
+  "verification": {
+    "complete": true,
+    "journalRows": 32793,
+    "auditedWrites": 28013,
+    "initialExcludedTouched": 0,
+    "protectedRowsTouched": 0,
+    "reviewedRowsOverwritten": 0,
+    "historicalActionsRewritten": 0,
+    "views": {
+      "buy_list": {
+        "total": 102,
+        "returned": 102
+      },
+      "closest_excluded": {
+        "total": 122,
+        "returned": 50
+      },
+      "business_excluded": {
+        "total": 19,
+        "returned": 19
+      }
+    },
+    "duplicateListingIdentities": {
+      "buy_list": 0,
+      "closest_excluded": 0,
+      "business_excluded": 0
+    },
+    "auditOtherRequests": 0,
+    "summary": {
+      "window": {
+        "startInclusive": "2026-08-15T07:00:00+00:00",
+        "endInclusive": "2026-09-14T06:22:13.607958+00:00",
+        "timezone": "America/Los_Angeles",
+        "calendarDays": 30
+      },
+      "totalFound": 50239,
+      "excluded": {
+        "protected_lifecycle": 17437,
+        "operator_reviewed": 9
+      },
+      "evaluated": 31455,
+      "outcomes": {
+        "written": 28013,
+        "protected_skip": 4667,
+        "stale_state_skip": 113
+      },
+      "routes": {
+        "closest_excluded": 17253,
+        "buy_list": 418,
+        "business_excluded": 10342
+      },
+      "unchangedDecisions": 0,
+      "errors": 0,
+      "protectedRowsTouched": 0,
+      "reviewedRowsOverwritten": 0,
+      "historicalRewrites": 0,
+      "providerSearches": 0,
+      "marketplaceWrites": 0,
+      "previousSuccesses": {
+        "evaluated": 2388,
+        "decisions": {
+          "non-match": 1360,
+          "match": 855,
+          "needs_review": 173
+        }
+      },
+      "previousFailures": {
+        "evaluated": 29067,
+        "decisions": {
+          "non-match": 15458,
+          "match": 11136,
+          "needs_review": 2473
+        }
+      }
+    }
+  },
+  "artifactsRoot": "tmp/sourcing-closeout",
+  "sha256": {
+    "gate-summary.json": "c9e3a70a191fe3914a4482d2f410e61f9b4b77ac35685e387e534683bd3c4be0",
+    "strict-replay.json": "6936e0c551a0793bcd872b2449c4e5f340a43fcda7f97cb1a6abb105ba68d76c",
+    "guard-tests.json": "7b94fc33eb53ebdcb04787bf56b7ecbabda66c2fbcdb9db683bc0ecd9dff3ee3",
+    "hold-tests.json": "4aecdb5d64cb949487900fbf4ceb6a6b7062e6550de610d69d39c4f28b074a3d",
+    "inventory-compatibility.json": "9750d1988c48b09dee9cddb9de4ea15a913caf700d57bd8957bbc7d57a10bc97",
+    "closeout-guard-tests.json": "03dcf72e46128c209f1984c4abb6d752ab17a427de9b7b85bf9eadf125f0ce23",
+    "runner-test.json": "51b629e71538a3e1222e96a1f0ea10d9c5585532d9317370fed760480bf0297a",
+    "deployment-verification.json": "598d60c304830e3ceda2883fb419883c7bad15d9a5d1792c6e94c23eeeb32204",
+    "aws-final-verification.json": "de5f6d219f4bffb935286b1285b0d9cd62bf0b128746c5822db9b30a3819c7b2",
+    "schedule-verification.json": "996c2ee4d9e3b9c5810b7bb93e6e79e96e0a6bf81d9de5de9a4eec00dac0d36c",
+    "run/run.json": "9ebe49d5ff1c9bc3ad131a035377393eda2e559d09f126896b928f2e20928d13",
+    "run/cohort.json": "2f7a2b2cd9c67115f4280664b14c9c34c4a3d283f7432871d7fa8de1a3811a91",
+    "run/captures.jsonl.gz": "a3f462cf647169b27237cf3487f588c0ee4e8bee98a64a225a60d459c5761e43",
+    "run/results.jsonl": "aad773cb097845e51e27bf95354d3d3bc43b33e9e0d9a92ba14572b22468677d",
+    "run/summary.json": "9631217b0e12e6fbadce07d3e65803b2c183574e14cda342de8b0adad3ed8236",
+    "capture-integrity.json": "db45b9f11b73c7bbd3157a8d640825f01129ff0eff8f254db35161b65023ed35",
+    "final-verification.json": "7b50131a4721c9a077d1ffbd05aa14da442f8c4558302a6771dfe4396c1e4e30",
+    "audit-readback.json": "f2bb98a9025fd01d27efe810cf88560b354ac7caf0e75ee04572deabef1be537",
+    "views-before/current-manifest.json": "5e801118bc2e4f6a3e657126ec23f710523a888e9311ac5411bcd0071b9dc5b9",
+    "views-after/current-manifest.json": "742ffe81600b7dd5ebc5557bef7c5974c8e4b9ac36911c3aa95c6ade2bb29063"
+  }
+}

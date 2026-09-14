@@ -24,7 +24,9 @@ Match does not buy, offer, bid or release a hold. Profitability, condition, regi
 
 ## Runtime and bounded refresh
 
-`MBOP_SOURCING_PHASE3=1` activates Phase 3 in the sourcing scoring runtime. Existing-row updates use the atomic refresh path; with the flag absent, legacy default outputs remain unchanged. The sourcing task is the only schedule target intended to change; web deployment is unnecessary for this backend release.
+`phase3_shadow` remains the internal evaluator identifier in some run metadata; the runtime flag and persisted `phase3_active_stored_evidence` decisions establish active use.
+
+`MBOP_SOURCING_PHASE3=1` activates Phase 3 in the sourcing scoring runtime. Existing-row updates use the atomic refresh path; with the flag absent, legacy default outputs remain unchanged. Sourcing is deployed on scheduler revision 93 from commit `a2247102a9e6`; web151 is unchanged. All twenty schedules were compared: only the sourcing task reference changed from revision 92 to 93. The ECS smoke task exited successfully with Phase 3 enabled and a database read; no provider call was made.
 
 `integrations/sourcing_phase3_refresh.py` reads stored evidence only. It defaults to dry-run; `--write` explicitly enables database decision updates. The cohort is the current Los Angeles calendar date and the preceding 29 dates, frozen at run start. Both previously admitted and failed results are included. Explicit identity reviews (including Not Sure), human dismissals and protected lifecycle rows are excluded. Recognized automation/availability/duplicate cleanup is not human identity review. Valid scoped corrections can apply to other unreviewed pairs.
 

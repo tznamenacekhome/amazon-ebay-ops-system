@@ -1,5 +1,7 @@
 # Phase 3 hold-scope repair passed; fresh routing safety blocked deployment
 
+> Historical pre-closeout report. Superseded by the successful [final closeout](sourcing_matching_30_day_reprocess_2026-09-13.md); Phase 3 is now active on sourcing scheduler93.
+
 The inventory/ROI guard repair passes. The strict frozen identity gate also passes. Work resumed through a new bounded production capture and a read-only routing dry run. That dry run exposed unsupported deterministic exclusions for FIFA 23 / PS5 and Madden NFL 12 / Wii. Production deployment, SQL application and refresh stopped. The required work-order status at the end denotes the overall safety stop; it does **not** mean the repaired inventory-scope regression is still failing.
 
 ## Hold semantics and atomic repair
