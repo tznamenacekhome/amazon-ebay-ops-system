@@ -2,6 +2,8 @@
 
 ## Inventory hold guard repaired; fresh routing safety blocked deployment
 
+Implementation/evidence checkpoint: `667bf79cd5caacb58d37e12426a5865434ec06c1`. This follow-up records the immutable commit; the migration remains unapproved for production application.
+
 Legacy inventory snoozes now protect every listing of the ASIN and use existing sell-through release semantics with atomically guarded purchase/FBA pipeline inputs. Validation: 59 existing guard checks, the repaired legacy regression and 24 hold-scope checks; 170 Python tests, 257 API/RPC calls, 1,609 unchanged defaults; strict 12/12 Tier A, 15/15 curated positives, all 3 adjudicated and 18 curated negatives preserved. Fresh capture: 529 rows (28 Buy List / 50 of 129 Closest Excluded / 2 Business Excluded). The provisional dry run would incorrectly establish core-game conflicts from added wording for FIFA 23 / PS5 and Madden NFL 12 / Wii. Stopped before deployment/refresh; matcher changes were prohibited and none made. Eight dry-run protected rows, zero production writes. [Evidence and exact continuation](sourcing_phase3_final_deployment_2026-09-13.md). Phase 3 remains incomplete; earlier sections below are historical.
 
 ## Numeric guard passed; legacy inventory protection failed

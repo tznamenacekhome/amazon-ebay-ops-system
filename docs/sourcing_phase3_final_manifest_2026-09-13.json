@@ -6964,5 +6964,6 @@
       "sha256": "fc10cd68d233544b04baaf8cc6bddd8622bf4efc3581aaa4baa33d6025812145",
       "bytes": 268325
     }
-  }
+  },
+  "candidateCommit": "667bf79cd5caacb58d37e12426a5865434ec06c1"
 }
