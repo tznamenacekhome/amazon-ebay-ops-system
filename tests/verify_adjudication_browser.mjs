@@ -35,6 +35,7 @@ try {
   const cdp=(method,params={})=>new Promise((resolve,reject)=>{const n=++id;pending.set(n,{resolve,reject});ws.send(JSON.stringify({id:n,method,params}));});
   const js=async expression=>{const r=await cdp('Runtime.evaluate',{expression,returnByValue:true,awaitPromise:true});if(r.exceptionDetails)throw new Error(JSON.stringify(r.exceptionDetails));return r.result.value;};
   const until=async expression=>{for(let i=0;i<100;i++){if(await js(expression))return;await wait(100);}throw new Error('Timed out: '+expression+' '+await js('JSON.stringify({url:location.href,text:document.body.innerText})')+' '+JSON.stringify(errors));};
+  await cdp('Emulation.setDeviceMetricsOverride',{width:1600,height:1000,deviceScaleFactor:1,mobile:false});
   await cdp('Runtime.enable');await cdp('Page.enable');await cdp('Page.navigate',{url:'http://localhost:3108/sourcing/adjudication'});
   await until(`document.querySelectorAll('tbody tr').length===16`);
   await js(`document.querySelectorAll('tbody tr')[1].querySelector('button').click()`);
@@ -44,7 +45,7 @@ try {
   for(let i=0;i<200;i++){if(await js(`!document.querySelector('[role=dialog]')||!!document.querySelector('[role=alert]')`))break;await wait(100);}
   const result=await js(`({dialog:!!document.querySelector('[role=dialog]'),text:document.body.innerText,alerts:[...document.querySelectorAll('[role=alert]')].map(e=>e.textContent)})`);
   writeFileSync(resolve(out,'result.json'),JSON.stringify({image,before,result,calls,errors},null,2));
-  const screenshot=await cdp('Page.captureScreenshot',{captureBeyondViewport:true});writeFileSync(resolve(out,'result.png'),Buffer.from(screenshot.data,'base64'));
+  const screenshot=await cdp('Page.captureScreenshot',{captureBeyondViewport:false});writeFileSync(resolve(out,'result.png'),Buffer.from(screenshot.data,'base64'));
   console.log(JSON.stringify({image,dialog:result.dialog,alerts:result.alerts,saves:calls.filter(c=>c.name==='sourcing_save_adjudication').length,errors}));
   assert.equal(result.dialog,false,'Negative click must save and close the dialog');
   const saved=calls.find(c=>c.name==='sourcing_save_adjudication');assert(saved);assert.equal(saved.args.p_context.matchingFeedback.pairVerdict,'incorrect');
@@ -60,14 +61,15 @@ try {
     let last=calls.filter(c=>c.name==='sourcing_save_adjudication').at(-1);assert.deepEqual(last.args.p_context.matchingFeedback.flaggedFields,['coreGame']);assert.deepEqual(last.args.p_context.matchingFeedback.corrections,[]);
     await open();await js(`document.querySelector('[aria-label="Core Game Wrong"]').click();`);
     await until(`!!document.querySelector('[aria-label="Core Game ebay value"]')`);
-    await js(`{const e=document.querySelector('[aria-label="Core Game ebay value"]');Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype,'value').set.call(e,'Disposable corrected product');e.dispatchEvent(new Event('input',{bubbles:true}));}`);await negative();
-    last=calls.filter(c=>c.name==='sourcing_save_adjudication').at(-1);assert.equal(last.args.p_context.matchingFeedback.corrections[0].value,'Disposable corrected product');
+    const correctedValue='Disposable corrected product '+Date.now();
+    await js(`{const e=document.querySelector('[aria-label="Core Game ebay value"]');Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype,'value').set.call(e,${JSON.stringify(correctedValue)});e.dispatchEvent(new Event('input',{bubbles:true}));}`);await negative();
+    last=calls.filter(c=>c.name==='sourcing_save_adjudication').at(-1);assert.equal(last.args.p_context.matchingFeedback.corrections[0].value,correctedValue);
     await open();assert(await js(`[...document.querySelectorAll('[role=dialog] button')].find(b=>b.textContent==='Confirm Match').disabled`));
     await js(`{const e=document.querySelector('[aria-label="Adjudication notes"]');Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype,'value').set.call(e,'Retain unsaved notes');e.dispatchEvent(new Event('input',{bubbles:true}));window.originalFetch=window.fetch;window.fetch=(url,opts)=>{if(opts?.method==='POST'){const body=JSON.parse(opts.body);body.expectedRevision='stale-browser-test';opts={...opts,body:JSON.stringify(body)};}return window.originalFetch(url,opts);};}`);
     await js(`[...document.querySelectorAll('[role=dialog] button')].find(b=>b.textContent==='Incorrect Match').click()`);await until(`!!document.querySelector('[role=alert]')`);
     assert(await js(`document.querySelector('[role=alert]').textContent.includes('A newer review or correction exists')`));assert.equal(await js(`document.querySelector('[aria-label="Adjudication notes"]').value`),'Retain unsaved notes');
     await js(`window.fetch=window.originalFetch`);
-    const screen=await cdp('Page.captureScreenshot',{captureBeyondViewport:true});writeFileSync(resolve(out,'stale.png'),Buffer.from(screen.data,'base64'));
+    const screen=await cdp('Page.captureScreenshot',{captureBeyondViewport:false});writeFileSync(resolve(out,'stale.png'),Buffer.from(screen.data,'base64'));
     writeFileSync(resolve(out,'contracts.json'),JSON.stringify({image,negativeWithoutAssertions:true,wrongWithoutReplacement:true,negativeWithCorrection:true,staleInlineAndStateRetained:true,positiveDisabledWithoutAttestation:true,readbackOnly:true,saves:calls.filter(c=>c.name==='sourcing_save_adjudication').length,errors},null,2));
     console.log('Actual packaged browser/API/RPC contracts passed, including negative variants, bounded update, success and stale-state retention.');
   }
