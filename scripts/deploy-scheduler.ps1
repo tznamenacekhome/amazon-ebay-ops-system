@@ -5,6 +5,8 @@ param(
   [string]$TaskDefinitionFamily = "mbop-scheduler-task",
   [string]$ContainerName = "mbop-scheduler",
   [string]$TaskRoleArn = "",
+  [string]$BaseTaskDefinition = "",
+  [switch]$EnablePhase3,
   [switch]$AllowDirty
 )
 
@@ -57,10 +59,13 @@ if ($LASTEXITCODE -ne 0) {
 
 Write-Host "Building Docker image..." -ForegroundColor Cyan
 docker build -f Dockerfile.scheduler -t $localImage .
+if ($LASTEXITCODE -ne 0) { throw "Scheduler image build failed." }
 
 Write-Host "Pushing Docker image to ECR..." -ForegroundColor Cyan
 docker tag $localImage $remoteTaggedImage
+if ($LASTEXITCODE -ne 0) { throw "Scheduler image tag failed." }
 docker push $remoteTaggedImage
+if ($LASTEXITCODE -ne 0) { throw "Scheduler image push failed." }
 
 $repositoryName = ($RepositoryUri.Split("/") | Select-Object -Last 1)
 $imageDigest = (aws ecr describe-images `
@@ -78,10 +83,11 @@ if (-not $imageDigest -or $imageDigest -eq "None") {
 $pinnedImage = "$RepositoryUri@$imageDigest"
 Write-Host "Pinned image: $pinnedImage" -ForegroundColor Green
 
+if (-not $BaseTaskDefinition) { $BaseTaskDefinition = $TaskDefinitionFamily }
 $taskDefinition = aws ecs describe-task-definition `
   --profile $Profile `
   --region $Region `
-  --task-definition $TaskDefinitionFamily `
+  --task-definition $BaseTaskDefinition `
   --output json | ConvertFrom-Json
 
 $newTaskDefinition = $taskDefinition.taskDefinition
@@ -103,6 +109,11 @@ if (-not $container) {
 }
 
 $container.image = $pinnedImage
+if ($EnablePhase3) {
+  $container.environment = @($container.environment | Where-Object { $_.name -ne "MBOP_SOURCING_PHASE3" }) + @(
+    [pscustomobject]@{ name = "MBOP_SOURCING_PHASE3"; value = "1" }
+  )
+}
 
 $taskFile = Join-Path ([System.IO.Path]::GetTempPath()) "mbop-scheduler-task-$tag.json"
 $newTaskDefinition | ConvertTo-Json -Depth 100 | Set-Content -LiteralPath $taskFile -Encoding ascii

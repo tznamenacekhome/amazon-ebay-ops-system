@@ -152,7 +152,8 @@ mutations = {
 }
 for name, mutation in mutations.items():
     row = seed(); before = capture(row); sql(mutation(row)); changed = capture(row)
-    assert apply(row, before)['result'] == 'stale_state_skip', name
+    expected='protected_skip' if name=='new review' else 'stale_state_skip'
+    assert apply(row, before)['result'] == expected, name
     assert capture(row) == changed, name
     record('stale ' + name)
 

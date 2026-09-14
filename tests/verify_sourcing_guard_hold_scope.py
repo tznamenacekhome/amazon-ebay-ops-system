@@ -1,5 +1,6 @@
 """Disposable PostgreSQL hold-scope and release acceptance tests."""
 import json
+import os
 from pathlib import Path
 import sys
 
@@ -96,5 +97,5 @@ for action, expected in [({'action_type':'inventory_snooze'},'inventory_snooze')
     assert sql(f"select sourcing_guard_hold_type({quote(action)}::jsonb)") == expected
     checks.append('normalize ' + str(action))
 
-Path('tmp/sourcing-hold-scope/hold-tests.json').write_text(json.dumps({'passed':True,'count':len(checks),'checks':checks},indent=2),encoding='utf-8')
+Path(os.environ.get('MBOP_HOLD_SCOPE_TEST_OUTPUT','tmp/sourcing-hold-scope/hold-tests.json')).write_text(json.dumps({'passed':True,'count':len(checks),'checks':checks},indent=2),encoding='utf-8')
 print(f'{len(checks)} hold-scope checks passed')

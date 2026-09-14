@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import datetime as dt
+import os
 import time
 from itertools import islice
 from typing import Any
@@ -84,6 +85,11 @@ def score_candidate_batches(supabase, candidates, seed_by_id, settings, keepa_pr
     iterator = iter(candidates)
     while batch := list(islice(iterator, 100)):
         context = {**matching_context, "declined_offers": fetch_declines(supabase, batch)}
+        if os.environ.get('MBOP_SOURCING_PHASE3') == '1':
+            from sourcing_phase3_refresh import scoped_reviews_for_candidates
+            context.update(offline_identity_policy='phase3_shadow',
+                           offline_scoped_reviews=scoped_reviews_for_candidates(supabase,batch),
+                           offline_review_cutoff=dt.datetime.now(dt.UTC).isoformat())
         for candidate in batch:
             yield score_candidate(candidate, seed_by_id.get(candidate.get("seed_id")), settings,
                                   keepa_prices, historical_status, context,
@@ -153,6 +159,12 @@ def upsert_opportunities(supabase, run_id: str, scored_rows: list[dict[str, Any]
     update_rows = list(update_rows_by_id.values())
 
     updated = 0
+    if os.environ.get('MBOP_SOURCING_PHASE3') == '1':
+        from sourcing_phase3_refresh import refresh_existing
+        for row in update_rows:
+            result=refresh_existing(row['opportunity_id'])
+            updated += result['result']=='written'
+        update_rows=[]
     for batch in chunked(update_rows, 25):
         guard_if_enabled(supabase)
         supabase.table("sourcing_opportunities").upsert(
@@ -1014,6 +1026,11 @@ def matching_diagnostics_for_candidate(
     elif seller_status == "watch":
         flags.append(f"Seller warning: watch ({seller.get('status_reason') or 'seller intelligence'})")
         score_adjustment -= 10
+
+    if matching_context.get('offline_identity_policy') == 'phase3_shadow':
+        verdict=(static_rules.get('identity_comparison') or {}).get('evidenceDecision',{}).get('productIdentityVerdict')
+        if verdict!='match' and recommendation in {'Strong Match','Probable Match'}:
+            recommendation=static_rules.get('recommendation') or 'Review'
 
     return {
         "hard_rule_pass": not negative_examples and not static_rules.get("hard_blocks"),
