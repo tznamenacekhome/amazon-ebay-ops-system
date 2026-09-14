@@ -184,3 +184,28 @@ Exact numeric canonicalization uses PostgreSQL [`trim_scale(numeric)`](https://w
 The critical opportunity UPDATE additionally checks native UUID, text, timestamp and numeric fields against the captured database row. These predicates are redundant defense within the same transaction; the full canonical JSONB comparison is the complete expected-state check. No separate application precheck substitutes for it.
 
 No production refresh client or deployment was completed. Exact Decimal token equivalence is covered directly in SQL without binary float conversion. A future production capture/refresh client must preserve decimal precision through transport rather than round arbitrary precision values to Python or JavaScript floats.
+
+## Hold-scope extension
+
+The hold repair adds the following projections. They contain no timestamp fields; numbers use the existing exact numeric canonicalizer, booleans remain booleans, identifiers/text remain exact, and arrays are ordered by primary key. The transaction adds read locks on purchase_items, fba_shipment_items and fba_shipments. No columns in these tables are mutated.
+
+| Path | Type |
+| --- | --- |
+| `pipelinePurchases.*.item_id` | UUID |
+| `pipelinePurchases.*.asin` | nullable text identifier |
+| `pipelinePurchases.*.quantity` | integer |
+| `pipelinePurchases.*.current_status` | nullable status text |
+| `pipelinePurchases.*.marketplace` | nullable text |
+| `pipelinePurchases.*.exclude_from_purchase_reporting` | nullable boolean |
+| `pipelineShipments.*.id` | UUID |
+| `pipelineShipments.*.item_id` | UUID |
+| `pipelineShipments.*.quantity` | integer |
+| `pipelineShipments.*.included` | boolean |
+| `pipelineShipments.*.outbound_remaining_quantity` | nullable integer |
+| `pipelineShipments.*.received_quantity` | nullable integer |
+| `pipelineShipments.*.available_quantity` | nullable integer |
+| `pipelineShipments.*.shipment_code` | text identifier |
+| `pipelineShipments.*.workflow_status` | status text |
+| `pipelineShipments.*.amazon_status_normalized` | nullable status text |
+
+The disposable pipeline fixture mirrors only these required columns; it is not a production migration or a complete production schema parity check. The original audit above remains the eight-table baseline.

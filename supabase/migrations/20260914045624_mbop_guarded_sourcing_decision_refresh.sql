@@ -1,4 +1,4 @@
--- UNAPPROVED CANDIDATE: legacy ASIN-wide inventory protection failed; do not apply remotely.
+-- UNAPPROVED: hold repair passes; fresh routing gate failed. Do not apply remotely.
 -- See docs/sourcing_phase3_final_deployment_2026-09-13.md before continuing.
 -- MBOP: bounded decision refresh only. No provider, review or lifecycle writes.
 -- This migration is not an activation flag. Legacy scoring remains unchanged.
@@ -71,10 +71,111 @@ $$;
 revoke all on function public.sourcing_guard_hash(jsonb) from public, anon, authenticated;
 grant execute on function public.sourcing_guard_hash(jsonb) to service_role;
 
+-- Semantic action normalization is shared by all guard hold decisions.
+create function public.sourcing_guard_hold_type(p_action jsonb)
+returns text language sql immutable security invoker set search_path = '' as $$
+  select case
+    when p_action->>'action_type' in ('inventory_snoozed','inventory_snooze')
+      or (p_action->>'action_type' in ('roi_snoozed','roi_snooze','snooze_roi')
+          and p_action->'raw_action_context'->>'actionType'='inventory_snooze') then 'inventory_snooze'
+    when p_action->>'action_type' in ('roi_snoozed','roi_snooze','snooze_roi') then 'roi_snooze'
+    else 'other' end;
+$$;
+revoke all on function public.sourcing_guard_hold_type(jsonb) from public, anon, authenticated;
+grant execute on function public.sourcing_guard_hold_type(jsonb) to service_role;
+
+-- Same owned-unit inputs and exclusions as fetch_owned_units_by_asin.
+-- The state reader and transaction locks cover all pipeline inputs.
+create function public.sourcing_guard_owned_units(p_state jsonb)
+returns numeric language sql immutable security invoker set search_path = '' as $$
+  select greatest(0,trunc(coalesce((p_state->'seed'->>'current_inventory_units')::numeric,0))) +
+    coalesce((select sum(case
+      when lower(btrim(p->>'current_status')) in
+        ('ordered','no_tracking','shipped_no_tracking','awaiting_carrier_scan','in_transit','delivered','received')
+        then greatest(1,trunc(coalesce((p->>'quantity')::numeric,1)))
+      when lower(btrim(p->>'current_status'))='listed' then
+        coalesce((select sum(greatest(0,trunc(coalesce((f->>'outbound_remaining_quantity')::numeric,
+          greatest(0,coalesce((f->>'quantity')::numeric,0)) -
+          greatest(0,coalesce((f->>'received_quantity')::numeric,0)) -
+          greatest(0,coalesce((f->>'available_quantity')::numeric,0))))))
+          from jsonb_array_elements(p_state->'pipelineShipments') f
+          where f->>'item_id'=p->>'item_id' and f->>'included' is distinct from 'false'
+            and nullif(btrim(f->>'shipment_code'),'') is not null
+            and lower(btrim(f->>'shipment_code')) <> 'legacy_listed_no_shipment_id'
+            and coalesce(lower(btrim(f->>'workflow_status')),'') not in ('cancelled','canceled','closed','deleted','voided','abandoned')
+            and coalesce(lower(btrim(f->>'amazon_status_normalized')),'') not in ('cancelled','canceled','closed','deleted','voided','abandoned')),0)
+      else 0 end)
+      from jsonb_array_elements(p_state->'pipelinePurchases') p
+      where p->>'exclude_from_purchase_reporting' is distinct from 'true'
+        and coalesce(lower(btrim(p->>'marketplace')),'') <> 'ebay'
+        and coalesce(lower(btrim(p->>'current_status')),'') not in ('cancelled','return_opened','return_pending')),0);
+$$;
+revoke all on function public.sourcing_guard_owned_units(jsonb) from public, anon, authenticated;
+grant execute on function public.sourcing_guard_owned_units(jsonb) to service_role;
+
+create function public.sourcing_guard_active_hold(p_state jsonb, p_proposed_status text)
+returns jsonb language plpgsql immutable security invoker set search_path = '' as $$
+declare a jsonb; h jsonb; threshold numeric; baseline numeric; op jsonb := p_state->'opportunity';
+  cost numeric; old_cost numeric; old_cap numeric; cap numeric;
+begin
+  -- Later inventory snoozes replace the ASIN's earlier threshold, as in the scorer.
+  select value into a from jsonb_array_elements(p_state->'actions')
+    where value->>'asin'=op->>'asin' and public.sourcing_guard_hold_type(value)='inventory_snooze'
+    order by value->>'created_at' desc,value->>'action_id' desc limit 1;
+  if a is not null then
+    h := a->'raw_action_context'->'inventorySnooze';
+    threshold := nullif(h->>'representAtUnits','')::numeric;
+    baseline := nullif(h->>'baselineUnits','')::numeric;
+    if threshold < 0 then threshold := null; end if;
+    if threshold is null and baseline >= 0 then
+      threshold := greatest(0,trunc(baseline)-greatest(1,ceil(trunc(baseline)*0.1)));
+    end if;
+    if p_proposed_status is distinct from 'open' or threshold is null
+      or public.sourcing_guard_owned_units(p_state) > trunc(threshold) then
+      return jsonb_build_object('type','inventory_snooze','scope','asin','actionId',a->>'action_id');
+    end if;
+  end if;
+  -- ROI/price holds remain exact pair scoped. Latest pair lifecycle action wins.
+  select value into a from jsonb_array_elements(p_state->'actions')
+    where value->>'asin'=op->>'asin' and value->>'ebay_item_id'=op->>'ebay_item_id'
+      and (public.sourcing_guard_hold_type(value)='roi_snooze'
+        or value->>'action_type' in ('watching','watch','dismissed','purchased','inventory_snoozed'))
+    order by value->>'created_at' desc,value->>'action_id' desc limit 1;
+  if a is not null and (public.sourcing_guard_hold_type(a)='roi_snooze' or a->>'action_type' in ('watching','watch')) then
+    old_cost := nullif(a->>'expected_purchase_cost','')::numeric;
+    old_cap := nullif(a->>'required_max_landed_cost','')::numeric;
+    cap := nullif(op->>'max_profitable_landed_cost','')::numeric;
+    cost := case when op->>'opportunity_type'='best_offer' and op->>'max_offer_price' is not null
+      then (op->>'max_offer_price')::numeric else coalesce((op->>'landed_cost')::numeric,
+        case when nullif(p_state->'candidate'->>'price','')::numeric > 0
+          then (p_state->'candidate'->>'price')::numeric end) end;
+    if p_proposed_status is distinct from 'open' or not coalesce(
+      (old_cost>0 and cost is not null and cost<old_cost-0.009)
+      or (old_cap>0 and cap>old_cap+0.009),false) then
+      return jsonb_build_object('type','roi_snooze','scope','pair','actionId',a->>'action_id');
+    end if;
+  end if;
+  return null;
+end;
+$$;
+revoke all on function public.sourcing_guard_active_hold(jsonb,text) from public, anon, authenticated;
+grant execute on function public.sourcing_guard_active_hold(jsonb,text) to service_role;
+
 create function public.sourcing_decision_guard_state(p_opportunity_id uuid)
 returns jsonb language sql stable security invoker set search_path = '' as $$
   select jsonb_build_object(
     'opportunity', to_jsonb(o),
+    'pipelinePurchases', coalesce((select jsonb_agg(jsonb_build_object(
+      'item_id',p.item_id,'asin',p.asin,'quantity',p.quantity,'current_status',p.current_status,
+      'marketplace',p.marketplace,'exclude_from_purchase_reporting',p.exclude_from_purchase_reporting) order by p.item_id)
+      from public.purchase_items p where p.asin=o.asin),'[]'::jsonb),
+    'pipelineShipments', coalesce((select jsonb_agg(jsonb_build_object(
+      'id',f.fba_shipment_item_id,'item_id',f.item_id,'quantity',f.quantity,'included',f.included,
+      'outbound_remaining_quantity',f.outbound_remaining_quantity,'received_quantity',f.received_quantity,
+      'available_quantity',f.available_quantity,'shipment_code',h.shipment_code,
+      'workflow_status',h.workflow_status,'amazon_status_normalized',h.amazon_status_normalized) order by f.fba_shipment_item_id)
+      from public.fba_shipment_items f join public.purchase_items p on p.item_id=f.item_id
+      join public.fba_shipments h on h.fba_shipment_id=f.fba_shipment_id where p.asin=o.asin),'[]'::jsonb),
     'candidate', (select to_jsonb(c) from public.sourcing_ebay_candidates c where c.candidate_id=o.candidate_id),
     'seed', (select to_jsonb(s) from public.sourcing_seed_asins s where s.seed_id=o.seed_id),
     'actions', coalesce((select jsonb_agg(to_jsonb(a) order by a.created_at,a.action_id)
@@ -109,6 +210,7 @@ declare
   outcome jsonb;
   op jsonb;
   verdict text;
+  active_hold jsonb;
 begin
   if p_request_id is null or p_opportunity_id is null or p_allowed_ids is null
     or cardinality(p_allowed_ids) not between 1 and 2000
@@ -140,11 +242,16 @@ begin
     lock table public.sourcing_opportunities in exclusive mode nowait;
     lock table public.sourcing_actions, public.sourcing_ebay_candidates, public.sourcing_seed_asins,
       public.sourcing_blocked_asins, public.sourcing_sales_velocity_suppressions,
-      public.sourcing_settings, public.sourcing_declined_ebay_offers in share row exclusive mode nowait;
+      public.sourcing_settings, public.sourcing_declined_ebay_offers,
+      public.purchase_items, public.fba_shipment_items, public.fba_shipments in share row exclusive mode nowait;
     current_state := public.sourcing_decision_guard_state(p_opportunity_id);
     if p_before_state is null or p_before_hash is distinct from
       public.sourcing_guard_hash(p_before_state) then
       return jsonb_build_object('result','stale_state_skip','changed',jsonb_build_array('before_hash'));
+    end if;
+    active_hold := public.sourcing_guard_active_hold(current_state,p_patch->>'status');
+    if active_hold is not null then
+      return jsonb_build_object('result','protected_skip','reason','active_hold','hold',active_hold);
     end if;
     canonical_state := public.sourcing_guard_canonical(current_state);
     -- Full database JSONB equality is authoritative, never hash equality alone.
@@ -159,10 +266,10 @@ begin
       select 1 from jsonb_array_elements(current_state->'pairHistory') h
       where h->>'status' not in ('open','rejected')) or exists(
       select 1 from jsonb_array_elements(current_state->'actions') a
-      where a->>'asin'=op->>'asin' and (a->>'action_type'='inventory_snoozed' or
-        (a->>'ebay_item_id'=op->>'ebay_item_id' and (a->>'action_type' in ('dismissed','purchased','watching','roi_snoozed','inventory_snoozed',
+      where a->>'asin'=op->>'asin' and
+        (a->>'ebay_item_id'=op->>'ebay_item_id' and (a->>'action_type' in ('dismissed','purchased',
           'confirmed_valid_match','confirmed_exclusion') or
-          a->'raw_action_context'->'matchingFeedback'->>'pairVerdict' in ('correct','incorrect'))))) then
+          a->'raw_action_context'->'matchingFeedback'->>'pairVerdict' in ('correct','incorrect')))) then
       return jsonb_build_object('result','protected_skip','reason','Lifecycle or exact-pair operator history protected');
     end if;
     verdict := p_patch->'matching_diagnostics_json'->'static_rules'->'identity_comparison'->'evidenceDecision'->>'productIdentityVerdict';

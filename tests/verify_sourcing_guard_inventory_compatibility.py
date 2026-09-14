@@ -3,6 +3,7 @@
 Mutation fixture: only the named disposable database; never production.
 """
 import json
+import os
 from pathlib import Path
 import sys
 
@@ -29,7 +30,7 @@ proof = {'expected': 'protected_skip', 'result': result, 'opportunityId': row['o
          'actionType': 'roi_snoozed', 'rawActionType': 'inventory_snooze',
          'stateUnchanged': before == after,
          'auditRows': int(sql(f"select count(*) from sourcing_decision_refresh_log where opportunity_id='{row['op']}'"))}
-Path('tmp/sourcing-guard-canonicalization/inventory-compatibility.json').write_text(
+Path(os.environ.get('MBOP_HOLD_TEST_OUTPUT', 'tmp/sourcing-hold-scope/inventory-compatibility.json')).write_text(
     json.dumps(proof, indent=2), encoding='utf-8')
 print(json.dumps(proof))
 assert result['result'] == 'protected_skip', 'ASIN-wide legacy inventory action must protect other listings'

@@ -158,7 +158,8 @@ for name, mutation in mutations.items():
 
 for status in ['purchased', 'purchased_pending_match', 'matched_to_purchase', 'completed', 'dismissed', 'watching', 'inventory_snoozed', 'roi_snoozed']:
     row = seed(status); before = capture(row)
-    assert apply(row, before)['result'] == 'protected_skip', status
+    result = apply(row, before)
+    assert result['result'] == 'protected_skip', (status, row, result)
     assert capture(row) == before
     record('protected ' + status)
 
