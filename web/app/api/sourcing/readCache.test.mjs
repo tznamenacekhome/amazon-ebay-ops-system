@@ -11,6 +11,6 @@ revision++;assert.equal((await out.cachedSourcingList('q',false,build)).hit,fals
 await out.cachedSourcingList('q',true,build);assert.equal(builds,3);
 let finish;const deferred=new Promise(resolve=>finish=resolve);const a=out.cachedSourcingList('coalesce',false,()=>deferred),b=out.cachedSourcingList('coalesce',false,()=>{throw Error('Duplicate build');});await new Promise(r=>setImmediate(r));finish({value:'shared'});assert.deepEqual((await a).body,(await b).body);
 const unstable=await out.cachedSourcingList('moving',false,async()=>{revision++;return {value:'changed'};});assert.equal(unstable.body.cacheVersion,null,'Changed source cannot be cached');
-running=true;await out.cachedSourcingList('active',false,build);await out.cachedSourcingList('active',false,build);assert.equal(builds,5);
-fail=true;await assert.rejects(()=>out.cachedSourcingList('q',false,build),/Freshness failure/);assert.equal(builds,5,'Freshness failure does not serve old cache');
-console.log('Server cache: revision hits, invalidation, force refresh, coalescing, in-flight changes, active jobs and fail-closed freshness passed');
+running=true;await out.cachedSourcingList('active',false,build);await out.cachedSourcingList('active',false,build);assert.equal(builds,4,"Stable revisions remain reusable despite stale running labels");
+fail=true;await assert.rejects(()=>out.cachedSourcingList('q',false,build),/Freshness failure/);assert.equal(builds,4,'Freshness failure does not serve old cache');
+console.log('Server cache: revision hits, invalidation, force refresh, coalescing, in-flight changes, stale activity labels and fail-closed freshness passed');

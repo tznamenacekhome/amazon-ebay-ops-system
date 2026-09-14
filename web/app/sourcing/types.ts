@@ -1,5 +1,6 @@
 export type SourcingOpportunity = {
   reviewEvidenceLoaded?: boolean;
+  evaluationId?: unknown;
   latestReview?: {pairVerdict:string|null;feedback:Record<string,unknown>|null;actionId:string|null;createdAt:string|null;corrections?:unknown[]} | null;
   opportunityId: string;
   candidateId?: string | null;

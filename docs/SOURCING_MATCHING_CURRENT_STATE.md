@@ -2,7 +2,7 @@
 
 ## Web performance
 
-The sourcing tabs use compact supporting queries, visible-row evidence hydration, concurrent enrichment and a short mutation-invalidated tab cache. See [performance validation](sourcing_tab_performance_2026-09-14.md). Matching and routing rules are unchanged.
+The sourcing tabs use committed-change cache invalidation, Buy List first/background tab preloading, compact SQL list projections, and on-demand review evidence. API totals remain authoritative. See [run-aware cache validation](sourcing_run_cache_2026-09-14.md); this supersedes the initial [web152 optimization](sourcing_tab_performance_2026-09-14.md). Matching and routing rules are unchanged.
 
 ## Workspace
 

@@ -21,6 +21,11 @@ def main():
         tables = re.findall(r"after insert or update or delete or truncate on public\.(\w+)", migration)
         sql("create role anon; create role authenticated; create role service_role;" + "".join(f"create table public.{table}(id integer primary key, matching_diagnostics_json jsonb,status text,completed_at timestamptz);" for table in tables))
         sql(migration)
+        sql("create view public.vw_latest_keepa_product_snapshot as select id,matching_diagnostics_json as raw_keepa_json from public.keepa_product_snapshots;")
+        sql(Path("supabase/migrations/20260914193100_mbop_sourcing_keepa_offer_presence.sql").read_text(encoding="utf-8"))
+        assert sql("select public.sourcing_keepa_has_offers(row(1,'{\"offers\":[null]}'::jsonb)::public.vw_latest_keepa_product_snapshot);") == "t"
+        assert sql("select public.sourcing_keepa_has_offers(row(1,'{\"offers\":[]}'::jsonb)::public.vw_latest_keepa_product_snapshot);") == "f"
+        assert sql("select public.sourcing_keepa_has_offers(row(1,'{}'::jsonb)::public.vw_latest_keepa_product_snapshot);") == "f"
         print(sql(Path("tests/sql/sourcing_read_cache.sql").read_text(encoding="utf-8")))
         before = json.loads(sql("select public.sourcing_cache_version();"))["revision"]
         # Opposite source-table order must not introduce a shared-counter deadlock.

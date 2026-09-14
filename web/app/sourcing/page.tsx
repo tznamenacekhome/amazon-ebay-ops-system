@@ -118,7 +118,7 @@ export default function SourcingPage() {
   function reviewPayload(row: SourcingOpportunity, payload: SourcingActionPayload) {
     if (!["dismiss","block_asin","mark_valid_match","confirm_exclusion","save_match_feedback"].includes(payload.actionType)) return payload;
     const key = JSON.stringify([row.opportunityId,payload]);
-    return {...payload,requestId:reviewRequests.current.get(key),sourceTab:activeTab,expectedAsin:row.asin,expectedEbayItemId:row.ebayItemId,expectedCandidateId:row.candidateId??null,expectedEvaluationId:row.diagnosticComparison?.evaluation?.id??null};
+    return {...payload,requestId:reviewRequests.current.get(key),sourceTab:activeTab,expectedAsin:row.asin,expectedEbayItemId:row.ebayItemId,expectedCandidateId:row.candidateId??null,expectedEvaluationId:row.evaluationId??row.diagnosticComparison?.evaluation?.id??null};
   }
 
   async function act(row: SourcingOpportunity, payload: SourcingActionPayload) {

@@ -21,13 +21,13 @@ export async function cachedSourcingList(key: string, fresh: boolean, build: () 
   const before = await sourcingCacheVersion();
   if (generation !== before.version) { entries.clear(); bytes = 0; generation = before.version; }
   const cacheKey = `${before.version}:${key}`;
-  const hit = !fresh && !before.running ? entries.get(cacheKey) : null;
+  const hit = !fresh ? entries.get(cacheKey) : null;
   if (hit) return { body: hit.body, hit: true };
-  if (!fresh && !before.running && pending.has(cacheKey)) return { body: await pending.get(cacheKey), hit: true };
+  if (!fresh && pending.has(cacheKey)) return { body: await pending.get(cacheKey), hit: true };
   const task = (async () => {
     const value = await build();
     const after = await sourcingCacheVersion();
-    const stable = before.version === after.version && !before.running && !after.running;
+    const stable = before.version === after.version;
     const body = { ...(value as object), cacheVersion: stable ? before.version : null };
     if (stable && generation === before.version) {
       const size = Buffer.byteLength(JSON.stringify(body));

@@ -78,7 +78,7 @@ type KeepaSnapshotRow = {
   new_fba_price_current_cents: number | null;
   new_price_current_cents: number | null;
   keepa_stats: unknown;
-  keepa_offers: unknown;
+  keepa_has_offers: boolean;
   keepa_images: unknown;
   keepa_images_csv: unknown;
 };
@@ -527,7 +527,8 @@ async function getOpportunities(request: NextRequest) {
         aiFlags: mergeFlags(row.ai_flags, diagnosticFlags(row.matching_diagnostics_json)),
         ...(listOnly ? { reviewEvidenceLoaded: false } : {}),
         matchingDiagnostics: listOnly ? null : row.matching_diagnostics_json ?? null,
-        diagnosticComparison: buildDiagnosticComparison({
+        ...(listOnly ? { evaluationId: isRecord(row.matching_diagnostics_json) && isRecord(row.matching_diagnostics_json.canonicalDecision) ? row.matching_diagnostics_json.canonicalDecision.evaluationId ?? null : null } : {}),
+        diagnosticComparison: listOnly ? null : buildDiagnosticComparison({
           opportunity: { ...row, amazon_title: amazonTitle } as unknown as Record<string, unknown>,
           seed: (row.sourcing_seed_asins ?? {}) as unknown as Record<string, unknown>,
           candidate: (row.sourcing_ebay_candidates ?? {}) as unknown as Record<string, unknown>,
@@ -1681,13 +1682,13 @@ async function fetchKeepaPriceContextByAsin(asins: string[]) {
     const chunk = uniqueAsins.slice(index, index + 100);
     const { data, error } = await supabase
       .from("vw_latest_keepa_product_snapshot")
-      .select("asin,title,buy_box_price_current_cents,buy_box_price_avg90_cents,new_fba_price_current_cents,new_price_current_cents,keepa_stats:raw_keepa_json->stats,keepa_offers:raw_keepa_json->offers,keepa_images:raw_keepa_json->images,keepa_images_csv:raw_keepa_json->imagesCSV")
+      .select("asin,title,buy_box_price_current_cents,buy_box_price_avg90_cents,new_fba_price_current_cents,new_price_current_cents,keepa_stats:raw_keepa_json->stats,keepa_has_offers:sourcing_keepa_has_offers,keepa_images:raw_keepa_json->images,keepa_images_csv:raw_keepa_json->imagesCSV")
       .in("asin", chunk);
     if (error) throw new Error(`Keepa snapshots: ${error.message}`);
 
     for (const row of (data ?? []) as KeepaSnapshotRow[]) {
       // Keep historical price arrays and other unused provider data in the database.
-      const rawKeepa = { stats: row.keepa_stats, offers: row.keepa_offers, images: row.keepa_images, imagesCSV: row.keepa_images_csv };
+      const rawKeepa = { stats: row.keepa_stats, offers: row.keepa_has_offers ? [{}] : [], images: row.keepa_images, imagesCSV: row.keepa_images_csv };
       const asin = row.asin?.toUpperCase();
       if (asin) {
         const buyBoxCurrent = centsToDollars(row.buy_box_price_current_cents);

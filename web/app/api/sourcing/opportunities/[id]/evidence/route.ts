@@ -11,8 +11,8 @@ export async function GET(request: NextRequest, context: { params: Promise<{ id:
       .select("*,sourcing_seed_asins(*),sourcing_ebay_candidates(*)").eq("opportunity_id", id).single();
     if (error) throw new Error(error.message);
     const seed = row.sourcing_seed_asins ?? {};
-    let title = seed.asin === row.asin ? seed.amazon_title : null;
-    if (!title) {
+    let title = String(seed.asin ?? "").toUpperCase() === String(row.asin).toUpperCase() ? seed.amazon_title ?? null : null;
+    if (title === null) {
       const { data, error: titleError } = await supabase.from("vw_latest_keepa_product_snapshot").select("title").eq("asin", row.asin).limit(1);
       if (titleError) throw new Error(titleError.message);
       title = data?.[0]?.title ?? "";

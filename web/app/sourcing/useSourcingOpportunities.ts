@@ -50,7 +50,7 @@ export function useSourcingOpportunities(
       setBusinessSuppressions(payload.businessSuppressions ?? []);
       setSummary(payload.summary ?? {});
       setBatch(payload.batch ?? null);
-      if (status === "open" && scope !== "closest_excluded") sourcingResources.prefetchAfterBuyList();
+      if (status === "open" && scope !== "closest_excluded" && payload.cacheVersion !== null) sourcingResources.prefetchAfterBuyList();
     } catch (err) {
       if (controller.signal.aborted) return;
       setError(err instanceof Error ? err.message : "Failed to load sourcing opportunities.");
@@ -70,22 +70,10 @@ export function useSourcingOpportunities(
   const removeRows = useCallback((opportunityIds: string[]) => {
     sourcingResources.invalidate();
     const ids = new Set(opportunityIds);
-    setRows((currentRows) => {
-      const nextRows = currentRows.filter((row) => !ids.has(row.opportunityId));
-      setSummary(summarizeRows(nextRows));
-      return nextRows;
-    });
+    // API summary counts cover the full qualified set, not just displayed rows.
+    // Keep those authoritative counts until the post-action reload completes.
+    setRows(currentRows => currentRows.filter(row => !ids.has(row.opportunityId)));
   }, []);
 
   return { rows, businessSuppressions, summary, batch, loading, error, reload, removeRows, setError };
-}
-
-function summarizeRows(rows: SourcingOpportunity[]) {
-  return {
-    total: rows.length,
-    buyNow: rows.filter((row) => row.opportunityType === "buy_now").length,
-    bestOffer: rows.filter((row) => row.opportunityType === "best_offer").length,
-    auction: rows.filter((row) => row.opportunityType === "auction").length,
-    multiUnit: rows.filter((row) => row.opportunityType === "multi_unit").length,
-  };
 }

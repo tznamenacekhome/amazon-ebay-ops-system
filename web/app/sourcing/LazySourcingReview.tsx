@@ -16,7 +16,7 @@ export function LazySourcingReview({ row, children, onClose }: {
         const evidence = await response.json();
         if (!response.ok) throw new Error(evidence.error ?? "Unable to load review evidence.");
         if (evidence.asin !== row.asin || evidence.candidateId !== row.candidateId || evidence.ebayItemId !== row.ebayItemId ||
-          (evidence.diagnosticComparison?.evaluation?.id ?? null) !== (row.diagnosticComparison?.evaluation?.id ?? null)) {
+          (evidence.diagnosticComparison?.evaluation?.id ?? null) !== (row.evaluationId ?? row.diagnosticComparison?.evaluation?.id ?? null)) {
           throw new Error("This pair or evaluation changed. Close this dialog and refresh the list before reviewing.");
         }
         if (!controller.signal.aborted) setLoaded({ ...row, ...evidence });

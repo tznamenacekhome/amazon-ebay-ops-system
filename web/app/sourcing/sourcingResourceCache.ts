@@ -19,7 +19,6 @@ export class SourcingResourceCache {
   private generation = 0;
   private version: string | null = null;
   private checking: Promise<void> | null = null;
-  private running = false;
   private foreground = 0;
   private queue: string[] = [];
   private preloaded: string | null = null;
@@ -30,18 +29,20 @@ export class SourcingResourceCache {
   subscribe = (listener: () => void) => { this.listeners.add(listener); return () => { this.listeners.delete(listener); }; };
   snapshot = () => this.generation;
   invalidate(notify = false) {
-    this.generation++; this.entries.clear(); this.queue = []; this.preloaded = null;
+    this.generation++; this.version = null; this.entries.clear(); this.queue = []; this.preloaded = null;
     if (notify) this.listeners.forEach(listener => listener());
   }
   async checkVersion() {
     if (this.checking) return this.checking;
     this.checking = (async () => {
-      const response = await this.transport("/api/sourcing/cache-version", { cache: "no-store" });
+      const generation = this.generation;
+      const response = await this.transport("/api/sourcing/cache-version", { cache: "no-store", signal: AbortSignal.timeout(10_000) });
       const body = await response.json();
       if (!response.ok || typeof body.version !== "string") throw new Error(body.error ?? "Sourcing freshness unavailable.");
+      if (generation !== this.generation) return; // An operator changed data during this check.
       const changed = this.version !== null && this.version !== body.version;
-      this.version = body.version; this.running = body.running === true;
       if (changed) this.invalidate(true);
+      this.version = body.version;
     })();
     try { await this.checking; } finally { this.checking = null; }
   }
@@ -61,16 +62,16 @@ export class SourcingResourceCache {
       const parsed = new URL(url, "https://mbop.invalid");
       parsed.searchParams.delete("_"); parsed.searchParams.delete("fresh"); parsed.searchParams.sort();
       const key = parsed.pathname + (parsed.search ? parsed.search : "");
-      const cached = !options.fresh && !this.running ? this.entries.get(key) : null;
+      const cached = !options.fresh ? this.entries.get(key) : null;
       if (cached) return new Response(cached.text, { status: cached.status });
       const generation = this.generation;
       const requestKey = `${generation}:${key}${options.fresh ? ":fresh" : ""}`;
       let task = this.pending.get(requestKey);
       if (!task) {
         task = (async () => {
-          const response = await this.transport(key + (options.fresh ? `${parsed.search ? "&" : "?"}fresh=1` : ""), { cache: "no-store" });
+          const response = await this.transport(key + (options.fresh ? `${parsed.search ? "&" : "?"}fresh=1` : ""), { cache: "no-store", signal: AbortSignal.timeout(60_000) });
           const stored = { text: await response.text(), status: response.status };
-          if (response.ok && generation === this.generation && !this.running) {
+          if (response.ok && generation === this.generation) {
             const body = JSON.parse(stored.text);
             const stable = !("cacheVersion" in body) || body.cacheVersion === this.version;
             if (stable && stored.text.length < 4 * 1024 * 1024) {
@@ -89,13 +90,13 @@ export class SourcingResourceCache {
     } finally { if (!options.background) this.foreground--; }
   }
   prefetchAfterBuyList() {
-    if (!this.active || this.running || this.preloaded === this.version) return;
+    if (!this.active || this.preloaded === this.version) return;
     this.preloaded = this.version; this.queue = [...sourcingTabUrls];
     // Yield to React/the browser so Buy List paints before any background request.
     setTimeout(() => void this.pump(), 100);
   }
   private async pump() {
-    if (this.pumping || !this.active || !this.queue.length || this.running) return;
+    if (this.pumping || !this.active || !this.queue.length) return;
     if (this.foreground) { setTimeout(() => void this.pump(), 200); return; }
     this.pumping = true;
     const next = this.queue.shift()!;
