@@ -15,6 +15,57 @@ from datetime import datetime
 VERSION = "matching_feedback_v3"
 
 
+def correction_value(field, submitted_state, value):
+    """One wire-state adapter for scoped application and deterministic previews."""
+    from video_game_identity import normalize_number_value, normalize_system, platform_display
+    state = {"value":"supported", "explicitly_absent":"explicit_absence"}.get(submitted_state,submitted_state)
+    if state not in {"supported","inferred","unknown","explicit_absence","not_applicable"}:
+        raise ValueError("Unsupported correction state")
+    if state in {"supported","inferred"} and not value:
+        raise ValueError("A supported correction requires a value")
+    if state in {"unknown","not_applicable"}: value=None
+    elif state == "explicit_absence": value="Explicitly absent"
+    elif field == "platform": value=platform_display(normalize_system(value)) or value
+    elif field == "installment": value=normalize_number_value(value)
+    return state,value
+
+
+def update_corrected_field(identity, side, field, state, value, sources):
+    """Refresh the dependent base name, never independent edition/platform facts."""
+    from video_game_identity import general_product_fields
+    prior=deepcopy(identity[side]['fields'][field])
+    identity[side]['fields'][field].update(value=value,state=state,before=prior,sources=sources)
+    identity[side][field]=value
+    if field=='installment':identity[side]['installmentNormalized']=value
+    if field=='coreGame':
+        derived=general_product_fields(value)['coreProduct'] if value else None
+        previous=deepcopy(identity[side]['fields']['coreProduct'])
+        identity[side]['fields']['coreProduct'].update(value=derived,state=state if derived else 'unknown',
+            sources=[{**s,'derivedFrom':'coreGame'} for s in sources],before=previous)
+        identity[side]['coreProduct']=derived
+
+
+def recheck_proposed_identity(comparison, corrections):
+    """Pure what-if recheck; proposals are not verified reviews or admission.
+
+    Stored and proposed identities are returned separately. This function has
+    no database/client and deliberately cannot issue a pair verdict override.
+    """
+    from video_game_identity import IDENTITY_FIELDS, phase3_comparison
+    proposed=deepcopy(comparison)
+    for correction in corrections:
+        field,side,scope=correction.get('field'),correction.get('side'),correction.get('scope')
+        if field not in IDENTITY_FIELDS or side not in {'amazon','ebay'}:
+            raise ValueError('Unknown correction field or side')
+        if scope != 'pair' and not (scope=='asin' and side=='amazon'):
+            raise ValueError('Invalid correction scope')
+        state,value=correction_value(field,correction.get('state'),correction.get('value'))
+        update_corrected_field(proposed,side,field,state,value,[{'field':'proposed_correction','scope':scope,'verified':False}])
+    result=phase3_comparison(proposed['amazon'],proposed['ebay'])
+    result['evidenceDecision']['policyRole']='proposal_preview_only'
+    return {'stored':deepcopy(comparison),'proposed':result,'admissionAuthorized':False,'writes':0}
+
+
 def apply_scoped_reviews(comparison, candidate, seed, reviews, *, evaluated_at):
     """Offline Phase 3 application of action-linked v3 evidence.
 
@@ -23,7 +74,7 @@ def apply_scoped_reviews(comparison, candidate, seed, reviews, *, evaluated_at):
     supersession are independent. Unverifiable/changed snapshots require review.
     This function cannot write, clear a hold, or change a lifecycle status.
     """
-    from video_game_identity import evidence_hash, phase3_comparison, IDENTITY_FIELDS, normalize_number_value, normalize_system, platform_display
+    from video_game_identity import evidence_hash, phase3_comparison, IDENTITY_FIELDS
 
     def instant(value):
         return datetime.fromisoformat(str(value).replace("Z", "+00:00"))
@@ -58,11 +109,17 @@ def apply_scoped_reviews(comparison, candidate, seed, reviews, *, evaluated_at):
     eligible.sort(key=lambda row: row[:2], reverse=True)
     correction_keys = set()
     verdict_row = None
-    for _, action_id, row, feedback in eligible:
+    for action_time, action_id, row, feedback in eligible:
         exact = row.get("ebay_item_id") == candidate.get("ebay_item_id")
         snapshot = row.get("snapshot") or {}
         snapshot_ok = snapshot.get("action_id") == action_id and snapshot.get("asin") == seed.get("asin") and snapshot.get("ebay_item_id") == row.get("ebay_item_id")
         unchanged = {side: snapshot_ok and evidence_hash(material(snapshot, side)) == evidence_hash(material(current, side)) for side in ("amazon", "ebay")}
+        evaluation_time=((row.get('raw_action_context') or {}).get('evaluation') or {}).get('evaluatedAt')
+        if evaluation_time:
+            try:
+                if instant(evaluation_time)>action_time:unchanged={'amazon':False,'ebay':False}
+            except (ValueError,TypeError):
+                unchanged={'amazon':False,'ebay':False}
         # Catalog metadata was not stored in v3 listing snapshots. Until its
         # reviewed source can be reconciled, never assume it was unchanged.
         if (seed.get("raw_context_json") or {}).get("amazon_catalog_identity"):
@@ -79,20 +136,20 @@ def apply_scoped_reviews(comparison, candidate, seed, reviews, *, evaluated_at):
             correction_keys.add(correction_key)
             entry = {"actionId": action_id, "field": key, "side": side, "scope": scope,
                      "operatorBefore": correction.get("before"), "snapshotId": snapshot.get("listing_snapshot_id")}
-            state = correction.get("state")
-            valid = state in {"supported", "inferred", "unknown", "explicit_absence"} and (state in {"unknown", "explicit_absence"} or bool(correction.get("value")))
+            # UI v3 wire states and the older offline fixture states share one
+            # evidence vocabulary. Preserve the submitted state in the audit.
+            submitted_state = correction.get("state")
+            entry["submittedState"] = submitted_state
+            try:
+                state,value=correction_value(key,submitted_state,correction.get('value'))
+                valid=True
+            except (ValueError,TypeError):
+                valid=False
             if not valid or not unchanged[side]:
                 audit.append({**entry, "result": "needs_review", "reason": "Invalid correction or changed/unverifiable source snapshot"})
                 continue
-            old = deepcopy(identity[side]["fields"][key])
-            value = None if state == "unknown" else correction.get("value")
-            if state == "explicit_absence": value = "Explicitly absent"
-            elif value and key == "platform": value = platform_display(normalize_system(value)) or value
-            elif value and key == "installment": value = normalize_number_value(value)
-            identity[side]["fields"][key].update(value=value, state=state, sources=[{"field": "operator_correction", "actionId": action_id,
-                "snapshot": snapshot.get("listing_snapshot_id"), "scope": scope}], before=old)
-            identity[side][key] = value
-            if key == "installment": identity[side]["installmentNormalized"] = value
+            update_corrected_field(identity,side,key,state,value,[{"field":"operator_correction","actionId":action_id,
+                "snapshot":snapshot.get("listing_snapshot_id"),"scope":scope}])
             audit.append({**entry, "result": "applied"})
     result = phase3_comparison(identity["amazon"], identity["ebay"])
     result.update({key: comparison[key] for key in ("reference", "materialEvidenceHash") if key in comparison})

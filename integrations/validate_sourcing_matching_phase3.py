@@ -77,7 +77,10 @@ def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--frozen',default='tmp/sourcing-phase1')
     parser.add_argument('--current',default='tmp/sourcing-phase3')
-    args=parser.parse_args();f=Path(args.frozen);p=Path(args.current);p.mkdir(exist_ok=True,parents=True)
+    parser.add_argument('--reviewed-current',type=Path,help='Frozen full-source reviewed cohort; never substitute sanitized titles when a current row leaves a view')
+    parser.add_argument('--output',type=Path,help='Separate output directory so prior failed-gate artifacts remain immutable')
+    args=parser.parse_args();f=Path(args.frozen);p=Path(args.current)
+    output=args.output or p;output.mkdir(exist_ok=True,parents=True)
     manifest=load(f/'manifest.json')
     for name in ('actions','newest250','currentStoredEvidence','actionSnapshots','positiveCandidates'):
         assert sha(manifest[name]['file'])==manifest[name]['sha256'],name+' frozen hash changed'
@@ -101,6 +104,7 @@ def main():
     labels=load('tests/fixtures/sourcing_phase3_reviewed.json')
     reviewed=[]
     current_inputs=load(p/'current-evidence.json')
+    reviewed_inputs=load(args.reviewed_current) if args.reviewed_current else current_inputs
     frozen_inputs=load(f/'current-evidence.json')
     exact_examples={'B000QL0T36':'919606c5-9527-45a6-93aa-c4cf49ec4b0d',
                     'B00ZMBLKPG':'c3f0249f-8e52-45bd-81aa-005a5d56fafd',
@@ -112,9 +116,9 @@ def main():
         actual=next((r for r in frozen_inputs if r['opportunity_id']==exact_examples.get(label['asin'])),None)
         basis='exact supplied frozen opportunity with full stored sources'
         if actual is None:
-            actual=next((r for r in current_inputs if r['asin']==label['asin'] and
+            actual=next((r for r in reviewed_inputs if r['asin']==label['asin'] and
                          ' '.join(str((r.get('candidate') or {}).get('ebay_title')).split())==' '.join(label['ebay'].split())),None)
-            basis='exact current title pair with full stored sources'
+            basis='exact pinned reviewed title pair with full stored sources'
         if actual is None:
             basis='bounded textual fixture; not full listing sources'
             actual={'asin':label['asin'],'seed':{'asin':label['asin'],'amazon_title':label['amazon'],'target_sale_price':100},
@@ -164,8 +168,8 @@ def main():
     # identity negatives or using any later feedback as a replay feature.
     actions={r['opportunity_id']:r for r in load(f/'actions.json')}
     report['dismissalReasonBreakdown']={reason:summarize([r for r in frozen if (actions.get(r['opportunityId']) or {}).get('dismiss_reason')==reason]) for reason in sorted({r['dismiss_reason'] for r in actions.values()})}
-    (p/'replay.json').write_text(json.dumps({'frozen':frozen,'current':current},ensure_ascii=True),encoding='utf8')
-    (p/'safety-summary.json').write_text(json.dumps(report,indent=2),encoding='utf8')
+    (output/'replay.json').write_text(json.dumps({'frozen':frozen,'current':current},ensure_ascii=True),encoding='utf8')
+    (output/'safety-summary.json').write_text(json.dumps(report,indent=2),encoding='utf8')
     print(json.dumps({k: {x:v for x,v in report[k].items() if x not in ('fieldCoverage','routingReasons')} for k in ('frozen','newest250','current')},indent=2))
 
 

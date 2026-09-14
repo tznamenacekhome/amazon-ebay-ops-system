@@ -1,0 +1,2583 @@
+[
+  {
+    "sourceId": "c40c8f47-9200-4967-8b1d-92b987c2f8b4",
+    "asin": "B00DC7G0GG",
+    "ebayItemId": "166921418480",
+    "cohort": "strictRows",
+    "conflictIndex": 7,
+    "category": "genuine_parser_extraction_error",
+    "materialUnresolved": false,
+    "analyst": "Codex stored-evidence review; not operator certification",
+    "basis": "Independent stored marketplace titles, canonical parser/comparator trace, linked receipt/current purchase, action/correction inventory",
+    "finding": "New, Sealed is condition boilerplate before Super Mario 3D World. The parser removes Sealed but preserves New as a product word; this is a field extraction defect, not proof of packaging identity.",
+    "pairCertified": false,
+    "operatorReviewRequired": true,
+    "snapshotFollowup": []
+  },
+  {
+    "sourceId": "c00c8565-936f-4727-94f0-51f207a74333",
+    "asin": "B003TK1HSM",
+    "ebayItemId": "134665183162",
+    "cohort": "strictRows",
+    "conflictIndex": 10,
+    "category": "genuine_parser_extraction_error",
+    "materialUnresolved": false,
+    "analyst": "Codex stored-evidence review; not operator certification",
+    "basis": "Independent stored marketplace titles, canonical parser/comparator trace, linked receipt/current purchase, action/correction inventory",
+    "finding": "Leading NEW is a condition adjective before Nickelodeon Fit. Its retention creates an artificial different core name. Wii comes only from the eBay title; reference system provenance still needs review.",
+    "pairCertified": false,
+    "operatorReviewRequired": true,
+    "snapshotFollowup": []
+  },
+  {
+    "sourceId": "6a6a4bb1-a29b-473e-b15e-f2974115e297",
+    "asin": "B096WZFCHR",
+    "ebayItemId": "398061858531",
+    "cohort": "strictRows",
+    "conflictIndex": 12,
+    "category": "genuine_parser_extraction_error",
+    "materialUnresolved": false,
+    "analyst": "Codex stored-evidence review; not operator certification",
+    "basis": "Independent stored marketplace titles, canonical parser/comparator trace, linked receipt/current purchase, action/correction inventory",
+    "finding": "Leading New contaminates Guardians of the Galaxy; both titles explicitly say PlayStation 5. Parenthesized 2021 is removed correctly. No physical receipt identity review is recorded.",
+    "pairCertified": false,
+    "operatorReviewRequired": true,
+    "snapshotFollowup": []
+  },
+  {
+    "sourceId": "ef18e27d-8eeb-4688-a4b5-fd8983363fe5",
+    "asin": "B01BXAFRU8",
+    "ebayItemId": "387437718912",
+    "cohort": "strictRows",
+    "conflictIndex": 15,
+    "category": "genuine_parser_extraction_error",
+    "materialUnresolved": false,
+    "analyst": "Codex stored-evidence review; not operator certification",
+    "basis": "Independent stored marketplace titles, canonical parser/comparator trace, linked receipt/current purchase, action/correction inventory",
+    "finding": "The listing repeats Xbox One as X-Box 1; parser leaves box 1 in the product. This is platform-alias token leakage, not an installment contradiction.",
+    "pairCertified": false,
+    "operatorReviewRequired": true,
+    "snapshotFollowup": []
+  },
+  {
+    "sourceId": "ed4d4fd3-d3d7-4743-aec6-223ca0f263c1",
+    "asin": "B00KTNSLX6",
+    "ebayItemId": "167831909062",
+    "cohort": "strictRows",
+    "conflictIndex": 27,
+    "category": "genuine_parser_extraction_error",
+    "materialUnresolved": false,
+    "analyst": "Codex stored-evidence review; not operator certification",
+    "basis": "Independent stored marketplace titles, canonical parser/comparator trace, linked receipt/current purchase, action/correction inventory",
+    "finding": "The historical mistake targeted Just Dance 2014, but this assertion targets Just Dance 2015. Both source titles say 2015; leading NEW creates the current conflict. The old ASIN negative cannot transfer.",
+    "pairCertified": false,
+    "operatorReviewRequired": true,
+    "snapshotFollowup": []
+  },
+  {
+    "sourceId": "b06ded4b-90cb-48c4-a670-d30a17dc90c0",
+    "asin": "B08SZ1F5FB",
+    "ebayItemId": "306964576833",
+    "cohort": "strictRows",
+    "conflictIndex": 33,
+    "category": "genuine_parser_extraction_error",
+    "materialUnresolved": false,
+    "analyst": "Codex stored-evidence review; not operator certification",
+    "basis": "Independent stored marketplace titles, canonical parser/comparator trace, linked receipt/current purchase, action/correction inventory",
+    "finding": "Xbox Series X|S leaves a stray s in the core. Both sides explicitly support Control Ultimate Edition. This identifies a core-field defect without deciding physical Series S compatibility.",
+    "pairCertified": false,
+    "operatorReviewRequired": true,
+    "snapshotFollowup": [
+      {
+        "snapshotId": "894821b7-8fc3-400c-97cd-490b36f41915",
+        "verdict": "non-match",
+        "reason": "coreProduct conflict: Amazon control, eBay control s; coreGame conflict: Amazon control, eBay control s",
+        "referenceTitleChanged": true
+      }
+    ]
+  },
+  {
+    "sourceId": "597885b3-adb1-4ea4-8913-dd4f03f39929",
+    "asin": "B072JY7NX5",
+    "ebayItemId": "127895893853",
+    "cohort": "strictRows",
+    "conflictIndex": 39,
+    "category": "genuine_parser_extraction_error",
+    "materialUnresolved": false,
+    "analyst": "Codex stored-evidence review; not operator certification",
+    "basis": "Independent stored marketplace titles, canonical parser/comparator trace, linked receipt/current purchase, action/correction inventory",
+    "finding": "Brand New and Sealed leaves and after an otherwise equal Wolfenstein II title. Both sides preserve The New Colossus and normalize II to 2.",
+    "pairCertified": false,
+    "operatorReviewRequired": true,
+    "snapshotFollowup": []
+  },
+  {
+    "sourceId": "33751f5c-b525-4991-8dad-30d3d949b729",
+    "asin": "B01KIH8ADS",
+    "ebayItemId": "227032903283",
+    "cohort": "strictRows",
+    "conflictIndex": 42,
+    "category": "conflicting_ebay_structured_evidence",
+    "materialUnresolved": true,
+    "analyst": "Codex stored-evidence review; not operator certification",
+    "basis": "Independent stored marketplace titles, canonical parser/comparator trace, linked receipt/current purchase, action/correction inventory",
+    "finding": "Repeated platform and seller catalog suffix New ... Video remain in NBA 2K17 core. Both titles explicitly state Standard Edition; suffix text is not a different game. Stored purchased snapshot further names Early Tip-Off Weekend in Game Name while its title/description say Standard Edition. Original title noise diagnosis does not resolve that structured disagreement. Full stored-snapshot replay is Review; it remains excluded and is not counted as a recovery.",
+    "pairCertified": false,
+    "operatorReviewRequired": true,
+    "snapshotFollowup": [
+      {
+        "snapshotId": "e32ae720-02b5-4297-9099-f81e19159cfa",
+        "verdict": "needs_review",
+        "reason": "coreProduct review: Amazon nba, eBay nba new video; coreGame review: Amazon nba 2k17, eBay nba 2k17 new video",
+        "referenceTitleChanged": false
+      }
+    ]
+  },
+  {
+    "sourceId": "a1c34650-da99-417c-b3e1-b1f53988ee0b",
+    "asin": "B07KTFL61P",
+    "ebayItemId": "187615175841",
+    "cohort": "strictRows",
+    "conflictIndex": 48,
+    "category": "genuine_parser_extraction_error",
+    "materialUnresolved": false,
+    "analyst": "Codex stored-evidence review; not operator certification",
+    "basis": "Independent stored marketplace titles, canonical parser/comparator trace, linked receipt/current purchase, action/correction inventory",
+    "finding": "Amazon parenthetical XB1 survives alongside explicit Xbox One and becomes a game token. The independent eBay title names Bendy and the Ink Machine; cross-generation packaging is still not certified.",
+    "pairCertified": false,
+    "operatorReviewRequired": true,
+    "snapshotFollowup": []
+  },
+  {
+    "sourceId": "063032b6-eeba-4661-99c5-b4581eeae259",
+    "asin": "B07KTFL61P",
+    "ebayItemId": "188511505771",
+    "cohort": "strictRows",
+    "conflictIndex": 58,
+    "category": "genuine_parser_extraction_error",
+    "materialUnresolved": false,
+    "analyst": "Codex stored-evidence review; not operator certification",
+    "basis": "Independent stored marketplace titles, canonical parser/comparator trace, linked receipt/current purchase, action/correction inventory",
+    "finding": "Amazon XB1 duplicate platform shorthand produces the entire difference for Bendy and the Ink Machine. Current purchase linkage is not independent exact-ASIN catalog verification.",
+    "pairCertified": false,
+    "operatorReviewRequired": true,
+    "snapshotFollowup": [
+      {
+        "snapshotId": "d68e8e60-b264-419c-a624-fbac7c662437",
+        "verdict": "non-match",
+        "reason": "coreProduct conflict: Amazon bendy and the ink machine xb1, eBay bendy and the ink machine; coreGame conflict: Amazon bendy and the ink machine xb1, eBay bendy and the ink machine",
+        "referenceTitleChanged": true
+      }
+    ]
+  },
+  {
+    "sourceId": "7ec61d72-fc61-4838-92f0-074fd16d6f2f",
+    "asin": "B01AC3ZD06",
+    "ebayItemId": "267261817198",
+    "cohort": "strictRows",
+    "conflictIndex": 63,
+    "category": "genuine_parser_extraction_error",
+    "materialUnresolved": false,
+    "analyst": "Codex stored-evidence review; not operator certification",
+    "basis": "Independent stored marketplace titles, canonical parser/comparator trace, linked receipt/current purchase, action/correction inventory",
+    "finding": "Both titles explicitly say Nintendo Selects and Super Mario 3D World. Parser strips Nintendo first and leaves Selects in different positions. This is misplaced edition/line metadata.",
+    "pairCertified": false,
+    "operatorReviewRequired": true,
+    "snapshotFollowup": []
+  },
+  {
+    "sourceId": "2bbe8eb2-909b-4254-bdb3-d7c19ec7f5a3",
+    "asin": "B0053BG122",
+    "ebayItemId": "227355763159",
+    "cohort": "strictRows",
+    "conflictIndex": 86,
+    "category": "genuine_parser_extraction_error",
+    "materialUnresolved": false,
+    "analyst": "Codex stored-evidence review; not operator certification",
+    "basis": "Independent stored marketplace titles, canonical parser/comparator trace, linked receipt/current purchase, action/correction inventory",
+    "finding": "Brand new and Sealed leaves only a stray and after Just Dance 3; Xbox 360 agrees. No installment weakening is needed to explain the false core conflict.",
+    "pairCertified": false,
+    "operatorReviewRequired": true,
+    "snapshotFollowup": []
+  },
+  {
+    "sourceId": "7d2e106c-51b8-4303-a5ea-4c6f47618883",
+    "asin": "B09D6QWQHD",
+    "ebayItemId": "236240985333",
+    "cohort": "strictRows",
+    "conflictIndex": 94,
+    "category": "genuine_parser_extraction_error",
+    "materialUnresolved": false,
+    "analyst": "Codex stored-evidence review; not operator certification",
+    "basis": "Independent stored marketplace titles, canonical parser/comparator trace, linked receipt/current purchase, action/correction inventory",
+    "finding": "Series X|S suffix becomes the core token s for Vanguard. Edition and physical-media coverage cannot be inferred from that diagnosis.",
+    "pairCertified": false,
+    "operatorReviewRequired": true,
+    "snapshotFollowup": []
+  },
+  {
+    "sourceId": "58b25ca9-7d96-42e6-a9b5-528bfa4dccd4",
+    "asin": "B01AC3ZD06",
+    "ebayItemId": "168527755981",
+    "cohort": "strictRows",
+    "conflictIndex": 103,
+    "category": "genuine_parser_extraction_error",
+    "materialUnresolved": false,
+    "analyst": "Codex stored-evidence review; not operator certification",
+    "basis": "Independent stored marketplace titles, canonical parser/comparator trace, linked receipt/current purchase, action/correction inventory",
+    "finding": "Same explicit Nintendo Selects retail line appears before versus after Super Mario 3D World. Remaining selects token order causes the core conflict; no omitted edition is being asserted here.",
+    "pairCertified": false,
+    "operatorReviewRequired": true,
+    "snapshotFollowup": []
+  },
+  {
+    "sourceId": "c8958051-6942-4b5e-964e-ed9cff4c1d55",
+    "asin": "B07BHHJR4K",
+    "ebayItemId": "117290505164",
+    "cohort": "strictRows",
+    "conflictIndex": 105,
+    "category": "genuine_parser_extraction_error",
+    "materialUnresolved": false,
+    "analyst": "Codex stored-evidence review; not operator certification",
+    "basis": "Independent stored marketplace titles, canonical parser/comparator trace, linked receipt/current purchase, action/correction inventory",
+    "finding": "SteelBook is split to steel book on Amazon while eBay lowercase steelbook stays joined. Both source titles explicitly identify Yakuza Kiwami 2 Steelbook Edition.",
+    "pairCertified": false,
+    "operatorReviewRequired": true,
+    "snapshotFollowup": []
+  },
+  {
+    "sourceId": "252cf129-3087-494b-a8da-47bc71f0d735",
+    "asin": "B00498PSZQ",
+    "ebayItemId": "255505144814",
+    "cohort": "strictRows",
+    "conflictIndex": 121,
+    "category": "genuine_parser_extraction_error",
+    "materialUnresolved": false,
+    "analyst": "Codex stored-evidence review; not operator certification",
+    "basis": "Independent stored marketplace titles, canonical parser/comparator trace, linked receipt/current purchase, action/correction inventory",
+    "finding": "Brand New & Factory Sealed leaves and as product text for You Don't Know Jack. The punctuation is seller condition syntax.",
+    "pairCertified": false,
+    "operatorReviewRequired": true,
+    "snapshotFollowup": []
+  },
+  {
+    "sourceId": "ccaffed2-c7bb-48f7-987d-da39289ce622",
+    "asin": "B01MTQWAFN",
+    "ebayItemId": "257625187330",
+    "cohort": "strictRows",
+    "conflictIndex": 122,
+    "category": "genuine_parser_extraction_error",
+    "materialUnresolved": false,
+    "analyst": "Codex stored-evidence review; not operator certification",
+    "basis": "Independent stored marketplace titles, canonical parser/comparator trace, linked receipt/current purchase, action/correction inventory",
+    "finding": "SHIPS FREE survives as ships free in Watch Dogs 2 core. Both titles say Xbox One; shipping words should not assert a different game.",
+    "pairCertified": false,
+    "operatorReviewRequired": true,
+    "snapshotFollowup": [
+      {
+        "snapshotId": "700d85d1-90e0-4e9e-a4b6-f16bfcc96ed5",
+        "verdict": "non-match",
+        "reason": "coreProduct conflict: Amazon watch dogs, eBay watch dogs ships free; coreGame conflict: Amazon watch dogs 2, eBay watch dogs 2 ships free",
+        "referenceTitleChanged": false
+      }
+    ]
+  },
+  {
+    "sourceId": "9c2dba19-9ce6-4761-a886-be07c2df1ddd",
+    "asin": "B08MG4PK68",
+    "ebayItemId": "287384998062",
+    "cohort": "strictRows",
+    "conflictIndex": 133,
+    "category": "genuine_parser_extraction_error",
+    "materialUnresolved": false,
+    "analyst": "Codex stored-evidence review; not operator certification",
+    "basis": "Independent stored marketplace titles, canonical parser/comparator trace, linked receipt/current purchase, action/correction inventory",
+    "finding": "Amazon for ... & Xbox Series X leaves for and, while eBay Series S/X produces series s 10. Platform wording leaks into game/installment parsing; platform policy itself is not adjudicated.",
+    "pairCertified": false,
+    "operatorReviewRequired": true,
+    "snapshotFollowup": []
+  },
+  {
+    "sourceId": "acc6c1c2-2729-4303-b779-319a8a904b90",
+    "asin": "B00ZGPJ30M",
+    "ebayItemId": "406943394327",
+    "cohort": "strictRows",
+    "conflictIndex": 149,
+    "category": "genuine_parser_extraction_error",
+    "materialUnresolved": false,
+    "analyst": "Codex stored-evidence review; not operator certification",
+    "basis": "Independent stored marketplace titles, canonical parser/comparator trace, linked receipt/current purchase, action/correction inventory",
+    "finding": "vs. versus vs is the only remaining core difference for Plants vs Zombies Garden Warfare 2. This is punctuation normalization, with installment 2 preserved.",
+    "pairCertified": false,
+    "operatorReviewRequired": true,
+    "snapshotFollowup": []
+  },
+  {
+    "sourceId": "19827957-20fd-4b24-b724-269759518f9c",
+    "asin": "B00CPKUV7K",
+    "ebayItemId": "227088858339",
+    "cohort": "strictRows",
+    "conflictIndex": 153,
+    "category": "genuine_parser_extraction_error",
+    "materialUnresolved": false,
+    "analyst": "Codex stored-evidence review; not operator certification",
+    "basis": "Independent stored marketplace titles, canonical parser/comparator trace, linked receipt/current purchase, action/correction inventory",
+    "finding": "New xbox_360, Xbox 360 Video Games is seller catalog boilerplate after Wolfenstein The New Order. The normalized new video games suffix causes the conflict.",
+    "pairCertified": false,
+    "operatorReviewRequired": true,
+    "snapshotFollowup": []
+  },
+  {
+    "sourceId": "b32a22e5-e28e-4ea7-9811-b7fb5fa2baf3",
+    "asin": "B009E480RS",
+    "ebayItemId": "358716154387",
+    "cohort": "strictRows",
+    "conflictIndex": 164,
+    "category": "genuine_comparator_error",
+    "materialUnresolved": false,
+    "analyst": "Codex stored-evidence review; not operator certification",
+    "basis": "Independent stored marketplace titles, canonical parser/comparator trace, linked receipt/current purchase, action/correction inventory",
+    "finding": "Dance 3 Central and Dance Central 3 yield equal base words and installment but unequal full core order. This is an observed comparator/token-placement issue; do not authorize arbitrary bag-of-words matching. Stored Game Name explicitly says Dance Central 3, while full-source replay remains Review. Review still excludes the candidate; no arbitrary word-order relaxation is authorized.",
+    "pairCertified": false,
+    "operatorReviewRequired": true,
+    "snapshotFollowup": [
+      {
+        "snapshotId": "571d0cd4-ea08-40a4-a9bb-02999c5d898f",
+        "verdict": "needs_review",
+        "reason": "coreGame review: Amazon dance central 3, eBay dance 3 central",
+        "referenceTitleChanged": false
+      }
+    ]
+  },
+  {
+    "sourceId": "d85b4b1e-d480-4c14-8f04-ab0cec08a665",
+    "asin": "B072JY7NX5",
+    "ebayItemId": "257579386928",
+    "cohort": "strictRows",
+    "conflictIndex": 180,
+    "category": "genuine_parser_extraction_error",
+    "materialUnresolved": false,
+    "analyst": "Codex stored-evidence review; not operator certification",
+    "basis": "Independent stored marketplace titles, canonical parser/comparator trace, linked receipt/current purchase, action/correction inventory",
+    "finding": "The eBay title states Wolfenstein 2 II, repeating the same installment in Arabic and Roman numerals. Parsing creates 2 2 and a spurious core conflict.",
+    "pairCertified": false,
+    "operatorReviewRequired": true,
+    "snapshotFollowup": []
+  },
+  {
+    "sourceId": "52261d35-1318-431e-bbc2-7ab6b8816fc0",
+    "asin": "B01N3NNPAB",
+    "ebayItemId": "318579237825",
+    "cohort": "strictRows",
+    "conflictIndex": 183,
+    "category": "genuine_parser_extraction_error",
+    "materialUnresolved": false,
+    "analyst": "Codex stored-evidence review; not operator certification",
+    "basis": "Independent stored marketplace titles, canonical parser/comparator trace, linked receipt/current purchase, action/correction inventory",
+    "finding": "Amazon Deluxe without trailing Edition stays in core, while eBay Deluxe Edition is extracted away. Both independently state Deluxe; policy/extraction is inconsistent.",
+    "pairCertified": false,
+    "operatorReviewRequired": true,
+    "snapshotFollowup": [
+      {
+        "snapshotId": "76439b06-358d-4056-a7e8-23acb46e5b34",
+        "verdict": "non-match",
+        "reason": "coreProduct conflict: Amazon mass effect andromeda deluxe, eBay mass effect andromeda; coreGame conflict: Amazon mass effect andromeda deluxe, eBay mass effect andromeda",
+        "referenceTitleChanged": false
+      }
+    ]
+  },
+  {
+    "sourceId": "abce63f8-1896-4d15-a41b-336eeb49267a",
+    "asin": "B004NB1BV4",
+    "ebayItemId": "298107925330",
+    "cohort": "strictRows",
+    "conflictIndex": 191,
+    "category": "genuine_parser_extraction_error",
+    "materialUnresolved": false,
+    "analyst": "Codex stored-evidence review; not operator certification",
+    "basis": "Independent stored marketplace titles, canonical parser/comparator trace, linked receipt/current purchase, action/correction inventory",
+    "finding": "Brand New & Factory Sealed leaves and after Rio. Amazon names Wii; eBay platform is omitted, so this field defect alone does not verify platform.",
+    "pairCertified": false,
+    "operatorReviewRequired": true,
+    "snapshotFollowup": []
+  },
+  {
+    "sourceId": "a621a8e9-0dac-4113-b55e-3d4a798dc1fc",
+    "asin": "B08D7DX16N",
+    "ebayItemId": "257642438760",
+    "cohort": "strictRows",
+    "conflictIndex": 192,
+    "category": "genuine_parser_extraction_error",
+    "materialUnresolved": false,
+    "analyst": "Codex stored-evidence review; not operator certification",
+    "basis": "Independent stored marketplace titles, canonical parser/comparator trace, linked receipt/current purchase, action/correction inventory",
+    "finding": "Amazon repeats Mamba Forever Edition; eBay states it once followed by condition wording. Duplicate qualifier handling and leftover and contaminate core; edition agreement is explicit.",
+    "pairCertified": false,
+    "operatorReviewRequired": true,
+    "snapshotFollowup": [
+      {
+        "snapshotId": "4bc1e7a7-7dab-4c39-929e-77e0f9d37492",
+        "verdict": "non-match",
+        "reason": "coreProduct conflict: Amazon nba mamba forever edition mamba forever, eBay nba mamba forever edition and; coreGame conflict: Amazon nba 2k21 mamba forever edition mamba forever, eBay nba 2k21 mamba forever edition and",
+        "referenceTitleChanged": false
+      }
+    ]
+  },
+  {
+    "sourceId": "8b10fb04-0442-421f-ac85-4b83c2237609",
+    "asin": "B099JL5K7P",
+    "ebayItemId": "257662179064",
+    "cohort": "strictRows",
+    "conflictIndex": 194,
+    "category": "genuine_parser_extraction_error",
+    "materialUnresolved": false,
+    "analyst": "Codex stored-evidence review; not operator certification",
+    "basis": "Independent stored marketplace titles, canonical parser/comparator trace, linked receipt/current purchase, action/correction inventory",
+    "finding": "Leading New is retained before Nerf Legends. Both titles name Nintendo Switch; this is condition-token extraction, not the previously reviewed PS5 pair.",
+    "pairCertified": false,
+    "operatorReviewRequired": true,
+    "snapshotFollowup": [
+      {
+        "snapshotId": "8a66517c-455d-4688-a28a-7bd83e21979a",
+        "verdict": "non-match",
+        "reason": "coreProduct conflict: Amazon nerf legends, eBay new nerf legends; coreGame conflict: Amazon nerf legends, eBay new nerf legends",
+        "referenceTitleChanged": true
+      }
+    ]
+  },
+  {
+    "sourceId": "0676ee57-56c0-4995-b2f5-93cef13745f7",
+    "asin": "B0C5RZRG44",
+    "ebayItemId": "227237575535",
+    "cohort": "strictRows",
+    "conflictIndex": 198,
+    "category": "genuine_parser_extraction_error",
+    "materialUnresolved": false,
+    "analyst": "Codex stored-evidence review; not operator certification",
+    "basis": "Independent stored marketplace titles, canonical parser/comparator trace, linked receipt/current purchase, action/correction inventory",
+    "finding": "New Xbox Series X Video Games remains after Mortal Kombat 1 Premium Edition. Edition and installment agree; seller suffix contaminates core.",
+    "pairCertified": false,
+    "operatorReviewRequired": true,
+    "snapshotFollowup": [
+      {
+        "snapshotId": "0eb42164-96b7-4349-906c-2cffc783f092",
+        "verdict": "non-match",
+        "reason": "coreProduct conflict: Amazon mortal kombat, eBay mortal kombat new video games; coreGame conflict: Amazon mortal kombat 1, eBay mortal kombat 1 new video games",
+        "referenceTitleChanged": false
+      }
+    ]
+  },
+  {
+    "sourceId": "11bd6808-87e8-48e6-97ed-e3b86c642839",
+    "asin": "B09C1167RV",
+    "ebayItemId": "146683357870",
+    "cohort": "strictRows",
+    "conflictIndex": 203,
+    "category": "genuine_parser_extraction_error",
+    "materialUnresolved": false,
+    "analyst": "Codex stored-evidence review; not operator certification",
+    "basis": "Independent stored marketplace titles, canonical parser/comparator trace, linked receipt/current purchase, action/correction inventory",
+    "finding": "for Xbox One and Xbox Series X leaves for and in Street Outlaws 2. Both full titles supply the same subtitle and platforms; platform conjunction is not identity.",
+    "pairCertified": false,
+    "operatorReviewRequired": true,
+    "snapshotFollowup": [
+      {
+        "snapshotId": "fdf92865-f78f-49c6-af4b-d268a2f0ee33",
+        "verdict": "non-match",
+        "reason": "coreProduct conflict: Amazon street outlaws winner takes all, eBay street outlaws winner takes all for and; coreGame conflict: Amazon street outlaws 2 winner takes all, eBay street outlaws 2 winner takes all for and",
+        "referenceTitleChanged": false
+      }
+    ]
+  },
+  {
+    "sourceId": "df416b4e-33f2-4793-8e8a-70312fa3e2e7",
+    "asin": "B07J32LSJ5",
+    "ebayItemId": "227426884063",
+    "cohort": "strictRows",
+    "conflictIndex": 208,
+    "category": "genuine_parser_extraction_error",
+    "materialUnresolved": false,
+    "analyst": "Codex stored-evidence review; not operator certification",
+    "basis": "Independent stored marketplace titles, canonical parser/comparator trace, linked receipt/current purchase, action/correction inventory",
+    "finding": "New Nintendo Switch Video Games remains after Hello Neighbor Hide & Seek. Product subtitle agrees; repeated platform/catalog wording causes the conflict.",
+    "pairCertified": false,
+    "operatorReviewRequired": true,
+    "snapshotFollowup": []
+  },
+  {
+    "sourceId": "dda46c41-2878-49e7-b67a-dcab8ee61121",
+    "asin": "B00ZE360GG",
+    "ebayItemId": "236860486717",
+    "cohort": "strictRows",
+    "conflictIndex": 222,
+    "category": "genuine_parser_extraction_error",
+    "materialUnresolved": false,
+    "analyst": "Codex stored-evidence review; not operator certification",
+    "basis": "Independent stored marketplace titles, canonical parser/comparator trace, linked receipt/current purchase, action/correction inventory",
+    "finding": "NIB remains in Just Dance 2016 core despite Brand New and Factory Sealed context. A condition abbreviation is being treated as a product qualifier.",
+    "pairCertified": false,
+    "operatorReviewRequired": true,
+    "snapshotFollowup": []
+  },
+  {
+    "sourceId": "7f08f8ed-86a8-453a-aaf2-762c51acb069",
+    "asin": "B072JZB85B",
+    "ebayItemId": "233733278405",
+    "cohort": "strictRows",
+    "conflictIndex": 3,
+    "category": "unresolved",
+    "materialUnresolved": true,
+    "analyst": "Codex stored-evidence review; not operator certification",
+    "basis": "Independent stored marketplace titles, canonical parser/comparator trace, linked receipt/current purchase, action/correction inventory",
+    "finding": "FIFA 18 is one of three different games in the listing. Receiving quantity one does not establish whether a split child or whole lot was certified. Preserve package mismatch until allocation/source evidence is reviewed.",
+    "pairCertified": false,
+    "operatorReviewRequired": true,
+    "snapshotFollowup": []
+  },
+  {
+    "sourceId": "d7eb4172-eb08-4197-8c4b-360983272928",
+    "asin": "B07FF3F7F9",
+    "ebayItemId": "267725836968",
+    "cohort": "strictRows",
+    "conflictIndex": 4,
+    "category": "unresolved",
+    "materialUnresolved": true,
+    "analyst": "Codex stored-evidence review; not operator certification",
+    "basis": "Independent stored marketplace titles, canonical parser/comparator trace, linked receipt/current purchase, action/correction inventory",
+    "finding": "Amazon says Subnautica; listing explicitly says Below Zero. correct_item cannot choose between wrong ASIN, mistaken purchase or seller-delivered substitution. The matcher is right to expose distinct title content, but cause is unproven.",
+    "pairCertified": false,
+    "operatorReviewRequired": true,
+    "snapshotFollowup": [
+      {
+        "snapshotId": "a5aebdc6-4d24-4f6d-b80e-2eb7fe69065e",
+        "verdict": "non-match",
+        "reason": "coreProduct conflict: Amazon subnautica, eBay subnautica below zero s; coreGame conflict: Amazon subnautica, eBay subnautica below zero s",
+        "referenceTitleChanged": false
+      }
+    ]
+  },
+  {
+    "sourceId": "9ba32dc5-99ea-4bd9-9c4f-e998621659e8",
+    "asin": "B01AC3ZD06",
+    "ebayItemId": "389976431971",
+    "cohort": "strictRows",
+    "conflictIndex": 14,
+    "category": "unresolved",
+    "materialUnresolved": true,
+    "analyst": "Codex stored-evidence review; not operator certification",
+    "basis": "Independent stored marketplace titles, canonical parser/comparator trace, linked receipt/current purchase, action/correction inventory",
+    "finding": "Amazon explicitly says Nintendo Selects and Standard Edition; listing omits Selects. Omission is not proof of a different print, nor proof of equality. Exact cover/retail reference is missing.",
+    "pairCertified": false,
+    "operatorReviewRequired": true,
+    "snapshotFollowup": []
+  },
+  {
+    "sourceId": "d819b785-133e-418d-ab49-4e97ad36b6da",
+    "asin": "B07HFMJ4R5",
+    "ebayItemId": "377344978601",
+    "cohort": "strictRows",
+    "conflictIndex": 20,
+    "category": "unresolved",
+    "materialUnresolved": true,
+    "analyst": "Codex stored-evidence review; not operator certification",
+    "basis": "Independent stored marketplace titles, canonical parser/comparator trace, linked receipt/current purchase, action/correction inventory",
+    "finding": "Starter Collection versus Starter Pack plus 700 Minecoins requires retail contents/reference verification. The parser also retains rating/year metadata, but fixing noise cannot certify package parity.",
+    "pairCertified": false,
+    "operatorReviewRequired": true,
+    "snapshotFollowup": []
+  },
+  {
+    "sourceId": "f057a1a8-4faa-44bf-82b7-9fd30c0969b3",
+    "asin": "B00DC7G1WE",
+    "ebayItemId": "318540386966",
+    "cohort": "strictRows",
+    "conflictIndex": 36,
+    "category": "unresolved",
+    "materialUnresolved": true,
+    "analyst": "Codex stored-evidence review; not operator certification",
+    "basis": "Independent stored marketplace titles, canonical parser/comparator trace, linked receipt/current purchase, action/correction inventory",
+    "finding": "Bonus Disc Variant is explicit additional package content for Bayonetta 2. Bare Amazon title does not settle whether that ASIN includes the bonus disc.",
+    "pairCertified": false,
+    "operatorReviewRequired": true,
+    "snapshotFollowup": []
+  },
+  {
+    "sourceId": "d9875b3e-55be-49e6-9b36-cd35029b5920",
+    "asin": "B002I0JFCO",
+    "ebayItemId": "257558396715",
+    "cohort": "strictRows",
+    "conflictIndex": 50,
+    "category": "unresolved",
+    "materialUnresolved": true,
+    "analyst": "Codex stored-evidence review; not operator certification",
+    "basis": "Independent stored marketplace titles, canonical parser/comparator trace, linked receipt/current purchase, action/correction inventory",
+    "finding": "EA Sports Active 2 listing explicitly includes Kinect bundle, heart monitor and band. Bare target title cannot independently certify identical retail contents.",
+    "pairCertified": false,
+    "operatorReviewRequired": true,
+    "snapshotFollowup": []
+  },
+  {
+    "sourceId": "11bb943f-639a-4567-a6fd-72cedef2af80",
+    "asin": "B00I6E6SH6",
+    "ebayItemId": "227447137918",
+    "cohort": "strictRows",
+    "conflictIndex": 55,
+    "category": "unresolved",
+    "materialUnresolved": true,
+    "analyst": "Codex stored-evidence review; not operator certification",
+    "basis": "Independent stored marketplace titles, canonical parser/comparator trace, linked receipt/current purchase, action/correction inventory",
+    "finding": "Amazon Minecraft versus Starter Collection is potentially a retail-version difference. Receipt alone cannot certify a base ASIN and expanded package as identical.",
+    "pairCertified": false,
+    "operatorReviewRequired": true,
+    "snapshotFollowup": [
+      {
+        "snapshotId": "d2439b64-147d-472e-932c-5d30fb894876",
+        "verdict": "non-match",
+        "reason": "coreProduct conflict: Amazon minecraft, eBay minecraft starter collection new video games; coreGame conflict: Amazon minecraft, eBay minecraft starter collection new video games",
+        "referenceTitleChanged": false
+      }
+    ]
+  },
+  {
+    "sourceId": "725558c4-c018-493b-8c76-bad7c9e3c1c8",
+    "asin": "B07BHHDTL4",
+    "ebayItemId": "127755669265",
+    "cohort": "strictRows",
+    "conflictIndex": 57,
+    "category": "unresolved",
+    "materialUnresolved": true,
+    "analyst": "Codex stored-evidence review; not operator certification",
+    "basis": "Independent stored marketplace titles, canonical parser/comparator trace, linked receipt/current purchase, action/correction inventory",
+    "finding": "Sonic Mania Plus target versus Sonic Mania NEW LOOSE DISC is both product and completeness ambiguity. Do not strip Plus or assume receipt proves the original listing was equivalent.",
+    "pairCertified": false,
+    "operatorReviewRequired": true,
+    "snapshotFollowup": []
+  },
+  {
+    "sourceId": "4f32ac44-7d85-4f79-96f7-945b7e384a76",
+    "asin": "B00YX0Z3XW",
+    "ebayItemId": "336652064451",
+    "cohort": "strictRows",
+    "conflictIndex": 88,
+    "category": "unresolved",
+    "materialUnresolved": true,
+    "analyst": "Codex stored-evidence review; not operator certification",
+    "basis": "Independent stored marketplace titles, canonical parser/comparator trace, linked receipt/current purchase, action/correction inventory",
+    "finding": "Amazon Multiplayer Edition is explicit; eBay Black Ops III omits it. Stored titles alone cannot distinguish omitted catalog wording from material edition mismatch.",
+    "pairCertified": false,
+    "operatorReviewRequired": true,
+    "snapshotFollowup": []
+  },
+  {
+    "sourceId": "b91fb37e-c00e-4d81-9b70-27521b245f10",
+    "asin": "B0054U4A4I",
+    "ebayItemId": "157750447912",
+    "cohort": "strictRows",
+    "conflictIndex": 112,
+    "category": "unresolved",
+    "materialUnresolved": true,
+    "analyst": "Codex stored-evidence review; not operator certification",
+    "basis": "Independent stored marketplace titles, canonical parser/comparator trace, linked receipt/current purchase, action/correction inventory",
+    "finding": "Platinum edition is explicit only on eBay for Force Unleashed II. Missing reference edition is not Standard, and does not certify equality.",
+    "pairCertified": false,
+    "operatorReviewRequired": true,
+    "snapshotFollowup": [
+      {
+        "snapshotId": "addb9d1f-156c-42b5-9caf-5c7621c2822a",
+        "verdict": "non-match",
+        "reason": "coreProduct conflict: Amazon star wars the force unleashed, eBay star wars the force unleashed platinum; coreGame conflict: Amazon star wars the force unleashed 2, eBay star wars the force unleashed 2 platinum",
+        "referenceTitleChanged": true
+      }
+    ]
+  },
+  {
+    "sourceId": "4ec62dd8-def1-49a2-b51a-ec1b8e9857b2",
+    "asin": "B01LDUYU60",
+    "ebayItemId": "295925010221",
+    "cohort": "strictRows",
+    "conflictIndex": 117,
+    "category": "unresolved",
+    "materialUnresolved": true,
+    "analyst": "Codex stored-evidence review; not operator certification",
+    "basis": "Independent stored marketplace titles, canonical parser/comparator trace, linked receipt/current purchase, action/correction inventory",
+    "finding": "eBay Super Mario Maker states Nintendo Selects; reference omits it. The explicit retail-line difference remains unresolved even if selects extraction is improved.",
+    "pairCertified": false,
+    "operatorReviewRequired": true,
+    "snapshotFollowup": [
+      {
+        "snapshotId": "5b1d653c-6f96-41f4-8643-9a8c61f482f8",
+        "verdict": "non-match",
+        "reason": "coreProduct conflict: Amazon super mario maker, eBay super mario maker for selects; coreGame conflict: Amazon super mario maker, eBay super mario maker for selects",
+        "referenceTitleChanged": false
+      }
+    ]
+  },
+  {
+    "sourceId": "8059a8b6-de53-486a-967c-f778fd60c0f2",
+    "asin": "B004NRN5DU",
+    "ebayItemId": "117331433107",
+    "cohort": "strictRows",
+    "conflictIndex": 147,
+    "category": "unresolved",
+    "materialUnresolved": true,
+    "analyst": "Codex stored-evidence review; not operator certification",
+    "basis": "Independent stored marketplace titles, canonical parser/comparator trace, linked receipt/current purchase, action/correction inventory",
+    "finding": "Amazon Dark Souls and eBay Dark Souls II are different explicit installment claims. Receiving can reflect an ASIN mistake or different delivered item; neither cause is documented.",
+    "pairCertified": false,
+    "operatorReviewRequired": true,
+    "snapshotFollowup": []
+  },
+  {
+    "sourceId": "223c6033-2225-40f1-9aa7-b54dac75cf17",
+    "asin": "B00RUZPKYY",
+    "ebayItemId": "377371682218",
+    "cohort": "strictRows",
+    "conflictIndex": 151,
+    "category": "unresolved",
+    "materialUnresolved": true,
+    "analyst": "Codex stored-evidence review; not operator certification",
+    "basis": "Independent stored marketplace titles, canonical parser/comparator trace, linked receipt/current purchase, action/correction inventory",
+    "finding": "Disgaea 5 listing says Bundle; reference only names Alliance of Vengeance. Contents and ASIN edition proof are missing.",
+    "pairCertified": false,
+    "operatorReviewRequired": true,
+    "snapshotFollowup": [
+      {
+        "snapshotId": "387ffdc0-1db8-4e3b-ba50-50f45fd1d2ea",
+        "verdict": "non-match",
+        "reason": "coreProduct conflict: Amazon disgaea alliance of vengeance, eBay disgaea alliance of vengeance bundle; coreGame conflict: Amazon disgaea 5 alliance of vengeance, eBay disgaea 5 alliance of vengeance bundle",
+        "referenceTitleChanged": false
+      }
+    ]
+  },
+  {
+    "sourceId": "ab52bbc6-5e41-4e04-956d-fcc9a9e43765",
+    "asin": "B01LDUYU60",
+    "ebayItemId": "236444483931",
+    "cohort": "strictRows",
+    "conflictIndex": 163,
+    "category": "unresolved",
+    "materialUnresolved": true,
+    "analyst": "Codex stored-evidence review; not operator certification",
+    "basis": "Independent stored marketplace titles, canonical parser/comparator trace, linked receipt/current purchase, action/correction inventory",
+    "finding": "Super Mario Maker Nintendo Selects is stated only on eBay. Receipt cannot independently resolve the target ASIN print/edition.",
+    "pairCertified": false,
+    "operatorReviewRequired": true,
+    "snapshotFollowup": [
+      {
+        "snapshotId": "e2c0067f-f145-47a3-be89-467755b9b418",
+        "verdict": "non-match",
+        "reason": "coreProduct conflict: Amazon super mario maker, eBay super mario maker for selects; coreGame conflict: Amazon super mario maker, eBay super mario maker for selects",
+        "referenceTitleChanged": false
+      }
+    ]
+  },
+  {
+    "sourceId": "b2e22178-1fc0-4d59-a2a1-796282e40d76",
+    "asin": "B00B67ZTUW",
+    "ebayItemId": "287548153629",
+    "cohort": "strictRows",
+    "conflictIndex": 188,
+    "category": "unresolved",
+    "materialUnresolved": true,
+    "analyst": "Codex stored-evidence review; not operator certification",
+    "basis": "Independent stored marketplace titles, canonical parser/comparator trace, linked receipt/current purchase, action/correction inventory",
+    "finding": "Spanish and Portuguese cover is explicit listing evidence. Reference region is absent; do not infer North America or dismiss the language evidence as noise.",
+    "pairCertified": false,
+    "operatorReviewRequired": true,
+    "snapshotFollowup": [
+      {
+        "snapshotId": "65f11cbc-4bae-48d0-86cd-2ca3a5fd3d91",
+        "verdict": "non-match",
+        "reason": "coreProduct conflict: Amazon tales of xillia, eBay tales of xillia cover in spanish and portuguese; coreGame conflict: Amazon tales of xillia, eBay tales of xillia cover in spanish and portuguese",
+        "referenceTitleChanged": false
+      }
+    ]
+  },
+  {
+    "sourceId": "758b81cf-b5dc-45d8-b393-e153250c02d7",
+    "asin": "B0058LTE5S",
+    "ebayItemId": "137077343022",
+    "cohort": "strictRows",
+    "conflictIndex": 190,
+    "category": "unresolved",
+    "materialUnresolved": true,
+    "analyst": "Codex stored-evidence review; not operator certification",
+    "basis": "Independent stored marketplace titles, canonical parser/comparator trace, linked receipt/current purchase, action/correction inventory",
+    "finding": "Black Eyed Peas listing states Limited Edition with Bonus Track, absent from reference title. Require exact edition/content evidence; receipt alone is insufficient.",
+    "pairCertified": false,
+    "operatorReviewRequired": true,
+    "snapshotFollowup": []
+  },
+  {
+    "sourceId": "ec59476c-8dbb-4040-85b1-37fe658e98a3",
+    "asin": "B001VLFCXW",
+    "ebayItemId": "227432986138",
+    "cohort": "strictRows",
+    "conflictIndex": 196,
+    "category": "unresolved",
+    "materialUnresolved": true,
+    "analyst": "Codex stored-evidence review; not operator certification",
+    "basis": "Independent stored marketplace titles, canonical parser/comparator trace, linked receipt/current purchase, action/correction inventory",
+    "finding": "The Bigs 2 target versus The BIGS, Albert Pujols, 2007 listing is an apparent different installment. Parser also mistakes a year for installment, but physical/reference truth is not established.",
+    "pairCertified": false,
+    "operatorReviewRequired": true,
+    "snapshotFollowup": [
+      {
+        "snapshotId": "8c7b4823-bf16-4f49-ba3c-c863105ebd7f",
+        "verdict": "non-match",
+        "reason": "coreProduct conflict: Amazon the bigs, eBay the bigs albert pujols 2k sports; coreGame conflict: Amazon the bigs 2, eBay the bigs albert pujols 2k sports",
+        "referenceTitleChanged": false
+      }
+    ]
+  },
+  {
+    "sourceId": "ff742667-021e-4396-b628-e50b1dff1bc8",
+    "asin": "B09GJP8BPZ",
+    "ebayItemId": "168541241306",
+    "cohort": "strictRows",
+    "conflictIndex": 206,
+    "category": "unresolved",
+    "materialUnresolved": true,
+    "analyst": "Codex stored-evidence review; not operator certification",
+    "basis": "Independent stored marketplace titles, canonical parser/comparator trace, linked receipt/current purchase, action/correction inventory",
+    "finding": "Reference explicitly says code in Box, while listing says Physical. Physical packaging can contain a download code, so this is unresolved wording, not verified media contradiction.",
+    "pairCertified": false,
+    "operatorReviewRequired": true,
+    "snapshotFollowup": []
+  },
+  {
+    "sourceId": "74c55b1b-2c50-4637-86e8-7c2199049be1",
+    "asin": "B00AXI9WFS",
+    "ebayItemId": "318571029833",
+    "cohort": "strictRows",
+    "conflictIndex": 216,
+    "category": "unresolved",
+    "materialUnresolved": true,
+    "analyst": "Codex stored-evidence review; not operator certification",
+    "basis": "Independent stored marketplace titles, canonical parser/comparator trace, linked receipt/current purchase, action/correction inventory",
+    "finding": "Disney Infinity Starter Pack with 1.0 and Accessories Lot adds generation/contents absent from target. Receipt cannot establish whole-lot retail parity.",
+    "pairCertified": false,
+    "operatorReviewRequired": true,
+    "snapshotFollowup": [
+      {
+        "snapshotId": "a00d3f46-2b59-4218-b7cd-82bb807925c5",
+        "verdict": "non-match",
+        "reason": "coreProduct conflict: Amazon disney infinity starter pack, eBay disney infinity starter pack and accessories lot; coreGame conflict: Amazon disney infinity starter pack, eBay disney infinity starter pack 1.0 and accessories lot",
+        "referenceTitleChanged": false
+      }
+    ]
+  },
+  {
+    "sourceId": "0bd5d72a-f5d7-434f-bfe6-c47fe7273f89",
+    "asin": "B00I6E6SH6",
+    "ebayItemId": "278220244277",
+    "cohort": "strictRows",
+    "conflictIndex": 217,
+    "category": "unresolved",
+    "materialUnresolved": true,
+    "analyst": "Codex stored-evidence review; not operator certification",
+    "basis": "Independent stored marketplace titles, canonical parser/comparator trace, linked receipt/current purchase, action/correction inventory",
+    "finding": "Minecraft versus Starter Collection plus 700 Minecoins leaves expanded-package identity unverified. Do not invent Base or assume codes/contents are equal.",
+    "pairCertified": false,
+    "operatorReviewRequired": true,
+    "snapshotFollowup": [
+      {
+        "snapshotId": "d9d38a7d-4171-4587-b6c3-d5a8c07e2717",
+        "verdict": "non-match",
+        "reason": "coreProduct conflict: Amazon minecraft, eBay new minecraft starter collection minecoins included; coreGame conflict: Amazon minecraft, eBay new minecraft starter collection 700 minecoins included",
+        "referenceTitleChanged": false
+      }
+    ]
+  },
+  {
+    "sourceId": "8f04afc0-f67d-4ddf-9708-88c9ae9cdd31",
+    "asin": "B08HTHJ9L2",
+    "ebayItemId": "158136497383",
+    "cohort": "strictRows",
+    "conflictIndex": 220,
+    "category": "unresolved",
+    "materialUnresolved": true,
+    "analyst": "Codex stored-evidence review; not operator certification",
+    "basis": "Independent stored marketplace titles, canonical parser/comparator trace, linked receipt/current purchase, action/correction inventory",
+    "finding": "Reference Standard Edition versus listing Limited Edition is an explicit edition contradiction. The conflict is warranted on stored text; wrong linkage versus seller error is unknown.",
+    "pairCertified": false,
+    "operatorReviewRequired": true,
+    "snapshotFollowup": []
+  },
+  {
+    "sourceId": "42705eac-7481-41e3-b20b-1d020f6ac956",
+    "asin": "B00DC7G1WE",
+    "ebayItemId": "266027835351",
+    "cohort": "strictRows",
+    "conflictIndex": 0,
+    "category": "ambiguous_receiving_semantics",
+    "materialUnresolved": false,
+    "analyst": "Codex stored-evidence review; not operator certification",
+    "basis": "Independent stored marketplace titles, canonical parser/comparator trace, linked receipt/current purchase, action/correction inventory",
+    "finding": "2014 follows Wii U and reads like release metadata for Bayonetta 2. No structured release-year or original listing snapshot is in this purchase payload. Likely extraction issue, not certified false negative.",
+    "pairCertified": false,
+    "operatorReviewRequired": true,
+    "snapshotFollowup": []
+  },
+  {
+    "sourceId": "d32bf391-a72f-4bfc-833d-e49a62338b9d",
+    "asin": "B001989B4S",
+    "ebayItemId": "318364800720",
+    "cohort": "strictRows",
+    "conflictIndex": 1,
+    "category": "ambiguous_receiving_semantics",
+    "materialUnresolved": false,
+    "analyst": "Codex stored-evidence review; not operator certification",
+    "basis": "Independent stored marketplace titles, canonical parser/comparator trace, linked receipt/current purchase, action/correction inventory",
+    "finding": "8 pcs and WATA/VGA/CGC surround Fight Night Round 4. Quantity/grading terms contaminate core, but exact single-unit versus lot packaging and grader claims require the listing.",
+    "pairCertified": false,
+    "operatorReviewRequired": true,
+    "snapshotFollowup": []
+  },
+  {
+    "sourceId": "6ee59e0f-a553-4e27-99e9-b42b003c866e",
+    "asin": "B0032FCM6U",
+    "ebayItemId": "137487065723",
+    "cohort": "strictRows",
+    "conflictIndex": 2,
+    "category": "ambiguous_receiving_semantics",
+    "materialUnresolved": false,
+    "analyst": "Codex stored-evidence review; not operator certification",
+    "basis": "Independent stored marketplace titles, canonical parser/comparator trace, linked receipt/current purchase, action/correction inventory",
+    "finding": "MLB versus Major League Baseball 2K10 is a plausible abbreviation equivalence. No independent catalog/identifier evidence proves this ASIN beyond the linked purchase title.",
+    "pairCertified": false,
+    "operatorReviewRequired": true,
+    "snapshotFollowup": []
+  },
+  {
+    "sourceId": "2a8c2d5a-1a7f-4cc2-a446-38be2612aa8c",
+    "asin": "B01LDUYU60",
+    "ebayItemId": "124396275005",
+    "cohort": "strictRows",
+    "conflictIndex": 6,
+    "category": "ambiguous_receiving_semantics",
+    "materialUnresolved": false,
+    "analyst": "Codex stored-evidence review; not operator certification",
+    "basis": "Independent stored marketplace titles, canonical parser/comparator trace, linked receipt/current purchase, action/correction inventory",
+    "finding": "Y-FOLD NEAR-MINT describes packaging, but the original listing/description is absent. Separate condition parsing from exact retail identity; do not certify from receipt alone.",
+    "pairCertified": false,
+    "operatorReviewRequired": true,
+    "snapshotFollowup": []
+  },
+  {
+    "sourceId": "da77db71-457b-43c0-8ed2-fd32d6012258",
+    "asin": "B00CX7FOVS",
+    "ebayItemId": "137273228365",
+    "cohort": "strictRows",
+    "conflictIndex": 9,
+    "category": "source_snapshot_unavailable",
+    "materialUnresolved": false,
+    "analyst": "Codex stored-evidence review; not operator certification",
+    "basis": "Independent stored marketplace titles, canonical parser/comparator trace, linked receipt/current purchase, action/correction inventory",
+    "finding": "Publisher/genre/online wording surrounds Madden NFL 25. Title strongly suggests metadata pollution; missing structured publisher/genre evidence prevents robust general-rule adjudication here. Follow-up: purchased snapshot supplies the missing metadata and the unchanged current matcher returns Match. This is confirmed loss of input coverage in the old title-only replay, not a currently demonstrated full-source matcher defect. The category denotes unavailable-to-original-replay evidence, not missing database storage.",
+    "pairCertified": false,
+    "operatorReviewRequired": true,
+    "snapshotFollowup": [
+      {
+        "snapshotId": "bc0cb285-388d-46ea-8f39-89989eb09fa6",
+        "verdict": "match",
+        "reason": "Identity matched or unknown; unknown fields are not positive evidence.",
+        "referenceTitleChanged": false
+      }
+    ]
+  },
+  {
+    "sourceId": "053c1006-a575-4cad-b068-b3b3dd029396",
+    "asin": "B00IQCRKP2",
+    "ebayItemId": "198491292589",
+    "cohort": "strictRows",
+    "conflictIndex": 17,
+    "category": "ambiguous_receiving_semantics",
+    "materialUnresolved": false,
+    "analyst": "Codex stored-evidence review; not operator certification",
+    "basis": "Independent stored marketplace titles, canonical parser/comparator trace, linked receipt/current purchase, action/correction inventory",
+    "finding": "Rare Microsoft trails Kinect Sports Rivals. Likely seller wording, but no full snapshot exists in the replay and correction provenance is absent.",
+    "pairCertified": false,
+    "operatorReviewRequired": true,
+    "snapshotFollowup": [
+      {
+        "snapshotId": "5094711d-e9e7-45b7-ba15-ef6065cb2eee",
+        "verdict": "non-match",
+        "reason": "coreProduct conflict: Amazon kinect sports rivals, eBay kinect sports rivals rare microsoft; coreGame conflict: Amazon kinect sports rivals, eBay kinect sports rivals rare microsoft",
+        "referenceTitleChanged": false
+      }
+    ]
+  },
+  {
+    "sourceId": "e3bc2065-7c15-4423-bd94-537222d8f73e",
+    "asin": "B09D643D8F",
+    "ebayItemId": "147452442020",
+    "cohort": "strictRows",
+    "conflictIndex": 30,
+    "category": "source_snapshot_unavailable",
+    "materialUnresolved": false,
+    "analyst": "Codex stored-evidence review; not operator certification",
+    "basis": "Independent stored marketplace titles, canonical parser/comparator trace, linked receipt/current purchase, action/correction inventory",
+    "finding": "Activision, rating/year/region, Shooter and Online surround Vanguard. This resembles an already fixed full-source class, but this title-only record lacks the corroborating specifics. Follow-up: purchased snapshot supplies the missing metadata and the unchanged current matcher returns Match. This is confirmed loss of input coverage in the old title-only replay, not a currently demonstrated full-source matcher defect. The category denotes unavailable-to-original-replay evidence, not missing database storage.",
+    "pairCertified": false,
+    "operatorReviewRequired": true,
+    "snapshotFollowup": [
+      {
+        "snapshotId": "16751abb-a712-4ae0-beb2-c4991b66316d",
+        "verdict": "match",
+        "reason": "Identity matched or unknown; unknown fields are not positive evidence.",
+        "referenceTitleChanged": true
+      }
+    ]
+  },
+  {
+    "sourceId": "3d01d336-3996-4179-990c-c5c05c1d152f",
+    "asin": "B00DWXV1DM",
+    "ebayItemId": "116824180918",
+    "cohort": "strictRows",
+    "conflictIndex": 40,
+    "category": "ambiguous_receiving_semantics",
+    "materialUnresolved": false,
+    "analyst": "Codex stored-evidence review; not operator certification",
+    "basis": "Independent stored marketplace titles, canonical parser/comparator trace, linked receipt/current purchase, action/correction inventory",
+    "finding": "TMNT and Teenage Mutant Ninja Turtles repeat a name alongside Nickelodeon and S38. The stock-code/brand interpretation needs the source listing rather than a broad token deletion.",
+    "pairCertified": false,
+    "operatorReviewRequired": true,
+    "snapshotFollowup": [
+      {
+        "snapshotId": "7ffe4a6d-6aa5-489c-8332-622418111352",
+        "verdict": "non-match",
+        "reason": "coreProduct conflict: Amazon teenage mutant ninja turtles, eBay nickelodeon tmnt teenage mutant ninja turtles s38; coreGame conflict: Amazon teenage mutant ninja turtles, eBay nickelodeon tmnt teenage mutant ninja turtles s38",
+        "referenceTitleChanged": false
+      }
+    ]
+  },
+  {
+    "sourceId": "e4fe3144-670d-4264-af5a-541d566c41a8",
+    "asin": "B0B6JMXKKR",
+    "ebayItemId": "137611067988",
+    "cohort": "strictRows",
+    "conflictIndex": 85,
+    "category": "source_snapshot_unavailable",
+    "materialUnresolved": false,
+    "analyst": "Codex stored-evidence review; not operator certification",
+    "basis": "Independent stored marketplace titles, canonical parser/comparator trace, linked receipt/current purchase, action/correction inventory",
+    "finding": "FIFA 23 Legacy Edition includes publisher, NTSC-U/C, E and 2022. The legacy title already has annual identity; year/edition omissions must remain distinct from contradictions. Follow-up: purchased snapshot supplies the missing metadata and the unchanged current matcher returns Match. This is confirmed loss of input coverage in the old title-only replay, not a currently demonstrated full-source matcher defect. The category denotes unavailable-to-original-replay evidence, not missing database storage.",
+    "pairCertified": false,
+    "operatorReviewRequired": true,
+    "snapshotFollowup": [
+      {
+        "snapshotId": "3a060df7-b0a4-4117-ba9c-cf9e8dbf1e5e",
+        "verdict": "match",
+        "reason": "Identity matched or unknown; unknown fields are not positive evidence.",
+        "referenceTitleChanged": true
+      }
+    ]
+  },
+  {
+    "sourceId": "2e58df3c-1992-4e03-852b-c790bc03a799",
+    "asin": "B071Y1RXHG",
+    "ebayItemId": "318413208917",
+    "cohort": "strictRows",
+    "conflictIndex": 213,
+    "category": "physical_receipt_not_exact_listing_identity",
+    "materialUnresolved": false,
+    "analyst": "Codex stored-evidence review; not operator certification",
+    "basis": "Independent stored marketplace titles, canonical parser/comparator trace, linked receipt/current purchase, action/correction inventory",
+    "finding": "EA / DICE follows matching Battlefront II titles. This is likely publisher metadata, but a different transaction under the same game has a documented wrong-item receipt; title agreement alone is not physical truth. Exact order-problem note documents seller replacement resolving an earlier wrong-product exception; current correct_item records the replacement, not proof of the original delivered listing identity.",
+    "pairCertified": false,
+    "operatorReviewRequired": true,
+    "snapshotFollowup": []
+  },
+  {
+    "sourceId": "1efb864b-a705-475e-a843-832ddf5713b6",
+    "asin": "B00I6E6SH6",
+    "ebayItemId": "127933546536",
+    "cohort": "strictRows",
+    "conflictIndex": 168,
+    "category": "ambiguous_receiving_semantics",
+    "materialUnresolved": false,
+    "analyst": "Codex stored-evidence review; not operator certification",
+    "basis": "Independent stored marketplace titles, canonical parser/comparator trace, linked receipt/current purchase, action/correction inventory",
+    "finding": "Current purchase ASIN differs from the receiving ASIN for this Minecraft listing. Publisher/online terms also pollute core, but provenance of the reassignment takes precedence over calling this a false negative.",
+    "pairCertified": false,
+    "operatorReviewRequired": true,
+    "snapshotFollowup": [
+      {
+        "snapshotId": "19d4490f-214b-40ec-9eb2-61c64a835dfd",
+        "verdict": "non-match",
+        "reason": "coreProduct conflict: Amazon minecraft, eBay minecraft play e10; coreGame conflict: Amazon minecraft, eBay minecraft play e10",
+        "referenceTitleChanged": false
+      }
+    ]
+  },
+  {
+    "sourceId": "21622aab-2dcc-41d8-8c2a-741d1fe638eb",
+    "asin": "B0032FCM6U",
+    "ebayItemId": "137487065723",
+    "cohort": "broaderRows",
+    "conflictIndex": 2,
+    "category": "ambiguous_receiving_semantics",
+    "materialUnresolved": false,
+    "analyst": "Codex stored-evidence review; not operator certification",
+    "basis": "Independent stored marketplace titles, canonical parser/comparator trace, linked receipt/current purchase, action/correction inventory",
+    "finding": "MLB versus Major League Baseball 2K10 is a plausible abbreviation equivalence. No independent catalog/identifier evidence proves this ASIN beyond the linked purchase title. Same exact pair and identical titles; shared inspection, not independent certification.",
+    "pairCertified": false,
+    "operatorReviewRequired": true,
+    "carriedFromSource": "6ee59e0f-a553-4e27-99e9-b42b003c866e",
+    "snapshotFollowup": []
+  },
+  {
+    "sourceId": "5bc8932a-60d8-4ed6-b92d-422f2d63425f",
+    "asin": "B00I6E6SH6",
+    "ebayItemId": "227447137918",
+    "cohort": "broaderRows",
+    "conflictIndex": 55,
+    "category": "unresolved",
+    "materialUnresolved": true,
+    "analyst": "Codex stored-evidence review; not operator certification",
+    "basis": "Independent stored marketplace titles, canonical parser/comparator trace, linked receipt/current purchase, action/correction inventory",
+    "finding": "Amazon Minecraft versus Starter Collection is potentially a retail-version difference. Receipt alone cannot certify a base ASIN and expanded package as identical. Same exact pair and identical titles; shared inspection, not independent certification.",
+    "pairCertified": false,
+    "operatorReviewRequired": true,
+    "carriedFromSource": "11bb943f-639a-4567-a6fd-72cedef2af80",
+    "snapshotFollowup": [
+      {
+        "snapshotId": "d2439b64-147d-472e-932c-5d30fb894876",
+        "verdict": "non-match",
+        "reason": "coreProduct conflict: Amazon minecraft, eBay minecraft starter collection new video games; coreGame conflict: Amazon minecraft, eBay minecraft starter collection new video games",
+        "referenceTitleChanged": false
+      }
+    ]
+  },
+  {
+    "sourceId": "fd03cdc3-7d22-4c0d-8745-5870d53bb6f6",
+    "asin": "B01AC3ZD06",
+    "ebayItemId": "389976431971",
+    "cohort": "broaderRows",
+    "conflictIndex": 14,
+    "category": "unresolved",
+    "materialUnresolved": true,
+    "analyst": "Codex stored-evidence review; not operator certification",
+    "basis": "Independent stored marketplace titles, canonical parser/comparator trace, linked receipt/current purchase, action/correction inventory",
+    "finding": "Amazon explicitly says Nintendo Selects and Standard Edition; listing omits Selects. Omission is not proof of a different print, nor proof of equality. Exact cover/retail reference is missing. Same exact pair and identical titles; shared inspection, not independent certification.",
+    "pairCertified": false,
+    "operatorReviewRequired": true,
+    "carriedFromSource": "9ba32dc5-99ea-4bd9-9c4f-e998621659e8",
+    "snapshotFollowup": []
+  },
+  {
+    "sourceId": "5991ef5a-3a45-49cd-9a94-fb57ff4546db",
+    "asin": "B01LDUYU60",
+    "ebayItemId": "295925010221",
+    "cohort": "broaderRows",
+    "conflictIndex": 117,
+    "category": "unresolved",
+    "materialUnresolved": true,
+    "analyst": "Codex stored-evidence review; not operator certification",
+    "basis": "Independent stored marketplace titles, canonical parser/comparator trace, linked receipt/current purchase, action/correction inventory",
+    "finding": "eBay Super Mario Maker states Nintendo Selects; reference omits it. The explicit retail-line difference remains unresolved even if selects extraction is improved. Same exact pair and identical titles; shared inspection, not independent certification.",
+    "pairCertified": false,
+    "operatorReviewRequired": true,
+    "carriedFromSource": "4ec62dd8-def1-49a2-b51a-ec1b8e9857b2",
+    "snapshotFollowup": [
+      {
+        "snapshotId": "5b1d653c-6f96-41f4-8643-9a8c61f482f8",
+        "verdict": "non-match",
+        "reason": "coreProduct conflict: Amazon super mario maker, eBay super mario maker for selects; coreGame conflict: Amazon super mario maker, eBay super mario maker for selects",
+        "referenceTitleChanged": false
+      }
+    ]
+  },
+  {
+    "sourceId": "e4377af8-a4f2-46a7-a27b-53536a9f7332",
+    "asin": "B00DC7G1WE",
+    "ebayItemId": "318540386966",
+    "cohort": "broaderRows",
+    "conflictIndex": 36,
+    "category": "unresolved",
+    "materialUnresolved": true,
+    "analyst": "Codex stored-evidence review; not operator certification",
+    "basis": "Independent stored marketplace titles, canonical parser/comparator trace, linked receipt/current purchase, action/correction inventory",
+    "finding": "Bonus Disc Variant is explicit additional package content for Bayonetta 2. Bare Amazon title does not settle whether that ASIN includes the bonus disc. Same exact pair and identical titles; shared inspection, not independent certification.",
+    "pairCertified": false,
+    "operatorReviewRequired": true,
+    "carriedFromSource": "f057a1a8-4faa-44bf-82b7-9fd30c0969b3",
+    "snapshotFollowup": []
+  },
+  {
+    "sourceId": "8267d554-b270-417f-b2ff-abb7bf9c0c3c",
+    "asin": "B00RUZPKYY",
+    "ebayItemId": "377371682218",
+    "cohort": "broaderRows",
+    "conflictIndex": 151,
+    "category": "unresolved",
+    "materialUnresolved": true,
+    "analyst": "Codex stored-evidence review; not operator certification",
+    "basis": "Independent stored marketplace titles, canonical parser/comparator trace, linked receipt/current purchase, action/correction inventory",
+    "finding": "Disgaea 5 listing says Bundle; reference only names Alliance of Vengeance. Contents and ASIN edition proof are missing. Same exact pair and identical titles; shared inspection, not independent certification.",
+    "pairCertified": false,
+    "operatorReviewRequired": true,
+    "carriedFromSource": "223c6033-2225-40f1-9aa7-b54dac75cf17",
+    "snapshotFollowup": [
+      {
+        "snapshotId": "387ffdc0-1db8-4e3b-ba50-50f45fd1d2ea",
+        "verdict": "non-match",
+        "reason": "coreProduct conflict: Amazon disgaea alliance of vengeance, eBay disgaea alliance of vengeance bundle; coreGame conflict: Amazon disgaea 5 alliance of vengeance, eBay disgaea 5 alliance of vengeance bundle",
+        "referenceTitleChanged": false
+      }
+    ]
+  },
+  {
+    "sourceId": "5da484b0-a208-4490-8e3a-3d6c145cc166",
+    "asin": "B00498PSZQ",
+    "ebayItemId": "255505144814",
+    "cohort": "broaderRows",
+    "conflictIndex": 121,
+    "category": "genuine_parser_extraction_error",
+    "materialUnresolved": false,
+    "analyst": "Codex stored-evidence review; not operator certification",
+    "basis": "Independent stored marketplace titles, canonical parser/comparator trace, linked receipt/current purchase, action/correction inventory",
+    "finding": "Brand New & Factory Sealed leaves and as product text for You Don't Know Jack. The punctuation is seller condition syntax. Same exact pair and identical titles; shared inspection, not independent certification.",
+    "pairCertified": false,
+    "operatorReviewRequired": true,
+    "carriedFromSource": "252cf129-3087-494b-a8da-47bc71f0d735",
+    "snapshotFollowup": []
+  },
+  {
+    "sourceId": "b080e7ff-a542-438b-8cbc-e357613e19c5",
+    "asin": "B00DC7G1WE",
+    "ebayItemId": "266027835351",
+    "cohort": "broaderRows",
+    "conflictIndex": 0,
+    "category": "ambiguous_receiving_semantics",
+    "materialUnresolved": false,
+    "analyst": "Codex stored-evidence review; not operator certification",
+    "basis": "Independent stored marketplace titles, canonical parser/comparator trace, linked receipt/current purchase, action/correction inventory",
+    "finding": "2014 follows Wii U and reads like release metadata for Bayonetta 2. No structured release-year or original listing snapshot is in this purchase payload. Likely extraction issue, not certified false negative. Same exact pair and identical titles; shared inspection, not independent certification.",
+    "pairCertified": false,
+    "operatorReviewRequired": true,
+    "carriedFromSource": "42705eac-7481-41e3-b20b-1d020f6ac956",
+    "snapshotFollowup": []
+  },
+  {
+    "sourceId": "bea7b635-d613-402d-ab2f-31a8742fb174",
+    "asin": "B07J32LSJ5",
+    "ebayItemId": "227426884063",
+    "cohort": "broaderRows",
+    "conflictIndex": 208,
+    "category": "genuine_parser_extraction_error",
+    "materialUnresolved": false,
+    "analyst": "Codex stored-evidence review; not operator certification",
+    "basis": "Independent stored marketplace titles, canonical parser/comparator trace, linked receipt/current purchase, action/correction inventory",
+    "finding": "New Nintendo Switch Video Games remains after Hello Neighbor Hide & Seek. Product subtitle agrees; repeated platform/catalog wording causes the conflict. Same exact pair and identical titles; shared inspection, not independent certification.",
+    "pairCertified": false,
+    "operatorReviewRequired": true,
+    "carriedFromSource": "df416b4e-33f2-4793-8e8a-70312fa3e2e7",
+    "snapshotFollowup": []
+  },
+  {
+    "sourceId": "e55533f8-2936-49d3-ae1f-69fc985c0920",
+    "asin": "B07BHHJR4K",
+    "ebayItemId": "117290505164",
+    "cohort": "broaderRows",
+    "conflictIndex": 105,
+    "category": "genuine_parser_extraction_error",
+    "materialUnresolved": false,
+    "analyst": "Codex stored-evidence review; not operator certification",
+    "basis": "Independent stored marketplace titles, canonical parser/comparator trace, linked receipt/current purchase, action/correction inventory",
+    "finding": "SteelBook is split to steel book on Amazon while eBay lowercase steelbook stays joined. Both source titles explicitly identify Yakuza Kiwami 2 Steelbook Edition. Same exact pair and identical titles; shared inspection, not independent certification.",
+    "pairCertified": false,
+    "operatorReviewRequired": true,
+    "carriedFromSource": "c8958051-6942-4b5e-964e-ed9cff4c1d55",
+    "snapshotFollowup": []
+  },
+  {
+    "sourceId": "5d4a6af6-3765-49bf-9706-bd6cb6c688a2",
+    "asin": "B00CX7FOVS",
+    "ebayItemId": "137273228365",
+    "cohort": "broaderRows",
+    "conflictIndex": 9,
+    "category": "source_snapshot_unavailable",
+    "materialUnresolved": false,
+    "analyst": "Codex stored-evidence review; not operator certification",
+    "basis": "Independent stored marketplace titles, canonical parser/comparator trace, linked receipt/current purchase, action/correction inventory",
+    "finding": "Publisher/genre/online wording surrounds Madden NFL 25. Title strongly suggests metadata pollution; missing structured publisher/genre evidence prevents robust general-rule adjudication here. Same exact pair and identical titles; shared inspection, not independent certification. Follow-up: purchased snapshot supplies the missing metadata and the unchanged current matcher returns Match. This is confirmed loss of input coverage in the old title-only replay, not a currently demonstrated full-source matcher defect. The category denotes unavailable-to-original-replay evidence, not missing database storage.",
+    "pairCertified": false,
+    "operatorReviewRequired": true,
+    "carriedFromSource": "da77db71-457b-43c0-8ed2-fd32d6012258",
+    "snapshotFollowup": [
+      {
+        "snapshotId": "bc0cb285-388d-46ea-8f39-89989eb09fa6",
+        "verdict": "match",
+        "reason": "Identity matched or unknown; unknown fields are not positive evidence.",
+        "referenceTitleChanged": false
+      }
+    ]
+  },
+  {
+    "sourceId": "03863550-6f6f-4590-a8ba-3c9219ff5846",
+    "asin": "B002I0JFCO",
+    "ebayItemId": "257558396715",
+    "cohort": "broaderRows",
+    "conflictIndex": 50,
+    "category": "unresolved",
+    "materialUnresolved": true,
+    "analyst": "Codex stored-evidence review; not operator certification",
+    "basis": "Independent stored marketplace titles, canonical parser/comparator trace, linked receipt/current purchase, action/correction inventory",
+    "finding": "EA Sports Active 2 listing explicitly includes Kinect bundle, heart monitor and band. Bare target title cannot independently certify identical retail contents. Same exact pair and identical titles; shared inspection, not independent certification.",
+    "pairCertified": false,
+    "operatorReviewRequired": true,
+    "carriedFromSource": "d9875b3e-55be-49e6-9b36-cd35029b5920",
+    "snapshotFollowup": []
+  },
+  {
+    "sourceId": "db1ba183-8eae-408d-ab35-dbeda14cd7be",
+    "asin": "B07KTFL61P",
+    "ebayItemId": "187615175841",
+    "cohort": "broaderRows",
+    "conflictIndex": 48,
+    "category": "genuine_parser_extraction_error",
+    "materialUnresolved": false,
+    "analyst": "Codex stored-evidence review; not operator certification",
+    "basis": "Independent stored marketplace titles, canonical parser/comparator trace, linked receipt/current purchase, action/correction inventory",
+    "finding": "Amazon parenthetical XB1 survives alongside explicit Xbox One and becomes a game token. The independent eBay title names Bendy and the Ink Machine; cross-generation packaging is still not certified. Same exact pair and identical titles; shared inspection, not independent certification.",
+    "pairCertified": false,
+    "operatorReviewRequired": true,
+    "carriedFromSource": "a1c34650-da99-417c-b3e1-b1f53988ee0b",
+    "snapshotFollowup": []
+  },
+  {
+    "sourceId": "d5f233c7-dd06-4ac9-ac5a-b808c3911a6e",
+    "asin": "B00KTNSLX6",
+    "ebayItemId": "167831909062",
+    "cohort": "broaderRows",
+    "conflictIndex": 27,
+    "category": "genuine_parser_extraction_error",
+    "materialUnresolved": false,
+    "analyst": "Codex stored-evidence review; not operator certification",
+    "basis": "Independent stored marketplace titles, canonical parser/comparator trace, linked receipt/current purchase, action/correction inventory",
+    "finding": "The historical mistake targeted Just Dance 2014, but this assertion targets Just Dance 2015. Both source titles say 2015; leading NEW creates the current conflict. The old ASIN negative cannot transfer. Same exact pair and identical titles; shared inspection, not independent certification.",
+    "pairCertified": false,
+    "operatorReviewRequired": true,
+    "carriedFromSource": "ed4d4fd3-d3d7-4743-aec6-223ca0f263c1",
+    "snapshotFollowup": []
+  },
+  {
+    "sourceId": "9e27d775-e53d-4bb9-bf46-03f1596730a1",
+    "asin": "B00ZGPJ30M",
+    "ebayItemId": "406943394327",
+    "cohort": "broaderRows",
+    "conflictIndex": 149,
+    "category": "genuine_parser_extraction_error",
+    "materialUnresolved": false,
+    "analyst": "Codex stored-evidence review; not operator certification",
+    "basis": "Independent stored marketplace titles, canonical parser/comparator trace, linked receipt/current purchase, action/correction inventory",
+    "finding": "vs. versus vs is the only remaining core difference for Plants vs Zombies Garden Warfare 2. This is punctuation normalization, with installment 2 preserved. Same exact pair and identical titles; shared inspection, not independent certification.",
+    "pairCertified": false,
+    "operatorReviewRequired": true,
+    "carriedFromSource": "acc6c1c2-2729-4303-b779-319a8a904b90",
+    "snapshotFollowup": []
+  },
+  {
+    "sourceId": "7a07668f-2fe5-4b69-87b2-043b8459bc57",
+    "asin": "B09C1167RV",
+    "ebayItemId": "146683357870",
+    "cohort": "broaderRows",
+    "conflictIndex": 203,
+    "category": "genuine_parser_extraction_error",
+    "materialUnresolved": false,
+    "analyst": "Codex stored-evidence review; not operator certification",
+    "basis": "Independent stored marketplace titles, canonical parser/comparator trace, linked receipt/current purchase, action/correction inventory",
+    "finding": "for Xbox One and Xbox Series X leaves for and in Street Outlaws 2. Both full titles supply the same subtitle and platforms; platform conjunction is not identity. Same exact pair and identical titles; shared inspection, not independent certification.",
+    "pairCertified": false,
+    "operatorReviewRequired": true,
+    "carriedFromSource": "11bd6808-87e8-48e6-97ed-e3b86c642839",
+    "snapshotFollowup": [
+      {
+        "snapshotId": "fdf92865-f78f-49c6-af4b-d268a2f0ee33",
+        "verdict": "non-match",
+        "reason": "coreProduct conflict: Amazon street outlaws winner takes all, eBay street outlaws winner takes all for and; coreGame conflict: Amazon street outlaws 2 winner takes all, eBay street outlaws 2 winner takes all for and",
+        "referenceTitleChanged": false
+      }
+    ]
+  },
+  {
+    "sourceId": "eb5297b4-62e3-4790-b864-639443c51ded",
+    "asin": "B01LDUYU60",
+    "ebayItemId": "236444483931",
+    "cohort": "broaderRows",
+    "conflictIndex": 163,
+    "category": "unresolved",
+    "materialUnresolved": true,
+    "analyst": "Codex stored-evidence review; not operator certification",
+    "basis": "Independent stored marketplace titles, canonical parser/comparator trace, linked receipt/current purchase, action/correction inventory",
+    "finding": "Super Mario Maker Nintendo Selects is stated only on eBay. Receipt cannot independently resolve the target ASIN print/edition. Same exact pair and identical titles; shared inspection, not independent certification.",
+    "pairCertified": false,
+    "operatorReviewRequired": true,
+    "carriedFromSource": "ab52bbc6-5e41-4e04-956d-fcc9a9e43765",
+    "snapshotFollowup": [
+      {
+        "snapshotId": "e2c0067f-f145-47a3-be89-467755b9b418",
+        "verdict": "non-match",
+        "reason": "coreProduct conflict: Amazon super mario maker, eBay super mario maker for selects; coreGame conflict: Amazon super mario maker, eBay super mario maker for selects",
+        "referenceTitleChanged": false
+      }
+    ]
+  },
+  {
+    "sourceId": "de362023-a6f6-44a8-9749-928f9496397e",
+    "asin": "B01MTQWAFN",
+    "ebayItemId": "257625187330",
+    "cohort": "broaderRows",
+    "conflictIndex": 122,
+    "category": "genuine_parser_extraction_error",
+    "materialUnresolved": false,
+    "analyst": "Codex stored-evidence review; not operator certification",
+    "basis": "Independent stored marketplace titles, canonical parser/comparator trace, linked receipt/current purchase, action/correction inventory",
+    "finding": "SHIPS FREE survives as ships free in Watch Dogs 2 core. Both titles say Xbox One; shipping words should not assert a different game. Same exact pair and identical titles; shared inspection, not independent certification.",
+    "pairCertified": false,
+    "operatorReviewRequired": true,
+    "carriedFromSource": "ccaffed2-c7bb-48f7-987d-da39289ce622",
+    "snapshotFollowup": [
+      {
+        "snapshotId": "700d85d1-90e0-4e9e-a4b6-f16bfcc96ed5",
+        "verdict": "non-match",
+        "reason": "coreProduct conflict: Amazon watch dogs, eBay watch dogs ships free; coreGame conflict: Amazon watch dogs 2, eBay watch dogs 2 ships free",
+        "referenceTitleChanged": false
+      }
+    ]
+  },
+  {
+    "sourceId": "d46daaef-f41e-4aea-9231-71acd68c3d39",
+    "asin": "B071Y1RXHG",
+    "ebayItemId": "318413208917",
+    "cohort": "broaderRows",
+    "conflictIndex": 213,
+    "category": "physical_receipt_not_exact_listing_identity",
+    "materialUnresolved": false,
+    "analyst": "Codex stored-evidence review; not operator certification",
+    "basis": "Independent stored marketplace titles, canonical parser/comparator trace, linked receipt/current purchase, action/correction inventory",
+    "finding": "EA / DICE follows matching Battlefront II titles. This is likely publisher metadata, but a different transaction under the same game has a documented wrong-item receipt; title agreement alone is not physical truth. Same exact pair and identical titles; shared inspection, not independent certification. Exact order-problem note documents seller replacement resolving an earlier wrong-product exception; current correct_item records the replacement, not proof of the original delivered listing identity.",
+    "pairCertified": false,
+    "operatorReviewRequired": true,
+    "carriedFromSource": "2e58df3c-1992-4e03-852b-c790bc03a799",
+    "snapshotFollowup": []
+  },
+  {
+    "sourceId": "1a91d40f-52b0-4b4a-9f4d-71ca95cbe94c",
+    "asin": "B07HFMJ4R5",
+    "ebayItemId": "377344978601",
+    "cohort": "broaderRows",
+    "conflictIndex": 20,
+    "category": "unresolved",
+    "materialUnresolved": true,
+    "analyst": "Codex stored-evidence review; not operator certification",
+    "basis": "Independent stored marketplace titles, canonical parser/comparator trace, linked receipt/current purchase, action/correction inventory",
+    "finding": "Starter Collection versus Starter Pack plus 700 Minecoins requires retail contents/reference verification. The parser also retains rating/year metadata, but fixing noise cannot certify package parity. Same exact pair and identical titles; shared inspection, not independent certification.",
+    "pairCertified": false,
+    "operatorReviewRequired": true,
+    "carriedFromSource": "d819b785-133e-418d-ab49-4e97ad36b6da",
+    "snapshotFollowup": []
+  },
+  {
+    "sourceId": "80565b9d-23f2-4321-b6f8-6670d0791f3f",
+    "asin": "B01BXAFRU8",
+    "ebayItemId": "387437718912",
+    "cohort": "broaderRows",
+    "conflictIndex": 15,
+    "category": "genuine_parser_extraction_error",
+    "materialUnresolved": false,
+    "analyst": "Codex stored-evidence review; not operator certification",
+    "basis": "Independent stored marketplace titles, canonical parser/comparator trace, linked receipt/current purchase, action/correction inventory",
+    "finding": "The listing repeats Xbox One as X-Box 1; parser leaves box 1 in the product. This is platform-alias token leakage, not an installment contradiction. Same exact pair and identical titles; shared inspection, not independent certification.",
+    "pairCertified": false,
+    "operatorReviewRequired": true,
+    "carriedFromSource": "ef18e27d-8eeb-4688-a4b5-fd8983363fe5",
+    "snapshotFollowup": []
+  },
+  {
+    "sourceId": "d1099360-a8fb-4929-ab42-7b7f667d59a0",
+    "asin": "B07FF3F7F9",
+    "ebayItemId": "267725836968",
+    "cohort": "broaderRows",
+    "conflictIndex": 4,
+    "category": "unresolved",
+    "materialUnresolved": true,
+    "analyst": "Codex stored-evidence review; not operator certification",
+    "basis": "Independent stored marketplace titles, canonical parser/comparator trace, linked receipt/current purchase, action/correction inventory",
+    "finding": "Amazon says Subnautica; listing explicitly says Below Zero. correct_item cannot choose between wrong ASIN, mistaken purchase or seller-delivered substitution. The matcher is right to expose distinct title content, but cause is unproven. Same exact pair and identical titles; shared inspection, not independent certification.",
+    "pairCertified": false,
+    "operatorReviewRequired": true,
+    "carriedFromSource": "d7eb4172-eb08-4197-8c4b-360983272928",
+    "snapshotFollowup": [
+      {
+        "snapshotId": "a5aebdc6-4d24-4f6d-b80e-2eb7fe69065e",
+        "verdict": "non-match",
+        "reason": "coreProduct conflict: Amazon subnautica, eBay subnautica below zero s; coreGame conflict: Amazon subnautica, eBay subnautica below zero s",
+        "referenceTitleChanged": false
+      }
+    ]
+  },
+  {
+    "sourceId": "cceb87f5-c67f-4491-aeca-f6dbd819b63e",
+    "asin": "B099JL5K7P",
+    "ebayItemId": "257662179064",
+    "cohort": "broaderRows",
+    "conflictIndex": 194,
+    "category": "genuine_parser_extraction_error",
+    "materialUnresolved": false,
+    "analyst": "Codex stored-evidence review; not operator certification",
+    "basis": "Independent stored marketplace titles, canonical parser/comparator trace, linked receipt/current purchase, action/correction inventory",
+    "finding": "Leading New is retained before Nerf Legends. Both titles name Nintendo Switch; this is condition-token extraction, not the previously reviewed PS5 pair. Same exact pair and identical titles; shared inspection, not independent certification.",
+    "pairCertified": false,
+    "operatorReviewRequired": true,
+    "carriedFromSource": "8b10fb04-0442-421f-ac85-4b83c2237609",
+    "snapshotFollowup": [
+      {
+        "snapshotId": "8a66517c-455d-4688-a28a-7bd83e21979a",
+        "verdict": "non-match",
+        "reason": "coreProduct conflict: Amazon nerf legends, eBay new nerf legends; coreGame conflict: Amazon nerf legends, eBay new nerf legends",
+        "referenceTitleChanged": true
+      }
+    ]
+  },
+  {
+    "sourceId": "a5762b80-e89b-4ea3-974f-532fbd8e9966",
+    "asin": "B0054U4A4I",
+    "ebayItemId": "157750447912",
+    "cohort": "broaderRows",
+    "conflictIndex": 112,
+    "category": "unresolved",
+    "materialUnresolved": true,
+    "analyst": "Codex stored-evidence review; not operator certification",
+    "basis": "Independent stored marketplace titles, canonical parser/comparator trace, linked receipt/current purchase, action/correction inventory",
+    "finding": "Platinum edition is explicit only on eBay for Force Unleashed II. Missing reference edition is not Standard, and does not certify equality. Same exact pair and identical titles; shared inspection, not independent certification.",
+    "pairCertified": false,
+    "operatorReviewRequired": true,
+    "carriedFromSource": "b91fb37e-c00e-4d81-9b70-27521b245f10",
+    "snapshotFollowup": [
+      {
+        "snapshotId": "addb9d1f-156c-42b5-9caf-5c7621c2822a",
+        "verdict": "non-match",
+        "reason": "coreProduct conflict: Amazon star wars the force unleashed, eBay star wars the force unleashed platinum; coreGame conflict: Amazon star wars the force unleashed 2, eBay star wars the force unleashed 2 platinum",
+        "referenceTitleChanged": true
+      }
+    ]
+  },
+  {
+    "sourceId": "034eeb81-cdaf-4014-8214-04f388405bad",
+    "asin": "B072JZB85B",
+    "ebayItemId": "233733278405",
+    "cohort": "broaderRows",
+    "conflictIndex": 3,
+    "category": "unresolved",
+    "materialUnresolved": true,
+    "analyst": "Codex stored-evidence review; not operator certification",
+    "basis": "Independent stored marketplace titles, canonical parser/comparator trace, linked receipt/current purchase, action/correction inventory",
+    "finding": "FIFA 18 is one of three different games in the listing. Receiving quantity one does not establish whether a split child or whole lot was certified. Preserve package mismatch until allocation/source evidence is reviewed. Same exact pair and identical titles; shared inspection, not independent certification.",
+    "pairCertified": false,
+    "operatorReviewRequired": true,
+    "carriedFromSource": "7f08f8ed-86a8-453a-aaf2-762c51acb069",
+    "snapshotFollowup": []
+  },
+  {
+    "sourceId": "77c6f3f7-7471-454d-99e8-0bdda8bed99e",
+    "asin": "B001VLFCXW",
+    "ebayItemId": "227432986138",
+    "cohort": "broaderRows",
+    "conflictIndex": 196,
+    "category": "unresolved",
+    "materialUnresolved": true,
+    "analyst": "Codex stored-evidence review; not operator certification",
+    "basis": "Independent stored marketplace titles, canonical parser/comparator trace, linked receipt/current purchase, action/correction inventory",
+    "finding": "The Bigs 2 target versus The BIGS, Albert Pujols, 2007 listing is an apparent different installment. Parser also mistakes a year for installment, but physical/reference truth is not established. Same exact pair and identical titles; shared inspection, not independent certification.",
+    "pairCertified": false,
+    "operatorReviewRequired": true,
+    "carriedFromSource": "ec59476c-8dbb-4040-85b1-37fe658e98a3",
+    "snapshotFollowup": [
+      {
+        "snapshotId": "8c7b4823-bf16-4f49-ba3c-c863105ebd7f",
+        "verdict": "non-match",
+        "reason": "coreProduct conflict: Amazon the bigs, eBay the bigs albert pujols 2k sports; coreGame conflict: Amazon the bigs 2, eBay the bigs albert pujols 2k sports",
+        "referenceTitleChanged": false
+      }
+    ]
+  },
+  {
+    "sourceId": "77fe3be0-03ec-48ca-b2ad-6de3165f6042",
+    "asin": "B00B67ZTUW",
+    "ebayItemId": "287548153629",
+    "cohort": "broaderRows",
+    "conflictIndex": 188,
+    "category": "unresolved",
+    "materialUnresolved": true,
+    "analyst": "Codex stored-evidence review; not operator certification",
+    "basis": "Independent stored marketplace titles, canonical parser/comparator trace, linked receipt/current purchase, action/correction inventory",
+    "finding": "Spanish and Portuguese cover is explicit listing evidence. Reference region is absent; do not infer North America or dismiss the language evidence as noise. Same exact pair and identical titles; shared inspection, not independent certification.",
+    "pairCertified": false,
+    "operatorReviewRequired": true,
+    "carriedFromSource": "b2e22178-1fc0-4d59-a2a1-796282e40d76",
+    "snapshotFollowup": [
+      {
+        "snapshotId": "65f11cbc-4bae-48d0-86cd-2ca3a5fd3d91",
+        "verdict": "non-match",
+        "reason": "coreProduct conflict: Amazon tales of xillia, eBay tales of xillia cover in spanish and portuguese; coreGame conflict: Amazon tales of xillia, eBay tales of xillia cover in spanish and portuguese",
+        "referenceTitleChanged": false
+      }
+    ]
+  },
+  {
+    "sourceId": "15739a58-738e-4b19-bc44-0141c47b6002",
+    "asin": "B001989B4S",
+    "ebayItemId": "318364800720",
+    "cohort": "broaderRows",
+    "conflictIndex": 1,
+    "category": "ambiguous_receiving_semantics",
+    "materialUnresolved": false,
+    "analyst": "Codex stored-evidence review; not operator certification",
+    "basis": "Independent stored marketplace titles, canonical parser/comparator trace, linked receipt/current purchase, action/correction inventory",
+    "finding": "8 pcs and WATA/VGA/CGC surround Fight Night Round 4. Quantity/grading terms contaminate core, but exact single-unit versus lot packaging and grader claims require the listing. Same exact pair and identical titles; shared inspection, not independent certification.",
+    "pairCertified": false,
+    "operatorReviewRequired": true,
+    "carriedFromSource": "d32bf391-a72f-4bfc-833d-e49a62338b9d",
+    "snapshotFollowup": []
+  },
+  {
+    "sourceId": "6ab75b3f-e423-4fb9-9db3-374c321c0aa8",
+    "asin": "B004NRN5DU",
+    "ebayItemId": "117331433107",
+    "cohort": "broaderRows",
+    "conflictIndex": 147,
+    "category": "unresolved",
+    "materialUnresolved": true,
+    "analyst": "Codex stored-evidence review; not operator certification",
+    "basis": "Independent stored marketplace titles, canonical parser/comparator trace, linked receipt/current purchase, action/correction inventory",
+    "finding": "Amazon Dark Souls and eBay Dark Souls II are different explicit installment claims. Receiving can reflect an ASIN mistake or different delivered item; neither cause is documented. Same exact pair and identical titles; shared inspection, not independent certification.",
+    "pairCertified": false,
+    "operatorReviewRequired": true,
+    "carriedFromSource": "8059a8b6-de53-486a-967c-f778fd60c0f2",
+    "snapshotFollowup": []
+  },
+  {
+    "sourceId": "f3d86b98-7f56-4750-b234-761e4cc90495",
+    "asin": "B0053BG122",
+    "ebayItemId": "227355763159",
+    "cohort": "broaderRows",
+    "conflictIndex": 86,
+    "category": "genuine_parser_extraction_error",
+    "materialUnresolved": false,
+    "analyst": "Codex stored-evidence review; not operator certification",
+    "basis": "Independent stored marketplace titles, canonical parser/comparator trace, linked receipt/current purchase, action/correction inventory",
+    "finding": "Brand new and Sealed leaves only a stray and after Just Dance 3; Xbox 360 agrees. No installment weakening is needed to explain the false core conflict. Same exact pair and identical titles; shared inspection, not independent certification.",
+    "pairCertified": false,
+    "operatorReviewRequired": true,
+    "carriedFromSource": "2bbe8eb2-909b-4254-bdb3-d7c19ec7f5a3",
+    "snapshotFollowup": []
+  },
+  {
+    "sourceId": "c0bdf7ae-d995-4aa2-8079-8de0becf832a",
+    "asin": "B00YX0Z3XW",
+    "ebayItemId": "336652064451",
+    "cohort": "broaderRows",
+    "conflictIndex": 88,
+    "category": "unresolved",
+    "materialUnresolved": true,
+    "analyst": "Codex stored-evidence review; not operator certification",
+    "basis": "Independent stored marketplace titles, canonical parser/comparator trace, linked receipt/current purchase, action/correction inventory",
+    "finding": "Amazon Multiplayer Edition is explicit; eBay Black Ops III omits it. Stored titles alone cannot distinguish omitted catalog wording from material edition mismatch. Same exact pair and identical titles; shared inspection, not independent certification.",
+    "pairCertified": false,
+    "operatorReviewRequired": true,
+    "carriedFromSource": "4f32ac44-7d85-4f79-96f7-945b7e384a76",
+    "snapshotFollowup": []
+  },
+  {
+    "sourceId": "49ccf7b1-2674-44fc-b0be-acd85b785b47",
+    "asin": "B00I6E6SH6",
+    "ebayItemId": "278220244277",
+    "cohort": "broaderRows",
+    "conflictIndex": 217,
+    "category": "unresolved",
+    "materialUnresolved": true,
+    "analyst": "Codex stored-evidence review; not operator certification",
+    "basis": "Independent stored marketplace titles, canonical parser/comparator trace, linked receipt/current purchase, action/correction inventory",
+    "finding": "Minecraft versus Starter Collection plus 700 Minecoins leaves expanded-package identity unverified. Do not invent Base or assume codes/contents are equal. Same exact pair and identical titles; shared inspection, not independent certification.",
+    "pairCertified": false,
+    "operatorReviewRequired": true,
+    "carriedFromSource": "0bd5d72a-f5d7-434f-bfe6-c47fe7273f89",
+    "snapshotFollowup": [
+      {
+        "snapshotId": "d9d38a7d-4171-4587-b6c3-d5a8c07e2717",
+        "verdict": "non-match",
+        "reason": "coreProduct conflict: Amazon minecraft, eBay new minecraft starter collection minecoins included; coreGame conflict: Amazon minecraft, eBay new minecraft starter collection 700 minecoins included",
+        "referenceTitleChanged": false
+      }
+    ]
+  },
+  {
+    "sourceId": "6e83be14-920d-4a7b-bcdc-008a8d36e36b",
+    "asin": "B00IQCRKP2",
+    "ebayItemId": "198491292589",
+    "cohort": "broaderRows",
+    "conflictIndex": 17,
+    "category": "ambiguous_receiving_semantics",
+    "materialUnresolved": false,
+    "analyst": "Codex stored-evidence review; not operator certification",
+    "basis": "Independent stored marketplace titles, canonical parser/comparator trace, linked receipt/current purchase, action/correction inventory",
+    "finding": "Rare Microsoft trails Kinect Sports Rivals. Likely seller wording, but no full snapshot exists in the replay and correction provenance is absent. Same exact pair and identical titles; shared inspection, not independent certification.",
+    "pairCertified": false,
+    "operatorReviewRequired": true,
+    "carriedFromSource": "053c1006-a575-4cad-b068-b3b3dd029396",
+    "snapshotFollowup": [
+      {
+        "snapshotId": "5094711d-e9e7-45b7-ba15-ef6065cb2eee",
+        "verdict": "non-match",
+        "reason": "coreProduct conflict: Amazon kinect sports rivals, eBay kinect sports rivals rare microsoft; coreGame conflict: Amazon kinect sports rivals, eBay kinect sports rivals rare microsoft",
+        "referenceTitleChanged": false
+      }
+    ]
+  },
+  {
+    "sourceId": "85025cfb-c828-40b8-a47b-4abbe92afc81",
+    "asin": "B01LDUYU60",
+    "ebayItemId": "124396275005",
+    "cohort": "broaderRows",
+    "conflictIndex": 6,
+    "category": "ambiguous_receiving_semantics",
+    "materialUnresolved": false,
+    "analyst": "Codex stored-evidence review; not operator certification",
+    "basis": "Independent stored marketplace titles, canonical parser/comparator trace, linked receipt/current purchase, action/correction inventory",
+    "finding": "Y-FOLD NEAR-MINT describes packaging, but the original listing/description is absent. Separate condition parsing from exact retail identity; do not certify from receipt alone. Same exact pair and identical titles; shared inspection, not independent certification.",
+    "pairCertified": false,
+    "operatorReviewRequired": true,
+    "carriedFromSource": "2a8c2d5a-1a7f-4cc2-a446-38be2612aa8c",
+    "snapshotFollowup": []
+  },
+  {
+    "sourceId": "6902f9e5-b9ba-401d-ac8e-76260c1f5c4c",
+    "asin": "B07KTFL61P",
+    "ebayItemId": "188511505771",
+    "cohort": "broaderRows",
+    "conflictIndex": 58,
+    "category": "genuine_parser_extraction_error",
+    "materialUnresolved": false,
+    "analyst": "Codex stored-evidence review; not operator certification",
+    "basis": "Independent stored marketplace titles, canonical parser/comparator trace, linked receipt/current purchase, action/correction inventory",
+    "finding": "Amazon XB1 duplicate platform shorthand produces the entire difference for Bendy and the Ink Machine. Current purchase linkage is not independent exact-ASIN catalog verification. Same exact pair and identical titles; shared inspection, not independent certification.",
+    "pairCertified": false,
+    "operatorReviewRequired": true,
+    "carriedFromSource": "063032b6-eeba-4661-99c5-b4581eeae259",
+    "snapshotFollowup": [
+      {
+        "snapshotId": "d68e8e60-b264-419c-a624-fbac7c662437",
+        "verdict": "non-match",
+        "reason": "coreProduct conflict: Amazon bendy and the ink machine xb1, eBay bendy and the ink machine; coreGame conflict: Amazon bendy and the ink machine xb1, eBay bendy and the ink machine",
+        "referenceTitleChanged": true
+      }
+    ]
+  },
+  {
+    "sourceId": "4f058335-c037-4529-8ba7-24cb60ae258b",
+    "asin": "B08D7DX16N",
+    "ebayItemId": "257642438760",
+    "cohort": "broaderRows",
+    "conflictIndex": 192,
+    "category": "genuine_parser_extraction_error",
+    "materialUnresolved": false,
+    "analyst": "Codex stored-evidence review; not operator certification",
+    "basis": "Independent stored marketplace titles, canonical parser/comparator trace, linked receipt/current purchase, action/correction inventory",
+    "finding": "Amazon repeats Mamba Forever Edition; eBay states it once followed by condition wording. Duplicate qualifier handling and leftover and contaminate core; edition agreement is explicit. Same exact pair and identical titles; shared inspection, not independent certification.",
+    "pairCertified": false,
+    "operatorReviewRequired": true,
+    "carriedFromSource": "a621a8e9-0dac-4113-b55e-3d4a798dc1fc",
+    "snapshotFollowup": [
+      {
+        "snapshotId": "4bc1e7a7-7dab-4c39-929e-77e0f9d37492",
+        "verdict": "non-match",
+        "reason": "coreProduct conflict: Amazon nba mamba forever edition mamba forever, eBay nba mamba forever edition and; coreGame conflict: Amazon nba 2k21 mamba forever edition mamba forever, eBay nba 2k21 mamba forever edition and",
+        "referenceTitleChanged": false
+      }
+    ]
+  },
+  {
+    "sourceId": "fdfe7ab5-4f1b-4759-95b8-e6682cf19b8a",
+    "asin": "B072JY7NX5",
+    "ebayItemId": "127895893853",
+    "cohort": "broaderRows",
+    "conflictIndex": 39,
+    "category": "genuine_parser_extraction_error",
+    "materialUnresolved": false,
+    "analyst": "Codex stored-evidence review; not operator certification",
+    "basis": "Independent stored marketplace titles, canonical parser/comparator trace, linked receipt/current purchase, action/correction inventory",
+    "finding": "Brand New and Sealed leaves and after an otherwise equal Wolfenstein II title. Both sides preserve The New Colossus and normalize II to 2. Same exact pair and identical titles; shared inspection, not independent certification.",
+    "pairCertified": false,
+    "operatorReviewRequired": true,
+    "carriedFromSource": "597885b3-adb1-4ea4-8913-dd4f03f39929",
+    "snapshotFollowup": []
+  },
+  {
+    "sourceId": "9f64a6ef-95f7-4dae-b1e0-842f24cf6148",
+    "asin": "B00ZE360GG",
+    "ebayItemId": "236860486717",
+    "cohort": "broaderRows",
+    "conflictIndex": 222,
+    "category": "genuine_parser_extraction_error",
+    "materialUnresolved": false,
+    "analyst": "Codex stored-evidence review; not operator certification",
+    "basis": "Independent stored marketplace titles, canonical parser/comparator trace, linked receipt/current purchase, action/correction inventory",
+    "finding": "NIB remains in Just Dance 2016 core despite Brand New and Factory Sealed context. A condition abbreviation is being treated as a product qualifier. Same exact pair and identical titles; shared inspection, not independent certification.",
+    "pairCertified": false,
+    "operatorReviewRequired": true,
+    "carriedFromSource": "dda46c41-2878-49e7-b67a-dcab8ee61121",
+    "snapshotFollowup": []
+  },
+  {
+    "sourceId": "e20382b4-f427-4c19-bf32-7b09e7c4baa2",
+    "asin": "B08MG4PK68",
+    "ebayItemId": "287384998062",
+    "cohort": "broaderRows",
+    "conflictIndex": 133,
+    "category": "genuine_parser_extraction_error",
+    "materialUnresolved": false,
+    "analyst": "Codex stored-evidence review; not operator certification",
+    "basis": "Independent stored marketplace titles, canonical parser/comparator trace, linked receipt/current purchase, action/correction inventory",
+    "finding": "Amazon for ... & Xbox Series X leaves for and, while eBay Series S/X produces series s 10. Platform wording leaks into game/installment parsing; platform policy itself is not adjudicated. Same exact pair and identical titles; shared inspection, not independent certification.",
+    "pairCertified": false,
+    "operatorReviewRequired": true,
+    "carriedFromSource": "9c2dba19-9ce6-4761-a886-be07c2df1ddd",
+    "snapshotFollowup": []
+  },
+  {
+    "sourceId": "8393e54e-560d-4d9d-ae54-e9627b007f49",
+    "asin": "B0B6JMXKKR",
+    "ebayItemId": "137611067988",
+    "cohort": "broaderRows",
+    "conflictIndex": 85,
+    "category": "source_snapshot_unavailable",
+    "materialUnresolved": false,
+    "analyst": "Codex stored-evidence review; not operator certification",
+    "basis": "Independent stored marketplace titles, canonical parser/comparator trace, linked receipt/current purchase, action/correction inventory",
+    "finding": "FIFA 23 Legacy Edition includes publisher, NTSC-U/C, E and 2022. The legacy title already has annual identity; year/edition omissions must remain distinct from contradictions. Same exact pair and identical titles; shared inspection, not independent certification. Follow-up: purchased snapshot supplies the missing metadata and the unchanged current matcher returns Match. This is confirmed loss of input coverage in the old title-only replay, not a currently demonstrated full-source matcher defect. The category denotes unavailable-to-original-replay evidence, not missing database storage.",
+    "pairCertified": false,
+    "operatorReviewRequired": true,
+    "carriedFromSource": "e4fe3144-670d-4264-af5a-541d566c41a8",
+    "snapshotFollowup": [
+      {
+        "snapshotId": "3a060df7-b0a4-4117-ba9c-cf9e8dbf1e5e",
+        "verdict": "match",
+        "reason": "Identity matched or unknown; unknown fields are not positive evidence.",
+        "referenceTitleChanged": true
+      }
+    ]
+  },
+  {
+    "sourceId": "9aa9ea03-cd0e-4eee-81f0-62ad017cbbeb",
+    "asin": "B09D643D8F",
+    "ebayItemId": "147452442020",
+    "cohort": "broaderRows",
+    "conflictIndex": 30,
+    "category": "source_snapshot_unavailable",
+    "materialUnresolved": false,
+    "analyst": "Codex stored-evidence review; not operator certification",
+    "basis": "Independent stored marketplace titles, canonical parser/comparator trace, linked receipt/current purchase, action/correction inventory",
+    "finding": "Activision, rating/year/region, Shooter and Online surround Vanguard. This resembles an already fixed full-source class, but this title-only record lacks the corroborating specifics. Same exact pair and identical titles; shared inspection, not independent certification. Follow-up: purchased snapshot supplies the missing metadata and the unchanged current matcher returns Match. This is confirmed loss of input coverage in the old title-only replay, not a currently demonstrated full-source matcher defect. The category denotes unavailable-to-original-replay evidence, not missing database storage.",
+    "pairCertified": false,
+    "operatorReviewRequired": true,
+    "carriedFromSource": "e3bc2065-7c15-4423-bd94-537222d8f73e",
+    "snapshotFollowup": [
+      {
+        "snapshotId": "16751abb-a712-4ae0-beb2-c4991b66316d",
+        "verdict": "match",
+        "reason": "Identity matched or unknown; unknown fields are not positive evidence.",
+        "referenceTitleChanged": true
+      }
+    ]
+  },
+  {
+    "sourceId": "57188699-fb88-4a33-99f1-5fc882c69c41",
+    "asin": "B096WZFCHR",
+    "ebayItemId": "398061858531",
+    "cohort": "broaderRows",
+    "conflictIndex": 12,
+    "category": "genuine_parser_extraction_error",
+    "materialUnresolved": false,
+    "analyst": "Codex stored-evidence review; not operator certification",
+    "basis": "Independent stored marketplace titles, canonical parser/comparator trace, linked receipt/current purchase, action/correction inventory",
+    "finding": "Leading New contaminates Guardians of the Galaxy; both titles explicitly say PlayStation 5. Parenthesized 2021 is removed correctly. No physical receipt identity review is recorded. Same exact pair and identical titles; shared inspection, not independent certification.",
+    "pairCertified": false,
+    "operatorReviewRequired": true,
+    "carriedFromSource": "6a6a4bb1-a29b-473e-b15e-f2974115e297",
+    "snapshotFollowup": []
+  },
+  {
+    "sourceId": "365884a9-2f2f-4dda-9b0c-7db885cdb5e7",
+    "asin": "B0C5RZRG44",
+    "ebayItemId": "227237575535",
+    "cohort": "broaderRows",
+    "conflictIndex": 198,
+    "category": "genuine_parser_extraction_error",
+    "materialUnresolved": false,
+    "analyst": "Codex stored-evidence review; not operator certification",
+    "basis": "Independent stored marketplace titles, canonical parser/comparator trace, linked receipt/current purchase, action/correction inventory",
+    "finding": "New Xbox Series X Video Games remains after Mortal Kombat 1 Premium Edition. Edition and installment agree; seller suffix contaminates core. Same exact pair and identical titles; shared inspection, not independent certification.",
+    "pairCertified": false,
+    "operatorReviewRequired": true,
+    "carriedFromSource": "0676ee57-56c0-4995-b2f5-93cef13745f7",
+    "snapshotFollowup": [
+      {
+        "snapshotId": "0eb42164-96b7-4349-906c-2cffc783f092",
+        "verdict": "non-match",
+        "reason": "coreProduct conflict: Amazon mortal kombat, eBay mortal kombat new video games; coreGame conflict: Amazon mortal kombat 1, eBay mortal kombat 1 new video games",
+        "referenceTitleChanged": false
+      }
+    ]
+  },
+  {
+    "sourceId": "755287c5-1891-4aef-8be8-c16372c25931",
+    "asin": "B01AC3ZD06",
+    "ebayItemId": "168527755981",
+    "cohort": "broaderRows",
+    "conflictIndex": 103,
+    "category": "genuine_parser_extraction_error",
+    "materialUnresolved": false,
+    "analyst": "Codex stored-evidence review; not operator certification",
+    "basis": "Independent stored marketplace titles, canonical parser/comparator trace, linked receipt/current purchase, action/correction inventory",
+    "finding": "Same explicit Nintendo Selects retail line appears before versus after Super Mario 3D World. Remaining selects token order causes the core conflict; no omitted edition is being asserted here. Same exact pair and identical titles; shared inspection, not independent certification.",
+    "pairCertified": false,
+    "operatorReviewRequired": true,
+    "carriedFromSource": "58b25ca9-7d96-42e6-a9b5-528bfa4dccd4",
+    "snapshotFollowup": []
+  },
+  {
+    "sourceId": "5c1b1a8f-2daf-4f22-9006-669d910ceb27",
+    "asin": "B00DWXV1DM",
+    "ebayItemId": "116824180918",
+    "cohort": "broaderRows",
+    "conflictIndex": 40,
+    "category": "ambiguous_receiving_semantics",
+    "materialUnresolved": false,
+    "analyst": "Codex stored-evidence review; not operator certification",
+    "basis": "Independent stored marketplace titles, canonical parser/comparator trace, linked receipt/current purchase, action/correction inventory",
+    "finding": "TMNT and Teenage Mutant Ninja Turtles repeat a name alongside Nickelodeon and S38. The stock-code/brand interpretation needs the source listing rather than a broad token deletion. Same exact pair and identical titles; shared inspection, not independent certification.",
+    "pairCertified": false,
+    "operatorReviewRequired": true,
+    "carriedFromSource": "3d01d336-3996-4179-990c-c5c05c1d152f",
+    "snapshotFollowup": [
+      {
+        "snapshotId": "7ffe4a6d-6aa5-489c-8332-622418111352",
+        "verdict": "non-match",
+        "reason": "coreProduct conflict: Amazon teenage mutant ninja turtles, eBay nickelodeon tmnt teenage mutant ninja turtles s38; coreGame conflict: Amazon teenage mutant ninja turtles, eBay nickelodeon tmnt teenage mutant ninja turtles s38",
+        "referenceTitleChanged": false
+      }
+    ]
+  },
+  {
+    "sourceId": "6ba74e80-900b-421e-bcd3-9fcc1b3e225a",
+    "asin": "B01AC3ZD06",
+    "ebayItemId": "267261817198",
+    "cohort": "broaderRows",
+    "conflictIndex": 63,
+    "category": "genuine_parser_extraction_error",
+    "materialUnresolved": false,
+    "analyst": "Codex stored-evidence review; not operator certification",
+    "basis": "Independent stored marketplace titles, canonical parser/comparator trace, linked receipt/current purchase, action/correction inventory",
+    "finding": "Both titles explicitly say Nintendo Selects and Super Mario 3D World. Parser strips Nintendo first and leaves Selects in different positions. This is misplaced edition/line metadata. Same exact pair and identical titles; shared inspection, not independent certification.",
+    "pairCertified": false,
+    "operatorReviewRequired": true,
+    "carriedFromSource": "7ec61d72-fc61-4838-92f0-074fd16d6f2f",
+    "snapshotFollowup": []
+  },
+  {
+    "sourceId": "55461e71-79a5-4ddc-ba90-8b2e85f27780",
+    "asin": "B072JY7NX5",
+    "ebayItemId": "257579386928",
+    "cohort": "broaderRows",
+    "conflictIndex": 180,
+    "category": "genuine_parser_extraction_error",
+    "materialUnresolved": false,
+    "analyst": "Codex stored-evidence review; not operator certification",
+    "basis": "Independent stored marketplace titles, canonical parser/comparator trace, linked receipt/current purchase, action/correction inventory",
+    "finding": "The eBay title states Wolfenstein 2 II, repeating the same installment in Arabic and Roman numerals. Parsing creates 2 2 and a spurious core conflict. Same exact pair and identical titles; shared inspection, not independent certification.",
+    "pairCertified": false,
+    "operatorReviewRequired": true,
+    "carriedFromSource": "d85b4b1e-d480-4c14-8f04-ab0cec08a665",
+    "snapshotFollowup": []
+  },
+  {
+    "sourceId": "3935aa49-7c81-499e-9ee9-0846d2d18e0e",
+    "asin": "B01KIH8ADS",
+    "ebayItemId": "227032903283",
+    "cohort": "broaderRows",
+    "conflictIndex": 42,
+    "category": "conflicting_ebay_structured_evidence",
+    "materialUnresolved": true,
+    "analyst": "Codex stored-evidence review; not operator certification",
+    "basis": "Independent stored marketplace titles, canonical parser/comparator trace, linked receipt/current purchase, action/correction inventory",
+    "finding": "Repeated platform and seller catalog suffix New ... Video remain in NBA 2K17 core. Both titles explicitly state Standard Edition; suffix text is not a different game. Same exact pair and identical titles; shared inspection, not independent certification. Stored purchased snapshot further names Early Tip-Off Weekend in Game Name while its title/description say Standard Edition. Original title noise diagnosis does not resolve that structured disagreement. Full stored-snapshot replay is Review; it remains excluded and is not counted as a recovery.",
+    "pairCertified": false,
+    "operatorReviewRequired": true,
+    "carriedFromSource": "33751f5c-b525-4991-8dad-30d3d949b729",
+    "snapshotFollowup": [
+      {
+        "snapshotId": "e32ae720-02b5-4297-9099-f81e19159cfa",
+        "verdict": "needs_review",
+        "reason": "coreProduct review: Amazon nba, eBay nba new video; coreGame review: Amazon nba 2k17, eBay nba 2k17 new video",
+        "referenceTitleChanged": false
+      }
+    ]
+  },
+  {
+    "sourceId": "5aecef30-7b9f-4296-8f8f-f76348cc3465",
+    "asin": "B07BHHDTL4",
+    "ebayItemId": "127755669265",
+    "cohort": "broaderRows",
+    "conflictIndex": 57,
+    "category": "unresolved",
+    "materialUnresolved": true,
+    "analyst": "Codex stored-evidence review; not operator certification",
+    "basis": "Independent stored marketplace titles, canonical parser/comparator trace, linked receipt/current purchase, action/correction inventory",
+    "finding": "Sonic Mania Plus target versus Sonic Mania NEW LOOSE DISC is both product and completeness ambiguity. Do not strip Plus or assume receipt proves the original listing was equivalent. Same exact pair and identical titles; shared inspection, not independent certification.",
+    "pairCertified": false,
+    "operatorReviewRequired": true,
+    "carriedFromSource": "725558c4-c018-493b-8c76-bad7c9e3c1c8",
+    "snapshotFollowup": []
+  },
+  {
+    "sourceId": "8204886f-3ea9-4da4-be49-fef006a23e40",
+    "asin": "B00CPKUV7K",
+    "ebayItemId": "227088858339",
+    "cohort": "broaderRows",
+    "conflictIndex": 153,
+    "category": "genuine_parser_extraction_error",
+    "materialUnresolved": false,
+    "analyst": "Codex stored-evidence review; not operator certification",
+    "basis": "Independent stored marketplace titles, canonical parser/comparator trace, linked receipt/current purchase, action/correction inventory",
+    "finding": "New xbox_360, Xbox 360 Video Games is seller catalog boilerplate after Wolfenstein The New Order. The normalized new video games suffix causes the conflict. Same exact pair and identical titles; shared inspection, not independent certification.",
+    "pairCertified": false,
+    "operatorReviewRequired": true,
+    "carriedFromSource": "19827957-20fd-4b24-b724-269759518f9c",
+    "snapshotFollowup": []
+  },
+  {
+    "sourceId": "88421a3f-9065-4292-9260-0fdfbaf1f92a",
+    "asin": "B01N3NNPAB",
+    "ebayItemId": "318579237825",
+    "cohort": "broaderRows",
+    "conflictIndex": 183,
+    "category": "genuine_parser_extraction_error",
+    "materialUnresolved": false,
+    "analyst": "Codex stored-evidence review; not operator certification",
+    "basis": "Independent stored marketplace titles, canonical parser/comparator trace, linked receipt/current purchase, action/correction inventory",
+    "finding": "Amazon Deluxe without trailing Edition stays in core, while eBay Deluxe Edition is extracted away. Both independently state Deluxe; policy/extraction is inconsistent. Same exact pair and identical titles; shared inspection, not independent certification.",
+    "pairCertified": false,
+    "operatorReviewRequired": true,
+    "carriedFromSource": "52261d35-1318-431e-bbc2-7ab6b8816fc0",
+    "snapshotFollowup": [
+      {
+        "snapshotId": "76439b06-358d-4056-a7e8-23acb46e5b34",
+        "verdict": "non-match",
+        "reason": "coreProduct conflict: Amazon mass effect andromeda deluxe, eBay mass effect andromeda; coreGame conflict: Amazon mass effect andromeda deluxe, eBay mass effect andromeda",
+        "referenceTitleChanged": false
+      }
+    ]
+  },
+  {
+    "sourceId": "2be80bfe-b1c6-4708-a367-34855c280044",
+    "asin": "B09D6QWQHD",
+    "ebayItemId": "236240985333",
+    "cohort": "broaderRows",
+    "conflictIndex": 94,
+    "category": "genuine_parser_extraction_error",
+    "materialUnresolved": false,
+    "analyst": "Codex stored-evidence review; not operator certification",
+    "basis": "Independent stored marketplace titles, canonical parser/comparator trace, linked receipt/current purchase, action/correction inventory",
+    "finding": "Series X|S suffix becomes the core token s for Vanguard. Edition and physical-media coverage cannot be inferred from that diagnosis. Same exact pair and identical titles; shared inspection, not independent certification.",
+    "pairCertified": false,
+    "operatorReviewRequired": true,
+    "carriedFromSource": "7d2e106c-51b8-4303-a5ea-4c6f47618883",
+    "snapshotFollowup": []
+  },
+  {
+    "sourceId": "c2176ae9-147c-463b-b77a-5fa180ba8103",
+    "asin": "B00DC7G0GG",
+    "ebayItemId": "166921418480",
+    "cohort": "broaderRows",
+    "conflictIndex": 7,
+    "category": "genuine_parser_extraction_error",
+    "materialUnresolved": false,
+    "analyst": "Codex stored-evidence review; not operator certification",
+    "basis": "Independent stored marketplace titles, canonical parser/comparator trace, linked receipt/current purchase, action/correction inventory",
+    "finding": "New, Sealed is condition boilerplate before Super Mario 3D World. The parser removes Sealed but preserves New as a product word; this is a field extraction defect, not proof of packaging identity. Same exact pair and identical titles; shared inspection, not independent certification.",
+    "pairCertified": false,
+    "operatorReviewRequired": true,
+    "carriedFromSource": "c40c8f47-9200-4967-8b1d-92b987c2f8b4",
+    "snapshotFollowup": []
+  },
+  {
+    "sourceId": "af58fdeb-917a-4b07-8b74-1f6b6175d288",
+    "asin": "B08SZ1F5FB",
+    "ebayItemId": "306964576833",
+    "cohort": "broaderRows",
+    "conflictIndex": 33,
+    "category": "genuine_parser_extraction_error",
+    "materialUnresolved": false,
+    "analyst": "Codex stored-evidence review; not operator certification",
+    "basis": "Independent stored marketplace titles, canonical parser/comparator trace, linked receipt/current purchase, action/correction inventory",
+    "finding": "Xbox Series X|S leaves a stray s in the core. Both sides explicitly support Control Ultimate Edition. This identifies a core-field defect without deciding physical Series S compatibility. Same exact pair and identical titles; shared inspection, not independent certification.",
+    "pairCertified": false,
+    "operatorReviewRequired": true,
+    "carriedFromSource": "b06ded4b-90cb-48c4-a670-d30a17dc90c0",
+    "snapshotFollowup": [
+      {
+        "snapshotId": "894821b7-8fc3-400c-97cd-490b36f41915",
+        "verdict": "non-match",
+        "reason": "coreProduct conflict: Amazon control, eBay control s; coreGame conflict: Amazon control, eBay control s",
+        "referenceTitleChanged": true
+      }
+    ]
+  },
+  {
+    "sourceId": "5c6d740a-0f29-4f76-b0f6-bea1ba525603",
+    "asin": "B009E480RS",
+    "ebayItemId": "358716154387",
+    "cohort": "broaderRows",
+    "conflictIndex": 164,
+    "category": "genuine_comparator_error",
+    "materialUnresolved": false,
+    "analyst": "Codex stored-evidence review; not operator certification",
+    "basis": "Independent stored marketplace titles, canonical parser/comparator trace, linked receipt/current purchase, action/correction inventory",
+    "finding": "Dance 3 Central and Dance Central 3 yield equal base words and installment but unequal full core order. This is an observed comparator/token-placement issue; do not authorize arbitrary bag-of-words matching. Same exact pair and identical titles; shared inspection, not independent certification. Stored Game Name explicitly says Dance Central 3, while full-source replay remains Review. Review still excludes the candidate; no arbitrary word-order relaxation is authorized.",
+    "pairCertified": false,
+    "operatorReviewRequired": true,
+    "carriedFromSource": "b32a22e5-e28e-4ea7-9811-b7fb5fa2baf3",
+    "snapshotFollowup": [
+      {
+        "snapshotId": "571d0cd4-ea08-40a4-a9bb-02999c5d898f",
+        "verdict": "needs_review",
+        "reason": "coreGame review: Amazon dance central 3, eBay dance 3 central",
+        "referenceTitleChanged": false
+      }
+    ]
+  },
+  {
+    "sourceId": "ca1a3e1a-8ea1-43cf-ad2d-c9bad215928a",
+    "asin": "B003TK1HSM",
+    "ebayItemId": "134665183162",
+    "cohort": "broaderRows",
+    "conflictIndex": 10,
+    "category": "genuine_parser_extraction_error",
+    "materialUnresolved": false,
+    "analyst": "Codex stored-evidence review; not operator certification",
+    "basis": "Independent stored marketplace titles, canonical parser/comparator trace, linked receipt/current purchase, action/correction inventory",
+    "finding": "Leading NEW is a condition adjective before Nickelodeon Fit. Its retention creates an artificial different core name. Wii comes only from the eBay title; reference system provenance still needs review. Same exact pair and identical titles; shared inspection, not independent certification.",
+    "pairCertified": false,
+    "operatorReviewRequired": true,
+    "carriedFromSource": "c00c8565-936f-4727-94f0-51f207a74333",
+    "snapshotFollowup": []
+  },
+  {
+    "sourceId": "7e52c0d3-627a-4916-93c0-7a4470a9f058",
+    "asin": "B00AXI9WFS",
+    "ebayItemId": "318571029833",
+    "cohort": "broaderRows",
+    "conflictIndex": 216,
+    "category": "unresolved",
+    "materialUnresolved": true,
+    "analyst": "Codex stored-evidence review; not operator certification",
+    "basis": "Independent stored marketplace titles, canonical parser/comparator trace, linked receipt/current purchase, action/correction inventory",
+    "finding": "Disney Infinity Starter Pack with 1.0 and Accessories Lot adds generation/contents absent from target. Receipt cannot establish whole-lot retail parity. Same exact pair and identical titles; shared inspection, not independent certification.",
+    "pairCertified": false,
+    "operatorReviewRequired": true,
+    "carriedFromSource": "74c55b1b-2c50-4637-86e8-7c2199049be1",
+    "snapshotFollowup": [
+      {
+        "snapshotId": "a00d3f46-2b59-4218-b7cd-82bb807925c5",
+        "verdict": "non-match",
+        "reason": "coreProduct conflict: Amazon disney infinity starter pack, eBay disney infinity starter pack and accessories lot; coreGame conflict: Amazon disney infinity starter pack, eBay disney infinity starter pack 1.0 and accessories lot",
+        "referenceTitleChanged": false
+      }
+    ]
+  },
+  {
+    "sourceId": "6a411705-9782-4b2a-8f55-8ccfe3b2b5d9",
+    "asin": "B09GJP8BPZ",
+    "ebayItemId": "168541241306",
+    "cohort": "broaderRows",
+    "conflictIndex": 206,
+    "category": "unresolved",
+    "materialUnresolved": true,
+    "analyst": "Codex stored-evidence review; not operator certification",
+    "basis": "Independent stored marketplace titles, canonical parser/comparator trace, linked receipt/current purchase, action/correction inventory",
+    "finding": "Reference explicitly says code in Box, while listing says Physical. Physical packaging can contain a download code, so this is unresolved wording, not verified media contradiction. Same exact pair and identical titles; shared inspection, not independent certification.",
+    "pairCertified": false,
+    "operatorReviewRequired": true,
+    "carriedFromSource": "ff742667-021e-4396-b628-e50b1dff1bc8",
+    "snapshotFollowup": []
+  },
+  {
+    "sourceId": "c7a8d777-f959-458f-8b71-1bd2d8dc9cb1",
+    "asin": "B08HTHJ9L2",
+    "ebayItemId": "158136497383",
+    "cohort": "broaderRows",
+    "conflictIndex": 220,
+    "category": "unresolved",
+    "materialUnresolved": true,
+    "analyst": "Codex stored-evidence review; not operator certification",
+    "basis": "Independent stored marketplace titles, canonical parser/comparator trace, linked receipt/current purchase, action/correction inventory",
+    "finding": "Reference Standard Edition versus listing Limited Edition is an explicit edition contradiction. The conflict is warranted on stored text; wrong linkage versus seller error is unknown. Same exact pair and identical titles; shared inspection, not independent certification.",
+    "pairCertified": false,
+    "operatorReviewRequired": true,
+    "carriedFromSource": "8f04afc0-f67d-4ddf-9708-88c9ae9cdd31",
+    "snapshotFollowup": []
+  },
+  {
+    "sourceId": "bebc9935-d7a0-4079-b73a-6d2c7040f6de",
+    "asin": "B0058LTE5S",
+    "ebayItemId": "137077343022",
+    "cohort": "broaderRows",
+    "conflictIndex": 190,
+    "category": "unresolved",
+    "materialUnresolved": true,
+    "analyst": "Codex stored-evidence review; not operator certification",
+    "basis": "Independent stored marketplace titles, canonical parser/comparator trace, linked receipt/current purchase, action/correction inventory",
+    "finding": "Black Eyed Peas listing states Limited Edition with Bonus Track, absent from reference title. Require exact edition/content evidence; receipt alone is insufficient. Same exact pair and identical titles; shared inspection, not independent certification.",
+    "pairCertified": false,
+    "operatorReviewRequired": true,
+    "carriedFromSource": "758b81cf-b5dc-45d8-b393-e153250c02d7",
+    "snapshotFollowup": []
+  },
+  {
+    "sourceId": "f50269cb-efb2-4e61-9684-4584e9cac4d9",
+    "asin": "B004NB1BV4",
+    "ebayItemId": "298107925330",
+    "cohort": "broaderRows",
+    "conflictIndex": 191,
+    "category": "genuine_parser_extraction_error",
+    "materialUnresolved": false,
+    "analyst": "Codex stored-evidence review; not operator certification",
+    "basis": "Independent stored marketplace titles, canonical parser/comparator trace, linked receipt/current purchase, action/correction inventory",
+    "finding": "Brand New & Factory Sealed leaves and after Rio. Amazon names Wii; eBay platform is omitted, so this field defect alone does not verify platform. Same exact pair and identical titles; shared inspection, not independent certification.",
+    "pairCertified": false,
+    "operatorReviewRequired": true,
+    "carriedFromSource": "abce63f8-1896-4d15-a41b-336eeb49267a",
+    "snapshotFollowup": []
+  },
+  {
+    "sourceId": "c37228b5-0e2d-49f3-97ea-256a1489aba9",
+    "asin": "B003OZZJGS",
+    "ebayItemId": null,
+    "cohort": "broaderRows",
+    "category": "genuine_parser_extraction_error",
+    "materialUnresolved": false,
+    "analyst": "Codex stored-evidence review; not operator certification",
+    "finding": "Gold's Gym Dance WorkOut is camel-split to work out, unlike Workout on the reference. This is a text normalization defect. Exact listing ID and original snapshot are absent.",
+    "pairCertified": false,
+    "operatorReviewRequired": true,
+    "snapshotFollowup": []
+  },
+  {
+    "sourceId": "ad93a9dc-396e-4112-8320-cf302b2e57f3",
+    "asin": "B0794QSXP5",
+    "ebayItemId": "177913803344-10080059012115",
+    "cohort": "broaderRows",
+    "category": "genuine_parser_extraction_error",
+    "materialUnresolved": false,
+    "analyst": "Codex stored-evidence review; not operator certification",
+    "finding": "Dragon Ball FighterZ has a leading New condition token left in core. The product/platform text agrees, but no receipt or explicit pair review verifies identity.",
+    "pairCertified": false,
+    "operatorReviewRequired": true,
+    "snapshotFollowup": []
+  },
+  {
+    "sourceId": "7a9769e0-016a-47f4-b84e-9e1a03756c91",
+    "asin": "B07L73DW8M",
+    "ebayItemId": "306820109491-10084336797204",
+    "cohort": "broaderRows",
+    "category": "workflow_only_no_identity_verification",
+    "materialUnresolved": false,
+    "analyst": "Codex stored-evidence review; not operator certification",
+    "finding": "Mortal Kombat 11 has MK11, Fighting Game, year and WB suffixes. Metadata pollution is plausible; exact edition and full listing evidence remain incomplete.",
+    "pairCertified": false,
+    "operatorReviewRequired": true,
+    "snapshotFollowup": [
+      {
+        "snapshotId": "717640a4-c45b-4649-be33-b9ce01ccfa26",
+        "verdict": "non-match",
+        "reason": "coreProduct conflict: Amazon mortal kombat, eBay mortal kombat game mk11 wb; coreGame conflict: Amazon mortal kombat 11, eBay mortal kombat 11 game mk11 wb",
+        "referenceTitleChanged": false
+      }
+    ]
+  },
+  {
+    "sourceId": "79612149-b2e7-4178-9434-29b071d73581",
+    "asin": "B01JCV5Q9C",
+    "ebayItemId": "168550477139-10083883957722",
+    "cohort": "broaderRows",
+    "category": "workflow_only_no_identity_verification",
+    "materialUnresolved": false,
+    "analyst": "Codex stored-evidence review; not operator certification",
+    "finding": "THQ Nordic and rating/region/year surround Warhammer Vermintide; The End Times also differs from reference End Times. Missing authoritative source context prevents blanket removal.",
+    "pairCertified": false,
+    "operatorReviewRequired": true,
+    "snapshotFollowup": [
+      {
+        "snapshotId": "941de9a4-47fa-456f-b5ee-e3f8b778b3fe",
+        "verdict": "non-match",
+        "reason": "coreProduct conflict: Amazon warhammer end times vermintide, eBay warhammer the end times vermintide; coreGame conflict: Amazon warhammer end times vermintide, eBay warhammer the end times vermintide",
+        "referenceTitleChanged": false
+      }
+    ]
+  },
+  {
+    "sourceId": "3c9baa50-9bf2-4d6b-87e8-3127de2a45a2",
+    "asin": "B00FM5IY4W",
+    "ebayItemId": null,
+    "cohort": "broaderRows",
+    "category": "workflow_only_no_identity_verification",
+    "materialUnresolved": true,
+    "analyst": "Codex stored-evidence review; not operator certification",
+    "finding": "Forza Motorsport 5 target omits Day One Edition which is explicit on eBay. Missing exact listing ID prevents edition adjudication; do not invent Standard.",
+    "pairCertified": false,
+    "operatorReviewRequired": true,
+    "snapshotFollowup": []
+  },
+  {
+    "sourceId": "1fde8f15-ba71-4f7e-b6ae-d54a4aad5991",
+    "asin": "B071G8WL76",
+    "ebayItemId": "397601134474-10080519399012",
+    "cohort": "broaderRows",
+    "category": "workflow_only_no_identity_verification",
+    "materialUnresolved": true,
+    "analyst": "Codex stored-evidence review; not operator certification",
+    "finding": "Marvel Super Heroes 2 Deluxe includes Giant Man LEGO in the listing. Bare reference title does not prove identical included contents.",
+    "pairCertified": false,
+    "operatorReviewRequired": true,
+    "snapshotFollowup": []
+  },
+  {
+    "sourceId": "75d686a7-dbe1-43b8-8fb6-77098bef98f2",
+    "asin": "B01AC3ZD06",
+    "ebayItemId": null,
+    "cohort": "broaderRows",
+    "category": "workflow_only_no_identity_verification",
+    "materialUnresolved": true,
+    "analyst": "Codex stored-evidence review; not operator certification",
+    "finding": "Nintendo Selects is explicit on reference and absent in supplier name; no exact item ID. Neither same-game wording nor purchase status certifies retail print.",
+    "pairCertified": false,
+    "operatorReviewRequired": true,
+    "snapshotFollowup": []
+  },
+  {
+    "sourceId": "df8dbf13-4bd9-4b87-a871-b7d33fb20b10",
+    "asin": "B09W39YNQV",
+    "ebayItemId": "115528942546-10080657862212",
+    "cohort": "broaderRows",
+    "category": "workflow_only_no_identity_verification",
+    "materialUnresolved": false,
+    "analyst": "Codex stored-evidence review; not operator certification",
+    "finding": "Cowabunga Collection NSW versus shortened Cowabunga NSW lacks full retail title and platform normalization. Purchase linkage is not independent evidence that the collection matches.",
+    "pairCertified": false,
+    "operatorReviewRequired": true,
+    "snapshotFollowup": []
+  },
+  {
+    "sourceId": "3494d8cb-140b-4bda-aefe-7fb2168019b5",
+    "asin": "B0C9VW1KGR",
+    "ebayItemId": null,
+    "cohort": "broaderRows",
+    "category": "workflow_only_no_identity_verification",
+    "materialUnresolved": false,
+    "analyst": "Codex stored-evidence review; not operator certification",
+    "finding": "EA SPORTS FC 24 versus FC 24 is plausibly brand omission, but no exact listing/platform information on eBay side. Remains workflow evidence.",
+    "pairCertified": false,
+    "operatorReviewRequired": true,
+    "snapshotFollowup": []
+  },
+  {
+    "sourceId": "87e3c727-5ede-46d4-83c9-3038e95fe257",
+    "asin": "B0060ZN5T2",
+    "ebayItemId": "256885967289-10080182715420",
+    "cohort": "broaderRows",
+    "category": "genuine_parser_extraction_error",
+    "materialUnresolved": false,
+    "analyst": "Codex stored-evidence review; not operator certification",
+    "finding": "Amazon NEW and Videogame Software contaminate the target core for Just Dance 3. The condition/category wording is not an installment; exact physical match remains unverified.",
+    "pairCertified": false,
+    "operatorReviewRequired": true,
+    "snapshotFollowup": []
+  },
+  {
+    "sourceId": "29b79864-0616-439a-b5c6-c4d1f4f9ccba",
+    "asin": "B0060ZN5T2",
+    "ebayItemId": "287293393612-10080515189720",
+    "cohort": "broaderRows",
+    "category": "genuine_parser_extraction_error",
+    "materialUnresolved": false,
+    "analyst": "Codex stored-evidence review; not operator certification",
+    "finding": "Same Just Dance 3 reference has NEW/Videogame Software noise, while this supplier names Just Dance 3 Wii plainly. Reference extraction defect, not verified pair certification.",
+    "pairCertified": false,
+    "operatorReviewRequired": true,
+    "snapshotFollowup": []
+  },
+  {
+    "sourceId": "445a3ae8-35c6-4dce-a192-3a429cc6dd4e",
+    "asin": "B0B359B45Q",
+    "ebayItemId": "188900025021-10087855786827",
+    "cohort": "broaderRows",
+    "category": "workflow_only_no_identity_verification",
+    "materialUnresolved": true,
+    "analyst": "Codex stored-evidence review; not operator certification",
+    "finding": "Little League reference omits Baseball 2022; supplier annual identity must not be erased merely to agree. Stored exact catalog version missing.",
+    "pairCertified": false,
+    "operatorReviewRequired": true,
+    "snapshotFollowup": [
+      {
+        "snapshotId": "4ef7c987-8441-4133-9ea6-fcd60b8bb77c",
+        "verdict": "non-match",
+        "reason": "coreProduct conflict: Amazon little league world series, eBay little league world series baseball manual included; coreGame conflict: Amazon little league world series, eBay little league world series baseball 2022 manual included",
+        "referenceTitleChanged": false
+      }
+    ]
+  },
+  {
+    "sourceId": "b9d4758b-3706-4709-813e-9b46933ea779",
+    "asin": "B0B6JMXKKR",
+    "ebayItemId": "298629862125-10084785225117",
+    "cohort": "broaderRows",
+    "category": "workflow_only_no_identity_verification",
+    "materialUnresolved": false,
+    "analyst": "Codex stored-evidence review; not operator certification",
+    "finding": "FIFA 23 Legacy title agrees but publisher/sports/rating syntax remains in core. Full metadata/correction evidence is missing.",
+    "pairCertified": false,
+    "operatorReviewRequired": true,
+    "snapshotFollowup": []
+  },
+  {
+    "sourceId": "d298f2a4-d182-4e4c-a1a7-d544ab58ab4a",
+    "asin": "B00104KJ4M",
+    "ebayItemId": null,
+    "cohort": "broaderRows",
+    "category": "workflow_only_no_identity_verification",
+    "materialUnresolved": true,
+    "analyst": "Codex stored-evidence review; not operator certification",
+    "finding": "Lego Indiana Jones reference omits The Original Adventures. No exact item ID or authoritative catalog detail settles which game; do not treat substring agreement as identity.",
+    "pairCertified": false,
+    "operatorReviewRequired": true,
+    "snapshotFollowup": []
+  },
+  {
+    "sourceId": "5216c3d6-eaee-4f52-a097-c56001825489",
+    "asin": "B0C7K581PT",
+    "ebayItemId": null,
+    "cohort": "broaderRows",
+    "category": "workflow_only_no_identity_verification",
+    "materialUnresolved": false,
+    "analyst": "Codex stored-evidence review; not operator certification",
+    "finding": "US Version sits in Fae Farm reference core. eBay omits both platform and region and has no exact ID, so even correcting reference noise cannot certify the pair.",
+    "pairCertified": false,
+    "operatorReviewRequired": true,
+    "snapshotFollowup": []
+  },
+  {
+    "sourceId": "708e5bdf-3b38-459e-8f04-8c79488fca0e",
+    "asin": "B071Y1RXHG",
+    "ebayItemId": "318227533133-10081584746819",
+    "cohort": "broaderRows",
+    "category": "seller_listing_error_received_item_differs",
+    "analyst": "Codex stored-evidence review; not operator certification",
+    "finding": "Current receipt explicitly records wrong_item/wrong_product. Supplier title still names the target product. The receipt contradicts a successful purchase assertion, not necessarily the advertised listing identity. Seller substitution versus mistaken order cannot be inferred without notes; Battlefront notes explicitly document wrong delivery/refund.",
+    "pairCertified": false,
+    "operatorReviewRequired": false,
+    "snapshotFollowup": []
+  },
+  {
+    "sourceId": "fbe69061-f499-4ea2-9c10-be5065e11067",
+    "asin": "B0043B5SKE",
+    "ebayItemId": "188586734114-10083715805019",
+    "cohort": "broaderRows",
+    "category": "seller_listing_error_received_item_differs",
+    "analyst": "Codex stored-evidence review; not operator certification",
+    "finding": "Current receipt explicitly records wrong_item/wrong_product. Supplier title still names the target product. The receipt contradicts a successful purchase assertion, not necessarily the advertised listing identity. Seller substitution versus mistaken order cannot be inferred without notes; Battlefront notes explicitly document wrong delivery/refund.",
+    "pairCertified": false,
+    "operatorReviewRequired": false,
+    "snapshotFollowup": [
+      {
+        "snapshotId": "d1632267-3901-48e9-a613-7ef3e2d09800",
+        "verdict": "non-match",
+        "reason": "coreProduct conflict: Amazon fighters uncaged, eBay fighters uncaged kinect; coreGame conflict: Amazon fighters uncaged, eBay fighters uncaged kinect",
+        "referenceTitleChanged": false
+      }
+    ]
+  },
+  {
+    "sourceId": "be6c1094-4927-4258-b5fd-2c3872ab5edf",
+    "asin": "B002SKDIKE",
+    "ebayItemId": "800354779127-10086617767027",
+    "cohort": "broaderRows",
+    "category": "seller_listing_error_received_item_differs",
+    "analyst": "Codex stored-evidence review; not operator certification",
+    "finding": "Current receipt explicitly records wrong_item/non_north_american_version. Supplier title still names the target product. The receipt contradicts a successful purchase assertion, not necessarily the advertised listing identity. Seller substitution versus mistaken order cannot be inferred without notes; Battlefront notes explicitly document wrong delivery/refund.",
+    "pairCertified": false,
+    "operatorReviewRequired": false,
+    "snapshotFollowup": []
+  },
+  {
+    "sourceId": "0dd855de-8332-4577-85e3-271e95582236",
+    "asin": "B003M986Z2",
+    "ebayItemId": "168521387402",
+    "cohort": "strictRows",
+    "conflictIndex": 18,
+    "category": "ambiguous_receiving_semantics",
+    "materialUnresolved": false,
+    "analyst": "Codex stored-evidence review; not operator certification",
+    "finding": "Hasbro Family Game Night 3 Wii is followed by #ABXU, which becomes core text. Likely seller stock identifier, but no typed stock-code/source evidence certifies a general removal rule or retail identity.",
+    "pairCertified": false,
+    "operatorReviewRequired": true,
+    "snapshotFollowup": []
+  },
+  {
+    "sourceId": "9e7895de-855d-4967-8472-86cb1f73d56d",
+    "asin": "B00ZPT59YS",
+    "ebayItemId": "287385002117",
+    "cohort": "strictRows",
+    "conflictIndex": 35,
+    "category": "ambiguous_receiving_semantics",
+    "analyst": "Codex stored-evidence review; not operator certification",
+    "finding": "Sea of Theives is a likely seller misspelling of Sea of Thieves, not an edition. Standard Edition is omitted on eBay, and exact retail verification is missing. A spelling similarity alone cannot authorize a match.",
+    "pairCertified": false,
+    "operatorReviewRequired": true,
+    "snapshotFollowup": []
+  },
+  {
+    "sourceId": "add3738c-ae34-4793-8691-9ed627549d16",
+    "asin": "B002SRNFX2",
+    "ebayItemId": "306741007237",
+    "cohort": "strictRows",
+    "conflictIndex": 41,
+    "category": "ambiguous_receiving_semantics",
+    "analyst": "Codex stored-evidence review; not operator certification",
+    "finding": "Jumpstart Escape Adventure island versus JumpStart Escape from Adventure Island also includes w/ Manual, Code. Missing from and camel-tokenization likely explain part of the conflict, but package/code contents and exact catalog title are not independently verified.",
+    "pairCertified": false,
+    "operatorReviewRequired": true,
+    "snapshotFollowup": [
+      {
+        "snapshotId": "4ba8fd25-9718-4caf-8d1a-37853ab3bf94",
+        "verdict": "non-match",
+        "reason": "coreProduct conflict: Amazon jumpstart escape adventure island, eBay jump start escape from adventure island w manual code; coreGame conflict: Amazon jumpstart escape adventure island, eBay jump start escape from adventure island w manual code"
+      }
+    ]
+  },
+  {
+    "sourceId": "749e8c39-3f41-4532-8702-b5ba0976d23e",
+    "asin": "B003S2JI82",
+    "ebayItemId": "267716959948",
+    "cohort": "strictRows",
+    "conflictIndex": 70,
+    "category": "ambiguous_receiving_semantics",
+    "analyst": "Codex stored-evidence review; not operator certification",
+    "finding": "Jeopardy for Nintendo Wii 2010 Edition leaves for and 2010. The year plausibly denotes release metadata, but could describe a version. No full source metadata establishes a safe generic deletion here.",
+    "pairCertified": false,
+    "operatorReviewRequired": true,
+    "snapshotFollowup": []
+  }
+]

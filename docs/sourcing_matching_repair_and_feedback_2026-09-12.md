@@ -187,3 +187,21 @@ Resume **Phase 3 only** from the handoff. Fix source reconciliation/general extr
 ## Subsequent UI-only work order (2026-09-13)
 
 The inline field-correction / Incorrect Match refinement is deployed as web145, source ac617406851d. Scheduler92, schedules, production matching/scoring and the failed Phase 3 gate remain unchanged. No bounded refresh or provider run occurred. See [the UI task report](sourcing_incorrect_match_review_2026-09-13.md) for transaction tests, frozen populated routing/scoring preservation, actual component screenshots, deployment isolation and the continuing authenticated UI verification gap. Phase 3 remains shadow-only and its safety gate is still failed.
+
+
+## Phase 3 resume checkpoint ? 2026-09-13 (latest)
+
+**FAILED SAFETY GATE ? SHADOW ONLY.** Original seven positives now retained; original four negatives deterministic. Field accuracy 16/50 ? 48/50. Fresh 600-row capture (28 Buy List / 50 Closest Excluded / 2 Business Excluded / 33 holds) exposes four new hard-excluded good Buy List pairs, one Review-origin good loss, and the held full-source FFXIV positive downgrade. New exact counterexamples are frozen; do not treat passing the old seven as a pass.
+
+No new commit/push/deploy/refresh or production write. Working changes remain uncommitted on base 0ab2a01. Production remains web145 / scheduler92; all 20 schedules unchanged. Readback checked 600 rows with no drift/new action, but no atomic write guard was exercised. Old nine Phase 3 artifacts remain hash-identical. Authenticated production UI verification remains unavailable.
+
+See [the resume report](sourcing_phase3_resume_2026-09-13.md) and [new manifest](sourcing_phase3_resume_manifest_2026-09-13.json) for exact IDs, losses, tests, hashes and continuation. Keep the matcher shadow-only and stop after Phase 3's failed gate. Do not use either old or new capture for a later write without recapture and full validation.
+
+
+## Resume from the second failed gate - 2026-09-13 (latest)
+
+All six full-source blockers now pass identity admission; all original seven positives and four negatives remain correct. Annotated field accuracy is 49/50 (98%). The separate strict receiving-assertion replay still fails: 421 unchanged records deduplicate to 417 exact pairs, with 189 Match / 223 Conflict / 5 Review. The four-record difference is duplicates, not missing references. Some failures are parser errors (year/quantity/abbreviation); others are contradictory receipt-item versus whole-listing/ASIN evidence and cannot be automatically relabeled.
+
+**FAILED SAFETY GATE - SHADOW ONLY.** No new commit/push, deploy, provider search, refresh or production write. Fresh capture remains 28/50/2 with 33 holds and 600 deduplicated rows. Six targeted losses are fixed, but the strict failures and unfinished full routing/atomic refresh guard prevent activation. Production remains web145 / scheduler92; all 20 schedules unchanged. Changes remain uncommitted on 0ab2a01. Authenticated production UI remains unverified.
+
+See [the latest report](sourcing_phase3_second_resume_2026-09-13.md) and [manifest](sourcing_phase3_second_resume_manifest_2026-09-13.json). Prior 9 + 13 frozen artifacts are preserved. Continue Phase 3 only from the strict source-tier evidence, not from a passing six-case subset; recapture mutable state before any future write.

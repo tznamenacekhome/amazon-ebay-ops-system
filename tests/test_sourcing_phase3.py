@@ -8,7 +8,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'integrations'))
 from video_game_identity import build_identity_comparison, general_product_fields
 from sourcing_match_rules import evaluate_static_match_rules, normalize_candidate_evidence
 from score_sourcing_opportunities import score_candidate
-from matching_feedback import apply_scoped_reviews
+from matching_feedback import apply_scoped_reviews, recheck_proposed_identity
 
 
 def inputs(amazon, ebay, asin='B000TEST00', game_name=None, system='PS 3'):
@@ -162,6 +162,14 @@ class Phase3ReviewTests(unittest.TestCase):
         self.assertEqual('needs_review',self.apply([positive],changed)['evidenceDecision']['productIdentityVerdict'])
         positive['snapshot']={}
         self.assertEqual('needs_review',self.apply([positive])['evidenceDecision']['productIdentityVerdict'])
+        future_evaluation=review(self.seed,self.candidate)
+        future_evaluation['raw_action_context']['evaluation']={'evaluatedAt':'2026-09-12T15:00:00+00:00'}
+        self.assertEqual('needs_review',self.apply([future_evaluation])['evidenceDecision']['productIdentityVerdict'])
+        other_asin=deepcopy(self.seed);other_asin['asin']='B000OTHER1'
+        negative=review(self.seed,self.candidate,'incorrect')
+        result=apply_scoped_reviews(self.identity,self.candidate,other_asin,[negative],evaluated_at='2026-09-13T00:00:00+00:00')
+        self.assertNotIn('operatorVerdict',result['evidenceDecision'])
+        self.assertEqual('match',result['evidenceDecision']['productIdentityVerdict'])
 
     def test_corrections_provenance_and_scope(self):
         correction={'field':'edition','side':'amazon','scope':'asin','state':'supported','value':'Deluxe Edition','before':None}
@@ -207,6 +215,118 @@ class Phase3ReviewTests(unittest.TestCase):
         self.assertEqual('match',result['evidenceDecision']['productIdentityVerdict'])
         self.assertEqual('Incorrect parsed edition',result['ebay']['fields']['edition']['value'])
         self.assertEqual('unknown',result['comparisons']['edition']['result'])
+
+    def test_ui_wire_states_and_newer_invalid_correction(self):
+        for wire, state, value in [('value','supported','Deluxe Edition'),
+                                    ('unknown','unknown',None),
+                                    ('explicitly_absent','explicit_absence','Explicitly absent'),
+                                    ('not_applicable','not_applicable',None)]:
+            with self.subTest(wire=wire):
+                correction={'field':'edition','side':'ebay','scope':'pair','state':wire,'value':'Deluxe Edition'}
+                row=review(self.seed,self.candidate,'not_provided',corrections=[correction])
+                result=self.apply([row])
+                self.assertEqual('applied',result['correctionApplication'][0]['result'])
+                field=result['ebay']['fields']['edition']
+                self.assertEqual((state,value),(field['state'],field['value']))
+                self.assertNotIn('operatorVerdict',result['evidenceDecision'])
+        old=review(self.seed,self.candidate,'not_provided',corrections=[correction])
+        new=deepcopy(old);new['action_id']='new';new['created_at']='2026-09-12T15:00:00+00:00'
+        # Broken newer snapshot must prevent fallback to an older correction.
+        result=self.apply([old,new])
+        self.assertEqual(['needs_review'],[r['result'] for r in result['correctionApplication']])
+
+    def test_catalog_provenance_is_not_assumed(self):
+        row=review(self.seed,self.candidate,corrections=[{'field':'edition','side':'amazon','scope':'asin','state':'value','value':'Deluxe Edition'}])
+        self.seed['raw_context_json']={'amazon_catalog_identity':{'asin':self.seed['asin'],'normalized_edition':'Standard Edition'}}
+        result=self.apply([row])
+        self.assertEqual('needs_review',result['correctionApplication'][0]['result'])
+        self.assertEqual('needs_review',result['evidenceDecision']['productIdentityVerdict'])
+
+
+class Phase3ResumeRegressions(unittest.TestCase):
+    def test_corroborated_metadata_preserves_title_numbers_and_words(self):
+        seed,candidate=inputs('Knack 2 PS4','Knack 2 PS4 Action T 2017 NTSC-U/C Online',game_name='Knack 2',system='PS 4')
+        candidate['raw_ebay_json']['localizedAspects'] += [{'name':k,'value':v} for k,v in
+            [('Genre','Action'),('Rating','T-Teen'),('Release Year','2017'),('Region Code','NTSC-U/C (US/Canada)'),('Features','Online Playability')]]
+        result=evaluate_static_match_rules(candidate,seed,identity_policy='phase3_shadow')['identity_comparison']
+        self.assertEqual('match',result['evidenceDecision']['productIdentityVerdict'])
+        self.assertEqual('2',result['ebay']['installment'])
+        self.assertTrue(result['ebay']['assignedMetadata'])
+        # No structured corroboration: do not silently erase a second number.
+        candidate['raw_ebay_json']['localizedAspects']=[]
+        self.assertNotEqual('match',evaluate_static_match_rules(candidate,seed,identity_policy='phase3_shadow')['identity_comparison']['evidenceDecision']['productIdentityVerdict'])
+        self.assertEqual('action',general_product_fields('Action PS4')['coreGame'])
+
+    def test_repeated_names_and_variant_labels_are_not_broad_containment(self):
+        self.assertEqual('match',compare('Control Ultimate Edition PS4','Control Ultimate Edition PS4',game_name='Control, Control Ultimate Edition',system='PS 4')['evidenceDecision']['productIdentityVerdict'])
+        self.assertNotEqual('match',compare('Control Ultimate Edition PS4','Control Ultimate Edition PS4',game_name='Control Ultimate Edition, Control Standard Edition',system='PS 4')['evidenceDecision']['productIdentityVerdict'])
+        self.assertEqual('match',compare('Game 7 Silver Phoenix PS4','Game 7 Silver Phoenix Edition PS4',system='PS 4')['evidenceDecision']['productIdentityVerdict'])
+        self.assertEqual('non-match',compare('Game 7 Silver Phoenix PS4','Game 7 Golden Phoenix Edition PS4',system='PS 4')['evidenceDecision']['productIdentityVerdict'])
+        self.assertEqual('match',compare('Tunic PS4','Tunic PS4 Ready To Ship',system='PS 4')['evidenceDecision']['productIdentityVerdict'])
+
+    def test_included_contents_need_three_sources_and_inclusive_edition(self):
+        seed,candidate=inputs('Example Adventure Complete Edition PS4','Example Adventure Complete Edition PS4 Sunrise+Dusk',game_name='Example Adventure Complete Edition',system='PS 4')
+        candidate['raw_ebay_json']['description']='This package includes Sunrise and Dusk expansions.'
+        identity=lambda:evaluate_static_match_rules(candidate,seed,identity_policy='phase3_shadow')['identity_comparison']
+        self.assertEqual('match',identity()['evidenceDecision']['productIdentityVerdict'])
+        self.assertEqual(['Sunrise','Dusk'],identity()['ebay']['includedContents'])
+        candidate['raw_ebay_json'].pop('description')
+        self.assertEqual('non-match',identity()['evidenceDecision']['productIdentityVerdict'])
+        candidate['raw_ebay_json']['description']='This package includes Sunrise and Dusk expansions.'
+        seed['amazon_title']=seed['amazon_title'].replace('Complete','Ultimate')
+        candidate['ebay_title']=candidate['ebay_title'].replace('Complete','Ultimate')
+        candidate['raw_ebay_json']['localizedAspects'][0]['value']='Example Adventure Ultimate Edition'
+        self.assertNotEqual('match',identity()['evidenceDecision']['productIdentityVerdict'])
+
+    def test_proposed_recheck_is_pure_and_not_pair_confirmation(self):
+        original=compare('Game 4 PS3','Game 4 PS3')
+        before=deepcopy(original)
+        result=recheck_proposed_identity(original,[{'field':'installment','side':'ebay','scope':'pair','state':'value','value':'5'}])
+        self.assertEqual('non-match',result['proposed']['evidenceDecision']['productIdentityVerdict'])
+        self.assertEqual(before,original)
+        self.assertFalse(result['admissionAuthorized'])
+        self.assertEqual(0,result['writes'])
+        self.assertNotIn('operatorVerdict',result['proposed']['evidenceDecision'])
+        with self.assertRaises(ValueError):recheck_proposed_identity(original,[{'field':'coreGame','side':'ebay','scope':'asin','state':'value','value':'Game 4'}])
+        misparsed=compare('Prey PS3','Prey PS3')
+        for key in ('coreGame','coreProduct'):
+            misparsed['ebay'][key]='pre'
+            misparsed['ebay']['fields'][key]['value']='pre'
+        correction={'field':'coreGame','side':'ebay','scope':'pair','state':'value','value':'Prey'}
+        result=recheck_proposed_identity(misparsed,[correction])
+        self.assertEqual('match',result['proposed']['evidenceDecision']['productIdentityVerdict'])
+        self.assertEqual('prey',result['proposed']['ebay']['coreProduct'])
+        seed,candidate=inputs('Prey PS3','Prey PS3')
+        applied=apply_scoped_reviews(misparsed,candidate,seed,[review(seed,candidate,'not_provided',corrections=[correction])],evaluated_at='2026-09-13T00:00:00+00:00')
+        self.assertEqual(result['proposed']['comparisons'],applied['comparisons'])
+
+    def test_required_distinct_products(self):
+        pairs=[('Rock Band 3','The Beatles Rock Band'),('Rock Band 3','Rock Band Country Track Pack'),
+               ('Rock Band 3','Rock Band Metal Track Pack'),('Wipeout 3','Wipeout 2'),
+               ('Dead Rising 4','Dead Rising 3'),('Nickelodeon Dance','Nickelodeon Dance 2'),
+               ('Shrek 2','Shrek the Third'),('Shrek 2',"Shrek Smash N Crash Racing"),
+               ('Disney Infinity','Disney Infinity 2.0 Marvel Super Heroes'),
+               ('Disney Infinity','Disney Infinity 3.0 Star Wars'),
+               ('Wii Play Motion','Tiger Woods PGA Tour'),
+               ('New Carnival Games',"Sesame Street Cookie's Counting Carnival"),
+               ('New Carnival Games',"Shrek's Carnival Craze"),
+               ('Prey','IL-2 Sturmovik Birds of Prey')]
+        for amazon,ebay in pairs:
+            with self.subTest(pair=(amazon,ebay)):
+                self.assertEqual('non-match',compare(amazon,ebay,system=None)['evidenceDecision']['productIdentityVerdict'])
+
+    def test_meaningful_words_identifiers_and_omission_direction(self):
+        for title in ('New Carnival Games','Rare Replay','Hot Wheels','Untitled Goose Game','Family Game Night'):
+            self.assertEqual(title.casefold(),general_product_fields(title)['coreGame'])
+        parsed=general_product_fields('IL-2 Sturmovik Birds of Prey Xbox 360')
+        self.assertEqual('il-2 sturmovik birds of prey',parsed['coreGame'])
+        self.assertIsNone(parsed['installment'])
+        self.assertEqual('match',compare('RollerCoaster Tycoon Classic PC','Roller Coaster Tycoon Classic For PC',game_name='RollerCoaster Tycoon',system=None)['evidenceDecision']['productIdentityVerdict'])
+        self.assertEqual('needs_review',compare('RollerCoaster Tycoon PC','RollerCoaster Tycoon PC',game_name='RollerCoaster Tycoon Classic',system=None)['evidenceDecision']['productIdentityVerdict'])
+        seed,candidate=inputs('Disney Infinity PS3','Disney Infinity PS3',game_name='Disney Infinity')
+        candidate['raw_ebay_json']['localizedAspects'].append({'name':'Publisher','value':'Disney'})
+        result=evaluate_static_match_rules(candidate,seed,identity_policy='phase3_shadow')['identity_comparison']
+        self.assertEqual('disney infinity',result['ebay']['coreGame'])
 
 
 if __name__=='__main__': unittest.main()

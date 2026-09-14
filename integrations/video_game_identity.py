@@ -689,7 +689,7 @@ def normalize_text(value: Any) -> str:
 
 # Candidate Phase 3 policy. Only explicit offline callers can select it; the
 # deployed scorer stays on legacy until the complete visibility gate passes.
-PHASE3_VERSION = "video_game_identity_phase3_shadow_v1"
+PHASE3_VERSION = "video_game_identity_phase3_shadow_v3"
 PHASE3_EDITIONS = [
     ("Complete Edition", r"\bcomplete\s+edition\b"),
     ("GOTY", r"\b(?:goty|game\s+of\s+the\s+year)(?:\s+edition)?\b"),
@@ -711,21 +711,90 @@ def evidence_hash(value):
     return hashlib.sha256(json.dumps(value, sort_keys=True, ensure_ascii=True, separators=(",", ":")).encode()).hexdigest()
 
 
-def general_product_fields(value):
+def reconcile_listing_title(title, evidence):
+    """Assign corroborated post-platform metadata without shortening a product.
+
+    Only the suffix after an explicit platform is considered. Product words in
+    Game Name and everything before the platform remain protected. Contents of
+    an explicitly named inclusive edition are separated only when a structured
+    name agrees with the prefix and the description calls them expansions.
+    """
+    raw = str(title or "")
+    platforms = list(PHASE3_PLATFORM.finditer(raw))
+    if not platforms: return raw, []
+    boundary = platforms[-1].end()
+    prefix, suffix = raw[:boundary], raw[boundary:]
+    aspects = evidence.get("aspects") or {}
+    names = usable_game_names(evidence)
+    protected = " ".join(normalize_text(n) for n in names)
+    assigned = []
+    metadata = []
+    for key in ("release_year", "genre", "sub-genre"):
+        metadata.extend((str(v), key) for v in aspects.get(key, []))
+    for value in aspects.get("rating", []):
+        rating = re.match(r"\s*(E10\+|EC|E|T|M|AO|RP)\b", str(value), re.I)
+        if rating: metadata.append((rating[1], "rating"))
+    for value in aspects.get("region_code", []):
+        region = re.match(r"\s*(NTSC[- ]?[UJ](?:/C)?|PAL)\b", str(value), re.I)
+        if region: metadata.append((region[1], "region_code"))
+    features = " ".join(str(v).lower() for v in aspects.get("features", []))
+    for feature in ("multiplayer", "online"):
+        if feature in features: metadata.append((feature, "features"))
+    for value, source in sorted(metadata, key=lambda v: len(v[0]), reverse=True):
+        if not value or re.search(r"\b"+re.escape(normalize_text(value))+r"\b", protected): continue
+        pattern = r"(?<!\w)" + re.escape(value) + r"(?!\w)"
+        if re.search(pattern, suffix, re.I):
+            assigned.append({"text":value,"reason":"post-platform metadata corroborated by " + source})
+            suffix = re.sub(pattern, " ", suffix, flags=re.I)
+    # A list after the platform is not blanket permission to erase a subtitle.
+    # Require an explicitly inclusive edition, matching structured core name,
+    # and an inclusion statement identifying multiple expansion names.
+    prefix_fields = general_product_fields(prefix)
+    description = str(evidence.get("description") or "")
+    content_parts = [re.sub(r"\W*new\W*$", "", part, flags=re.I).strip(" *-()") for part in suffix.split("+")]
+    inclusive = prefix_fields["edition"] in {"Complete Edition", "GOTY"}
+    name_agrees = any(general_product_fields(part)["coreGame"] == prefix_fields["coreGame"]
+                      for name in names for part in name.split(","))
+    inclusion = re.search(r"\bincludes?\b[^.]{0,300}\bexpansions?\b", description, re.I)
+    identified = sum(bool(part) and bool(inclusion) and normalize_text(part) in normalize_text(inclusion[0]) for part in content_parts)
+    if inclusive and name_agrees and len(content_parts) >= 2 and identified >= 2:
+        # Keep every enumerated component as evidence, including abbreviated
+        # names. We establish its role as contents, not exact contents parity.
+        assigned.append({"text":suffix.strip(),"reason":"enumerated included contents; title edition, Game Name and description corroborate role",
+                         "contents":content_parts})
+        suffix = ""
+    return prefix + suffix, assigned
+
+
+def general_product_fields(value, publishers=()):
     """Keep the full named retail product; no franchise is required to parse it.
 
     This is identity normalization, not fuzzy matching or an Amazon search.
     In particular the search cleaner intentionally shortens Wii Play Motion;
     it cannot replace raw identity evidence here.
     """
-    text = normalize_text(value)
+    raw = re.sub(r"(?<=[a-z])(?=[A-Z][a-z])", " ", str(value))
+    # Only remove generic Game when it follows a platform label, not from
+    # product names such as Untitled Goose Game or Family Game Night.
+    raw = re.sub("(" + PHASE3_PLATFORM.pattern + r")\s+game\b", r"\1", raw, flags=re.I)
+    ignored = []
+    # Hyphenated alphanumeric product identifiers are not sequel numbers.
+    raw = re.sub(r"\b([A-Za-z]+)-(\d+)\b", r"\1XHYPHENX\2", raw)
     # Release metadata in parentheses is not a sequel; annual titles outside
     # parentheses (FIFA 2011 etc.) retain their numbers.
-    text = re.sub(r"\([^)]*\)", lambda m: re.sub(r"\b(?:19|20)\d{2}\b", " ", m[0]), str(value).casefold())
+    text = re.sub(r"\([^)]*\)", lambda m: re.sub(r"\b(?:19|20)\d{2}\b", " ", m[0]), raw.casefold())
     text = normalize_text(text)
     text = PHASE3_PLATFORM.sub(" ", text)
+    for publisher in publishers:
+        publisher = normalize_text(publisher)
+        if not publisher: continue
+        # A structured Publisher is corroboration for attribution at an edge,
+        # not permission to remove that word anywhere in a product name.
+        pattern = r"^" + re.escape(publisher) + r"\s+|\s+(?:for\s+)?by\s+" + re.escape(publisher) + r"\b"
+        if re.search(pattern, text): ignored.append({"text":publisher,"reason":"structured publisher attribution"})
+        text = re.sub(pattern, " ", text)
     text = re.sub(r"\b(?:sku|stock|item)\s*#?\s*[a-z0-9-]+\b|\blot\s+of\s+\d+\b", " ", text)
-    text = re.sub(r"\b(?:brand\s+new|factory\s+seal(?:ed)?|new\s+(?:and\s+)?sealed|sealed\s+new|sealed|free\s+shipping|(?:super\s+)?fast\s+shipping|"
+    text = re.sub(r"\b(?:nwt|bnib|brand\s+new|factory\s+seal(?:ed)?|new\s+(?:and\s+)?sealed|sealed\s+new|sealed|free\s+shipping|(?:super\s+)?fast\s+shipping|"
                   r"shipping\s+fluff|ships\s+fast|shrink\s+wrapped|video\s+game|brand\s+new)\b", " ", text)
     # Standalone leading New is ambiguous and is retained. Never strip New
     # from New Super Mario Bros. / New Carnival Games.
@@ -746,13 +815,23 @@ def general_product_fields(value):
     text = re.sub(r"\s+", " ", text).strip(" .!")
     text = re.sub(r"\b(?:new|rare)\s*$", "", text).strip()
     text = re.sub(r"\b(?:by|for)\s*$", "", text).strip()
-    numbers = re.findall(r"\b(?:2k)?(\d+(?:\.\d+)?)\b", text)
+    text = re.sub(r"\bready\s+to\s+ship\s*$", "", text).strip()
+    # Keep the name of an unfamiliar variant; only the generic label goes.
+    # Explicit named editions were extracted above and are still compared.
+    if len(text.split()) > 1:
+        text = re.sub(r"\bedition\s*$", "", text).strip()
+    text = text.replace("xhyphenx", "-")
+    numbers = re.findall(r"(?<![\w-])(?:2k)?(\d+(?:\.\d+)?)\b", text)
     product = text if text not in IGNORED_GAME_NAMES and re.search(r"[a-z]", text) else None
     packages = [label for label in ("starter pack", "track pack", "expansion pack", "bundle", "game only", "steelbook only") if label in text]
     fields = {"coreGame": product, "coreProduct": product,
               "installment": numbers[0] if len(numbers) == 1 else None,
               "edition": " + ".join(sorted(set(edition_values))) or None,
               "packageType": " + ".join(packages) or None}
+    if product and len(numbers) == 1:
+        fields["coreProduct"] = re.sub(r"(?<![\w-])(?:2k)?" + re.escape(numbers[0]) + r"\b", "", product)
+        fields["coreProduct"] = re.sub(r"\s+", " ", fields["coreProduct"]).strip()
+    fields["tokenHandling"] = {"ignored": ignored, "assignedInstallments": numbers}
     # Family rules refine only fields they actually evidence. They never supply
     # a default generation/package or replace the full general product name.
     known = parse_known_identity([{"source": "title", "text": str(value)}])
@@ -765,16 +844,37 @@ def general_product_fields(value):
     return fields
 
 
+def source_name_relation(title, supporting):
+    """Asymmetric within-listing reconciliation, never pair-match containment."""
+    if not title or not supporting: return "unknown"
+    compact = lambda text: re.sub(r"[^a-z0-9]", "", str(text).casefold())
+    if compact(title) == compact(supporting): return "same"
+    title_tokens, source_tokens = normalize_text(title).split(), normalize_text(supporting).split()
+    remaining = iter(title_tokens)
+    if all(any(token == candidate for candidate in remaining) for token in source_tokens):
+        return "compatible_omission"
+    return "explicit_conflict"
+
+
 def phase3_side(title, side, evidence=None, catalog=None, platform=None):
     evidence, catalog = evidence or {}, catalog or {}
-    rows = [{"source": "title", "text": str(title)}] if title else []
-    rows += [{"source": "game_name", "text": value} for value in usable_game_names(evidence)]
-    parsed = [(row, general_product_fields(row["text"])) for row in rows]
+    cleaned_title, assigned = reconcile_listing_title(title, evidence) if side == "ebay" else (title, [])
+    rows = [{"source": "title", "text": str(cleaned_title), "originalText":str(title)}] if title else []
+    rows += [{"source": "game_name", "text": part.strip(), "originalText":value}
+             for value in usable_game_names(evidence) for part in value.split(",") if part.strip()]
+    publishers = (evidence.get("aspects") or {}).get("publisher") or []
+    # A publisher appearing in the structured product name may be part of
+    # that identity (for example Disney Infinity), not an attribution.
+    names = usable_game_names(evidence)
+    publishers = [p for p in publishers if names and not any(
+        normalize_text(name).startswith(normalize_text(p) + " ") for name in names)]
+    parsed = [(row, general_product_fields(row["text"], publishers)) for row in rows]
     output = {}
     for key in IDENTITY_FIELDS:
         values = [(values.get(key), row) for row, values in parsed if values.get(key) is not None]
         if key == "platform":
-            values = [(platform_display(detect_system_from_title(row["text"])), row) for row in rows if detect_system_from_title(row["text"])]
+            platform_text = lambda text: re.sub(r"\bplaystation\s+ps\s*([1-5])\b", r"PlayStation \1", text, flags=re.I)
+            values = [(platform_display(detect_system_from_title(platform_text(row["text"]))), row) for row in rows if detect_system_from_title(platform_text(row["text"]))]
             values += [(platform_display(normalize_system(v)), {"source": "platform_values", "text": v}) for v in evidence.get("platform_values", []) if normalize_system(v)]
             if not values and platform:
                 values = [(platform_display(normalize_system(platform)), {"source": "seed.system", "text": platform})]
@@ -787,15 +887,28 @@ def phase3_side(title, side, evidence=None, catalog=None, platform=None):
             if key == "edition": val = general_product_fields(val)["edition"] or val
             if key == "platform": val = platform_display(normalize_system(val))
             values.append((val, {"source": "exact_asin_catalog." + catalog_key, "text": str(catalog[catalog_key])}))
+        reconciliation = []
+        if key in {"coreGame", "coreProduct"} and values:
+            primary = next(((v,r) for v,r in values if r["source"] == "title"), values[0])
+            for value, source in values:
+                relation = source_name_relation(primary[0], value)
+                reconciliation.append({"source":source["source"],"relation":relation,"value":value})
+            # Game Name may omit a subtitle, attribution, or edition/package
+            # qualifier. Keep the full listing title; never collapse it to the
+            # supporting subset, and never use cross-market containment.
+            if all(r["relation"] in {"same", "compatible_omission"} for r in reconciliation):
+                values = [(primary[0], source) for _, source in values]
         distinct = {str(v).casefold() for v, _ in values}
         state = "conflicting_sources" if len(distinct) > 1 else "supported" if values else "unknown"
-        sources = [{"field": row["source"], "span": row["text"][:240], "sourceHash": evidence_hash(row["text"]),
+        sources = [{"field": row["source"], "span": row.get("originalText",row["text"])[:240], "normalizedSpan":row["text"][:240], "sourceHash": evidence_hash(row.get("originalText",row["text"])),
                     "snapshot": catalog.get("snapshot_id") if row["source"].startswith("exact_asin") else None} for _, row in values]
         output[key] = {"value": values[0][0] if values else None, "state": state, "sources": sources[:3],
                        "side": side, "parserVersion": PHASE3_VERSION, "evidenceVersion": PHASE3_VERSION,
-                       "expectation": None, "confidenceKind": "uncalibrated_parser_heuristic"}
+                       "expectation": None, "sourceReconciliation": reconciliation, "confidenceKind": "uncalibrated_parser_heuristic"}
     result = {key: field["value"] for key, field in output.items()}
-    result.update(fields=output, installmentNormalized=result["installment"], confidenceKind="uncalibrated_parser_heuristic")
+    result.update(fields=output, installmentNormalized=result["installment"], confidenceKind="uncalibrated_parser_heuristic",
+                  tokenHandling=[{"source":r["source"],**v["tokenHandling"]} for r,v in parsed],
+                  assignedMetadata=assigned, includedContents=[c for item in assigned for c in item.get("contents",[])])
     return result
 
 
@@ -824,14 +937,15 @@ def phase3_comparison(amazon, ebay):
         left, right = amazon["fields"][key], ebay["fields"][key]
         if any(v["state"] == "conflicting_sources" for v in (left, right)):
             outcome, reason = "review", "Strong sources disagree within a side"
-        elif left["state"] == "unknown" or right["state"] == "unknown":
+        elif left["state"] in {"unknown", "not_applicable"} or right["state"] in {"unknown", "not_applicable"}:
             outcome, reason = "unknown", "Omitted information is not a contradiction or a pass"
         elif str(left["value"]).casefold() == str(right["value"]).casefold() or key == "platform" and platforms_compatible(str(left["value"]), str(right["value"])):
             outcome, reason = "match", "Supported normalized values agree"
         else:
             outcome = "conflict" if key in {"coreGame", "coreProduct", "installment", "generation", "theme", "edition", "packageType"} else "review"
             reason = "Supported values differ"
-        comparisons[key] = {"field": key, "result": outcome, "amazon": left["value"], "ebay": right["value"], "reason": reason,
+        relation = "explicit_conflict" if outcome == "conflict" else "same" if outcome == "match" else "compatible_omission" if outcome == "unknown" and bool(left["value"]) != bool(right["value"]) else "unknown"
+        comparisons[key] = {"field": key, "result": outcome, "relation": relation, "amazon": left["value"], "ebay": right["value"], "reason": reason,
                             "amazonEvidenceRef": "amazon.fields." + key, "ebayEvidenceRef": "ebay.fields." + key}
     outcomes = {c["result"] for c in comparisons.values()}
     verdict = "non-match" if "conflict" in outcomes else "needs_review" if "review" in outcomes else "match" if comparisons["coreGame"]["result"] == "match" else "unknown"

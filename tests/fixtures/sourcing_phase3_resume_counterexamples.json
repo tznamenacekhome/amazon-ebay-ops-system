@@ -1,0 +1,47 @@
+{
+  "annotationBasis": "Fresh exact Buy List source-text review on 2026-09-13. Same named retail product/platform/edition; not photo or physical verification. These are additional safety counterexamples, not approved production promotions.",
+  "cases": [
+    {
+      "opportunityId": "76c40cca-b987-4aa1-a55e-ca1458c30e41",
+      "asin": "B004WL4LOY",
+      "expected": "match",
+      "name": "White Knight Chronicles II",
+      "blocker": "Structured rating, release year, genre and region pollute core identity."
+    },
+    {
+      "opportunityId": "2620cd16-b78b-468e-a3ba-1486f52be8fc",
+      "asin": "B096HSJ6PJ",
+      "expected": "match",
+      "name": "Battlefield 2042",
+      "blocker": "Multiplayer/online, rating, release year and region pollute core identity."
+    },
+    {
+      "opportunityId": "2242e14b-764d-48bd-9435-64c763a3d796",
+      "asin": "B013KZ3P2G",
+      "expected": "match",
+      "name": "Far Cry 4 Complete Edition",
+      "blocker": "Comma-separated repeated Game Name creates source conflict and Review exclusion."
+    },
+    {
+      "opportunityId": "cf461d09-70b6-4d0b-9321-f8f07f0f7b36",
+      "asin": "B081W4X9RW",
+      "expected": "match",
+      "name": "Persona 5 Royal Phantom Thieves",
+      "blocker": "Trailing Edition remains in core name on only one side."
+    },
+    {
+      "opportunityId": "d3c3c263-66b8-4686-af12-ff70d1781e4d",
+      "asin": "B097B15RT8",
+      "expected": "match",
+      "name": "Metroid Dread Special Edition",
+      "blocker": "Ready To Ship remains in core name; Game Name is an abbreviated supporting value."
+    },
+    {
+      "opportunityId": "18a42399-3b36-4bda-a962-5c25f22c5482",
+      "asin": "B071NFMKR2",
+      "expected": "match",
+      "name": "Final Fantasy XIV Online Complete Edition",
+      "blocker": "Full-source eBay title lists Stormblood, Heavensward and Realm contents; shadow core comparison calls the edition with enumerated contents a different product. Existing inventory hold must remain."
+    }
+  ]
+}
