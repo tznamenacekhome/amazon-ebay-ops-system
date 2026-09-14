@@ -1,5 +1,13 @@
 # Adjudicated exact-pair ground truth - 2026-09-13
 
+## Post-variation strict gate checkpoint
+
+Fresh persisted capture: 10 Tier A positives, 3 verified negatives, 2 unqualified confirmations and 1 informational exclusion; 10 of 12 scopes saved. Tier A replay is 9 Match / 1 Review (Disney Infinity); negatives are 2 Conflict / 1 Review, none admitted. All 17 corrections apply; 15 curated positives and 18 negatives pass. No matcher change, deployment or refresh. Phase 3 remains incomplete and shadow-only. [Full strict-gate report](sourcing_phase3_strict_adjudicated_gate_2026-09-13.md). Earlier zero-Tier-A reports below are frozen history.
+
+## Historical pre-variation report
+
+The following evidence and instructions describe the earlier capture. Use the post-variation checkpoint and linked strict report above for current counts and next steps.
+
 **ADJUDICATED EVIDENCE INSUFFICIENT — MORE OPERATOR REVIEW REQUIRED.** Phase 3 remains incomplete and shadow-only. No deployment or production writes occurred.
 
 ## Persisted corpus and qualification

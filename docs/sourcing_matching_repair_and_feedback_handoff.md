@@ -1,5 +1,9 @@
 # Sourcing matching repair handoff
 
+## Post-variation strict gate checkpoint
+
+Fresh persisted capture: 10 Tier A positives, 3 verified negatives, 2 unqualified confirmations and 1 informational exclusion; 10 of 12 scopes saved. Tier A replay is 9 Match / 1 Review (Disney Infinity); negatives are 2 Conflict / 1 Review, none admitted. All 17 corrections apply; 15 curated positives and 18 negatives pass. No matcher change, deployment or refresh. Phase 3 remains incomplete and shadow-only. [Full strict-gate report](sourcing_phase3_strict_adjudicated_gate_2026-09-13.md). Earlier zero-Tier-A reports below are frozen history.
+
 ## Dedicated variation save button - web151
 
 Web151 (`29eab7a16cf9`) fixes the missing action in the normal adjudication dialog. Save variation scope is directly below the selector in both normal and filtered confirmed-row dialogs; it saves independently, keeps the dialog open, updates qualification and queue progress, and preserves verdicts/corrections/notes. Correction-only actions no longer carry variation fields. [Diagnosis, tests and release proof](sourcing_variation_save_button_fix_2026-09-13.md). Scheduler92 and all 20 schedules are unchanged. No matcher activation, sourcing refresh/provider search or synthetic production review. Phase 3 remains incomplete and shadow-only. Earlier web150 instructions below describe the superseded implementation.

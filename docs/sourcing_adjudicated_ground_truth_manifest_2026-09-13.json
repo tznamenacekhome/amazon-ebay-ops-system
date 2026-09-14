@@ -1,131 +1,154 @@
 {
-  "status": "ADJUDICATED EVIDENCE INSUFFICIENT \u2014 MORE OPERATOR REVIEW REQUIRED",
+  "status": "ADJUDICATED EVIDENCE STILL INSUFFICIENT \u2014 MORE OPERATOR REVIEW REQUIRED",
   "phase3Complete": false,
-  "baseCommit": "b2d0bac1ad732df72b0238c06a2270329dec3af6",
-  "commitsCreated": [
-    "62908e775b3f98a7ac203ca2d775044c2641d361"
-  ],
-  "worktreeState": "Implementation committed; this subsequent documentation checkpoint records its immutable hash. Consult Git history and remote tracking for final delivery status. Deployment remains prohibited.",
-  "readCapture": {
+  "baseCommit": "64851ae2cc2380b69a9a6789d344791d0a191d0f",
+  "commitMetadataScope": "This base is the immutable source used for replay. Evidence documentation commit is available from Git history; no self-referential hash.",
+  "previousManifest": {
+    "file": "docs\\sourcing_adjudicated_ground_truth_manifest_before_variation_2026-09-13.json",
+    "sha256": "f92bd5188a48b774c135ebe1a6c423da499b6c0b81a2afec0e724715c20d0dae"
+  },
+  "capture": {
+    "file": "tmp\\sourcing-phase3-strict-gate\\capture.json",
     "project": "froeucjkcepuhgwisped",
-    "startedAt": "2026-09-14T02:04:37.325428+00:00",
-    "finishedAt": "2026-09-14T02:04:40.594670+00:00",
-    "readRequests": 33,
-    "bytes": 1430673,
+    "startedAt": "2026-09-14T03:51:14.422503+00:00",
+    "finishedAt": "2026-09-14T03:51:17.506492+00:00",
     "stableAcrossReadback": true,
-    "uniqueActions": 15,
-    "linkedAndSourceSnapshots": 29,
-    "observedHistory": "15 distinct actions, one per reviewed pair. No live supersession observed; supersession and invalid-newer cases tested synthetically. Two identical state reads establish capture stability, not a forensic proof that no historical deletion ever occurred."
+    "readRequests": 33,
+    "bytes": 2011579,
+    "uniqueActions": 25,
+    "linkedAndSourceSnapshots": 39,
+    "originalActionsUnchanged": 15,
+    "newVariationOnlyEvents": 10
   },
   "counts": {
+    "queue": 16,
     "reviewable": 15,
+    "tierAPositive": 10,
+    "verifiedNegative": 3,
+    "unresolvedNotSure": 0,
+    "unqualifiedConfirmations": 2,
+    "informationalExcluded": 1,
     "confirmMatch": 12,
     "incorrectMatch": 3,
     "notSure": 0,
-    "informational": 1,
-    "tierAPositive": 0,
-    "verifiedNegative": 3,
-    "unqualifiedConfirmations": 12,
+    "variationScopeReviewed": 10,
+    "variationDistributionConfirmed": {
+      "not_applicable": 10,
+      "unknown": 2
+    },
+    "platformCompatible": 0,
     "corrections": 17,
-    "appliedCorrections": 17,
-    "correctionsByScope": {
+    "correctionsApplied": 17,
+    "correctionScopes": {
       "ebay/pair": 11,
       "amazon/pair": 5,
       "amazon/asin": 1
-    },
-    "platformCompatible": 0,
-    "wrongFieldsWithoutReplacement": 0
+    }
   },
   "strictGate": {
     "passed": false,
-    "reason": "All twelve Confirm Match actions have variationVerified=false / variationResolution=unknown.",
+    "evidenceComplete": false,
+    "knownQualifiedPositiveSafetyPassed": false,
     "tierAPositiveResults": {
+      "Match": 9,
+      "Conflict": 0,
+      "Review": 1,
+      "Unknown": 0
+    },
+    "verifiedNegativeResults": {
       "Match": 0,
-      "Conflict": 0,
-      "Review": 0,
-      "Unknown": 0
-    },
-    "initialVerifiedNegatives": {
-      "definiteNonMatch": 2,
-      "incorrectMatch": 1,
-      "Review": 0,
-      "Unknown": 0
-    },
-    "finalVerifiedNegatives": {
-      "definiteNonMatch": 2,
-      "incorrectMatch": 0,
+      "Conflict": 2,
       "Review": 1,
       "Unknown": 0
     },
-    "initialUnqualifiedConfirmationDiagnostics": {
-      "Match": 10,
-      "Conflict": 0,
-      "Review": 2,
-      "Unknown": 0
+    "unqualifiedConfirmationDiagnostics": {
+      "Match": 2
     },
-    "finalUnqualifiedConfirmationDiagnostics": {
-      "Match": 11,
-      "Conflict": 0,
-      "Review": 1,
-      "Unknown": 0
-    },
-    "reviewBasedPositiveLossesCannotBeCertified": true,
+    "reviewBasedPositiveLosses": 1,
+    "positiveLossPairs": [
+      [
+        "B00AXI9WFS",
+        "v1|318571029833|0"
+      ]
+    ],
+    "compatibleAdmission": "No persisted Compatible examples; synthetic qualification alone is not admission proof.",
+    "curatedPositivesRetained": 15,
+    "curatedNegativesDefiniteNonMatch": 18,
     "deploymentAllowed": false,
     "refreshAllowed": false
   },
-  "fieldCorrectionChecks": {
-    "annotatedCorrections": 17,
-    "uncorrectedParserMatches": 0,
-    "afterScopedApplicationMatches": 17,
-    "notPopulationParserAccuracy": true
-  },
-  "matcherChanges": [
-    "Shadow-only standalone installment-position reconciliation using corroborating Game Name; ordered product words and number must be identical.",
-    "Shadow-only Review for one-sided unresolved installment after core-name agreement; no invented base installment and no hard-block promotion.",
-    "Split repeated Game Names only outside parentheses/brackets, preserving platform/year metadata as one source."
-  ],
-  "remainingDisagreements": [
+  "matcherChanges": [],
+  "disagreements": [
     {
       "pair": [
         "B00AXI9WFS",
         "v1|318571029833|0"
       ],
-      "classification": "insufficient evidence / operator scope clarification",
-      "detail": "Amazon generation unknown, listing explicitly 1.0 plus extra 3.0 disc/accessories. Core corrections do not certify generation or whole-package equivalence."
+      "classification": "insufficient evidence",
+      "detail": "Qualified positive remains Review: reference generation/installment unknown, listing 1.0 and separate 3.0 disc/accessories. Core corrections do not establish missing reference generation or whole-package equivalence. No general matcher change justified."
     },
     {
       "pair": [
-        "B07JMHZMX1",
-        "v1|158089049996|0"
+        "B01KIH8ADS",
+        "v1|227032903283|0"
       ],
-      "classification": "independent condition safeguard, not identity disagreement",
-      "detail": "Identity Match; used-condition disclaimer still blocks static sourcing admission."
+      "classification": "operator/provenance issue",
+      "detail": "No persisted variation follow-up; latest scope unknown/false."
+    },
+    {
+      "pair": [
+        "B01LDUYU60",
+        "v1|295925010221|0"
+      ],
+      "classification": "operator/provenance issue",
+      "detail": "No persisted variation follow-up; latest scope unknown/false."
     }
   ],
+  "negativeReviewExplanation": "The BIGS 2 / The BIGS retains omitted-versus-conflicting installment distinction and is excluded as Review, satisfying negative exclusion. No Match.",
+  "separateBusinessOutcome": "Minecraft B07JMHZMX1 / v1|158089049996|0 is identity Match; condition disclaimer retains static Blocked for used condition. This is not an identity-positive loss.",
   "tierBCDiagnostics": {
-    "rerun": false,
-    "reason": "Task requires this after strict truth passes; zero Tier A and unresolved Disney scope prevent that step. Prior B/C results remain historical, not current candidate measurements."
+    "rerunAfterStrictGateEvaluated": true,
+    "strictGateImpact": false,
+    "results": {
+      "strictRows": {
+        "B": {
+          "non-match": 200,
+          "match": 186,
+          "needs_review": 5
+        },
+        "C": {}
+      },
+      "broaderRows": {
+        "B": {
+          "match": 183,
+          "non-match": 202,
+          "needs_review": 5
+        },
+        "C": {
+          "match": 1024,
+          "non-match": 573,
+          "needs_review": 88
+        }
+      }
+    },
+    "cohortsOverlap": true,
+    "source": "Frozen reconciled historical evidence; no new broad production reads."
   },
   "tests": {
-    "pythonTests": 197,
-    "newCorpusTests": 17,
-    "apiRpcCalls": 195,
+    "python": 160,
+    "apiRpcCalls": 257,
+    "containerPython": 20,
     "apiUiIndicators": 150,
-    "offlinePanelsRendered": 15,
-    "containerTests": 41,
-    "schedulerBuild": "local only, passed",
-    "schedulerImage": "sha256:c5c3fdea44f1d15c9ea422be0950a7343e0a7c1af72adf90082db968e5086c99",
+    "panels": 15,
+    "componentControlsDiagnostics": "passed",
     "pyCompile": "passed",
     "focusedLint": "passed",
-    "nextBuild": "not needed; no web runtime change",
-    "curatedPositiveRetained": 15,
-    "curatedPositiveLost": 0,
-    "curatedNegativeDefiniteNonMatch": 18,
-    "productionDefaultStaticAndScorerEqual": 1609,
-    "frozenAndCurrentVerdictsUnchanged": 1600,
+    "productionDefaultOutputsUnchanged": 1609,
+    "shadowVerdictsUnchanged": 1600,
     "businessChecksUnchanged": 1600,
-    "priorArtifactHashesUnchanged": 17,
-    "authenticatedProductionUi": "Not accessed; this is persisted evidence validation, not production feature verification."
+    "schedulerBuild": "Not needed: no Python runtime change; existing image with current source mounted readonly and network disabled.",
+    "nextBuild": "Not needed: no web code change.",
+    "disposableDatabase": "stopped"
   },
   "productionChanges": {
     "deployments": 0,
@@ -133,28 +156,19 @@
     "providerSearches": 0,
     "marketplaceWrites": 0,
     "reviewWrites": 0,
-    "routingWrites": 0,
-    "historicalRewrites": 0,
-    "protectedLifecycleWrites": 0,
-    "holdChanges": 0
+    "routingChanges": 0,
+    "businessHoldChanges": 0,
+    "lifecycleChanges": 0,
+    "schedulerChanges": 0
   },
   "baselineCodeHashes": {
-    "integrations/video_game_identity.py": "af74c7879a0e17bbd2110567d49e736fe74d168a627b614a8fbbcf17a22ebab1",
+    "integrations/video_game_identity.py": "94662d1c3e90ba584926dfbb19000c16f9f7e3e2184ca115a4d01c100ca41c0d",
     "integrations/matching_feedback.py": "69aae59b6def4e7438e586b2d03c94189a4de6f43249d7205ba97b862246bd98",
     "integrations/sourcing_match_rules.py": "fe2ecafa1daf76ad7c69fa5e5f16e9ca8d511372aaca52082118c9ed4c4e0ed2",
     "integrations/score_sourcing_opportunities.py": "d24348085b7dbd0d4f8819192b17cac46899a866bd80d221793d3ee7dc148474",
     "web/app/api/sourcing/adjudication/queue.json": "c193fc6672dbb15a71fc2c20a206ea81e6f52bd1b74c3c16d53a31070c97e137"
   },
-  "candidateCodeHashes": {
-    "integrations/video_game_identity.py": "94662d1c3e90ba584926dfbb19000c16f9f7e3e2184ca115a4d01c100ca41c0d",
-    "integrations/matching_feedback.py": "69aae59b6def4e7438e586b2d03c94189a4de6f43249d7205ba97b862246bd98",
-    "integrations/sourcing_match_rules.py": "fe2ecafa1daf76ad7c69fa5e5f16e9ca8d511372aaca52082118c9ed4c4e0ed2",
-    "integrations/score_sourcing_opportunities.py": "d24348085b7dbd0d4f8819192b17cac46899a866bd80d221793d3ee7dc148474",
-    "web/app/api/sourcing/adjudication/queue.json": "c193fc6672dbb15a71fc2c20a206ea81e6f52bd1b74c3c16d53a31070c97e137",
-    "integrations/validate_sourcing_adjudicated_ground_truth.py": "18605c21aea450df72c384880c49946490dda8e1392f8f82effdc82d4df9365f",
-    "tests/test_sourcing_adjudicated_ground_truth.py": "b6111086a4b14daa8cd95facc2d994cc245ce9633ee486ab1784af32b94e8413",
-    "tests/fixtures/sourcing_adjudicated_identity_regressions_2026-09-13.json": "8b2983ec7b589ac5069755f8d6b39691518dcbc4863f6d54009426d97b767c0c"
-  },
+  "validatorHash": "874a60e2c1fa843f408fe82fb28afcf1e6a342486064bbd0e4f83a120aeda081",
   "rows": [
     {
       "queueId": "7f08f8ed-86a8-453a-aaf2-762c51acb069",
@@ -174,7 +188,18 @@
         "evaluationId": null,
         "identityAttested": null,
         "variationVerified": null,
-        "variationResolution": null,
+        "variationResolution": "unknown",
+        "exactVariationId": null,
+        "variationProvenance": {
+          "actionId": null,
+          "actor": null,
+          "timestamp": null,
+          "targetActionId": null,
+          "provenanceErrors": [
+            "no variation evidence"
+          ],
+          "snapshotId": null
+        },
         "source": null,
         "qualificationReasons": [
           "intentional informational mixed-lot exclusion"
@@ -190,10 +215,10 @@
       },
       "referenceTitle": "FIFA 18 (PS4) [video game]",
       "listingTitle": "FIFA 18 , Tom Clancy\u2019s The Division & Destiny 2 , Lot Of 3 , PS4 Free Shipping",
-      "frozenInputFile": "web/app/api/sourcing/adjudication/queue.json",
-      "sourceInputHash": null,
       "stateRevision": "d751713988987e9331980363e24189ce",
-      "rawStateHash": "0e48e69444c076af43e99788957c063defae83017f1f57e431d7ab0ec018ddfe"
+      "rawStateHash": "0e48e69444c076af43e99788957c063defae83017f1f57e431d7ab0ec018ddfe",
+      "sourceInputHash": null,
+      "exclusionState": true
     },
     {
       "queueId": "d7eb4172-eb08-4197-8c4b-360983272928",
@@ -214,6 +239,15 @@
         "identityAttested": false,
         "variationVerified": false,
         "variationResolution": "unknown",
+        "exactVariationId": null,
+        "variationProvenance": {
+          "actionId": "f51eb93d-5670-4faa-8998-eb54ad1a052f",
+          "actor": "b8f14380-e031-70e8-2e94-a6387670b338",
+          "timestamp": "2026-09-14T01:43:47.930621+00:00",
+          "targetActionId": null,
+          "provenanceErrors": [],
+          "snapshotId": "17ae915b-565f-494c-8f10-3cfce65ca740"
+        },
         "source": "identity_adjudication_queue",
         "qualificationReasons": [
           "verified exact-pair negative; positive/variation assertions not required"
@@ -235,13 +269,12 @@
       },
       "referenceTitle": "Subnautica - Xbox One [Xbox One]",
       "listingTitle": "Subnautica: Below Zero -- Standard Edition (Microsoft Xbox One/Xbox Series X/S,",
-      "frozenInputFile": "web/app/api/sourcing/adjudication/queue.json",
-      "sourceInputHash": "1db08879a0b32f6474f6c0840f942c058fa9fb9b1498a4f485c1fc82ab2d3c56",
       "stateRevision": "1c88ba5603fd238e266245c017486703",
       "rawStateHash": "63abaa23a9d0106e5445b2a9ead9c781bcc2162d02ebb6e9cbd52e73be7d001f",
-      "beforeShadowVerdict": "non-match",
-      "afterShadowVerdict": "non-match",
-      "identityAdmission": "Conflict",
+      "sourceInputHash": "1db08879a0b32f6474f6c0840f942c058fa9fb9b1498a4f485c1fc82ab2d3c56",
+      "exclusionState": false,
+      "shadowIdentityVerdict": "non-match",
+      "finalIdentityAdmission": "Conflict",
       "eligibleForNormalBusinessEvaluation": false,
       "staticRecommendation": "Blocked",
       "staticHardBlocks": [
@@ -249,8 +282,7 @@
         "Supported values differ",
         "video game identity conflict: coreProduct conflict: Amazon subnautica, eBay subnautica below zero s; coreGame conflict: Amazon subnautica, eBay subnautica below zero s"
       ],
-      "staticWarnings": [],
-      "comparisonsBefore": {
+      "comparisons": {
         "franchise": {
           "field": "franchise",
           "result": "unknown",
@@ -372,153 +404,9 @@
           "ebayEvidenceRef": "ebay.fields.digitalPhysical"
         }
       },
-      "comparisonsAfter": {
-        "franchise": {
-          "field": "franchise",
-          "result": "unknown",
-          "relation": "unknown",
-          "amazon": null,
-          "ebay": null,
-          "reason": "Omitted information is not a contradiction or a pass",
-          "amazonEvidenceRef": "amazon.fields.franchise",
-          "ebayEvidenceRef": "ebay.fields.franchise"
-        },
-        "coreProduct": {
-          "field": "coreProduct",
-          "result": "conflict",
-          "relation": "explicit_conflict",
-          "amazon": "subnautica",
-          "ebay": "subnautica below zero s",
-          "reason": "Supported values differ",
-          "amazonEvidenceRef": "amazon.fields.coreProduct",
-          "ebayEvidenceRef": "ebay.fields.coreProduct"
-        },
-        "coreGame": {
-          "field": "coreGame",
-          "result": "conflict",
-          "relation": "explicit_conflict",
-          "amazon": "subnautica",
-          "ebay": "subnautica below zero s",
-          "reason": "Supported values differ",
-          "amazonEvidenceRef": "amazon.fields.coreGame",
-          "ebayEvidenceRef": "ebay.fields.coreGame"
-        },
-        "installment": {
-          "field": "installment",
-          "result": "unknown",
-          "relation": "unknown",
-          "amazon": null,
-          "ebay": null,
-          "reason": "Omitted information is not a contradiction or a pass",
-          "amazonEvidenceRef": "amazon.fields.installment",
-          "ebayEvidenceRef": "ebay.fields.installment"
-        },
-        "generation": {
-          "field": "generation",
-          "result": "unknown",
-          "relation": "unknown",
-          "amazon": null,
-          "ebay": null,
-          "reason": "Omitted information is not a contradiction or a pass",
-          "amazonEvidenceRef": "amazon.fields.generation",
-          "ebayEvidenceRef": "ebay.fields.generation"
-        },
-        "theme": {
-          "field": "theme",
-          "result": "unknown",
-          "relation": "unknown",
-          "amazon": null,
-          "ebay": null,
-          "reason": "Omitted information is not a contradiction or a pass",
-          "amazonEvidenceRef": "amazon.fields.theme",
-          "ebayEvidenceRef": "ebay.fields.theme"
-        },
-        "edition": {
-          "field": "edition",
-          "result": "unknown",
-          "relation": "compatible_omission",
-          "amazon": null,
-          "ebay": "Standard Edition",
-          "reason": "Omitted information is not a contradiction or a pass",
-          "amazonEvidenceRef": "amazon.fields.edition",
-          "ebayEvidenceRef": "ebay.fields.edition"
-        },
-        "packageType": {
-          "field": "packageType",
-          "result": "unknown",
-          "relation": "unknown",
-          "amazon": null,
-          "ebay": null,
-          "reason": "Omitted information is not a contradiction or a pass",
-          "amazonEvidenceRef": "amazon.fields.packageType",
-          "ebayEvidenceRef": "ebay.fields.packageType"
-        },
-        "platform": {
-          "field": "platform",
-          "result": "match",
-          "relation": "same",
-          "amazon": "Xbox One",
-          "ebay": "Xbox Series X",
-          "reason": "Supported normalized values agree",
-          "amazonEvidenceRef": "amazon.fields.platform",
-          "ebayEvidenceRef": "ebay.fields.platform"
-        },
-        "region": {
-          "field": "region",
-          "result": "unknown",
-          "relation": "unknown",
-          "amazon": null,
-          "ebay": null,
-          "reason": "Omitted information is not a contradiction or a pass",
-          "amazonEvidenceRef": "amazon.fields.region",
-          "ebayEvidenceRef": "ebay.fields.region"
-        },
-        "completeness": {
-          "field": "completeness",
-          "result": "unknown",
-          "relation": "unknown",
-          "amazon": null,
-          "ebay": null,
-          "reason": "Omitted information is not a contradiction or a pass",
-          "amazonEvidenceRef": "amazon.fields.completeness",
-          "ebayEvidenceRef": "ebay.fields.completeness"
-        },
-        "digitalPhysical": {
-          "field": "digitalPhysical",
-          "result": "unknown",
-          "relation": "unknown",
-          "amazon": null,
-          "ebay": null,
-          "reason": "Omitted information is not a contradiction or a pass",
-          "amazonEvidenceRef": "amazon.fields.digitalPhysical",
-          "ebayEvidenceRef": "ebay.fields.digitalPhysical"
-        }
-      },
-      "routingReason": "coreProduct conflict: Amazon subnautica, eBay subnautica below zero s; coreGame conflict: Amazon subnautica, eBay subnautica below zero s",
+      "reason": "coreProduct conflict: Amazon subnautica, eBay subnautica below zero s; coreGame conflict: Amazon subnautica, eBay subnautica below zero s",
       "correctionApplication": [],
-      "unknownFields": {
-        "amazon": [
-          "franchise",
-          "installment",
-          "generation",
-          "theme",
-          "edition",
-          "packageType",
-          "region",
-          "completeness",
-          "digitalPhysical"
-        ],
-        "ebay": [
-          "franchise",
-          "installment",
-          "generation",
-          "theme",
-          "packageType",
-          "region",
-          "completeness",
-          "digitalPhysical"
-        ]
-      }
+      "pairVerdictUsedAsInput": false
     },
     {
       "queueId": "9ada02ce-14c4-4b90-9bbe-7c210ff07d38",
@@ -528,7 +416,7 @@
       "sourceSnapshotId": "7767cdbb-9555-4c05-9291-1bc152575509",
       "frozenEvaluationId": "ef75811b15afe932f576708ed3a372890babd3b1bf69aca6374bdd04a6e8544f",
       "evidence": {
-        "class": "unresolved",
+        "class": "tier_a_positive",
         "verdict": "correct",
         "verdictActionId": "e30b0efa-19eb-40ac-b82f-f9452d572596",
         "verdictTimestamp": "2026-09-14T01:44:43.141704+00:00",
@@ -537,11 +425,20 @@
         "snapshotId": "cc6985ab-ef69-46a9-8165-f1bc89c38d0e",
         "evaluationId": "ef75811b15afe932f576708ed3a372890babd3b1bf69aca6374bdd04a6e8544f",
         "identityAttested": true,
-        "variationVerified": false,
-        "variationResolution": "unknown",
+        "variationVerified": true,
+        "variationResolution": "not_applicable",
+        "exactVariationId": null,
+        "variationProvenance": {
+          "actionId": "2e9a1d26-a107-4795-a9c9-1efb6b1d112e",
+          "actor": "b8f14380-e031-70e8-2e94-a6387670b338",
+          "timestamp": "2026-09-14T03:43:58.740936+00:00",
+          "targetActionId": "e30b0efa-19eb-40ac-b82f-f9452d572596",
+          "provenanceErrors": [],
+          "snapshotId": "c0b883ed-2fe6-47dc-96e7-a54690ebe201"
+        },
         "source": "identity_adjudication_queue",
         "qualificationReasons": [
-          "variation scope/not-applicable verification unchecked"
+          "verified exact-pair provenance; positive identity and variation assertions present"
         ],
         "verdictProvenanceErrors": [],
         "corrections": [],
@@ -549,6 +446,13 @@
         "relationships": [],
         "newerEvidenceActionIds": [],
         "lineage": [
+          {
+            "actionId": "2e9a1d26-a107-4795-a9c9-1efb6b1d112e",
+            "timestamp": "2026-09-14T03:43:58.740936+00:00",
+            "verdict": "not_provided",
+            "snapshotId": "c0b883ed-2fe6-47dc-96e7-a54690ebe201",
+            "hash": "749169dcccd6fb010d0fa3a72277a91e4abff881c1d1e9a212ee86c661c66be2"
+          },
           {
             "actionId": "e30b0efa-19eb-40ac-b82f-f9452d572596",
             "timestamp": "2026-09-14T01:44:43.141704+00:00",
@@ -560,18 +464,16 @@
       },
       "referenceTitle": "Minecraft \u2013 Xbox One [video game]",
       "listingTitle": "Minecraft Microsoft Xbox One - Brand New Sealed",
-      "frozenInputFile": "web/app/api/sourcing/adjudication/queue.json",
+      "stateRevision": "891c557282e192834a9dfa29fbd8ac15",
+      "rawStateHash": "b8634f4381f7bcc805c972109817d9ce23c40fe3ead1692aec86654c01df7dc8",
       "sourceInputHash": "76ced0117679664e853f70f824ef9fabe3f19c8933ae26505f64a640811b5dff",
-      "stateRevision": "cea863195e3c7e5fe3bbd8e7bd693f5d",
-      "rawStateHash": "b370b7a9e2e0c362ae0a267d26274077c4cde336d46953b8cfa725fe52a7e996",
-      "beforeShadowVerdict": "match",
-      "afterShadowVerdict": "match",
-      "identityAdmission": "Match",
+      "exclusionState": false,
+      "shadowIdentityVerdict": "match",
+      "finalIdentityAdmission": "Match",
       "eligibleForNormalBusinessEvaluation": true,
       "staticRecommendation": "Probable Match",
       "staticHardBlocks": [],
-      "staticWarnings": [],
-      "comparisonsBefore": {
+      "comparisons": {
         "franchise": {
           "field": "franchise",
           "result": "unknown",
@@ -693,154 +595,9 @@
           "ebayEvidenceRef": "ebay.fields.digitalPhysical"
         }
       },
-      "comparisonsAfter": {
-        "franchise": {
-          "field": "franchise",
-          "result": "unknown",
-          "relation": "unknown",
-          "amazon": null,
-          "ebay": null,
-          "reason": "Omitted information is not a contradiction or a pass",
-          "amazonEvidenceRef": "amazon.fields.franchise",
-          "ebayEvidenceRef": "ebay.fields.franchise"
-        },
-        "coreProduct": {
-          "field": "coreProduct",
-          "result": "match",
-          "relation": "same",
-          "amazon": "minecraft",
-          "ebay": "minecraft",
-          "reason": "Supported normalized values agree",
-          "amazonEvidenceRef": "amazon.fields.coreProduct",
-          "ebayEvidenceRef": "ebay.fields.coreProduct"
-        },
-        "coreGame": {
-          "field": "coreGame",
-          "result": "match",
-          "relation": "same",
-          "amazon": "minecraft",
-          "ebay": "minecraft",
-          "reason": "Supported normalized values agree",
-          "amazonEvidenceRef": "amazon.fields.coreGame",
-          "ebayEvidenceRef": "ebay.fields.coreGame"
-        },
-        "installment": {
-          "field": "installment",
-          "result": "unknown",
-          "relation": "unknown",
-          "amazon": null,
-          "ebay": null,
-          "reason": "Omitted information is not a contradiction or a pass",
-          "amazonEvidenceRef": "amazon.fields.installment",
-          "ebayEvidenceRef": "ebay.fields.installment"
-        },
-        "generation": {
-          "field": "generation",
-          "result": "unknown",
-          "relation": "unknown",
-          "amazon": null,
-          "ebay": null,
-          "reason": "Omitted information is not a contradiction or a pass",
-          "amazonEvidenceRef": "amazon.fields.generation",
-          "ebayEvidenceRef": "ebay.fields.generation"
-        },
-        "theme": {
-          "field": "theme",
-          "result": "unknown",
-          "relation": "unknown",
-          "amazon": null,
-          "ebay": null,
-          "reason": "Omitted information is not a contradiction or a pass",
-          "amazonEvidenceRef": "amazon.fields.theme",
-          "ebayEvidenceRef": "ebay.fields.theme"
-        },
-        "edition": {
-          "field": "edition",
-          "result": "unknown",
-          "relation": "unknown",
-          "amazon": null,
-          "ebay": null,
-          "reason": "Omitted information is not a contradiction or a pass",
-          "amazonEvidenceRef": "amazon.fields.edition",
-          "ebayEvidenceRef": "ebay.fields.edition"
-        },
-        "packageType": {
-          "field": "packageType",
-          "result": "unknown",
-          "relation": "unknown",
-          "amazon": null,
-          "ebay": null,
-          "reason": "Omitted information is not a contradiction or a pass",
-          "amazonEvidenceRef": "amazon.fields.packageType",
-          "ebayEvidenceRef": "ebay.fields.packageType"
-        },
-        "platform": {
-          "field": "platform",
-          "result": "match",
-          "relation": "same",
-          "amazon": "Xbox One",
-          "ebay": "Xbox One",
-          "reason": "Supported normalized values agree",
-          "amazonEvidenceRef": "amazon.fields.platform",
-          "ebayEvidenceRef": "ebay.fields.platform"
-        },
-        "region": {
-          "field": "region",
-          "result": "unknown",
-          "relation": "unknown",
-          "amazon": null,
-          "ebay": null,
-          "reason": "Omitted information is not a contradiction or a pass",
-          "amazonEvidenceRef": "amazon.fields.region",
-          "ebayEvidenceRef": "ebay.fields.region"
-        },
-        "completeness": {
-          "field": "completeness",
-          "result": "unknown",
-          "relation": "unknown",
-          "amazon": null,
-          "ebay": null,
-          "reason": "Omitted information is not a contradiction or a pass",
-          "amazonEvidenceRef": "amazon.fields.completeness",
-          "ebayEvidenceRef": "ebay.fields.completeness"
-        },
-        "digitalPhysical": {
-          "field": "digitalPhysical",
-          "result": "unknown",
-          "relation": "unknown",
-          "amazon": null,
-          "ebay": null,
-          "reason": "Omitted information is not a contradiction or a pass",
-          "amazonEvidenceRef": "amazon.fields.digitalPhysical",
-          "ebayEvidenceRef": "ebay.fields.digitalPhysical"
-        }
-      },
-      "routingReason": "Identity matched or unknown; unknown fields are not positive evidence.",
+      "reason": "Identity matched or unknown; unknown fields are not positive evidence.",
       "correctionApplication": [],
-      "unknownFields": {
-        "amazon": [
-          "franchise",
-          "installment",
-          "generation",
-          "theme",
-          "edition",
-          "packageType",
-          "region",
-          "completeness",
-          "digitalPhysical"
-        ],
-        "ebay": [
-          "franchise",
-          "installment",
-          "generation",
-          "theme",
-          "edition",
-          "packageType",
-          "region",
-          "completeness",
-          "digitalPhysical"
-        ]
-      }
+      "pairVerdictUsedAsInput": false
     },
     {
       "queueId": "b06ded4b-90cb-48c4-a670-d30a17dc90c0",
@@ -850,7 +607,7 @@
       "sourceSnapshotId": "894821b7-8fc3-400c-97cd-490b36f41915",
       "frozenEvaluationId": "b56a8ba5a98ff7e44f1a9358df69b2f2dda82900a3d9a18dc3da99a2e04fecea",
       "evidence": {
-        "class": "unresolved",
+        "class": "tier_a_positive",
         "verdict": "correct",
         "verdictActionId": "54c44df0-9f7f-4239-883b-6b36cb208883",
         "verdictTimestamp": "2026-09-14T01:45:44.571314+00:00",
@@ -859,11 +616,20 @@
         "snapshotId": "7793e1a9-10b1-42fa-b550-567f9dc773a6",
         "evaluationId": "b56a8ba5a98ff7e44f1a9358df69b2f2dda82900a3d9a18dc3da99a2e04fecea",
         "identityAttested": true,
-        "variationVerified": false,
-        "variationResolution": "unknown",
+        "variationVerified": true,
+        "variationResolution": "not_applicable",
+        "exactVariationId": null,
+        "variationProvenance": {
+          "actionId": "c698ea7a-aa02-4de8-b635-32b9c57da446",
+          "actor": "b8f14380-e031-70e8-2e94-a6387670b338",
+          "timestamp": "2026-09-14T03:45:40.996692+00:00",
+          "targetActionId": "54c44df0-9f7f-4239-883b-6b36cb208883",
+          "provenanceErrors": [],
+          "snapshotId": "54a1f424-5665-425f-a579-34d749428ca5"
+        },
         "source": "identity_adjudication_queue",
         "qualificationReasons": [
-          "variation scope/not-applicable verification unchecked"
+          "verified exact-pair provenance; positive identity and variation assertions present"
         ],
         "verdictProvenanceErrors": [],
         "corrections": [
@@ -897,6 +663,13 @@
         "newerEvidenceActionIds": [],
         "lineage": [
           {
+            "actionId": "c698ea7a-aa02-4de8-b635-32b9c57da446",
+            "timestamp": "2026-09-14T03:45:40.996692+00:00",
+            "verdict": "not_provided",
+            "snapshotId": "54a1f424-5665-425f-a579-34d749428ca5",
+            "hash": "bd276913f0ea95d6c347234d7a6aefaadc9c835ba7646b6b9dd2591ffea103d5"
+          },
+          {
             "actionId": "54c44df0-9f7f-4239-883b-6b36cb208883",
             "timestamp": "2026-09-14T01:45:44.571314+00:00",
             "verdict": "correct",
@@ -907,18 +680,16 @@
       },
       "referenceTitle": "Control Ultimate Edition - Xbox Series X",
       "listingTitle": "Control Ultimate Edition - Microsoft Xbox Series X|S - Brand New Factory Sealed",
-      "frozenInputFile": "web/app/api/sourcing/adjudication/queue.json",
+      "stateRevision": "ac70134192b00530584b1e5a03f302c1",
+      "rawStateHash": "1845bee5919918524afc454649cd206312c840130f6a507379f20c2deb10738e",
       "sourceInputHash": "ae40bf51c3bdbf9e436e9fc71a97d7636a445211a0c8b12e026e56a6ed5afd94",
-      "stateRevision": "9327c04781cb1f43e4678fff61617e18",
-      "rawStateHash": "ef5e2812d5e9a33a2ece65253d130aff4b94f0ac87a70ab1caaa0d947ee44b67",
-      "beforeShadowVerdict": "match",
-      "afterShadowVerdict": "match",
-      "identityAdmission": "Match",
+      "exclusionState": false,
+      "shadowIdentityVerdict": "match",
+      "finalIdentityAdmission": "Match",
       "eligibleForNormalBusinessEvaluation": true,
       "staticRecommendation": "Probable Match",
       "staticHardBlocks": [],
-      "staticWarnings": [],
-      "comparisonsBefore": {
+      "comparisons": {
         "franchise": {
           "field": "franchise",
           "result": "unknown",
@@ -1040,129 +811,7 @@
           "ebayEvidenceRef": "ebay.fields.digitalPhysical"
         }
       },
-      "comparisonsAfter": {
-        "franchise": {
-          "field": "franchise",
-          "result": "unknown",
-          "relation": "unknown",
-          "amazon": null,
-          "ebay": null,
-          "reason": "Omitted information is not a contradiction or a pass",
-          "amazonEvidenceRef": "amazon.fields.franchise",
-          "ebayEvidenceRef": "ebay.fields.franchise"
-        },
-        "coreProduct": {
-          "field": "coreProduct",
-          "result": "match",
-          "relation": "same",
-          "amazon": "control",
-          "ebay": "control",
-          "reason": "Supported normalized values agree",
-          "amazonEvidenceRef": "amazon.fields.coreProduct",
-          "ebayEvidenceRef": "ebay.fields.coreProduct"
-        },
-        "coreGame": {
-          "field": "coreGame",
-          "result": "match",
-          "relation": "same",
-          "amazon": "control",
-          "ebay": "control",
-          "reason": "Supported normalized values agree",
-          "amazonEvidenceRef": "amazon.fields.coreGame",
-          "ebayEvidenceRef": "ebay.fields.coreGame"
-        },
-        "installment": {
-          "field": "installment",
-          "result": "unknown",
-          "relation": "unknown",
-          "amazon": null,
-          "ebay": null,
-          "reason": "Omitted information is not a contradiction or a pass",
-          "amazonEvidenceRef": "amazon.fields.installment",
-          "ebayEvidenceRef": "ebay.fields.installment"
-        },
-        "generation": {
-          "field": "generation",
-          "result": "unknown",
-          "relation": "unknown",
-          "amazon": null,
-          "ebay": null,
-          "reason": "Omitted information is not a contradiction or a pass",
-          "amazonEvidenceRef": "amazon.fields.generation",
-          "ebayEvidenceRef": "ebay.fields.generation"
-        },
-        "theme": {
-          "field": "theme",
-          "result": "unknown",
-          "relation": "unknown",
-          "amazon": null,
-          "ebay": null,
-          "reason": "Omitted information is not a contradiction or a pass",
-          "amazonEvidenceRef": "amazon.fields.theme",
-          "ebayEvidenceRef": "ebay.fields.theme"
-        },
-        "edition": {
-          "field": "edition",
-          "result": "match",
-          "relation": "same",
-          "amazon": "Ultimate Edition",
-          "ebay": "Ultimate Edition",
-          "reason": "Supported normalized values agree",
-          "amazonEvidenceRef": "amazon.fields.edition",
-          "ebayEvidenceRef": "ebay.fields.edition"
-        },
-        "packageType": {
-          "field": "packageType",
-          "result": "unknown",
-          "relation": "unknown",
-          "amazon": null,
-          "ebay": null,
-          "reason": "Omitted information is not a contradiction or a pass",
-          "amazonEvidenceRef": "amazon.fields.packageType",
-          "ebayEvidenceRef": "ebay.fields.packageType"
-        },
-        "platform": {
-          "field": "platform",
-          "result": "match",
-          "relation": "same",
-          "amazon": "Xbox Series X",
-          "ebay": "Xbox Series X",
-          "reason": "Supported normalized values agree",
-          "amazonEvidenceRef": "amazon.fields.platform",
-          "ebayEvidenceRef": "ebay.fields.platform"
-        },
-        "region": {
-          "field": "region",
-          "result": "unknown",
-          "relation": "unknown",
-          "amazon": null,
-          "ebay": null,
-          "reason": "Omitted information is not a contradiction or a pass",
-          "amazonEvidenceRef": "amazon.fields.region",
-          "ebayEvidenceRef": "ebay.fields.region"
-        },
-        "completeness": {
-          "field": "completeness",
-          "result": "unknown",
-          "relation": "unknown",
-          "amazon": null,
-          "ebay": null,
-          "reason": "Omitted information is not a contradiction or a pass",
-          "amazonEvidenceRef": "amazon.fields.completeness",
-          "ebayEvidenceRef": "ebay.fields.completeness"
-        },
-        "digitalPhysical": {
-          "field": "digitalPhysical",
-          "result": "unknown",
-          "relation": "unknown",
-          "amazon": null,
-          "ebay": null,
-          "reason": "Omitted information is not a contradiction or a pass",
-          "amazonEvidenceRef": "amazon.fields.digitalPhysical",
-          "ebayEvidenceRef": "ebay.fields.digitalPhysical"
-        }
-      },
-      "routingReason": "Identity matched or unknown; unknown fields are not positive evidence.",
+      "reason": "Identity matched or unknown; unknown fields are not positive evidence.",
       "correctionApplication": [
         {
           "actionId": "54c44df0-9f7f-4239-883b-6b36cb208883",
@@ -1179,28 +828,7 @@
           "result": "applied"
         }
       ],
-      "unknownFields": {
-        "amazon": [
-          "franchise",
-          "installment",
-          "generation",
-          "theme",
-          "packageType",
-          "region",
-          "completeness",
-          "digitalPhysical"
-        ],
-        "ebay": [
-          "franchise",
-          "installment",
-          "generation",
-          "theme",
-          "packageType",
-          "region",
-          "completeness",
-          "digitalPhysical"
-        ]
-      }
+      "pairVerdictUsedAsInput": false
     },
     {
       "queueId": "33751f5c-b525-4991-8dad-30d3d949b729",
@@ -1210,7 +838,7 @@
       "sourceSnapshotId": "e32ae720-02b5-4297-9099-f81e19159cfa",
       "frozenEvaluationId": "30214f7008eb4e627acaceb03601b17d37cc24a64a3e290d063caa50c1d1b8ae",
       "evidence": {
-        "class": "unresolved",
+        "class": "unqualified_confirmation",
         "verdict": "correct",
         "verdictActionId": "75d18bec-0144-426b-9e8b-b53aae2c9793",
         "verdictTimestamp": "2026-09-14T01:46:11.662734+00:00",
@@ -1221,9 +849,19 @@
         "identityAttested": true,
         "variationVerified": false,
         "variationResolution": "unknown",
+        "exactVariationId": null,
+        "variationProvenance": {
+          "actionId": "75d18bec-0144-426b-9e8b-b53aae2c9793",
+          "actor": "b8f14380-e031-70e8-2e94-a6387670b338",
+          "timestamp": "2026-09-14T01:46:11.662734+00:00",
+          "targetActionId": null,
+          "provenanceErrors": [],
+          "snapshotId": "1d130fe6-8a41-4b0e-8dc6-e9993413a41d"
+        },
         "source": "identity_adjudication_queue",
         "qualificationReasons": [
-          "variation scope/not-applicable verification unchecked"
+          "variation scope/not-applicable verification unchecked",
+          "variation resolution is unknown or invalid"
         ],
         "verdictProvenanceErrors": [],
         "corrections": [
@@ -1267,18 +905,16 @@
       },
       "referenceTitle": "NBA 2K17 Standard Edition - PlayStation 3 [video game]",
       "listingTitle": "NBA 2K17 Standard Edition - PlayStation 3, New PlayStation 3,PlayStation 3 Video",
-      "frozenInputFile": "web/app/api/sourcing/adjudication/queue.json",
-      "sourceInputHash": "97bbbd1cf4367e066f87c0032cdbb7ea237f5d5d35d1d67df5a29aed10fdb460",
       "stateRevision": "1a6c75fd087d6ca22ed7da7e9490ce22",
       "rawStateHash": "0a63562c911b6cc863efb7a877b26bd73f67fd5672b60d314c93e680b3a5703b",
-      "beforeShadowVerdict": "match",
-      "afterShadowVerdict": "match",
-      "identityAdmission": "Match",
+      "sourceInputHash": "97bbbd1cf4367e066f87c0032cdbb7ea237f5d5d35d1d67df5a29aed10fdb460",
+      "exclusionState": false,
+      "shadowIdentityVerdict": "match",
+      "finalIdentityAdmission": "Match",
       "eligibleForNormalBusinessEvaluation": true,
       "staticRecommendation": "Probable Match",
       "staticHardBlocks": [],
-      "staticWarnings": [],
-      "comparisonsBefore": {
+      "comparisons": {
         "franchise": {
           "field": "franchise",
           "result": "unknown",
@@ -1400,129 +1036,7 @@
           "ebayEvidenceRef": "ebay.fields.digitalPhysical"
         }
       },
-      "comparisonsAfter": {
-        "franchise": {
-          "field": "franchise",
-          "result": "unknown",
-          "relation": "unknown",
-          "amazon": null,
-          "ebay": null,
-          "reason": "Omitted information is not a contradiction or a pass",
-          "amazonEvidenceRef": "amazon.fields.franchise",
-          "ebayEvidenceRef": "ebay.fields.franchise"
-        },
-        "coreProduct": {
-          "field": "coreProduct",
-          "result": "match",
-          "relation": "same",
-          "amazon": "nba",
-          "ebay": "nba",
-          "reason": "Supported normalized values agree",
-          "amazonEvidenceRef": "amazon.fields.coreProduct",
-          "ebayEvidenceRef": "ebay.fields.coreProduct"
-        },
-        "coreGame": {
-          "field": "coreGame",
-          "result": "match",
-          "relation": "same",
-          "amazon": "nba 2k17",
-          "ebay": "nba 2k17",
-          "reason": "Supported normalized values agree",
-          "amazonEvidenceRef": "amazon.fields.coreGame",
-          "ebayEvidenceRef": "ebay.fields.coreGame"
-        },
-        "installment": {
-          "field": "installment",
-          "result": "match",
-          "relation": "same",
-          "amazon": "17",
-          "ebay": "17",
-          "reason": "Supported normalized values agree",
-          "amazonEvidenceRef": "amazon.fields.installment",
-          "ebayEvidenceRef": "ebay.fields.installment"
-        },
-        "generation": {
-          "field": "generation",
-          "result": "unknown",
-          "relation": "unknown",
-          "amazon": null,
-          "ebay": null,
-          "reason": "Omitted information is not a contradiction or a pass",
-          "amazonEvidenceRef": "amazon.fields.generation",
-          "ebayEvidenceRef": "ebay.fields.generation"
-        },
-        "theme": {
-          "field": "theme",
-          "result": "unknown",
-          "relation": "unknown",
-          "amazon": null,
-          "ebay": null,
-          "reason": "Omitted information is not a contradiction or a pass",
-          "amazonEvidenceRef": "amazon.fields.theme",
-          "ebayEvidenceRef": "ebay.fields.theme"
-        },
-        "edition": {
-          "field": "edition",
-          "result": "match",
-          "relation": "same",
-          "amazon": "Standard Edition",
-          "ebay": "Standard Edition",
-          "reason": "Supported normalized values agree",
-          "amazonEvidenceRef": "amazon.fields.edition",
-          "ebayEvidenceRef": "ebay.fields.edition"
-        },
-        "packageType": {
-          "field": "packageType",
-          "result": "unknown",
-          "relation": "unknown",
-          "amazon": null,
-          "ebay": null,
-          "reason": "Omitted information is not a contradiction or a pass",
-          "amazonEvidenceRef": "amazon.fields.packageType",
-          "ebayEvidenceRef": "ebay.fields.packageType"
-        },
-        "platform": {
-          "field": "platform",
-          "result": "match",
-          "relation": "same",
-          "amazon": "PlayStation 3",
-          "ebay": "PlayStation 3",
-          "reason": "Supported normalized values agree",
-          "amazonEvidenceRef": "amazon.fields.platform",
-          "ebayEvidenceRef": "ebay.fields.platform"
-        },
-        "region": {
-          "field": "region",
-          "result": "unknown",
-          "relation": "unknown",
-          "amazon": null,
-          "ebay": null,
-          "reason": "Omitted information is not a contradiction or a pass",
-          "amazonEvidenceRef": "amazon.fields.region",
-          "ebayEvidenceRef": "ebay.fields.region"
-        },
-        "completeness": {
-          "field": "completeness",
-          "result": "unknown",
-          "relation": "unknown",
-          "amazon": null,
-          "ebay": null,
-          "reason": "Omitted information is not a contradiction or a pass",
-          "amazonEvidenceRef": "amazon.fields.completeness",
-          "ebayEvidenceRef": "ebay.fields.completeness"
-        },
-        "digitalPhysical": {
-          "field": "digitalPhysical",
-          "result": "unknown",
-          "relation": "unknown",
-          "amazon": null,
-          "ebay": null,
-          "reason": "Omitted information is not a contradiction or a pass",
-          "amazonEvidenceRef": "amazon.fields.digitalPhysical",
-          "ebayEvidenceRef": "ebay.fields.digitalPhysical"
-        }
-      },
-      "routingReason": "Identity matched or unknown; unknown fields are not positive evidence.",
+      "reason": "Identity matched or unknown; unknown fields are not positive evidence.",
       "correctionApplication": [
         {
           "actionId": "75d18bec-0144-426b-9e8b-b53aae2c9793",
@@ -1539,26 +1053,7 @@
           "result": "applied"
         }
       ],
-      "unknownFields": {
-        "amazon": [
-          "franchise",
-          "generation",
-          "theme",
-          "packageType",
-          "region",
-          "completeness",
-          "digitalPhysical"
-        ],
-        "ebay": [
-          "franchise",
-          "generation",
-          "theme",
-          "packageType",
-          "region",
-          "completeness",
-          "digitalPhysical"
-        ]
-      }
+      "pairVerdictUsedAsInput": false
     },
     {
       "queueId": "063032b6-eeba-4661-99c5-b4581eeae259",
@@ -1568,7 +1063,7 @@
       "sourceSnapshotId": "d68e8e60-b264-419c-a624-fbac7c662437",
       "frozenEvaluationId": "81f8dfa240d347ead8ba26f6c40f79a0cd122e6280308d9fdcf553eb4afe1bc8",
       "evidence": {
-        "class": "unresolved",
+        "class": "tier_a_positive",
         "verdict": "correct",
         "verdictActionId": "88c4f363-46cb-4f3f-be07-cef42dae1b1f",
         "verdictTimestamp": "2026-09-14T01:46:41.540896+00:00",
@@ -1577,11 +1072,20 @@
         "snapshotId": "945c6e06-7ab6-4035-b9d7-acb6a8bab1fc",
         "evaluationId": "81f8dfa240d347ead8ba26f6c40f79a0cd122e6280308d9fdcf553eb4afe1bc8",
         "identityAttested": true,
-        "variationVerified": false,
-        "variationResolution": "unknown",
+        "variationVerified": true,
+        "variationResolution": "not_applicable",
+        "exactVariationId": null,
+        "variationProvenance": {
+          "actionId": "3b60c6b3-6201-4f3f-80e6-3d7bcf3dc52b",
+          "actor": "b8f14380-e031-70e8-2e94-a6387670b338",
+          "timestamp": "2026-09-14T03:45:55.981348+00:00",
+          "targetActionId": "88c4f363-46cb-4f3f-be07-cef42dae1b1f",
+          "provenanceErrors": [],
+          "snapshotId": "0ecdd375-d681-4ca2-8e7f-011d4267dd07"
+        },
         "source": "identity_adjudication_queue",
         "qualificationReasons": [
-          "variation scope/not-applicable verification unchecked"
+          "verified exact-pair provenance; positive identity and variation assertions present"
         ],
         "verdictProvenanceErrors": [],
         "corrections": [
@@ -1615,6 +1119,13 @@
         "newerEvidenceActionIds": [],
         "lineage": [
           {
+            "actionId": "3b60c6b3-6201-4f3f-80e6-3d7bcf3dc52b",
+            "timestamp": "2026-09-14T03:45:55.981348+00:00",
+            "verdict": "not_provided",
+            "snapshotId": "0ecdd375-d681-4ca2-8e7f-011d4267dd07",
+            "hash": "693a8f876750f88b9c0a97b0f1b35f35a8ba329194b648e00b2fa284c6b506c1"
+          },
+          {
             "actionId": "88c4f363-46cb-4f3f-be07-cef42dae1b1f",
             "timestamp": "2026-09-14T01:46:41.540896+00:00",
             "verdict": "correct",
@@ -1625,18 +1136,16 @@
       },
       "referenceTitle": "Bendy and the Ink Machine (XB1) - Xbox One [Xbox One]",
       "listingTitle": "Bendy and the Ink Machine - Microsoft Xbox One",
-      "frozenInputFile": "web/app/api/sourcing/adjudication/queue.json",
+      "stateRevision": "aa24664b3013b9ce08cda47278bba667",
+      "rawStateHash": "f74608a09e44d379f262b84d4eb5b773bc27ebef3acf261d59a14a95d899753f",
       "sourceInputHash": "62b67d6e252e41ec6879d58ee63ad160329e037f88a21b703b8a48fc535c5ed1",
-      "stateRevision": "249453d70e23280536cc6223fcf9429c",
-      "rawStateHash": "827761f3fe3a3e0ac5d5dd62856be6dd1343457c78f336970250de4b3a8d4a6c",
-      "beforeShadowVerdict": "match",
-      "afterShadowVerdict": "match",
-      "identityAdmission": "Match",
+      "exclusionState": false,
+      "shadowIdentityVerdict": "match",
+      "finalIdentityAdmission": "Match",
       "eligibleForNormalBusinessEvaluation": true,
       "staticRecommendation": "Probable Match",
       "staticHardBlocks": [],
-      "staticWarnings": [],
-      "comparisonsBefore": {
+      "comparisons": {
         "franchise": {
           "field": "franchise",
           "result": "unknown",
@@ -1758,129 +1267,7 @@
           "ebayEvidenceRef": "ebay.fields.digitalPhysical"
         }
       },
-      "comparisonsAfter": {
-        "franchise": {
-          "field": "franchise",
-          "result": "unknown",
-          "relation": "unknown",
-          "amazon": null,
-          "ebay": null,
-          "reason": "Omitted information is not a contradiction or a pass",
-          "amazonEvidenceRef": "amazon.fields.franchise",
-          "ebayEvidenceRef": "ebay.fields.franchise"
-        },
-        "coreProduct": {
-          "field": "coreProduct",
-          "result": "match",
-          "relation": "same",
-          "amazon": "bendy and the ink machine",
-          "ebay": "bendy and the ink machine",
-          "reason": "Supported normalized values agree",
-          "amazonEvidenceRef": "amazon.fields.coreProduct",
-          "ebayEvidenceRef": "ebay.fields.coreProduct"
-        },
-        "coreGame": {
-          "field": "coreGame",
-          "result": "match",
-          "relation": "same",
-          "amazon": "bendy and the ink machine",
-          "ebay": "bendy and the ink machine",
-          "reason": "Supported normalized values agree",
-          "amazonEvidenceRef": "amazon.fields.coreGame",
-          "ebayEvidenceRef": "ebay.fields.coreGame"
-        },
-        "installment": {
-          "field": "installment",
-          "result": "unknown",
-          "relation": "unknown",
-          "amazon": null,
-          "ebay": null,
-          "reason": "Omitted information is not a contradiction or a pass",
-          "amazonEvidenceRef": "amazon.fields.installment",
-          "ebayEvidenceRef": "ebay.fields.installment"
-        },
-        "generation": {
-          "field": "generation",
-          "result": "unknown",
-          "relation": "unknown",
-          "amazon": null,
-          "ebay": null,
-          "reason": "Omitted information is not a contradiction or a pass",
-          "amazonEvidenceRef": "amazon.fields.generation",
-          "ebayEvidenceRef": "ebay.fields.generation"
-        },
-        "theme": {
-          "field": "theme",
-          "result": "unknown",
-          "relation": "unknown",
-          "amazon": null,
-          "ebay": null,
-          "reason": "Omitted information is not a contradiction or a pass",
-          "amazonEvidenceRef": "amazon.fields.theme",
-          "ebayEvidenceRef": "ebay.fields.theme"
-        },
-        "edition": {
-          "field": "edition",
-          "result": "unknown",
-          "relation": "unknown",
-          "amazon": null,
-          "ebay": null,
-          "reason": "Omitted information is not a contradiction or a pass",
-          "amazonEvidenceRef": "amazon.fields.edition",
-          "ebayEvidenceRef": "ebay.fields.edition"
-        },
-        "packageType": {
-          "field": "packageType",
-          "result": "unknown",
-          "relation": "unknown",
-          "amazon": null,
-          "ebay": null,
-          "reason": "Omitted information is not a contradiction or a pass",
-          "amazonEvidenceRef": "amazon.fields.packageType",
-          "ebayEvidenceRef": "ebay.fields.packageType"
-        },
-        "platform": {
-          "field": "platform",
-          "result": "match",
-          "relation": "same",
-          "amazon": "Xbox One",
-          "ebay": "Xbox One",
-          "reason": "Supported normalized values agree",
-          "amazonEvidenceRef": "amazon.fields.platform",
-          "ebayEvidenceRef": "ebay.fields.platform"
-        },
-        "region": {
-          "field": "region",
-          "result": "unknown",
-          "relation": "unknown",
-          "amazon": null,
-          "ebay": null,
-          "reason": "Omitted information is not a contradiction or a pass",
-          "amazonEvidenceRef": "amazon.fields.region",
-          "ebayEvidenceRef": "ebay.fields.region"
-        },
-        "completeness": {
-          "field": "completeness",
-          "result": "unknown",
-          "relation": "unknown",
-          "amazon": null,
-          "ebay": null,
-          "reason": "Omitted information is not a contradiction or a pass",
-          "amazonEvidenceRef": "amazon.fields.completeness",
-          "ebayEvidenceRef": "ebay.fields.completeness"
-        },
-        "digitalPhysical": {
-          "field": "digitalPhysical",
-          "result": "unknown",
-          "relation": "unknown",
-          "amazon": null,
-          "ebay": null,
-          "reason": "Omitted information is not a contradiction or a pass",
-          "amazonEvidenceRef": "amazon.fields.digitalPhysical",
-          "ebayEvidenceRef": "ebay.fields.digitalPhysical"
-        }
-      },
-      "routingReason": "Identity matched or unknown; unknown fields are not positive evidence.",
+      "reason": "Identity matched or unknown; unknown fields are not positive evidence.",
       "correctionApplication": [
         {
           "actionId": "88c4f363-46cb-4f3f-be07-cef42dae1b1f",
@@ -1897,30 +1284,7 @@
           "result": "applied"
         }
       ],
-      "unknownFields": {
-        "amazon": [
-          "franchise",
-          "installment",
-          "generation",
-          "theme",
-          "edition",
-          "packageType",
-          "region",
-          "completeness",
-          "digitalPhysical"
-        ],
-        "ebay": [
-          "franchise",
-          "installment",
-          "generation",
-          "theme",
-          "edition",
-          "packageType",
-          "region",
-          "completeness",
-          "digitalPhysical"
-        ]
-      }
+      "pairVerdictUsedAsInput": false
     },
     {
       "queueId": "4ec62dd8-def1-49a2-b51a-ec1b8e9857b2",
@@ -1930,7 +1294,7 @@
       "sourceSnapshotId": "5b1d653c-6f96-41f4-8643-9a8c61f482f8",
       "frozenEvaluationId": "f0e3e88eb172657adcb92605b84f253b63367348cf0b0d4ccb969fe3d1d5ff5a",
       "evidence": {
-        "class": "unresolved",
+        "class": "unqualified_confirmation",
         "verdict": "correct",
         "verdictActionId": "3eb0daa2-012d-49c6-9014-07b3f8e2f827",
         "verdictTimestamp": "2026-09-14T01:47:03.843467+00:00",
@@ -1941,9 +1305,19 @@
         "identityAttested": true,
         "variationVerified": false,
         "variationResolution": "unknown",
+        "exactVariationId": null,
+        "variationProvenance": {
+          "actionId": "3eb0daa2-012d-49c6-9014-07b3f8e2f827",
+          "actor": "b8f14380-e031-70e8-2e94-a6387670b338",
+          "timestamp": "2026-09-14T01:47:03.843467+00:00",
+          "targetActionId": null,
+          "provenanceErrors": [],
+          "snapshotId": "5f12af76-c4e9-407f-b360-a96eeef44b08"
+        },
         "source": "identity_adjudication_queue",
         "qualificationReasons": [
-          "variation scope/not-applicable verification unchecked"
+          "variation scope/not-applicable verification unchecked",
+          "variation resolution is unknown or invalid"
         ],
         "verdictProvenanceErrors": [],
         "corrections": [
@@ -1987,18 +1361,16 @@
       },
       "referenceTitle": "Super Mario Maker for Nintendo 3DS - Nintendo 3DS",
       "listingTitle": "Super Mario Maker for 3DS Nintendo Selects Edition (Nintendo 3DS, 2019) Sealed",
-      "frozenInputFile": "web/app/api/sourcing/adjudication/queue.json",
-      "sourceInputHash": "dda400983e69e6fb56e5eb1332751ef2e92bdc39f971ab21ee25fa0a486da4bc",
       "stateRevision": "182e608897bb3f8a5cd2a242e119ee99",
       "rawStateHash": "ed94af187075cd1189247e46e008a650ebe2d9f8ea5e59a106627c8c4a21d0e6",
-      "beforeShadowVerdict": "match",
-      "afterShadowVerdict": "match",
-      "identityAdmission": "Match",
+      "sourceInputHash": "dda400983e69e6fb56e5eb1332751ef2e92bdc39f971ab21ee25fa0a486da4bc",
+      "exclusionState": false,
+      "shadowIdentityVerdict": "match",
+      "finalIdentityAdmission": "Match",
       "eligibleForNormalBusinessEvaluation": true,
       "staticRecommendation": "Probable Match",
       "staticHardBlocks": [],
-      "staticWarnings": [],
-      "comparisonsBefore": {
+      "comparisons": {
         "franchise": {
           "field": "franchise",
           "result": "unknown",
@@ -2120,129 +1492,7 @@
           "ebayEvidenceRef": "ebay.fields.digitalPhysical"
         }
       },
-      "comparisonsAfter": {
-        "franchise": {
-          "field": "franchise",
-          "result": "unknown",
-          "relation": "unknown",
-          "amazon": null,
-          "ebay": null,
-          "reason": "Omitted information is not a contradiction or a pass",
-          "amazonEvidenceRef": "amazon.fields.franchise",
-          "ebayEvidenceRef": "ebay.fields.franchise"
-        },
-        "coreProduct": {
-          "field": "coreProduct",
-          "result": "match",
-          "relation": "same",
-          "amazon": "super mario maker",
-          "ebay": "super mario maker",
-          "reason": "Supported normalized values agree",
-          "amazonEvidenceRef": "amazon.fields.coreProduct",
-          "ebayEvidenceRef": "ebay.fields.coreProduct"
-        },
-        "coreGame": {
-          "field": "coreGame",
-          "result": "match",
-          "relation": "same",
-          "amazon": "super mario maker",
-          "ebay": "super mario maker",
-          "reason": "Supported normalized values agree",
-          "amazonEvidenceRef": "amazon.fields.coreGame",
-          "ebayEvidenceRef": "ebay.fields.coreGame"
-        },
-        "installment": {
-          "field": "installment",
-          "result": "unknown",
-          "relation": "unknown",
-          "amazon": null,
-          "ebay": null,
-          "reason": "Omitted information is not a contradiction or a pass",
-          "amazonEvidenceRef": "amazon.fields.installment",
-          "ebayEvidenceRef": "ebay.fields.installment"
-        },
-        "generation": {
-          "field": "generation",
-          "result": "unknown",
-          "relation": "unknown",
-          "amazon": null,
-          "ebay": null,
-          "reason": "Omitted information is not a contradiction or a pass",
-          "amazonEvidenceRef": "amazon.fields.generation",
-          "ebayEvidenceRef": "ebay.fields.generation"
-        },
-        "theme": {
-          "field": "theme",
-          "result": "unknown",
-          "relation": "unknown",
-          "amazon": null,
-          "ebay": null,
-          "reason": "Omitted information is not a contradiction or a pass",
-          "amazonEvidenceRef": "amazon.fields.theme",
-          "ebayEvidenceRef": "ebay.fields.theme"
-        },
-        "edition": {
-          "field": "edition",
-          "result": "unknown",
-          "relation": "unknown",
-          "amazon": null,
-          "ebay": null,
-          "reason": "Omitted information is not a contradiction or a pass",
-          "amazonEvidenceRef": "amazon.fields.edition",
-          "ebayEvidenceRef": "ebay.fields.edition"
-        },
-        "packageType": {
-          "field": "packageType",
-          "result": "unknown",
-          "relation": "unknown",
-          "amazon": null,
-          "ebay": null,
-          "reason": "Omitted information is not a contradiction or a pass",
-          "amazonEvidenceRef": "amazon.fields.packageType",
-          "ebayEvidenceRef": "ebay.fields.packageType"
-        },
-        "platform": {
-          "field": "platform",
-          "result": "match",
-          "relation": "same",
-          "amazon": "Nintendo 3DS",
-          "ebay": "Nintendo 3DS",
-          "reason": "Supported normalized values agree",
-          "amazonEvidenceRef": "amazon.fields.platform",
-          "ebayEvidenceRef": "ebay.fields.platform"
-        },
-        "region": {
-          "field": "region",
-          "result": "unknown",
-          "relation": "compatible_omission",
-          "amazon": null,
-          "ebay": "NTSC-U/C",
-          "reason": "Omitted information is not a contradiction or a pass",
-          "amazonEvidenceRef": "amazon.fields.region",
-          "ebayEvidenceRef": "ebay.fields.region"
-        },
-        "completeness": {
-          "field": "completeness",
-          "result": "unknown",
-          "relation": "unknown",
-          "amazon": null,
-          "ebay": null,
-          "reason": "Omitted information is not a contradiction or a pass",
-          "amazonEvidenceRef": "amazon.fields.completeness",
-          "ebayEvidenceRef": "ebay.fields.completeness"
-        },
-        "digitalPhysical": {
-          "field": "digitalPhysical",
-          "result": "unknown",
-          "relation": "unknown",
-          "amazon": null,
-          "ebay": null,
-          "reason": "Omitted information is not a contradiction or a pass",
-          "amazonEvidenceRef": "amazon.fields.digitalPhysical",
-          "ebayEvidenceRef": "ebay.fields.digitalPhysical"
-        }
-      },
-      "routingReason": "Identity matched or unknown; unknown fields are not positive evidence.",
+      "reason": "Identity matched or unknown; unknown fields are not positive evidence.",
       "correctionApplication": [
         {
           "actionId": "3eb0daa2-012d-49c6-9014-07b3f8e2f827",
@@ -2259,29 +1509,7 @@
           "result": "applied"
         }
       ],
-      "unknownFields": {
-        "amazon": [
-          "franchise",
-          "installment",
-          "generation",
-          "theme",
-          "edition",
-          "packageType",
-          "region",
-          "completeness",
-          "digitalPhysical"
-        ],
-        "ebay": [
-          "franchise",
-          "installment",
-          "generation",
-          "theme",
-          "edition",
-          "packageType",
-          "completeness",
-          "digitalPhysical"
-        ]
-      }
+      "pairVerdictUsedAsInput": false
     },
     {
       "queueId": "ccaffed2-c7bb-48f7-987d-da39289ce622",
@@ -2291,7 +1519,7 @@
       "sourceSnapshotId": "700d85d1-90e0-4e9e-a4b6-f16bfcc96ed5",
       "frozenEvaluationId": "3ee30cf6bd45bd3f19b12688e1d682af1cb4a80f0e4d80743b845fd8f4f20fb3",
       "evidence": {
-        "class": "unresolved",
+        "class": "tier_a_positive",
         "verdict": "correct",
         "verdictActionId": "7801be2e-37ce-4396-a711-d8187b777805",
         "verdictTimestamp": "2026-09-14T01:47:38.189627+00:00",
@@ -2300,11 +1528,20 @@
         "snapshotId": "624d1da5-e794-4a6b-aec0-ca2dca6238b0",
         "evaluationId": "3ee30cf6bd45bd3f19b12688e1d682af1cb4a80f0e4d80743b845fd8f4f20fb3",
         "identityAttested": true,
-        "variationVerified": false,
-        "variationResolution": "unknown",
+        "variationVerified": true,
+        "variationResolution": "not_applicable",
+        "exactVariationId": null,
+        "variationProvenance": {
+          "actionId": "42070a0b-2985-4ee2-ba3f-920dc36b4278",
+          "actor": "b8f14380-e031-70e8-2e94-a6387670b338",
+          "timestamp": "2026-09-14T03:46:01.419653+00:00",
+          "targetActionId": "7801be2e-37ce-4396-a711-d8187b777805",
+          "provenanceErrors": [],
+          "snapshotId": "3a72d2f5-b089-47d5-a9a7-6cd98c7fbad1"
+        },
         "source": "identity_adjudication_queue",
         "qualificationReasons": [
-          "variation scope/not-applicable verification unchecked"
+          "verified exact-pair provenance; positive identity and variation assertions present"
         ],
         "verdictProvenanceErrors": [],
         "corrections": [
@@ -2361,6 +1598,13 @@
         "newerEvidenceActionIds": [],
         "lineage": [
           {
+            "actionId": "42070a0b-2985-4ee2-ba3f-920dc36b4278",
+            "timestamp": "2026-09-14T03:46:01.419653+00:00",
+            "verdict": "not_provided",
+            "snapshotId": "3a72d2f5-b089-47d5-a9a7-6cd98c7fbad1",
+            "hash": "90c6da56a5cda0e80c9cabb60223f83b11094840f065d86a36d4d7106fc24374"
+          },
+          {
             "actionId": "7801be2e-37ce-4396-a711-d8187b777805",
             "timestamp": "2026-09-14T01:47:38.189627+00:00",
             "verdict": "correct",
@@ -2371,18 +1615,16 @@
       },
       "referenceTitle": "Watch Dogs 2 Xbox One",
       "listingTitle": "Watch Dogs 2 - Microsoft Xbox One BRAND NEW FACTORY SEALED SHIPS FREE!",
-      "frozenInputFile": "web/app/api/sourcing/adjudication/queue.json",
+      "stateRevision": "4240f6f00e94762f6161af61c9b56350",
+      "rawStateHash": "0a29d31a5c03314992826e2885af76d75903593f5748722394865602334fb4f9",
       "sourceInputHash": "f98176461280e3c298e759b1002ceb3f07ee037e8cee4ae60df168f79ec493b6",
-      "stateRevision": "f7ece1318eb32d47d5d1964b63401eeb",
-      "rawStateHash": "d2a4f631d873e02cdd5062c6498b3b931ae1dabf09b09f294f240d421cd4350a",
-      "beforeShadowVerdict": "match",
-      "afterShadowVerdict": "match",
-      "identityAdmission": "Match",
+      "exclusionState": false,
+      "shadowIdentityVerdict": "match",
+      "finalIdentityAdmission": "Match",
       "eligibleForNormalBusinessEvaluation": true,
       "staticRecommendation": "Probable Match",
       "staticHardBlocks": [],
-      "staticWarnings": [],
-      "comparisonsBefore": {
+      "comparisons": {
         "franchise": {
           "field": "franchise",
           "result": "unknown",
@@ -2504,129 +1746,7 @@
           "ebayEvidenceRef": "ebay.fields.digitalPhysical"
         }
       },
-      "comparisonsAfter": {
-        "franchise": {
-          "field": "franchise",
-          "result": "unknown",
-          "relation": "unknown",
-          "amazon": null,
-          "ebay": null,
-          "reason": "Omitted information is not a contradiction or a pass",
-          "amazonEvidenceRef": "amazon.fields.franchise",
-          "ebayEvidenceRef": "ebay.fields.franchise"
-        },
-        "coreProduct": {
-          "field": "coreProduct",
-          "result": "match",
-          "relation": "same",
-          "amazon": "watch dogs",
-          "ebay": "watch dogs",
-          "reason": "Supported normalized values agree",
-          "amazonEvidenceRef": "amazon.fields.coreProduct",
-          "ebayEvidenceRef": "ebay.fields.coreProduct"
-        },
-        "coreGame": {
-          "field": "coreGame",
-          "result": "match",
-          "relation": "same",
-          "amazon": "watch dogs 2",
-          "ebay": "watch dogs 2",
-          "reason": "Supported normalized values agree",
-          "amazonEvidenceRef": "amazon.fields.coreGame",
-          "ebayEvidenceRef": "ebay.fields.coreGame"
-        },
-        "installment": {
-          "field": "installment",
-          "result": "match",
-          "relation": "same",
-          "amazon": "2",
-          "ebay": "2",
-          "reason": "Supported normalized values agree",
-          "amazonEvidenceRef": "amazon.fields.installment",
-          "ebayEvidenceRef": "ebay.fields.installment"
-        },
-        "generation": {
-          "field": "generation",
-          "result": "unknown",
-          "relation": "unknown",
-          "amazon": null,
-          "ebay": null,
-          "reason": "Omitted information is not a contradiction or a pass",
-          "amazonEvidenceRef": "amazon.fields.generation",
-          "ebayEvidenceRef": "ebay.fields.generation"
-        },
-        "theme": {
-          "field": "theme",
-          "result": "unknown",
-          "relation": "unknown",
-          "amazon": null,
-          "ebay": null,
-          "reason": "Omitted information is not a contradiction or a pass",
-          "amazonEvidenceRef": "amazon.fields.theme",
-          "ebayEvidenceRef": "ebay.fields.theme"
-        },
-        "edition": {
-          "field": "edition",
-          "result": "unknown",
-          "relation": "unknown",
-          "amazon": null,
-          "ebay": null,
-          "reason": "Omitted information is not a contradiction or a pass",
-          "amazonEvidenceRef": "amazon.fields.edition",
-          "ebayEvidenceRef": "ebay.fields.edition"
-        },
-        "packageType": {
-          "field": "packageType",
-          "result": "unknown",
-          "relation": "unknown",
-          "amazon": null,
-          "ebay": null,
-          "reason": "Omitted information is not a contradiction or a pass",
-          "amazonEvidenceRef": "amazon.fields.packageType",
-          "ebayEvidenceRef": "ebay.fields.packageType"
-        },
-        "platform": {
-          "field": "platform",
-          "result": "match",
-          "relation": "same",
-          "amazon": "Xbox One",
-          "ebay": "Xbox One",
-          "reason": "Supported normalized values agree",
-          "amazonEvidenceRef": "amazon.fields.platform",
-          "ebayEvidenceRef": "ebay.fields.platform"
-        },
-        "region": {
-          "field": "region",
-          "result": "unknown",
-          "relation": "unknown",
-          "amazon": null,
-          "ebay": null,
-          "reason": "Omitted information is not a contradiction or a pass",
-          "amazonEvidenceRef": "amazon.fields.region",
-          "ebayEvidenceRef": "ebay.fields.region"
-        },
-        "completeness": {
-          "field": "completeness",
-          "result": "unknown",
-          "relation": "unknown",
-          "amazon": null,
-          "ebay": null,
-          "reason": "Omitted information is not a contradiction or a pass",
-          "amazonEvidenceRef": "amazon.fields.completeness",
-          "ebayEvidenceRef": "ebay.fields.completeness"
-        },
-        "digitalPhysical": {
-          "field": "digitalPhysical",
-          "result": "unknown",
-          "relation": "unknown",
-          "amazon": null,
-          "ebay": null,
-          "reason": "Omitted information is not a contradiction or a pass",
-          "amazonEvidenceRef": "amazon.fields.digitalPhysical",
-          "ebayEvidenceRef": "ebay.fields.digitalPhysical"
-        }
-      },
-      "routingReason": "Identity matched or unknown; unknown fields are not positive evidence.",
+      "reason": "Identity matched or unknown; unknown fields are not positive evidence.",
       "correctionApplication": [
         {
           "actionId": "7801be2e-37ce-4396-a711-d8187b777805",
@@ -2657,28 +1777,7 @@
           "result": "applied"
         }
       ],
-      "unknownFields": {
-        "amazon": [
-          "franchise",
-          "generation",
-          "theme",
-          "edition",
-          "packageType",
-          "region",
-          "completeness",
-          "digitalPhysical"
-        ],
-        "ebay": [
-          "franchise",
-          "generation",
-          "theme",
-          "edition",
-          "packageType",
-          "region",
-          "completeness",
-          "digitalPhysical"
-        ]
-      }
+      "pairVerdictUsedAsInput": false
     },
     {
       "queueId": "2bab0023-6a49-4817-b36d-8a3e03b473c5",
@@ -2688,7 +1787,7 @@
       "sourceSnapshotId": "aeadec3c-8b09-4402-94d9-e797f621d175",
       "frozenEvaluationId": "76527e36db207bb361418878f9d345bc202c741bc0a11ffa0d79cd39ba16bbf8",
       "evidence": {
-        "class": "unresolved",
+        "class": "tier_a_positive",
         "verdict": "correct",
         "verdictActionId": "83cd912d-292c-4fff-ba73-3b5f1866ce38",
         "verdictTimestamp": "2026-09-14T01:47:55.386753+00:00",
@@ -2697,11 +1796,20 @@
         "snapshotId": "be1b897a-24da-45c4-8e46-7d11c393ac2e",
         "evaluationId": "76527e36db207bb361418878f9d345bc202c741bc0a11ffa0d79cd39ba16bbf8",
         "identityAttested": true,
-        "variationVerified": false,
-        "variationResolution": "unknown",
+        "variationVerified": true,
+        "variationResolution": "not_applicable",
+        "exactVariationId": null,
+        "variationProvenance": {
+          "actionId": "5e19c809-f908-49db-bf0a-2613d0d7b176",
+          "actor": "b8f14380-e031-70e8-2e94-a6387670b338",
+          "timestamp": "2026-09-14T03:46:09.442156+00:00",
+          "targetActionId": "83cd912d-292c-4fff-ba73-3b5f1866ce38",
+          "provenanceErrors": [],
+          "snapshotId": "cf42caab-eaf8-4a93-8507-0b42a064937f"
+        },
         "source": "identity_adjudication_queue",
         "qualificationReasons": [
-          "variation scope/not-applicable verification unchecked"
+          "verified exact-pair provenance; positive identity and variation assertions present"
         ],
         "verdictProvenanceErrors": [],
         "corrections": [],
@@ -2709,6 +1817,13 @@
         "relationships": [],
         "newerEvidenceActionIds": [],
         "lineage": [
+          {
+            "actionId": "5e19c809-f908-49db-bf0a-2613d0d7b176",
+            "timestamp": "2026-09-14T03:46:09.442156+00:00",
+            "verdict": "not_provided",
+            "snapshotId": "cf42caab-eaf8-4a93-8507-0b42a064937f",
+            "hash": "1e724b72b2adb3149cc049008afa1a09b6ad4e7153bbd2251f6932e20f8f2f4f"
+          },
           {
             "actionId": "83cd912d-292c-4fff-ba73-3b5f1866ce38",
             "timestamp": "2026-09-14T01:47:55.386753+00:00",
@@ -2720,20 +1835,18 @@
       },
       "referenceTitle": "Minecraft \u2013 Xbox One [video game]",
       "listingTitle": "Minecraft Xbox One Edition - Microsoft Xbox One (2014), SEALED",
-      "frozenInputFile": "web/app/api/sourcing/adjudication/queue.json",
+      "stateRevision": "5f0355ee209f3bb05667a4c9f4f25737",
+      "rawStateHash": "b5e9a7b589249667134062a8343a85b78cef38ee839f87a1a0b097becff3e902",
       "sourceInputHash": "bf7151d70ad227a39c6bf4804276d4042eea0deb23d6dfba2ab60d995d7e3cd2",
-      "stateRevision": "52d550131bb80c3a06ca9e3c33171b1d",
-      "rawStateHash": "15913e84034727e619b8ef47a43be3995dea8ca1b892a008f0d92c7d73e6fc44",
-      "beforeShadowVerdict": "match",
-      "afterShadowVerdict": "match",
-      "identityAdmission": "Match",
+      "exclusionState": false,
+      "shadowIdentityVerdict": "match",
+      "finalIdentityAdmission": "Match",
       "eligibleForNormalBusinessEvaluation": true,
       "staticRecommendation": "Blocked",
       "staticHardBlocks": [
         "not new condition signal: used"
       ],
-      "staticWarnings": [],
-      "comparisonsBefore": {
+      "comparisons": {
         "franchise": {
           "field": "franchise",
           "result": "unknown",
@@ -2855,154 +1968,9 @@
           "ebayEvidenceRef": "ebay.fields.digitalPhysical"
         }
       },
-      "comparisonsAfter": {
-        "franchise": {
-          "field": "franchise",
-          "result": "unknown",
-          "relation": "unknown",
-          "amazon": null,
-          "ebay": null,
-          "reason": "Omitted information is not a contradiction or a pass",
-          "amazonEvidenceRef": "amazon.fields.franchise",
-          "ebayEvidenceRef": "ebay.fields.franchise"
-        },
-        "coreProduct": {
-          "field": "coreProduct",
-          "result": "match",
-          "relation": "same",
-          "amazon": "minecraft",
-          "ebay": "minecraft",
-          "reason": "Supported normalized values agree",
-          "amazonEvidenceRef": "amazon.fields.coreProduct",
-          "ebayEvidenceRef": "ebay.fields.coreProduct"
-        },
-        "coreGame": {
-          "field": "coreGame",
-          "result": "match",
-          "relation": "same",
-          "amazon": "minecraft",
-          "ebay": "minecraft",
-          "reason": "Supported normalized values agree",
-          "amazonEvidenceRef": "amazon.fields.coreGame",
-          "ebayEvidenceRef": "ebay.fields.coreGame"
-        },
-        "installment": {
-          "field": "installment",
-          "result": "unknown",
-          "relation": "unknown",
-          "amazon": null,
-          "ebay": null,
-          "reason": "Omitted information is not a contradiction or a pass",
-          "amazonEvidenceRef": "amazon.fields.installment",
-          "ebayEvidenceRef": "ebay.fields.installment"
-        },
-        "generation": {
-          "field": "generation",
-          "result": "unknown",
-          "relation": "unknown",
-          "amazon": null,
-          "ebay": null,
-          "reason": "Omitted information is not a contradiction or a pass",
-          "amazonEvidenceRef": "amazon.fields.generation",
-          "ebayEvidenceRef": "ebay.fields.generation"
-        },
-        "theme": {
-          "field": "theme",
-          "result": "unknown",
-          "relation": "unknown",
-          "amazon": null,
-          "ebay": null,
-          "reason": "Omitted information is not a contradiction or a pass",
-          "amazonEvidenceRef": "amazon.fields.theme",
-          "ebayEvidenceRef": "ebay.fields.theme"
-        },
-        "edition": {
-          "field": "edition",
-          "result": "unknown",
-          "relation": "unknown",
-          "amazon": null,
-          "ebay": null,
-          "reason": "Omitted information is not a contradiction or a pass",
-          "amazonEvidenceRef": "amazon.fields.edition",
-          "ebayEvidenceRef": "ebay.fields.edition"
-        },
-        "packageType": {
-          "field": "packageType",
-          "result": "unknown",
-          "relation": "unknown",
-          "amazon": null,
-          "ebay": null,
-          "reason": "Omitted information is not a contradiction or a pass",
-          "amazonEvidenceRef": "amazon.fields.packageType",
-          "ebayEvidenceRef": "ebay.fields.packageType"
-        },
-        "platform": {
-          "field": "platform",
-          "result": "match",
-          "relation": "same",
-          "amazon": "Xbox One",
-          "ebay": "Xbox One",
-          "reason": "Supported normalized values agree",
-          "amazonEvidenceRef": "amazon.fields.platform",
-          "ebayEvidenceRef": "ebay.fields.platform"
-        },
-        "region": {
-          "field": "region",
-          "result": "unknown",
-          "relation": "unknown",
-          "amazon": null,
-          "ebay": null,
-          "reason": "Omitted information is not a contradiction or a pass",
-          "amazonEvidenceRef": "amazon.fields.region",
-          "ebayEvidenceRef": "ebay.fields.region"
-        },
-        "completeness": {
-          "field": "completeness",
-          "result": "unknown",
-          "relation": "unknown",
-          "amazon": null,
-          "ebay": null,
-          "reason": "Omitted information is not a contradiction or a pass",
-          "amazonEvidenceRef": "amazon.fields.completeness",
-          "ebayEvidenceRef": "ebay.fields.completeness"
-        },
-        "digitalPhysical": {
-          "field": "digitalPhysical",
-          "result": "unknown",
-          "relation": "unknown",
-          "amazon": null,
-          "ebay": null,
-          "reason": "Omitted information is not a contradiction or a pass",
-          "amazonEvidenceRef": "amazon.fields.digitalPhysical",
-          "ebayEvidenceRef": "ebay.fields.digitalPhysical"
-        }
-      },
-      "routingReason": "Identity matched or unknown; unknown fields are not positive evidence.",
+      "reason": "Identity matched or unknown; unknown fields are not positive evidence.",
       "correctionApplication": [],
-      "unknownFields": {
-        "amazon": [
-          "franchise",
-          "installment",
-          "generation",
-          "theme",
-          "edition",
-          "packageType",
-          "region",
-          "completeness",
-          "digitalPhysical"
-        ],
-        "ebay": [
-          "franchise",
-          "installment",
-          "generation",
-          "theme",
-          "edition",
-          "packageType",
-          "region",
-          "completeness",
-          "digitalPhysical"
-        ]
-      }
+      "pairVerdictUsedAsInput": false
     },
     {
       "queueId": "b32a22e5-e28e-4ea7-9811-b7fb5fa2baf3",
@@ -3012,7 +1980,7 @@
       "sourceSnapshotId": "571d0cd4-ea08-40a4-a9bb-02999c5d898f",
       "frozenEvaluationId": "a065c230c9b06d6c287d125927cb018a64441adb7f3e0bce50fb073f437b699d",
       "evidence": {
-        "class": "unresolved",
+        "class": "tier_a_positive",
         "verdict": "correct",
         "verdictActionId": "e05c8ba8-1805-49ee-ac65-e22481dc7d8d",
         "verdictTimestamp": "2026-09-14T01:48:31.339662+00:00",
@@ -3021,11 +1989,20 @@
         "snapshotId": "2ee08508-321e-4029-824a-c31d599d9cb8",
         "evaluationId": "a065c230c9b06d6c287d125927cb018a64441adb7f3e0bce50fb073f437b699d",
         "identityAttested": true,
-        "variationVerified": false,
-        "variationResolution": "unknown",
+        "variationVerified": true,
+        "variationResolution": "not_applicable",
+        "exactVariationId": null,
+        "variationProvenance": {
+          "actionId": "deb477a8-4295-4549-9511-b1a0c781ed37",
+          "actor": "b8f14380-e031-70e8-2e94-a6387670b338",
+          "timestamp": "2026-09-14T03:46:15.934498+00:00",
+          "targetActionId": "e05c8ba8-1805-49ee-ac65-e22481dc7d8d",
+          "provenanceErrors": [],
+          "snapshotId": "b8bdf157-f0fc-4ef6-98ce-42731ab9f6d2"
+        },
         "source": "identity_adjudication_queue",
         "qualificationReasons": [
-          "variation scope/not-applicable verification unchecked"
+          "verified exact-pair provenance; positive identity and variation assertions present"
         ],
         "verdictProvenanceErrors": [],
         "corrections": [],
@@ -3033,6 +2010,13 @@
         "relationships": [],
         "newerEvidenceActionIds": [],
         "lineage": [
+          {
+            "actionId": "deb477a8-4295-4549-9511-b1a0c781ed37",
+            "timestamp": "2026-09-14T03:46:15.934498+00:00",
+            "verdict": "not_provided",
+            "snapshotId": "b8bdf157-f0fc-4ef6-98ce-42731ab9f6d2",
+            "hash": "32cb2f5531dd3d03f6ef14c9dffd6b8358e825c54cbef0e98a720615e9d45fe5"
+          },
           {
             "actionId": "e05c8ba8-1805-49ee-ac65-e22481dc7d8d",
             "timestamp": "2026-09-14T01:48:31.339662+00:00",
@@ -3044,140 +2028,16 @@
       },
       "referenceTitle": "Dance Central 3 - Xbox 360",
       "listingTitle": "Dance 3 Central Xbox 360 Game New Factory Sealed",
-      "frozenInputFile": "web/app/api/sourcing/adjudication/queue.json",
+      "stateRevision": "d156bd53e1126800bbf5c844aca06d36",
+      "rawStateHash": "458349629c43d4d01ef445b3fd05796496827440cb936e97cd1bba300099bc72",
       "sourceInputHash": "05fa23d26d0062eaaa3f98b7527e243e4a9f5420a4dbaa44a1e535600131039d",
-      "stateRevision": "55c2a0bffc185f8e1579ce24362c1313",
-      "rawStateHash": "1067bd7d85e5a9fcc570dc3baf0f204b7fba6a7befb5618e0cefee33e15f7ff5",
-      "beforeShadowVerdict": "needs_review",
-      "afterShadowVerdict": "match",
-      "identityAdmission": "Match",
+      "exclusionState": false,
+      "shadowIdentityVerdict": "match",
+      "finalIdentityAdmission": "Match",
       "eligibleForNormalBusinessEvaluation": true,
       "staticRecommendation": "Probable Match",
       "staticHardBlocks": [],
-      "staticWarnings": [],
-      "comparisonsBefore": {
-        "franchise": {
-          "field": "franchise",
-          "result": "unknown",
-          "relation": "unknown",
-          "amazon": null,
-          "ebay": null,
-          "reason": "Omitted information is not a contradiction or a pass",
-          "amazonEvidenceRef": "amazon.fields.franchise",
-          "ebayEvidenceRef": "ebay.fields.franchise"
-        },
-        "coreProduct": {
-          "field": "coreProduct",
-          "result": "match",
-          "relation": "same",
-          "amazon": "dance central",
-          "ebay": "dance central",
-          "reason": "Supported normalized values agree",
-          "amazonEvidenceRef": "amazon.fields.coreProduct",
-          "ebayEvidenceRef": "ebay.fields.coreProduct"
-        },
-        "coreGame": {
-          "field": "coreGame",
-          "result": "review",
-          "relation": "unknown",
-          "amazon": "dance central 3",
-          "ebay": "dance 3 central",
-          "reason": "Strong sources disagree within a side",
-          "amazonEvidenceRef": "amazon.fields.coreGame",
-          "ebayEvidenceRef": "ebay.fields.coreGame"
-        },
-        "installment": {
-          "field": "installment",
-          "result": "match",
-          "relation": "same",
-          "amazon": "3",
-          "ebay": "3",
-          "reason": "Supported normalized values agree",
-          "amazonEvidenceRef": "amazon.fields.installment",
-          "ebayEvidenceRef": "ebay.fields.installment"
-        },
-        "generation": {
-          "field": "generation",
-          "result": "unknown",
-          "relation": "unknown",
-          "amazon": null,
-          "ebay": null,
-          "reason": "Omitted information is not a contradiction or a pass",
-          "amazonEvidenceRef": "amazon.fields.generation",
-          "ebayEvidenceRef": "ebay.fields.generation"
-        },
-        "theme": {
-          "field": "theme",
-          "result": "unknown",
-          "relation": "unknown",
-          "amazon": null,
-          "ebay": null,
-          "reason": "Omitted information is not a contradiction or a pass",
-          "amazonEvidenceRef": "amazon.fields.theme",
-          "ebayEvidenceRef": "ebay.fields.theme"
-        },
-        "edition": {
-          "field": "edition",
-          "result": "unknown",
-          "relation": "unknown",
-          "amazon": null,
-          "ebay": null,
-          "reason": "Omitted information is not a contradiction or a pass",
-          "amazonEvidenceRef": "amazon.fields.edition",
-          "ebayEvidenceRef": "ebay.fields.edition"
-        },
-        "packageType": {
-          "field": "packageType",
-          "result": "unknown",
-          "relation": "unknown",
-          "amazon": null,
-          "ebay": null,
-          "reason": "Omitted information is not a contradiction or a pass",
-          "amazonEvidenceRef": "amazon.fields.packageType",
-          "ebayEvidenceRef": "ebay.fields.packageType"
-        },
-        "platform": {
-          "field": "platform",
-          "result": "match",
-          "relation": "same",
-          "amazon": "Xbox 360",
-          "ebay": "Xbox 360",
-          "reason": "Supported normalized values agree",
-          "amazonEvidenceRef": "amazon.fields.platform",
-          "ebayEvidenceRef": "ebay.fields.platform"
-        },
-        "region": {
-          "field": "region",
-          "result": "unknown",
-          "relation": "compatible_omission",
-          "amazon": null,
-          "ebay": "NTSC-U/C",
-          "reason": "Omitted information is not a contradiction or a pass",
-          "amazonEvidenceRef": "amazon.fields.region",
-          "ebayEvidenceRef": "ebay.fields.region"
-        },
-        "completeness": {
-          "field": "completeness",
-          "result": "unknown",
-          "relation": "unknown",
-          "amazon": null,
-          "ebay": null,
-          "reason": "Omitted information is not a contradiction or a pass",
-          "amazonEvidenceRef": "amazon.fields.completeness",
-          "ebayEvidenceRef": "ebay.fields.completeness"
-        },
-        "digitalPhysical": {
-          "field": "digitalPhysical",
-          "result": "unknown",
-          "relation": "unknown",
-          "amazon": null,
-          "ebay": null,
-          "reason": "Omitted information is not a contradiction or a pass",
-          "amazonEvidenceRef": "amazon.fields.digitalPhysical",
-          "ebayEvidenceRef": "ebay.fields.digitalPhysical"
-        }
-      },
-      "comparisonsAfter": {
+      "comparisons": {
         "franchise": {
           "field": "franchise",
           "result": "unknown",
@@ -3299,29 +2159,9 @@
           "ebayEvidenceRef": "ebay.fields.digitalPhysical"
         }
       },
-      "routingReason": "Identity matched or unknown; unknown fields are not positive evidence.",
+      "reason": "Identity matched or unknown; unknown fields are not positive evidence.",
       "correctionApplication": [],
-      "unknownFields": {
-        "amazon": [
-          "franchise",
-          "generation",
-          "theme",
-          "edition",
-          "packageType",
-          "region",
-          "completeness",
-          "digitalPhysical"
-        ],
-        "ebay": [
-          "franchise",
-          "generation",
-          "theme",
-          "edition",
-          "packageType",
-          "completeness",
-          "digitalPhysical"
-        ]
-      }
+      "pairVerdictUsedAsInput": false
     },
     {
       "queueId": "1efb864b-a705-475e-a843-832ddf5713b6",
@@ -3331,7 +2171,7 @@
       "sourceSnapshotId": "19d4490f-214b-40ec-9eb2-61c64a835dfd",
       "frozenEvaluationId": "fb0f82e77d7bfde17d96b6374ec1810c6a838533182359e2bbc13944fe038c83",
       "evidence": {
-        "class": "unresolved",
+        "class": "tier_a_positive",
         "verdict": "correct",
         "verdictActionId": "66589650-c5f6-4044-9455-3240e4ca3596",
         "verdictTimestamp": "2026-09-14T01:49:18.066211+00:00",
@@ -3340,11 +2180,20 @@
         "snapshotId": "a7b26489-fd62-4f4a-9a8f-c5ad2d00bbb2",
         "evaluationId": "fb0f82e77d7bfde17d96b6374ec1810c6a838533182359e2bbc13944fe038c83",
         "identityAttested": true,
-        "variationVerified": false,
-        "variationResolution": "unknown",
+        "variationVerified": true,
+        "variationResolution": "not_applicable",
+        "exactVariationId": null,
+        "variationProvenance": {
+          "actionId": "13fc60d0-5dc5-42e7-88ed-eec956dc8088",
+          "actor": "b8f14380-e031-70e8-2e94-a6387670b338",
+          "timestamp": "2026-09-14T03:46:26.112843+00:00",
+          "targetActionId": "66589650-c5f6-4044-9455-3240e4ca3596",
+          "provenanceErrors": [],
+          "snapshotId": "74765b8f-73ec-4076-8b23-f1b8abc42de0"
+        },
         "source": "identity_adjudication_queue",
         "qualificationReasons": [
-          "variation scope/not-applicable verification unchecked"
+          "verified exact-pair provenance; positive identity and variation assertions present"
         ],
         "verdictProvenanceErrors": [],
         "corrections": [
@@ -3401,6 +2250,13 @@
         "newerEvidenceActionIds": [],
         "lineage": [
           {
+            "actionId": "13fc60d0-5dc5-42e7-88ed-eec956dc8088",
+            "timestamp": "2026-09-14T03:46:26.112843+00:00",
+            "verdict": "not_provided",
+            "snapshotId": "74765b8f-73ec-4076-8b23-f1b8abc42de0",
+            "hash": "d767806fcc08c80cbaed47c8fea4aafc9428f3d94720a5ec0bfaaafb1d969775"
+          },
+          {
             "actionId": "66589650-c5f6-4044-9455-3240e4ca3596",
             "timestamp": "2026-09-14T01:49:18.066211+00:00",
             "verdict": "correct",
@@ -3411,18 +2267,16 @@
       },
       "referenceTitle": "Minecraft \u2013 Xbox One [video game]",
       "listingTitle": "Microsoft Studios Minecraft Xbox One Multiplayer Online Play E10+",
-      "frozenInputFile": "web/app/api/sourcing/adjudication/queue.json",
+      "stateRevision": "c8dc804577dfe484ac16d8d745f4115c",
+      "rawStateHash": "26490e52b1b101d32961e932c7b27639c960c9d4bf6c8be437560778496e762a",
       "sourceInputHash": "b743d5806e99618e28946539891eab94d67cc382ce135d851512d25c1e904a78",
-      "stateRevision": "eaea2a0c3dbd2b8b72cb295f2252ec54",
-      "rawStateHash": "d0c6deb24831a0eb693683f4ac424492d2a37c78bac3e68773a73d4d31168fa0",
-      "beforeShadowVerdict": "match",
-      "afterShadowVerdict": "match",
-      "identityAdmission": "Match",
+      "exclusionState": false,
+      "shadowIdentityVerdict": "match",
+      "finalIdentityAdmission": "Match",
       "eligibleForNormalBusinessEvaluation": true,
       "staticRecommendation": "Probable Match",
       "staticHardBlocks": [],
-      "staticWarnings": [],
-      "comparisonsBefore": {
+      "comparisons": {
         "franchise": {
           "field": "franchise",
           "result": "unknown",
@@ -3544,129 +2398,7 @@
           "ebayEvidenceRef": "ebay.fields.digitalPhysical"
         }
       },
-      "comparisonsAfter": {
-        "franchise": {
-          "field": "franchise",
-          "result": "unknown",
-          "relation": "unknown",
-          "amazon": null,
-          "ebay": null,
-          "reason": "Omitted information is not a contradiction or a pass",
-          "amazonEvidenceRef": "amazon.fields.franchise",
-          "ebayEvidenceRef": "ebay.fields.franchise"
-        },
-        "coreProduct": {
-          "field": "coreProduct",
-          "result": "match",
-          "relation": "same",
-          "amazon": "minecraft",
-          "ebay": "minecraft",
-          "reason": "Supported normalized values agree",
-          "amazonEvidenceRef": "amazon.fields.coreProduct",
-          "ebayEvidenceRef": "ebay.fields.coreProduct"
-        },
-        "coreGame": {
-          "field": "coreGame",
-          "result": "match",
-          "relation": "same",
-          "amazon": "minecraft",
-          "ebay": "minecraft",
-          "reason": "Supported normalized values agree",
-          "amazonEvidenceRef": "amazon.fields.coreGame",
-          "ebayEvidenceRef": "ebay.fields.coreGame"
-        },
-        "installment": {
-          "field": "installment",
-          "result": "unknown",
-          "relation": "unknown",
-          "amazon": null,
-          "ebay": null,
-          "reason": "Omitted information is not a contradiction or a pass",
-          "amazonEvidenceRef": "amazon.fields.installment",
-          "ebayEvidenceRef": "ebay.fields.installment"
-        },
-        "generation": {
-          "field": "generation",
-          "result": "unknown",
-          "relation": "unknown",
-          "amazon": null,
-          "ebay": null,
-          "reason": "Omitted information is not a contradiction or a pass",
-          "amazonEvidenceRef": "amazon.fields.generation",
-          "ebayEvidenceRef": "ebay.fields.generation"
-        },
-        "theme": {
-          "field": "theme",
-          "result": "unknown",
-          "relation": "unknown",
-          "amazon": null,
-          "ebay": null,
-          "reason": "Omitted information is not a contradiction or a pass",
-          "amazonEvidenceRef": "amazon.fields.theme",
-          "ebayEvidenceRef": "ebay.fields.theme"
-        },
-        "edition": {
-          "field": "edition",
-          "result": "unknown",
-          "relation": "unknown",
-          "amazon": null,
-          "ebay": null,
-          "reason": "Omitted information is not a contradiction or a pass",
-          "amazonEvidenceRef": "amazon.fields.edition",
-          "ebayEvidenceRef": "ebay.fields.edition"
-        },
-        "packageType": {
-          "field": "packageType",
-          "result": "unknown",
-          "relation": "unknown",
-          "amazon": null,
-          "ebay": null,
-          "reason": "Omitted information is not a contradiction or a pass",
-          "amazonEvidenceRef": "amazon.fields.packageType",
-          "ebayEvidenceRef": "ebay.fields.packageType"
-        },
-        "platform": {
-          "field": "platform",
-          "result": "match",
-          "relation": "same",
-          "amazon": "Xbox One",
-          "ebay": "Xbox One",
-          "reason": "Supported normalized values agree",
-          "amazonEvidenceRef": "amazon.fields.platform",
-          "ebayEvidenceRef": "ebay.fields.platform"
-        },
-        "region": {
-          "field": "region",
-          "result": "unknown",
-          "relation": "unknown",
-          "amazon": null,
-          "ebay": null,
-          "reason": "Omitted information is not a contradiction or a pass",
-          "amazonEvidenceRef": "amazon.fields.region",
-          "ebayEvidenceRef": "ebay.fields.region"
-        },
-        "completeness": {
-          "field": "completeness",
-          "result": "unknown",
-          "relation": "unknown",
-          "amazon": null,
-          "ebay": null,
-          "reason": "Omitted information is not a contradiction or a pass",
-          "amazonEvidenceRef": "amazon.fields.completeness",
-          "ebayEvidenceRef": "ebay.fields.completeness"
-        },
-        "digitalPhysical": {
-          "field": "digitalPhysical",
-          "result": "unknown",
-          "relation": "unknown",
-          "amazon": null,
-          "ebay": null,
-          "reason": "Omitted information is not a contradiction or a pass",
-          "amazonEvidenceRef": "amazon.fields.digitalPhysical",
-          "ebayEvidenceRef": "ebay.fields.digitalPhysical"
-        }
-      },
-      "routingReason": "Identity matched or unknown; unknown fields are not positive evidence.",
+      "reason": "Identity matched or unknown; unknown fields are not positive evidence.",
       "correctionApplication": [
         {
           "actionId": "66589650-c5f6-4044-9455-3240e4ca3596",
@@ -3697,30 +2429,7 @@
           "result": "applied"
         }
       ],
-      "unknownFields": {
-        "amazon": [
-          "franchise",
-          "installment",
-          "generation",
-          "theme",
-          "edition",
-          "packageType",
-          "region",
-          "completeness",
-          "digitalPhysical"
-        ],
-        "ebay": [
-          "franchise",
-          "installment",
-          "generation",
-          "theme",
-          "edition",
-          "packageType",
-          "region",
-          "completeness",
-          "digitalPhysical"
-        ]
-      }
+      "pairVerdictUsedAsInput": false
     },
     {
       "queueId": "52261d35-1318-431e-bbc2-7ab6b8816fc0",
@@ -3730,7 +2439,7 @@
       "sourceSnapshotId": "76439b06-358d-4056-a7e8-23acb46e5b34",
       "frozenEvaluationId": "073a51dbd2720a304e63d6400420af367572a403086c7232284c533dc46c1655",
       "evidence": {
-        "class": "unresolved",
+        "class": "tier_a_positive",
         "verdict": "correct",
         "verdictActionId": "9547ecc5-898a-47d3-92d5-d9194361a901",
         "verdictTimestamp": "2026-09-14T01:51:32.707559+00:00",
@@ -3739,11 +2448,20 @@
         "snapshotId": "4dab207a-96dc-43fb-820e-3efad5bcebce",
         "evaluationId": "073a51dbd2720a304e63d6400420af367572a403086c7232284c533dc46c1655",
         "identityAttested": true,
-        "variationVerified": false,
-        "variationResolution": "unknown",
+        "variationVerified": true,
+        "variationResolution": "not_applicable",
+        "exactVariationId": null,
+        "variationProvenance": {
+          "actionId": "92886eeb-ec90-4a91-8f10-5ae232748a7b",
+          "actor": "b8f14380-e031-70e8-2e94-a6387670b338",
+          "timestamp": "2026-09-14T03:46:38.126178+00:00",
+          "targetActionId": "9547ecc5-898a-47d3-92d5-d9194361a901",
+          "provenanceErrors": [],
+          "snapshotId": "e9b81edb-d53a-4bc2-8508-affea6c9287c"
+        },
         "source": "identity_adjudication_queue",
         "qualificationReasons": [
-          "variation scope/not-applicable verification unchecked"
+          "verified exact-pair provenance; positive identity and variation assertions present"
         ],
         "verdictProvenanceErrors": [],
         "corrections": [
@@ -3823,6 +2541,13 @@
         "newerEvidenceActionIds": [],
         "lineage": [
           {
+            "actionId": "92886eeb-ec90-4a91-8f10-5ae232748a7b",
+            "timestamp": "2026-09-14T03:46:38.126178+00:00",
+            "verdict": "not_provided",
+            "snapshotId": "e9b81edb-d53a-4bc2-8508-affea6c9287c",
+            "hash": "3a30fa8aa3ee1127a64dcfefa6f59da19861a4c65cd936a2eb25cae019b35aa2"
+          },
+          {
             "actionId": "9547ecc5-898a-47d3-92d5-d9194361a901",
             "timestamp": "2026-09-14T01:51:32.707559+00:00",
             "verdict": "correct",
@@ -3833,18 +2558,16 @@
       },
       "referenceTitle": "Mass Effect Andromeda Deluxe - Xbox One",
       "listingTitle": "Mass Effect: Andromeda -- Deluxe Edition (Microsoft Xbox One, 2017)",
-      "frozenInputFile": "web/app/api/sourcing/adjudication/queue.json",
+      "stateRevision": "59fdca21b4c6201a5e24c5cfeaeff479",
+      "rawStateHash": "6f9c5a648ae5aea440c054f73492f131004322deb04fd15f81a96500b701a498",
       "sourceInputHash": "e29058176661fd4cba9ddcb6a9e7f81f90f5855b72e1b6e75bd0f795b826e05d",
-      "stateRevision": "818af4f71101b8d61fe70ec51db3c338",
-      "rawStateHash": "9e671badddf26255583bb96adae12da0a006ee0dabe6fc488da6f5148007c608",
-      "beforeShadowVerdict": "match",
-      "afterShadowVerdict": "match",
-      "identityAdmission": "Match",
+      "exclusionState": false,
+      "shadowIdentityVerdict": "match",
+      "finalIdentityAdmission": "Match",
       "eligibleForNormalBusinessEvaluation": true,
       "staticRecommendation": "Probable Match",
       "staticHardBlocks": [],
-      "staticWarnings": [],
-      "comparisonsBefore": {
+      "comparisons": {
         "franchise": {
           "field": "franchise",
           "result": "unknown",
@@ -3966,129 +2689,7 @@
           "ebayEvidenceRef": "ebay.fields.digitalPhysical"
         }
       },
-      "comparisonsAfter": {
-        "franchise": {
-          "field": "franchise",
-          "result": "unknown",
-          "relation": "unknown",
-          "amazon": null,
-          "ebay": null,
-          "reason": "Omitted information is not a contradiction or a pass",
-          "amazonEvidenceRef": "amazon.fields.franchise",
-          "ebayEvidenceRef": "ebay.fields.franchise"
-        },
-        "coreProduct": {
-          "field": "coreProduct",
-          "result": "match",
-          "relation": "same",
-          "amazon": "mass effect andromeda",
-          "ebay": "mass effect andromeda",
-          "reason": "Supported normalized values agree",
-          "amazonEvidenceRef": "amazon.fields.coreProduct",
-          "ebayEvidenceRef": "ebay.fields.coreProduct"
-        },
-        "coreGame": {
-          "field": "coreGame",
-          "result": "match",
-          "relation": "same",
-          "amazon": "mass effect andromeda",
-          "ebay": "mass effect andromeda",
-          "reason": "Supported normalized values agree",
-          "amazonEvidenceRef": "amazon.fields.coreGame",
-          "ebayEvidenceRef": "ebay.fields.coreGame"
-        },
-        "installment": {
-          "field": "installment",
-          "result": "unknown",
-          "relation": "unknown",
-          "amazon": null,
-          "ebay": null,
-          "reason": "Omitted information is not a contradiction or a pass",
-          "amazonEvidenceRef": "amazon.fields.installment",
-          "ebayEvidenceRef": "ebay.fields.installment"
-        },
-        "generation": {
-          "field": "generation",
-          "result": "unknown",
-          "relation": "unknown",
-          "amazon": null,
-          "ebay": null,
-          "reason": "Omitted information is not a contradiction or a pass",
-          "amazonEvidenceRef": "amazon.fields.generation",
-          "ebayEvidenceRef": "ebay.fields.generation"
-        },
-        "theme": {
-          "field": "theme",
-          "result": "unknown",
-          "relation": "unknown",
-          "amazon": null,
-          "ebay": null,
-          "reason": "Omitted information is not a contradiction or a pass",
-          "amazonEvidenceRef": "amazon.fields.theme",
-          "ebayEvidenceRef": "ebay.fields.theme"
-        },
-        "edition": {
-          "field": "edition",
-          "result": "match",
-          "relation": "same",
-          "amazon": "Deluxe Edition",
-          "ebay": "Deluxe Edition",
-          "reason": "Supported normalized values agree",
-          "amazonEvidenceRef": "amazon.fields.edition",
-          "ebayEvidenceRef": "ebay.fields.edition"
-        },
-        "packageType": {
-          "field": "packageType",
-          "result": "unknown",
-          "relation": "unknown",
-          "amazon": null,
-          "ebay": null,
-          "reason": "Omitted information is not a contradiction or a pass",
-          "amazonEvidenceRef": "amazon.fields.packageType",
-          "ebayEvidenceRef": "ebay.fields.packageType"
-        },
-        "platform": {
-          "field": "platform",
-          "result": "match",
-          "relation": "same",
-          "amazon": "Xbox One",
-          "ebay": "Xbox One",
-          "reason": "Supported normalized values agree",
-          "amazonEvidenceRef": "amazon.fields.platform",
-          "ebayEvidenceRef": "ebay.fields.platform"
-        },
-        "region": {
-          "field": "region",
-          "result": "unknown",
-          "relation": "compatible_omission",
-          "amazon": null,
-          "ebay": "NTSC-U/C",
-          "reason": "Omitted information is not a contradiction or a pass",
-          "amazonEvidenceRef": "amazon.fields.region",
-          "ebayEvidenceRef": "ebay.fields.region"
-        },
-        "completeness": {
-          "field": "completeness",
-          "result": "unknown",
-          "relation": "unknown",
-          "amazon": null,
-          "ebay": null,
-          "reason": "Omitted information is not a contradiction or a pass",
-          "amazonEvidenceRef": "amazon.fields.completeness",
-          "ebayEvidenceRef": "ebay.fields.completeness"
-        },
-        "digitalPhysical": {
-          "field": "digitalPhysical",
-          "result": "unknown",
-          "relation": "unknown",
-          "amazon": null,
-          "ebay": null,
-          "reason": "Omitted information is not a contradiction or a pass",
-          "amazonEvidenceRef": "amazon.fields.digitalPhysical",
-          "ebayEvidenceRef": "ebay.fields.digitalPhysical"
-        }
-      },
-      "routingReason": "Identity matched or unknown; unknown fields are not positive evidence.",
+      "reason": "Identity matched or unknown; unknown fields are not positive evidence.",
       "correctionApplication": [
         {
           "actionId": "9547ecc5-898a-47d3-92d5-d9194361a901",
@@ -4133,27 +2734,7 @@
           "result": "applied"
         }
       ],
-      "unknownFields": {
-        "amazon": [
-          "franchise",
-          "installment",
-          "generation",
-          "theme",
-          "packageType",
-          "region",
-          "completeness",
-          "digitalPhysical"
-        ],
-        "ebay": [
-          "franchise",
-          "installment",
-          "generation",
-          "theme",
-          "packageType",
-          "completeness",
-          "digitalPhysical"
-        ]
-      }
+      "pairVerdictUsedAsInput": false
     },
     {
       "queueId": "ec59476c-8dbb-4040-85b1-37fe658e98a3",
@@ -4174,6 +2755,15 @@
         "identityAttested": false,
         "variationVerified": false,
         "variationResolution": "unknown",
+        "exactVariationId": null,
+        "variationProvenance": {
+          "actionId": "4cc41143-cbb3-419b-a415-a056a80de081",
+          "actor": "b8f14380-e031-70e8-2e94-a6387670b338",
+          "timestamp": "2026-09-14T01:52:35.752567+00:00",
+          "targetActionId": null,
+          "provenanceErrors": [],
+          "snapshotId": "c357f99c-799e-4801-8a74-452cd48e4d11"
+        },
         "source": "identity_adjudication_queue",
         "qualificationReasons": [
           "verified exact-pair negative; positive/variation assertions not required"
@@ -4262,20 +2852,16 @@
       },
       "referenceTitle": "The Bigs 2 - Nintendo Wii",
       "listingTitle": "The BIGS - Albert Pujols 2K Sports Nintendo Wii 2007 - New & Sealed",
-      "frozenInputFile": "web/app/api/sourcing/adjudication/queue.json",
-      "sourceInputHash": "7b2ad5559f204601c7687b206a268ae2893fafea6a9b21aa164305fe9b1656e5",
       "stateRevision": "23586af71bbdad7f508969bca5628194",
       "rawStateHash": "2aaa35b49c92ca02f749325a9a1a2e5b86d2e7ccd780f1b8bc8fc72665cb6b1f",
-      "beforeShadowVerdict": "match",
-      "afterShadowVerdict": "needs_review",
-      "identityAdmission": "Review",
+      "sourceInputHash": "7b2ad5559f204601c7687b206a268ae2893fafea6a9b21aa164305fe9b1656e5",
+      "exclusionState": false,
+      "shadowIdentityVerdict": "needs_review",
+      "finalIdentityAdmission": "Review",
       "eligibleForNormalBusinessEvaluation": false,
       "staticRecommendation": "Review",
       "staticHardBlocks": [],
-      "staticWarnings": [
-        "Unresolved identity detail on one side: installment"
-      ],
-      "comparisonsBefore": {
+      "comparisons": {
         "franchise": {
           "field": "franchise",
           "result": "unknown",
@@ -4397,129 +2983,7 @@
           "ebayEvidenceRef": "ebay.fields.digitalPhysical"
         }
       },
-      "comparisonsAfter": {
-        "franchise": {
-          "field": "franchise",
-          "result": "unknown",
-          "relation": "unknown",
-          "amazon": null,
-          "ebay": null,
-          "reason": "Omitted information is not a contradiction or a pass",
-          "amazonEvidenceRef": "amazon.fields.franchise",
-          "ebayEvidenceRef": "ebay.fields.franchise"
-        },
-        "coreProduct": {
-          "field": "coreProduct",
-          "result": "match",
-          "relation": "same",
-          "amazon": "the bigs",
-          "ebay": "the bigs",
-          "reason": "Supported normalized values agree",
-          "amazonEvidenceRef": "amazon.fields.coreProduct",
-          "ebayEvidenceRef": "ebay.fields.coreProduct"
-        },
-        "coreGame": {
-          "field": "coreGame",
-          "result": "match",
-          "relation": "same",
-          "amazon": "the bigs",
-          "ebay": "the bigs",
-          "reason": "Supported normalized values agree",
-          "amazonEvidenceRef": "amazon.fields.coreGame",
-          "ebayEvidenceRef": "ebay.fields.coreGame"
-        },
-        "installment": {
-          "field": "installment",
-          "result": "unknown",
-          "relation": "compatible_omission",
-          "amazon": "2",
-          "ebay": null,
-          "reason": "Omitted information is not a contradiction or a pass",
-          "amazonEvidenceRef": "amazon.fields.installment",
-          "ebayEvidenceRef": "ebay.fields.installment"
-        },
-        "generation": {
-          "field": "generation",
-          "result": "unknown",
-          "relation": "unknown",
-          "amazon": null,
-          "ebay": null,
-          "reason": "Omitted information is not a contradiction or a pass",
-          "amazonEvidenceRef": "amazon.fields.generation",
-          "ebayEvidenceRef": "ebay.fields.generation"
-        },
-        "theme": {
-          "field": "theme",
-          "result": "unknown",
-          "relation": "unknown",
-          "amazon": null,
-          "ebay": null,
-          "reason": "Omitted information is not a contradiction or a pass",
-          "amazonEvidenceRef": "amazon.fields.theme",
-          "ebayEvidenceRef": "ebay.fields.theme"
-        },
-        "edition": {
-          "field": "edition",
-          "result": "unknown",
-          "relation": "unknown",
-          "amazon": null,
-          "ebay": null,
-          "reason": "Omitted information is not a contradiction or a pass",
-          "amazonEvidenceRef": "amazon.fields.edition",
-          "ebayEvidenceRef": "ebay.fields.edition"
-        },
-        "packageType": {
-          "field": "packageType",
-          "result": "unknown",
-          "relation": "unknown",
-          "amazon": null,
-          "ebay": null,
-          "reason": "Omitted information is not a contradiction or a pass",
-          "amazonEvidenceRef": "amazon.fields.packageType",
-          "ebayEvidenceRef": "ebay.fields.packageType"
-        },
-        "platform": {
-          "field": "platform",
-          "result": "match",
-          "relation": "same",
-          "amazon": "Nintendo Wii",
-          "ebay": "Nintendo Wii",
-          "reason": "Supported normalized values agree",
-          "amazonEvidenceRef": "amazon.fields.platform",
-          "ebayEvidenceRef": "ebay.fields.platform"
-        },
-        "region": {
-          "field": "region",
-          "result": "unknown",
-          "relation": "compatible_omission",
-          "amazon": null,
-          "ebay": "NTSC-U/C",
-          "reason": "Omitted information is not a contradiction or a pass",
-          "amazonEvidenceRef": "amazon.fields.region",
-          "ebayEvidenceRef": "ebay.fields.region"
-        },
-        "completeness": {
-          "field": "completeness",
-          "result": "unknown",
-          "relation": "unknown",
-          "amazon": null,
-          "ebay": null,
-          "reason": "Omitted information is not a contradiction or a pass",
-          "amazonEvidenceRef": "amazon.fields.completeness",
-          "ebayEvidenceRef": "ebay.fields.completeness"
-        },
-        "digitalPhysical": {
-          "field": "digitalPhysical",
-          "result": "unknown",
-          "relation": "unknown",
-          "amazon": null,
-          "ebay": null,
-          "reason": "Omitted information is not a contradiction or a pass",
-          "amazonEvidenceRef": "amazon.fields.digitalPhysical",
-          "ebayEvidenceRef": "ebay.fields.digitalPhysical"
-        }
-      },
-      "routingReason": "Unresolved identity detail on one side: installment",
+      "reason": "Unresolved identity detail on one side: installment",
       "correctionApplication": [
         {
           "actionId": "4cc41143-cbb3-419b-a415-a056a80de081",
@@ -4564,28 +3028,7 @@
           "result": "applied"
         }
       ],
-      "unknownFields": {
-        "amazon": [
-          "franchise",
-          "generation",
-          "theme",
-          "edition",
-          "packageType",
-          "region",
-          "completeness",
-          "digitalPhysical"
-        ],
-        "ebay": [
-          "franchise",
-          "installment",
-          "generation",
-          "theme",
-          "edition",
-          "packageType",
-          "completeness",
-          "digitalPhysical"
-        ]
-      }
+      "pairVerdictUsedAsInput": false
     },
     {
       "queueId": "d7a5c382-bc78-434a-9ce2-d49fa072f68f",
@@ -4595,7 +3038,7 @@
       "sourceSnapshotId": "890a72fa-5cbb-4d57-83bb-24fd7675c52a",
       "frozenEvaluationId": "9e6dbb66f7f2ae1347e02abca14328a929ed15781b76b3404ff3264cbbb97314",
       "evidence": {
-        "class": "unresolved",
+        "class": "tier_a_positive",
         "verdict": "correct",
         "verdictActionId": "53c3748a-04b2-40e9-a790-a6387a9f2a95",
         "verdictTimestamp": "2026-09-14T01:53:09.345936+00:00",
@@ -4604,11 +3047,20 @@
         "snapshotId": "83df95c3-f6db-45ef-af8f-20407d4f2545",
         "evaluationId": "9e6dbb66f7f2ae1347e02abca14328a929ed15781b76b3404ff3264cbbb97314",
         "identityAttested": true,
-        "variationVerified": false,
-        "variationResolution": "unknown",
+        "variationVerified": true,
+        "variationResolution": "not_applicable",
+        "exactVariationId": null,
+        "variationProvenance": {
+          "actionId": "6033f9fd-7528-47e6-827d-bacc1955a2a4",
+          "actor": "b8f14380-e031-70e8-2e94-a6387670b338",
+          "timestamp": "2026-09-14T03:46:49.813564+00:00",
+          "targetActionId": "53c3748a-04b2-40e9-a790-a6387a9f2a95",
+          "provenanceErrors": [],
+          "snapshotId": "fe2ab74a-6c46-4c3b-9852-fb93913da84e"
+        },
         "source": "identity_adjudication_queue",
         "qualificationReasons": [
-          "variation scope/not-applicable verification unchecked"
+          "verified exact-pair provenance; positive identity and variation assertions present"
         ],
         "verdictProvenanceErrors": [],
         "corrections": [],
@@ -4616,6 +3068,13 @@
         "relationships": [],
         "newerEvidenceActionIds": [],
         "lineage": [
+          {
+            "actionId": "6033f9fd-7528-47e6-827d-bacc1955a2a4",
+            "timestamp": "2026-09-14T03:46:49.813564+00:00",
+            "verdict": "not_provided",
+            "snapshotId": "fe2ab74a-6c46-4c3b-9852-fb93913da84e",
+            "hash": "1fde817e4026eedd73e0a7e262c62a2a9a23d4ee8a84b540ab9eaa737abcafc8"
+          },
           {
             "actionId": "53c3748a-04b2-40e9-a790-a6387a9f2a95",
             "timestamp": "2026-09-14T01:53:09.345936+00:00",
@@ -4627,18 +3086,16 @@
       },
       "referenceTitle": "Minecraft \u2013 Xbox One [video game]",
       "listingTitle": "Minecraft Microsoft Xbox One - Brand New Sealed",
-      "frozenInputFile": "web/app/api/sourcing/adjudication/queue.json",
+      "stateRevision": "27df50e055d3e3e0f7a5d53f8d5c75b0",
+      "rawStateHash": "3389c02eabcaeed496799719fbb7a7d6baba8a41530661c557db9e75905f6925",
       "sourceInputHash": "0ef2205caab276a65d64eb04236d15bf24063374c14935d747a3224129cf1230",
-      "stateRevision": "162b7093d31e94cce9f7a4f6ea2bd5be",
-      "rawStateHash": "3e9c9895d4d55952647c187d46e8d93c5ff86713050002923b7bfb14e6ce0d31",
-      "beforeShadowVerdict": "match",
-      "afterShadowVerdict": "match",
-      "identityAdmission": "Match",
+      "exclusionState": false,
+      "shadowIdentityVerdict": "match",
+      "finalIdentityAdmission": "Match",
       "eligibleForNormalBusinessEvaluation": true,
       "staticRecommendation": "Probable Match",
       "staticHardBlocks": [],
-      "staticWarnings": [],
-      "comparisonsBefore": {
+      "comparisons": {
         "franchise": {
           "field": "franchise",
           "result": "unknown",
@@ -4760,154 +3217,9 @@
           "ebayEvidenceRef": "ebay.fields.digitalPhysical"
         }
       },
-      "comparisonsAfter": {
-        "franchise": {
-          "field": "franchise",
-          "result": "unknown",
-          "relation": "unknown",
-          "amazon": null,
-          "ebay": null,
-          "reason": "Omitted information is not a contradiction or a pass",
-          "amazonEvidenceRef": "amazon.fields.franchise",
-          "ebayEvidenceRef": "ebay.fields.franchise"
-        },
-        "coreProduct": {
-          "field": "coreProduct",
-          "result": "match",
-          "relation": "same",
-          "amazon": "minecraft",
-          "ebay": "minecraft",
-          "reason": "Supported normalized values agree",
-          "amazonEvidenceRef": "amazon.fields.coreProduct",
-          "ebayEvidenceRef": "ebay.fields.coreProduct"
-        },
-        "coreGame": {
-          "field": "coreGame",
-          "result": "match",
-          "relation": "same",
-          "amazon": "minecraft",
-          "ebay": "minecraft",
-          "reason": "Supported normalized values agree",
-          "amazonEvidenceRef": "amazon.fields.coreGame",
-          "ebayEvidenceRef": "ebay.fields.coreGame"
-        },
-        "installment": {
-          "field": "installment",
-          "result": "unknown",
-          "relation": "unknown",
-          "amazon": null,
-          "ebay": null,
-          "reason": "Omitted information is not a contradiction or a pass",
-          "amazonEvidenceRef": "amazon.fields.installment",
-          "ebayEvidenceRef": "ebay.fields.installment"
-        },
-        "generation": {
-          "field": "generation",
-          "result": "unknown",
-          "relation": "unknown",
-          "amazon": null,
-          "ebay": null,
-          "reason": "Omitted information is not a contradiction or a pass",
-          "amazonEvidenceRef": "amazon.fields.generation",
-          "ebayEvidenceRef": "ebay.fields.generation"
-        },
-        "theme": {
-          "field": "theme",
-          "result": "unknown",
-          "relation": "unknown",
-          "amazon": null,
-          "ebay": null,
-          "reason": "Omitted information is not a contradiction or a pass",
-          "amazonEvidenceRef": "amazon.fields.theme",
-          "ebayEvidenceRef": "ebay.fields.theme"
-        },
-        "edition": {
-          "field": "edition",
-          "result": "unknown",
-          "relation": "unknown",
-          "amazon": null,
-          "ebay": null,
-          "reason": "Omitted information is not a contradiction or a pass",
-          "amazonEvidenceRef": "amazon.fields.edition",
-          "ebayEvidenceRef": "ebay.fields.edition"
-        },
-        "packageType": {
-          "field": "packageType",
-          "result": "unknown",
-          "relation": "unknown",
-          "amazon": null,
-          "ebay": null,
-          "reason": "Omitted information is not a contradiction or a pass",
-          "amazonEvidenceRef": "amazon.fields.packageType",
-          "ebayEvidenceRef": "ebay.fields.packageType"
-        },
-        "platform": {
-          "field": "platform",
-          "result": "match",
-          "relation": "same",
-          "amazon": "Xbox One",
-          "ebay": "Xbox One",
-          "reason": "Supported normalized values agree",
-          "amazonEvidenceRef": "amazon.fields.platform",
-          "ebayEvidenceRef": "ebay.fields.platform"
-        },
-        "region": {
-          "field": "region",
-          "result": "unknown",
-          "relation": "unknown",
-          "amazon": null,
-          "ebay": null,
-          "reason": "Omitted information is not a contradiction or a pass",
-          "amazonEvidenceRef": "amazon.fields.region",
-          "ebayEvidenceRef": "ebay.fields.region"
-        },
-        "completeness": {
-          "field": "completeness",
-          "result": "unknown",
-          "relation": "unknown",
-          "amazon": null,
-          "ebay": null,
-          "reason": "Omitted information is not a contradiction or a pass",
-          "amazonEvidenceRef": "amazon.fields.completeness",
-          "ebayEvidenceRef": "ebay.fields.completeness"
-        },
-        "digitalPhysical": {
-          "field": "digitalPhysical",
-          "result": "unknown",
-          "relation": "unknown",
-          "amazon": null,
-          "ebay": null,
-          "reason": "Omitted information is not a contradiction or a pass",
-          "amazonEvidenceRef": "amazon.fields.digitalPhysical",
-          "ebayEvidenceRef": "ebay.fields.digitalPhysical"
-        }
-      },
-      "routingReason": "Identity matched or unknown; unknown fields are not positive evidence.",
+      "reason": "Identity matched or unknown; unknown fields are not positive evidence.",
       "correctionApplication": [],
-      "unknownFields": {
-        "amazon": [
-          "franchise",
-          "installment",
-          "generation",
-          "theme",
-          "edition",
-          "packageType",
-          "region",
-          "completeness",
-          "digitalPhysical"
-        ],
-        "ebay": [
-          "franchise",
-          "installment",
-          "generation",
-          "theme",
-          "edition",
-          "packageType",
-          "region",
-          "completeness",
-          "digitalPhysical"
-        ]
-      }
+      "pairVerdictUsedAsInput": false
     },
     {
       "queueId": "74c55b1b-2c50-4637-86e8-7c2199049be1",
@@ -4917,7 +3229,7 @@
       "sourceSnapshotId": "a00d3f46-2b59-4218-b7cd-82bb807925c5",
       "frozenEvaluationId": "fd322827fb8979455283f9fb3342e87dc8910eda76ad5d834ad4846eede847d4",
       "evidence": {
-        "class": "unresolved",
+        "class": "tier_a_positive",
         "verdict": "correct",
         "verdictActionId": "d0f1cd02-82c2-4280-96dc-fea73fad0017",
         "verdictTimestamp": "2026-09-14T01:53:58.307737+00:00",
@@ -4926,11 +3238,20 @@
         "snapshotId": "8d0279a1-8c2c-4e8c-afeb-af3f57155372",
         "evaluationId": "fd322827fb8979455283f9fb3342e87dc8910eda76ad5d834ad4846eede847d4",
         "identityAttested": true,
-        "variationVerified": false,
-        "variationResolution": "unknown",
+        "variationVerified": true,
+        "variationResolution": "not_applicable",
+        "exactVariationId": null,
+        "variationProvenance": {
+          "actionId": "433d1dce-08ee-4eed-95f9-5c82014a666c",
+          "actor": "b8f14380-e031-70e8-2e94-a6387670b338",
+          "timestamp": "2026-09-14T03:46:57.178148+00:00",
+          "targetActionId": "d0f1cd02-82c2-4280-96dc-fea73fad0017",
+          "provenanceErrors": [],
+          "snapshotId": "64110d6f-8a11-4140-a897-76cbfc58e54d"
+        },
         "source": "identity_adjudication_queue",
         "qualificationReasons": [
-          "variation scope/not-applicable verification unchecked"
+          "verified exact-pair provenance; positive identity and variation assertions present"
         ],
         "verdictProvenanceErrors": [],
         "corrections": [
@@ -4987,6 +3308,13 @@
         "newerEvidenceActionIds": [],
         "lineage": [
           {
+            "actionId": "433d1dce-08ee-4eed-95f9-5c82014a666c",
+            "timestamp": "2026-09-14T03:46:57.178148+00:00",
+            "verdict": "not_provided",
+            "snapshotId": "64110d6f-8a11-4140-a897-76cbfc58e54d",
+            "hash": "f24b42bfe21209bc111da3cbdfa6fd55d81e6dae1d8ebd2dcf5e3f1fee45c987"
+          },
+          {
             "actionId": "d0f1cd02-82c2-4280-96dc-fea73fad0017",
             "timestamp": "2026-09-14T01:53:58.307737+00:00",
             "verdict": "correct",
@@ -4997,20 +3325,16 @@
       },
       "referenceTitle": "DISNEY INFINITY Starter Pack Xbox 360",
       "listingTitle": "Xbox 360 Disney Infinity Starter Pack 1.0 & Accessories Lot New/Sealed",
-      "frozenInputFile": "web/app/api/sourcing/adjudication/queue.json",
+      "stateRevision": "6e211a496b59b77fa7cbb378748bbd82",
+      "rawStateHash": "d7ffe8c09cf2f697924f9cfe26cb1f6fcbb481d0e3054149b36f7506b25e4e42",
       "sourceInputHash": "2e3cf0b9c7b41d321d1d51cc511bf8f69f14a15d3738ed6f2e073bc6648f7b9b",
-      "stateRevision": "4c440a2ce34ec0aeec20c5f91a861151",
-      "rawStateHash": "459638e44671bb9827d67f3ac6758daa8ffd23469886652e0a0740643500f29e",
-      "beforeShadowVerdict": "needs_review",
-      "afterShadowVerdict": "needs_review",
-      "identityAdmission": "Review",
+      "exclusionState": false,
+      "shadowIdentityVerdict": "needs_review",
+      "finalIdentityAdmission": "Review",
       "eligibleForNormalBusinessEvaluation": false,
       "staticRecommendation": "Review",
       "staticHardBlocks": [],
-      "staticWarnings": [
-        "Unresolved identity detail on one side: generation, installment"
-      ],
-      "comparisonsBefore": {
+      "comparisons": {
         "franchise": {
           "field": "franchise",
           "result": "match",
@@ -5132,129 +3456,7 @@
           "ebayEvidenceRef": "ebay.fields.digitalPhysical"
         }
       },
-      "comparisonsAfter": {
-        "franchise": {
-          "field": "franchise",
-          "result": "match",
-          "relation": "same",
-          "amazon": "Disney Infinity",
-          "ebay": "Disney Infinity",
-          "reason": "Supported normalized values agree",
-          "amazonEvidenceRef": "amazon.fields.franchise",
-          "ebayEvidenceRef": "ebay.fields.franchise"
-        },
-        "coreProduct": {
-          "field": "coreProduct",
-          "result": "match",
-          "relation": "same",
-          "amazon": "disney infinity starter pack",
-          "ebay": "disney infinity starter pack",
-          "reason": "Supported normalized values agree",
-          "amazonEvidenceRef": "amazon.fields.coreProduct",
-          "ebayEvidenceRef": "ebay.fields.coreProduct"
-        },
-        "coreGame": {
-          "field": "coreGame",
-          "result": "match",
-          "relation": "same",
-          "amazon": "disney infinity starter pack",
-          "ebay": "disney infinity starter pack",
-          "reason": "Supported normalized values agree",
-          "amazonEvidenceRef": "amazon.fields.coreGame",
-          "ebayEvidenceRef": "ebay.fields.coreGame"
-        },
-        "installment": {
-          "field": "installment",
-          "result": "unknown",
-          "relation": "compatible_omission",
-          "amazon": null,
-          "ebay": "1.0",
-          "reason": "Omitted information is not a contradiction or a pass",
-          "amazonEvidenceRef": "amazon.fields.installment",
-          "ebayEvidenceRef": "ebay.fields.installment"
-        },
-        "generation": {
-          "field": "generation",
-          "result": "unknown",
-          "relation": "compatible_omission",
-          "amazon": null,
-          "ebay": "1.0",
-          "reason": "Omitted information is not a contradiction or a pass",
-          "amazonEvidenceRef": "amazon.fields.generation",
-          "ebayEvidenceRef": "ebay.fields.generation"
-        },
-        "theme": {
-          "field": "theme",
-          "result": "unknown",
-          "relation": "unknown",
-          "amazon": null,
-          "ebay": null,
-          "reason": "Omitted information is not a contradiction or a pass",
-          "amazonEvidenceRef": "amazon.fields.theme",
-          "ebayEvidenceRef": "ebay.fields.theme"
-        },
-        "edition": {
-          "field": "edition",
-          "result": "unknown",
-          "relation": "unknown",
-          "amazon": null,
-          "ebay": null,
-          "reason": "Omitted information is not a contradiction or a pass",
-          "amazonEvidenceRef": "amazon.fields.edition",
-          "ebayEvidenceRef": "ebay.fields.edition"
-        },
-        "packageType": {
-          "field": "packageType",
-          "result": "match",
-          "relation": "same",
-          "amazon": "starter pack",
-          "ebay": "starter pack",
-          "reason": "Supported normalized values agree",
-          "amazonEvidenceRef": "amazon.fields.packageType",
-          "ebayEvidenceRef": "ebay.fields.packageType"
-        },
-        "platform": {
-          "field": "platform",
-          "result": "match",
-          "relation": "same",
-          "amazon": "Xbox 360",
-          "ebay": "Xbox 360",
-          "reason": "Supported normalized values agree",
-          "amazonEvidenceRef": "amazon.fields.platform",
-          "ebayEvidenceRef": "ebay.fields.platform"
-        },
-        "region": {
-          "field": "region",
-          "result": "unknown",
-          "relation": "compatible_omission",
-          "amazon": null,
-          "ebay": "NTSC-U/C",
-          "reason": "Omitted information is not a contradiction or a pass",
-          "amazonEvidenceRef": "amazon.fields.region",
-          "ebayEvidenceRef": "ebay.fields.region"
-        },
-        "completeness": {
-          "field": "completeness",
-          "result": "unknown",
-          "relation": "unknown",
-          "amazon": null,
-          "ebay": null,
-          "reason": "Omitted information is not a contradiction or a pass",
-          "amazonEvidenceRef": "amazon.fields.completeness",
-          "ebayEvidenceRef": "ebay.fields.completeness"
-        },
-        "digitalPhysical": {
-          "field": "digitalPhysical",
-          "result": "unknown",
-          "relation": "unknown",
-          "amazon": null,
-          "ebay": null,
-          "reason": "Omitted information is not a contradiction or a pass",
-          "amazonEvidenceRef": "amazon.fields.digitalPhysical",
-          "ebayEvidenceRef": "ebay.fields.digitalPhysical"
-        }
-      },
-      "routingReason": "Unresolved identity detail on one side: generation, installment",
+      "reason": "Unresolved identity detail on one side: generation, installment",
       "correctionApplication": [
         {
           "actionId": "d0f1cd02-82c2-4280-96dc-fea73fad0017",
@@ -5285,23 +3487,7 @@
           "result": "applied"
         }
       ],
-      "unknownFields": {
-        "amazon": [
-          "installment",
-          "generation",
-          "theme",
-          "edition",
-          "region",
-          "completeness",
-          "digitalPhysical"
-        ],
-        "ebay": [
-          "theme",
-          "edition",
-          "completeness",
-          "digitalPhysical"
-        ]
-      }
+      "pairVerdictUsedAsInput": false
     },
     {
       "queueId": "8f04afc0-f67d-4ddf-9708-88c9ae9cdd31",
@@ -5322,6 +3508,15 @@
         "identityAttested": false,
         "variationVerified": false,
         "variationResolution": "unknown",
+        "exactVariationId": null,
+        "variationProvenance": {
+          "actionId": "56233d9d-b175-4652-a419-eeb85536bc4c",
+          "actor": "b8f14380-e031-70e8-2e94-a6387670b338",
+          "timestamp": "2026-09-14T01:54:49.18804+00:00",
+          "targetActionId": null,
+          "provenanceErrors": [],
+          "snapshotId": "394dd1b0-6a42-410a-9542-bbeb7ff661bd"
+        },
         "source": "identity_adjudication_queue",
         "qualificationReasons": [
           "verified exact-pair negative; positive/variation assertions not required"
@@ -5368,21 +3563,19 @@
       },
       "referenceTitle": "Riders Republic PlayStation 4 Standard Edition with free upgrade to the digital PS5 version",
       "listingTitle": "Riders Republic Limited Edition - Sony PlayStation 4",
-      "frozenInputFile": "web/app/api/sourcing/adjudication/queue.json",
-      "sourceInputHash": "a6b6812f29d95057d6ac1e47418f890e2a9fdc1a8a96acf6ef832d42f15bf5cd",
       "stateRevision": "d1f69a049b1d6b9696d39b758783fed8",
       "rawStateHash": "466761129ade8a1a74e270987c2aa199e5db03c52b729b7c572caeb24682cdd7",
-      "beforeShadowVerdict": "non-match",
-      "afterShadowVerdict": "non-match",
-      "identityAdmission": "Conflict",
+      "sourceInputHash": "a6b6812f29d95057d6ac1e47418f890e2a9fdc1a8a96acf6ef832d42f15bf5cd",
+      "exclusionState": false,
+      "shadowIdentityVerdict": "non-match",
+      "finalIdentityAdmission": "Conflict",
       "eligibleForNormalBusinessEvaluation": false,
       "staticRecommendation": "Blocked",
       "staticHardBlocks": [
         "Supported values differ",
         "video game identity conflict: edition conflict: Amazon Standard Edition, eBay Limited Edition"
       ],
-      "staticWarnings": [],
-      "comparisonsBefore": {
+      "comparisons": {
         "franchise": {
           "field": "franchise",
           "result": "unknown",
@@ -5504,129 +3697,7 @@
           "ebayEvidenceRef": "ebay.fields.digitalPhysical"
         }
       },
-      "comparisonsAfter": {
-        "franchise": {
-          "field": "franchise",
-          "result": "unknown",
-          "relation": "unknown",
-          "amazon": null,
-          "ebay": null,
-          "reason": "Omitted information is not a contradiction or a pass",
-          "amazonEvidenceRef": "amazon.fields.franchise",
-          "ebayEvidenceRef": "ebay.fields.franchise"
-        },
-        "coreProduct": {
-          "field": "coreProduct",
-          "result": "match",
-          "relation": "same",
-          "amazon": "riders republic",
-          "ebay": "riders republic",
-          "reason": "Supported normalized values agree",
-          "amazonEvidenceRef": "amazon.fields.coreProduct",
-          "ebayEvidenceRef": "ebay.fields.coreProduct"
-        },
-        "coreGame": {
-          "field": "coreGame",
-          "result": "match",
-          "relation": "same",
-          "amazon": "riders republic",
-          "ebay": "riders republic",
-          "reason": "Supported normalized values agree",
-          "amazonEvidenceRef": "amazon.fields.coreGame",
-          "ebayEvidenceRef": "ebay.fields.coreGame"
-        },
-        "installment": {
-          "field": "installment",
-          "result": "unknown",
-          "relation": "unknown",
-          "amazon": null,
-          "ebay": null,
-          "reason": "Omitted information is not a contradiction or a pass",
-          "amazonEvidenceRef": "amazon.fields.installment",
-          "ebayEvidenceRef": "ebay.fields.installment"
-        },
-        "generation": {
-          "field": "generation",
-          "result": "unknown",
-          "relation": "unknown",
-          "amazon": null,
-          "ebay": null,
-          "reason": "Omitted information is not a contradiction or a pass",
-          "amazonEvidenceRef": "amazon.fields.generation",
-          "ebayEvidenceRef": "ebay.fields.generation"
-        },
-        "theme": {
-          "field": "theme",
-          "result": "unknown",
-          "relation": "unknown",
-          "amazon": null,
-          "ebay": null,
-          "reason": "Omitted information is not a contradiction or a pass",
-          "amazonEvidenceRef": "amazon.fields.theme",
-          "ebayEvidenceRef": "ebay.fields.theme"
-        },
-        "edition": {
-          "field": "edition",
-          "result": "conflict",
-          "relation": "explicit_conflict",
-          "amazon": "Standard Edition",
-          "ebay": "Limited Edition",
-          "reason": "Supported values differ",
-          "amazonEvidenceRef": "amazon.fields.edition",
-          "ebayEvidenceRef": "ebay.fields.edition"
-        },
-        "packageType": {
-          "field": "packageType",
-          "result": "unknown",
-          "relation": "unknown",
-          "amazon": null,
-          "ebay": null,
-          "reason": "Omitted information is not a contradiction or a pass",
-          "amazonEvidenceRef": "amazon.fields.packageType",
-          "ebayEvidenceRef": "ebay.fields.packageType"
-        },
-        "platform": {
-          "field": "platform",
-          "result": "match",
-          "relation": "same",
-          "amazon": "PlayStation 4",
-          "ebay": "PlayStation 4",
-          "reason": "Supported normalized values agree",
-          "amazonEvidenceRef": "amazon.fields.platform",
-          "ebayEvidenceRef": "ebay.fields.platform"
-        },
-        "region": {
-          "field": "region",
-          "result": "unknown",
-          "relation": "unknown",
-          "amazon": null,
-          "ebay": null,
-          "reason": "Omitted information is not a contradiction or a pass",
-          "amazonEvidenceRef": "amazon.fields.region",
-          "ebayEvidenceRef": "ebay.fields.region"
-        },
-        "completeness": {
-          "field": "completeness",
-          "result": "unknown",
-          "relation": "unknown",
-          "amazon": null,
-          "ebay": null,
-          "reason": "Omitted information is not a contradiction or a pass",
-          "amazonEvidenceRef": "amazon.fields.completeness",
-          "ebayEvidenceRef": "ebay.fields.completeness"
-        },
-        "digitalPhysical": {
-          "field": "digitalPhysical",
-          "result": "unknown",
-          "relation": "unknown",
-          "amazon": null,
-          "ebay": null,
-          "reason": "Omitted information is not a contradiction or a pass",
-          "amazonEvidenceRef": "amazon.fields.digitalPhysical",
-          "ebayEvidenceRef": "ebay.fields.digitalPhysical"
-        }
-      },
-      "routingReason": "edition conflict: Amazon Standard Edition, eBay Limited Edition",
+      "reason": "edition conflict: Amazon Standard Edition, eBay Limited Edition",
       "correctionApplication": [
         {
           "actionId": "56233d9d-b175-4652-a419-eeb85536bc4c",
@@ -5643,68 +3714,31 @@
           "result": "applied"
         }
       ],
-      "unknownFields": {
-        "amazon": [
-          "franchise",
-          "installment",
-          "generation",
-          "theme",
-          "packageType",
-          "region",
-          "completeness",
-          "digitalPhysical"
-        ],
-        "ebay": [
-          "franchise",
-          "installment",
-          "generation",
-          "theme",
-          "packageType",
-          "region",
-          "completeness",
-          "digitalPhysical"
-        ]
-      }
+      "pairVerdictUsedAsInput": false
     }
   ],
   "artifactHashes": {
-    "tmp\\sourcing-adjudicated-ground-truth\\candidate-replay.json": "fba34f4aa9d29294651ee266b65392dc72a8b831c08bc108d51c172fe4b6bcff",
-    "tmp\\sourcing-adjudicated-ground-truth\\capture.json": "eb7e48fa7b7fe26723db6888020ae54d2b9bc4393d59392fc86e653115052753",
-    "tmp\\sourcing-adjudicated-ground-truth\\capture.py": "e0b94da7ac335956d7ae8174d32fea469a2b6d210ac4e7b75ec69331c4e7566e",
-    "tmp\\sourcing-adjudicated-ground-truth\\default-current.json": "30fc9498b849f2cc8866b58b37f568c1bab357520511f754ea4ce7e2e0fd9e05",
-    "tmp\\sourcing-adjudicated-ground-truth\\document.py": "0dd4beba8b4c0aecd355e3ae159e3b3f7bde74a05a10be6a4fd920919f30c951",
-    "tmp\\sourcing-adjudicated-ground-truth\\export-verified.json": "c7db03990bbc93edd27970c4a3fead063983b19c6ea05c3806f292a7c4f2274c",
-    "tmp\\sourcing-adjudicated-ground-truth\\final-replay.json": "8b12da75c417f88c38763b0b5ad10d73dabf2eb6395fe20515c42375223cd867",
-    "tmp\\sourcing-adjudicated-ground-truth\\freeze-fixtures.py": "0e190d07973c24808618b8edf2324e38b92004ae49507bf36ae073c2058ba783",
-    "tmp\\sourcing-adjudicated-ground-truth\\indicator-checks.json": "40082267c3895a371d3ef9b9802b557533cb787675decbc3881c2c5764a587cd",
-    "tmp\\sourcing-adjudicated-ground-truth\\scheduler-build.log": "a6c7ab3a5495cb3fe02cc569eafd028a77bd08984bd92121b125ce5631993bd0",
-    "tmp\\sourcing-adjudicated-ground-truth\\snapshots.json": "c1f919c68b818d91da43a0b062e193072eae394fa0877bc66edbd458a858ca5e",
-    "tmp\\sourcing-adjudicated-ground-truth\\states-first.json": "106fb0a1d939ddf182a0f653f0f819acb387f1d0cbc0dc73c97fa278a1c01d03",
-    "tmp\\sourcing-adjudicated-ground-truth\\states-second.json": "106fb0a1d939ddf182a0f653f0f819acb387f1d0cbc0dc73c97fa278a1c01d03",
-    "tmp\\sourcing-adjudicated-ground-truth\\unchanged-replay.json": "696888121490ea283930b8f277c8da8fc412c3db0adafb80be409ffb325782a8",
-    "tmp\\sourcing-adjudicated-ground-truth\\validated-final-replay.json": "8b12da75c417f88c38763b0b5ad10d73dabf2eb6395fe20515c42375223cd867",
-    "tmp\\sourcing-adjudicated-ground-truth\\verify-export.mjs": "db553d1e4c70fd65deb605997f36d10f2711ecd07bcc9ccff40b8c9d1157088d",
-    "tmp\\sourcing-adjudicated-ground-truth\\verify-indicators.mjs": "e13bb230b4db8ec230775fd51807c5f58870c4f9b19dfb7150bb122f516d70ee",
-    "tmp\\sourcing-adjudicated-ground-truth\\baseline\\matching_feedback.py": "69aae59b6def4e7438e586b2d03c94189a4de6f43249d7205ba97b862246bd98",
-    "tmp\\sourcing-adjudicated-ground-truth\\baseline\\score_sourcing_opportunities.py": "d24348085b7dbd0d4f8819192b17cac46899a866bd80d221793d3ee7dc148474",
-    "tmp\\sourcing-adjudicated-ground-truth\\baseline\\sourcing_match_rules.py": "fe2ecafa1daf76ad7c69fa5e5f16e9ca8d511372aaca52082118c9ed4c4e0ed2",
-    "tmp\\sourcing-adjudicated-ground-truth\\baseline\\video_game_identity.py": "af74c7879a0e17bbd2110567d49e736fe74d168a627b614a8fbbcf17a22ebab1",
-    "tmp\\sourcing-adjudicated-ground-truth\\curated-replay\\replay.json": "179edd8ce4a304b471fc1f3d6ba651bd5c4644a0655598d211b2fa3559bb39db",
-    "tmp\\sourcing-adjudicated-ground-truth\\curated-replay\\safety-summary.json": "25a8813bddd850ed611654b27d79346ab47da40a9e9b5628f00fcd14395a7b1a",
-    "tmp\\sourcing-adjudicated-ground-truth\\final-curated-replay\\replay.json": "d1f8fd3289851e083e1cc573c70e8599a932cceb910222b1c5c399dd8485403c",
-    "tmp\\sourcing-adjudicated-ground-truth\\final-curated-replay\\safety-summary.json": "1d44954123ef06529c49c6499d10d243c8774088ca9a310412c753744c7f9402"
-  },
-  "commitMetadataScope": "commitsCreated identifies the implementation/evidence commit only; this later documentation commit deliberately does not embed its own hash.",
-  "closeoutValidation": {
-    "artifactHashesMatched": 25,
-    "candidateCodeHashesMatched": 8,
-    "priorArtifactHashesMatched": 17,
-    "freshOfflineReplayEqualsFrozen": true,
-    "manifestRowsReconciled": 16,
-    "focusedTestsPassed": 17,
-    "productionReadsRepeated": 0,
-    "disposableContainer": "mbop-phase2-review-test",
-    "containerStopped": true,
-    "compatibleAdmissionLimitation": "No observed Compatible relationships. Synthetic qualification accepts Compatible without value rewriting, but replay still returns platform non-match; end-to-end compatible admission remains unproven."
+    "tmp\\sourcing-phase3-strict-gate\\additional-python-tests.log": "4ae014e09427e5d8527beff1c05c60c6dcae7c812f307bec1758e519791a243a",
+    "tmp\\sourcing-phase3-strict-gate\\api-tests.log": "3c827267b4eaa43345188fdc31ce95006cfc9d63da01297f9338239e868cda69",
+    "tmp\\sourcing-phase3-strict-gate\\capture.json": "e618462d63982061b8dec94c87501ca3c776c6ec19d685697767fb7543eac48e",
+    "tmp\\sourcing-phase3-strict-gate\\capture.py": "e0b94da7ac335956d7ae8174d32fea469a2b6d210ac4e7b75ec69331c4e7566e",
+    "tmp\\sourcing-phase3-strict-gate\\container-tests.log": "2cf8182d7387bc843ff22ac3f9bbe9fc6ff3eaab1186907e290d0892b0b19616",
+    "tmp\\sourcing-phase3-strict-gate\\defaults.json": "30fc9498b849f2cc8866b58b37f568c1bab357520511f754ea4ce7e2e0fd9e05",
+    "tmp\\sourcing-phase3-strict-gate\\document.py": "11b39f1fd5a7b6cf10256ad70d72e3c2c0585297fab6132c8bd2382d6b7f78bb",
+    "tmp\\sourcing-phase3-strict-gate\\export-verified.json": "71ec38db309936b06b6451976f2b0a6efbc6826b00df460ee12fbc61d3f4f60a",
+    "tmp\\sourcing-phase3-strict-gate\\indicator-checks.json": "40082267c3895a371d3ef9b9802b557533cb787675decbc3881c2c5764a587cd",
+    "tmp\\sourcing-phase3-strict-gate\\python-tests.log": "ebea39d3a7d3c2633b1c873e62664d666b664a6bc8eb71e20e876f552f5b2202",
+    "tmp\\sourcing-phase3-strict-gate\\regression-proof.json": "232a167b98512823c476a938fcb0bf6a72169c640abad7137f48f4eec4a723f2",
+    "tmp\\sourcing-phase3-strict-gate\\replay.log": "e7ee5fa923793f9a6d051c88beaa37b7d2f30e15a3e5c1d647ada22f291303b7",
+    "tmp\\sourcing-phase3-strict-gate\\snapshots.json": "d1c6e60569472a4e626ff019c44a797069f8be92147072089cf1231db398708b",
+    "tmp\\sourcing-phase3-strict-gate\\states-first.json": "e19641971c8eb5a0139733b3ae61502e8bb67ccefe2ffa4add5b15feaa9ee5a7",
+    "tmp\\sourcing-phase3-strict-gate\\states-second.json": "e19641971c8eb5a0139733b3ae61502e8bb67ccefe2ffa4add5b15feaa9ee5a7",
+    "tmp\\sourcing-phase3-strict-gate\\tier-bc-replay.json": "ad99694b5edadf679e6099fa332ba496956338654bc384f44a59b444b362722f",
+    "tmp\\sourcing-phase3-strict-gate\\tier-bc-summary.json": "ebb5f7c846ca6be8e839a894dcec65ce15609d7d182402dda259cd0b0928691e",
+    "tmp\\sourcing-phase3-strict-gate\\unchanged-replay.json": "e5cdc8412695ca16bcdc77f297be3206826dfd6b6867bfcd9fbc6aa14c66d22e",
+    "tmp\\sourcing-phase3-strict-gate\\verify-export.mjs": "949a6e03d426e75dce23d71335a0b3b4ef2e4f8bd523981ec1e8c2646b84513d",
+    "tmp\\sourcing-phase3-strict-gate\\verify-indicators.mjs": "70a7616637bf5139eeb9c30b78a06a163fb8797af8cd740471de2b8037b8fd0f",
+    "tmp\\sourcing-phase3-strict-gate\\curated-replay\\replay.json": "86273aee58b144c89ec410104659fc3b782d50b8115f137ada313625cfd2f664",
+    "tmp\\sourcing-phase3-strict-gate\\curated-replay\\safety-summary.json": "1d44954123ef06529c49c6499d10d243c8774088ca9a310412c753744c7f9402"
   }
 }
