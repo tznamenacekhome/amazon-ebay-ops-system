@@ -9,7 +9,7 @@ from copy import deepcopy
 from functools import lru_cache
 from typing import Any
 
-from system_detection import detect_system_from_title, normalize_system
+from system_detection import detect_system_from_title, normalize_system, resolve_seed_system
 
 
 ROMAN_NUMERAL_VALUES = {
@@ -879,7 +879,7 @@ def source_name_relation(title, supporting):
     return "explicit_conflict"
 
 
-def phase3_side(title, side, evidence=None, catalog=None, platform=None):
+def phase3_side(title, side, evidence=None, catalog=None, platform=None, platform_source="seed.system"):
     evidence, catalog = evidence or {}, catalog or {}
     cleaned_title, assigned = reconcile_listing_title(title, evidence) if side == "ebay" else (title, [])
     rows = [{"source": "title", "text": str(cleaned_title), "originalText":str(title)}] if title else []
@@ -900,7 +900,7 @@ def phase3_side(title, side, evidence=None, catalog=None, platform=None):
             values = [(platform_display(detect_system_from_title(platform_text(row["text"]))), row) for row in rows if detect_system_from_title(platform_text(row["text"]))]
             values += [(platform_display(normalize_system(v)), {"source": "platform_values", "text": v}) for v in evidence.get("platform_values", []) if normalize_system(v)]
             if not values and platform:
-                values = [(platform_display(normalize_system(platform)), {"source": "seed.system", "text": platform})]
+                values = [(platform_display(normalize_system(platform)), {"source": platform_source, "text": platform})]
         if key == "region":
             allowed = rows + [{"source": "region_code_values", "text": v} for v in evidence.get("region_code_values", [])]
             values = [(first_region([row]), row) for row in allowed if first_region([row])]
@@ -953,21 +953,37 @@ def phase3_side(title, side, evidence=None, catalog=None, platform=None):
 
 
 @lru_cache(maxsize=2048)
-def _exact_reference(asin, title, system, serialized_catalog):
-    return phase3_side(title, "amazon", catalog=json.loads(serialized_catalog), platform=system)
+def _exact_reference(asin, title, serialized_metadata):
+    metadata = json.loads(serialized_metadata)
+    system, source = resolve_seed_system(metadata, title)
+    result = phase3_side(title, "amazon", catalog=metadata["catalog"], platform=system,
+                         platform_source="seed.system" if source == "seed_system" else "seed.raw_context_json.inferred_system")
+    # Keep the trusted input alongside its normalized fields. Corrections overlay
+    # the identity copy, never reconstruct it from a subset of scalar values.
+    result["referenceMetadata"] = metadata
+    result["platformResolution"] = {"system": system, "source": source}
+    if result["fields"]["platform"]["sources"] and all(
+            s["field"] == "seed.raw_context_json.inferred_system" for s in result["fields"]["platform"]["sources"]):
+        result["fields"]["platform"]["state"] = "inferred"
+        for span in result["fields"]["platform"]["sources"]:
+            span["inferenceSource"] = source
+    return result
 
 
 def evaluated_identity(amazon_title, ebay_title, seed, evidence):
     asin = str(seed.get("asin") or "").upper()
     catalog = catalog_identity(seed)
     verified_catalog = catalog if asin and str(catalog.get("asin") or "").upper() == asin else {}
-    amazon = deepcopy(_exact_reference(asin, str(amazon_title or ""), seed.get("system"), json.dumps(verified_catalog, sort_keys=True)))
+    metadata = {"system": seed.get("system"), "raw_context_json": deepcopy(seed.get("raw_context_json") or {}),
+                "catalog": verified_catalog}
+    # Rejected cross-ASIN catalog data remains provenance only, never parser input.
+    amazon = deepcopy(_exact_reference(asin, str(amazon_title or ""), json.dumps(metadata, sort_keys=True)))
     ebay = phase3_side(ebay_title, "ebay", evidence=evidence)
     result = phase3_comparison(amazon, ebay)
     result["reference"] = {"asin": asin or None, "catalogAccepted": bool(verified_catalog),
                            "catalogRejected": bool(catalog and not verified_catalog), "version": PHASE3_VERSION}
     result["materialEvidenceHash"] = evidence_hash({"asin": asin, "amazonTitle": amazon_title,
-        "catalog": verified_catalog, "ebayTitle": ebay_title, "evidence": evidence})
+        "catalog": verified_catalog, "referenceMetadata": metadata, "ebayTitle": ebay_title, "evidence": evidence})
     return result
 
 

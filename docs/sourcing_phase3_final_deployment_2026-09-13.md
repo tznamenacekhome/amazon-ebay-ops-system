@@ -1,54 +1,74 @@
-# Phase 3 correction/admission candidate: curated gate failed
+# Phase 3 reference metadata repaired; operational guard blocked
 
-PHASE 3 NOT DEPLOYED — CORRECTION/ADMISSION SAFETY GATE FAILED
+PHASE 3 NOT DEPLOYED — METADATA/ADMISSION SAFETY GATE FAILED
 
-The scoped-correction candidate fixes the exact Crystal Harbor acceptance case, but introduces four curated positive admission losses. The operator's original work order requires stopping on a strict-gate regression. Work stopped before atomic-guard implementation, fresh production capture, deployment or refresh. This is an unapproved shadow candidate, not a production fix. The previous failure and report are preserved in commit `1aa82cb`.
+The metadata/admission repair passes the full required identity gate. The original operational work order resumed, including local atomic-guard implementation, mutation tests, a fresh production read-only capture and migration-ledger reconciliation. An expanded guard test then exposed numeric fingerprint instability. Work stopped before production SQL, deployment or refresh. The final status denotes the failed overall deployment gate; it does not mean the metadata repair lost its passing results.
 
-## Root cause and implemented candidate
+## Exact metadata loss and repair
 
-`evaluate_static_match_rules` applied scoped corrections once to canonical identity, then evaluated platform again from original titles/metadata. Valid PS4-to-PS5 correction therefore produced canonical Match but static Blocked and scorer rejected.
+All four curated references had `seed.system=null`. Their titles omitted platform. The old resolver read `raw_context_json.inferred_system`, with `inferred_system_source=keepa_category_tree`; the previous canonical constructor accepted only `seed.system`. Its effective Amazon platform therefore became unknown, and the downstream canonical-only platform check removed admission.
 
-The audit also found raw-text digital/download, completeness and region checks after canonical corrections. Core/base, installment, edition, generation and package/theme already use canonical comparisons. Category/accessory, condition, location, delivery and configured excluded-keyword rules are independent safeguards; an identity-field correction does not authorize clearing them. Downstream scoring consumes static diagnostics and separate business/history signals; no additional raw reparse of these corrected identity fields was found there.
+| Reference | ASIN | Lost inferred_system | Restored canonical platform | Full scorer |
+| --- | --- | --- | --- | --- |
+| Zelda: Twilight Princess | B000FQBPCQ | Wii | Nintendo Wii | open |
+| White Knight Chronicles II | B004WL4LOY | PS 3 | PlayStation 3 | open |
+| Persona 5 Royal: Phantom Thieves | B081W4X9RW | PS 4 | PlayStation 4 | open |
+| New Super Mario Bros. 2 | B0088MVPFQ | 3DS | Nintendo 3DS | open |
 
-Candidate changes in `integrations/sourcing_match_rules.py` reuse the canonical effective fields for platform admission and retain the raw rule under `raw_rule`. Valid scoped eBay corrections feed digitalPhysical/completeness/region checks; raw hits and corrected-field provenance remain visible. Unsupported corrected values require Review; negative values still block. Amazon-only, wrong-scope and stale corrections cannot clear the eBay-specific restriction. Corrections are applied once by `apply_scoped_reviews`.
+`resolve_seed_system` moved unchanged to `system_detection.py` and is shared by static and canonical construction. `_exact_reference` caches the complete reference metadata inputs, resolves the fallback before comparison, preserves the original raw context and exact-ASIN catalog metadata, and records normalized system, source and inference provenance. Metadata changes affect the cache key and material-evidence hash. Cross-ASIN catalog data is retained only as source provenance; it is not accepted as parser input.
 
-`integrations/video_game_identity.py` classifies supported unequal platforms as conflicts while retaining existing compatibility semantics. `integrations/matching_feedback.py` adds action time and optional actor to correction provenance. `tests/test_sourcing_effective_identity.py` adds ten focused tests with subcases covering the actual duplicate paths. No production policy activation/default, API, UI, scheduler or SQL change was made.
+Corrections still overlay a deep copy of the constructed identity. Corrected fields retain their `before` value and underlying source spans, with correction provenance added. Unrelated Amazon/eBay fields, catalog, generation, package/theme and compatibility metadata are preserved. Platform, digital/physical, completeness and region overlay preservation is covered. Stored source snapshots are never mutated. No title/ASIN whitelist or platform relaxation was introduced.
 
-## Exact acceptance and regression results
+The source files changed are `system_detection.py`, `video_game_identity.py`, `sourcing_match_rules.py` and `matching_feedback.py`. Tests add four exact captured metadata fixtures and overlay/cache coverage to `test_sourcing_effective_identity.py`. The original Crystal Harbor/static consistency repair remains intact.
 
-- Crystal Harbor, raw PS4 vs Amazon PS5, valid current exact-pair PS5 correction, no pair verdict: before canonical Match/static Blocked/scorer rejected; candidate canonical Match/static Probable Match/no hard blocks/scorer open. Before/after full inputs and outputs are frozen locally.
-- Genuine PS4/PS5 without correction: canonical platform Conflict, static Blocked, scorer rejected.
-- Stale, wrong-scope or wrong-variation correction: correction not applied, conflict remains blocked/rejected.
-- Supersession: latest correction wins; a stale newest correction never resurrects an older correction.
-- Correction to Xbox Series X against PS5: remains blocked/rejected.
-- Original PS4, effective PS5, action/snapshot/scope/time and optional actor are preserved. No source input is mutated.
-- Strict adjudicated sample: 12/12 Tier A identity Match; three negatives excluded as two nonmatches and one Review; 17/17 corrections applied. Twelve Not Applicable variation qualifications remain intact. Zero saved Compatible examples; synthetic compatibility coverage is not operator evidence.
-- Minecraft remains identity Match with its separate condition-related Blocked result. The BIGS remains Review and excluded.
-- Curated identities: 15/15 Match, but **only 11/15 remain eligible**. All 18 curated negatives remain excluded. This fails the required gate.
+## Identity and application gates
 
-## Exact new blocker
+- Crystal Harbor raw PS4, valid exact-pair correction to PS5: canonical Match, static Probable Match, no stale platform hard block, scorer open.
+- Uncorrected PS4/PS5: canonical Conflict, static Blocked, scorer rejected. Stale/wrong-scope/wrong-variation corrections remain ignored; supersession and correction-to-Xbox conflict checks pass.
+- 12/12 Tier A positives Match; three adjudicated negatives excluded as two nonmatches and one Review. The BIGS remains Review, never Match.
+- All 15 curated positives eligible; all 18 curated negatives excluded. All four prior losses restored.
+- All 17 scoped corrections apply. Twelve variation qualifications remain Not Applicable. Saved Compatible examples remain zero; synthetic compatibility tests are not operator attestations.
+- Minecraft remains identity Match with its independent condition-related block. Disney unnumbered=1.0 policy and explicit later-generation conflicts remain intact.
+- 170 Python tests at the metadata stage, 66 tests in the final networking-disabled image, 257 disposable API/RPC calls, and 150 Python-to-API-to-UI indicators across 15 rendered panels pass.
+- All 1,609 legacy static/full scorer outputs are identical to the prior baseline. An incidental dash-encoding edit was restored exactly before the final default replay and final image build. The image and final replay contain the restored expression.
+- Frozen shadow identity counts remain 187 Match/746 nonmatch/67 Review; current frozen-input counts remain 114/378/108. These are offline cohorts, not production routing counts.
 
-The new platform check requires canonical platform evidence even where that reference field is unknown. The old static check also used `resolve_seed_system` metadata fallbacks, which the canonical reference does not currently ingest. Replacing the old check discarded valid reference-platform evidence. In the exact Zelda fixture, raw static platform is Wii/Wii pass with `seed_system_source=keepa_category_tree`; canonical Amazon platform is unknown and eBay is Nintendo Wii. The candidate maps this unknown comparison to Review, yields Probable Non-Match, and rejects the row despite overall identity Match.
+## Operational work resumed
 
-Four curated rows lose admission (all were eligible in the preceding Disney-policy replay):
+The new, unshipped migration `supabase/migrations/20260914045624_mbop_guarded_sourcing_decision_refresh.sql` adds a service-role-only state reader, guarded decision RPC and append-only refresh log. It constrains explicit bounded IDs and decision fields, compares full opportunity/source/action/history/hold/settings state inside a transaction, protects lifecycle and exact-pair operator history, and uses non-waiting locks to skip concurrent writers. It includes ASIN-wide inventory-hold and declined-offer state. Short locks cover operator paths that do not share the review advisory lock. No production application occurred.
 
-| ASIN | Product | Candidate outcome |
-| --- | --- | --- |
-| B000FQBPCQ | The Legend of Zelda: Twilight Princess | Match identity; Probable Non-Match; ineligible |
-| B004WL4LOY | White Knight Chronicles II | Match identity; Probable Non-Match; rejected |
-| B081W4X9RW | Persona 5 Royal: Phantom Thieves | Match identity; Probable Non-Match; rejected |
-| B0088MVPFQ | New Super Mario Bros. 2 | Match identity; Probable Non-Match; rejected |
+The initial 31 disposable guard checks passed, including stale source/variation changes, newer actions/reviews, protected states, historical dismissals, retry idempotency, failure rollback, bounded IDs and concurrent operator insertion. The expanded acceptance run did not pass.
 
-Exact opportunity IDs, original reviewed outputs, and hashes are in the manifest and ignored evidence. The immediate commentary initially misnamed B000FQBPCQ as Rayman; the frozen fixture and this report correctly identify Zelda. Do not deploy this candidate. A subsequent authorized repair must preserve valid reference-platform resolution without letting raw sources override an applied correction; do not turn unknown into an automatic platform pass.
+### Exact blocker: unchanged numeric state is falsely stale
 
-## Validation and operational closeout
+For the disposable Best Offer row capped at $20 with a saved $25 decline, PostgreSQL emits the numeric value as `25.00`; the JSON client round-trip serializes it as `25.0`. PostgreSQL confirms the two `jsonb` states are semantically equal, but the guard hashes their textual representations and obtains different fingerprints:
 
-167 Python tests pass, including ten new focused tests and existing Disney, correction, compatibility, variation and negative regressions. All 1,609 production-default static/full scorer outputs equal the previous baseline. The 1,000-row frozen and 600-row current-input replay identity counts remain 187 Match/746 nonmatch/67 Review and 114/378/108 respectively. These identity totals do not prove admission safety: the curated scorer gate failed. No further candidate implementation was attempted after this failure.
+- Server state: `c07d8fe15187522899a04e4d39daeeefb9f8a8db959e176020d9ee1b86cf2541`
+- Client round-trip: `49d37e045cae947b43acf1f950ff90ca8f9c8602c2c24079260932e63496e52b`
 
-Original final operational work order did not advance past the prerequisite gate. Atomic write guard and mutation tests: not reached. Fresh production manifest and read-only production dry run: not reached. Final deploy-candidate packaged tests, deployment and pre-write recapture: not reached. Bounded refresh evaluated/written/stale/protected skips: all zero, not started. Buy List/Closest Excluded/Business Excluded were neither read nor changed. Protected rows touched and historical evidence rewrites: zero. Provider searches, marketplace writes, schema and scheduler changes: zero.
+The state is skipped at `before_hash` before business-hold validation. The test originally expected a SQL business rejection and mislabeled the returned skip as a bypass. **Audit log count for that case is zero: no declined-offer bypass or write was observed.** The assertion now describes false staleness explicitly. The actual operational blocker is failure to accept unchanged numeric state reliably, so the guard is not approved for production. No fingerprint repair was attempted after this gate failure. A continuation must establish a representation-stable fingerprint without weakening semantic stale-state or operator-activity comparison, then rerun the complete guard suite.
 
-No new image was built or published. Last recorded runtime remains web151/scheduler92; no fresh AWS inspection was performed. Prior local-only Disney image digest remains `sha256:1090a7a354ed8407093fe240ae1a91ffb2540d9e5c60f0a6f2b35d0bed217fc0`, which does not contain this candidate. All twenty schedules are untouched; no new comparison was needed or claimed. No runtime/data rollback is required. Authenticated production UI was not accessed. Disposable local validation container `mbop-phase2-review-test` was inspected and is exited.
+The implementation follows PostgreSQL's [explicit locking semantics](https://www.postgresql.org/docs/current/explicit-locking.html); this reference does not establish that the candidate guard passes acceptance.
 
-Evidence directory: `tmp/sourcing-effective-identity/`. Original frozen evidence was not overwritten. The current JSON manifest links candidate hashes, exact Crystal Harbor before/after, the Zelda missing-reference-platform proof, full replay and failing curated counts. Documentation-only closeout records implementation commit information separately to avoid self-reference. Phase 3 remains incomplete and shadow-only.
+## Fresh production capture and stopped closeout
 
-PHASE 3 NOT DEPLOYED — CORRECTION/ADMISSION SAFETY GATE FAILED
+1. Fresh actual-handler API-equivalent views: Buy List 28; Closest Excluded 50 returned of 129; Business Excluded 2, with 33 active velocity holds captured.
+2. Bounded latest rejected scope: 500; displayed view selections: 80; distinct union: 529, including one inventory-snoozed row. The artifact's legacy `open` array name denotes displayed selections, not 80 open lifecycle rows.
+3. Scoped actions captured: 2,899. Exact ordered IDs, source rows, latest action/review references, variation identities and evaluation metadata are persisted in ignored artifacts and the continuation index.
+4. Capture is multi-read, not an atomic write manifest. Final database guard-state recapture was not performed. Do not use these artifacts for writes without fresh state checks.
+5. Actual API capture read 324,117,970 bytes. The Closest Excluded handler accounted for about 308 MB of additional supporting reads. This unexpected volume is a Supabase I/O risk; reuse the capture and avoid blindly repeating that broad supporting query. Full source hydration used 18 additional requests over the explicit 529 IDs.
+6. No duplicate listing identities were found within the three captured views. No authenticated production browser verification was performed.
+7. Shared migration ledger: all 18 applied migrations match; only this new local guard migration is pending. No shared or College Planner migration was modified/applied remotely.
+8. Full production routing dry run and deployable write plan: not completed because the expanded guard gate failed. The earlier frozen replay is not a substitute.
+9. Deployment: none. Last recorded web151/scheduler92 were not freshly inspected. All twenty schedules remain untouched; no new configuration comparison is claimed.
+10. Final local image: `mbop-scheduler:reference-metadata-final`, digest `sha256:905302756651d8ff2a6e3a88e378c737b7bb16935a135827908d4f3d85115403`. Built/tested locally, never pushed or deployed. Guard SQL was tested separately in the disposable DB.
+11. Final pre-write recapture and bounded refresh: not started. Production evaluated-for-write/written/stale-skip/protected-skip counts are all zero.
+12. Buy List/Closest Excluded/Business Excluded after refresh: not applicable; there was no refresh.
+13. Protected production rows touched, historical reviews/actions rewritten, business holds changed, provider searches, marketplace writes, runtime/schema/scheduler changes: all zero.
+14. No rollback is needed because production runtime/data was not changed. A future deployment still needs fresh rollback targets and a pre-write recapture.
+15. Disposable `mbop-phase2-review-test` was stopped. No test data was written to production.
+16. The candidate and failed operational gate are checkpointed separately from documentation commit metadata. The metadata fix is passing; the guard migration remains unapproved for production application. Phase 3 is incomplete.
+
+Evidence: `tmp/sourcing-reference-metadata/` and `tmp/sourcing-phase3-final-fresh/`. Exact metadata loss traces, curated/strict/defaults proofs, test logs, numeric fingerprint proof, fresh read-only responses and source hashes are indexed by the [manifest](sourcing_phase3_final_manifest_2026-09-13.json). Earlier failed-candidate records remain in Git at `682c46e` and `1aa82cb`.
+
+PHASE 3 NOT DEPLOYED — METADATA/ADMISSION SAFETY GATE FAILED

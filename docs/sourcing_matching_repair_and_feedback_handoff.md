@@ -1,10 +1,8 @@
 # Sourcing matching repair handoff
 
-## Correction/admission candidate stopped on curated regression
+## Reference metadata gate passed; atomic fingerprint gate blocked
 
-Candidate checkpoint: `98d2166bea0d4044e10c5171664bb1c1a21853b3` (`Checkpoint scoped identity candidate with failed curated admission gate`). This subsequent documentation commit records the immutable candidate hash; it is not an approval to deploy.
-
-The local candidate now passes the exact scoped PS4-to-PS5 correction acceptance case. Its full gate fails: all 12 Tier A identities and all 15 curated identities remain Match, but four curated positives lose scorer eligibility (11/15 retained) because canonical reference platform omits metadata available to the previous static platform resolver. All three adjudicated and 18 curated negatives remain excluded; 167 Python tests and 1,609 unchanged legacy outputs pass. No further runtime repair, atomic guard, production capture, deployment or refresh followed the failed gate. [Exact losses, candidate implementation and evidence](sourcing_phase3_final_deployment_2026-09-13.md). This candidate is not approved for deployment. Phase 3 remains incomplete and shadow-only; earlier passing records below are historical.
+Canonical reference construction now preserves the existing inferred platform metadata. All four prior losses are restored: 15/15 curated positives eligible, 12/12 Tier A Match, 3/3 adjudicated and 18/18 curated negatives excluded; Crystal Harbor passes and genuine PS4/PS5 remains blocked. All 1,609 legacy outputs are unchanged. Operational work resumed: local guard implementation, initial 31 mutation checks, fresh 529-row bounded capture (28 Buy List / 50 of 129 Closest Excluded / 2 Business Excluded) and an 18-migration ledger reconciliation. Expanded guard acceptance exposed false staleness after numeric JSON round-trip (`25.00` vs `25.0`), with zero writes in the failed case. Guard is not production-approved; no deployment, remote SQL, refresh or provider search occurred. [Exact blocker, tests, capture and continuation](sourcing_phase3_final_deployment_2026-09-13.md). Phase 3 remains incomplete. Earlier reports below are historical.
 
 ## Authorized Disney first-generation convention: sampled strict gate passed
 

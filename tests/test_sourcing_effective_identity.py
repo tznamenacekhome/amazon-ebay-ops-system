@@ -1,10 +1,13 @@
 """Scoped identity corrections must reach static rules and full admission."""
 import unittest
+import json
+from pathlib import Path
 from copy import deepcopy
 
 from test_sourcing_phase3 import inputs, review, SETTINGS
 from sourcing_match_rules import evaluate_static_match_rules
 from score_sourcing_opportunities import score_candidate
+from matching_feedback import apply_scoped_reviews
 
 CUTOFF = '2026-09-14T10:00:00+00:00'
 
@@ -140,6 +143,54 @@ class EffectiveIdentityTests(unittest.TestCase):
         self.assertEqual('pass', static['platform_rule']['result'])
         self.assertEqual('blocked', static['condition_mismatch']['result'])
         self.assertEqual('rejected', score['status'])
+
+    def test_four_curated_metadata_references_remain_eligible(self):
+        fixtures = json.loads((Path(__file__).parent / 'fixtures/sourcing_reference_metadata_regressions_2026-09-13.json').read_text())
+        for row in fixtures:
+            with self.subTest(asin=row['asin']):
+                self.seed, self.candidate = row['seed'], row['candidate']
+                original = deepcopy(row)
+                static, score = self.evaluate()
+                identity = static['identity_comparison']
+                self.assertEqual('match', identity['comparisons']['platform']['result'])
+                self.assertEqual('pass', static['platform_rule']['result'])
+                self.assertEqual('Probable Match', static['recommendation'])
+                self.assertEqual('open', score['status'])
+                self.assertEqual('keepa_category_tree', identity['amazon']['platformResolution']['source'])
+                self.assertEqual(self.seed['raw_context_json'], identity['amazon']['referenceMetadata']['raw_context_json'])
+                self.assertEqual('inferred', identity['amazon']['fields']['platform']['state'])
+                self.assertEqual(original, row)
+
+    def test_overlay_preserves_unrelated_fields_metadata_and_source_spans(self):
+        self.seed['raw_context_json'] = {'inferred_system': 'PS 5', 'inferred_system_source': 'keepa_category_tree',
+                                        'compatibility_metadata': {'example': 'retained, not an admission rule'}}
+        base, _ = self.evaluate()
+        original = base['identity_comparison']
+        for key, value in [('platform', 'PS 5'), ('digitalPhysical', 'Physical'),
+                           ('completeness', 'Complete'), ('region', 'NTSC-U/C')]:
+            with self.subTest(field=key):
+                before = deepcopy(original)
+                result = apply_scoped_reviews(original, self.candidate, self.seed,
+                    [self.action([correction(key, value)])], evaluated_at=CUTOFF)
+                self.assertEqual(before, original)
+                self.assertEqual(original['amazon'], result['amazon'])
+                for field, prior in original['ebay']['fields'].items():
+                    if field != key:
+                        self.assertEqual(prior, result['ebay']['fields'][field])
+                patched = result['ebay']['fields'][key]
+                self.assertEqual(original['ebay']['fields'][key], patched['before'])
+                self.assertEqual(original['ebay']['fields'][key]['sources'], patched['sources'][1:])
+
+    def test_metadata_reference_cache_isolation(self):
+        self.seed['system'] = None
+        self.seed['amazon_title'] = 'Crystal Harbor'
+        self.seed['raw_context_json'] = {'inferred_system': 'PS 4', 'inferred_system_source': 'keepa_category_tree'}
+        first, _ = self.evaluate()
+        self.assertEqual('match', first['identity_comparison']['comparisons']['platform']['result'])
+        self.seed['raw_context_json']['inferred_system'] = 'PS 5'
+        second, _ = self.evaluate()
+        self.assertEqual('conflict', second['identity_comparison']['comparisons']['platform']['result'])
+        self.assertNotEqual(first['identity_comparison']['materialEvidenceHash'], second['identity_comparison']['materialEvidenceHash'])
 
 
 if __name__ == '__main__':

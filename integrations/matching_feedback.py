@@ -34,14 +34,15 @@ def update_corrected_field(identity, side, field, state, value, sources):
     """Refresh the dependent base name, never independent edition/platform facts."""
     from video_game_identity import general_product_fields
     prior=deepcopy(identity[side]['fields'][field])
-    identity[side]['fields'][field].update(value=value,state=state,before=prior,sources=sources)
+    identity[side]['fields'][field].update(value=value,state=state,before=prior,
+                                         sources=deepcopy(sources)+deepcopy(prior.get('sources') or []))
     identity[side][field]=value
     if field=='installment':identity[side]['installmentNormalized']=value
     if field=='coreGame':
         derived=general_product_fields(value)['coreProduct'] if value else None
         previous=deepcopy(identity[side]['fields']['coreProduct'])
         identity[side]['fields']['coreProduct'].update(value=derived,state=state if derived else 'unknown',
-            sources=[{**s,'derivedFrom':'coreGame'} for s in sources],before=previous)
+            sources=[{**s,'derivedFrom':'coreGame'} for s in sources]+deepcopy(previous.get('sources') or []),before=previous)
         identity[side]['coreProduct']=derived
 
 

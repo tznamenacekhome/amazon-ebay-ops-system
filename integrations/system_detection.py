@@ -1,4 +1,5 @@
 import re
+from typing import Any
 
 
 SYSTEM_ALIASES = {
@@ -92,3 +93,17 @@ def remove_system_terms(text: str) -> str:
         )
 
     return cleaned
+
+def resolve_seed_system(seed: dict[str, Any], amazon_title: str) -> tuple[str | None, str | None]:
+    first_class = normalize_system(str(seed.get("system") or ""))
+    if first_class:
+        return first_class, "seed_system"
+    raw_context = seed.get("raw_context_json") or {}
+    if isinstance(raw_context, dict):
+        inferred = normalize_system(str(raw_context.get("inferred_system") or ""))
+        if inferred:
+            return inferred, str(raw_context.get("inferred_system_source") or "seed_raw_context")
+    title_system = detect_system_from_title(amazon_title)
+    if title_system:
+        return title_system, "amazon_title"
+    return None, None

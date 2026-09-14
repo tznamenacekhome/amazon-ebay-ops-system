@@ -1,0 +1,5852 @@
+[
+  {
+    "opportunity_id": "b40f3e0a-ae02-4b81-aa12-0200d5c86095",
+    "asin": "B000FQBPCQ",
+    "seed": {
+      "asin": "B000FQBPCQ",
+      "seller_sku": "1067108761",
+      "source_mode": "3_catalog_remaining",
+      "amazon_title": "The Legend of Zelda: Twilight Princess [video game]",
+      "last_sold_at": null,
+      "units_sold_90d": 0,
+      "amazon_image_url": "https://images-na.ssl-images-amazon.com/images/I/81fl5YQGUcL.jpg",
+      "monthly_velocity": 0,
+      "months_of_supply": null,
+      "raw_context_json": {
+        "listing_source": {
+          "seller_sku": "1067108761",
+          "updated_at": "2026-09-13T03:35:13+00:00",
+          "source_table": "amazon_skus",
+          "last_listing_sync_at": "2026-09-13T03:35:13+00:00"
+        },
+        "queue_position": 330,
+        "inferred_system": "Wii",
+        "priority_bucket": "3_catalog_remaining",
+        "listing_warnings": {
+          "issue_count": 0,
+          "item_status": "Inactive",
+          "issue_severity": null,
+          "listing_status": "Inactive",
+          "fulfillment_channel": "AMAZON_NA"
+        },
+        "coverage_cycle_id": "1ade27c7-4ec8-4968-9726-58250229a651",
+        "estimated_fee_cost": null,
+        "inventory_planning": {
+          "asin": "B000FQBPCQ",
+          "skip": false,
+          "snapshot_date": "2026-09-12",
+          "aged_units_over_30_days": 0,
+          "current_inventory_units": 0,
+          "sales_shipped_last_30_days": 0
+        },
+        "keepa_category_tree": "Video Games 468642 Legacy Systems 294940 Nintendo Systems 23563593011 Wii 14218901 Games 4924902011",
+        "keepa_product_group": null,
+        "coverage_cycle_item_id": "ade951e8-2801-426d-ad90-1355dfe80d36",
+        "inferred_system_source": "keepa_category_tree",
+        "amazon_catalog_identity": null
+      },
+      "target_sale_price": 72.3,
+      "inventory_need_level": "critical",
+      "current_inventory_units": 0
+    },
+    "candidate": {
+      "price": 10,
+      "bid_count": 0,
+      "condition": "Brand New",
+      "ebay_title": "The Legend Of Zelda Twilight Princess Wii NWT",
+      "landed_cost": 22,
+      "ebay_item_id": "v1|237064753483|0",
+      "raw_ebay_json": {
+        "image": {
+          "width": 1600,
+          "height": 1200,
+          "imageUrl": "https://i.ebayimg.com/images/g/X10AAeSwFx9qpWdR/s-l1600.jpg"
+        },
+        "price": {
+          "value": "10.00",
+          "currency": "USD"
+        },
+        "taxes": [
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "Alabama",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "AL"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          },
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "Alaska",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "AK"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          },
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "Arizona",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "AZ"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          },
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "Arkansas",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "AR"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          },
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "California",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "CA"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          },
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "Colorado",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "CO"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          },
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "Connecticut",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "CT"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          },
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "District of Columbia",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "DC"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          },
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "Florida",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "FL"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          },
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "Georgia",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "GA"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          },
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "Hawaii",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "HI"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          },
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "Idaho",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "ID"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          },
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "Illinois",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "IL"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          },
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "Indiana",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "IN"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          },
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "Iowa",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "IA"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          },
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "Kansas",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "KS"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          },
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "Kentucky",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "KY"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          },
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "Louisiana",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "LA"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          },
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "Maine",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "ME"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          },
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "Maryland",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "MD"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          },
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "Massachusetts",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "MA"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          },
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "Michigan",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "MI"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          },
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "Minnesota",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "MN"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          },
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "Mississippi",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "MS"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          },
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "Nebraska",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "NE"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          },
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "Nevada",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "NV"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          },
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "New Jersey",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "NJ"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          },
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "New Mexico",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "NM"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          },
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "New York",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "NY"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          },
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "North Carolina",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "NC"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          },
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "North Dakota",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "ND"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          },
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "Ohio",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "OH"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          },
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "Oklahoma",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "OK"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          },
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "Pennsylvania",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "PA"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          },
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "Puerto Rico",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "PR"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          },
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "Rhode Island",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "RI"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          },
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "South Carolina",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "SC"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          },
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "South Dakota",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "SD"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          },
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "Tennessee",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "TN"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          },
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "Texas",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "TX"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          },
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "Utah",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "UT"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          },
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "Vermont",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "VT"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          },
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "Virginia",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "VA"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          },
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "Washington",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "WA"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          },
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "West Virginia",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "WV"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          },
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "Wisconsin",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "WI"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          },
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "Wyoming",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "WY"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          }
+        ],
+        "title": "The Legend Of Zelda Twilight Princess Wii NWT",
+        "itemId": "v1|237064753483|0",
+        "seller": {
+          "username": "djusticefan23",
+          "feedbackScore": 1932,
+          "feedbackPercentage": "100.0"
+        },
+        "lotSize": 0,
+        "bidCount": 0,
+        "itemHref": "https://api.ebay.com/buy/browse/v1/item/v1%7C237064753483%7C0",
+        "adultOnly": false,
+        "condition": "Brand New",
+        "categories": [
+          {
+            "categoryId": "139973",
+            "categoryName": "Video Games"
+          },
+          {
+            "categoryId": "1249",
+            "categoryName": "Video Games & Consoles"
+          }
+        ],
+        "categoryId": "139973",
+        "itemWebUrl": "https://www.ebay.com/itm/237064753483",
+        "conditionId": "1000",
+        "description": "<p>Legend of Zelda twilight princess Wii game. New sealed. Comes with book.  Smoke free home. I only ship in the USA. </p>",
+        "itemEndDate": "2026-09-19T14:54:15.000Z",
+        "returnTerms": {
+          "returnsAccepted": false
+        },
+        "categoryPath": "Video Games & Consoles|Video Games",
+        "immediatePay": false,
+        "itemLocation": {
+          "city": "Ankeny",
+          "country": "US",
+          "postalCode": "500**",
+          "stateOrProvince": "Iowa"
+        },
+        "legacyItemId": "237064753483",
+        "buyingOptions": [
+          "AUCTION"
+        ],
+        "categoryIdPath": "1249|139973",
+        "itemOriginDate": "2026-09-12T14:54:15.000Z",
+        "paymentMethods": [
+          {
+            "paymentMethodType": "OTHER"
+          },
+          {
+            "paymentMethodType": "WALLET",
+            "paymentMethodBrands": [
+              {
+                "paymentMethodBrandType": "PAYPAL"
+              },
+              {
+                "paymentMethodBrandType": "APPLE_PAY"
+              },
+              {
+                "paymentMethodBrandType": "GOOGLE_PAY"
+              }
+            ]
+          },
+          {
+            "paymentMethodType": "CREDIT_CARD",
+            "paymentMethodBrands": [
+              {
+                "paymentMethodBrandType": "VISA"
+              },
+              {
+                "paymentMethodBrandType": "MASTERCARD"
+              },
+              {
+                "paymentMethodBrandType": "DISCOVER"
+              },
+              {
+                "paymentMethodBrandType": "DINERS_CLUB"
+              }
+            ]
+          }
+        ],
+        "currentBidPrice": {
+          "value": "10.00",
+          "currency": "USD"
+        },
+        "leafCategoryIds": [
+          "139973"
+        ],
+        "priorityListing": false,
+        "shipToLocations": {
+          "regionExcluded": [
+            {
+              "regionId": "_AP",
+              "regionName": "APO/FPO",
+              "regionType": "COUNTRY_REGION"
+            },
+            {
+              "regionId": "GH",
+              "regionName": "Ghana",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "DJ",
+              "regionName": "Djibouti",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "RE",
+              "regionName": "Reunion",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "CV",
+              "regionName": "Cape Verde Islands",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "ML",
+              "regionName": "Mali",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "BW",
+              "regionName": "Botswana",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "SL",
+              "regionName": "Sierra Leone",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "MG",
+              "regionName": "Madagascar",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "SH",
+              "regionName": "Saint Helena",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "SC",
+              "regionName": "Seychelles",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "GM",
+              "regionName": "Gambia",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "LR",
+              "regionName": "Liberia",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "RW",
+              "regionName": "Rwanda",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "LY",
+              "regionName": "Libya",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "CM",
+              "regionName": "Cameroon",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "CF",
+              "regionName": "Central African Republic",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "GA",
+              "regionName": "Gabon Republic",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "LS",
+              "regionName": "Lesotho",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "YT",
+              "regionName": "Mayotte",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "NG",
+              "regionName": "Nigeria",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "ZW",
+              "regionName": "Zimbabwe",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "MU",
+              "regionName": "Mauritius",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "GN",
+              "regionName": "Guinea",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "CI",
+              "regionName": "C\u00f4te d'Ivoire (Ivory Coast)",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "TD",
+              "regionName": "Chad",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "KE",
+              "regionName": "Kenya",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "GW",
+              "regionName": "Guinea-Bissau",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "ER",
+              "regionName": "Eritrea",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "SN",
+              "regionName": "Senegal",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "TG",
+              "regionName": "Togo",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "MA",
+              "regionName": "Morocco",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "BI",
+              "regionName": "Burundi",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "GQ",
+              "regionName": "Equatorial Guinea",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "MR",
+              "regionName": "Mauritania",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "CD",
+              "regionName": "Democratic Republic of the Congo",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "CG",
+              "regionName": "Republic of the Congo",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "EH",
+              "regionName": "Western Sahara",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "MW",
+              "regionName": "Malawi",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "KM",
+              "regionName": "Comoros",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "AO",
+              "regionName": "Angola",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "DZ",
+              "regionName": "Algeria",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "BJ",
+              "regionName": "Benin",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "TN",
+              "regionName": "Tunisia",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "UG",
+              "regionName": "Uganda",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "ZM",
+              "regionName": "Zambia",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "SO",
+              "regionName": "Somalia",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "EG",
+              "regionName": "Egypt",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "SZ",
+              "regionName": "Swaziland",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "ET",
+              "regionName": "Ethiopia",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "MZ",
+              "regionName": "Mozambique",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "NE",
+              "regionName": "Niger",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "TZ",
+              "regionName": "Tanzania",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "NA",
+              "regionName": "Namibia",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "BF",
+              "regionName": "Burkina Faso",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "ZA",
+              "regionName": "South Africa",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "AF",
+              "regionName": "Afghanistan",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "KZ",
+              "regionName": "Kazakhstan",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "MN",
+              "regionName": "Mongolia",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "CN",
+              "regionName": "China",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "JP",
+              "regionName": "Japan",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "NP",
+              "regionName": "Nepal",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "TJ",
+              "regionName": "Tajikistan",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "BD",
+              "regionName": "Bangladesh",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "MV",
+              "regionName": "Maldives",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "LK",
+              "regionName": "Sri Lanka",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "AZ",
+              "regionName": "Azerbaijan Republic",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "KR",
+              "regionName": "South Korea",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "GE",
+              "regionName": "Georgia",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "RU",
+              "regionName": "Russian Federation",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "TM",
+              "regionName": "Turkmenistan",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "PK",
+              "regionName": "Pakistan",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "AM",
+              "regionName": "Armenia",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "UZ",
+              "regionName": "Uzbekistan",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "BT",
+              "regionName": "Bhutan",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "IN",
+              "regionName": "India",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "KG",
+              "regionName": "Kyrgyzstan",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "HK",
+              "regionName": "Hong Kong",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "MY",
+              "regionName": "Malaysia",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "TW",
+              "regionName": "Taiwan",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "TH",
+              "regionName": "Thailand",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "MO",
+              "regionName": "Macau",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "KH",
+              "regionName": "Cambodia",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "ID",
+              "regionName": "Indonesia",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "VN",
+              "regionName": "Vietnam",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "PH",
+              "regionName": "Philippines",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "LA",
+              "regionName": "Laos",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "SG",
+              "regionName": "Singapore",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "BN",
+              "regionName": "Brunei Darussalam",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "TR",
+              "regionName": "Turkey",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "YE",
+              "regionName": "Yemen",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "OM",
+              "regionName": "Oman",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "AE",
+              "regionName": "United Arab Emirates",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "QA",
+              "regionName": "Qatar",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "SA",
+              "regionName": "Saudi Arabia",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "IQ",
+              "regionName": "Iraq",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "IL",
+              "regionName": "Israel",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "KW",
+              "regionName": "Kuwait",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "LB",
+              "regionName": "Lebanon",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "JO",
+              "regionName": "Jordan",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "BH",
+              "regionName": "Bahrain",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "GT",
+              "regionName": "Guatemala",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "VC",
+              "regionName": "Saint Vincent and the Grenadines",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "AN",
+              "regionName": "Netherlands Antilles",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "GP",
+              "regionName": "Guadeloupe",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "MQ",
+              "regionName": "Martinique",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "BS",
+              "regionName": "Bahamas",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "TT",
+              "regionName": "Trinidad and Tobago",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "BZ",
+              "regionName": "Belize",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "AW",
+              "regionName": "Aruba",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "KY",
+              "regionName": "Cayman Islands",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "AI",
+              "regionName": "Anguilla",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "DM",
+              "regionName": "Dominica",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "SV",
+              "regionName": "El Salvador",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "DO",
+              "regionName": "Dominican Republic",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "NI",
+              "regionName": "Nicaragua",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "LC",
+              "regionName": "Saint Lucia",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "MS",
+              "regionName": "Montserrat",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "VG",
+              "regionName": "British Virgin Islands",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "BB",
+              "regionName": "Barbados",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "TC",
+              "regionName": "Turks and Caicos Islands",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "AG",
+              "regionName": "Antigua and Barbuda",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "JM",
+              "regionName": "Jamaica",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "GD",
+              "regionName": "Grenada",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "CR",
+              "regionName": "Costa Rica",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "HT",
+              "regionName": "Haiti",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "PA",
+              "regionName": "Panama",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "VI",
+              "regionName": "Virgin Islands (U.S.)",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "HN",
+              "regionName": "Honduras",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "KN",
+              "regionName": "Saint Kitts-Nevis",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "DK",
+              "regionName": "Denmark",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "CH",
+              "regionName": "Switzerland",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "VA",
+              "regionName": "Vatican City State",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "MD",
+              "regionName": "Moldova",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "HR",
+              "regionName": "Republic of Croatia",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "PT",
+              "regionName": "Portugal",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "MT",
+              "regionName": "Malta",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "CY",
+              "regionName": "Cyprus",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "AT",
+              "regionName": "Austria",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "GI",
+              "regionName": "Gibraltar",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "BG",
+              "regionName": "Bulgaria",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "PL",
+              "regionName": "Poland",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "CZ",
+              "regionName": "Czech Republic",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "NO",
+              "regionName": "Norway",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "AD",
+              "regionName": "Andorra",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "GR",
+              "regionName": "Greece",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "RO",
+              "regionName": "Romania",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "SM",
+              "regionName": "San Marino",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "IE",
+              "regionName": "Ireland",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "RS",
+              "regionName": "Serbia",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "ME",
+              "regionName": "Montenegro",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "NL",
+              "regionName": "Netherlands",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "BY",
+              "regionName": "Belarus",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "SK",
+              "regionName": "Slovakia",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "SI",
+              "regionName": "Slovenia",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "LT",
+              "regionName": "Lithuania",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "GB",
+              "regionName": "United Kingdom",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "SJ",
+              "regionName": "Svalbard and Jan Mayen",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "BA",
+              "regionName": "Bosnia and Herzegovina",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "HU",
+              "regionName": "Hungary",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "SE",
+              "regionName": "Sweden",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "IS",
+              "regionName": "Iceland",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "ES",
+              "regionName": "Spain",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "EE",
+              "regionName": "Estonia",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "MK",
+              "regionName": "Macedonia",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "BE",
+              "regionName": "Belgium",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "LI",
+              "regionName": "Liechtenstein",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "FI",
+              "regionName": "Finland",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "LU",
+              "regionName": "Luxembourg",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "FR",
+              "regionName": "France",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "DE",
+              "regionName": "Germany",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "LV",
+              "regionName": "Latvia",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "AL",
+              "regionName": "Albania",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "IT",
+              "regionName": "Italy",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "GG",
+              "regionName": "Guernsey",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "MC",
+              "regionName": "Monaco",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "UA",
+              "regionName": "Ukraine",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "JE",
+              "regionName": "Jersey",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "GL",
+              "regionName": "Greenland",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "CA",
+              "regionName": "Canada",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "MX",
+              "regionName": "Mexico",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "PM",
+              "regionName": "Saint Pierre and Miquelon",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "BM",
+              "regionName": "Bermuda",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "NZ",
+              "regionName": "New Zealand",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "FM",
+              "regionName": "Micronesia",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "FJ",
+              "regionName": "Fiji",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "PG",
+              "regionName": "Papua New Guinea",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "SB",
+              "regionName": "Solomon Islands",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "MH",
+              "regionName": "Marshall Islands",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "NR",
+              "regionName": "Nauru",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "WF",
+              "regionName": "Wallis and Futuna",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "WS",
+              "regionName": "Western Samoa",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "TO",
+              "regionName": "Tonga",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "TV",
+              "regionName": "Tuvalu",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "VU",
+              "regionName": "Vanuatu",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "KI",
+              "regionName": "Kiribati",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "NC",
+              "regionName": "New Caledonia",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "PW",
+              "regionName": "Palau",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "AS",
+              "regionName": "American Samoa",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "NU",
+              "regionName": "Niue",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "PF",
+              "regionName": "French Polynesia",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "CK",
+              "regionName": "Cook Islands",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "GU",
+              "regionName": "Guam",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "AU",
+              "regionName": "Australia",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "VE",
+              "regionName": "Venezuela",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "GF",
+              "regionName": "French Guiana",
+              "regionType": "COUNTRY"
+            }
+          ],
+          "regionIncluded": [
+            {
+              "regionId": "US",
+              "regionName": "United States",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "GY",
+              "regionName": "Guyana",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "SR",
+              "regionName": "Suriname",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "AR",
+              "regionName": "Argentina",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "UY",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "CO",
+              "regionName": "Colombia",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "EC",
+              "regionName": "Ecuador",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "CL",
+              "regionName": "Chile",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "PR",
+              "regionName": "Puerto Rico",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "PY",
+              "regionName": "Paraguay",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "BO",
+              "regionName": "Bolivia",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "BR",
+              "regionName": "Brazil",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "PE",
+              "regionName": "Peru",
+              "regionType": "COUNTRY"
+            }
+          ]
+        },
+        "shippingOptions": [
+          {
+            "type": "Standard Shipping",
+            "shippingCost": {
+              "value": "12.00",
+              "currency": "USD"
+            },
+            "trademarkSymbol": "\u00ae",
+            "shippingCostType": "FIXED",
+            "shippingCarrierCode": "USPS",
+            "shippingServiceCode": "USPS Ground Advantage",
+            "quantityUsedForEstimate": 1,
+            "maxEstimatedDeliveryDate": "2026-09-26T10:00:00.000Z",
+            "minEstimatedDeliveryDate": "2026-09-23T10:00:00.000Z",
+            "additionalShippingCostPerUnit": {
+              "value": "0.00",
+              "currency": "USD"
+            },
+            "shipToLocationUsedForEstimate": {
+              "country": "US",
+              "postalCode": "93022"
+            }
+          }
+        ],
+        "thumbnailImages": [
+          {
+            "imageUrl": "https://i.ebayimg.com/images/g/X10AAeSwFx9qpWdR/s-l1600.jpg"
+          }
+        ],
+        "additionalImages": [
+          {
+            "width": 1200,
+            "height": 1600,
+            "imageUrl": "https://i.ebayimg.com/images/g/p6cAAeSwZmFqpWdV/s-l1600.jpg"
+          },
+          {
+            "width": 1200,
+            "height": 1600,
+            "imageUrl": "https://i.ebayimg.com/images/g/dNgAAeSw32NqpWda/s-l1600.jpg"
+          },
+          {
+            "width": 1200,
+            "height": 1600,
+            "imageUrl": "https://i.ebayimg.com/images/g/vD0AAeSwh4BqpWdg/s-l1600.jpg"
+          }
+        ],
+        "availableCoupons": false,
+        "itemCreationDate": "2026-09-12T14:54:15.000Z",
+        "localizedAspects": [
+          {
+            "name": "Game Name",
+            "type": "STRING",
+            "value": "The Legend of Zelda: Twilight Princess"
+          },
+          {
+            "name": "Platform",
+            "type": "STRING",
+            "value": "Nintendo Wii"
+          }
+        ],
+        "rawSearchSummary": {
+          "image": {
+            "imageUrl": "https://i.ebayimg.com/images/g/X10AAeSwFx9qpWdR/s-l225.jpg"
+          },
+          "title": "The Legend Of Zelda Twilight Princess Wii NWT",
+          "itemId": "v1|237064753483|0",
+          "seller": {
+            "username": "djusticefan23",
+            "feedbackScore": 1932,
+            "feedbackPercentage": "100.0"
+          },
+          "bidCount": 0,
+          "itemHref": "https://api.ebay.com/buy/browse/v1/item/v1%7C237064753483%7C0",
+          "adultOnly": false,
+          "condition": "Brand New",
+          "categories": [
+            {
+              "categoryId": "139973",
+              "categoryName": "Video Games"
+            },
+            {
+              "categoryId": "1249",
+              "categoryName": "Video Games & Consoles"
+            }
+          ],
+          "itemWebUrl": "https://www.ebay.com/itm/237064753483?_skw=the+legend+of+zelda+twilight+princess+Wii&hash=item373229114b:g:X10AAeSwFx9qpWdR",
+          "conditionId": "1000",
+          "itemEndDate": "2026-09-19T14:54:15.000Z",
+          "itemLocation": {
+            "country": "US",
+            "postalCode": "500**"
+          },
+          "legacyItemId": "237064753483",
+          "buyingOptions": [
+            "AUCTION"
+          ],
+          "itemOriginDate": "2026-09-12T14:54:15.000Z",
+          "currentBidPrice": {
+            "value": "10.00",
+            "currency": "USD"
+          },
+          "leafCategoryIds": [
+            "139973"
+          ],
+          "priorityListing": false,
+          "shippingOptions": [
+            {
+              "shippingCost": {
+                "value": "12.00",
+                "currency": "USD"
+              },
+              "shippingCostType": "FIXED",
+              "maxEstimatedDeliveryDate": "2026-09-26T07:00:00.000Z",
+              "minEstimatedDeliveryDate": "2026-09-23T07:00:00.000Z"
+            }
+          ],
+          "thumbnailImages": [
+            {
+              "imageUrl": "https://i.ebayimg.com/images/g/X10AAeSwFx9qpWdR/s-l1600.jpg"
+            }
+          ],
+          "additionalImages": [
+            {
+              "imageUrl": "https://i.ebayimg.com/images/g/p6cAAeSwZmFqpWdV/s-l225.jpg"
+            },
+            {
+              "imageUrl": "https://i.ebayimg.com/images/g/dNgAAeSw32NqpWda/s-l225.jpg"
+            },
+            {
+              "imageUrl": "https://i.ebayimg.com/images/g/vD0AAeSwh4BqpWdg/s-l225.jpg"
+            }
+          ],
+          "availableCoupons": false,
+          "itemCreationDate": "2026-09-12T14:54:15.000Z",
+          "_mbop_search_query": "the legend of zelda twilight princess Wii",
+          "listingMarketplaceId": "EBAY_US",
+          "_mbop_search_category_id": "139973",
+          "topRatedBuyingExperience": false
+        },
+        "shortDescription": "Legend of Zelda twilight princess Wii game. New sealed. Comes with book. Smoke free home. I only ship in the USA.",
+        "minimumPriceToBid": {
+          "value": "10.00",
+          "currency": "USD"
+        },
+        "uniqueBidderCount": 0,
+        "_mbop_search_query": "the legend of zelda twilight princess Wii",
+        "listingMarketplaceId": "EBAY_US",
+        "enabledForGuestCheckout": false,
+        "estimatedAvailabilities": [
+          {
+            "deliveryOptions": [
+              "SHIP_TO_HOME"
+            ],
+            "estimatedSoldQuantity": 0,
+            "estimatedAvailableQuantity": 1,
+            "estimatedRemainingQuantity": 1,
+            "estimatedAvailabilityStatus": "IN_STOCK"
+          }
+        ],
+        "_mbop_search_category_id": "139973",
+        "topRatedBuyingExperience": false,
+        "eligibleForInlineCheckout": true
+      },
+      "shipping_cost": 12,
+      "buying_options": [
+        "AUCTION"
+      ],
+      "ebay_image_url": "https://i.ebayimg.com/images/g/X10AAeSwFx9qpWdR/s-l1600.jpg",
+      "listing_status": "active",
+      "seller_username": "djusticefan23",
+      "auction_end_time": "2026-09-19T14:54:15+00:00",
+      "ebay_item_web_url": "https://www.ebay.com/itm/237064753483",
+      "available_quantity": 1,
+      "best_offer_enabled": false,
+      "ebay_legacy_item_id": "237064753483",
+      "item_location_country": "US",
+      "asin": "B000FQBPCQ",
+      "candidate_id": "3590faba-5983-430f-9844-cf727a43ebb9",
+      "seed_id": "04dcedc7-0a43-4292-8b23-7ec87cd9a5cf",
+      "sourcing_run_id": "d9efd23c-d7b9-410e-9bca-2a787146e8ab"
+    }
+  },
+  {
+    "opportunity_id": "76c40cca-b987-4aa1-a55e-ca1458c30e41",
+    "asin": "B004WL4LOY",
+    "seed": {
+      "asin": "B004WL4LOY",
+      "seller_sku": "HI-D9CU-VIIY",
+      "source_mode": "3_catalog_remaining",
+      "amazon_title": "White Knight Chronicles II",
+      "last_sold_at": null,
+      "units_sold_90d": 0,
+      "amazon_image_url": "https://images-na.ssl-images-amazon.com/images/I/81C1TcgWxrL.jpg",
+      "monthly_velocity": 0,
+      "months_of_supply": null,
+      "raw_context_json": {
+        "listing_source": {
+          "seller_sku": "HI-D9CU-VIIY",
+          "updated_at": "2026-09-13T03:32:45+00:00",
+          "source_table": "amazon_skus",
+          "last_listing_sync_at": "2026-06-06T06:02:32+00:00"
+        },
+        "queue_position": 626,
+        "inferred_system": "PS 3",
+        "priority_bucket": "3_catalog_remaining",
+        "listing_warnings": {
+          "issue_count": null,
+          "item_status": null,
+          "issue_severity": null,
+          "listing_status": null,
+          "fulfillment_channel": "Amazon"
+        },
+        "coverage_cycle_id": "1ade27c7-4ec8-4968-9726-58250229a651",
+        "estimated_fee_cost": null,
+        "inventory_planning": {
+          "asin": "B004WL4LOY",
+          "skip": false,
+          "snapshot_date": null,
+          "aged_units_over_30_days": 0,
+          "current_inventory_units": 0,
+          "sales_shipped_last_30_days": 0
+        },
+        "keepa_category_tree": "Video Games 468642 Legacy Systems 294940 PlayStation Systems 23563592011 PlayStation 3 14210751 Games 4924897011",
+        "keepa_product_group": null,
+        "coverage_cycle_item_id": "15043ba7-25fd-4a43-a6df-ddaf2498a02b",
+        "inferred_system_source": "keepa_category_tree",
+        "amazon_catalog_identity": null
+      },
+      "target_sale_price": 271.21,
+      "inventory_need_level": "critical",
+      "current_inventory_units": 0
+    },
+    "candidate": {
+      "price": 120,
+      "bid_count": null,
+      "condition": "Brand New",
+      "ebay_title": "D3Publisher White Knight Chronicles II PS3 Action RPG T 2011 NTSC-U/C Online",
+      "landed_cost": 135,
+      "ebay_item_id": "v1|377491662609|0",
+      "raw_ebay_json": {
+        "image": {
+          "imageUrl": "https://i.ebayimg.com/images/g/YS0AAeSw7k9qpfy8/s-l1600.jpg"
+        },
+        "price": {
+          "value": "120.00",
+          "currency": "USD"
+        },
+        "taxes": [
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "Alabama",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "AL"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          },
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "Alaska",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "AK"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          },
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "Arizona",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "AZ"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          },
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "Arkansas",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "AR"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          },
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "California",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "CA"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          },
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "Colorado",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "CO"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          },
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "Connecticut",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "CT"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          },
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "District of Columbia",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "DC"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          },
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "Florida",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "FL"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          },
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "Georgia",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "GA"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          },
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "Hawaii",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "HI"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          },
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "Idaho",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "ID"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          },
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "Illinois",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "IL"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          },
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "Indiana",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "IN"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          },
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "Iowa",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "IA"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          },
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "Kansas",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "KS"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          },
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "Kentucky",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "KY"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          },
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "Louisiana",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "LA"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          },
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "Maine",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "ME"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          },
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "Maryland",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "MD"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          },
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "Massachusetts",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "MA"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          },
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "Michigan",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "MI"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          },
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "Minnesota",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "MN"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          },
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "Mississippi",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "MS"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          },
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "Nebraska",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "NE"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          },
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "Nevada",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "NV"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          },
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "New Jersey",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "NJ"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          },
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "New Mexico",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "NM"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          },
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "New York",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "NY"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          },
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "North Carolina",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "NC"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          },
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "North Dakota",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "ND"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          },
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "Ohio",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "OH"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          },
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "Oklahoma",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "OK"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          },
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "Pennsylvania",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "PA"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          },
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "Puerto Rico",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "PR"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          },
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "Rhode Island",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "RI"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          },
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "South Carolina",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "SC"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          },
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "South Dakota",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "SD"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          },
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "Tennessee",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "TN"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          },
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "Texas",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "TX"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          },
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "Utah",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "UT"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          },
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "Vermont",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "VT"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          },
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "Virginia",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "VA"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          },
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "Washington",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "WA"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          },
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "West Virginia",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "WV"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          },
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "Wisconsin",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "WI"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          },
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "Wyoming",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "WY"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          }
+        ],
+        "title": "D3Publisher White Knight Chronicles II PS3 Action RPG T 2011 NTSC-U/C Online",
+        "itemId": "v1|377491662609|0",
+        "seller": {
+          "username": "mjbr_61",
+          "feedbackScore": 0,
+          "feedbackPercentage": "0.0"
+        },
+        "lotSize": 0,
+        "itemHref": "https://api.ebay.com/buy/browse/v1/item/v1%7C377491662609%7C0",
+        "adultOnly": false,
+        "condition": "Brand New",
+        "categories": [
+          {
+            "categoryId": "139973",
+            "categoryName": "Video Games"
+          },
+          {
+            "categoryId": "1249",
+            "categoryName": "Video Games & Consoles"
+          }
+        ],
+        "categoryId": "139973",
+        "itemWebUrl": "https://www.ebay.com/itm/377491662609",
+        "conditionId": "1000",
+        "description": "D3Publisher White Knight Chronicles II PS3 Action RPG T 2011 NTSC-U/C Online",
+        "returnTerms": {
+          "returnsAccepted": false
+        },
+        "categoryPath": "Video Games & Consoles|Video Games",
+        "immediatePay": false,
+        "itemLocation": {
+          "city": "North Las Vegas",
+          "country": "US",
+          "postalCode": "890**",
+          "stateOrProvince": "Nevada"
+        },
+        "legacyItemId": "377491662609",
+        "buyingOptions": [
+          "FIXED_PRICE",
+          "BEST_OFFER"
+        ],
+        "categoryIdPath": "1249|139973",
+        "itemOriginDate": "2026-09-13T01:31:40.000Z",
+        "paymentMethods": [
+          {
+            "paymentMethodType": "OTHER"
+          },
+          {
+            "paymentMethodType": "WALLET",
+            "paymentMethodBrands": [
+              {
+                "paymentMethodBrandType": "PAYPAL"
+              },
+              {
+                "paymentMethodBrandType": "APPLE_PAY"
+              },
+              {
+                "paymentMethodBrandType": "GOOGLE_PAY"
+              }
+            ]
+          },
+          {
+            "paymentMethodType": "CREDIT_CARD",
+            "paymentMethodBrands": [
+              {
+                "paymentMethodBrandType": "VISA"
+              },
+              {
+                "paymentMethodBrandType": "MASTERCARD"
+              },
+              {
+                "paymentMethodBrandType": "DISCOVER"
+              },
+              {
+                "paymentMethodBrandType": "DINERS_CLUB"
+              }
+            ]
+          }
+        ],
+        "leafCategoryIds": [
+          "139973"
+        ],
+        "priorityListing": false,
+        "shipToLocations": {
+          "regionExcluded": [
+            {
+              "regionId": "PF",
+              "regionName": "French Polynesia",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "LY",
+              "regionName": "Libya",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "NC",
+              "regionName": "New Caledonia",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "GP",
+              "regionName": "Guadeloupe",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "VE",
+              "regionName": "Venezuela",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "RE",
+              "regionName": "Reunion",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "BB",
+              "regionName": "Barbados",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "MQ",
+              "regionName": "Martinique",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "GF",
+              "regionName": "French Guiana",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "UA",
+              "regionName": "Ukraine",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "RU",
+              "regionName": "Russian Federation",
+              "regionType": "COUNTRY"
+            }
+          ],
+          "regionIncluded": [
+            {
+              "regionId": "US",
+              "regionName": "United States",
+              "regionType": "COUNTRY"
+            }
+          ]
+        },
+        "shippingOptions": [
+          {
+            "type": "Standard Shipping",
+            "shippingCost": {
+              "value": "15.00",
+              "currency": "USD"
+            },
+            "shippingCostType": "FIXED",
+            "shippingCarrierCode": "UPS",
+            "shippingServiceCode": "UPS Ground",
+            "quantityUsedForEstimate": 1,
+            "maxEstimatedDeliveryDate": "2026-09-18T10:00:00.000Z",
+            "minEstimatedDeliveryDate": "2026-09-16T10:00:00.000Z",
+            "additionalShippingCostPerUnit": {
+              "value": "0.00",
+              "currency": "USD"
+            },
+            "shipToLocationUsedForEstimate": {
+              "country": "US",
+              "postalCode": "93022"
+            }
+          }
+        ],
+        "thumbnailImages": [
+          {
+            "imageUrl": "https://i.ebayimg.com/images/g/YS0AAeSw7k9qpfy8/s-l1600.jpg"
+          }
+        ],
+        "additionalImages": [
+          {
+            "width": 1200,
+            "height": 1600,
+            "imageUrl": "https://i.ebayimg.com/images/g/Ou8AAeSwj0lqpfyp/s-l1600.jpg"
+          }
+        ],
+        "availableCoupons": false,
+        "itemCreationDate": "2026-09-13T01:31:40.000Z",
+        "localizedAspects": [
+          {
+            "name": "Region Code",
+            "type": "STRING",
+            "value": "NTSC-U/C (US/Canada)"
+          },
+          {
+            "name": "Release Year",
+            "type": "STRING",
+            "value": "2011"
+          },
+          {
+            "name": "Platform",
+            "type": "STRING",
+            "value": "Sony PlayStation 3"
+          },
+          {
+            "name": "Rating",
+            "type": "STRING",
+            "value": "T-Teen"
+          },
+          {
+            "name": "Sub-Genre",
+            "type": "STRING",
+            "value": "Action RPG"
+          },
+          {
+            "name": "Video Game Series",
+            "type": "STRING",
+            "value": "White Knight Chronicles"
+          },
+          {
+            "name": "Features",
+            "type": "STRING",
+            "value": "Multiplayer, Online Playability"
+          },
+          {
+            "name": "Genre",
+            "type": "STRING",
+            "value": "Role Playing"
+          },
+          {
+            "name": "Publisher",
+            "type": "STRING",
+            "value": "D3Publisher"
+          },
+          {
+            "name": "Game Name",
+            "type": "STRING",
+            "value": "White Knight Chronicles II"
+          }
+        ],
+        "rawSearchSummary": {
+          "image": {
+            "imageUrl": "https://i.ebayimg.com/images/g/YS0AAeSw7k9qpfy8/s-l225.jpg"
+          },
+          "price": {
+            "value": "120.00",
+            "currency": "USD"
+          },
+          "title": "D3Publisher White Knight Chronicles II PS3 Action RPG T 2011 NTSC-U/C Online",
+          "itemId": "v1|377491662609|0",
+          "seller": {
+            "username": "mjbr_61",
+            "feedbackScore": 0,
+            "feedbackPercentage": "0.0"
+          },
+          "itemHref": "https://api.ebay.com/buy/browse/v1/item/v1%7C377491662609%7C0",
+          "adultOnly": false,
+          "condition": "Brand New",
+          "categories": [
+            {
+              "categoryId": "139973",
+              "categoryName": "Video Games"
+            },
+            {
+              "categoryId": "1249",
+              "categoryName": "Video Games & Consoles"
+            }
+          ],
+          "itemWebUrl": "https://www.ebay.com/itm/377491662609?_skw=white+knight+chronicles+ii+%28PlayStation+3%2CPS3%29&hash=item57e441a711:g:YS0AAeSw7k9qpfy8",
+          "conditionId": "1000",
+          "itemLocation": {
+            "country": "US",
+            "postalCode": "890**"
+          },
+          "legacyItemId": "377491662609",
+          "buyingOptions": [
+            "FIXED_PRICE",
+            "BEST_OFFER"
+          ],
+          "itemOriginDate": "2026-09-13T01:31:40.000Z",
+          "leafCategoryIds": [
+            "139973"
+          ],
+          "priorityListing": false,
+          "shippingOptions": [
+            {
+              "shippingCost": {
+                "value": "15.00",
+                "currency": "USD"
+              },
+              "shippingCostType": "FIXED",
+              "maxEstimatedDeliveryDate": "2026-09-21T07:00:00.000Z",
+              "minEstimatedDeliveryDate": "2026-09-17T07:00:00.000Z"
+            }
+          ],
+          "thumbnailImages": [
+            {
+              "imageUrl": "https://i.ebayimg.com/images/g/YS0AAeSw7k9qpfy8/s-l1600.jpg"
+            }
+          ],
+          "additionalImages": [
+            {
+              "imageUrl": "https://i.ebayimg.com/images/g/Ou8AAeSwj0lqpfyp/s-l225.jpg"
+            }
+          ],
+          "availableCoupons": false,
+          "itemCreationDate": "2026-09-13T01:31:40.000Z",
+          "_mbop_search_query": "white knight chronicles ii (PlayStation 3,PS3)",
+          "listingMarketplaceId": "EBAY_US",
+          "_mbop_search_category_id": "139973",
+          "topRatedBuyingExperience": false
+        },
+        "shortDescription": "D3Publisher White Knight Chronicles II PS3 Action RPG T 2011 NTSC-U/C Online",
+        "_mbop_search_query": "white knight chronicles ii (PlayStation 3,PS3)",
+        "listingMarketplaceId": "EBAY_US",
+        "enabledForGuestCheckout": false,
+        "estimatedAvailabilities": [
+          {
+            "deliveryOptions": [
+              "SHIP_TO_HOME"
+            ],
+            "estimatedSoldQuantity": 0,
+            "estimatedAvailableQuantity": 1,
+            "estimatedRemainingQuantity": 1,
+            "estimatedAvailabilityStatus": "IN_STOCK"
+          }
+        ],
+        "_mbop_search_category_id": "139973",
+        "topRatedBuyingExperience": false,
+        "eligibleForInlineCheckout": true
+      },
+      "shipping_cost": 15,
+      "buying_options": [
+        "FIXED_PRICE",
+        "BEST_OFFER"
+      ],
+      "ebay_image_url": "https://i.ebayimg.com/images/g/YS0AAeSw7k9qpfy8/s-l1600.jpg",
+      "listing_status": "active",
+      "seller_username": "mjbr_61",
+      "auction_end_time": null,
+      "ebay_item_web_url": "https://www.ebay.com/itm/377491662609",
+      "available_quantity": 1,
+      "best_offer_enabled": true,
+      "ebay_legacy_item_id": "377491662609",
+      "item_location_country": "US",
+      "asin": "B004WL4LOY",
+      "candidate_id": "527baff9-ff7e-4ab9-855a-47c0a3823ac5",
+      "seed_id": "bcf7bb8b-7508-44b8-a799-25c7277de821",
+      "sourcing_run_id": "d9efd23c-d7b9-410e-9bca-2a787146e8ab"
+    }
+  },
+  {
+    "opportunity_id": "cf461d09-70b6-4d0b-9321-f8f07f0f7b36",
+    "asin": "B081W4X9RW",
+    "seed": {
+      "asin": "B081W4X9RW",
+      "seller_sku": "1071379582",
+      "source_mode": "3_catalog_remaining",
+      "amazon_title": "Persona 5 Royal: Phantom Thieves [video game]",
+      "last_sold_at": null,
+      "units_sold_90d": 0,
+      "amazon_image_url": "https://images-na.ssl-images-amazon.com/images/I/71JsiDh5UeL.jpg",
+      "monthly_velocity": 0,
+      "months_of_supply": null,
+      "raw_context_json": {
+        "listing_source": {
+          "seller_sku": "1071379582",
+          "updated_at": "2026-09-13T03:35:13+00:00",
+          "source_table": "amazon_skus",
+          "last_listing_sync_at": "2026-09-13T03:35:13+00:00"
+        },
+        "queue_position": 1346,
+        "inferred_system": "PS 4",
+        "priority_bucket": "3_catalog_remaining",
+        "listing_warnings": {
+          "issue_count": 0,
+          "item_status": "Inactive",
+          "issue_severity": null,
+          "listing_status": "Inactive",
+          "fulfillment_channel": "AMAZON_NA"
+        },
+        "coverage_cycle_id": "1ade27c7-4ec8-4968-9726-58250229a651",
+        "estimated_fee_cost": null,
+        "inventory_planning": {
+          "asin": "B081W4X9RW",
+          "skip": false,
+          "snapshot_date": "2026-09-12",
+          "aged_units_over_30_days": 0,
+          "current_inventory_units": 0,
+          "sales_shipped_last_30_days": 0
+        },
+        "keepa_category_tree": "Video Games 468642 PlayStation 4 6427814011 Games 6427831011",
+        "keepa_product_group": null,
+        "coverage_cycle_item_id": "1857c7b3-9e40-4736-b44d-e979d22dad4d",
+        "inferred_system_source": "keepa_category_tree",
+        "amazon_catalog_identity": null
+      },
+      "target_sale_price": 179.34,
+      "inventory_need_level": "critical",
+      "current_inventory_units": 0
+    },
+    "candidate": {
+      "price": 126,
+      "bid_count": null,
+      "condition": "Brand New",
+      "ebay_title": "Persona 5 Royal: Phantom Thieves Edition - Sony PlayStation 4",
+      "landed_cost": 139.65,
+      "ebay_item_id": "v1|188863460111|0",
+      "raw_ebay_json": {
+        "image": {
+          "width": 1200,
+          "height": 1600,
+          "imageUrl": "https://i.ebayimg.com/images/g/Kx0AAeSwndxqlKOA/s-l1600.jpg"
+        },
+        "price": {
+          "value": "126.00",
+          "currency": "USD"
+        },
+        "taxes": [
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "Alabama",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "AL"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          },
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "Alaska",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "AK"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          },
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "Arizona",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "AZ"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          },
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "Arkansas",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "AR"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          },
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "California",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "CA"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          },
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "Colorado",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "CO"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          },
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "Connecticut",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "CT"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          },
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "District of Columbia",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "DC"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          },
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "Florida",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "FL"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          },
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "Georgia",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "GA"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          },
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "Hawaii",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "HI"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          },
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "Idaho",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "ID"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          },
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "Illinois",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "IL"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          },
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "Indiana",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "IN"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          },
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "Iowa",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "IA"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          },
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "Kansas",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "KS"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          },
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "Kentucky",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "KY"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          },
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "Louisiana",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "LA"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          },
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "Maine",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "ME"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          },
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "Maryland",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "MD"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          },
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "Massachusetts",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "MA"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          },
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "Michigan",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "MI"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          },
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "Minnesota",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "MN"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          },
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "Mississippi",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "MS"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          },
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "Nebraska",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "NE"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          },
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "Nevada",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "NV"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          },
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "New Jersey",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "NJ"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          },
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "New Mexico",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "NM"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          },
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "New York",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "NY"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          },
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "North Carolina",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "NC"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          },
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "North Dakota",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "ND"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          },
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "Ohio",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "OH"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          },
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "Oklahoma",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "OK"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          },
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "Pennsylvania",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "PA"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          },
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "Puerto Rico",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "PR"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          },
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "Rhode Island",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "RI"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          },
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "South Carolina",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "SC"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          },
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "South Dakota",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "SD"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          },
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "Tennessee",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "TN"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          },
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "Texas",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "TX"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          },
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "Utah",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "UT"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          },
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "Vermont",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "VT"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          },
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "Virginia",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "VA"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          },
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "Washington",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "WA"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          },
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "West Virginia",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "WV"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          },
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "Wisconsin",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "WI"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          },
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "Wyoming",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "WY"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          }
+        ],
+        "title": "Persona 5 Royal: Phantom Thieves Edition - Sony PlayStation 4",
+        "itemId": "v1|188863460111|0",
+        "seller": {
+          "username": "drop_d_tuned",
+          "feedbackScore": 130,
+          "feedbackPercentage": "100.0"
+        },
+        "lotSize": 0,
+        "itemHref": "https://api.ebay.com/buy/browse/v1/item/v1%7C188863460111%7C0",
+        "adultOnly": false,
+        "condition": "Brand New",
+        "categories": [
+          {
+            "categoryId": "139973",
+            "categoryName": "Video Games"
+          },
+          {
+            "categoryId": "1249",
+            "categoryName": "Video Games & Consoles"
+          }
+        ],
+        "categoryId": "139973",
+        "itemWebUrl": "https://www.ebay.com/itm/188863460111",
+        "conditionId": "1000",
+        "description": "<p style=\"margin: 0px; font-size-adjust: none; font-kerning: auto; font-variant-alternates: normal; font-variant-ligatures: normal; font-variant-numeric: normal; font-variant-east-asian: normal; font-variant-position: normal; font-feature-settings: normal;\"><span style=\"font-size-adjust: none; font-kerning: auto; font-variant-alternates: normal; font-variant-ligatures: normal; font-variant-numeric: normal; font-variant-east-asian: normal; font-variant-position: normal; font-feature-settings: normal;\"><b><font size=\"4\" face=\"Arial\">Please see pictures for the exact item you are getting and the condition it\u2019s in.</font></b></span></p><p style=\"margin: 0px; font-size-adjust: none; font-kerning: auto; font-variant-alternates: normal; font-variant-ligatures: normal; font-variant-numeric: normal; font-variant-east-asian: normal; font-variant-position: normal; font-feature-settings: normal; min-height: 16px;\"><font size=\"4\" face=\"Arial\"><span style=\"font-size-adjust: none; font-kerning: auto; font-variant-alternates: normal; font-variant-ligatures: normal; font-variant-numeric: normal; font-variant-east-asian: normal; font-variant-position: normal; font-feature-settings: normal;\"><b></b></span><br></font></p><p style=\"margin: 0px; font-size-adjust: none; font-kerning: auto; font-variant-alternates: normal; font-variant-ligatures: normal; font-variant-numeric: normal; font-variant-east-asian: normal; font-variant-position: normal; font-feature-settings: normal;\"><font size=\"4\" face=\"Arial\"><b>Important Notice:</b>&nbsp;No returns accepted.&nbsp;</font></p>",
+        "returnTerms": {
+          "returnsAccepted": false
+        },
+        "categoryPath": "Video Games & Consoles|Video Games",
+        "immediatePay": false,
+        "itemLocation": {
+          "city": "Dublin",
+          "country": "US",
+          "postalCode": "945**",
+          "stateOrProvince": "California"
+        },
+        "legacyItemId": "188863460111",
+        "buyingOptions": [
+          "FIXED_PRICE",
+          "BEST_OFFER"
+        ],
+        "categoryIdPath": "1249|139973",
+        "itemOriginDate": "2026-08-30T21:43:38.000Z",
+        "paymentMethods": [
+          {
+            "paymentMethodType": "OTHER"
+          },
+          {
+            "paymentMethodType": "WALLET",
+            "paymentMethodBrands": [
+              {
+                "paymentMethodBrandType": "PAYPAL"
+              },
+              {
+                "paymentMethodBrandType": "APPLE_PAY"
+              },
+              {
+                "paymentMethodBrandType": "GOOGLE_PAY"
+              }
+            ]
+          },
+          {
+            "paymentMethodType": "CREDIT_CARD",
+            "paymentMethodBrands": [
+              {
+                "paymentMethodBrandType": "VISA"
+              },
+              {
+                "paymentMethodBrandType": "MASTERCARD"
+              },
+              {
+                "paymentMethodBrandType": "DISCOVER"
+              },
+              {
+                "paymentMethodBrandType": "DINERS_CLUB"
+              }
+            ]
+          }
+        ],
+        "leafCategoryIds": [
+          "139973"
+        ],
+        "priorityListing": false,
+        "shipToLocations": {
+          "regionExcluded": [
+            {
+              "regionId": "PF",
+              "regionName": "French Polynesia",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "LY",
+              "regionName": "Libya",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "NC",
+              "regionName": "New Caledonia",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "GP",
+              "regionName": "Guadeloupe",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "VE",
+              "regionName": "Venezuela",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "RE",
+              "regionName": "Reunion",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "BB",
+              "regionName": "Barbados",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "MQ",
+              "regionName": "Martinique",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "GF",
+              "regionName": "French Guiana",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "UA",
+              "regionName": "Ukraine",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "RU",
+              "regionName": "Russian Federation",
+              "regionType": "COUNTRY"
+            }
+          ],
+          "regionIncluded": [
+            {
+              "regionId": "US",
+              "regionName": "United States",
+              "regionType": "COUNTRY"
+            }
+          ]
+        },
+        "shippingOptions": [
+          {
+            "type": "Standard Shipping",
+            "shippingCost": {
+              "value": "13.65",
+              "currency": "USD"
+            },
+            "trademarkSymbol": "\u00ae",
+            "shippingCostType": "CALCULATED",
+            "shippingCarrierCode": "USPS",
+            "shippingServiceCode": "USPS Ground Advantage",
+            "quantityUsedForEstimate": 1,
+            "maxEstimatedDeliveryDate": "2026-09-18T10:00:00.000Z",
+            "minEstimatedDeliveryDate": "2026-09-16T10:00:00.000Z",
+            "shipToLocationUsedForEstimate": {
+              "country": "US",
+              "postalCode": "93022"
+            }
+          }
+        ],
+        "thumbnailImages": [
+          {
+            "imageUrl": "https://i.ebayimg.com/images/g/Kx0AAeSwndxqlKOA/s-l1600.jpg"
+          }
+        ],
+        "additionalImages": [
+          {
+            "width": 1200,
+            "height": 1600,
+            "imageUrl": "https://i.ebayimg.com/images/g/ZfwAAeSwoAJqlKN~/s-l1600.jpg"
+          },
+          {
+            "width": 1200,
+            "height": 1600,
+            "imageUrl": "https://i.ebayimg.com/images/g/anUAAeSww45qlKOA/s-l1600.jpg"
+          },
+          {
+            "width": 1200,
+            "height": 1600,
+            "imageUrl": "https://i.ebayimg.com/images/g/V5AAAeSwQUJqlKOA/s-l1600.jpg"
+          },
+          {
+            "width": 1600,
+            "height": 961,
+            "imageUrl": "https://i.ebayimg.com/images/g/WJMAAeSwdy9qlKOA/s-l1600.jpg"
+          },
+          {
+            "width": 1600,
+            "height": 1200,
+            "imageUrl": "https://i.ebayimg.com/images/g/yFgAAeSweY5qlKOA/s-l1600.jpg"
+          }
+        ],
+        "availableCoupons": false,
+        "itemCreationDate": "2026-08-30T21:43:38.000Z",
+        "localizedAspects": [
+          {
+            "name": "Platform",
+            "type": "STRING",
+            "value": "Sony PlayStation 4"
+          },
+          {
+            "name": "Game Name",
+            "type": "STRING",
+            "value": "Persona 5 Royal: Phantom Thieves Edition"
+          }
+        ],
+        "rawSearchSummary": {
+          "image": {
+            "imageUrl": "https://i.ebayimg.com/images/g/Kx0AAeSwndxqlKOA/s-l225.jpg"
+          },
+          "price": {
+            "value": "126.00",
+            "currency": "USD"
+          },
+          "title": "Persona 5 Royal: Phantom Thieves Edition - Sony PlayStation 4",
+          "itemId": "v1|188863460111|0",
+          "seller": {
+            "username": "drop_d_tuned",
+            "feedbackScore": 130,
+            "feedbackPercentage": "100.0"
+          },
+          "itemHref": "https://api.ebay.com/buy/browse/v1/item/v1%7C188863460111%7C0",
+          "adultOnly": false,
+          "condition": "Brand New",
+          "categories": [
+            {
+              "categoryId": "139973",
+              "categoryName": "Video Games"
+            },
+            {
+              "categoryId": "1249",
+              "categoryName": "Video Games & Consoles"
+            }
+          ],
+          "itemWebUrl": "https://www.ebay.com/itm/188863460111?_skw=persona+5+royal+phantom+thieves+%28PlayStation+4%2CPS4%29&hash=item2bf923b30f:g:Kx0AAeSwndxqlKOA",
+          "conditionId": "1000",
+          "itemLocation": {
+            "country": "US",
+            "postalCode": "945**"
+          },
+          "legacyItemId": "188863460111",
+          "buyingOptions": [
+            "FIXED_PRICE",
+            "BEST_OFFER"
+          ],
+          "itemOriginDate": "2026-08-30T21:43:38.000Z",
+          "leafCategoryIds": [
+            "139973"
+          ],
+          "priorityListing": false,
+          "shippingOptions": [
+            {
+              "shippingCostType": "CALCULATED"
+            }
+          ],
+          "thumbnailImages": [
+            {
+              "imageUrl": "https://i.ebayimg.com/images/g/Kx0AAeSwndxqlKOA/s-l1600.jpg"
+            }
+          ],
+          "additionalImages": [
+            {
+              "imageUrl": "https://i.ebayimg.com/images/g/ZfwAAeSwoAJqlKN~/s-l225.jpg"
+            },
+            {
+              "imageUrl": "https://i.ebayimg.com/images/g/anUAAeSww45qlKOA/s-l225.jpg"
+            },
+            {
+              "imageUrl": "https://i.ebayimg.com/images/g/V5AAAeSwQUJqlKOA/s-l225.jpg"
+            },
+            {
+              "imageUrl": "https://i.ebayimg.com/images/g/WJMAAeSwdy9qlKOA/s-l225.jpg"
+            },
+            {
+              "imageUrl": "https://i.ebayimg.com/images/g/yFgAAeSweY5qlKOA/s-l225.jpg"
+            }
+          ],
+          "availableCoupons": false,
+          "itemCreationDate": "2026-08-30T21:43:38.000Z",
+          "_mbop_search_query": "persona 5 royal phantom thieves (PlayStation 4,PS4)",
+          "listingMarketplaceId": "EBAY_US",
+          "_mbop_search_category_id": "139973",
+          "topRatedBuyingExperience": false
+        },
+        "_mbop_search_query": "persona 5 royal phantom thieves (PlayStation 4,PS4)",
+        "sellerItemRevision": "1",
+        "listingMarketplaceId": "EBAY_US",
+        "enabledForGuestCheckout": false,
+        "estimatedAvailabilities": [
+          {
+            "deliveryOptions": [
+              "SHIP_TO_HOME"
+            ],
+            "estimatedSoldQuantity": 0,
+            "estimatedAvailableQuantity": 1,
+            "estimatedRemainingQuantity": 1,
+            "estimatedAvailabilityStatus": "IN_STOCK"
+          }
+        ],
+        "_mbop_search_category_id": "139973",
+        "topRatedBuyingExperience": false,
+        "eligibleForInlineCheckout": true
+      },
+      "shipping_cost": 13.65,
+      "buying_options": [
+        "FIXED_PRICE",
+        "BEST_OFFER"
+      ],
+      "ebay_image_url": "https://i.ebayimg.com/images/g/Kx0AAeSwndxqlKOA/s-l1600.jpg",
+      "listing_status": "active",
+      "seller_username": "drop_d_tuned",
+      "auction_end_time": null,
+      "ebay_item_web_url": "https://www.ebay.com/itm/188863460111",
+      "available_quantity": 1,
+      "best_offer_enabled": true,
+      "ebay_legacy_item_id": "188863460111",
+      "item_location_country": "US",
+      "asin": "B081W4X9RW",
+      "candidate_id": "b1d00160-4c76-4a38-aa2e-412f3b1862fe",
+      "seed_id": "12632b80-2b28-48b3-8917-ea70a7da3f45",
+      "sourcing_run_id": "d9efd23c-d7b9-410e-9bca-2a787146e8ab"
+    }
+  },
+  {
+    "opportunity_id": "1971d3bd-a54b-4943-9d4b-2dec6d951149",
+    "asin": "B0088MVPFQ",
+    "seed": {
+      "asin": "B0088MVPFQ",
+      "seller_sku": "1068329351",
+      "source_mode": "3_catalog_remaining",
+      "amazon_title": "New Super Mario Bros. 2 [video game]",
+      "last_sold_at": null,
+      "units_sold_90d": 0,
+      "amazon_image_url": "https://images-na.ssl-images-amazon.com/images/I/71a2Z3oeopL.jpg",
+      "monthly_velocity": 0,
+      "months_of_supply": null,
+      "raw_context_json": {
+        "listing_source": {
+          "seller_sku": "1068329351",
+          "updated_at": "2026-09-13T03:35:13+00:00",
+          "source_table": "amazon_skus",
+          "last_listing_sync_at": "2026-09-13T03:35:13+00:00"
+        },
+        "queue_position": 724,
+        "inferred_system": "3DS",
+        "priority_bucket": "3_catalog_remaining",
+        "listing_warnings": {
+          "issue_count": 0,
+          "item_status": "Inactive",
+          "issue_severity": null,
+          "listing_status": "Inactive",
+          "fulfillment_channel": "AMAZON_NA"
+        },
+        "coverage_cycle_id": "1ade27c7-4ec8-4968-9726-58250229a651",
+        "estimated_fee_cost": null,
+        "inventory_planning": {
+          "asin": "B0088MVPFQ",
+          "skip": false,
+          "snapshot_date": "2026-09-12",
+          "aged_units_over_30_days": 0,
+          "current_inventory_units": 0,
+          "sales_shipped_last_30_days": 0
+        },
+        "keepa_category_tree": "Video Games 468642 Legacy Systems 294940 Nintendo Systems 23563593011 Nintendo 3DS & 2DS 2622269011 Games 4924892011",
+        "keepa_product_group": null,
+        "coverage_cycle_item_id": "3a70021b-b23e-4a78-92ca-a0e76335ec6e",
+        "inferred_system_source": "keepa_category_tree",
+        "amazon_catalog_identity": null
+      },
+      "target_sale_price": 42.4,
+      "inventory_need_level": "critical",
+      "current_inventory_units": 0
+    },
+    "candidate": {
+      "price": 23,
+      "bid_count": null,
+      "condition": "Brand New",
+      "ebay_title": "Nintendo New Super Mario Bros. 2 Nintendo 3DS E 2012 NTSC-U/C Multiplayer",
+      "landed_cost": 28.48,
+      "ebay_item_id": "v1|298628092084|0",
+      "raw_ebay_json": {
+        "image": {
+          "imageUrl": "https://i.ebayimg.com/images/g/NesAAeSw1nRqk5WU/s-l1600.jpg"
+        },
+        "price": {
+          "value": "23.00",
+          "currency": "USD"
+        },
+        "taxes": [
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "Alabama",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "AL"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          },
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "Alaska",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "AK"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          },
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "Arizona",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "AZ"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          },
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "Arkansas",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "AR"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          },
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "California",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "CA"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          },
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "Colorado",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "CO"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          },
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "Connecticut",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "CT"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          },
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "District of Columbia",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "DC"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          },
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "Florida",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "FL"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          },
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "Georgia",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "GA"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          },
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "Hawaii",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "HI"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          },
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "Idaho",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "ID"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          },
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "Illinois",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "IL"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          },
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "Indiana",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "IN"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          },
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "Iowa",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "IA"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          },
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "Kansas",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "KS"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          },
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "Kentucky",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "KY"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          },
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "Louisiana",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "LA"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          },
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "Maine",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "ME"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          },
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "Maryland",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "MD"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          },
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "Massachusetts",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "MA"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          },
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "Michigan",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "MI"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          },
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "Minnesota",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "MN"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          },
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "Mississippi",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "MS"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          },
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "Nebraska",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "NE"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          },
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "Nevada",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "NV"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          },
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "New Jersey",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "NJ"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          },
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "New Mexico",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "NM"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          },
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "New York",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "NY"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          },
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "North Carolina",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "NC"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          },
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "North Dakota",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "ND"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          },
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "Ohio",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "OH"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          },
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "Oklahoma",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "OK"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          },
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "Pennsylvania",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "PA"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          },
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "Puerto Rico",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "PR"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          },
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "Rhode Island",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "RI"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          },
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "South Carolina",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "SC"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          },
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "South Dakota",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "SD"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          },
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "Tennessee",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "TN"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          },
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "Texas",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "TX"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          },
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "Utah",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "UT"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          },
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "Vermont",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "VT"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          },
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "Virginia",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "VA"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          },
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "Washington",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "WA"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          },
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "West Virginia",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "WV"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          },
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "Wisconsin",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "WI"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          },
+          {
+            "taxType": "STATE_SALES_TAX",
+            "includedInPrice": false,
+            "taxJurisdiction": {
+              "region": {
+                "regionName": "Wyoming",
+                "regionType": "STATE_OR_PROVINCE"
+              },
+              "taxJurisdictionId": "WY"
+            },
+            "ebayCollectAndRemitTax": true,
+            "shippingAndHandlingTaxed": true
+          }
+        ],
+        "title": "Nintendo New Super Mario Bros. 2 Nintendo 3DS E 2012 NTSC-U/C Multiplayer",
+        "itemId": "v1|298628092084|0",
+        "seller": {
+          "username": "bmyrtle",
+          "feedbackScore": 17,
+          "feedbackPercentage": "100.0"
+        },
+        "lotSize": 0,
+        "itemHref": "https://api.ebay.com/buy/browse/v1/item/v1%7C298628092084%7C0",
+        "adultOnly": false,
+        "condition": "Brand New",
+        "categories": [
+          {
+            "categoryId": "139973",
+            "categoryName": "Video Games"
+          },
+          {
+            "categoryId": "1249",
+            "categoryName": "Video Games & Consoles"
+          }
+        ],
+        "categoryId": "139973",
+        "itemWebUrl": "https://www.ebay.com/itm/298628092084",
+        "conditionId": "1000",
+        "description": "Nintendo New Super Mario Bros. 2 Nintendo 3DS E 2012 NTSC-U/C Multiplayer",
+        "returnTerms": {
+          "returnsAccepted": false
+        },
+        "categoryPath": "Video Games & Consoles|Video Games",
+        "immediatePay": false,
+        "itemLocation": {
+          "city": "Lacey",
+          "country": "US",
+          "postalCode": "985**",
+          "stateOrProvince": "Washington"
+        },
+        "legacyItemId": "298628092084",
+        "buyingOptions": [
+          "FIXED_PRICE",
+          "BEST_OFFER"
+        ],
+        "categoryIdPath": "1249|139973",
+        "itemOriginDate": "2026-08-30T02:30:36.000Z",
+        "paymentMethods": [
+          {
+            "paymentMethodType": "OTHER"
+          },
+          {
+            "paymentMethodType": "WALLET",
+            "paymentMethodBrands": [
+              {
+                "paymentMethodBrandType": "PAYPAL"
+              },
+              {
+                "paymentMethodBrandType": "APPLE_PAY"
+              },
+              {
+                "paymentMethodBrandType": "GOOGLE_PAY"
+              }
+            ]
+          },
+          {
+            "paymentMethodType": "MONEY_ORDER"
+          },
+          {
+            "paymentMethodType": "CREDIT_CARD",
+            "paymentMethodBrands": [
+              {
+                "paymentMethodBrandType": "VISA"
+              },
+              {
+                "paymentMethodBrandType": "MASTERCARD"
+              },
+              {
+                "paymentMethodBrandType": "DISCOVER"
+              },
+              {
+                "paymentMethodBrandType": "DINERS_CLUB"
+              }
+            ]
+          }
+        ],
+        "leafCategoryIds": [
+          "139973"
+        ],
+        "priorityListing": false,
+        "shipToLocations": {
+          "regionExcluded": [
+            {
+              "regionId": "PF",
+              "regionName": "French Polynesia",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "LY",
+              "regionName": "Libya",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "NC",
+              "regionName": "New Caledonia",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "GP",
+              "regionName": "Guadeloupe",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "VE",
+              "regionName": "Venezuela",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "RE",
+              "regionName": "Reunion",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "BB",
+              "regionName": "Barbados",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "MQ",
+              "regionName": "Martinique",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "GF",
+              "regionName": "French Guiana",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "UA",
+              "regionName": "Ukraine",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "RU",
+              "regionName": "Russian Federation",
+              "regionType": "COUNTRY"
+            }
+          ],
+          "regionIncluded": [
+            {
+              "regionId": "US",
+              "regionName": "United States",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "DK",
+              "regionName": "Denmark",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "GT",
+              "regionName": "Guatemala",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "NZ",
+              "regionName": "New Zealand",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "FJ",
+              "regionName": "Fiji",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "PG",
+              "regionName": "Papua New Guinea",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "SB",
+              "regionName": "Solomon Islands",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "VA",
+              "regionName": "Vatican City State",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "SL",
+              "regionName": "Sierra Leone",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "NR",
+              "regionName": "Nauru",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "WF",
+              "regionName": "Wallis and Futuna",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "MH",
+              "regionName": "Marshall Islands",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "AI",
+              "regionName": "Anguilla",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "SV",
+              "regionName": "El Salvador",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "GM",
+              "regionName": "Gambia",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "GU",
+              "regionName": "Guam",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "FM",
+              "regionName": "Micronesia",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "DO",
+              "regionName": "Dominican Republic",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "CM",
+              "regionName": "Cameroon",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "GY",
+              "regionName": "Guyana",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "PL",
+              "regionName": "Poland",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "SR",
+              "regionName": "Suriname",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "TO",
+              "regionName": "Tonga",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "KE",
+              "regionName": "Kenya",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "AR",
+              "regionName": "Argentina",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "SM",
+              "regionName": "San Marino",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "GW",
+              "regionName": "Guinea-Bissau",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "SN",
+              "regionName": "Senegal",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "TG",
+              "regionName": "Togo",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "KN",
+              "regionName": "Saint Kitts-Nevis",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "MA",
+              "regionName": "Morocco",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "IE",
+              "regionName": "Ireland",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "BI",
+              "regionName": "Burundi",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "VC",
+              "regionName": "Saint Vincent and the Grenadines",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "NL",
+              "regionName": "Netherlands",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "SK",
+              "regionName": "Slovakia",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "SI",
+              "regionName": "Slovenia",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "GQ",
+              "regionName": "Equatorial Guinea",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "TH",
+              "regionName": "Thailand",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "MR",
+              "regionName": "Mauritania",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "BZ",
+              "regionName": "Belize",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "PH",
+              "regionName": "Philippines",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "AW",
+              "regionName": "Aruba",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "UY",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "CG",
+              "regionName": "Republic of the Congo",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "AS",
+              "regionName": "American Samoa",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "SE",
+              "regionName": "Sweden",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "CO",
+              "regionName": "Colombia",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "ES",
+              "regionName": "Spain",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "IS",
+              "regionName": "Iceland",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "EE",
+              "regionName": "Estonia",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "MK",
+              "regionName": "Macedonia",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "BE",
+              "regionName": "Belgium",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "LI",
+              "regionName": "Liechtenstein",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "BJ",
+              "regionName": "Benin",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "DZ",
+              "regionName": "Algeria",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "BM",
+              "regionName": "Bermuda",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "MS",
+              "regionName": "Montserrat",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "ZM",
+              "regionName": "Zambia",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "KR",
+              "regionName": "South Korea",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "AG",
+              "regionName": "Antigua and Barbuda",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "VU",
+              "regionName": "Vanuatu",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "EC",
+              "regionName": "Ecuador",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "IT",
+              "regionName": "Italy",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "AL",
+              "regionName": "Albania",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "SZ",
+              "regionName": "Swaziland",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "ET",
+              "regionName": "Ethiopia",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "MC",
+              "regionName": "Monaco",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "NE",
+              "regionName": "Niger",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "TZ",
+              "regionName": "Tanzania",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "PK",
+              "regionName": "Pakistan",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "BF",
+              "regionName": "Burkina Faso",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "PA",
+              "regionName": "Panama",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "SG",
+              "regionName": "Singapore",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "CH",
+              "regionName": "Switzerland",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "GH",
+              "regionName": "Ghana",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "DJ",
+              "regionName": "Djibouti",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "CL",
+              "regionName": "Chile",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "PR",
+              "regionName": "Puerto Rico",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "CV",
+              "regionName": "Cape Verde Islands",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "ML",
+              "regionName": "Mali",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "HR",
+              "regionName": "Republic of Croatia",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "BW",
+              "regionName": "Botswana",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "MG",
+              "regionName": "Madagascar",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "ID",
+              "regionName": "Indonesia",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "PT",
+              "regionName": "Portugal",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "MT",
+              "regionName": "Malta",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "KY",
+              "regionName": "Cayman Islands",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "PY",
+              "regionName": "Paraguay",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "CY",
+              "regionName": "Cyprus",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "SC",
+              "regionName": "Seychelles",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "LR",
+              "regionName": "Liberia",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "RW",
+              "regionName": "Rwanda",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "BD",
+              "regionName": "Bangladesh",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "BO",
+              "regionName": "Bolivia",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "MV",
+              "regionName": "Maldives",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "AU",
+              "regionName": "Australia",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "AT",
+              "regionName": "Austria",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "GI",
+              "regionName": "Gibraltar",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "LK",
+              "regionName": "Sri Lanka",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "GA",
+              "regionName": "Gabon Republic",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "LS",
+              "regionName": "Lesotho",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "NG",
+              "regionName": "Nigeria",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "MU",
+              "regionName": "Mauritius",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "LC",
+              "regionName": "Saint Lucia",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "BG",
+              "regionName": "Bulgaria",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "GN",
+              "regionName": "Guinea",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "CZ",
+              "regionName": "Czech Republic",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "NO",
+              "regionName": "Norway",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "CA",
+              "regionName": "Canada",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "CI",
+              "regionName": "C\u00f4te d'Ivoire (Ivory Coast)",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "TC",
+              "regionName": "Turks and Caicos Islands",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "KI",
+              "regionName": "Kiribati",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "AD",
+              "regionName": "Andorra",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "GD",
+              "regionName": "Grenada",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "RO",
+              "regionName": "Romania",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "GR",
+              "regionName": "Greece",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "CR",
+              "regionName": "Costa Rica",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "IN",
+              "regionName": "India",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "GL",
+              "regionName": "Greenland",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "MX",
+              "regionName": "Mexico",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "RS",
+              "regionName": "Serbia",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "ME",
+              "regionName": "Montenegro",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "JP",
+              "regionName": "Japan",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "NP",
+              "regionName": "Nepal",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "LT",
+              "regionName": "Lithuania",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "BS",
+              "regionName": "Bahamas",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "TT",
+              "regionName": "Trinidad and Tobago",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "GB",
+              "regionName": "United Kingdom",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "PW",
+              "regionName": "Palau",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "MW",
+              "regionName": "Malawi",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "HU",
+              "regionName": "Hungary",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "BA",
+              "regionName": "Bosnia and Herzegovina",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "AO",
+              "regionName": "Angola",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "FI",
+              "regionName": "Finland",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "TN",
+              "regionName": "Tunisia",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "LU",
+              "regionName": "Luxembourg",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "UG",
+              "regionName": "Uganda",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "TR",
+              "regionName": "Turkey",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "WS",
+              "regionName": "Western Samoa",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "FR",
+              "regionName": "France",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "DE",
+              "regionName": "Germany",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "LV",
+              "regionName": "Latvia",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "JM",
+              "regionName": "Jamaica",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "MZ",
+              "regionName": "Mozambique",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "NA",
+              "regionName": "Namibia",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "PE",
+              "regionName": "Peru",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "VI",
+              "regionName": "Virgin Islands (U.S.)",
+              "regionType": "COUNTRY"
+            },
+            {
+              "regionId": "HN",
+              "regionName": "Honduras",
+              "regionType": "COUNTRY"
+            }
+          ]
+        },
+        "shippingOptions": [
+          {
+            "type": "Standard Shipping",
+            "shippingCost": {
+              "value": "5.48",
+              "currency": "USD"
+            },
+            "trademarkSymbol": "\u00ae",
+            "shippingCostType": "CALCULATED",
+            "shippingCarrierCode": "USPS",
+            "shippingServiceCode": "USPS Ground Advantage",
+            "quantityUsedForEstimate": 1,
+            "maxEstimatedDeliveryDate": "2026-09-21T10:00:00.000Z",
+            "minEstimatedDeliveryDate": "2026-09-17T10:00:00.000Z",
+            "shipToLocationUsedForEstimate": {
+              "country": "US",
+              "postalCode": "93022"
+            }
+          }
+        ],
+        "thumbnailImages": [
+          {
+            "imageUrl": "https://i.ebayimg.com/images/g/NesAAeSw1nRqk5WU/s-l1600.jpg"
+          }
+        ],
+        "additionalImages": [
+          {
+            "width": 1600,
+            "height": 1600,
+            "imageUrl": "https://i.ebayimg.com/images/g/S~0AAeSwh3Nqk5V~/s-l1600.jpg"
+          }
+        ],
+        "availableCoupons": false,
+        "itemCreationDate": "2026-08-30T02:30:36.000Z",
+        "localizedAspects": [
+          {
+            "name": "Region Code",
+            "type": "STRING",
+            "value": "NTSC-U/C (US/Canada)"
+          },
+          {
+            "name": "Release Year",
+            "type": "STRING",
+            "value": "2012"
+          },
+          {
+            "name": "Platform",
+            "type": "STRING",
+            "value": "Nintendo 3DS"
+          },
+          {
+            "name": "Rating",
+            "type": "STRING",
+            "value": "E-Everyone"
+          },
+          {
+            "name": "Video Game Series",
+            "type": "STRING",
+            "value": "Super Mario Bros."
+          },
+          {
+            "name": "Features",
+            "type": "STRING",
+            "value": "Multiplayer"
+          },
+          {
+            "name": "Publisher",
+            "type": "STRING",
+            "value": "Nintendo"
+          },
+          {
+            "name": "Genre",
+            "type": "STRING",
+            "value": "Platformer"
+          },
+          {
+            "name": "Game Name",
+            "type": "STRING",
+            "value": "New Super Mario Bros. 2"
+          },
+          {
+            "name": "Country of Origin",
+            "type": "STRING",
+            "value": "Japan"
+          }
+        ],
+        "rawSearchSummary": {
+          "image": {
+            "imageUrl": "https://i.ebayimg.com/images/g/NesAAeSw1nRqk5WU/s-l225.jpg"
+          },
+          "price": {
+            "value": "23.00",
+            "currency": "USD"
+          },
+          "title": "Nintendo New Super Mario Bros. 2 Nintendo 3DS E 2012 NTSC-U/C Multiplayer",
+          "itemId": "v1|298628092084|0",
+          "seller": {
+            "username": "bmyrtle",
+            "feedbackScore": 17,
+            "feedbackPercentage": "100.0"
+          },
+          "itemHref": "https://api.ebay.com/buy/browse/v1/item/v1%7C298628092084%7C0",
+          "adultOnly": false,
+          "condition": "Brand New",
+          "categories": [
+            {
+              "categoryId": "139973",
+              "categoryName": "Video Games"
+            },
+            {
+              "categoryId": "1249",
+              "categoryName": "Video Games & Consoles"
+            }
+          ],
+          "itemWebUrl": "https://www.ebay.com/itm/298628092084?_skw=new+super+mario+bros+2+3DS&hash=item45879f10b4:g:NesAAeSw1nRqk5WU",
+          "conditionId": "1000",
+          "itemLocation": {
+            "country": "US",
+            "postalCode": "985**"
+          },
+          "legacyItemId": "298628092084",
+          "buyingOptions": [
+            "FIXED_PRICE",
+            "BEST_OFFER"
+          ],
+          "itemOriginDate": "2026-08-30T02:30:36.000Z",
+          "leafCategoryIds": [
+            "139973"
+          ],
+          "priorityListing": false,
+          "shippingOptions": [
+            {
+              "shippingCostType": "CALCULATED"
+            }
+          ],
+          "thumbnailImages": [
+            {
+              "imageUrl": "https://i.ebayimg.com/images/g/NesAAeSw1nRqk5WU/s-l1600.jpg"
+            }
+          ],
+          "additionalImages": [
+            {
+              "imageUrl": "https://i.ebayimg.com/images/g/S~0AAeSwh3Nqk5V~/s-l225.jpg"
+            }
+          ],
+          "availableCoupons": false,
+          "itemCreationDate": "2026-08-30T02:30:36.000Z",
+          "_mbop_search_query": "new super mario bros 2 3DS",
+          "listingMarketplaceId": "EBAY_US",
+          "_mbop_search_category_id": "139973",
+          "topRatedBuyingExperience": false
+        },
+        "shortDescription": "Nintendo New Super Mario Bros. 2 Nintendo 3DS E 2012 NTSC-U/C Multiplayer",
+        "_mbop_search_query": "new super mario bros 2 3DS",
+        "sellerItemRevision": "2",
+        "listingMarketplaceId": "EBAY_US",
+        "enabledForGuestCheckout": false,
+        "estimatedAvailabilities": [
+          {
+            "deliveryOptions": [
+              "SHIP_TO_HOME"
+            ],
+            "estimatedSoldQuantity": 0,
+            "estimatedAvailableQuantity": 1,
+            "estimatedRemainingQuantity": 1,
+            "estimatedAvailabilityStatus": "IN_STOCK"
+          }
+        ],
+        "_mbop_search_category_id": "139973",
+        "topRatedBuyingExperience": false,
+        "eligibleForInlineCheckout": true
+      },
+      "shipping_cost": 5.48,
+      "buying_options": [
+        "FIXED_PRICE",
+        "BEST_OFFER"
+      ],
+      "ebay_image_url": "https://i.ebayimg.com/images/g/NesAAeSw1nRqk5WU/s-l1600.jpg",
+      "listing_status": "active",
+      "seller_username": "bmyrtle",
+      "auction_end_time": null,
+      "ebay_item_web_url": "https://www.ebay.com/itm/298628092084",
+      "available_quantity": 1,
+      "best_offer_enabled": true,
+      "ebay_legacy_item_id": "298628092084",
+      "item_location_country": "US",
+      "asin": "B0088MVPFQ",
+      "candidate_id": "3586e1c2-b697-4233-b64a-e3f95c636022",
+      "seed_id": "6d4b5f06-89a7-4366-ba1d-772ec52d6656",
+      "sourcing_run_id": "d9efd23c-d7b9-410e-9bca-2a787146e8ab"
+    }
+  }
+]

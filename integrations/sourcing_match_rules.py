@@ -5,7 +5,7 @@ from __future__ import annotations
 import re
 from typing import Any
 
-from system_detection import SYSTEM_ALIASES, detect_system_from_title, normalize_system
+from system_detection import SYSTEM_ALIASES, detect_system_from_title, normalize_system, resolve_seed_system
 from title_cleaning import clean_marketplace_title_for_search
 from video_game_identity import build_identity_comparison
 
@@ -1073,20 +1073,6 @@ def xbox_one_series_compatible(seed_system: str | None, ebay_systems: list[str])
     known = {system for system in known if system}
     return bool(known) and known.issubset(xbox_cross_gen)
 
-
-def resolve_seed_system(seed: dict[str, Any], amazon_title: str) -> tuple[str | None, str | None]:
-    first_class = normalize_system(str(seed.get("system") or ""))
-    if first_class:
-        return first_class, "seed_system"
-    raw_context = seed.get("raw_context_json") or {}
-    if isinstance(raw_context, dict):
-        inferred = normalize_system(str(raw_context.get("inferred_system") or ""))
-        if inferred:
-            return inferred, str(raw_context.get("inferred_system_source") or "seed_raw_context")
-    title_system = detect_system_from_title(amazon_title)
-    if title_system:
-        return title_system, "amazon_title"
-    return None, None
 
 
 def systems_from_values(values: list[str]) -> list[str]:

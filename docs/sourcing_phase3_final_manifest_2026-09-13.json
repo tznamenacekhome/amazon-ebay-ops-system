@@ -1,187 +1,346 @@
 {
-  "status": "PHASE 3 NOT DEPLOYED \u2014 CORRECTION/ADMISSION SAFETY GATE FAILED",
+  "status": "PHASE 3 NOT DEPLOYED \u2014 METADATA/ADMISSION SAFETY GATE FAILED",
   "phase3Complete": false,
+  "metadataGatePassed": true,
+  "operationalGatePassed": false,
   "candidateApproved": false,
-  "baseCommit": "1aa82cb57bd0fd5ef61c183a2faefa31720cf5d3",
-  "previousFailure": {
-    "commit": "1aa82cb",
-    "file": "docs/sourcing_phase3_final_manifest_2026-09-13.json"
-  },
-  "stopReason": "Four curated positives lose scorer eligibility because canonical reference platform omits platform resolved by the existing seed metadata fallback. No runtime repair after gate failure.",
-  "candidateChanges": [
-    "Static platform uses effective canonical comparison and retains raw provenance.",
-    "Valid scoped eBay digitalPhysical/completeness/region corrections feed their corresponding static checks.",
-    "Known unequal platforms are canonical conflicts.",
-    "Correction provenance includes createdAt and actor when supplied."
+  "baseCommit": "682c46e4189a10e6e65888c471bdb73ca7165329",
+  "stopReason": "Atomic guard fingerprints jsonb textual serialization. Semantically unchanged numeric state changes 25.00 to 25.0 through the JSON client and is falsely stale-skipped before the business hold validation.",
+  "fourReferenceTraces": [
+    {
+      "asin": "B000FQBPCQ",
+      "opportunityId": "b40f3e0a-ae02-4b81-aa12-0200d5c86095",
+      "title": "The Legend of Zelda: Twilight Princess [video game]",
+      "seedSystem": null,
+      "inferredSystem": "Wii",
+      "inferredSystemSource": "keepa_category_tree",
+      "resolver": [
+        "Wii",
+        "keepa_category_tree"
+      ],
+      "canonicalPlatform": {
+        "value": null,
+        "state": "unknown",
+        "sources": [],
+        "side": "amazon",
+        "parserVersion": "video_game_identity_phase3_shadow_v3",
+        "evidenceVersion": "video_game_identity_phase3_shadow_v3",
+        "expectation": null,
+        "sourceReconciliation": [],
+        "confidenceKind": "uncalibrated_parser_heuristic"
+      },
+      "rawRule": {
+        "seed_system": "Wii",
+        "seed_system_source": "keepa_category_tree",
+        "candidate_system": "Wii",
+        "candidate_systems": [
+          "Wii"
+        ],
+        "candidate_system_source": "item_specifics_platform",
+        "candidate_item_specific_platform_values": [
+          "Nintendo Wii"
+        ],
+        "candidate_title_systems": [
+          "Wii"
+        ],
+        "result": "pass",
+        "reason": "Candidate platform matches Amazon platform"
+      },
+      "effectiveRuleResult": "review"
+    },
+    {
+      "asin": "B004WL4LOY",
+      "opportunityId": "76c40cca-b987-4aa1-a55e-ca1458c30e41",
+      "title": "White Knight Chronicles II",
+      "seedSystem": null,
+      "inferredSystem": "PS 3",
+      "inferredSystemSource": "keepa_category_tree",
+      "resolver": [
+        "PS 3",
+        "keepa_category_tree"
+      ],
+      "canonicalPlatform": {
+        "value": null,
+        "state": "unknown",
+        "sources": [],
+        "side": "amazon",
+        "parserVersion": "video_game_identity_phase3_shadow_v3",
+        "evidenceVersion": "video_game_identity_phase3_shadow_v3",
+        "expectation": null,
+        "sourceReconciliation": [],
+        "confidenceKind": "uncalibrated_parser_heuristic"
+      },
+      "rawRule": {
+        "seed_system": "PS 3",
+        "seed_system_source": "keepa_category_tree",
+        "candidate_system": "PS 3",
+        "candidate_systems": [
+          "PS 3"
+        ],
+        "candidate_system_source": "item_specifics_platform",
+        "candidate_item_specific_platform_values": [
+          "Sony PlayStation 3"
+        ],
+        "candidate_title_systems": [
+          "PS 3"
+        ],
+        "result": "pass",
+        "reason": "Candidate platform matches Amazon platform"
+      },
+      "effectiveRuleResult": "review"
+    },
+    {
+      "asin": "B081W4X9RW",
+      "opportunityId": "cf461d09-70b6-4d0b-9321-f8f07f0f7b36",
+      "title": "Persona 5 Royal: Phantom Thieves [video game]",
+      "seedSystem": null,
+      "inferredSystem": "PS 4",
+      "inferredSystemSource": "keepa_category_tree",
+      "resolver": [
+        "PS 4",
+        "keepa_category_tree"
+      ],
+      "canonicalPlatform": {
+        "value": null,
+        "state": "unknown",
+        "sources": [],
+        "side": "amazon",
+        "parserVersion": "video_game_identity_phase3_shadow_v3",
+        "evidenceVersion": "video_game_identity_phase3_shadow_v3",
+        "expectation": null,
+        "sourceReconciliation": [],
+        "confidenceKind": "uncalibrated_parser_heuristic"
+      },
+      "rawRule": {
+        "seed_system": "PS 4",
+        "seed_system_source": "keepa_category_tree",
+        "candidate_system": "PS 4",
+        "candidate_systems": [
+          "PS 4"
+        ],
+        "candidate_system_source": "item_specifics_platform",
+        "candidate_item_specific_platform_values": [
+          "Sony PlayStation 4"
+        ],
+        "candidate_title_systems": [
+          "PS 4"
+        ],
+        "result": "pass",
+        "reason": "Candidate platform matches Amazon platform"
+      },
+      "effectiveRuleResult": "review"
+    },
+    {
+      "asin": "B0088MVPFQ",
+      "opportunityId": "1971d3bd-a54b-4943-9d4b-2dec6d951149",
+      "title": "New Super Mario Bros. 2 [video game]",
+      "seedSystem": null,
+      "inferredSystem": "3DS",
+      "inferredSystemSource": "keepa_category_tree",
+      "resolver": [
+        "3DS",
+        "keepa_category_tree"
+      ],
+      "canonicalPlatform": {
+        "value": null,
+        "state": "unknown",
+        "sources": [],
+        "side": "amazon",
+        "parserVersion": "video_game_identity_phase3_shadow_v3",
+        "evidenceVersion": "video_game_identity_phase3_shadow_v3",
+        "expectation": null,
+        "sourceReconciliation": [],
+        "confidenceKind": "uncalibrated_parser_heuristic"
+      },
+      "rawRule": {
+        "seed_system": "3DS",
+        "seed_system_source": "keepa_category_tree",
+        "candidate_system": "3DS",
+        "candidate_systems": [
+          "3DS"
+        ],
+        "candidate_system_source": "item_specifics_platform",
+        "candidate_item_specific_platform_values": [
+          "Nintendo 3DS"
+        ],
+        "candidate_title_systems": [
+          "3DS"
+        ],
+        "result": "pass",
+        "reason": "Candidate platform matches Amazon platform"
+      },
+      "effectiveRuleResult": "review"
+    }
   ],
-  "strictGate": {
-    "tierAMatch": 12,
-    "tierATotal": 12,
+  "identityGate": {
+    "tierAPositiveMatch": 12,
     "adjudicatedNegatives": {
       "nonmatch": 2,
       "review": 1,
       "match": 0
     },
-    "correctionsApplied": 17,
-    "compatibleExamples": 0,
-    "curatedIdentityMatch": 15,
-    "curatedEligible": 11,
-    "curatedTotal": 15,
+    "curatedPositivesEligible": 15,
     "curatedNegativesExcluded": 18,
-    "passed": false,
-    "curatedLosses": [
-      {
-        "asin": "B000FQBPCQ",
-        "opportunityId": "b40f3e0a-ae02-4b81-aa12-0200d5c86095",
-        "split": "heldout",
-        "expected": "match",
-        "evidenceBasis": "exact pinned reviewed title pair with full stored sources",
-        "beforeVerdict": "unknown",
-        "afterVerdict": "match",
-        "beforeRecommendation": "Probable Match",
-        "afterRecommendation": "Probable Non-Match",
-        "wasVisible": true,
-        "afterEligible": false,
-        "accuracy": {
-          "before": {
-            "correct": 2,
-            "total": 4,
-            "checks": [
-              {
-                "side": "amazon",
-                "field": "coreGame",
-                "expected": "the legend of zelda twilight princess",
-                "actual": null,
-                "state": "unknown",
-                "correct": false
-              },
-              {
-                "side": "amazon",
-                "field": "installment",
-                "expected": null,
-                "actual": null,
-                "state": "unknown",
-                "correct": true
-              },
-              {
-                "side": "ebay",
-                "field": "coreGame",
-                "expected": "the legend of zelda twilight princess",
-                "actual": null,
-                "state": "unknown",
-                "correct": false
-              },
-              {
-                "side": "ebay",
-                "field": "installment",
-                "expected": null,
-                "actual": null,
-                "state": "unknown",
-                "correct": true
-              }
-            ]
-          },
-          "after": {
-            "correct": 4,
-            "total": 4,
-            "checks": [
-              {
-                "side": "amazon",
-                "field": "coreGame",
-                "expected": "the legend of zelda twilight princess",
-                "actual": "the legend of zelda twilight princess",
-                "state": "supported",
-                "correct": true
-              },
-              {
-                "side": "amazon",
-                "field": "installment",
-                "expected": null,
-                "actual": null,
-                "state": "unknown",
-                "correct": true
-              },
-              {
-                "side": "ebay",
-                "field": "coreGame",
-                "expected": "the legend of zelda twilight princess",
-                "actual": "the legend of zelda twilight princess",
-                "state": "supported",
-                "correct": true
-              },
-              {
-                "side": "ebay",
-                "field": "installment",
-                "expected": null,
-                "actual": null,
-                "state": "unknown",
-                "correct": true
-              }
-            ]
-          }
-        },
-        "reason": "Identity matched or unknown; unknown fields are not positive evidence."
-      },
-      {
-        "opportunityId": "76c40cca-b987-4aa1-a55e-ca1458c30e41",
-        "asin": "B004WL4LOY",
-        "amazonTitle": "White Knight Chronicles II",
-        "ebayItemId": "v1|377491662609|0",
-        "afterVerdict": "match",
-        "afterRecommendation": "Probable Non-Match",
-        "afterStatus": "rejected",
-        "afterEligible": false
-      },
-      {
-        "opportunityId": "cf461d09-70b6-4d0b-9321-f8f07f0f7b36",
-        "asin": "B081W4X9RW",
-        "amazonTitle": "Persona 5 Royal: Phantom Thieves [video game]",
-        "ebayItemId": "v1|188863460111|0",
-        "afterVerdict": "match",
-        "afterRecommendation": "Probable Non-Match",
-        "afterStatus": "rejected",
-        "afterEligible": false
-      },
-      {
-        "opportunityId": "1971d3bd-a54b-4943-9d4b-2dec6d951149",
-        "asin": "B0088MVPFQ",
-        "amazonTitle": "New Super Mario Bros. 2 [video game]",
-        "ebayItemId": "v1|298628092084|0",
-        "afterVerdict": "match",
-        "afterRecommendation": "Probable Non-Match",
-        "afterStatus": "rejected",
-        "afterEligible": false
-      }
-    ]
+    "correctionsApplied": 17,
+    "savedCompatibleExamples": 0,
+    "crystalHarbor": "Match; Probable Match; scorer open",
+    "genuinePlatformConflict": "Conflict; Blocked; rejected",
+    "legacyOutputsUnchanged": 1609
   },
   "tests": {
-    "pythonPassed": 167,
-    "newFocusedTests": 10,
-    "productionDefaultsUnchanged": 1609,
-    "crystalHarbor": "canonical Match; static Probable Match; scorer open",
-    "crossPlatformStaleWrongScopeSupersession": "passed",
-    "curatedAdmission": "FAILED: 11/15",
-    "newContainerTests": 0,
-    "newApiUiTests": 0,
+    "pythonPassedAtMetadataStage": 170,
+    "finalPackagedPythonPassed": 66,
+    "apiRpcCallsPassed": 257,
+    "apiUiIndicatorsPassed": 150,
+    "panelsRendered": 15,
+    "initialGuardChecksPassed": 31,
+    "expandedGuardRun": "failed on unchanged numeric state fingerprint; earlier error message incorrectly called this a declined-offer bypass",
+    "guardFingerprintProof": {
+      "serverHash": "c07d8fe15187522899a04e4d39daeeefb9f8a8db959e176020d9ee1b86cf2541",
+      "roundTripHash": "49d37e045cae947b43acf1f950ff90ca8f9c8602c2c24079260932e63496e52b",
+      "jsonbSemanticallyEqual": true
+    },
     "pyCompile": "passed",
-    "diffCheck": "passed",
-    "manifestValidation": "JSON, all artifact/source hashes, four loss rows and final report status verified"
+    "diffCheck": "passed after removing trailing blank line"
   },
-  "freshProductionManifest": null,
+  "freshProductionManifest": {
+    "project": "froeucjkcepuhgwisped",
+    "startedAt": "2026-09-14T05:00:24.116Z",
+    "finishedAt": "2026-09-14T05:01:22.820Z",
+    "buyList": 28,
+    "closestExcludedReturned": 50,
+    "closestExcludedTotal": 129,
+    "businessExcluded": 2,
+    "activeVelocityHolds": 33,
+    "recentRejectedBound": 500,
+    "distinctOpportunities": 529,
+    "displayedViewRows": 80,
+    "scopedActions": 2899,
+    "apiReadRequests": 127,
+    "apiReadBytes": 324117970,
+    "boundedHydrationRequests": 18,
+    "captureMode": "actual handler read-only API equivalent; multi-read, not atomic or authenticated UI",
+    "legacyArtifactKeyNote": "current.json open array is the 80 displayed view selections, not 80 open lifecycle rows",
+    "orderedViewIds": {
+      "buy_list": [
+        "d5728633-d999-475d-b277-1f2f2de52719",
+        "b40f3e0a-ae02-4b81-aa12-0200d5c86095",
+        "cf0252d2-ab03-484e-afd1-236c33de9fbf",
+        "76c40cca-b987-4aa1-a55e-ca1458c30e41",
+        "ee00cc66-6e4d-477f-acdf-420f71adabdd",
+        "06f74dc5-ca6a-4996-9555-39c610c800dd",
+        "7a085e94-a784-462a-8c93-710503d4c4c0",
+        "2620cd16-b78b-468e-a3ba-1486f52be8fc",
+        "2242e14b-764d-48bd-9435-64c763a3d796",
+        "b92ed2fb-7ab2-4e8a-a63f-110f79abe540",
+        "fa279ae1-33bc-4f23-abca-5c6495e3fd4e",
+        "da586db5-97c6-4f69-bf47-ef920ea8c1a5",
+        "354f6209-bb6d-414b-b1b4-552ef0f9704d",
+        "5e79ea85-39c1-4b28-bc16-ce60ded82df0",
+        "9482dcb8-d228-4c6c-b458-9366194826a4",
+        "cf461d09-70b6-4d0b-9321-f8f07f0f7b36",
+        "98e0bb7b-9ac3-44f8-9aa3-59110d583389",
+        "664f232d-1cac-47b2-8d8d-f61e27785a58",
+        "8e5e77f0-02b5-4083-b31e-038e47590744",
+        "064c5887-ef37-4233-9b26-7051fdde942c",
+        "b08c8dc1-bf28-4936-a8e3-3f55794a0c73",
+        "bb055445-2616-4bc6-9796-d9adc28dc555",
+        "d3c3c263-66b8-4686-af12-ff70d1781e4d",
+        "1971d3bd-a54b-4943-9d4b-2dec6d951149",
+        "2f9e3994-20c8-44db-b79c-76a4eae17326",
+        "d0ff928b-7b8f-4adf-b728-d5cb0b005ec2",
+        "e59a73cb-3623-4017-b155-ae09caaa1e62",
+        "f1d32a0b-6030-4ffe-8ff6-cef8e4fea0bd"
+      ],
+      "closest_excluded": [
+        "c4eacee7-2aef-4458-b6b0-7edbef3c3834",
+        "a837c2d7-8387-4497-bd04-901894d03066",
+        "e730c92d-ed5a-4da0-8f70-4681f4f05fed",
+        "2234fc99-94ee-476c-ad9d-ae2b6b8ba8fc",
+        "d73ebdc0-355e-4f7a-af3f-4341f828cbcc",
+        "428cc5db-e05c-4e57-864a-c6b2fa44a2f2",
+        "4c4a4fb8-f156-4f23-a01d-06686a58be42",
+        "188dc2d9-3485-47f9-92bd-dc6b0923caf8",
+        "0ff22c42-884d-478a-81c7-ba4a3fb3ea7f",
+        "f1f32dc4-f6bb-40f7-85db-017f857ec1c6",
+        "a21a50b1-d89d-4004-96ee-aed07fbce54d",
+        "5c4256e9-bddd-4daf-a78c-0a36542f66ab",
+        "2d81cd71-cef9-433d-a329-adffe89d4bfc",
+        "a9b1553c-79c9-45cb-8755-7c19a6dbbb00",
+        "4f4acc2e-169d-4259-b2c9-b9a3effc0406",
+        "51b71a82-2b8d-406d-a6b2-18d571bd89f1",
+        "31d3cfc4-be96-45a9-9fab-45435812f61e",
+        "78515f23-aaf3-4cf9-b0dd-22e93f224ae7",
+        "c55d1827-3f50-4182-a8f0-20a159e4b12a",
+        "03b8f400-511b-490a-93c0-5b4c8d0b62d4",
+        "8989ada3-912a-47d1-8b01-00cea14daad7",
+        "55d35b50-47bc-4c19-838a-125dace63d96",
+        "38c3e717-6ce4-47fe-a796-378d0d85da36",
+        "6c98e45c-8e73-4fd2-990a-0a94604c4ed3",
+        "7d10ff21-421f-482b-8d64-65fa9823889b",
+        "312c7f13-4405-4e3e-bde0-184a5e2f7cd8",
+        "081b27f6-c191-4b66-94f8-f2d571d50466",
+        "58b3f576-e2ef-49db-9e2d-ea2c55031ea6",
+        "fd87afef-aaba-4bf4-a2fd-efec74ffabb8",
+        "697ceb84-39e0-43ae-83fd-ad69aa9b7116",
+        "0b08549a-3cb3-457e-8d1b-fb9ecd7b7d30",
+        "106bb99f-3715-4398-8bb4-8752b66ff705",
+        "9396af66-c46c-430d-936d-0c9b0fbbace6",
+        "8669d286-6183-41ec-b352-f8f80cd3b489",
+        "9464f298-2b6e-45e0-a105-a755d153a12e",
+        "a5831c07-d34a-43d2-aa2a-94cabeffbaa0",
+        "8d56803f-3a91-4433-82d2-33d74a01c0b3",
+        "51327751-b0bc-4219-b732-e429453cef4f",
+        "eef3d5d2-7dc4-496b-8b15-052b81528ac0",
+        "46d0dd74-4799-409d-a24e-611ededd702a",
+        "282192d1-90bb-48b0-9282-fa4f66a4b20c",
+        "d75b4072-3f39-4fa3-8a96-e8615bbaa354",
+        "8a65eabc-375b-402e-9d8f-eefdd22923f4",
+        "9cee38ea-72c7-449a-98e0-707f09bc139d",
+        "0fe90760-6aec-4889-a1f3-008223e44cbc",
+        "c4a17c91-0f00-43a2-8d93-e2e4f0a580ea",
+        "0bdf32a3-37d9-4899-bc39-da1067b81441",
+        "029ba288-d3f4-4d3a-9a5a-4f909b4e9111",
+        "24f6d535-4f2d-4f3c-9667-dff5bf7ad044",
+        "74d2eedd-8044-44db-94ce-da7bb97a0096"
+      ],
+      "business_excluded": [
+        "18a42399-3b36-4bda-a962-5c25f22c5482",
+        "56a4f88b-3672-41e3-8686-7be11d6b14d4"
+      ]
+    },
+    "sourceHash": "35f57de1ea7466438bba6edf1452bbb0afce0e47f14c79f5f924f2abb28841bd",
+    "productionGuardStateRecapture": false
+  },
   "atomicGuard": {
-    "implemented": false,
-    "tested": false
+    "implemented": true,
+    "productionApplied": false,
+    "migration": "supabase/migrations/20260914045624_mbop_guarded_sourcing_decision_refresh.sql",
+    "passed": false,
+    "unchangedNumericStateSemanticallyEqual": true,
+    "numericStateFingerprintEqual": false,
+    "failedCaseWriteLogs": 0,
+    "guardTestMessageCorrection": "No declined-offer bypass was observed; false stale skip was misreported by the initial test assertion."
+  },
+  "migrationLedger": {
+    "matchingAppliedMigrations": 18,
+    "pendingLocalMigrations": 1,
+    "remoteMutations": 0
+  },
+  "dryRun": {
+    "fullRoutingCompleted": false,
+    "reason": "Stopped when expanded guard acceptance failed; no deployable write plan"
   },
   "deployment": null,
   "refresh": {
     "started": false,
-    "evaluated": 0,
+    "evaluatedForWrite": 0,
     "written": 0,
     "staleSkips": 0,
     "protectedSkips": 0
   },
   "productionActions": {
-    "reads": 0,
+    "reads": "fresh bounded API/source capture plus migration-ledger read",
     "writes": 0,
     "providerSearches": 0,
     "marketplaceWrites": 0,
@@ -190,26 +349,64 @@
     "protectedRowsTouched": 0,
     "historyRewrites": 0
   },
+  "localImage": {
+    "tag": "mbop-scheduler:reference-metadata-final",
+    "digest": "sha256:905302756651d8ff2a6e3a88e378c737b7bb16935a135827908d4f3d85115403",
+    "published": false,
+    "deployed": false,
+    "contains": "tested metadata Python candidate; guard SQL validated separately in disposable DB"
+  },
   "lastRecordedRuntimeNotFreshlyVerified": {
     "web": 151,
     "scheduler": 92
   },
-  "disposableContainer": "mbop-phase2-review-test: exited",
+  "disposableContainer": "mbop-phase2-review-test stopped",
   "sourceHashes": {
-    "integrations\\sourcing_match_rules.py": "00ec1694ff5f103def8061f245f1d888875733c03c5c4c35f4d94a59325cd881",
-    "integrations\\matching_feedback.py": "d747bfa55a3f5f4c240e1a7469c325458fdb5b8987f836b2ea9b022a0259ed0a",
-    "integrations\\video_game_identity.py": "a7f6629f16b2db871d45a55cdd200687d4ae0c76d8fdd3cb1120e153837a0661",
-    "tests\\test_sourcing_effective_identity.py": "bf9ff049021892c1f49ee3f2c2f17a0bd51e736aff7cd3c38e1d8c79eaeab771"
+    "integrations/system_detection.py": "29e2bc7da5821a68e446135691ddda0b81660d6f4b0912d8f4dce8d0535b149b",
+    "integrations/video_game_identity.py": "5073eae9f22675a6ac53d72273f7e5064c06dceea752899b144b6cebe22a8916",
+    "integrations/sourcing_match_rules.py": "7df6be0997f039d1df8e5e05232dbbc266eda4c2ca8e8dcb82f7627f116cdc1e",
+    "integrations/matching_feedback.py": "55a829078de35e596e3fa59c1a82dacbe818f274ca2072d8c81c068413683986",
+    "tests/test_sourcing_effective_identity.py": "d297044e0f7e5578263747eb048c2d0652c4e52315fe4886ce9bdc2778ebd10a",
+    "tests/fixtures/sourcing_reference_metadata_regressions_2026-09-13.json": "53ea66ccce32699f1f7af7dd1a34a4f1bde3d809f5654ca8c7c5105d3801d81e",
+    "tests/verify_sourcing_decision_guard.py": "fb3eeec310b2bac4f611339f12c5e6f347dd18e7e0c652053a7b1942279d1e2d",
+    "supabase/migrations/20260914045624_mbop_guarded_sourcing_decision_refresh.sql": "ea815d0e8838e77c74f37e3219cb960018a7dc5631d7330d980fba56099ba94d"
   },
   "artifactHashes": {
-    "tmp\\sourcing-effective-identity\\crystal-harbor-before-after.json": "7d107bc64f5408b4494413ba8c79544dc8646ea201b04e22aa0325f94ca27a66",
-    "tmp\\sourcing-effective-identity\\defaults.json": "30fc9498b849f2cc8866b58b37f568c1bab357520511f754ea4ce7e2e0fd9e05",
-    "tmp\\sourcing-effective-identity\\python-tests.log": "6946aed2cc72f73c4a5d563ad5aac0d5645104e4a75037a06696d00b1b82e4a6",
-    "tmp\\sourcing-effective-identity\\regression-proof.json": "8bc44a609b1533f2c696dad408948a245c98e5b5e0741ab427fbd3ff89020ddb",
-    "tmp\\sourcing-effective-identity\\strict-replay.json": "1159877a0126f2618f50b0c81a25c4954ebb1b4b7315634f039d79ea1b22e400",
-    "tmp\\sourcing-effective-identity\\zelda-failure.json": "f9add946acc32355adefa1fc38b796115740edd76b21cf8bcd3a70f86d486606",
-    "tmp\\sourcing-effective-identity\\curated-replay\\replay.json": "c503a12e2e2ee3b3530ac1d729cb857da46a0bb544f6473b4d1b95167fda53f4",
-    "tmp\\sourcing-effective-identity\\curated-replay\\safety-summary.json": "13deb2e67316b4b2c74a7258cbe46ec24042aeb44edce41e44330044af07c96d"
+    "tmp\\sourcing-reference-metadata\\api-tests.log": "2492e0d9c130c49bc713fedc4e530de9ef5c2cd0c2148dbcc6546701973f0154",
+    "tmp\\sourcing-reference-metadata\\before-traces.json": "e55c3124eaaf251e883fe4493f2892bb2de2283af5e5b39b3b7d9e4f5d36f3fe",
+    "tmp\\sourcing-reference-metadata\\build-final.log": "65c41ca82a24d4bd8814eb65969b0fe1f39fd5d3fc51f52b445ba1a350e0b37e",
+    "tmp\\sourcing-reference-metadata\\build.log": "03744e6fd2542708d0829c03450c6b10adc90fff256bc784924cbd09e8ea5e8e",
+    "tmp\\sourcing-reference-metadata\\container-final.log": "9f934e52f095d3e9e280ebb4e01ae2dfb0df29fd614632439f5bd3d821b01b07",
+    "tmp\\sourcing-reference-metadata\\container-tests.log": "01d851c6515964cf0808a03b2b93b80170501fa142827e752468153a7a93f29d",
+    "tmp\\sourcing-reference-metadata\\decline-guard-failure-state.json": "b86ef710d6257c89f16db6dcb13a7ceb1b374958f200ea4544d31f84b0b8d224",
+    "tmp\\sourcing-reference-metadata\\defaults-final.json": "30fc9498b849f2cc8866b58b37f568c1bab357520511f754ea4ce7e2e0fd9e05",
+    "tmp\\sourcing-reference-metadata\\defaults.json": "cd08e304693db0063445bf72760aa5ad5bf9fb748c3b3b231efb1a03709e6b23",
+    "tmp\\sourcing-reference-metadata\\exact-inputs.json": "57b8cee0c2e2e5e828c06e7123e243697064cf48fc9ce1931517e5127eb0fef1",
+    "tmp\\sourcing-reference-metadata\\fresh-capture.log": "1318126051e506ebe6f1c6931240f047fb04af377fb6a9014d47add4fa3c8151",
+    "tmp\\sourcing-reference-metadata\\fresh-memory-risk.json": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "tmp\\sourcing-reference-metadata\\gate-proof.json": "dbf99913bb7ae18b43add2d4c23da21e983fbefe1a1fe1722c196f4e9a13fa5b",
+    "tmp\\sourcing-reference-metadata\\guard-final-tests.log": "c325f8273ce219af8080fcf13b23e3f397a86bd5156871b068a8e446bc943c49",
+    "tmp\\sourcing-reference-metadata\\guard-fingerprint-proof.json": "36b478a021947ea64c1790ab2583ae878258fbbebaf9e78072806c216bfa2557",
+    "tmp\\sourcing-reference-metadata\\guard-tests.json": "aa3289be78f47241c9961a87e4cc74f9c17c7f7375f80b18266bb288f8eb7c62",
+    "tmp\\sourcing-reference-metadata\\guard-tests.log": "ad5a25bf505e2c3836d820650908ebfd8a0589fbd856563458a7f0e8488193a2",
+    "tmp\\sourcing-reference-metadata\\hydration.log": "b2d80a7acc3acf1235d0f82b54ea56c38e81e68afcceeb02b672a47a2cac6ff7",
+    "tmp\\sourcing-reference-metadata\\indicator-checks.json": "40082267c3895a371d3ef9b9802b557533cb787675decbc3881c2c5764a587cd",
+    "tmp\\sourcing-reference-metadata\\migration-ledger.log": "edde9053860cdf209d76a45ba5d91aefbf4e4991f2892afa5fdc56877c4a0170",
+    "tmp\\sourcing-reference-metadata\\python-tests.log": "bb055f8196bcf71fca75b8400d714404bb8f58b29a24667508c010486867e9f1",
+    "tmp\\sourcing-reference-metadata\\reload-local-guard.sql": "ffc7bc516ebe296bad06c0d663e368eb7df572cf8e0485927fd84131060977d1",
+    "tmp\\sourcing-reference-metadata\\strict-replay.json": "6936e0c551a0793bcd872b2449c4e5f340a43fcda7f97cb1a6abb105ba68d76c",
+    "tmp\\sourcing-reference-metadata\\verify-indicators.mjs": "76a2550c87d25b19287fc1d8481ee50fdd5bf81bd9d021bf7eb9131cbcd0c630",
+    "tmp\\sourcing-reference-metadata\\curated-final\\replay.json": "a1df8b8f528f90f30fcdccf61779799c64ef1955099dac7bd480f55a07add149",
+    "tmp\\sourcing-reference-metadata\\curated-final\\safety-summary.json": "d67510fb1f5158f2b99c2d6899b7afe1ed6e0190e69ac857483754ad3dc74556",
+    "tmp\\sourcing-reference-metadata\\curated-replay\\replay.json": "51ad8e5ed6da121827341df7bf1ef687fbbefa43d99b947c48ad2fd6bd9caac6",
+    "tmp\\sourcing-reference-metadata\\curated-replay\\safety-summary.json": "d67510fb1f5158f2b99c2d6899b7afe1ed6e0190e69ac857483754ad3dc74556"
   },
-  "candidateCommit": "98d2166bea0d4044e10c5171664bb1c1a21853b3"
+  "freshArtifactHashes": {
+    "tmp\\sourcing-phase3-final-fresh\\current-evidence.json": "35f57de1ea7466438bba6edf1452bbb0afce0e47f14c79f5f924f2abb28841bd",
+    "tmp\\sourcing-phase3-final-fresh\\current-manifest.json": "ccf65820a481fc64df6945c705806631d77c14bd314a867b1c9fb4975e611d72",
+    "tmp\\sourcing-phase3-final-fresh\\current.json": "3270db4d608eea3dbd258a39a1b95e75b382f49781eef4c3206503415ce9c071",
+    "tmp\\sourcing-phase3-final-fresh\\responses.json": "008595cb215a524a924a378230ae6d33d76b651538f07d1903489a08e19276bc",
+    "tmp\\sourcing-phase3-final-fresh\\row-manifest.json": "fc10cd68d233544b04baaf8cc6bddd8622bf4efc3581aaa4baa33d6025812145",
+    "tmp\\sourcing-phase3-final-fresh\\continuation-state-index.json": "5e6c46c862f067cb66a7c6d9eca54a4417942e45af43c0b7b1de5c53c47c3b70"
+  }
 }
