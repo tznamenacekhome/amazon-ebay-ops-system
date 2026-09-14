@@ -3,7 +3,7 @@
 
 ## Adjudication refinements - 2026-09-13
 
-Listing links and separate Platform Match/Compatible/Wrong/Unknown feedback are implemented; rollout is pending. See [semantics, storage, sample policy and verification](docs/sourcing_adjudication_links_platform_2026-09-13.md). The frozen queue keeps all 16 identities, with the specified mixed-lot row informational-only and excluded from the 15-row progress/Tier A denominator. Compatibility is not a pair verdict or a correction. No migration, Python matcher change, sourcing routing effect, provider search or refresh. Earlier 16-review denominator and web146 notes below describe the prior release.
+Listing links and separate Platform Match/Compatible/Wrong/Unknown feedback are deployed on web148 (`833837d8c94d`); rollout is complete and the exact ALB target is healthy. Scheduler92 and all 20 schedules remain unchanged. See [semantics, storage, sample policy and verification](docs/sourcing_adjudication_links_platform_2026-09-13.md). The frozen queue keeps all 16 identities, with the specified mixed-lot row informational-only and excluded from the 15-row progress/Tier A denominator. Compatibility is not a pair verdict or a correction. No migration, Python matcher change, sourcing routing effect, provider search or refresh. Earlier 16-review denominator and web146 notes below describe the prior release.
 
 
 ## Repository closeout - 2026-09-13

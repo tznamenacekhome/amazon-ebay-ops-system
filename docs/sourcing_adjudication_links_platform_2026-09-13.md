@@ -2,7 +2,7 @@
 
 ## Scope and checkpoint
 
-Implementation is complete; isolated web rollout is pending. Baseline is web146 / scheduler92, source checkpoint `672b48f`. The worktree was clean at task start. Python runtime, matching rules, frozen queue snapshots, SQL schema/RPC definitions, production sourcing membership and business-release rules are unchanged. No provider search, marketplace write, sourcing refresh or production synthetic review is authorized or performed for this task.
+**Deployed: web148 from `833837d8c94d`, rollout COMPLETED, exact ALB target healthy.** Baseline is web146 / scheduler92, source checkpoint `672b48f`. The worktree was clean at task start. Python runtime, matching rules, frozen queue snapshots, SQL schema/RPC definitions, production sourcing membership and business-release rules are unchanged. No provider search, marketplace write, sourcing refresh or production synthetic review is authorized or performed for this task.
 
 ## Outbound links
 
@@ -48,12 +48,21 @@ It has links and read-only evidence, no review action buttons, and server-side s
 - 55 Python tests pass: 24 Phase 3, 10 feedback and 21 identity engine. No Python source changes.
 - Focused lint, TypeScript, Next production build and Docker/web build pass. The built image preserves frozen **37 Buy List / 50 Closest Excluded / 2 Business Excluded** rows, full routing fields, summaries and order, using 110 frozen reads with networking disabled.
 - Actual component screenshots (`tmp/adjudication-refinements/editor.png`, `compatible.png`) show exact links, distinct Xbox values and selected Compatible. They are offline evidence, not authenticated production verification.
-- AWS baseline capture verifies web146 healthy and all 20 schedules targeting the prior runtime definitions. Final release/image/API/schedule evidence will be appended after rollout.
+- Final AWS comparison verifies web148 healthy, scheduler92 unchanged and all 20 schedules semantically identical to the web146 baseline. The exact release image passes the full frozen routing test and read-only production queue/export verification (32 RPC reads): 16 stored rows, 15 eligible, 0 reviewed, 0 Tier A, 1 informational exclusion.
 
-No production synthetic review will be used to test persistence: that proof comes from the disposable transaction tests. Authenticated production UI verification remains a documented gap unless an enabled authenticated browser becomes available. A Cognito redirect is not feature verification.
+No production synthetic review was used to test persistence: that proof comes from the disposable transaction tests. Browser inventory returned no enabled apps or browsers. Authenticated production UI verification remains a gap; offline rendered UI and exact-release read-only API-equivalent evidence are the documented fallback. A Cognito redirect is not feature verification.
 
 ## Operator instructions for the Xbox example
 
 Open Sourcing > Identity Adjudication and locate `B07FF3F7F9 / v1|267725836968|0`. Open both listing links and verify the exact release. Under Platform choose Compatible when the evidence supports cross-generation compatibility; optionally record Amazon `Xbox One` and eBay `Xbox One, Xbox Series X` in Supported platforms. Leave the canonical values alone unless their parse is actually wrong; select Wrong to correct one or both sides if necessary.
 
 Then independently judge the entire product and choose Confirm Match / Incorrect Match / Not Sure. The frozen titles currently show Subnautica versus Subnautica: Below Zero, so platform compatibility alone does not resolve the product question. Do not automatically Confirm Match from the compatibility selection. Review 15 eligible rows; the mixed-lot informational row requires no decision. Phase 3 remains incomplete and shadow-only.
+
+
+## Final release evidence
+
+Implementation commit: `3ca7bad0ec46`; final UI/release commit: `833837d8c94d`. Both are pushed. A queue-level visual check found long Browse IDs spilling into the next cell and insufficient standalone background contrast; the follow-up makes queue links stacked, wraps IDs and supplies an explicit white page background. The corrected queue screenshot was inspected before the final release. Intermediate web147 was superseded by final web148; both deployment logs are retained.
+
+Release used the documented web-only deployment script from a clean detached checkout, followed by the AWS status script and final task/ALB/schedule readback. Healthy target: 172.31.29.223:3103. Image: `297464765814.dkr.ecr.us-west-2.amazonaws.com/mbop-web@sha256:6b14297661359d537043b4b3fd171513eb96140250e6c0bea0af3b534b3cc1bc`. CLOUD_DEPLOYMENT=true and LOCAL_SYNC_ENABLED=false remain set. Python integrations, scheduler runtime, migrations, frozen queue identities and sourcing opportunity handlers are unchanged from task baseline.
+
+Exact release hashes, task/target evidence, before/after AWS artifacts, full read-only queue/export result and test summary are recorded in `sourcing_adjudication_links_platform_deployment_2026-09-13.json`. No current opportunity or historical record was rewritten by this task. Stop after these refinements; the operator's 15-row review and a later Phase 3 safety gate remain outstanding.
