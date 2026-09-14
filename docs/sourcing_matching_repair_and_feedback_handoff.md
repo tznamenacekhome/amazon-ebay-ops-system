@@ -1,8 +1,8 @@
 # Sourcing matching repair handoff
 
-## Identity adjudication workflow checkpoint ? 2026-09-13
+## Identity adjudication workflow checkpoint - 2026-09-13
 
-The exact 16-row workflow is implemented and offline-tested; see [workflow, evidence and deployment checkpoint](sourcing_identity_adjudication_workflow_2026-09-13.md). `/sourcing/adjudication` captures explicit v3 verdicts and scoped corrections into existing evidence tables. It does not route sourcing rows, release holds, or certify historical positives automatically. Concurrency, stale state, retries and transaction rollback pass; web Docker replay preserves 37/50/2 exact routing rows and order. AWS SSO was renewed and the current baseline verified: web145/scheduler92, 20 schedules, healthy running web service. Deployment is pending; the remote migration remains unapplied. Authenticated UI remains unverified. Phase 3 remains shadow-only, with no sourcing refresh/provider searches. Next: finish isolated web rollout, then operator adjudication; do not resume matcher repair automatically.
+The exact 16-row workflow is implemented and offline-tested; see [workflow, evidence and deployment checkpoint](sourcing_identity_adjudication_workflow_2026-09-13.md). `/sourcing/adjudication` captures explicit v3 verdicts and scoped corrections into existing evidence tables. It does not route sourcing rows, release holds, or certify historical positives automatically. Concurrency, stale state, retries and transaction rollback pass; web Docker replay preserves 37/50/2 exact routing rows and order. Deployed web146 from a2552110df37; rollout COMPLETED and exact ALB target healthy. Scheduler92 and all 20 schedules are semantically unchanged. The new migration is applied and all 18 shared ledger entries match. Production read-only queue verification loads 16 available rows, 0 reviewed, 0 Tier A. Authenticated UI remains unverified. Phase 3 remains shadow-only, with no sourcing refresh/provider searches. Next: operator reviews the 16 rows through Sourcing > Identity Adjudication. Stop before further matcher repair; Phase 3 is not complete.
 
 
 ## Incorrect Match UI work order (2026-09-13)
