@@ -8,11 +8,11 @@ import type { loadQueue } from "../../api/sourcing/adjudication/service";
 
 type Row=Awaited<ReturnType<typeof loadQueue>>[number];
 const labels:Record<string,string>={correct:"Confirmed Match",incorrect:"Incorrect Match",unsure:"Not Sure"};
-export function ListingLinks({asin,ebayItemId}:{asin?:string|null;ebayItemId?:string|null}) {
+export function ListingLinks({asin,ebayItemId,compact=false}:{asin?:string|null;ebayItemId?:string|null;compact?:boolean}) {
   const amazon=amazonListingUrl(asin),ebay=ebayListingUrl(ebayItemId);
-  return <div className="my-2 grid gap-2 text-sm md:grid-cols-2">
-    <div><strong>Amazon</strong><p>ASIN: {asin??"Unknown"}</p>{amazon?<a className="text-blue-700 underline" href={amazon} target="_blank" rel="noopener noreferrer">Open Amazon Listing {"\u2197"}</a>:<span>Amazon link unavailable</span>}</div>
-    <div><strong>eBay</strong><p>Item: {ebayItemId??"Unknown"}</p>{ebay?<a className="text-blue-700 underline" href={ebay} target="_blank" rel="noopener noreferrer">Open eBay Listing {"\u2197"}</a>:<span>eBay link unavailable</span>}</div>
+  return <div className={`my-2 text-sm ${compact?"space-y-2":"grid gap-2 md:grid-cols-2"}`}>
+    <div><strong>Amazon</strong><p className="break-all">ASIN: {asin??"Unknown"}</p>{amazon?<a className="text-blue-700 underline" href={amazon} target="_blank" rel="noopener noreferrer">Open Amazon Listing {"\u2197"}</a>:<span>Amazon link unavailable</span>}</div>
+    <div><strong>eBay</strong><p className="break-all">Item: {ebayItemId??"Unknown"}</p>{ebay?<a className="text-blue-700 underline" href={ebay} target="_blank" rel="noopener noreferrer">Open eBay Listing {"\u2197"}</a>:<span>eBay link unavailable</span>}</div>
   </div>;
 }
 export function AdjudicationEditor({row,onClose,onSaved}:{row:Row;onClose:()=>void;onSaved:()=>Promise<void>}) {
@@ -85,12 +85,12 @@ export default function AdjudicationPage() {
   const [rows,setRows]=useState<Row[]>([]),[error,setError]=useState<string|null>(null),[selected,setSelected]=useState<Row|null>(null);
   async function reload(){const response=await fetch("/api/sourcing/adjudication",{cache:"no-store"});const data=await response.json();if(!response.ok)throw new Error(data.error??"Queue unavailable");setRows(data.rows);setError(null);}
   useEffect(()=>{let active=true;fetch("/api/sourcing/adjudication",{cache:"no-store"}).then(async response=>{const data=await response.json();if(!response.ok)throw new Error(data.error??"Queue unavailable");if(active)setRows(data.rows);}).catch(e=>{if(active)setError(e.message);});return()=>{active=false;};},[]);
-  return <main className="p-6 text-slate-900"><Link href="/sourcing" className="text-blue-700 underline">Back to Sourcing</Link><h1 className="my-4 text-2xl font-semibold">Identity Adjudication</h1>
+  return <main className="bg-white p-6 text-slate-900"><Link href="/sourcing" className="text-blue-700 underline">Back to Sourcing</Link><h1 className="my-4 text-2xl font-semibold">Identity Adjudication</h1>
     <p>{rows.filter(r=>r.adjudicationEligible&&r.latestReview.pairVerdict).length} of {rows.filter(r=>r.adjudicationEligible).length} reviewed (1 informational row excluded) · Evidence only · Phase 3 remains shadow-only</p>
     <div className="my-3 flex gap-4"><button onClick={()=>reload().catch(e=>setError(e.message))}>Reload queue</button><a href="/api/sourcing/adjudication?report=1" target="_blank" rel="noopener noreferrer">Export Tier A / negatives / unresolved</a></div>
     {error?<p role="alert">{error}. The frozen queue has not been replaced; reload when evidence storage is available.</p>:null}
     <table className="w-full text-sm"><thead><tr>{["ASIN / item","Amazon","eBay","Shadow","Why selected","Review"].map(x=><th className="border p-2 text-left" key={x}>{x}</th>)}</tr></thead><tbody>{rows.map(row=><tr key={row.queueId}>
-      <td className="border p-2"><ListingLinks asin={row.asin} ebayItemId={row.ebayItemId}/></td><td className="border p-2">{row.reference.amazon_title}</td><td className="border p-2">{row.candidate.ebay_title}</td><td className="border p-2">{row.diagnosticComparison.productIdentityVerdict}</td><td className="max-w-lg border p-2">{row.adjudicationExclusionReason??row.auditReason}</td><td className="border p-2"><button className="text-blue-700 underline" disabled={!row.available} onClick={()=>setSelected(row)}>{!row.available ? "Unavailable" : !row.adjudicationEligible ? "Excluded from adjudication / informational only" : labels[row.latestReview.pairVerdict??""]??"Unreviewed"}</button>{row.unavailableReason?<p>{row.unavailableReason}</p>:null}{row.latestReview.requiresReReview?<p>Newer evidence: review again</p>:null}</td>
+      <td className="border p-2"><ListingLinks compact asin={row.asin} ebayItemId={row.ebayItemId}/></td><td className="border p-2">{row.reference.amazon_title}</td><td className="border p-2">{row.candidate.ebay_title}</td><td className="border p-2">{row.diagnosticComparison.productIdentityVerdict}</td><td className="max-w-lg border p-2">{row.adjudicationExclusionReason??row.auditReason}</td><td className="border p-2"><button className="text-blue-700 underline" disabled={!row.available} onClick={()=>setSelected(row)}>{!row.available ? "Unavailable" : !row.adjudicationEligible ? "Excluded from adjudication / informational only" : labels[row.latestReview.pairVerdict??""]??"Unreviewed"}</button>{row.unavailableReason?<p>{row.unavailableReason}</p>:null}{row.latestReview.requiresReReview?<p>Newer evidence: review again</p>:null}</td>
     </tr>)}</tbody></table>{selected?<AdjudicationEditor key={selected.queueId} row={selected} onClose={()=>setSelected(null)} onSaved={reload}/>:null}
   </main>;
 }
