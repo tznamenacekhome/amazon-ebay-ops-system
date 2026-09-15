@@ -2,6 +2,8 @@
 
 ## Findings
 
+**Post-assessment update:** The operator subsequently authorized expansion of the shared MBOP/College Planner disk from 8 GB to **32 GB**, approximately **$3/month extra**. At 18:55:45 UTC, filesystem expansion was verified with **24.58 GiB free**; the disk shortfall is resolved. Swap remained below its guard threshold at **22.05% free**. No cleanup or sourcing rerun was performed. See [verified resize record](supabase_capacity.md). All inventory sizes and findings below describe the original pre-expansion assessment.
+
 The MBOP/College Planner database occupies **6.356 GiB**. Its database filesystem has **0.959 GiB free of 7.839 GiB (12.24%)**, below the sourcing guard's 15% minimum. About **222 MiB more free space** would reach that threshold at the observed filesystem size; this would be only a temporary margin. Latest swap headroom is also low, **20.6% free versus the required 25%**. A tiny database read succeeds. No cleanup or resize was performed.
 
 The strongest directly verified cleanup candidate is one duplicate FBA index: **58.55 MiB**. Retired MBOP finance tables total **4.55 MiB** and require retention approval. Together these are insufficient to clear the disk shortfall.

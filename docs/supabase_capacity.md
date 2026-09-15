@@ -1,6 +1,14 @@
 # Supabase Capacity Guardrails
 
-Last updated: 2026-07-14
+Last updated: 2026-09-15
+
+## Current provisioned disk - September 15, 2026
+
+At the operator's request, the shared MBOP/College Planner project `amazon-ebay-ops` (`froeucjkcepuhgwisped`) was expanded from **8 GB to 32 GB**. The Management API accepted the disk-only update with HTTP 201 at 18:53:32 UTC and subsequently confirmed 32 GB provisioned. Storage remains gp3 with 3,000 IOPS and 125 MiB/s throughput; compute is unchanged.
+
+At 18:55:45 UTC, live filesystem metrics confirmed **33,780,875,264 bytes (31.46 GiB)** total and **26,392,883,200 bytes (24.58 GiB)** available. PostgreSQL reports `pg_up=1`; a tiny database read after the resize request succeeded. This resolves the disk-headroom shortfall. Swap free was **236,785,664 of 1,073,737,728 bytes (22.05%)**, still below the sourcing guard's 25% requirement: `low_swap_headroom`. No sourcing rerun, schedule change, guard change, cleanup, migration, or application deployment accompanied this resize. ZFI's separate project was unchanged.
+
+At the published rate of $0.125 per provisioned GB-month above the included 8 GB, 32 GB adds approximately **$3/month** at a full month's allocation, before taxes or credits. The included allowance below remains 8 GB. See [Supabase disk pricing](https://supabase.com/docs/guides/platform/manage-your-usage/disk-size) and the [pre-expansion storage inventory](database_storage_report_2026-09-15.md). Local operation evidence is in `tmp/ops-20260915/disk-resize.json` and `disk-resize-verified.json`.
 
 MBOP uses Supabase as the operational source of truth. Treat Supabase capacity as an operational dependency before adding broad syncs, large backfills, snapshot tables, or dashboard queries that scan large tables.
 
@@ -45,7 +53,7 @@ Warn the operator before running or adding work if any of these are true:
 - A task will run Amazon FBA inventory, listing status, inventory planning,
   reconciliation, Keepa, Informed, and other large snapshot/history writers
   back-to-back.
-- Database size is approaching 6 GB, because the included project disk size is 8 GB.
+- Available disk approaches the sourcing guard minimum (the greater of 1 GiB or 15% of the filesystem); current provisioned capacity is 32 GB, with only 8 GB included in the plan.
 - A new feature adds unbounded raw payload/history storage.
 
 If Disk IO Budget is already exhausted or the database is refusing connections, stop scheduled syncs and do not rerun full orchestration until Supabase responds to a tiny read.
