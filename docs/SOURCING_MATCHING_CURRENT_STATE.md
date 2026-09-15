@@ -2,7 +2,7 @@
 
 ## Web performance
 
-The sourcing tabs on verified web154 (source `060592b35d5d`) use committed-change cache invalidation, Buy List first/background tab preloading, compact SQL list projections, and on-demand review evidence. API totals remain authoritative. See [run-aware cache validation](sourcing_run_cache_2026-09-14.md); this supersedes the initial [web152 optimization](sourcing_tab_performance_2026-09-14.md). Matching and routing rules are unchanged.
+The sourcing tabs on verified web155 (source `8506bd4c48dc`) use committed-change cache invalidation, Buy List first/background tab preloading, compact SQL list projections, and on-demand review evidence. API totals remain authoritative. September 15 adds [exclusion reason filters and focus-cache preservation](purchase_metrics_sourcing_fixes_2026-09-15.md). See [run-aware cache validation](sourcing_run_cache_2026-09-14.md); this supersedes the initial [web152 optimization](sourcing_tab_performance_2026-09-14.md). Matching and routing rules are unchanged.
 
 ## Workspace
 

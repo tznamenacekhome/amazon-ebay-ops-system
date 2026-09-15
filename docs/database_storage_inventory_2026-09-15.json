@@ -1,0 +1,2303 @@
+{
+  "method": "Read-only PostgreSQL catalog allocation; no exact row counts or guaranteed cleanup savings",
+  "projects": [
+    {
+      "name": "amazon-ebay-ops",
+      "id": "froeucjkcepuhgwisped",
+      "capturedAt": "2026-09-15T17:54:14.042244+00:00",
+      "databases": [
+        {
+          "name": "template1",
+          "bytes": 7594511,
+          "template": true,
+          "allow_connections": true
+        },
+        {
+          "name": "template0",
+          "bytes": 7520783,
+          "template": true,
+          "allow_connections": false
+        },
+        {
+          "name": "postgres",
+          "bytes": 6825102483,
+          "template": false,
+          "allow_connections": true
+        }
+      ],
+      "tables": [
+        {
+          "schema": "public",
+          "name": "amazon_fba_inventory_snapshots",
+          "totalBytes": 1879621632,
+          "dataAndToastBytes": 1702379520,
+          "indexBytes": 177242112,
+          "purpose": "Time-stamped Amazon FBA quantities, inventory states and original API payloads."
+        },
+        {
+          "schema": "public",
+          "name": "sourcing_opportunities",
+          "totalBytes": 1307541504,
+          "dataAndToastBytes": 1295147008,
+          "indexBytes": 12394496,
+          "purpose": "Scored eBay/Amazon pairs, profitability, routing state and full matching diagnostics."
+        },
+        {
+          "schema": "public",
+          "name": "keepa_product_snapshots",
+          "totalBytes": 1138475008,
+          "dataAndToastBytes": 1127849984,
+          "indexBytes": 10625024,
+          "purpose": "Point-in-time read-only Keepa product snapshots for catalog intelligence, price history, sales-rank history, and sales-frequency signals."
+        },
+        {
+          "schema": "public",
+          "name": "sourcing_listing_snapshots",
+          "totalBytes": 420978688,
+          "dataAndToastBytes": 405381120,
+          "indexBytes": 15597568,
+          "purpose": "Point-in-time evidence snapshots for sourced eBay listings that became MBOP opportunities or received operator/system actions."
+        },
+        {
+          "schema": "public",
+          "name": "sourcing_ebay_candidates",
+          "totalBytes": 237436928,
+          "dataAndToastBytes": 232357888,
+          "indexBytes": 5079040,
+          "purpose": "Discovered eBay listings, prices, availability, shipping and original listing payload."
+        },
+        {
+          "schema": "public",
+          "name": "sourcing_coverage_cycle_items",
+          "totalBytes": 222814208,
+          "dataAndToastBytes": 181968896,
+          "indexBytes": 40845312,
+          "purpose": "Durable per-ASIN sourcing queue and progress state for the unified daily coverage cycle."
+        },
+        {
+          "schema": "public",
+          "name": "amazon_listing_snapshots",
+          "totalBytes": 220602368,
+          "dataAndToastBytes": 195837952,
+          "indexBytes": 24764416,
+          "purpose": "Point-in-time read-only Amazon Listings Items snapshots for listing status, issues, and fulfillment availability."
+        },
+        {
+          "schema": "public",
+          "name": "informed_listing_snapshots",
+          "totalBytes": 213524480,
+          "dataAndToastBytes": 183197696,
+          "indexBytes": 30326784,
+          "purpose": "Point-in-time read-only Informed Repricer listing/pricing report rows used by MBOP repricing advisor."
+        },
+        {
+          "schema": "public",
+          "name": "inventory_reconciliation_event_items",
+          "totalBytes": 183074816,
+          "dataAndToastBytes": 169279488,
+          "indexBytes": 13795328,
+          "purpose": "Item-level reconciliation findings. Used to answer what MBOP believes is owned, what Amazon/eBay believe exists, what is in transition, and what needs operator review."
+        },
+        {
+          "schema": "public",
+          "name": "amazon_inventory_planning_snapshots",
+          "totalBytes": 154492928,
+          "dataAndToastBytes": 141590528,
+          "indexBytes": 12902400,
+          "purpose": "Point-in-time read-only Amazon FBA Inventory Planning report rows. Used for Amazon-native aged-inventory buckets in the repricing advisor."
+        },
+        {
+          "schema": "public",
+          "name": "sourcing_seed_asins",
+          "totalBytes": 132677632,
+          "dataAndToastBytes": 120635392,
+          "indexBytes": 12042240,
+          "purpose": "Run-specific Amazon product seeds, demand/inventory context and queue provenance."
+        },
+        {
+          "schema": "public",
+          "name": "inventory_positions",
+          "totalBytes": 126468096,
+          "dataAndToastBytes": 102096896,
+          "indexBytes": 24371200,
+          "purpose": "Derived current inventory positions for MBOP. Workflow tables remain authoritative; this layer normalizes location, marketplace intent, listing channel, operational state, and disposition for reconciliation."
+        },
+        {
+          "schema": "public",
+          "name": "sourcing_decision_refresh_log",
+          "totalBytes": 108904448,
+          "dataAndToastBytes": 107741184,
+          "indexBytes": 1163264,
+          "purpose": "Atomic decision-refresh audit and idempotency records; before/after guarded state."
+        },
+        {
+          "schema": "public",
+          "name": "matching_intelligence_examples",
+          "totalBytes": 88629248,
+          "dataAndToastBytes": 79732736,
+          "indexBytes": 8896512,
+          "purpose": "Rebuildable labeled examples for matching diagnostics and future scoring. Business-only labels must not poison ASIN identity matching."
+        },
+        {
+          "schema": "public",
+          "name": "scheduler_run_jobs",
+          "totalBytes": 87621632,
+          "dataAndToastBytes": 81690624,
+          "indexBytes": 5931008,
+          "purpose": "Per-job execution telemetry, logs/metadata, errors and result counts."
+        },
+        {
+          "schema": "public",
+          "name": "amazon_sales_financial_events",
+          "totalBytes": 62398464,
+          "dataAndToastBytes": 55566336,
+          "indexBytes": 6832128,
+          "purpose": "Amazon sales charges, fees and financial event evidence."
+        },
+        {
+          "schema": "public",
+          "name": "order_problem_events",
+          "totalBytes": 26198016,
+          "dataAndToastBytes": 25387008,
+          "indexBytes": 811008,
+          "purpose": "Append-only order-problem workflow actions, messages and audit history."
+        },
+        {
+          "schema": "public",
+          "name": "amazon_finance_balance_snapshots",
+          "totalBytes": 24371200,
+          "dataAndToastBytes": 24289280,
+          "indexBytes": 81920,
+          "purpose": "Point-in-time read-only Amazon Finance balance snapshots for Amazon-held cash, available withdrawal cash, and Amazon-to-bank in-transit cash."
+        },
+        {
+          "schema": "public",
+          "name": "amazon_skus",
+          "totalBytes": 22847488,
+          "dataAndToastBytes": 21250048,
+          "indexBytes": 1597440,
+          "purpose": "Canonical Amazon seller SKU/ASIN catalog."
+        },
+        {
+          "schema": "public",
+          "name": "amazon_sales_finance_transactions",
+          "totalBytes": 16146432,
+          "dataAndToastBytes": 14712832,
+          "indexBytes": 1433600,
+          "purpose": "Amazon finance transaction records used by sales reconciliation."
+        },
+        {
+          "schema": "public",
+          "name": "sourcing_actions",
+          "totalBytes": 12247040,
+          "dataAndToastBytes": 11632640,
+          "indexBytes": 614400,
+          "purpose": "Operator review, dismissal, watch, offer, purchase and hold history."
+        },
+        {
+          "schema": "public",
+          "name": "purchases",
+          "totalBytes": 9625600,
+          "dataAndToastBytes": 9453568,
+          "indexBytes": 172032,
+          "purpose": "Supplier/eBay order headers and source order evidence."
+        },
+        {
+          "schema": "public",
+          "name": "amazon_sales_orders",
+          "totalBytes": 9388032,
+          "dataAndToastBytes": 7536640,
+          "indexBytes": 1851392,
+          "purpose": "Amazon seller order headers imported from SP-API Orders. This table must not store buyer name, address, email, or phone."
+        },
+        {
+          "schema": "college_planner",
+          "name": "source_records",
+          "totalBytes": 9306112,
+          "dataAndToastBytes": 6406144,
+          "indexBytes": 2899968,
+          "purpose": "Row- or document-level provenance for imported and manually confirmed records."
+        },
+        {
+          "schema": "college_planner",
+          "name": "course_sections",
+          "totalBytes": 8413184,
+          "dataAndToastBytes": 7028736,
+          "indexBytes": 1384448,
+          "purpose": "Registration sections for a term offering; section restrictions are MVP columns/JSONB until detailed filtering requires a child table."
+        },
+        {
+          "schema": "public",
+          "name": "amazon_sales_order_items",
+          "totalBytes": 7905280,
+          "dataAndToastBytes": 6430720,
+          "indexBytes": 1474560,
+          "purpose": "Amazon seller sales line items."
+        },
+        {
+          "schema": "public",
+          "name": "scheduler_runs",
+          "totalBytes": 7528448,
+          "dataAndToastBytes": 4890624,
+          "indexBytes": 2637824,
+          "purpose": "Scheduler invocation status, timing, task identity and errors."
+        },
+        {
+          "schema": "public",
+          "name": "purchase_items",
+          "totalBytes": 4997120,
+          "dataAndToastBytes": 4071424,
+          "indexBytes": 925696,
+          "purpose": "Purchased units, ASIN, authoritative cost, manual corrections and workflow status."
+        },
+        {
+          "schema": "public",
+          "name": "ynab_business_transactions",
+          "totalBytes": 4292608,
+          "dataAndToastBytes": 3547136,
+          "indexBytes": 745472,
+          "purpose": "Read-only local copy of YNAB transactions categorized as Business for future P&L, Schedule C, and cash reconciliation reporting."
+        },
+        {
+          "schema": "college_planner",
+          "name": "course_offerings",
+          "totalBytes": 4161536,
+          "dataAndToastBytes": 3227648,
+          "indexBytes": 933888,
+          "purpose": "course offerings (inferred from schema)"
+        },
+        {
+          "schema": "public",
+          "name": "sourcing_runs",
+          "totalBytes": 4145152,
+          "dataAndToastBytes": 4112384,
+          "indexBytes": 32768,
+          "purpose": "Sourcing execution summaries, settings, quotas, counts and errors."
+        },
+        {
+          "schema": "public",
+          "name": "veeqo_sales_orders",
+          "totalBytes": 4046848,
+          "dataAndToastBytes": 3923968,
+          "indexBytes": 122880,
+          "purpose": "Veeqo seller-order and label-cost source records."
+        },
+        {
+          "schema": "public",
+          "name": "inbound_shipments",
+          "totalBytes": 3801088,
+          "dataAndToastBytes": 2801664,
+          "indexBytes": 999424,
+          "purpose": "Inbound tracking, carrier enrichment and delivery evidence."
+        },
+        {
+          "schema": "college_planner",
+          "name": "section_meetings",
+          "totalBytes": 3620864,
+          "dataAndToastBytes": 1654784,
+          "indexBytes": 1966080,
+          "purpose": "section meetings (inferred from schema)"
+        },
+        {
+          "schema": "public",
+          "name": "amazon_sales_profitability",
+          "totalBytes": 3342336,
+          "dataAndToastBytes": 1728512,
+          "indexBytes": 1613824,
+          "purpose": "Backend sales profitability and COGS/fee outcomes."
+        },
+        {
+          "schema": "public",
+          "name": "sourcing_seller_intelligence",
+          "totalBytes": 2719744,
+          "dataAndToastBytes": 1761280,
+          "indexBytes": 958464,
+          "purpose": "Derived seller intelligence for sourcing diagnostics. Avoid status is advisory only until hide-by-default is explicitly enabled."
+        },
+        {
+          "schema": "public",
+          "name": "provider_usage_snapshots",
+          "totalBytes": 2416640,
+          "dataAndToastBytes": 1892352,
+          "indexBytes": 524288,
+          "purpose": "Provider API usage/quota snapshots."
+        },
+        {
+          "schema": "public",
+          "name": "sourcing_opportunity_batch_items",
+          "totalBytes": 2179072,
+          "dataAndToastBytes": 1155072,
+          "indexBytes": 1024000,
+          "purpose": "Stable membership of scored sourcing opportunities presented in each progressive batch."
+        },
+        {
+          "schema": "public",
+          "name": "amazon_sales_cogs_consumption",
+          "totalBytes": 1998848,
+          "dataAndToastBytes": 1269760,
+          "indexBytes": 729088,
+          "purpose": "Sales allocation/consumption against inventory cost layers."
+        },
+        {
+          "schema": "public",
+          "name": "fba_shipment_items",
+          "totalBytes": 1818624,
+          "dataAndToastBytes": 1056768,
+          "indexBytes": 761856,
+          "purpose": "Purchase-item quantities allocated to Amazon outbound shipments."
+        },
+        {
+          "schema": "public",
+          "name": "non_ebay_purchase_cogs_sources",
+          "totalBytes": 1654784,
+          "dataAndToastBytes": 1228800,
+          "indexBytes": 425984,
+          "purpose": "Non-eBay inventory cost evidence and import provenance."
+        },
+        {
+          "schema": "public",
+          "name": "inbound_shipment_items",
+          "totalBytes": 1581056,
+          "dataAndToastBytes": 614400,
+          "indexBytes": 966656,
+          "purpose": "Purchase-unit allocation and receipt resolution per inbound package."
+        },
+        {
+          "schema": "college_planner",
+          "name": "courses",
+          "totalBytes": 1376256,
+          "dataAndToastBytes": 819200,
+          "indexBytes": 557056,
+          "purpose": "Catalog courses; not semester offerings or registration sections."
+        },
+        {
+          "schema": "public",
+          "name": "provider_raw_payloads",
+          "totalBytes": 1277952,
+          "dataAndToastBytes": 1236992,
+          "indexBytes": 40960,
+          "purpose": "Original provider billing/usage source payloads."
+        },
+        {
+          "schema": "public",
+          "name": "veeqo_sales_shipments",
+          "totalBytes": 1261568,
+          "dataAndToastBytes": 1089536,
+          "indexBytes": 172032,
+          "purpose": "Veeqo shipment, tracking and label-cost evidence."
+        },
+        {
+          "schema": "public",
+          "name": "amazon_fee_estimates",
+          "totalBytes": 1220608,
+          "dataAndToastBytes": 1064960,
+          "indexBytes": 155648,
+          "purpose": "Cached SP-API Product Fees v0 estimates used for pre-FBA shipment pricing and ROI review."
+        },
+        {
+          "schema": "public",
+          "name": "matching_intelligence_receiving_outcomes",
+          "totalBytes": 1171456,
+          "dataAndToastBytes": 1032192,
+          "indexBytes": 139264,
+          "purpose": "Receiving-owned item verification outcomes consumed by Matching Intelligence as explicit labeled evidence."
+        },
+        {
+          "schema": "public",
+          "name": "order_problem_cases",
+          "totalBytes": 1007616,
+          "dataAndToastBytes": 737280,
+          "indexBytes": 270336,
+          "purpose": "Order exceptions, returns/refunds/replacements and operator workflow state."
+        },
+        {
+          "schema": "public",
+          "name": "amazon_fba_customer_return_rows",
+          "totalBytes": 819200,
+          "dataAndToastBytes": 622592,
+          "indexBytes": 196608,
+          "purpose": "Raw and normalized rows from GET_FBA_FULFILLMENT_CUSTOMER_RETURNS_DATA. Return reason, disposition, status, LPN, and customer comments are preserved for Amazon Return Recovery evidence."
+        },
+        {
+          "schema": "public",
+          "name": "provider_cost_line_items",
+          "totalBytes": 720896,
+          "dataAndToastBytes": 409600,
+          "indexBytes": 311296,
+          "purpose": "Normalized provider billing charges."
+        },
+        {
+          "schema": "public",
+          "name": "amazon_report_runs",
+          "totalBytes": 532480,
+          "dataAndToastBytes": 393216,
+          "indexBytes": 139264,
+          "purpose": "Audit table for read-only Amazon SP-API report requests and imports. No Amazon seller order/customer data should be requested for MBOP inventory workflows."
+        },
+        {
+          "schema": "public",
+          "name": "sourcing_blocked_asins",
+          "totalBytes": 499712,
+          "dataAndToastBytes": 393216,
+          "indexBytes": 106496,
+          "purpose": "Operator/restriction product blocks; preserved business protection."
+        },
+        {
+          "schema": "public",
+          "name": "amazon_fba_reimbursement_rows",
+          "totalBytes": 499712,
+          "dataAndToastBytes": 352256,
+          "indexBytes": 147456,
+          "purpose": "Amazon reimbursement report evidence."
+        },
+        {
+          "schema": "public",
+          "name": "revseller_import_rows",
+          "totalBytes": 483328,
+          "dataAndToastBytes": 212992,
+          "indexBytes": 270336,
+          "purpose": "Imported RevSeller catalog/price enrichment rows."
+        },
+        {
+          "schema": "college_planner",
+          "name": "import_errors",
+          "totalBytes": 442368,
+          "dataAndToastBytes": 385024,
+          "indexBytes": 57344,
+          "purpose": "import errors (inferred from schema)"
+        },
+        {
+          "schema": "public",
+          "name": "inventorylab_active_inventory_backfill",
+          "totalBytes": 417792,
+          "dataAndToastBytes": 262144,
+          "indexBytes": 155648,
+          "purpose": "Historical InventoryLab active inventory backfill data. Stores legacy cost/date context separately from MBOP purchase_items."
+        },
+        {
+          "schema": "public",
+          "name": "fba_shipments",
+          "totalBytes": 409600,
+          "dataAndToastBytes": 311296,
+          "indexBytes": 98304,
+          "purpose": "Amazon outbound shipment headers, progress and value."
+        },
+        {
+          "schema": "public",
+          "name": "import_batches",
+          "totalBytes": 385024,
+          "dataAndToastBytes": 294912,
+          "indexBytes": 90112,
+          "purpose": "Source import provenance and processing summaries."
+        },
+        {
+          "schema": "public",
+          "name": "sourcing_purchase_matches",
+          "totalBytes": 344064,
+          "dataAndToastBytes": 286720,
+          "indexBytes": 57344,
+          "purpose": "Links sourcing decisions/listings to imported buyer purchases."
+        },
+        {
+          "schema": "public",
+          "name": "inventorylab_inventory_valuation_snapshots",
+          "totalBytes": 294912,
+          "dataAndToastBytes": 163840,
+          "indexBytes": 131072,
+          "purpose": "InventoryLab valuation export snapshots used as a legacy opening-balance valuation layer for current Amazon FBA inventory. This table does not update purchase_items."
+        },
+        {
+          "schema": "public",
+          "name": "ynab_category_balance_snapshots",
+          "totalBytes": 286720,
+          "dataAndToastBytes": 212992,
+          "indexBytes": 73728,
+          "purpose": "Point-in-time read-only YNAB category balance snapshots. MBOP uses the Business category available balance as cash on hand."
+        },
+        {
+          "schema": "public",
+          "name": "amazon_return_recovery_cases",
+          "totalBytes": 229376,
+          "dataAndToastBytes": 73728,
+          "indexBytes": 155648,
+          "purpose": "Amazon-side workflow cases for FBA customer returns and removals returned to the business. This table must not write to purchases, purchase_items, receiving, Order Problems, or FBA shipment prep workflow rows."
+        },
+        {
+          "schema": "public",
+          "name": "amazon_catalog_item_identity_snapshots",
+          "totalBytes": 196608,
+          "dataAndToastBytes": 163840,
+          "indexBytes": 32768,
+          "purpose": "Cached read-only Amazon Catalog Items identity evidence for sourcing diagnostics. Exact-ASIN structured evidence is preferred over title inference."
+        },
+        {
+          "schema": "public",
+          "name": "informed_report_runs",
+          "totalBytes": 196608,
+          "dataAndToastBytes": 147456,
+          "indexBytes": 49152,
+          "purpose": "Audit table for read-only Informed Repricer Reports API requests and imports. Signed download links are intentionally not persisted."
+        },
+        {
+          "schema": "public",
+          "name": "amazon_fba_removal_shipment_detail_rows",
+          "totalBytes": 196608,
+          "dataAndToastBytes": 57344,
+          "indexBytes": 139264,
+          "purpose": "Amazon FBA removal shipment report evidence."
+        },
+        {
+          "schema": "public",
+          "name": "provider_cost_sync_runs",
+          "totalBytes": 196608,
+          "dataAndToastBytes": 106496,
+          "indexBytes": 90112,
+          "purpose": "Billing/usage sync execution records."
+        },
+        {
+          "schema": "public",
+          "name": "business_value_snapshots",
+          "totalBytes": 196608,
+          "dataAndToastBytes": 147456,
+          "indexBytes": 49152,
+          "purpose": "Daily backend-computed MBOP business value snapshots for trend reporting. Values are derived from existing inventory, Amazon Finance, and YNAB snapshot sources."
+        },
+        {
+          "schema": "public",
+          "name": "amazon_inventory_cogs_layers",
+          "totalBytes": 155648,
+          "dataAndToastBytes": 73728,
+          "indexBytes": 81920,
+          "purpose": "Inventory cost layers consumed by sales COGS."
+        },
+        {
+          "schema": "public",
+          "name": "fba_shipment_source_items",
+          "totalBytes": 155648,
+          "dataAndToastBytes": 57344,
+          "indexBytes": 98304,
+          "purpose": "Shipment source/cost allocation records."
+        },
+        {
+          "schema": "public",
+          "name": "fba_shipment_events",
+          "totalBytes": 155648,
+          "dataAndToastBytes": 106496,
+          "indexBytes": 49152,
+          "purpose": "Amazon outbound shipment lifecycle/audit events."
+        },
+        {
+          "schema": "supabase_migrations",
+          "name": "schema_migrations",
+          "totalBytes": 155648,
+          "dataAndToastBytes": 139264,
+          "indexBytes": 16384,
+          "purpose": "schema migrations (inferred from schema)"
+        },
+        {
+          "schema": "public",
+          "name": "amazon_fba_removal_order_detail_rows",
+          "totalBytes": 155648,
+          "dataAndToastBytes": 65536,
+          "indexBytes": 90112,
+          "purpose": "Amazon removal-order report evidence."
+        },
+        {
+          "schema": "public",
+          "name": "inventory_reconciliation_events",
+          "totalBytes": 147456,
+          "dataAndToastBytes": 98304,
+          "indexBytes": 49152,
+          "purpose": "Run-level reconciliation records comparing MBOP projected inventory positions to external inventory sources such as Amazon FBA snapshots."
+        },
+        {
+          "schema": "public",
+          "name": "sourcing_opportunity_batches",
+          "totalBytes": 147456,
+          "dataAndToastBytes": 81920,
+          "indexBytes": 65536,
+          "purpose": "Durable sourcing opportunity batches used by the progressive Find 100 More workflow."
+        },
+        {
+          "schema": "public",
+          "name": "supplier_returns",
+          "totalBytes": 139264,
+          "dataAndToastBytes": 24576,
+          "indexBytes": 114688,
+          "purpose": "Supplier-return operational records."
+        },
+        {
+          "schema": "auth",
+          "name": "users",
+          "totalBytes": 131072,
+          "dataAndToastBytes": 8192,
+          "indexBytes": 122880,
+          "purpose": "Auth: Stores user login data within a secure schema."
+        },
+        {
+          "schema": "college_planner",
+          "name": "subjects",
+          "totalBytes": 122880,
+          "dataAndToastBytes": 73728,
+          "indexBytes": 49152,
+          "purpose": "subjects (inferred from schema)"
+        },
+        {
+          "schema": "public",
+          "name": "inventory_movements",
+          "totalBytes": 114688,
+          "dataAndToastBytes": 16384,
+          "indexBytes": 98304,
+          "purpose": "Append-only audit trail for inventory state/location/marketplace transitions. Existing workflow tables still own their own transitions; this table records normalized inventory movement projections."
+        },
+        {
+          "schema": "public",
+          "name": "sourcing_coverage_cycles",
+          "totalBytes": 114688,
+          "dataAndToastBytes": 65536,
+          "indexBytes": 49152,
+          "purpose": "Durable daily sourcing coverage-cycle header. One active cycle represents one pass through eligible ASINs."
+        },
+        {
+          "schema": "college_planner",
+          "name": "planned_courses",
+          "totalBytes": 114688,
+          "dataAndToastBytes": 98304,
+          "indexBytes": 16384,
+          "purpose": "planned courses (inferred from schema)"
+        },
+        {
+          "schema": "public",
+          "name": "sourcing_sales_velocity_suppressions",
+          "totalBytes": 106496,
+          "dataAndToastBytes": 57344,
+          "indexBytes": 49152,
+          "purpose": "Dynamic ASIN-level suppression for valid products dismissed because sales velocity is too low. Suppression releases only when the current sourcing velocity threshold is met."
+        },
+        {
+          "schema": "public",
+          "name": "mbop_purchase_ingestion_requests",
+          "totalBytes": 106496,
+          "dataAndToastBytes": 73728,
+          "indexBytes": 32768,
+          "purpose": "Idempotent ZFI-triggered purchase-ingestion requests/status."
+        },
+        {
+          "schema": "public",
+          "name": "amazon_return_recovery_events",
+          "totalBytes": 106496,
+          "dataAndToastBytes": 73728,
+          "indexBytes": 32768,
+          "purpose": "Return-recovery operator/workflow audit."
+        },
+        {
+          "schema": "college_planner",
+          "name": "requirement_option_courses",
+          "totalBytes": 106496,
+          "dataAndToastBytes": 57344,
+          "indexBytes": 49152,
+          "purpose": "requirement option courses (inferred from schema)"
+        },
+        {
+          "schema": "auth",
+          "name": "scim_users",
+          "totalBytes": 90112,
+          "dataAndToastBytes": 8192,
+          "indexBytes": 81920,
+          "purpose": "scim users (inferred from schema)"
+        },
+        {
+          "schema": "auth",
+          "name": "one_time_tokens",
+          "totalBytes": 90112,
+          "dataAndToastBytes": 8192,
+          "indexBytes": 81920,
+          "purpose": "one time tokens (inferred from schema)"
+        },
+        {
+          "schema": "public",
+          "name": "amazon_repricing_advisor_snoozes",
+          "totalBytes": 81920,
+          "dataAndToastBytes": 16384,
+          "indexBytes": 65536,
+          "purpose": "Operator snooze state for Aged Amazon Inventory recommendations. A snoozed SKU remains hidden from the default advisor list until snoozed_until."
+        },
+        {
+          "schema": "public",
+          "name": "manual_item_matches",
+          "totalBytes": 81920,
+          "dataAndToastBytes": 16384,
+          "indexBytes": 65536,
+          "purpose": "Operator-corrected title/platform to ASIN match memory."
+        },
+        {
+          "schema": "college_planner",
+          "name": "degree_requirement_options",
+          "totalBytes": 81920,
+          "dataAndToastBytes": 49152,
+          "indexBytes": 32768,
+          "purpose": "degree requirement options (inferred from schema)"
+        },
+        {
+          "schema": "college_planner",
+          "name": "degree_plans",
+          "totalBytes": 81920,
+          "dataAndToastBytes": 16384,
+          "indexBytes": 65536,
+          "purpose": "degree plans (inferred from schema)"
+        },
+        {
+          "schema": "public",
+          "name": "scheduler_job_definitions",
+          "totalBytes": 73728,
+          "dataAndToastBytes": 57344,
+          "indexBytes": 16384,
+          "purpose": "Scheduler job definitions, cadence and freshness expectations."
+        },
+        {
+          "schema": "college_planner",
+          "name": "academic_terms",
+          "totalBytes": 73728,
+          "dataAndToastBytes": 16384,
+          "indexBytes": 57344,
+          "purpose": "academic terms (inferred from schema)"
+        },
+        {
+          "schema": "college_planner",
+          "name": "import_batches",
+          "totalBytes": 65536,
+          "dataAndToastBytes": 16384,
+          "indexBytes": 49152,
+          "purpose": "import batches (inferred from schema)"
+        },
+        {
+          "schema": "public",
+          "name": "amazon_sales_fulfillment_cost_overrides",
+          "totalBytes": 65536,
+          "dataAndToastBytes": 16384,
+          "indexBytes": 49152,
+          "purpose": "Operator fulfillment-cost overrides used in profitability."
+        },
+        {
+          "schema": "college_planner",
+          "name": "student_profiles",
+          "totalBytes": 65536,
+          "dataAndToastBytes": 16384,
+          "indexBytes": 49152,
+          "purpose": "Private student planning profile owned by an application user."
+        },
+        {
+          "schema": "college_planner",
+          "name": "application_users",
+          "totalBytes": 65536,
+          "dataAndToastBytes": 16384,
+          "indexBytes": 49152,
+          "purpose": "Future Cognito-linked users for College Planner access control."
+        },
+        {
+          "schema": "public",
+          "name": "informed_rule_name_overrides",
+          "totalBytes": 65536,
+          "dataAndToastBytes": 16384,
+          "indexBytes": 49152,
+          "purpose": "Manual display-name mapping for Informed Repricer strategy/rule IDs when report exports only provide numeric IDs."
+        },
+        {
+          "schema": "auth",
+          "name": "refresh_tokens",
+          "totalBytes": 65536,
+          "dataAndToastBytes": 8192,
+          "indexBytes": 57344,
+          "purpose": "Auth: Store of tokens used to refresh JWT tokens once they expire."
+        },
+        {
+          "schema": "college_planner",
+          "name": "degree_requirement_groups",
+          "totalBytes": 65536,
+          "dataAndToastBytes": 16384,
+          "indexBytes": 49152,
+          "purpose": "Flexible requirement areas for program, core, elective, recurring, and residency rules."
+        },
+        {
+          "schema": "public",
+          "name": "provider_billing_periods",
+          "totalBytes": 65536,
+          "dataAndToastBytes": 16384,
+          "indexBytes": 49152,
+          "purpose": "Billing-period metadata."
+        },
+        {
+          "schema": "college_planner",
+          "name": "degree_program_versions",
+          "totalBytes": 65536,
+          "dataAndToastBytes": 16384,
+          "indexBytes": 49152,
+          "purpose": "degree program versions (inferred from schema)"
+        },
+        {
+          "schema": "college_planner",
+          "name": "term_parts",
+          "totalBytes": 65536,
+          "dataAndToastBytes": 16384,
+          "indexBytes": 49152,
+          "purpose": "term parts (inferred from schema)"
+        },
+        {
+          "schema": "public",
+          "name": "sourcing_declined_ebay_offers",
+          "totalBytes": 65536,
+          "dataAndToastBytes": 49152,
+          "indexBytes": 16384,
+          "purpose": "Highest observed buyer-declined USD item offer per eBay listing. Absence from later API responses never clears evidence. Not a complete offer history."
+        },
+        {
+          "schema": "college_planner",
+          "name": "student_academic_records",
+          "totalBytes": 65536,
+          "dataAndToastBytes": 16384,
+          "indexBytes": 49152,
+          "purpose": "Private student coursework history, registrations, transfer credit, test credit, and planned placeholders if needed."
+        },
+        {
+          "schema": "auth",
+          "name": "custom_oauth_providers",
+          "totalBytes": 57344,
+          "dataAndToastBytes": 8192,
+          "indexBytes": 49152,
+          "purpose": "custom oauth providers (inferred from schema)"
+        },
+        {
+          "schema": "auth",
+          "name": "mfa_factors",
+          "totalBytes": 57344,
+          "dataAndToastBytes": 8192,
+          "indexBytes": 49152,
+          "purpose": "auth: stores metadata about factors"
+        },
+        {
+          "schema": "college_planner",
+          "name": "academic_years",
+          "totalBytes": 57344,
+          "dataAndToastBytes": 16384,
+          "indexBytes": 40960,
+          "purpose": "academic years (inferred from schema)"
+        },
+        {
+          "schema": "college_planner",
+          "name": "course_relationship_groups",
+          "totalBytes": 49152,
+          "dataAndToastBytes": 16384,
+          "indexBytes": 32768,
+          "purpose": "course relationship groups (inferred from schema)"
+        },
+        {
+          "schema": "college_planner",
+          "name": "planned_terms",
+          "totalBytes": 49152,
+          "dataAndToastBytes": 16384,
+          "indexBytes": 32768,
+          "purpose": "planned terms (inferred from schema)"
+        },
+        {
+          "schema": "college_planner",
+          "name": "core_curriculum_versions",
+          "totalBytes": 49152,
+          "dataAndToastBytes": 16384,
+          "indexBytes": 32768,
+          "purpose": "core curriculum versions (inferred from schema)"
+        },
+        {
+          "schema": "college_planner",
+          "name": "degree_programs",
+          "totalBytes": 49152,
+          "dataAndToastBytes": 16384,
+          "indexBytes": 32768,
+          "purpose": "degree programs (inferred from schema)"
+        },
+        {
+          "schema": "college_planner",
+          "name": "university_catalogs",
+          "totalBytes": 49152,
+          "dataAndToastBytes": 16384,
+          "indexBytes": 32768,
+          "purpose": "university catalogs (inferred from schema)"
+        },
+        {
+          "schema": "storage",
+          "name": "objects",
+          "totalBytes": 49152,
+          "dataAndToastBytes": 8192,
+          "indexBytes": 40960,
+          "purpose": "objects (inferred from schema)"
+        },
+        {
+          "schema": "college_planner",
+          "name": "universities",
+          "totalBytes": 49152,
+          "dataAndToastBytes": 16384,
+          "indexBytes": 32768,
+          "purpose": "universities (inferred from schema)"
+        },
+        {
+          "schema": "college_planner",
+          "name": "student_programs",
+          "totalBytes": 49152,
+          "dataAndToastBytes": 16384,
+          "indexBytes": 32768,
+          "purpose": "student programs (inferred from schema)"
+        },
+        {
+          "schema": "public",
+          "name": "amazon_seller_feedback_snapshots",
+          "totalBytes": 49152,
+          "dataAndToastBytes": 16384,
+          "indexBytes": 32768,
+          "purpose": "Seller-feedback aggregate snapshots."
+        },
+        {
+          "schema": "auth",
+          "name": "scim_tokens",
+          "totalBytes": 49152,
+          "dataAndToastBytes": 8192,
+          "indexBytes": 40960,
+          "purpose": "scim tokens (inferred from schema)"
+        },
+        {
+          "schema": "college_planner",
+          "name": "import_files",
+          "totalBytes": 49152,
+          "dataAndToastBytes": 16384,
+          "indexBytes": 32768,
+          "purpose": "import files (inferred from schema)"
+        },
+        {
+          "schema": "college_planner",
+          "name": "requirement_option_tags",
+          "totalBytes": 49152,
+          "dataAndToastBytes": 16384,
+          "indexBytes": 32768,
+          "purpose": "requirement option tags (inferred from schema)"
+        },
+        {
+          "schema": "public",
+          "name": "amazon_account_health_snapshots",
+          "totalBytes": 49152,
+          "dataAndToastBytes": 16384,
+          "indexBytes": 32768,
+          "purpose": "Amazon account-health snapshots."
+        },
+        {
+          "schema": "college_planner",
+          "name": "confidence_levels",
+          "totalBytes": 49152,
+          "dataAndToastBytes": 16384,
+          "indexBytes": 32768,
+          "purpose": "confidence levels (inferred from schema)"
+        },
+        {
+          "schema": "auth",
+          "name": "sessions",
+          "totalBytes": 49152,
+          "dataAndToastBytes": 8192,
+          "indexBytes": 40960,
+          "purpose": "Auth: Stores session data associated to a user."
+        },
+        {
+          "schema": "public",
+          "name": "sync_logs",
+          "totalBytes": 49152,
+          "dataAndToastBytes": 16384,
+          "indexBytes": 32768,
+          "purpose": "Integration execution logs."
+        },
+        {
+          "schema": "auth",
+          "name": "oauth_consents",
+          "totalBytes": 49152,
+          "dataAndToastBytes": 8192,
+          "indexBytes": 40960,
+          "purpose": "oauth consents (inferred from schema)"
+        },
+        {
+          "schema": "auth",
+          "name": "saml_relay_states",
+          "totalBytes": 40960,
+          "dataAndToastBytes": 8192,
+          "indexBytes": 32768,
+          "purpose": "Auth: Contains SAML Relay State information for each Service Provider initiated login."
+        },
+        {
+          "schema": "public",
+          "name": "listings",
+          "totalBytes": 40960,
+          "dataAndToastBytes": 8192,
+          "indexBytes": 32768,
+          "purpose": "Legacy marketplace listing records; active usage requires verification."
+        },
+        {
+          "schema": "public",
+          "name": "informed_rule_snapshots",
+          "totalBytes": 40960,
+          "dataAndToastBytes": 8192,
+          "indexBytes": 32768,
+          "purpose": "Point-in-time read-only Informed Repricer rule/settings report rows, populated only if a rule definition report is available."
+        },
+        {
+          "schema": "public",
+          "name": "sourcing_cache_dirty",
+          "totalBytes": 40960,
+          "dataAndToastBytes": 24576,
+          "indexBytes": 16384,
+          "purpose": "Small transactional cache invalidation markers; not stored list payloads."
+        },
+        {
+          "schema": "auth",
+          "name": "flow_state",
+          "totalBytes": 40960,
+          "dataAndToastBytes": 8192,
+          "indexBytes": 32768,
+          "purpose": "Stores metadata for all OAuth/SSO login flows"
+        },
+        {
+          "schema": "auth",
+          "name": "oauth_authorizations",
+          "totalBytes": 40960,
+          "dataAndToastBytes": 8192,
+          "indexBytes": 32768,
+          "purpose": "oauth authorizations (inferred from schema)"
+        },
+        {
+          "schema": "college_planner",
+          "name": "student_access_grants",
+          "totalBytes": 40960,
+          "dataAndToastBytes": 8192,
+          "indexBytes": 32768,
+          "purpose": "student access grants (inferred from schema)"
+        },
+        {
+          "schema": "storage",
+          "name": "migrations",
+          "totalBytes": 40960,
+          "dataAndToastBytes": 8192,
+          "indexBytes": 32768,
+          "purpose": "migrations (inferred from schema)"
+        },
+        {
+          "schema": "auth",
+          "name": "identities",
+          "totalBytes": 40960,
+          "dataAndToastBytes": 8192,
+          "indexBytes": 32768,
+          "purpose": "Auth: Stores identities associated to a user."
+        },
+        {
+          "schema": "college_planner",
+          "name": "academic_record_statuses",
+          "totalBytes": 32768,
+          "dataAndToastBytes": 16384,
+          "indexBytes": 16384,
+          "purpose": "academic record statuses (inferred from schema)"
+        },
+        {
+          "schema": "auth",
+          "name": "sso_providers",
+          "totalBytes": 32768,
+          "dataAndToastBytes": 8192,
+          "indexBytes": 24576,
+          "purpose": "Auth: Manages SSO identity provider information; see saml_providers for SAML."
+        },
+        {
+          "schema": "college_planner",
+          "name": "user_roles",
+          "totalBytes": 32768,
+          "dataAndToastBytes": 16384,
+          "indexBytes": 16384,
+          "purpose": "user roles (inferred from schema)"
+        },
+        {
+          "schema": "college_planner",
+          "name": "delivery_methods",
+          "totalBytes": 32768,
+          "dataAndToastBytes": 16384,
+          "indexBytes": 16384,
+          "purpose": "delivery methods (inferred from schema)"
+        },
+        {
+          "schema": "auth",
+          "name": "sso_domains",
+          "totalBytes": 32768,
+          "dataAndToastBytes": 8192,
+          "indexBytes": 24576,
+          "purpose": "Auth: Manages SSO email address domain mapping to an SSO Identity Provider."
+        },
+        {
+          "schema": "public",
+          "name": "return_reasons",
+          "totalBytes": 32768,
+          "dataAndToastBytes": 16384,
+          "indexBytes": 16384,
+          "purpose": "Return reason reference values."
+        },
+        {
+          "schema": "auth",
+          "name": "webauthn_challenges",
+          "totalBytes": 32768,
+          "dataAndToastBytes": 8192,
+          "indexBytes": 24576,
+          "purpose": "webauthn challenges (inferred from schema)"
+        },
+        {
+          "schema": "realtime",
+          "name": "subscription",
+          "totalBytes": 32768,
+          "dataAndToastBytes": 8192,
+          "indexBytes": 24576,
+          "purpose": "subscription (inferred from schema)"
+        },
+        {
+          "schema": "auth",
+          "name": "saml_providers",
+          "totalBytes": 32768,
+          "dataAndToastBytes": 8192,
+          "indexBytes": 24576,
+          "purpose": "Auth: Manages SAML Identity Provider connections."
+        },
+        {
+          "schema": "public",
+          "name": "sourcing_settings",
+          "totalBytes": 32768,
+          "dataAndToastBytes": 16384,
+          "indexBytes": 16384,
+          "purpose": "Operator sourcing configuration and thresholds."
+        },
+        {
+          "schema": "college_planner",
+          "name": "source_types",
+          "totalBytes": 32768,
+          "dataAndToastBytes": 16384,
+          "indexBytes": 16384,
+          "purpose": "source types (inferred from schema)"
+        },
+        {
+          "schema": "college_planner",
+          "name": "plan_statuses",
+          "totalBytes": 32768,
+          "dataAndToastBytes": 16384,
+          "indexBytes": 16384,
+          "purpose": "plan statuses (inferred from schema)"
+        },
+        {
+          "schema": "college_planner",
+          "name": "import_statuses",
+          "totalBytes": 32768,
+          "dataAndToastBytes": 16384,
+          "indexBytes": 16384,
+          "purpose": "import statuses (inferred from schema)"
+        },
+        {
+          "schema": "auth",
+          "name": "webauthn_credentials",
+          "totalBytes": 32768,
+          "dataAndToastBytes": 8192,
+          "indexBytes": 24576,
+          "purpose": "webauthn credentials (inferred from schema)"
+        },
+        {
+          "schema": "college_planner",
+          "name": "course_relationship_options",
+          "totalBytes": 32768,
+          "dataAndToastBytes": 16384,
+          "indexBytes": 16384,
+          "purpose": "course relationship options (inferred from schema)"
+        },
+        {
+          "schema": "public",
+          "name": "inventory_locations",
+          "totalBytes": 32768,
+          "dataAndToastBytes": 16384,
+          "indexBytes": 16384,
+          "purpose": "Inventory location reference data."
+        },
+        {
+          "schema": "college_planner",
+          "name": "course_aliases",
+          "totalBytes": 24576,
+          "dataAndToastBytes": 8192,
+          "indexBytes": 16384,
+          "purpose": "course aliases (inferred from schema)"
+        },
+        {
+          "schema": "storage",
+          "name": "s3_multipart_uploads",
+          "totalBytes": 24576,
+          "dataAndToastBytes": 8192,
+          "indexBytes": 16384,
+          "purpose": "s3 multipart uploads (inferred from schema)"
+        },
+        {
+          "schema": "auth",
+          "name": "mfa_recovery_codes",
+          "totalBytes": 24576,
+          "dataAndToastBytes": 8192,
+          "indexBytes": 16384,
+          "purpose": "mfa recovery codes (inferred from schema)"
+        },
+        {
+          "schema": "public",
+          "name": "item_images",
+          "totalBytes": 24576,
+          "dataAndToastBytes": 8192,
+          "indexBytes": 16384,
+          "purpose": "Item image references/metadata."
+        },
+        {
+          "schema": "public",
+          "name": "sourcing_cache_state",
+          "totalBytes": 24576,
+          "dataAndToastBytes": 8192,
+          "indexBytes": 16384,
+          "purpose": "Small committed-source revision for read caches."
+        },
+        {
+          "schema": "storage",
+          "name": "vector_indexes",
+          "totalBytes": 24576,
+          "dataAndToastBytes": 8192,
+          "indexBytes": 16384,
+          "purpose": "vector indexes (inferred from schema)"
+        },
+        {
+          "schema": "public",
+          "name": "sales",
+          "totalBytes": 24576,
+          "dataAndToastBytes": 8192,
+          "indexBytes": 16384,
+          "purpose": "Legacy sales records; active usage requires verification."
+        },
+        {
+          "schema": "auth",
+          "name": "schema_migrations",
+          "totalBytes": 24576,
+          "dataAndToastBytes": 8192,
+          "indexBytes": 16384,
+          "purpose": "Auth: Manages updates to the auth system."
+        },
+        {
+          "schema": "public",
+          "name": "tracking_events",
+          "totalBytes": 24576,
+          "dataAndToastBytes": 8192,
+          "indexBytes": 16384,
+          "purpose": "Shipment tracking event history."
+        },
+        {
+          "schema": "auth",
+          "name": "mfa_challenges",
+          "totalBytes": 24576,
+          "dataAndToastBytes": 8192,
+          "indexBytes": 16384,
+          "purpose": "auth: stores metadata about challenge requests made"
+        },
+        {
+          "schema": "storage",
+          "name": "buckets",
+          "totalBytes": 24576,
+          "dataAndToastBytes": 8192,
+          "indexBytes": 16384,
+          "purpose": "buckets (inferred from schema)"
+        },
+        {
+          "schema": "auth",
+          "name": "mfa_amr_claims",
+          "totalBytes": 24576,
+          "dataAndToastBytes": 8192,
+          "indexBytes": 16384,
+          "purpose": "auth: stores authenticator method reference claims for multi factor authentication"
+        },
+        {
+          "schema": "realtime",
+          "name": "schema_migrations",
+          "totalBytes": 24576,
+          "dataAndToastBytes": 8192,
+          "indexBytes": 16384,
+          "purpose": "schema migrations (inferred from schema)"
+        },
+        {
+          "schema": "auth",
+          "name": "mfa_recovery_code_sets",
+          "totalBytes": 24576,
+          "dataAndToastBytes": 0,
+          "indexBytes": 24576,
+          "purpose": "mfa recovery code sets (inferred from schema)"
+        },
+        {
+          "schema": "vault",
+          "name": "secrets",
+          "totalBytes": 24576,
+          "dataAndToastBytes": 8192,
+          "indexBytes": 16384,
+          "purpose": "Table with encrypted `secret` column for storing sensitive information on disk."
+        },
+        {
+          "schema": "auth",
+          "name": "audit_log_entries",
+          "totalBytes": 24576,
+          "dataAndToastBytes": 8192,
+          "indexBytes": 16384,
+          "purpose": "Auth: Audit trail for user actions."
+        },
+        {
+          "schema": "auth",
+          "name": "oauth_client_states",
+          "totalBytes": 24576,
+          "dataAndToastBytes": 8192,
+          "indexBytes": 16384,
+          "purpose": "Stores OAuth states for third-party provider authentication flows where Supabase acts as the OAuth client."
+        },
+        {
+          "schema": "auth",
+          "name": "oauth_clients",
+          "totalBytes": 24576,
+          "dataAndToastBytes": 8192,
+          "indexBytes": 16384,
+          "purpose": "oauth clients (inferred from schema)"
+        },
+        {
+          "schema": "public",
+          "name": "keepa_product_history_points",
+          "totalBytes": 24576,
+          "dataAndToastBytes": 8192,
+          "indexBytes": 16384,
+          "purpose": "Optional normalized Keepa time-series points extracted from Keepa CSV history arrays. The raw Keepa payload remains stored on keepa_product_snapshots."
+        },
+        {
+          "schema": "public",
+          "name": "amazon_seller_feedback_items",
+          "totalBytes": 24576,
+          "dataAndToastBytes": 8192,
+          "indexBytes": 16384,
+          "purpose": "Individual seller-feedback records."
+        },
+        {
+          "schema": "storage",
+          "name": "buckets_analytics",
+          "totalBytes": 24576,
+          "dataAndToastBytes": 8192,
+          "indexBytes": 16384,
+          "purpose": "buckets analytics (inferred from schema)"
+        },
+        {
+          "schema": "public",
+          "name": "alerts",
+          "totalBytes": 16384,
+          "dataAndToastBytes": 8192,
+          "indexBytes": 8192,
+          "purpose": "Operational alerts; active usage requires verification."
+        },
+        {
+          "schema": "storage",
+          "name": "s3_multipart_uploads_parts",
+          "totalBytes": 16384,
+          "dataAndToastBytes": 8192,
+          "indexBytes": 8192,
+          "purpose": "s3 multipart uploads parts (inferred from schema)"
+        },
+        {
+          "schema": "public",
+          "name": "customer_returns",
+          "totalBytes": 16384,
+          "dataAndToastBytes": 8192,
+          "indexBytes": 8192,
+          "purpose": "Legacy customer-return records; separate from current Amazon report rows."
+        },
+        {
+          "schema": "storage",
+          "name": "buckets_vectors",
+          "totalBytes": 16384,
+          "dataAndToastBytes": 8192,
+          "indexBytes": 8192,
+          "purpose": "buckets vectors (inferred from schema)"
+        },
+        {
+          "schema": "college_planner",
+          "name": "requirement_exceptions",
+          "totalBytes": 16384,
+          "dataAndToastBytes": 8192,
+          "indexBytes": 8192,
+          "purpose": "requirement exceptions (inferred from schema)"
+        },
+        {
+          "schema": "public",
+          "name": "fulfillment_shipments",
+          "totalBytes": 16384,
+          "dataAndToastBytes": 8192,
+          "indexBytes": 8192,
+          "purpose": "Legacy fulfillment shipment records; active usage requires verification."
+        },
+        {
+          "schema": "public",
+          "name": "sourcing_ai_observations",
+          "totalBytes": 16384,
+          "dataAndToastBytes": 8192,
+          "indexBytes": 8192,
+          "purpose": "Advisory AI observations linked to sourcing opportunities."
+        },
+        {
+          "schema": "public",
+          "name": "asin_metrics",
+          "totalBytes": 16384,
+          "dataAndToastBytes": 8192,
+          "indexBytes": 8192,
+          "purpose": "ASIN advisory metrics; active usage requires verification."
+        },
+        {
+          "schema": "auth",
+          "name": "instances",
+          "totalBytes": 16384,
+          "dataAndToastBytes": 8192,
+          "indexBytes": 8192,
+          "purpose": "Auth: Manages users across multiple sites."
+        },
+        {
+          "schema": "public",
+          "name": "item_condition_history",
+          "totalBytes": 16384,
+          "dataAndToastBytes": 8192,
+          "indexBytes": 8192,
+          "purpose": "Item condition history."
+        },
+        {
+          "schema": "public",
+          "name": "scheduler_locks",
+          "totalBytes": 16384,
+          "dataAndToastBytes": 8192,
+          "indexBytes": 8192,
+          "purpose": "Scheduler concurrency leases/locks."
+        },
+        {
+          "schema": "public",
+          "name": "profitability_snapshots",
+          "totalBytes": 16384,
+          "dataAndToastBytes": 8192,
+          "indexBytes": 8192,
+          "purpose": "Legacy profitability snapshots; active usage requires verification."
+        },
+        {
+          "schema": "public",
+          "name": "scheduler_domain_freshness",
+          "totalBytes": 16384,
+          "dataAndToastBytes": 8192,
+          "indexBytes": 8192,
+          "purpose": "Scheduler domain freshness markers."
+        },
+        {
+          "schema": "public",
+          "name": "amazon_inventory",
+          "totalBytes": 16384,
+          "dataAndToastBytes": 8192,
+          "indexBytes": 8192,
+          "purpose": "Legacy Amazon inventory structure; active usage requires verification."
+        },
+        {
+          "schema": "realtime",
+          "name": "messages",
+          "totalBytes": 0,
+          "dataAndToastBytes": 0,
+          "indexBytes": 0,
+          "purpose": "messages (inferred from schema)"
+        }
+      ]
+    },
+    {
+      "name": "zoltarfi",
+      "id": "rwlemrtlmtvljxtdhzcd",
+      "capturedAt": "2026-09-15T17:54:25.7255+00:00",
+      "databases": [
+        {
+          "name": "template1",
+          "bytes": 7752851,
+          "template": true,
+          "allow_connections": true
+        },
+        {
+          "name": "template0",
+          "bytes": 7520783,
+          "template": true,
+          "allow_connections": false
+        },
+        {
+          "name": "postgres",
+          "bytes": 66800787,
+          "template": false,
+          "allow_connections": true
+        }
+      ],
+      "tables": [
+        {
+          "schema": "public",
+          "name": "ynab_budget_category_snapshots",
+          "totalBytes": 14958592,
+          "dataAndToastBytes": 6340608,
+          "indexBytes": 8617984,
+          "purpose": "ynab budget category snapshots (inferred from schema)"
+        },
+        {
+          "schema": "public",
+          "name": "transactions",
+          "totalBytes": 9666560,
+          "dataAndToastBytes": 5914624,
+          "indexBytes": 3751936,
+          "purpose": "transactions (inferred from schema)"
+        },
+        {
+          "schema": "public",
+          "name": "ynab_raw_payloads",
+          "totalBytes": 5857280,
+          "dataAndToastBytes": 5808128,
+          "indexBytes": 49152,
+          "purpose": "ynab raw payloads (inferred from schema)"
+        },
+        {
+          "schema": "public",
+          "name": "plaid_investment_holdings",
+          "totalBytes": 5758976,
+          "dataAndToastBytes": 5013504,
+          "indexBytes": 745472,
+          "purpose": "plaid investment holdings (inferred from schema)"
+        },
+        {
+          "schema": "public",
+          "name": "mbop_business_summaries",
+          "totalBytes": 3858432,
+          "dataAndToastBytes": 1130496,
+          "indexBytes": 2727936,
+          "purpose": "mbop business summaries (inferred from schema)"
+        },
+        {
+          "schema": "public",
+          "name": "budget_lines",
+          "totalBytes": 1974272,
+          "dataAndToastBytes": 1163264,
+          "indexBytes": 811008,
+          "purpose": "budget lines (inferred from schema)"
+        },
+        {
+          "schema": "public",
+          "name": "business_transaction_tax_assignments",
+          "totalBytes": 1957888,
+          "dataAndToastBytes": 1449984,
+          "indexBytes": 507904,
+          "purpose": "business transaction tax assignments (inferred from schema)"
+        },
+        {
+          "schema": "public",
+          "name": "account_balances",
+          "totalBytes": 1269760,
+          "dataAndToastBytes": 835584,
+          "indexBytes": 434176,
+          "purpose": "account balances (inferred from schema)"
+        },
+        {
+          "schema": "public",
+          "name": "business_value_snapshots",
+          "totalBytes": 933888,
+          "dataAndToastBytes": 344064,
+          "indexBytes": 589824,
+          "purpose": "business value snapshots (inferred from schema)"
+        },
+        {
+          "schema": "public",
+          "name": "budget_plan_lines",
+          "totalBytes": 868352,
+          "dataAndToastBytes": 466944,
+          "indexBytes": 401408,
+          "purpose": "budget plan lines (inferred from schema)"
+        },
+        {
+          "schema": "public",
+          "name": "paystub_line_items",
+          "totalBytes": 745472,
+          "dataAndToastBytes": 466944,
+          "indexBytes": 278528,
+          "purpose": "paystub line items (inferred from schema)"
+        },
+        {
+          "schema": "public",
+          "name": "paystubs",
+          "totalBytes": 581632,
+          "dataAndToastBytes": 507904,
+          "indexBytes": 73728,
+          "purpose": "paystubs (inferred from schema)"
+        },
+        {
+          "schema": "public",
+          "name": "sync_runs",
+          "totalBytes": 483328,
+          "dataAndToastBytes": 262144,
+          "indexBytes": 221184,
+          "purpose": "sync runs (inferred from schema)"
+        },
+        {
+          "schema": "public",
+          "name": "rsu_withholding_lines",
+          "totalBytes": 335872,
+          "dataAndToastBytes": 229376,
+          "indexBytes": 106496,
+          "purpose": "rsu withholding lines (inferred from schema)"
+        },
+        {
+          "schema": "public",
+          "name": "plaid_liabilities",
+          "totalBytes": 253952,
+          "dataAndToastBytes": 180224,
+          "indexBytes": 73728,
+          "purpose": "plaid liabilities (inferred from schema)"
+        },
+        {
+          "schema": "public",
+          "name": "budget_variable_bill_candidates",
+          "totalBytes": 245760,
+          "dataAndToastBytes": 147456,
+          "indexBytes": 98304,
+          "purpose": "budget variable bill candidates (inferred from schema)"
+        },
+        {
+          "schema": "public",
+          "name": "ynab_budget_movements",
+          "totalBytes": 229376,
+          "dataAndToastBytes": 155648,
+          "indexBytes": 73728,
+          "purpose": "ynab budget movements (inferred from schema)"
+        },
+        {
+          "schema": "auth",
+          "name": "users",
+          "totalBytes": 221184,
+          "dataAndToastBytes": 16384,
+          "indexBytes": 204800,
+          "purpose": "Auth: Stores user login data within a secure schema."
+        },
+        {
+          "schema": "public",
+          "name": "manual_import_uploads",
+          "totalBytes": 196608,
+          "dataAndToastBytes": 106496,
+          "indexBytes": 90112,
+          "purpose": "manual import uploads (inferred from schema)"
+        },
+        {
+          "schema": "public",
+          "name": "rsu_vest_event_grants",
+          "totalBytes": 188416,
+          "dataAndToastBytes": 139264,
+          "indexBytes": 49152,
+          "purpose": "rsu vest event grants (inferred from schema)"
+        },
+        {
+          "schema": "public",
+          "name": "ynab_budget_snapshots",
+          "totalBytes": 188416,
+          "dataAndToastBytes": 106496,
+          "indexBytes": 81920,
+          "purpose": "ynab budget snapshots (inferred from schema)"
+        },
+        {
+          "schema": "auth",
+          "name": "refresh_tokens",
+          "totalBytes": 172032,
+          "dataAndToastBytes": 57344,
+          "indexBytes": 114688,
+          "purpose": "Auth: Store of tokens used to refresh JWT tokens once they expire."
+        },
+        {
+          "schema": "public",
+          "name": "rsu_sales",
+          "totalBytes": 163840,
+          "dataAndToastBytes": 114688,
+          "indexBytes": 49152,
+          "purpose": "rsu sales (inferred from schema)"
+        },
+        {
+          "schema": "public",
+          "name": "recurring_plan_items",
+          "totalBytes": 147456,
+          "dataAndToastBytes": 65536,
+          "indexBytes": 81920,
+          "purpose": "recurring plan items (inferred from schema)"
+        },
+        {
+          "schema": "public",
+          "name": "transaction_splits",
+          "totalBytes": 139264,
+          "dataAndToastBytes": 73728,
+          "indexBytes": 65536,
+          "purpose": "transaction splits (inferred from schema)"
+        },
+        {
+          "schema": "auth",
+          "name": "sessions",
+          "totalBytes": 131072,
+          "dataAndToastBytes": 49152,
+          "indexBytes": 81920,
+          "purpose": "Auth: Stores session data associated to a user."
+        },
+        {
+          "schema": "public",
+          "name": "manual_liability_details",
+          "totalBytes": 131072,
+          "dataAndToastBytes": 81920,
+          "indexBytes": 49152,
+          "purpose": "manual liability details (inferred from schema)"
+        },
+        {
+          "schema": "public",
+          "name": "business_tax_category_rules",
+          "totalBytes": 122880,
+          "dataAndToastBytes": 73728,
+          "indexBytes": 49152,
+          "purpose": "business tax category rules (inferred from schema)"
+        },
+        {
+          "schema": "public",
+          "name": "manual_liability_statements",
+          "totalBytes": 122880,
+          "dataAndToastBytes": 73728,
+          "indexBytes": 49152,
+          "purpose": "manual liability statements (inferred from schema)"
+        },
+        {
+          "schema": "public",
+          "name": "budget_plan_months",
+          "totalBytes": 114688,
+          "dataAndToastBytes": 49152,
+          "indexBytes": 65536,
+          "purpose": "budget plan months (inferred from schema)"
+        },
+        {
+          "schema": "public",
+          "name": "financial_accounts",
+          "totalBytes": 114688,
+          "dataAndToastBytes": 65536,
+          "indexBytes": 49152,
+          "purpose": "financial accounts (inferred from schema)"
+        },
+        {
+          "schema": "public",
+          "name": "rsu_vest_events",
+          "totalBytes": 106496,
+          "dataAndToastBytes": 57344,
+          "indexBytes": 49152,
+          "purpose": "rsu vest events (inferred from schema)"
+        },
+        {
+          "schema": "public",
+          "name": "manual_liability_transactions",
+          "totalBytes": 106496,
+          "dataAndToastBytes": 57344,
+          "indexBytes": 49152,
+          "purpose": "manual liability transactions (inferred from schema)"
+        },
+        {
+          "schema": "public",
+          "name": "budget_category_planning_settings",
+          "totalBytes": 98304,
+          "dataAndToastBytes": 49152,
+          "indexBytes": 49152,
+          "purpose": "budget category planning settings (inferred from schema)"
+        },
+        {
+          "schema": "public",
+          "name": "data_sources",
+          "totalBytes": 98304,
+          "dataAndToastBytes": 49152,
+          "indexBytes": 49152,
+          "purpose": "data sources (inferred from schema)"
+        },
+        {
+          "schema": "public",
+          "name": "rsu_security_quotes",
+          "totalBytes": 98304,
+          "dataAndToastBytes": 49152,
+          "indexBytes": 49152,
+          "purpose": "rsu security quotes (inferred from schema)"
+        },
+        {
+          "schema": "public",
+          "name": "ynab_categories",
+          "totalBytes": 98304,
+          "dataAndToastBytes": 65536,
+          "indexBytes": 32768,
+          "purpose": "ynab categories (inferred from schema)"
+        },
+        {
+          "schema": "auth",
+          "name": "one_time_tokens",
+          "totalBytes": 90112,
+          "dataAndToastBytes": 8192,
+          "indexBytes": 81920,
+          "purpose": "one time tokens (inferred from schema)"
+        },
+        {
+          "schema": "public",
+          "name": "budget_months",
+          "totalBytes": 81920,
+          "dataAndToastBytes": 49152,
+          "indexBytes": 32768,
+          "purpose": "budget months (inferred from schema)"
+        },
+        {
+          "schema": "auth",
+          "name": "identities",
+          "totalBytes": 81920,
+          "dataAndToastBytes": 16384,
+          "indexBytes": 65536,
+          "purpose": "Auth: Stores identities associated to a user."
+        },
+        {
+          "schema": "auth",
+          "name": "flow_state",
+          "totalBytes": 81920,
+          "dataAndToastBytes": 16384,
+          "indexBytes": 65536,
+          "purpose": "Stores metadata for all OAuth/SSO login flows"
+        },
+        {
+          "schema": "public",
+          "name": "budget_variable_bill_providers",
+          "totalBytes": 65536,
+          "dataAndToastBytes": 16384,
+          "indexBytes": 49152,
+          "purpose": "budget variable bill providers (inferred from schema)"
+        },
+        {
+          "schema": "public",
+          "name": "budget_rta_checkpoints",
+          "totalBytes": 65536,
+          "dataAndToastBytes": 16384,
+          "indexBytes": 49152,
+          "purpose": "budget rta checkpoints (inferred from schema)"
+        },
+        {
+          "schema": "public",
+          "name": "budget_other_income_reviews",
+          "totalBytes": 65536,
+          "dataAndToastBytes": 16384,
+          "indexBytes": 49152,
+          "purpose": "budget other income reviews (inferred from schema)"
+        },
+        {
+          "schema": "public",
+          "name": "budget_income_detail_lines",
+          "totalBytes": 65536,
+          "dataAndToastBytes": 16384,
+          "indexBytes": 49152,
+          "purpose": "budget income detail lines (inferred from schema)"
+        },
+        {
+          "schema": "public",
+          "name": "rsu_grants",
+          "totalBytes": 65536,
+          "dataAndToastBytes": 16384,
+          "indexBytes": 49152,
+          "purpose": "rsu grants (inferred from schema)"
+        },
+        {
+          "schema": "public",
+          "name": "budget_month_closes",
+          "totalBytes": 65536,
+          "dataAndToastBytes": 16384,
+          "indexBytes": 49152,
+          "purpose": "budget month closes (inferred from schema)"
+        },
+        {
+          "schema": "public",
+          "name": "budget_variable_bill_provider_allocations",
+          "totalBytes": 65536,
+          "dataAndToastBytes": 16384,
+          "indexBytes": 49152,
+          "purpose": "budget variable bill provider allocations (inferred from schema)"
+        },
+        {
+          "schema": "public",
+          "name": "plaid_mapping_targets",
+          "totalBytes": 65536,
+          "dataAndToastBytes": 16384,
+          "indexBytes": 49152,
+          "purpose": "plaid mapping targets (inferred from schema)"
+        },
+        {
+          "schema": "public",
+          "name": "debt_actual_balance_points",
+          "totalBytes": 65536,
+          "dataAndToastBytes": 16384,
+          "indexBytes": 49152,
+          "purpose": "debt actual balance points (inferred from schema)"
+        },
+        {
+          "schema": "public",
+          "name": "plaid_items",
+          "totalBytes": 65536,
+          "dataAndToastBytes": 16384,
+          "indexBytes": 49152,
+          "purpose": "plaid items (inferred from schema)"
+        },
+        {
+          "schema": "public",
+          "name": "plaid_account_mappings",
+          "totalBytes": 65536,
+          "dataAndToastBytes": 16384,
+          "indexBytes": 49152,
+          "purpose": "plaid account mappings (inferred from schema)"
+        },
+        {
+          "schema": "public",
+          "name": "budget_income_captures",
+          "totalBytes": 65536,
+          "dataAndToastBytes": 16384,
+          "indexBytes": 49152,
+          "purpose": "budget income captures (inferred from schema)"
+        },
+        {
+          "schema": "auth",
+          "name": "mfa_factors",
+          "totalBytes": 57344,
+          "dataAndToastBytes": 8192,
+          "indexBytes": 49152,
+          "purpose": "auth: stores metadata about factors"
+        },
+        {
+          "schema": "auth",
+          "name": "custom_oauth_providers",
+          "totalBytes": 57344,
+          "dataAndToastBytes": 8192,
+          "indexBytes": 49152,
+          "purpose": "custom oauth providers (inferred from schema)"
+        },
+        {
+          "schema": "auth",
+          "name": "oauth_consents",
+          "totalBytes": 49152,
+          "dataAndToastBytes": 8192,
+          "indexBytes": 40960,
+          "purpose": "oauth consents (inferred from schema)"
+        },
+        {
+          "schema": "auth",
+          "name": "mfa_amr_claims",
+          "totalBytes": 49152,
+          "dataAndToastBytes": 16384,
+          "indexBytes": 32768,
+          "purpose": "auth: stores authenticator method reference claims for multi factor authentication"
+        },
+        {
+          "schema": "public",
+          "name": "budget_bill_rules",
+          "totalBytes": 49152,
+          "dataAndToastBytes": 16384,
+          "indexBytes": 32768,
+          "purpose": "budget bill rules (inferred from schema)"
+        },
+        {
+          "schema": "public",
+          "name": "budget_scheduled_payments",
+          "totalBytes": 49152,
+          "dataAndToastBytes": 16384,
+          "indexBytes": 32768,
+          "purpose": "budget scheduled payments (inferred from schema)"
+        },
+        {
+          "schema": "public",
+          "name": "business_tax_categories",
+          "totalBytes": 49152,
+          "dataAndToastBytes": 16384,
+          "indexBytes": 32768,
+          "purpose": "business tax categories (inferred from schema)"
+        },
+        {
+          "schema": "storage",
+          "name": "objects",
+          "totalBytes": 49152,
+          "dataAndToastBytes": 8192,
+          "indexBytes": 40960,
+          "purpose": "objects (inferred from schema)"
+        },
+        {
+          "schema": "auth",
+          "name": "saml_relay_states",
+          "totalBytes": 40960,
+          "dataAndToastBytes": 8192,
+          "indexBytes": 32768,
+          "purpose": "Auth: Contains SAML Relay State information for each Service Provider initiated login."
+        },
+        {
+          "schema": "storage",
+          "name": "migrations",
+          "totalBytes": 40960,
+          "dataAndToastBytes": 8192,
+          "indexBytes": 32768,
+          "purpose": "migrations (inferred from schema)"
+        },
+        {
+          "schema": "public",
+          "name": "household_members",
+          "totalBytes": 40960,
+          "dataAndToastBytes": 8192,
+          "indexBytes": 32768,
+          "purpose": "household members (inferred from schema)"
+        },
+        {
+          "schema": "auth",
+          "name": "oauth_authorizations",
+          "totalBytes": 40960,
+          "dataAndToastBytes": 8192,
+          "indexBytes": 32768,
+          "purpose": "oauth authorizations (inferred from schema)"
+        },
+        {
+          "schema": "auth",
+          "name": "webauthn_credentials",
+          "totalBytes": 32768,
+          "dataAndToastBytes": 8192,
+          "indexBytes": 24576,
+          "purpose": "webauthn credentials (inferred from schema)"
+        },
+        {
+          "schema": "realtime",
+          "name": "subscription",
+          "totalBytes": 32768,
+          "dataAndToastBytes": 8192,
+          "indexBytes": 24576,
+          "purpose": "subscription (inferred from schema)"
+        },
+        {
+          "schema": "public",
+          "name": "schema_migrations",
+          "totalBytes": 32768,
+          "dataAndToastBytes": 16384,
+          "indexBytes": 16384,
+          "purpose": "schema migrations (inferred from schema)"
+        },
+        {
+          "schema": "public",
+          "name": "budget_lifecycle_months",
+          "totalBytes": 32768,
+          "dataAndToastBytes": 8192,
+          "indexBytes": 24576,
+          "purpose": "budget lifecycle months (inferred from schema)"
+        },
+        {
+          "schema": "auth",
+          "name": "saml_providers",
+          "totalBytes": 32768,
+          "dataAndToastBytes": 8192,
+          "indexBytes": 24576,
+          "purpose": "Auth: Manages SAML Identity Provider connections."
+        },
+        {
+          "schema": "auth",
+          "name": "webauthn_challenges",
+          "totalBytes": 32768,
+          "dataAndToastBytes": 8192,
+          "indexBytes": 24576,
+          "purpose": "webauthn challenges (inferred from schema)"
+        },
+        {
+          "schema": "public",
+          "name": "households",
+          "totalBytes": 32768,
+          "dataAndToastBytes": 16384,
+          "indexBytes": 16384,
+          "purpose": "households (inferred from schema)"
+        },
+        {
+          "schema": "auth",
+          "name": "sso_domains",
+          "totalBytes": 32768,
+          "dataAndToastBytes": 8192,
+          "indexBytes": 24576,
+          "purpose": "Auth: Manages SSO email address domain mapping to an SSO Identity Provider."
+        },
+        {
+          "schema": "auth",
+          "name": "sso_providers",
+          "totalBytes": 32768,
+          "dataAndToastBytes": 8192,
+          "indexBytes": 24576,
+          "purpose": "Auth: Manages SSO identity provider information; see saml_providers for SAML."
+        },
+        {
+          "schema": "storage",
+          "name": "buckets",
+          "totalBytes": 24576,
+          "dataAndToastBytes": 8192,
+          "indexBytes": 16384,
+          "purpose": "buckets (inferred from schema)"
+        },
+        {
+          "schema": "public",
+          "name": "budget_month_close_adjustments",
+          "totalBytes": 24576,
+          "dataAndToastBytes": 8192,
+          "indexBytes": 16384,
+          "purpose": "budget month close adjustments (inferred from schema)"
+        },
+        {
+          "schema": "auth",
+          "name": "audit_log_entries",
+          "totalBytes": 24576,
+          "dataAndToastBytes": 8192,
+          "indexBytes": 16384,
+          "purpose": "Auth: Audit trail for user actions."
+        },
+        {
+          "schema": "storage",
+          "name": "buckets_analytics",
+          "totalBytes": 24576,
+          "dataAndToastBytes": 8192,
+          "indexBytes": 16384,
+          "purpose": "buckets analytics (inferred from schema)"
+        },
+        {
+          "schema": "auth",
+          "name": "mfa_challenges",
+          "totalBytes": 24576,
+          "dataAndToastBytes": 8192,
+          "indexBytes": 16384,
+          "purpose": "auth: stores metadata about challenge requests made"
+        },
+        {
+          "schema": "public",
+          "name": "review_items",
+          "totalBytes": 24576,
+          "dataAndToastBytes": 8192,
+          "indexBytes": 16384,
+          "purpose": "review items (inferred from schema)"
+        },
+        {
+          "schema": "auth",
+          "name": "oauth_client_states",
+          "totalBytes": 24576,
+          "dataAndToastBytes": 8192,
+          "indexBytes": 16384,
+          "purpose": "Stores OAuth states for third-party provider authentication flows where Supabase acts as the OAuth client."
+        },
+        {
+          "schema": "storage",
+          "name": "s3_multipart_uploads",
+          "totalBytes": 24576,
+          "dataAndToastBytes": 8192,
+          "indexBytes": 16384,
+          "purpose": "s3 multipart uploads (inferred from schema)"
+        },
+        {
+          "schema": "public",
+          "name": "business_tax_classification_review_items",
+          "totalBytes": 24576,
+          "dataAndToastBytes": 8192,
+          "indexBytes": 16384,
+          "purpose": "business tax classification review items (inferred from schema)"
+        },
+        {
+          "schema": "auth",
+          "name": "schema_migrations",
+          "totalBytes": 24576,
+          "dataAndToastBytes": 8192,
+          "indexBytes": 16384,
+          "purpose": "Auth: Manages updates to the auth system."
+        },
+        {
+          "schema": "vault",
+          "name": "secrets",
+          "totalBytes": 24576,
+          "dataAndToastBytes": 8192,
+          "indexBytes": 16384,
+          "purpose": "Table with encrypted `secret` column for storing sensitive information on disk."
+        },
+        {
+          "schema": "storage",
+          "name": "vector_indexes",
+          "totalBytes": 24576,
+          "dataAndToastBytes": 8192,
+          "indexBytes": 16384,
+          "purpose": "vector indexes (inferred from schema)"
+        },
+        {
+          "schema": "realtime",
+          "name": "schema_migrations",
+          "totalBytes": 24576,
+          "dataAndToastBytes": 8192,
+          "indexBytes": 16384,
+          "purpose": "schema migrations (inferred from schema)"
+        },
+        {
+          "schema": "auth",
+          "name": "oauth_clients",
+          "totalBytes": 24576,
+          "dataAndToastBytes": 8192,
+          "indexBytes": 16384,
+          "purpose": "oauth clients (inferred from schema)"
+        },
+        {
+          "schema": "auth",
+          "name": "instances",
+          "totalBytes": 16384,
+          "dataAndToastBytes": 8192,
+          "indexBytes": 8192,
+          "purpose": "Auth: Manages users across multiple sites."
+        },
+        {
+          "schema": "public",
+          "name": "recurring_transactions",
+          "totalBytes": 16384,
+          "dataAndToastBytes": 8192,
+          "indexBytes": 8192,
+          "purpose": "recurring transactions (inferred from schema)"
+        },
+        {
+          "schema": "storage",
+          "name": "buckets_vectors",
+          "totalBytes": 16384,
+          "dataAndToastBytes": 8192,
+          "indexBytes": 8192,
+          "purpose": "buckets vectors (inferred from schema)"
+        },
+        {
+          "schema": "storage",
+          "name": "s3_multipart_uploads_parts",
+          "totalBytes": 16384,
+          "dataAndToastBytes": 8192,
+          "indexBytes": 8192,
+          "purpose": "s3 multipart uploads parts (inferred from schema)"
+        },
+        {
+          "schema": "realtime",
+          "name": "messages",
+          "totalBytes": 0,
+          "dataAndToastBytes": 0,
+          "indexBytes": 0,
+          "purpose": "messages (inferred from schema)"
+        }
+      ]
+    }
+  ],
+  "duplicateIndexes": [
+    {
+      "schema": "public",
+      "table_name": "amazon_fba_inventory_snapshots",
+      "constraints": 0,
+      "first_bytes": 61399040,
+      "first_index": "amazon_fba_inventory_snapshots_sku_idx",
+      "first_valid": true,
+      "indisunique": false,
+      "second_bytes": 56016896,
+      "second_index": "idx_amazon_fba_inventory_snapshots_latest",
+      "second_valid": true,
+      "first_options": null,
+      "first_primary": false,
+      "second_options": null,
+      "second_primary": false,
+      "first_definition": "CREATE INDEX amazon_fba_inventory_snapshots_sku_idx ON public.amazon_fba_inventory_snapshots USING btree (seller_sku, marketplace_id, captured_at DESC)",
+      "second_definition": "CREATE INDEX idx_amazon_fba_inventory_snapshots_latest ON public.amazon_fba_inventory_snapshots USING btree (seller_sku, marketplace_id, captured_at DESC)"
+    }
+  ]
+}
