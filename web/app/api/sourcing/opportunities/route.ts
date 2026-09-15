@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabase, toNumber } from "../_supabase";
 import { cachedSourcingList } from "../readCache";
+import { filterExclusions } from "../exclusionFilter";
 import { buildDiagnosticComparison } from "../diagnosticComparison";
 import { businessExclusion, recordedHoldCheck, selectRecordedHold } from "../businessExclusion";
 import { fetchLatestReviews } from "../reviewActions";
@@ -559,9 +560,11 @@ async function getOpportunities(request: NextRequest) {
       return haystack.includes(queryText.toLowerCase());
     });
 
-  const sortedRows = scope === "closest_excluded"
+  const allSortedRows = scope === "closest_excluded"
     ? dedupeExactEbayListings(mappedRows).sort((left, right) => (right.nearMissRank ?? 0) - (left.nearMissRank ?? 0))
     : groupByAsinPriority(dedupeExactEbayListings(mappedRows));
+  const excluded = scope === "closest_excluded" ? filterExclusions(allSortedRows, searchParams.get("exclusionReason") ?? "all") : null;
+  const sortedRows = excluded?.rows ?? allSortedRows;
   const opportunities = sortedRows.slice(0, limit);
   // Large descriptions/aspects are only needed by the visible rows' review panels.
   // Keep qualification, ordering, deduplication and summary over the entire result set.
@@ -591,6 +594,7 @@ async function getOpportunities(request: NextRequest) {
     refreshedAt: new Date().toISOString(),
     scope,
     summary: summarizeMappedRows(sortedRows, opportunities.length),
+    ...(excluded ? { exclusionOptions: excluded.options } : {}),
     opportunities,
     businessSuppressions: businessMode ? [...activeSuppressionByAsin.values()].filter(hold=>!queryText||hold.asin?.toLowerCase().includes(queryText.toLowerCase())) : [],
     batch: latestBatch,

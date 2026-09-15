@@ -8,6 +8,7 @@ This folder contains the Midnight Blue Operations Platform purchases workflow UI
 - `page.tsx` composes the workspace and owns UI-local query/workflow state.
 - `usePurchases` owns purchase loading, query-aware caching, save status, errors, and API mutations.
 - `/api/purchases` owns list filtering, sorting, pagination, and summary counts.
+- Delivery backlog metrics show units and authoritative purchase dollars across all active resale purchases. `purchase_delivery_stats()` aggregates the purchase view on the backend, independent of list filters; see [semantics and validation](../../../docs/purchase_metrics_sourcing_fixes_2026-09-15.md).
 - Table, filter, metric, price-cell, and drawer components stay presentation-focused.
 
 ## Table Display

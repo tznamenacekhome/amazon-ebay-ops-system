@@ -29,3 +29,24 @@ const before=backgroundCalls.length;await bg.get(sourcingTabUrls[0]);assert.equa
 let attempts=0;const failure=new SourcingResourceCache(async url=>url.includes('cache-version')?Response.json({version:'v',running:false}):(attempts++,Response.json({error:'Actual failure'},{status:500})));
 assert.equal((await (await failure.get('/api/sourcing/settings')).json()).error,'Actual failure');await failure.get('/api/sourcing/settings');assert.equal(attempts,2,'Errors are never cached');
 console.log('Resource cache: long-lived hits, revision and mutation invalidation, force refresh, single-flight, stale rejection, stale activity labels, Buy List first, all-tab preload and errors passed');
+
+// Exercise the real focus event callback, not just direct version reads.
+const events=new Map();globalThis.window={addEventListener:(name,fn)=>events.set(name,fn),removeEventListener:name=>events.delete(name)};
+let probeFails=false,focusVersion='focus-v1',listReads=0,notifications=0;
+const focusCache=new SourcingResourceCache(async url=>{
+ if(url.includes('cache-version')){if(probeFails)throw new Error('Network unavailable');return Response.json({version:focusVersion});}
+ listReads++;return Response.json({cacheVersion:focusVersion});
+});
+const stopFocus=focusCache.start();await focusCache.checkVersion();await focusCache.get(url);
+focusCache.subscribe(()=>notifications++);
+events.get('focus')();await focusCache.checkVersion();await focusCache.get(url);
+assert.equal(listReads,1,'Unchanged focus reuses cached list');assert.equal(notifications,0);
+probeFails=true;events.get('focus')();await new Promise(r=>setImmediate(r));
+assert.match(focusCache.getFreshnessError(),/Network unavailable/);await focusCache.get(url);
+assert.equal(listReads,1,'Failed focus probe retains cache');assert.equal(notifications,0);
+probeFails=false;events.get('focus')();await focusCache.checkVersion();
+assert.equal(focusCache.getFreshnessError(),null);assert.equal(listReads,1);
+focusVersion='focus-v2';events.get('focus')();await focusCache.checkVersion();await focusCache.get(url);
+assert.equal(listReads,2,'Real committed change still reloads');assert.equal(notifications,1);
+stopFocus();delete globalThis.window;
+console.log('Focus regression: unchanged/failed/recovered probes retain cache; actual changes invalidate; failure remains visible');

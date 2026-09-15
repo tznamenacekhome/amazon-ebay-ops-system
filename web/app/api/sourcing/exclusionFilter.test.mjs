@@ -1,0 +1,14 @@
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import ts from 'typescript';
+const out={};new Function('exports',ts.transpileModule(readFileSync(new URL('./exclusionFilter.ts',import.meta.url),'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText)(out);
+const row=(id,code)=>({id,exclusionReason:{code,label:code}});
+const rows=[...Array.from({length:50},(_,i)=>row(i,'review_threshold')),row(50,'profitability'),row(51,'category'),{id:52}];
+assert.equal(out.filterExclusions(rows,'all').rows.length,53);
+assert.deepEqual(out.filterExclusions(rows,'profitability').rows.slice(0,50).map(r=>r.id),[50],'Filter before visible-row limit');
+assert.equal(out.filterExclusions(rows,'review_threshold').rows.length,50);
+assert.equal(out.filterExclusions(rows,'category').rows[0].id,51);
+assert.equal(out.filterExclusions(rows,'unknown').rows[0].id,52);
+assert.equal(out.filterExclusions(rows,'absent').rows.length,0);
+assert.equal(out.filterExclusions(rows,'profitability').options.find(o=>o.code==='review_threshold').count,50,'Counts cover all unfiltered eligible reasons');
+console.log('Exclusion filter: all/review/profitability/dynamic/unknown/empty and pre-limit selection passed');

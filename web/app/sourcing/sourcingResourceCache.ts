@@ -25,9 +25,18 @@ export class SourcingResourceCache {
   private pumping = false;
   private active = false;
   private listeners = new Set<() => void>();
+  private freshnessListeners = new Set<() => void>();
+  private freshnessError: string | null = null;
   constructor(private transport: typeof fetch = (...args) => fetch(...args)) {}
   subscribe = (listener: () => void) => { this.listeners.add(listener); return () => { this.listeners.delete(listener); }; };
   snapshot = () => this.generation;
+  subscribeFreshness = (listener: () => void) => { this.freshnessListeners.add(listener); return () => { this.freshnessListeners.delete(listener); }; };
+  getFreshnessError = () => this.freshnessError;
+  private setFreshnessError(value: string | null) {
+    if (this.freshnessError === value) return;
+    this.freshnessError = value;
+    this.freshnessListeners.forEach(listener => listener());
+  }
   invalidate(notify = false) {
     this.generation++; this.version = null; this.entries.clear(); this.queue = []; this.preloaded = null;
     if (notify) this.listeners.forEach(listener => listener());
@@ -43,12 +52,19 @@ export class SourcingResourceCache {
       const changed = this.version !== null && this.version !== body.version;
       if (changed) this.invalidate(true);
       this.version = body.version;
+      this.setFreshnessError(null);
     })();
-    try { await this.checking; } finally { this.checking = null; }
+    try { await this.checking; }
+    catch (error) {
+      this.setFreshnessError(`Could not check for sourcing updates. Showing the last loaded data. ${error instanceof Error ? error.message : "Freshness check failed."}`);
+      throw error;
+    } finally { this.checking = null; }
   }
   start() {
     this.active = true;
-    const check = () => { void this.checkVersion().catch(() => { this.version = null; this.invalidate(true); }); };
+    // Focus is a freshness probe, not evidence of a change. Network/auth failures
+    // retain the last loaded view and show a warning instead of purging all tabs.
+    const check = () => { void this.checkVersion().catch(() => {}); };
     check();
     const timer = setInterval(() => { if (typeof document === "undefined" || document.visibilityState === "visible") check(); }, 30_000);
     if (typeof window !== "undefined") window.addEventListener("focus", check);

@@ -136,7 +136,14 @@ export type ProblemEvent = {
   created_at?: string | null;
 };
 
+export type PurchaseDeliveryStats = {
+  notDelivered: { units: number; purchaseDollars: number; unpricedUnits: number };
+  deliveredNotReceived: { units: number; purchaseDollars: number; unpricedUnits: number };
+};
+
 export type PurchaseStats = {
+  delivery?: PurchaseDeliveryStats | null;
+  deliveryError?: string | null;
   total: number;
   visible: number;
   needsReview: number;

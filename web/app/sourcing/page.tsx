@@ -78,6 +78,7 @@ export default function SourcingPage() {
   const [inventoryFilter, setInventoryFilter] = useState<(typeof inventoryFilters)[number]>("all");
   const [scope, setScope] = useState("all_open");
   const [searchText, setSearchText] = useState("");
+  const [exclusionReason, setExclusionReason] = useState("all");
   const effectiveStatus =
     activeTab === "Closest Excluded"
       ? "all"
@@ -88,7 +89,7 @@ export default function SourcingPage() {
           : activeTab === "Purchased Pending Match"
             ? "purchased_pending_match"
             : status;
-  const { rows, businessSuppressions, summary, batch, loading, error, reload, removeRows, setError } = useSourcingOpportunities(
+  const { rows, businessSuppressions, summary, batch, loading, error, freshnessError, exclusionOptions, reload, removeRows, setError } = useSourcingOpportunities(
     effectiveStatus,
     type,
     searchText,
@@ -96,6 +97,7 @@ export default function SourcingPage() {
     activeTab === "Closest Excluded" ? "closest_excluded" : activeTab === "Buy List" ? scope : "all_open",
     inventoryFilter,
     ["Buy List", "Closest Excluded", "Business Excluded", "Watchlist", "Purchased Pending Match"].includes(activeTab),
+    activeTab === "Closest Excluded" ? exclusionReason : "all",
   );
   const [actionBusyId, setActionBusyId] = useState<string | null>(null);
   const [dismissRow, setDismissRow] = useState<SourcingOpportunity | null>(null);
@@ -230,6 +232,7 @@ export default function SourcingPage() {
       </div>
 
       {notice ? <div className="mb-3 rounded-md border border-sky-200 bg-sky-50 px-3 py-2 text-sm text-sky-800">{notice}</div> : null}
+      {freshnessError ? <div role="status" className="mb-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">{freshnessError}</div> : null}
       {error ? <div className="mb-3 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div> : null}
 
       {activeTab === "Sourcing History" ? (
@@ -260,6 +263,13 @@ export default function SourcingPage() {
                 placeholder="Search ASIN, Amazon title, or eBay title"
               />
             </div>
+            {activeTab === "Closest Excluded" ? (
+              <select aria-label="Exclusion reason" value={exclusionReason} onChange={event => setExclusionReason(event.target.value)} className="h-9 rounded-md border border-slate-300 bg-white px-2 text-sm">
+                <option value="all">All exclusion reasons</option>
+                {exclusionOptions.map(option => <option key={option.code} value={option.code}>{option.label} ({option.count})</option>)}
+                {exclusionReason !== "all" && !exclusionOptions.some(option => option.code === exclusionReason) ? <option value={exclusionReason}>{label(exclusionReason)} (0)</option> : null}
+              </select>
+            ) : null}
             {activeTab === "Buy List" ? (
               <select
                 value={scope}

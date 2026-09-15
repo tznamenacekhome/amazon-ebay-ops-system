@@ -7,6 +7,7 @@ import {
   normalizeSystem,
 } from "../../purchases/matchingKeys";
 import { resolveAsinMetadata } from "../_asinMetadata";
+import { fetchDeliveryStats } from "./deliveryStats";
 
 const supabase = createServerSupabaseClient();
 
@@ -443,7 +444,7 @@ async function fetchPurchaseStats(
   excludedItemIds: string[],
   amazonTitleReviewItemIds: string[]
 ) {
-  const [total, needsReview, orderProblems, delivered] = await Promise.all([
+  const [total, needsReview, orderProblems, delivered, deliveryStats] = await Promise.all([
     countPurchaseRows(
       { ...query, searchText: "", asinFilter: "all", statusFilter: "all" },
       excludedItemIds,
@@ -464,6 +465,7 @@ async function fetchPurchaseStats(
       excludedItemIds,
       amazonTitleReviewItemIds
     ),
+    fetchDeliveryStats(supabase),
   ]);
 
   return {
@@ -472,6 +474,7 @@ async function fetchPurchaseStats(
     needsReview,
     orderProblems,
     delivered,
+    ...deliveryStats,
   };
 }
 

@@ -12,6 +12,7 @@ export function useSourcingOpportunities(
   scope = "all_open",
   inventoryFilter = "all",
   enabled = true,
+  exclusionReason = "all",
 ) {
   const [rows, setRows] = useState<SourcingOpportunity[]>([]);
   const [businessSuppressions,setBusinessSuppressions]=useState<Array<{asin:string;current_velocity:number|null;required_velocity:number|null;last_evaluated_at:string|null}>>([]);
@@ -19,6 +20,13 @@ export function useSourcingOpportunities(
   const [batch, setBatch] = useState<SourcingBatch | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [exclusionOptions, setExclusionOptions] = useState<Array<{code: string; label: string; count: number}>>([]);
+  const [freshnessError, setFreshnessError] = useState<string | null>(null);
+  useEffect(() => {
+    const update = () => setFreshnessError(sourcingResources.getFreshnessError());
+    update();
+    return sourcingResources.subscribeFreshness(update);
+  }, []);
 
   const request = useRef<AbortController | null>(null);
   const [debouncedSearch, setDebouncedSearch] = useState(searchText);
@@ -27,13 +35,13 @@ export function useSourcingOpportunities(
     return () => clearTimeout(timer);
   }, [searchText]);
 
-  const load = useCallback(async (force = false) => {
+  const load = useCallback(async (force = false, background = false) => {
     request.current?.abort();
     const controller = new AbortController();
     request.current = controller;
     if (force) sourcingResources.invalidate();
     if (!enabled) { setLoading(false); return; }
-    setLoading(true);
+    if (!background) setLoading(true);
     setError(null);
     try {
       const params = new URLSearchParams({ status, type, limit: scope === "closest_excluded" ? "50" : "150" });
@@ -41,6 +49,7 @@ export function useSourcingOpportunities(
       params.set("format", "list");
       if (sourceMode !== "all") params.set("sourceMode", sourceMode);
       if (inventoryFilter !== "all") params.set("inventoryFilter", inventoryFilter);
+      if (scope === "closest_excluded" && exclusionReason !== "all") params.set("exclusionReason", exclusionReason);
       if (debouncedSearch.trim()) params.set("q", debouncedSearch.trim());
       const response = await sourcingResources.get(`/api/sourcing/opportunities?${params}`, { fresh: force });
       const payload = await response.json();
@@ -49,6 +58,7 @@ export function useSourcingOpportunities(
       setRows(payload.opportunities ?? []);
       setBusinessSuppressions(payload.businessSuppressions ?? []);
       setSummary(payload.summary ?? {});
+      setExclusionOptions(payload.exclusionOptions ?? []);
       setBatch(payload.batch ?? null);
       if (status === "open" && scope !== "closest_excluded" && payload.cacheVersion !== null) sourcingResources.prefetchAfterBuyList();
     } catch (err) {
@@ -57,12 +67,12 @@ export function useSourcingOpportunities(
     } finally {
       if (!controller.signal.aborted) setLoading(false);
     }
-  }, [inventoryFilter, scope, debouncedSearch, sourceMode, status, type, enabled]);
+  }, [inventoryFilter, scope, debouncedSearch, sourceMode, status, type, enabled, exclusionReason]);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     void load();
-    const unsubscribe = sourcingResources.subscribe(() => { void load(); });
+    const unsubscribe = sourcingResources.subscribe(() => { void load(false, true); });
     return () => { request.current?.abort(); unsubscribe(); };
   }, [load]);
   const reload = useCallback(() => load(true), [load]);
@@ -75,5 +85,5 @@ export function useSourcingOpportunities(
     setRows(currentRows => currentRows.filter(row => !ids.has(row.opportunityId)));
   }, []);
 
-  return { rows, businessSuppressions, summary, batch, loading, error, reload, removeRows, setError };
+  return { rows, businessSuppressions, summary, batch, loading, error, freshnessError, exclusionOptions, reload, removeRows, setError };
 }
