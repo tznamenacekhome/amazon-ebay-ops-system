@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ArrowDown, ArrowUp, Check, PackageCheck, RefreshCw, Search, X } from "lucide-react";
 import { DataFreshness } from "../DataFreshness";
 import { mutationHeaders } from "../mutationHeaders";
+import { ReceivingMetrics } from "./ReceivingMetrics";
 
 import type { PurchaseRow } from "../purchases/types";
 import {
@@ -70,11 +71,13 @@ export default function ReceivingPage() {
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
   const [refreshing, setRefreshing] = useState(false);
   const [freshnessKey, setFreshnessKey] = useState(0);
+  const [metricsKey, setMetricsKey] = useState(0);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const lastAutoOpenedSearch = useRef("");
   const detailOpenedAt = useRef(0);
 
   const loadQueue = useCallback(async () => {
+    setMetricsKey((current) => current + 1);
     try {
       const response = await fetch("/api/receiving", { cache: "no-store" });
 
@@ -412,6 +415,7 @@ export default function ReceivingPage() {
       }
 
       const itemIds = new Set(items.map((item) => item.item_id));
+      setMetricsKey((current) => current + 1);
       setRows((currentRows) =>
         currentRows.filter((row) => !row.item_id || !itemIds.has(row.item_id))
       );
@@ -534,10 +538,12 @@ export default function ReceivingPage() {
         </div>
       </div>
 
+      <ReceivingMetrics refreshKey={metricsKey} />
+
       <div className="mb-4 rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
         <div className="mb-3 flex flex-wrap items-center gap-3 text-sm">
           <div className="font-medium text-slate-700">
-            {formatNumber(rows.length)} items ready to receive
+            {formatNumber(rows.length)} item rows ready to receive
           </div>
           {searchText.trim() && (
             <div className="text-slate-500">
