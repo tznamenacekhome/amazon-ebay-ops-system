@@ -2,6 +2,16 @@
 
 Last updated: 2026-09-15
 
+## Current compute - Medium, September 15, 2026
+
+After the disk expansion, the operator explicitly authorized upgrading compute and then running sourcing. The shared MBOP/College Planner project was upgraded from Small (2 GB RAM) to **Medium (4 GB RAM)** using the documented Management API billing-addon PATCH with `{"addon_type":"compute_instance","addon_variant":"ci_medium"}`. HTTP 200 was received at 19:02:14 UTC. During the expected restart, one metrics read timed out and another returned 521 while project status was `RESIZING`; sourcing was not launched during recovery.
+
+At 19:03:09 UTC the project reported `ACTIVE_HEALTHY`, selected addon `ci_medium`, PostgreSQL up, and a successful HTTP 200 tiny sourcing-runs read. Metrics showed 4,009,824,256 bytes OS-visible RAM, 3,389,849,600 bytes available (3.16 GiB), all 1,073,737,728 swap bytes free, and 26,392,846,336 filesystem bytes free (24.58 GiB). The unchanged `pressure_reason` safety gate returned no blocker. Medium is $0.0822/hour (approximately $60/month), versus Small at $0.0206/hour (approximately $15/month): **about $45/month additional compute**, separate from the approximately $3/month additional disk. See [compute pricing](https://supabase.com/docs/guides/platform/manage-your-usage/compute).
+
+One manual `sourcing-catalog` task was launched using the existing live EventBridge target's scheduler93 image, CPU/memory, command, and networking. Only the invocation's trigger-source label was changed to `manual-capacity-recovery`; no saved schedule or task definition was changed. Task: `d79fa556897e4082a54b88b2b6714ff6`; scheduler run: `33f583b3-41bf-4f26-bea5-0fc2b2e81877`; command: `python run_all_syncs.py --group sourcing-catalog`. At 19:04:50 UTC the task was RUNNING, production `database_guard_ready` passed, and Daily catalog sourcing had started. This is startup verification, not a completed-run claim.
+
+Launch preflight checked fresh capacity, a tiny DB read, no recent running sourcing record and no running scheduler ECS tasks. An initial broad status check found historical rows still marked `running` (the latest started September 6 and already has a completion timestamp); those records were left unchanged. No application/matcher deployment, guard weakening, schema change, cleanup, or separate marketplace-write workflow was performed. The authorized sourcing group retains its ordinary configured provider reads and internal decision writes. ZFI's project is unchanged. Local evidence: `tmp/ops-20260915/compute-upgrade.json`, `compute-verified.json`, `sourcing-medium-run.json`, and `sourcing-medium-status.json`.
+
 ## Current provisioned disk - September 15, 2026
 
 At the operator's request, the shared MBOP/College Planner project `amazon-ebay-ops` (`froeucjkcepuhgwisped`) was expanded from **8 GB to 32 GB**. The Management API accepted the disk-only update with HTTP 201 at 18:53:32 UTC and subsequently confirmed 32 GB provisioned. Storage remains gp3 with 3,000 IOPS and 125 MiB/s throughput; compute is unchanged.

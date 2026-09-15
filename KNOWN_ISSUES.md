@@ -2,7 +2,7 @@
 
 ## Sourcing blocked by Supabase capacity - September 15, 2026
 
-September 14 sourcing exhausted its swap-headroom preflight; September 15 exhausted disk headroom. The authorized September 15 disk expansion from 8 GB to 32 GB is verified, with 24.58 GiB free. Disk headroom is resolved, but swap remains below the 25% guard minimum (22.05% free at 18:55:45 UTC). PostgreSQL is up and a tiny read succeeded. No rerun or gate weakening performed. See [resize verification and remaining blocker](docs/supabase_capacity.md) and [original failure evidence](docs/purchase_metrics_sourcing_fixes_2026-09-15.md). Memory headroom still requires review before retrying catalog work.
+September 14 sourcing exhausted its swap-headroom preflight; September 15 exhausted disk headroom. Authorized September 15 remediation expanded disk from 8 GB to 32 GB and compute from Small (2 GB RAM) to Medium (4 GB). Both capacity blockers cleared: 24.58 GiB disk free, 3.16 GiB RAM available, 100% swap free, PostgreSQL up and tiny read successful at 19:03:09 UTC. One authorized sourcing rerun (`33f583b3-41bf-4f26-bea5-0fc2b2e81877`) passed its unchanged production gate and started Daily catalog sourcing; completion is not yet verified. See [upgrade and run evidence](docs/supabase_capacity.md) and [original failure evidence](docs/purchase_metrics_sourcing_fixes_2026-09-15.md). Sustained memory headroom during the full workload remains to be confirmed.
 
 ## Sourcing matching closeout completed — 2026-09-14
 
