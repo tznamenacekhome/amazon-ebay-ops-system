@@ -1,5 +1,7 @@
 # Sourcing workspace run-aware cache
 
+September 15 follow-up: [focus cache handling and exclusion filters](purchase_metrics_sourcing_fixes_2026-09-15.md) are tested and pushed but await web deployment approval. That change retains cached rows with a warning if a freshness probe fails and refreshes actual changes without blanking the table. The production revision below remains web154 until that release is approved.
+
 Supersedes the 15-second browser-cache design in web152. Scope: web/API performance and additive database read-model/cache metadata. No matching/routing rules, scheduler definitions, provider searches or bounded decision refresh.
 
 ## Why cold tabs were slow
