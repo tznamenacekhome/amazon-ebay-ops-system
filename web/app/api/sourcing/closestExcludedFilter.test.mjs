@@ -6,8 +6,9 @@ import {createRequire} from 'node:module';
 import ts from 'typescript';
 const require=createRequire(import.meta.url),root=dirname(fileURLToPath(import.meta.url));
 const rows=Array.from({length:53},(_,i)=>({opportunity_id:`opp-${i}`,candidate_id:`candidate-${i}`,asin:`ASIN${i}`,ebay_item_id:`listing-${i}`,status:'rejected',opportunity_type:'review',score:100-i,profit:i===51?-1:10,matching_diagnostics_json:i===52?{hard_blocks:['wrong platform']}:{recommendation:'Review'},sourcing_seed_asins:{asin:`ASIN${i}`,amazon_title:'Game',source_mode:'recent_sales'},sourcing_ebay_candidates:{ebay_item_id:`listing-${i}`,ebay_title:'Game listing',listing_status:'active',display_price:{currency:'USD'},display_shipping:[]}}));
-const db={rpc:async()=>({data:[],error:null}),from(table){
- const query=new Proxy({}, {get(_,method){if(method==='then')return done=>Promise.resolve(done({data:table==='sourcing_opportunities'?rows:[],error:null}));return ()=>query;}});return query;
+let reviews=[];
+const db={rpc:async()=>({data:reviews,error:null}),from(table){
+ const query=new Proxy({}, {get(_,method){if(method==='then')return done=>Promise.resolve(done({data:table==='sourcing_opportunities'?rows:table==='sourcing_actions'&&reviews.length?[{opportunity_id:'opp-0',action_type:'matching_feedback'}]:[],error:null}));return ()=>query;}});return query;
 }};
 const modules=new Map();function load(file){file=resolve(file);if(modules.has(file))return modules.get(file);const out={};modules.set(file,out);new Function('require','exports',ts.transpileModule(readFileSync(file,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText)(name=>{
  if(name==='next/server')return {NextResponse:{json:(body,init)=>({body,json:async()=>body,ok:!init?.status||init.status<400,status:init?.status??200,headers:new Headers()})}};
@@ -25,3 +26,12 @@ assert(profit.body.exclusionOptions.some(o=>o.code==='wrong_platform'&&o.count==
 const platform=await get('wrong_platform');assert.equal(platform.body.opportunities[0].opportunityId,'opp-52');
 const empty=await get('absent');assert.equal(empty.body.summary.total,0);assert.equal(empty.body.opportunities.length,0);
 console.log('Actual Closest Excluded GET: full-set filtering before limit, reason counts, review/profitability/other/all/empty passed');
+
+reviews=[{asin:'ASIN0',ebayItemId:'listing-0',actionId:'saved',pairVerdict:'correct',feedback:{queueChoice:'keep_closest',parserAssessment:'correct',sourceAccuracy:'listing_error'}}];
+assert.equal((await get('all')).body.summary.total,53,'Confirmed kept pair must remain in Closest Excluded');
+assert.equal((await get('all')).body.opportunities[0].latestReview.feedback.parserAssessment,'correct');
+reviews[0].feedback.queueChoice='move_buy_list';
+assert.equal((await get('all')).body.summary.total,52,'Promoted pair is removed from Closest Excluded');
+reviews[0].feedback={};
+assert.equal((await get('all')).body.summary.total,52,'Legacy review behavior is preserved');
+console.log('Explicit keep survives confirmation and reload; move leaves Closest; legacy behavior retained');

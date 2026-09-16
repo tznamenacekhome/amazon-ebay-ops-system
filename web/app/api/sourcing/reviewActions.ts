@@ -42,11 +42,12 @@ export async function saveMatchingReview(request: Request, opportunity: RecordVa
     }
     const raw = record(candidate.raw_ebay_json);
     const context = {
+      reviewGuardHash: body.reviewGuardHash ?? null,
       actionType,sourceTab:String(body.sourceTab ?? "legacy"),matchingFeedback:feedback,
       feedbackCategory:semantics.category,learningScope:semantics.learningScope,
       selectedReason:dismissReasons.some(([value])=>value===body.selectedReason)?body.selectedReason:null,
       failureClassification:{reportedExtractionFields:feedback.flaggedFields,reportedRuleFamilies:feedback.failedRuleFamilies,pipelineStage:"unspecified",
-        reportType:feedback.failedRuleFamilies.length ? "operator_reported_field_error" : feedback.pairVerdict==="incorrect" ? "pair_non_match_without_component" : "unspecified"},
+        reportType:feedback.sourceAccuracy === "listing_error" && feedback.parserAssessment === "correct" ? "seller_listing_error_parser_correct" : feedback.failedRuleFamilies.length ? "operator_reported_field_error" : feedback.pairVerdict==="incorrect" ? "pair_non_match_without_component" : "unspecified"},
       pair:{opportunityId:opportunity.opportunity_id,candidateId:opportunity.candidate_id,asin:opportunity.asin,
         ebayItemId:opportunity.ebay_item_id,ebayLegacyItemId:candidate.ebay_legacy_item_id ?? null,
         variationId:String(opportunity.ebay_item_id ?? "").split("|")[2] ?? null,itemGroupId:raw.itemGroupId ?? null},
@@ -58,7 +59,7 @@ export async function saveMatchingReview(request: Request, opportunity: RecordVa
     const snapshot = buildListingSnapshot({opportunity,candidate,seed:exactSeed,event:"matching_feedback",rawContext:context});
     const hash = createHash("sha256").update(JSON.stringify(body)).digest("hex");
     const actor = request.headers.get("x-amzn-oidc-identity") ?? "authenticated_admin_api";
-    const {data,error} = await supabase.rpc("sourcing_save_review",{
+    const {data,error} = await supabase.rpc(feedback.queueChoice ? "sourcing_save_review_choice" : "sourcing_save_review",{
       p_opportunity_id:opportunity.opportunity_id,p_request_id:requestId,p_asin:opportunity.asin,p_candidate_id:opportunity.candidate_id,
       p_action_type:actionType,p_reason:reason,p_notes:context.notes,p_actor:actor,p_request_hash:hash,
       p_context:context,p_snapshot:snapshot,p_label:semantics.label,

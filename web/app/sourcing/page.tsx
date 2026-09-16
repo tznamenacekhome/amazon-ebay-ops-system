@@ -20,6 +20,7 @@ import { KeepaPriceIndicator } from "../components/KeepaPriceIndicator";
 
 import { MatchingReviewControls, ReviewEvidence } from "./MatchingReviewControls";
 import type { MatchingFeedback } from "../api/sourcing/matchingFeedback";
+import { ParserReview } from "./ParserReview";
 import { ReviewRequestIds } from "./reviewRequestIds";
 
 const tabs = ["Buy List", "Closest Excluded", "Business Excluded", "Coverage Cycle", "Watchlist", "Purchased Pending Match", "Sourcing History", "Matching Intelligence", "Settings"] as const;
@@ -52,6 +53,7 @@ type SourcingActionPayload = {
   expectedEbayItemId?: string | null;
   expectedCandidateId?: string | null;
   expectedEvaluationId?: unknown;
+  reviewGuardHash?: string | null;
   asin?: string;
   reason?: string;
   selectedReason?: string;
@@ -120,7 +122,7 @@ export default function SourcingPage() {
   function reviewPayload(row: SourcingOpportunity, payload: SourcingActionPayload) {
     if (!["dismiss","block_asin","mark_valid_match","confirm_exclusion","save_match_feedback"].includes(payload.actionType)) return payload;
     const key = JSON.stringify([row.opportunityId,payload]);
-    return {...payload,requestId:reviewRequests.current.get(key),sourceTab:activeTab,expectedAsin:row.asin,expectedEbayItemId:row.ebayItemId,expectedCandidateId:row.candidateId??null,expectedEvaluationId:row.evaluationId??row.diagnosticComparison?.evaluation?.id??null};
+    return {...payload,reviewGuardHash:row.reviewGuardHash,requestId:reviewRequests.current.get(key),sourceTab:activeTab,expectedAsin:row.asin,expectedEbayItemId:row.ebayItemId,expectedCandidateId:row.candidateId??null,expectedEvaluationId:row.evaluationId??row.diagnosticComparison?.evaluation?.id??null};
   }
 
   async function act(row: SourcingOpportunity, payload: SourcingActionPayload) {
@@ -375,6 +377,7 @@ export default function SourcingPage() {
               {(reviewRow) => <DismissOpportunityDialog
               key={dismissRow.opportunityId}
               saveError={error}
+              closestQueue={activeTab === "Closest Excluded"}
               row={reviewRow}
               actionBusyId={actionBusyId}
               initialDiagnosticsOpen={activeTab === "Buy List" || activeTab === "Closest Excluded"}
@@ -1005,8 +1008,8 @@ function AmountLine({ label: lineLabel, row, amountUsd }: { label: string; row: 
   return <div className="text-xs text-slate-500">{lineLabel} {offerBidAmountLabel(row, amountUsd)}</div>;
 }
 
-function DismissOpportunityDialog({row,actionBusyId,onClose,onReview,saveError}: {
-  row:SourcingOpportunity; actionBusyId:string|null; initialDiagnosticsOpen:boolean; onClose:()=>void;
+function DismissOpportunityDialog({row,actionBusyId,onClose,onReview,saveError,closestQueue}: {
+  row:SourcingOpportunity; actionBusyId:string|null; initialDiagnosticsOpen:boolean; closestQueue?:boolean; onClose:()=>void;
   onReview:(payload:SourcingActionPayload)=>Promise<void>; saveError?:string|null;
 }) {
   const [notes, setNotes] = useState("");
@@ -1017,15 +1020,17 @@ function DismissOpportunityDialog({row,actionBusyId,onClose,onReview,saveError}:
   const failedRuleFamilies = [...new Set((row.diagnosticComparison?.rows ?? []).filter(r=>wrongRows.includes(r.key)).map(r=>r.ruleFamily).filter((v):v is string=>Boolean(v)))];
   const busy = actionBusyId === row.opportunityId;
   const [reason,setReason] = useState("");
-  const [pairVerdict,setPairVerdict] = useState<MatchingFeedback["pairVerdict"]>("not_provided");
+  const [parserAssessment,setParserAssessment] = useState<MatchingFeedback["parserAssessment"]>((row.latestReview?.feedback?.parserAssessment as MatchingFeedback["parserAssessment"]) ?? "not_reviewed");
+  const [sourceAccuracy,setSourceAccuracy] = useState<MatchingFeedback["sourceAccuracy"]>((row.latestReview?.feedback?.sourceAccuracy as MatchingFeedback["sourceAccuracy"]) ?? "not_reviewed");
+  const [pairVerdict,setPairVerdict] = useState<MatchingFeedback["pairVerdict"]>((row.latestReview?.pairVerdict as MatchingFeedback["pairVerdict"]) ?? "not_provided");
   const [corrections,setCorrections] = useState<MatchingFeedback["corrections"]>([]);
   const [usedEvidence,setUsedEvidence] = useState<string[]>([]);
   const diagnosticsFeedback: Partial<MatchingFeedback> = {
-    version:"matching_feedback_v3", allAssumptionsCorrect,
-    failedRuleFamilies, flaggedFields:wrongRows.map(key=>reviewFieldKeys[key]),
+    version:"matching_feedback_v3", allAssumptionsCorrect, parserAssessment, sourceAccuracy,
+    failedRuleFamilies: parserAssessment === "correct" ? [] : failedRuleFamilies, flaggedFields:wrongRows.map(key=>reviewFieldKeys[key]),
     evidenceSources:usedEvidence, pairVerdict, corrections, note:notes.trim()||null,
   };
-  function save(actionType:string, verdict = pairVerdict, dismissReason = reason) { void onReview({actionType,reason:actionType === "dismiss"?dismissReason:undefined,selectedReason:reason||undefined,notes,imageClues,diagnosticsFeedback:{...diagnosticsFeedback,pairVerdict:verdict}}); }
+  function save(actionType:string, verdict = pairVerdict, dismissReason = reason, queueChoice?: MatchingFeedback["queueChoice"]) { void onReview({actionType,reason:actionType === "dismiss"?dismissReason:undefined,selectedReason:reason||undefined,notes,imageClues,diagnosticsFeedback:{...diagnosticsFeedback,pairVerdict:verdict,...(queueChoice ? {queueChoice} : {})}}); }
 
   return (
     <div className="fixed inset-0 z-40 flex items-center justify-center bg-slate-950/20 p-4">
@@ -1044,6 +1049,7 @@ function DismissOpportunityDialog({row,actionBusyId,onClose,onReview,saveError}:
               onChoose={setReason}
             />
             {reason ? <div className="text-xs">Selected reason: {label(reason)}</div> : null}
+            <ParserReview parserAssessment={parserAssessment} sourceAccuracy={sourceAccuracy} setParserAssessment={setParserAssessment} setSourceAccuracy={setSourceAccuracy}/>
             <ReviewEvidence verdict={pairVerdict} onVerdict={setPairVerdict} evidence={usedEvidence} onEvidence={setUsedEvidence}/>
             <ImageClueButtons selected={imageClues} onChange={setImageClues} />
             <button
@@ -1063,9 +1069,13 @@ function DismissOpportunityDialog({row,actionBusyId,onClose,onReview,saveError}:
           <MatchingReviewControls row={row} corrections={corrections} onCorrections={setCorrections} wrongRows={wrongRows} onWrongRows={setWrongRows}/>
         </div>
         <div className="flex flex-wrap justify-end gap-2 border-t border-slate-200 px-4 py-3">
-          <button disabled={busy} onClick={()=>save("mark_valid_match", "correct")} className="rounded bg-emerald-700 px-3 py-2 text-sm text-white">Confirm Match</button>
+          {closestQueue ? <>
+          <button disabled={busy} onClick={()=>save("save_match_feedback", pairVerdict, reason, "keep_closest")} className="rounded border px-3 py-2 text-sm">Save and keep in Closest Excluded</button>
+          <button disabled={busy || pairVerdict!=="correct"} onClick={()=>save("mark_valid_match", "correct", reason, "move_buy_list")} className="rounded bg-emerald-700 px-3 py-2 text-sm text-white">Move confirmed match to Buy List</button>
+          <p className="w-full text-right text-xs text-slate-500">Moving requires a correct pair verdict and passing business checks. A failed move keeps your selections and shows the blocker.</p>
+          </> : <button disabled={busy} onClick={()=>save("mark_valid_match", "correct")} className="rounded bg-emerald-700 px-3 py-2 text-sm text-white">Confirm Match</button>}
           <button disabled={busy} onClick={()=>save("dismiss", "incorrect", incorrectMatchReason(failedRuleFamilies))} className="rounded bg-red-700 px-3 py-2 text-sm text-white">Incorrect Match</button>
-          <button disabled={busy} onClick={()=>save("save_match_feedback")} className="rounded border px-3 py-2 text-sm text-slate-700">Save feedback</button>
+          {!closestQueue ? <button disabled={busy} onClick={()=>save("save_match_feedback")} className="rounded border px-3 py-2 text-sm text-slate-700">Save feedback</button> : null}
           <button disabled={busy||!reason} onClick={()=>save("dismiss")} className="rounded bg-red-700 px-3 py-2 text-sm text-white disabled:opacity-50">Dismiss</button>
           <button onClick={onClose} disabled={busy} className="rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-700 hover:bg-slate-50">
             Cancel

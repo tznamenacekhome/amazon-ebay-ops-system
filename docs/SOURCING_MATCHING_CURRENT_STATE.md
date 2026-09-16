@@ -18,6 +18,8 @@ The tested Phase 3 parser is accepted for closeout. It is not an assurance of pe
 
 ## Feedback and corrections
 
+Pending web/database release: [independent parser/source feedback and explicit Closest Excluded keep/promote choices](sourcing_review_choices_2026-09-16.md). Implemented and locally validated; not active on web156. Promotion preserves profitability and hold checks, and does not rewrite parser diagnostics.
+
 Confirm Match, Incorrect Match and Not Sure apply to the exact reviewed pair. Incorrect Match does not blacklist a listing against other ASINs. Not Sure supplies neither positive nor negative ground truth. Wrong-field corrections retain original/corrected values, side, scope, provenance, timestamp and snapshot/evaluation identity. Amazon ASIN scope is explicit; eBay corrections remain exact listing/pair scoped. Platform Compatible is a relationship, not an inferred same-platform identity verdict.
 
 The dedicated Save variation scope action is independent of pair verdicts, corrections and notes. Its saved qualification/progress updates do not change routing or buying eligibility. Save corrections only and variation-only saves remain separate.

@@ -18,10 +18,13 @@ export async function GET(request: NextRequest, context: { params: Promise<{ id:
       title = data?.[0]?.title ?? "";
     }
     const reviews = await fetchLatestReviews([row]);
+    const { data: captures, error: captureError } = await supabase.rpc("sourcing_closeout_capture", { p_ids: [id], p_sources: false });
+    if (captureError) throw new Error(captureError.message);
     return NextResponse.json({
       opportunityId: row.opportunity_id, asin: row.asin, candidateId: row.candidate_id,
       ebayItemId: row.sourcing_ebay_candidates?.ebay_item_id ?? null,
       reviewEvidenceLoaded: true, matchingDiagnostics: row.matching_diagnostics_json,
+      reviewGuardHash: captures?.[0]?.hash ?? null,
       diagnosticComparison: buildDiagnosticComparison({ opportunity: { ...row, amazon_title: title }, seed, candidate: row.sourcing_ebay_candidates ?? {}, diagnostics: row.matching_diagnostics_json }),
       latestReview: reviews.get(`${row.asin}|${row.ebay_item_id}`) ?? null,
     }, { headers });

@@ -393,12 +393,12 @@ async function getOpportunities(request: NextRequest) {
       return {...row,matching_diagnostics_json:{...diagnostics,businessEligibilityChecks:[...existing,...recordedHoldCheck(row,action)]}};
     });
   }
-  const businessReasonFor=(row:OpportunityRow)=>businessExclusion(row,reviewFor(row),activeSuppressionByAsin.get(row.asin?.toUpperCase()),blockedAsins.has(row.asin?.toUpperCase()));
+  const businessReasonFor=(row:OpportunityRow)=>reviewFor(row)?.feedback?.queueChoice === "keep_closest" ? null : businessExclusion(row,reviewFor(row),activeSuppressionByAsin.get(row.asin?.toUpperCase()),blockedAsins.has(row.asin?.toUpperCase()));
   const closestExcludedContext = scope === "closest_excluded"
     ? await buildClosestExcludedContext(rows)
     : null;
   const qualifyingClosestExcludedRows = scope === "closest_excluded"
-    ? rows.filter((row) => !reviewFor(row)?.actionId && isClosestExcludedCandidate(row, closestExcludedContext))
+    ? rows.filter((row) => { const keep = reviewFor(row)?.feedback?.queueChoice === "keep_closest"; return (keep || !reviewFor(row)?.actionId) && isClosestExcludedCandidate(row, closestExcludedContext, keep); })
     : [];
   let eligibleRows = scope === "closest_excluded"
     ? qualifyingClosestExcludedRows
@@ -442,7 +442,11 @@ async function getOpportunities(request: NextRequest) {
       const myListing = myListingByAsin.get(row.asin.toUpperCase()) ?? null;
       const landedCost = row.sourcing_ebay_candidates?.landed_cost ?? null;
       const conservativeProfit = conservativeDisplayedProfit(targetSalePrice, landedCost, row.profit);
-      const exclusionReason = businessMode ? businessReasonFor(row) : scope === "closest_excluded" ? closestExcludedReason(row) : null;
+      const exclusionReason = businessMode ? businessReasonFor(row) : scope === "closest_excluded" ? reviewFor(row)?.feedback?.queueChoice === "keep_closest" ? {
+        code:"operator_kept_closest",label:"Kept in Closest Excluded",summary:"Saved operator review. This opportunity stays here until you choose to move it; profitability rules still apply.",
+        source:"operator_review",severity:"other_eligibility_gate" as const,category:"operator_review",diagnosticKeys:[],
+        finalRecommendation:reviewFor(row)?.pairVerdict === "correct" ? "Operator confirmed match" : null,finalStatus:row.status,secondaryReasons:[],supportingSignals:[],
+      } : closestExcludedReason(row) : null;
       const decisionTrace = scope === "closest_excluded" ? persistedDecisionTrace(row.matching_diagnostics_json) : [];
       const velocitySuppression = activeSuppressionByAsin.get(row.asin.toUpperCase()) ?? null;
       return {
@@ -868,11 +872,16 @@ function summarizeMappedRows(rows: Array<{ opportunityType: string | null }>, re
 
 function isPresentationEligibleOpportunity(row: OpportunityRow) {
   if (row.status !== "open") return true;
+  const diag = row.matching_diagnostics_json;
+  if (isRecord(diag) && isRecord(diag.operatorIdentityOverride) &&
+      diag.operatorIdentityOverride.scope === "exact_pair" && diag.operatorIdentityOverride.asin === row.asin &&
+      diag.operatorIdentityOverride.ebayItemId === row.ebay_item_id &&
+      isRecord(diag.presentationDecision) && diag.presentationDecision.eligible === true) return true;
   if (hasBlockedDiagnostic(row.matching_diagnostics_json)) return false;
   return !(row.ai_flags ?? []).some((flag) => String(flag).startsWith("Blocked:"));
 }
 
-function isClosestExcludedCandidate(row: OpportunityRow, context: ClosestExcludedContext | null) {
+function isClosestExcludedCandidate(row: OpportunityRow, context: ClosestExcludedContext | null, keepReviewed = false) {
   if (isActionedOrPresentedStatus(row.status)) {
     return false;
   }
@@ -881,7 +890,7 @@ function isClosestExcludedCandidate(row: OpportunityRow, context: ClosestExclude
   if (context) {
     const presentation = context.presentationByOpportunityId.get(row.opportunity_id);
     if ((presentation?.presentationCount ?? 0) > 0) return false;
-    if (context.actionedOpportunityIds.has(row.opportunity_id)) return false;
+    if (!keepReviewed && context.actionedOpportunityIds.has(row.opportunity_id)) return false;
     const listingKey = opportunityListingKey(row);
     if (listingKey && context.presentedListingKeys.has(listingKey)) return false;
   }

@@ -72,6 +72,9 @@ const familyEvidenceDefaults: Record<string, string[]> = {
 export type MatchingFeedback = {
   version: typeof VERSION | "matching_feedback_v2";
   allAssumptionsCorrect: boolean;
+  parserAssessment?: "not_reviewed" | "correct" | "incorrect" | "unsure";
+  sourceAccuracy?: "not_reviewed" | "accurate" | "listing_error" | "unsure";
+  queueChoice?: "keep_closest" | "move_buy_list";
   failedRuleFamilies: string[];
   flaggedFields?: string[];
   fieldRelationships?: PlatformRelationshipFeedback[];
@@ -95,7 +98,7 @@ export function normalizeMatchingFeedback(value: unknown): MatchingFeedback {
     ...stringList(record.legacyIncorrectRows),
     ...stringList(record.incorrectRows),
   ]);
-  const failedRuleFamilies = allAssumptionsCorrect
+  const failedRuleFamilies = allAssumptionsCorrect || record.parserAssessment === "correct"
     ? []
     : unique([
         ...normalizeValues(record.failedRuleFamilies, ruleFamilies),
@@ -116,6 +119,9 @@ export function normalizeMatchingFeedback(value: unknown): MatchingFeedback {
   return {
     version: current ? VERSION : "matching_feedback_v2",
     allAssumptionsCorrect,
+    parserAssessment: ["correct", "incorrect", "unsure"].includes(String(record.parserAssessment)) ? record.parserAssessment as MatchingFeedback["parserAssessment"] : "not_reviewed",
+    sourceAccuracy: ["accurate", "listing_error", "unsure"].includes(String(record.sourceAccuracy)) ? record.sourceAccuracy as MatchingFeedback["sourceAccuracy"] : "not_reviewed",
+    ...(["keep_closest", "move_buy_list"].includes(String(record.queueChoice)) ? { queueChoice: record.queueChoice as MatchingFeedback["queueChoice"] } : {}),
     failedRuleFamilies,
     flaggedFields: Array.isArray(record.flaggedFields) ? [...new Set(record.flaggedFields.map(String).filter(f=>correctionFields.has(f)))] : [],
     evidenceSources: normalizedEvidenceSources,

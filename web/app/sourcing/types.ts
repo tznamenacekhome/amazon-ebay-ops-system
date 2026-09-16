@@ -1,4 +1,5 @@
 export type SourcingOpportunity = {
+  reviewGuardHash?: string | null;
   reviewEvidenceLoaded?: boolean;
   evaluationId?: unknown;
   latestReview?: {pairVerdict:string|null;feedback:Record<string,unknown>|null;actionId:string|null;createdAt:string|null;corrections?:unknown[]} | null;

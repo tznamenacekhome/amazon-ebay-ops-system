@@ -58,3 +58,19 @@ console.log('Actual dialog and row controls passed: toggles/paste/side edits/und
 state.length=0;cursor=0;let bulkSaved=null;const bulkTree=BulkDismissOpportunityDialog({rows:[props.row,{...props.row,asin:"OTHER"}],busy:false,onClose(){},onBlockAsins(){},onDismiss:(...args)=>bulkSaved=args});nodes(bulkTree).find(n=>n.type?.name==="DismissReasonButtons").props.onChoose("wrong_platform");assert.deepEqual(bulkSaved,["wrong_platform","",[]]);
 
 state.length=0;props.row.diagnosticComparison.rows.find(r=>r.key==="core_game_identity").amazonEvidence={state:"conflicting_sources"};props.row.diagnosticComparison.rows.find(r=>r.key==="core_game_identity").amazon=null;change("Core Game Wrong",true);assert.equal(control("Core Game amazon state").props.value,"unknown");assert.equal(named("MatchingReviewControls").props.corrections.length,0);
+
+state.length=0;props.closestQueue=true;
+change('Parser assessment','correct');change('Listing accuracy','listing_error');
+named('ReviewEvidence').props.onVerdict('correct');
+named('MatchingReviewControls').props.onWrongRows(['edition_version']);
+button('Save and keep in Closest Excluded').props.onClick();
+let saved=saves.at(-1).diagnosticsFeedback;
+assert.equal(saved.queueChoice,'keep_closest');assert.equal(saved.parserAssessment,'correct');assert.equal(saved.sourceAccuracy,'listing_error');assert.deepEqual(saved.failedRuleFamilies,[],'Listing error is not a parser failure');
+assert.equal(button('Move confirmed match to Buy List').props.disabled,false);
+button('Move confirmed match to Buy List').props.onClick();
+assert.equal(saves.at(-1).diagnosticsFeedback.queueChoice,'move_buy_list');
+props.saveError='Profitability is below the configured threshold';
+assert(renderToStaticMarkup(render()).includes(props.saveError));assert.equal(control('Parser assessment').props.value,'correct');
+named('ReviewEvidence').props.onVerdict('unsure');assert.equal(button('Move confirmed match to Buy List').props.disabled,true);
+change('Parser assessment','incorrect');button('Save and keep in Closest Excluded').props.onClick();assert(saves.at(-1).diagnosticsFeedback.failedRuleFamilies.includes('edition_version'));
+console.log('Closest review choices: parser/source independence, keep/move payloads, no false parser error, uncertain move disabled, inline failure retains selection.');
