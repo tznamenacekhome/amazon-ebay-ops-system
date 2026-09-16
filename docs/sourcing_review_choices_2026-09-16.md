@@ -41,3 +41,6 @@ Authenticated production dialog verification was unavailable because computer-us
 ## Move-button usability follow-up
 
 The operator screenshot showed an unchanged pair verdict with a green-looking disabled Move button. The follow-up makes the required Product match label explicit for Closest Excluded, visibly greys the disabled button, gives the exact Correct match selection instruction, and repeats save errors beside the footer actions. Corrections do not silently confirm a pair; promotion and profitability protections remain unchanged. Actual dialog regressions cover disabled appearance, prerequisite guidance, enabled confirmed state and footer error visibility. Deployment verification follows below.
+
+Follow-up deployed as web158 from source `0e2be14edc2e`, image `sha256:20d4dfa4e1fa908c1c516dcb459a40e0f730b1462c0161f0e3cea9965ac4b973`. Actual dialog tests, TypeScript and the production Docker build passed. New task `13db47e2ba344e9c81e3f2572cf42547` reported Ready in 494ms and its target `172.31.31.33` was healthy. No database migration or scheduler change was needed. Authenticated browser verification remains unavailable.
+Final web158 ECS rollout: COMPLETED, desired/running 1, pending 0, new target healthy; old target finishing its normal drain. Evidence: tmp/ops-20260915/web158-deployment.json.
