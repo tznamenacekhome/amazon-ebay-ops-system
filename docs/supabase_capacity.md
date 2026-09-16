@@ -4,6 +4,8 @@ Last updated: 2026-09-15
 
 ## Current compute - Medium, September 15, 2026
 
+**Completed-run verification:** The authorized recovery run subsequently completed successfully at 21:10:05 UTC, with all five jobs successful. Across 125 capacity samples, available RAM never fell below 1.459 GiB and swap remained at least 99.9977% free. No capacity waits, database request errors or OOM events were logged. See [full run review](sourcing_medium_run_review_2026-09-15.md). The startup-only statements below are the original launch checkpoint.
+
 After the disk expansion, the operator explicitly authorized upgrading compute and then running sourcing. The shared MBOP/College Planner project was upgraded from Small (2 GB RAM) to **Medium (4 GB RAM)** using the documented Management API billing-addon PATCH with `{"addon_type":"compute_instance","addon_variant":"ci_medium"}`. HTTP 200 was received at 19:02:14 UTC. During the expected restart, one metrics read timed out and another returned 521 while project status was `RESIZING`; sourcing was not launched during recovery.
 
 At 19:03:09 UTC the project reported `ACTIVE_HEALTHY`, selected addon `ci_medium`, PostgreSQL up, and a successful HTTP 200 tiny sourcing-runs read. Metrics showed 4,009,824,256 bytes OS-visible RAM, 3,389,849,600 bytes available (3.16 GiB), all 1,073,737,728 swap bytes free, and 26,392,846,336 filesystem bytes free (24.58 GiB). The unchanged `pressure_reason` safety gate returned no blocker. Medium is $0.0822/hour (approximately $60/month), versus Small at $0.0206/hour (approximately $15/month): **about $45/month additional compute**, separate from the approximately $3/month additional disk. See [compute pricing](https://supabase.com/docs/guides/platform/manage-your-usage/compute).
