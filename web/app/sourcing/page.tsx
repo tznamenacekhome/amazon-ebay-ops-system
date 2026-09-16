@@ -1050,7 +1050,7 @@ function DismissOpportunityDialog({row,actionBusyId,onClose,onReview,saveError,c
             />
             {reason ? <div className="text-xs">Selected reason: {label(reason)}</div> : null}
             <ParserReview parserAssessment={parserAssessment} sourceAccuracy={sourceAccuracy} setParserAssessment={setParserAssessment} setSourceAccuracy={setSourceAccuracy}/>
-            <ReviewEvidence verdict={pairVerdict} onVerdict={setPairVerdict} evidence={usedEvidence} onEvidence={setUsedEvidence}/>
+            <ReviewEvidence verdict={pairVerdict} onVerdict={setPairVerdict} evidence={usedEvidence} onEvidence={setUsedEvidence} forBuyList={closestQueue}/>
             <ImageClueButtons selected={imageClues} onChange={setImageClues} />
             <button
               type="button"
@@ -1071,8 +1071,9 @@ function DismissOpportunityDialog({row,actionBusyId,onClose,onReview,saveError,c
         <div className="flex flex-wrap justify-end gap-2 border-t border-slate-200 px-4 py-3">
           {closestQueue ? <>
           <button disabled={busy} onClick={()=>save("save_match_feedback", pairVerdict, reason, "keep_closest")} className="rounded border px-3 py-2 text-sm">Save and keep in Closest Excluded</button>
-          <button disabled={busy || pairVerdict!=="correct"} onClick={()=>save("mark_valid_match", "correct", reason, "move_buy_list")} className="rounded bg-emerald-700 px-3 py-2 text-sm text-white">Move confirmed match to Buy List</button>
-          <p className="w-full text-right text-xs text-slate-500">Moving requires a correct pair verdict and passing business checks. A failed move keeps your selections and shows the blocker.</p>
+          <button disabled={busy || pairVerdict!=="correct"} aria-describedby="buy-list-move-help" onClick={()=>save("mark_valid_match", "correct", reason, "move_buy_list")} className="rounded bg-emerald-700 px-3 py-2 text-sm text-white disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500">Move confirmed match to Buy List</button>
+          <p id="buy-list-move-help" className="w-full text-right text-sm text-slate-700">{pairVerdict!=="correct" ? 'Choose "Correct match" under "Product match" above to enable Move to Buy List. Parsing corrections alone do not confirm a match.' : "Match confirmed. Moving still requires passing profitability and other business checks."}</p>
+          {saveError ? <p role="alert" className="w-full text-right text-sm font-medium text-red-700">{saveError}</p> : null}
           </> : <button disabled={busy} onClick={()=>save("mark_valid_match", "correct")} className="rounded bg-emerald-700 px-3 py-2 text-sm text-white">Confirm Match</button>}
           <button disabled={busy} onClick={()=>save("dismiss", "incorrect", incorrectMatchReason(failedRuleFamilies))} className="rounded bg-red-700 px-3 py-2 text-sm text-white">Incorrect Match</button>
           {!closestQueue ? <button disabled={busy} onClick={()=>save("save_match_feedback")} className="rounded border px-3 py-2 text-sm text-slate-700">Save feedback</button> : null}

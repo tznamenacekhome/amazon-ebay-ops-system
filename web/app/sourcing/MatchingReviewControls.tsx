@@ -13,12 +13,12 @@ function sourceText(evidence?: Record<string,unknown>) {
 }
 const sources = ["amazon_title","ebay_title","ebay_game_name","ebay_item_specifics","amazon_catalog_metadata","ebay_description","primary_image","additional_images","category","platform_metadata","other"];
 
-export function ReviewEvidence({verdict,onVerdict,evidence,onEvidence}: {
+export function ReviewEvidence({verdict,onVerdict,evidence,onEvidence,forBuyList}: {
   verdict: MatchingFeedback["pairVerdict"]; onVerdict:(v:MatchingFeedback["pairVerdict"])=>void;
-  evidence:string[];onEvidence:(v:string[])=>void;
+  evidence:string[];onEvidence:(v:string[])=>void;forBuyList?:boolean;
 }) {
   return <div className="space-y-2 text-xs text-slate-700">
-    <label>Optional pair verdict <select aria-label="Product pair verdict" value={verdict} onChange={e=>onVerdict(e.target.value as MatchingFeedback["pairVerdict"])} className="rounded border p-1">
+    <label>{forBuyList ? "Product match (required for Buy List) " : "Optional pair verdict "}<select aria-label="Product pair verdict" value={verdict} onChange={e=>onVerdict(e.target.value as MatchingFeedback["pairVerdict"])} className="rounded border p-1">
       <option value="not_provided">Leave unchanged</option><option value="correct">Correct match</option><option value="incorrect">Incorrect match</option><option value="unsure">Not Sure</option>
     </select></label>
     <details><summary>Evidence I used</summary><div className="grid grid-cols-2 gap-1 py-2">{sources.map(source=><label key={source}><input type="checkbox" checked={evidence.includes(source)} onChange={e=>onEvidence(e.target.checked?[...evidence,source]:evidence.filter(x=>x!==source))}/> {source.replaceAll("_"," ")}</label>)}</div></details>

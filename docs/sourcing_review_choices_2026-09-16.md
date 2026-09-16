@@ -37,3 +37,7 @@ Web task revision **157** was deployed from source **`d708139ff982`**, with pinn
 Final ECS rollout state was **COMPLETED**, with only revision 157 deployed, desired/running count 1 and pending count 0. The new target remained healthy; the removed old task's target was finishing its normal load-balancer drain.
 
 Authenticated production dialog verification was unavailable because computer-use reported no browser sessions. Component/API/transaction tests and AWS health checks do not substitute for a production click-through. No production pair verdict or opportunity was changed to test this release. No sourcing run, provider search, marketplace write or scheduler change was performed.
+
+## Move-button usability follow-up
+
+The operator screenshot showed an unchanged pair verdict with a green-looking disabled Move button. The follow-up makes the required Product match label explicit for Closest Excluded, visibly greys the disabled button, gives the exact Correct match selection instruction, and repeats save errors beside the footer actions. Corrections do not silently confirm a pair; promotion and profitability protections remain unchanged. Actual dialog regressions cover disabled appearance, prerequisite guidance, enabled confirmed state and footer error visibility. Deployment verification follows below.

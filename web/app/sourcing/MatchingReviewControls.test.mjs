@@ -60,6 +60,10 @@ state.length=0;cursor=0;let bulkSaved=null;const bulkTree=BulkDismissOpportunity
 state.length=0;props.row.diagnosticComparison.rows.find(r=>r.key==="core_game_identity").amazonEvidence={state:"conflicting_sources"};props.row.diagnosticComparison.rows.find(r=>r.key==="core_game_identity").amazon=null;change("Core Game Wrong",true);assert.equal(control("Core Game amazon state").props.value,"unknown");assert.equal(named("MatchingReviewControls").props.corrections.length,0);
 
 state.length=0;props.closestQueue=true;
+assert.equal(button('Move confirmed match to Buy List').props.disabled,true);
+assert(button('Move confirmed match to Buy List').props.className.includes('disabled:bg-slate-200'));
+assert(renderToStaticMarkup(render()).includes('Product match (required for Buy List)'));
+assert(renderToStaticMarkup(render()).includes('Parsing corrections alone do not confirm a match.'));
 change('Parser assessment','correct');change('Listing accuracy','listing_error');
 named('ReviewEvidence').props.onVerdict('correct');
 named('MatchingReviewControls').props.onWrongRows(['edition_version']);
@@ -67,9 +71,11 @@ button('Save and keep in Closest Excluded').props.onClick();
 let saved=saves.at(-1).diagnosticsFeedback;
 assert.equal(saved.queueChoice,'keep_closest');assert.equal(saved.parserAssessment,'correct');assert.equal(saved.sourceAccuracy,'listing_error');assert.deepEqual(saved.failedRuleFamilies,[],'Listing error is not a parser failure');
 assert.equal(button('Move confirmed match to Buy List').props.disabled,false);
+assert(renderToStaticMarkup(render()).includes('Match confirmed. Moving still requires passing profitability'));
 button('Move confirmed match to Buy List').props.onClick();
 assert.equal(saves.at(-1).diagnosticsFeedback.queueChoice,'move_buy_list');
 props.saveError='Profitability is below the configured threshold';
+assert.equal(nodes(render(),true).filter(n=>n.props?.role==='alert'&&n.props.children===props.saveError).length,2,'Save error visible at header and action footer');
 assert(renderToStaticMarkup(render()).includes(props.saveError));assert.equal(control('Parser assessment').props.value,'correct');
 named('ReviewEvidence').props.onVerdict('unsure');assert.equal(button('Move confirmed match to Buy List').props.disabled,true);
 change('Parser assessment','incorrect');button('Save and keep in Closest Excluded').props.onClick();assert(saves.at(-1).diagnosticsFeedback.failedRuleFamilies.includes('edition_version'));
