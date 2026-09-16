@@ -35,3 +35,23 @@ assert.equal((await get('all')).body.summary.total,52,'Promoted pair is removed 
 reviews[0].feedback={};
 assert.equal((await get('all')).body.summary.total,52,'Legacy review behavior is preserved');
 console.log('Explicit keep survives confirmation and reload; move leaves Closest; legacy behavior retained');
+
+reviews=[];
+const specificReason='Unresolved identity detail on one side: edition';
+rows[0].matching_diagnostics_json={recommendation:'Review',presentationDecision:{eligible:false,finalRecommendation:'Review',primaryReason:{code:'review_threshold',label:'Review threshold',summary:'Final matching recommendation required review and did not enter presentation.',severity:'review_threshold'}},decisionTrace:[
+ {stage:'Video game identity',diagnosticKey:'core_game_identity',result:'warning',summary:specificReason},
+ {stage:'Final recommendation',diagnosticKey:'final_recommendation',result:'warning',summary:'Final recommendation is Review.'},
+ {stage:'Presentation gate',diagnosticKey:'opportunity_context',result:'fail',summary:'Opportunity type is no_profitable_source_found.'},
+]};
+let reason=(await get('review_threshold')).body.opportunities[0].exclusionReason;
+assert.equal(reason.summary,specificReason);assert.equal(reason.label,'Video game identity');assert.equal(reason.code,'review_threshold');assert.equal(reason.source,'decision_trace');
+assert.deepEqual(reason.diagnosticKeys,['core_game_identity']);
+rows[0].matching_diagnostics_json.decisionTrace.push({stage:'Package contents',diagnosticKey:'package_contents',result:'warning',summary:'Package contents unresolved'});
+reason=(await get('review_threshold')).body.opportunities[0].exclusionReason;
+assert.equal(reason.summary,`${specificReason}; Package contents unresolved`);
+delete rows[0].matching_diagnostics_json.presentationDecision;
+assert.equal((await get('review_threshold')).body.opportunities[0].exclusionReason.summary,reason.summary,'Legacy fallback also uses actual trace');
+rows[0].matching_diagnostics_json.decisionTrace=[];
+assert((await get('review_threshold')).body.opportunities[0].exclusionReason.summary.includes('did not record a specific matching reason'));
+assert.equal((await get('profitability')).body.opportunities[0].exclusionReason.code,'profitability');
+console.log('Specific saved review reasons replace generic gate text; multiple reasons, legacy/missing trace and category filters preserved');

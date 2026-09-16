@@ -1254,7 +1254,7 @@ function persistedExclusionReason(diagnostics: Record<string, unknown>): Exclusi
     .map((row) => row.summary)
     .filter(Boolean);
   return {
-    ...exclusionSummary(primary),
+    ...reviewReasonDetails(exclusionSummary(primary), diagnostics),
     eligible: typeof decision.eligible === "boolean" ? decision.eligible : undefined,
     finalRecommendation: stringOrNull(decision.finalRecommendation),
     finalStatus: stringOrNull(decision.finalStatus),
@@ -1272,6 +1272,23 @@ function exclusionSummary(value: Record<string, unknown>): ExclusionReasonSummar
     severity: exclusionSeverity(value.severity),
     category: String(value.category ?? value.severity ?? "other_eligibility_gate"),
     diagnosticKeys: stringArray(value.diagnosticKeys),
+  };
+}
+
+function reviewReasonDetails(reason: ExclusionReasonSummary, diagnostics: Record<string, unknown>): ExclusionReasonSummary {
+  if (reason.code !== "review_threshold") return reason;
+  const details = persistedDecisionTrace(diagnostics).filter(row =>
+    (row.result === "warning" || row.result === "fail") &&
+    !["final_recommendation", "confidence_summary", "opportunity_context"].includes(row.diagnosticKey),
+  );
+  return {
+    ...reason,
+    label: details.length === 1 ? details[0].stage : "Match needs review",
+    summary: details.length
+      ? [...new Set(details.map(row => row.summary))].join("; ")
+      : "The saved evaluation requires review but did not record a specific matching reason.",
+    source: details.length ? "decision_trace" : reason.source,
+    diagnosticKeys: details.length ? [...new Set(details.map(row => row.diagnosticKey))] : reason.diagnosticKeys,
   };
 }
 
@@ -1332,7 +1349,7 @@ function closestExcludedFallbackReason(
     };
   }
   if (String(finalRecommendation ?? "").toLowerCase().includes("review")) {
-    return {
+    return reviewReasonDetails({
       code: "review_threshold",
       label: "Review threshold",
       summary: "Final recommendation required review and did not enter presentation.",
@@ -1340,7 +1357,7 @@ function closestExcludedFallbackReason(
       severity: "review_threshold",
       category: "review threshold",
       diagnosticKeys: ["final_recommendation", "confidence_summary"],
-    };
+    }, isRecord(row.matching_diagnostics_json) ? row.matching_diagnostics_json : {});
   }
   if (String(row.status ?? "").toLowerCase() === "rejected") {
     return {

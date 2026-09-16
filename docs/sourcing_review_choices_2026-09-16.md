@@ -44,3 +44,7 @@ The operator screenshot showed an unchanged pair verdict with a green-looking di
 
 Follow-up deployed as web158 from source `0e2be14edc2e`, image `sha256:20d4dfa4e1fa908c1c516dcb459a40e0f730b1462c0161f0e3cea9965ac4b973`. Actual dialog tests, TypeScript and the production Docker build passed. New task `13db47e2ba344e9c81e3f2572cf42547` reported Ready in 494ms and its target `172.31.31.33` was healthy. No database migration or scheduler change was needed. Authenticated browser verification remains unavailable.
 Final web158 ECS rollout: COMPLETED, desired/running 1, pending 0, new target healthy; old target finishing its normal drain. Evidence: tmp/ops-20260915/web158-deployment.json.
+
+## Specific review explanations
+
+Closest Excluded now replaces the generic review-threshold label/summary with the recorded decision-trace stage and specific matching warnings/failures. Final recommendation, confidence summary and presentation/profitability context entries are excluded from that explanation to avoid repeating the generic gate outcome. Multiple specific reasons are retained; missing trace data is stated explicitly. The review_threshold code remains stable for filters. No evaluation, eligibility or routing is changed. Actual GET regressions cover the Just Dance edition reason, multiple reasons, legacy/missing traces and unchanged category filtering; Business Excluded tests and TypeScript pass.
