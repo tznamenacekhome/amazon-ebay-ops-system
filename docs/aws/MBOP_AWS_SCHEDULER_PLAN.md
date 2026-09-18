@@ -1,5 +1,9 @@
 # MBOP AWS Scheduler Plan
 
+## September 18, 2026 ZFI v3 publisher
+
+Seven summary-producing schedules now use scheduler97 (sales/FBA) or scheduler98 (finance archive enabled). Scheduler99 is the latest family revision for manual launch, preserving the prior scheduler93 configuration. All use commit `0c94d3fb0b41`; web159 and the separate ZFI Buying purchase pin are unchanged. All 20 schedules were compared; only the seven task references changed. See [production push and verification](../ZFI_V3_DEPLOYMENT_2026-09-18.md).
+
 ## September 10, 2026 finance payload archive
 
 Only `mbop-finance-refresh-morning`, `mbop-finance-refresh-afternoon`, and

@@ -1,5 +1,9 @@
 # CURRENT_STATE.md
 
+## ZFI v3 deployed and verified (2026-09-18)
+
+Publisher commit `0c94d3fb0b41` is deployed on scheduler 97/98/99; web159 is unchanged. A publisher-only ECS task exited zero and the latest ZFI v3 row was read back at `2026-09-18T14:18:10.960144Z`. All 20 schedules were compared; only seven task references changed, with cadence unchanged. Current-month scope is September 1?18 Pacific, 145 units. Observed refunds are 103.25 diagnostic-only; refund/net-profit and other incomplete management totals remain null with warnings. A complete sample confirms 8.40 marketplace fees, 8.70 FBA fulfillment and zero labels. No MBOP source writes; bounded historical source hashes unchanged. 53 tests pass. [Deployment and exact values](docs/ZFI_V3_DEPLOYMENT_2026-09-18.md).
+
 ## ZFI calendar-month contract refinement (2026-09-17, local implementation)
 
 Publisher v3 adds true business-local calendar-month facts, matching YTD

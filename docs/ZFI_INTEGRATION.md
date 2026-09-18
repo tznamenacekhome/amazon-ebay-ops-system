@@ -1,5 +1,9 @@
 # ZFI Integration
 
+## Production activation (2026-09-18)
+
+V3 is deployed and its fresh ZFI row verified. Scheduler revisions 97/98/99 use `0c94d3fb0b41`; web159 is unchanged. Generated at `2026-09-18T14:18:10.960144Z`. The null-safe console fix does not alter payload semantics. Current-month and top-level management costs remain null where production source data is incomplete; observed refunds remain diagnostic. See [deployment evidence and exact values](ZFI_V3_DEPLOYMENT_2026-09-18.md). The local-only status in the implementation section below is historical.
+
 ## Calendar-month management contract (2026-09-17)
 
 Implemented locally as `schema_version = 2026-09-17` and
