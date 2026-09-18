@@ -1,7 +1,9 @@
 import datetime as dt
+import io
 import sys
 import unittest
 from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "integrations"))
@@ -35,6 +37,30 @@ class ManagementContractTests(unittest.TestCase):
 
     def summary(self, rows, refunds=None, labels=None):
         return summarize_management_window(rows, self.start, self.end, {}, refunds or [], labels or [])
+
+    def test_live_publisher_reaches_push_with_unknown_label_cost(self):
+        payload = {
+            "source": "mbop", "schema_version": "2026-09-17", "generated_at": "2026-09-18T00:00:00Z",
+            "source_summary": {}, "period": {"start_date": "2026-09-01", "end_date": "2026-09-18"},
+            "sales": {"gross_sales": 50},
+            "costs": {"marketplace_fees": 5, "shipping_label_costs": None, "fulfillment_costs": None, "cogs": 10},
+            "profitability": {"estimated_net_profit": 31},
+            "inventory": {"current_inventory_value": 10}, "alerts": [],
+        }
+        args = SimpleNamespace(start_date="2026-09-01", end_date="2026-09-18", generated_by="test",
+                               apply=True, target_table="mbop_business_summaries", retry_attempts=1, retry_delay_seconds=0)
+        with patch.object(publisher, "parse_args", return_value=args), \
+             patch.object(publisher, "load_dotenv"), \
+             patch.object(publisher, "get_mbop_supabase_client"), \
+             patch.object(publisher, "get_zfi_supabase_client"), \
+             patch.object(publisher, "build_payload", return_value=payload), \
+             patch.object(publisher, "push_with_retry") as push, \
+             patch("sys.stdout", new_callable=io.StringIO) as output:
+            self.assertEqual(publisher.main(), 0)
+            push.assert_called_once()
+            self.assertIsNone(push.call_args.kwargs["row"]["payload"]["costs"]["shipping_label_costs"])
+            self.assertIn("Shipping label costs: Unavailable", output.getvalue())
+            self.assertIn("Fulfillment costs: Unavailable", output.getvalue())
 
     def test_calendar_month_not_rolling_30_days(self):
         result = publisher.build_profitability_windows([

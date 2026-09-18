@@ -1418,7 +1418,11 @@ def print_summary(payload: dict[str, Any], *, write: bool) -> None:
     )
     print(f"Gross sales: ${payload['sales']['gross_sales']:,.2f}")
     print(f"Marketplace fees: ${payload['costs']['marketplace_fees']:,.2f}")
-    print(f"Shipping/fulfillment costs: ${payload['costs']['shipping_label_costs']:,.2f}")
+    for label, field in (("Shipping label costs", "shipping_label_costs"),
+                         ("Fulfillment costs", "fulfillment_costs")):
+        value = payload["costs"].get(field)
+        display = "Unavailable (see completeness warnings)" if value is None else f"${value:,.2f}"
+        print(f"{label}: {display}")
     print(f"COGS: ${payload['costs']['cogs']:,.2f}")
     print(f"Estimated net profit: ${payload['profitability']['estimated_net_profit']:,.2f}")
     print(f"Inventory value: ${payload['inventory']['current_inventory_value']:,.2f}")
