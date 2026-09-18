@@ -335,6 +335,10 @@ Manual corrections:
 
 # Frontend Philosophy
 
+All pop-up/detail dialogs must allow explicit dismissal without saving data,
+even with missing or invalid fields. Validation gates saving, never closing.
+Automatic opening must respect dismissal until a new user action opens it.
+
 Optimize for:
 - operational throughput
 - large monitors

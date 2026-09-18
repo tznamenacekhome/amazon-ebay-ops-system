@@ -74,6 +74,7 @@ export default function ReceivingPage() {
   const [metricsKey, setMetricsKey] = useState(0);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const lastAutoOpenedSearch = useRef("");
+  const dismissedDetailSearch = useRef("");
   const detailOpenedAt = useRef(0);
 
   const loadQueue = useCallback(async () => {
@@ -265,6 +266,7 @@ export default function ReceivingPage() {
     if (
       normalizedSearch &&
       matchedRow &&
+      dismissedDetailSearch.current !== normalizedSearch &&
       (
         lastAutoOpenedSearch.current !== normalizedSearch ||
         selectedKey !== matchedKey
@@ -343,10 +345,15 @@ export default function ReceivingPage() {
   }, [detailRows, drafts, selectedRow]);
 
   const closeDetail = useCallback(() => {
+    // Dismissal must win over the single-result auto-open effect, even when
+    // the draft is invalid. Only an explicit save may persist receiving data.
+    dismissedDetailSearch.current = searchText.trim();
     setSelectedRow(null);
+    setDrafts({});
+    setError(null);
     detailOpenedAt.current = 0;
     setTimeout(() => searchInputRef.current?.focus(), 0);
-  }, []);
+  }, [searchText]);
 
   const saveReceiving = useCallback(async (confirmationSource: "button" | "shortcut") => {
     if (!selectedRow) return;
@@ -560,6 +567,7 @@ export default function ReceivingPage() {
             onChange={(event) => {
               setSearchText(event.target.value);
               lastAutoOpenedSearch.current = "";
+              dismissedDetailSearch.current = "";
             }}
             className="w-full rounded-lg border border-slate-300 py-3 pl-10 pr-10 text-lg"
             placeholder="Scan label or search order, tracking, title..."
@@ -569,6 +577,7 @@ export default function ReceivingPage() {
               onClick={() => {
                 setSearchText("");
                 lastAutoOpenedSearch.current = "";
+                dismissedDetailSearch.current = "";
                 searchInputRef.current?.focus();
               }}
               className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
@@ -765,6 +774,7 @@ export default function ReceivingPage() {
 
               <button
                 onClick={closeDetail}
+                aria-label="Close receiving detail without saving"
                 className="rounded-lg border border-slate-300 p-2 hover:bg-slate-50"
                 type="button"
               >

@@ -23,6 +23,10 @@ This folder contains the Midnight Blue Operations Platform receiving workflow UI
 
 ## Detail Behavior
 
+- Cancel, X and Escape always dismiss without saving, even when required fields
+  are missing or invalid. Closing discards drafts and suppresses automatic
+  reopening for the unchanged search, including delayed scan results. Changing
+  the search or explicitly clicking a queue row allows opening detail again.
 - Detail view groups rows by tracking number when usable tracking exists.
 - If usable tracking is unavailable, detail falls back to all items for the purchase.
 - eBay title links to the eBay listing when `ebay_listing_url` can be derived.
