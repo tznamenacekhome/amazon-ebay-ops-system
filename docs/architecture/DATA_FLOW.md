@@ -1,5 +1,15 @@
 # MBOP / ZFI Data Flow
 
+## Calendar-period contract (2026-09-17)
+
+The outbound publisher now adds business-local calendar-month facts and additive
+YTD management detail. Seller refunds follow processing dates; incomplete refund
+coverage produces null plus observed diagnostics. Verified MFN Veeqo labels are
+separate from FBA fulfillment and marketplace fees. Acquisition COGS excludes
+inbound freight and prep. ZFI must retain nulls/warnings and use management fields
+instead of legacy complete-row trend profits. No new finance ownership or
+scheduler behavior is introduced. See [exact definitions and source limits](../ZFI_INTEGRATION.md#calendar-month-management-contract-2026-09-17).
+
 ## ZFI Buying extension (2026-09-07)
 
 ZFI server -> authenticated MBOP purchase-ingestion request -> existing ECS pipeline -> ZFI status poll -> bounded MBOP purchase facts -> ZFI-owned reconciliation/Buying Power. No ZFI finance data flows into MBOP. [Contract and activation](../ZFI_BUYING_INTEGRATION.md).
@@ -67,7 +77,7 @@ Use for:
 - Amazon payout/cash status.
 - Confidence, timestamp, lineage, and review-status metadata.
 - Expanded ZFI finance replacement summaries, currently published as
-  `payload_version = business_finance_replacement_v2`, including
+  `payload_version = business_finance_replacement_v3`, including
   profitability windows, cash position, payout reconciliation, inventory
   capital, loss prevention, top sellers, growth, sourcing, and financial
   readiness.

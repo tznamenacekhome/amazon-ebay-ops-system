@@ -1,5 +1,117 @@
 # ZFI Integration
 
+## Calendar-month management contract (2026-09-17)
+
+Implemented locally as `schema_version = 2026-09-17` and
+`payload_version = business_finance_replacement_v3`. No database migration is
+required: the target remains the existing JSON payload column. Deployment and
+live publication have not been performed for this revision.
+
+ZFI should use `profitability_windows.current_month` for current-month facts and
+`profitability_windows.ytd.management_pnl` for comparable YTD facts. The top-level
+`management_pnl` describes the requested `--start-date` / `--end-date` period.
+The existing `30d`, `90d`, `ytd` keys and all old top-level sections remain.
+Legacy revenue/profit/ROI retain their complete-row trend semantics; they are
+not a refund-adjusted management P&L. The old duplicated label/fulfillment fields
+are corrected, and refund fields now carry safe nulls instead of sale-date estimates.
+Do not substitute legacy net profit when management net profit is null.
+
+### Exact definitions
+
+- `current_month`: first day of the month containing `--end-date` through that
+  date, inclusive, in `MBOP_BUSINESS_TIMEZONE` (default `America/Los_Angeles`).
+  The CLI defaults to the business-local current date, including in UTC ECS.
+  Timestamp comparisons use local dates and DST-aware half-open UTC bounds.
+  Explicit historical end dates produce that historical calendar month.
+- YTD management facts: January 1 through the same inclusive end date in the
+  same timezone. `30d` and `90d` remain rolling trend windows, not months.
+- `gross_sales` / `revenue`: stored sale prices of non-cancelled profitability
+  rows by original order purchase date, including later-refunded rows. Missing
+  prices produce null. `units_sold` uses that same population, not just complete
+  rows. No eBay seller revenue is added.
+- `cogs`: stored vendor-paid acquisition cost of the units sold, including
+  later-refunded sales. Never add inbound-to-Amazon freight, prep, subsequent
+  labels or selling fees; missing acquisition COGS produces null, not a subtotal.
+- `marketplace_fees`: `amazon_sales_profitability.amazon_fees_excluding_fulfillment`.
+  Excludes FBA fulfillment fees. These remain operational sale-cohort aggregates,
+  **not a posted-period fee ledger**: the upstream calculator uses absolute fee
+  amounts and does not reconcile refund fee credits by processing period.
+  Missing-fee/refunded rows cause management fees to be null. Other values carry
+  this explicit limitation. An actual fee-type breakdown is deferred because
+  it would not safely reconcile to this aggregate without a fee-ledger repair.
+- `fulfillment_costs`: stored `fulfillment_cost` with source `amazon_fba_fee` on
+  Amazon-fulfilled orders. Unknown channels or ambiguous/missing FBA sources
+  produce null. Manual values are not assigned to a category without provenance.
+- `shipping_label_costs`: USD Veeqo shipment costs for merchant-fulfilled sales,
+  with explicit `outbound_label_charges` or `label_cost` provenance, counted once
+  per `veeqo_shipment_id`, even across multiple sale items. Costs follow the
+  original order purchase period. FBA-only populations have zero label costs.
+  Missing labels/currency or generic Veeqo `charge`/`cost` sources produce null.
+  Generic negative Amazon adjustments and manual fulfillment overrides are not
+  sufficiently identified as carrier labels and are not exported as labels.
+  Inbound freight and FBA fees never enter this category.
+- `gross_profit`: gross sales minus acquisition COGS, before refunds and all
+  selling/fulfillment/label costs. This differs deliberately from the preserved
+  legacy trend gross-profit formula; `gross_profit_basis` states the formula.
+- `net_profit`: null while complete refund totals and posted fee-credit treatment
+  cannot be certified. ZFI owns overhead and the final management P&L.
+
+### Seller refunds and the current source limitation
+
+`refunds_returns` is a positive contra-revenue expense convention, recognized by
+Amazon refund processing (`posted_date`), never by sale date or physical return
+date. Source: `amazon_sales_financial_events`, `event_type = RefundEventList`.
+Supported observed components are signed Principal, ShippingCharge, GiftWrap,
+and promotion reversals, negated to express contra-revenue. Taxes and fee credits
+are excluded. eBay buyer acquisition refunds and `loss_prevention` recovery
+figures are different domains and never feed this calculation.
+
+**The current source cannot certify a complete refund total.** Finance sync is
+order-scoped rather than a complete posted-period ledger; its legacy deterministic
+financial-event ID omits posting date, which can collapse equal repeated refunds.
+Accordingly `refunds_returns` is currently null with `refund_coverage = unverified`
+for current month, YTD, other windows and top-level sales. This is not zero.
+`refunds_returns_observed` provides the supported stored-event subtotal for
+investigation only. It deduplicates stored event IDs, handles partial refunds and
+preserves credit signs; unsupported currency, amount, type, identity or undated
+refund events make even that subtotal null. An empty successfully read set has
+observed zero, but still does not certify zero actual refunds.
+
+A future refund-ledger repair must establish complete posted-period ingestion
+and stable event identities before making `refunds_returns` numeric. This change
+does not modify the importer, rewrite historical revenue, or guess missing refunds.
+
+### Added metadata and compatibility
+
+Management objects include `source_start_date`, `source_end_date`,
+`source_start_at`, `source_end_at_exclusive`, `timezone`, `currency`,
+`source_timestamps`, `completeness_warnings`, `refund_source`, `refund_coverage`,
+and `marketplace_fee_basis`, `fulfillment_cost_basis`, `shipping_label_cost_basis`,
+`cogs_basis`, `gross_profit_basis`. Dates describe the requested period; timestamps
+are source-row freshness, not proof of complete ingestion.
+
+Added fields: `profitability_windows.current_month`, top-level `management_pnl`,
+`profitability_windows.{30d,90d,ytd}.management_pnl`, window refund fields,
+`sales.refunds_returns_observed`, `costs.fulfillment_costs`, and source timestamps
+`refund_events_created_at` / `veeqo_labels_updated_at`. Changed fields:
+`sales.refunds_returns`, `costs.shipping_label_costs`, and legacy window
+`fulfillment_costs` / `shipping_label_costs`. Existing section names, upsert key,
+30/90-day boundaries and scheduler group/cadence behavior are preserved.
+Consumers must preserve nulls and warnings rather than coerce them to zero.
+
+New reads are projected refund rows bounded by posting period, one undated-refund
+sentinel, and Veeqo labels in batches of 200 selected MFN order IDs. No raw snapshot
+expansion, schema change, live backfill or new scheduler job is introduced. The
+publisher's pre-existing historical reads remain; review Supabase capacity before
+any full live publisher verification (see `docs/supabase_capacity.md`).
+
+Local validation: `python -m unittest discover -s tests -p test_zfi_business_summary.py`.
+All 20 contract tests passed, plus 19 refund-economics, 8 finance-archive and
+5 scheduler-diagnostics tests (52 total); `git diff --check` passed.
+Tests cover calendar/local/DST/YTD boundaries, refund processing periods and source
+limits, independent fee/fulfillment/label costs, multi-item/shipment deduplication,
+COGS separation, null behavior and the full publisher payload shape.
+
 ## ZFI Buying extension (2026-09-07)
 
 The operator has authorized a narrow read-only purchase-facts pull and a fixed purchase-ingestion trigger/status API, in addition to the existing outbound summaries. ZFI continues to own all Buying Power and YNAB reconciliation logic. The view, fields, server credentials, historical coverage, concurrency and activation are documented in [ZFI Buying integration](ZFI_BUYING_INTEGRATION.md). Production activation passed on 2026-09-07; see [activation evidence](ZFI_BUYING_ACTIVATION_2026-09-07.md).
@@ -239,7 +351,7 @@ Top-level metadata:
 - `source`: always `mbop`
 - `schema_version`: payload version
 - `payload_version`: current expanded payload is
-  `business_finance_replacement_v2`
+  `business_finance_replacement_v3`
 - `summary_id`: stable UUID for the source/period
 - `generated_at`: UTC generation timestamp
 - `generated_by`: manual/operator label

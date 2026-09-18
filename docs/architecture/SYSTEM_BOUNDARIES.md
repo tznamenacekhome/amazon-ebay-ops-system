@@ -1,5 +1,15 @@
 # System Boundaries: MBOP Relative To ZFI
 
+## Calendar-period contract (2026-09-17)
+
+The outbound publisher now adds business-local calendar-month facts and additive
+YTD management detail. Seller refunds follow processing dates; incomplete refund
+coverage produces null plus observed diagnostics. Verified MFN Veeqo labels are
+separate from FBA fulfillment and marketplace fees. Acquisition COGS excludes
+inbound freight and prep. ZFI must retain nulls/warnings and use management fields
+instead of legacy complete-row trend profits. No new finance ownership or
+scheduler behavior is introduced. See [exact definitions and source limits](../ZFI_INTEGRATION.md#calendar-month-management-contract-2026-09-17).
+
 ## ZFI Buying scoped access (2026-09-07)
 
 The operator explicitly authorizes ZFI to pull the dedicated eBay purchase-facts contract and trigger/poll purchase-ingestion. This is a narrow extension to summary-first integration, not arbitrary table replication. MBOP remains the facts/execution owner; ZFI owns reconciliation and Buying Power. See [contract](../ZFI_BUYING_INTEGRATION.md).
@@ -254,7 +264,7 @@ Minimum payload categories:
 
 Current expanded payload:
 
-- `payload_version = business_finance_replacement_v2`
+- `payload_version = business_finance_replacement_v3`
 - profitability windows for 30-day, 90-day, and YTD periods
 - cash position and Amazon payout reconciliation
 - inventory capital by operational location and age bucket

@@ -1,5 +1,15 @@
 # MBOP / ZFI Integration Principles
 
+## Calendar-period contract (2026-09-17)
+
+The outbound publisher now adds business-local calendar-month facts and additive
+YTD management detail. Seller refunds follow processing dates; incomplete refund
+coverage produces null plus observed diagnostics. Verified MFN Veeqo labels are
+separate from FBA fulfillment and marketplace fees. Acquisition COGS excludes
+inbound freight and prep. ZFI must retain nulls/warnings and use management fields
+instead of legacy complete-row trend profits. No new finance ownership or
+scheduler behavior is introduced. See [exact definitions and source limits](../ZFI_INTEGRATION.md#calendar-month-management-contract-2026-09-17).
+
 ## Authorized Buying facts pull (2026-09-07)
 
 The dedicated ZFI Buying view/API is an explicit narrow exception to summary-only defaults. It exposes order-level quantities/current costs, not arbitrary MBOP tables. Read and refresh authorization remain separate, server-only, and independent of user sessions. [Contract](../ZFI_BUYING_INTEGRATION.md).
@@ -80,7 +90,7 @@ Normal ZFI reporting should start from:
 - Amazon cash/payout summaries.
 - Source timestamps, confidence, and review status.
 
-The current MBOP publisher uses `business_finance_replacement_v2` to send
+The current MBOP publisher uses `business_finance_replacement_v3` to send
 dashboard-replacement summaries to ZFI without sending item-level operational
 rows by default.
 

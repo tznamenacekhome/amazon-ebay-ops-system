@@ -19,10 +19,17 @@ from typing import Any
 from dotenv import load_dotenv
 from supabase import create_client
 
+try:
+    from .zfi_management_profitability import (business_timezone, local_date, utc_bounds,
+        refund_facts, summarize_management_window)
+except ImportError:
+    from zfi_management_profitability import (business_timezone, local_date, utc_bounds,
+        refund_facts, summarize_management_window)
+
 LOGGER = logging.getLogger("push_zfi_business_summary")
 
-SCHEMA_VERSION = "2026-06-29"
-PAYLOAD_VERSION = "business_finance_replacement_v2"
+SCHEMA_VERSION = "2026-09-17"
+PAYLOAD_VERSION = "business_finance_replacement_v3"
 DEFAULT_TARGET_TABLE = "mbop_business_summaries"
 DEFAULT_RETRY_ATTEMPTS = 3
 DEFAULT_RETRY_DELAY_SECONDS = 2.0
@@ -51,13 +58,13 @@ class ZFIPushError(RuntimeError):
 
 
 def main() -> int:
+    load_dotenv()
     args = parse_args()
     logging.basicConfig(
         level=logging.INFO,
         format="%(asctime)s %(levelname)s %(name)s - %(message)s",
     )
     logging.getLogger("httpx").setLevel(logging.WARNING)
-    load_dotenv()
 
     try:
         mbop = get_mbop_supabase_client()
@@ -106,7 +113,7 @@ def main() -> int:
 
 
 def parse_args() -> argparse.Namespace:
-    today = dt.date.today()
+    today = dt.datetime.now(business_timezone()).date()
     default_start = (today - dt.timedelta(days=30)).isoformat()
     parser = argparse.ArgumentParser(
         description="Build and optionally push an MBOP business summary to ZFI Supabase."
@@ -207,9 +214,6 @@ def build_payload(
     complete_profit_rows = [
         row for row in profit_rows if normalize(row.get("data_status")) == "complete"
     ]
-    refunded_rows = [
-        row for row in profit_rows if normalize(row.get("data_status")) == "refunded"
-    ]
     non_cancelled_rows = [
         row for row in profit_rows if normalize(row.get("data_status")) != "cancelled"
     ]
@@ -226,7 +230,6 @@ def build_payload(
 
     gross_sales = money(sum_number(non_cancelled_rows, "sale_price"))
     marketplace_fees = money(abs(sum_number(complete_profit_rows, "amazon_fees_excluding_fulfillment")))
-    fulfillment_costs = money(abs(sum_number(complete_profit_rows, "fulfillment_cost")))
     cogs = money(sum_number(complete_profit_rows, "cogs"))
     net_profit = money(sum_number(complete_profit_rows, "net_profit"))
     inventory_purchases = money(
@@ -249,7 +252,18 @@ def build_payload(
 
     alerts = build_alerts(profit_rows, inventory_summary)
     generated_at = now_iso()
-    windows = build_profitability_windows(profit_rows_with_dates, end, source_timestamps)
+    detail_start = min(start, dt.date(end.year, 1, 1), end - dt.timedelta(days=89))
+    refund_events = fetch_refund_events(supabase, detail_start, end)
+    detail_order_ids = sorted({str(row["amazon_order_id"]) for row in profit_rows_with_dates
+        if (day := local_date(row.get("sold_at"))) and detail_start <= day <= end
+        and str(row.get("fulfillment_channel") or "").lower() in {"mfn", "merchant", "merchantfulfilled"}})
+    labels = fetch_shipping_labels(supabase, detail_order_ids)
+    source_timestamps["refund_events_created_at"] = latest_value(r.get("created_at") for r in refund_events)
+    source_timestamps["veeqo_labels_updated_at"] = latest_value(r.get("updated_at") for r in labels)
+    windows = build_profitability_windows(profit_rows_with_dates, end, source_timestamps,
+                                          refund_events=refund_events, labels=labels)
+    period_management = summarize_management_window(profit_rows_with_dates, start, end,
+                                                     source_timestamps, refund_events, labels)
     cash_position = build_cash_position(latest_finance, source_timestamps)
     payout_reconciliation = build_payout_reconciliation(latest_finance)
     inventory_capital = build_inventory_capital(inventory_positions, source_timestamps)
@@ -297,14 +311,16 @@ def build_payload(
                 "ebay": 0.0,
                 "other": 0.0,
             },
-            "refunds_returns": money(sum_number(refunded_rows, "sale_price")),
+            "refunds_returns": period_management["refunds_returns"],
+            "refunds_returns_observed": period_management["refunds_returns_observed"],
             "units_sold": int(sum_number(non_cancelled_rows, "quantity")),
             "complete_sales_rows": len(complete_profit_rows),
             "total_sales_rows": len(profit_rows),
         },
         "costs": {
             "marketplace_fees": marketplace_fees,
-            "shipping_label_costs": fulfillment_costs,
+            "shipping_label_costs": period_management["shipping_label_costs"],
+            "fulfillment_costs": period_management["fulfillment_costs"],
             "inbound_shipping_prep_costs": None,
             "cogs": cogs,
             "inventory_purchases": inventory_purchases,
@@ -323,6 +339,7 @@ def build_payload(
             "amazon_deferred_or_reserved_cash": money((latest_finance or {}).get("deferred_or_reserved_cash")),
         },
         "profitability_windows": windows,
+        "management_pnl": period_management,
         "cash_position": cash_position,
         "payout_reconciliation": payout_reconciliation,
         "inventory_capital": inventory_capital,
@@ -370,7 +387,7 @@ def fetch_sales_orders_since(supabase, start: dt.date) -> list[dict[str, Any]]:
     return fetch_all(
         supabase,
         "amazon_sales_orders",
-        "amazon_order_id,purchase_date,order_status,order_total_amount,updated_at",
+        "amazon_order_id,purchase_date,order_status,order_total_amount,fulfillment_channel,updated_at",
         filters=lambda query: query.gte("purchase_date", f"{start.isoformat()}T00:00:00Z"),
     )
 
@@ -379,8 +396,30 @@ def fetch_sales_profitability(supabase) -> list[dict[str, Any]]:
     return fetch_all(
         supabase,
         "amazon_sales_profitability",
-        "amazon_order_id,asin,seller_sku,title,quantity,sale_price,amazon_fees_excluding_fulfillment,fulfillment_cost,cogs,net_profit,roi,data_status,calculated_at,updated_at",
+        "amazon_order_id,asin,seller_sku,title,quantity,sale_price,amazon_fees_excluding_fulfillment,fulfillment_cost,fulfillment_cost_source,cogs,net_profit,roi,data_status,calculated_at,updated_at",
     )
+
+
+def fetch_refund_events(supabase, start: dt.date, end: dt.date):
+    lower, upper = utc_bounds(start, end)
+    columns = "financial_event_id,event_type,posted_date,amount,currency,fee_type,charge_type,promotion_type,created_at"
+    rows = fetch_all(supabase, "amazon_sales_financial_events", columns,
+        filters=lambda q: q.eq("event_type", "RefundEventList").gte("posted_date", lower)
+        .lt("posted_date", upper).order("amazon_sales_financial_event_id"))
+    # Undated rows cannot be assigned to a period; conservatively invalidate observed totals.
+    response = (supabase.table("amazon_sales_financial_events").select(columns)
+        .eq("event_type", "RefundEventList").is_("posted_date", "null").limit(1).execute())
+    rows.extend(response.data or [])
+    return rows
+
+
+def fetch_shipping_labels(supabase, order_ids):
+    rows = []
+    for batch in chunks(order_ids, 200):
+        rows.extend(fetch_all(supabase, "veeqo_sales_shipments",
+            "veeqo_shipment_id,amazon_order_id,label_cost_amount,label_cost_currency,label_cost_source_field,updated_at",
+            filters=lambda q: q.in_("amazon_order_id", batch).order("veeqo_shipment_id")))
+    return rows
 
 
 def fetch_purchase_rows(supabase, start: dt.date, end: dt.date) -> list[dict[str, Any]]:
@@ -520,9 +559,11 @@ def attach_sold_dates(
         for row in sales_orders
         if row.get("amazon_order_id")
     }
+    channels = {str(row.get("amazon_order_id")): row.get("fulfillment_channel") for row in sales_orders}
     return [
         {
             **row,
+            "fulfillment_channel": channels.get(str(row.get("amazon_order_id") or "")),
             "sold_at": order_dates.get(str(row.get("amazon_order_id") or "")),
         }
         for row in profit_rows
@@ -533,16 +574,32 @@ def build_profitability_windows(
     rows: list[dict[str, Any]],
     end: dt.date,
     source_timestamps: dict[str, Any],
+    *, refund_events=None, labels=None,
 ) -> dict[str, Any]:
     windows = {
         "30d": end - dt.timedelta(days=29),
         "90d": end - dt.timedelta(days=89),
         "ytd": dt.date(end.year, 1, 1),
     }
-    return {
-        key: summarize_profit_window(key, rows, start, end, source_timestamps)
-        for key, start in windows.items()
+    result = {}
+    for key, start in windows.items():
+        legacy = summarize_profit_window(key, rows, start, end, source_timestamps)
+        management = summarize_management_window(rows, start, end, source_timestamps, refund_events, labels)
+        legacy["management_pnl"] = management
+        legacy_warnings = legacy["completeness_warnings"]
+        legacy.update({k: v for k, v in refund_facts(refund_events, start, end).items()
+                       if k != "completeness_warnings"})
+        legacy["completeness_warnings"] = list(dict.fromkeys(
+            legacy_warnings + management["completeness_warnings"]))
+        # Fix duplicate cost categories while preserving legacy trend profit/revenue.
+        legacy["fulfillment_costs"] = management["fulfillment_costs"]
+        legacy["shipping_label_costs"] = management["shipping_label_costs"]
+        result[key] = legacy
+    result["current_month"] = {
+        "window": "current_month",
+        **summarize_management_window(rows, end.replace(day=1), end, source_timestamps, refund_events, labels),
     }
+    return result
 
 
 def summarize_profit_window(
@@ -579,7 +636,7 @@ def summarize_profit_window(
         "amazon_fees": amazon_fees,
         "marketplace_fees": amazon_fees,
         "fulfillment_costs": fulfillment_costs,
-        "shipping_label_costs": fulfillment_costs,
+        "shipping_label_costs": None,
         "cogs": cogs,
         "gross_profit": money(revenue - amazon_fees - cogs),
         "net_profit": net_profit,

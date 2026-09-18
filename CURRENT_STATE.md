@@ -1,5 +1,18 @@
 # CURRENT_STATE.md
 
+## ZFI calendar-month contract refinement (2026-09-17, local implementation)
+
+Publisher v3 adds true business-local calendar-month facts, matching YTD
+management detail, and independent verified Veeqo shipping-label totals. Existing
+30d/90d/YTD trend fields and scheduler wiring remain. Sales stay in their original
+period; observed seller refunds follow processing dates. Complete refund totals
+and management net profit intentionally remain null: the order-scoped importer
+has no period coverage certificate and legacy event IDs can collapse repeated
+equal refunds. Validation passed: 20 publisher/management contract tests, 19 refund-economics
+tests, 8 finance-archive tests and 5 scheduler-diagnostics tests (52 total).
+No migration, production deployment, live sync or ZFI push was run.
+See [contract, definitions and limitations](docs/ZFI_INTEGRATION.md#calendar-month-management-contract-2026-09-17).
+
 ## Sourcing matching closeout completed — 2026-09-14
 
 Phase 3 is active on sourcing scheduler93 from `a2247102a9e6`; web151 is unchanged. The authorized 30-day cohort contained 50,239 rows; 31,455 were evaluated and 28,013 guarded writes reconciled. Explicit human review and protected lifecycle/history were excluded; protected/stale rows skipped. Protected rows touched, reviewed rows overwritten, historical review rewrites, provider searches launched by closeout and marketplace writes are all zero. All 20 schedules preserve configuration except the sourcing revision. [Final counts and verification](docs/sourcing_matching_30_day_reprocess_2026-09-13.md); [feature/runbook](docs/SOURCING_MATCHING_CURRENT_STATE.md).
