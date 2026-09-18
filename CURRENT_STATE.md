@@ -1,5 +1,16 @@
 # CURRENT_STATE.md
 
+## Receiving dismissal fix and order receipt (2026-09-18)
+
+Web160 (`7e385e96f2c4`) is stable with its exact target healthy. Cancel, X and
+Escape discard receiving drafts and suppress automatic reopening for an unchanged
+search, including missing-ASIN and delayed-scan cases. Regression and tracking
+scan tests plus the production build pass; browser interaction was unavailable.
+Order `23-15127-96456` was received through the normal API: one unit, ASIN
+`B07RP42TMG`, sell price 34.98, acquisition cost unchanged at 13.99. The receipt
+note records the shared package with `11-15144-05293`. Scheduler cadence is
+unchanged. [Evidence and validation](docs/receiving_dismissal_2026-09-18.md).
+
 ## ZFI v3 deployed and verified (2026-09-18)
 
 Publisher commit `0c94d3fb0b41` is deployed on scheduler 97/98/99; web159 is unchanged. A publisher-only ECS task exited zero and the latest ZFI v3 row was read back at `2026-09-18T14:18:10.960144Z`. All 20 schedules were compared; only seven task references changed, with cadence unchanged. Current-month scope is September 1?18 Pacific, 145 units. Observed refunds are 103.25 diagnostic-only; refund/net-profit and other incomplete management totals remain null with warnings. A complete sample confirms 8.40 marketplace fees, 8.70 FBA fulfillment and zero labels. No MBOP source writes; bounded historical source hashes unchanged. 53 tests pass. [Deployment and exact values](docs/ZFI_V3_DEPLOYMENT_2026-09-18.md).
