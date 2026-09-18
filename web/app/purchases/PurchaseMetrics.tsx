@@ -10,7 +10,17 @@ export function PurchaseMetrics({ stats }: PurchaseMetricsProps) {
     <div className="mb-3 flex flex-wrap gap-x-8 gap-y-2 rounded-md border border-slate-200 bg-white px-4 py-3" title="All active resale purchases, independent of page filters. Uses stored quantity and unit cost. Partially delivered purchase items remain in Not delivered yet until fully delivered; received, listed, cancelled and returns are excluded.">
       <DeliveryMetric label="Not delivered yet" value={stats.delivery?.notDelivered} unavailable={Boolean(stats.deliveryError)} />
       <DeliveryMetric label="Delivered and not received" value={stats.delivery?.deliveredNotReceived} unavailable={Boolean(stats.deliveryError)} />
+      <div title="Undelivered resale units with an ETA on or before Saturday, including overdue items. Carrier ETA takes precedence over eBay ETA. Items without an ETA are excluded.">
+        <DeliveryMetric
+          label={stats.delivery?.dueBySaturday
+            ? `Due by Saturday ${Number(stats.delivery.dueBySaturday.throughDate.slice(5, 7))}/${Number(stats.delivery.dueBySaturday.throughDate.slice(8, 10))}`
+            : "Due by Saturday"}
+          value={stats.delivery?.dueBySaturday}
+          unavailable={Boolean(stats.deliveryDueError || stats.deliveryError)}
+        />
+      </div>
       {stats.deliveryError ? <p role="alert" className="w-full text-xs text-red-700">Delivery totals unavailable: {stats.deliveryError}</p> : null}
+      {stats.deliveryDueError ? <p role="alert" className="w-full text-xs text-red-700">Saturday delivery total unavailable: {stats.deliveryDueError}</p> : null}
     </div>
     <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-5">
       <Metric label="Total Rows" value={stats.total} />
