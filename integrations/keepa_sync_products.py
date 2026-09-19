@@ -17,6 +17,7 @@ import os
 import time
 from datetime import datetime, timedelta, timezone
 from typing import Any
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from dotenv import load_dotenv
 from supabase import create_client
@@ -124,14 +125,31 @@ def main() -> int:
             token_status_before.get("refill_in"),
             token_status_before.get("refill_rate"),
         )
-        if args.min_tokens is not None and tokens_left < args.min_tokens:
+        token_reserve = active_weekend_token_reserve(
+            args.weekend_token_reserve,
+            args.business_timezone,
+        )
+        spendable_tokens = max(tokens_left - token_reserve, 0)
+        LOGGER.info(
+            "Keepa token budget: tokens_left=%s reserve=%s spendable=%s timezone=%s",
+            tokens_left,
+            token_reserve,
+            spendable_tokens,
+            args.business_timezone,
+        )
+        if args.min_tokens is not None and spendable_tokens < args.min_tokens:
             LOGGER.info(
-                "Skipping Keepa sync because tokens_left=%s is below min_tokens=%s.",
-                tokens_left,
+                "Skipping Keepa sync because spendable_tokens=%s is below min_tokens=%s "
+                "after reserve=%s.",
+                spendable_tokens,
                 args.min_tokens,
+                token_reserve,
             )
             print_plan_summary(asins, token_status_before)
-            print(f"Skipped: Keepa tokens below minimum threshold ({tokens_left} < {args.min_tokens}).")
+            print(
+                "Skipped: spendable Keepa tokens below minimum threshold "
+                f"({spendable_tokens} < {args.min_tokens}; reserve={token_reserve})."
+            )
             if cycle_state is not None and args.write:
                 cycle_state = finalize_catalog_cycle_state(cycle_state, inserted_asins=[], tokens_used=0)
                 print_cycle_summary(cycle_state)
@@ -145,15 +163,23 @@ def main() -> int:
             return 0
 
         if args.adaptive_limit:
-            adaptive_limit = max(1, tokens_left // max(args.estimated_tokens_per_asin, 1))
+            adaptive_limit = spendable_tokens // max(args.estimated_tokens_per_asin, 1)
             if args.limit is not None:
                 adaptive_limit = min(args.limit, adaptive_limit)
+            if adaptive_limit < 1:
+                LOGGER.info(
+                    "Skipping Keepa sync because the active reserve leaves no token budget."
+                )
+                print_plan_summary(asins, token_status_before)
+                return 0
             if adaptive_limit < len(asins):
                 LOGGER.info(
-                    "Adaptive Keepa limit selected %s ASIN(s) from %s using tokens_left=%s estimate=%s.",
+                    "Adaptive Keepa limit selected %s ASIN(s) from %s using "
+                    "spendable_tokens=%s reserve=%s estimate=%s.",
                     adaptive_limit,
                     len(asins),
-                    tokens_left,
+                    spendable_tokens,
+                    token_reserve,
                     args.estimated_tokens_per_asin,
                 )
                 asins = asins[:adaptive_limit]
@@ -356,6 +382,17 @@ def parse_args() -> argparse.Namespace:
         help="Token estimate used by --adaptive-limit.",
     )
     parser.add_argument(
+        "--weekend-token-reserve",
+        type=int,
+        default=0,
+        help="Tokens protected on Saturday and Sunday in --business-timezone.",
+    )
+    parser.add_argument(
+        "--business-timezone",
+        default="America/Los_Angeles",
+        help="IANA timezone used to determine whether the token reserve is active.",
+    )
+    parser.add_argument(
         "--cycle-progress",
         action="store_true",
         help="For catalog_priority, select ASINs not yet refreshed in the current catalog cycle and emit cycle telemetry.",
@@ -384,6 +421,25 @@ def parse_args() -> argparse.Namespace:
         help="Maximum history points per metric when --write-history is used.",
     )
     return parser.parse_args()
+
+
+def active_weekend_token_reserve(
+    configured_reserve: int,
+    timezone_name: str,
+    *,
+    now: datetime | None = None,
+) -> int:
+    if configured_reserve < 0:
+        raise ValueError("weekend token reserve cannot be negative")
+    try:
+        business_timezone = ZoneInfo(timezone_name)
+    except ZoneInfoNotFoundError as error:
+        raise ValueError(f"unknown business timezone: {timezone_name}") from error
+
+    current = now or datetime.now(timezone.utc)
+    if current.tzinfo is None:
+        current = current.replace(tzinfo=timezone.utc)
+    return configured_reserve if current.astimezone(business_timezone).weekday() >= 5 else 0
 
 
 def get_supabase_client():

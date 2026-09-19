@@ -378,7 +378,9 @@ keepa-catalog-priority:
   --offers 20
   --only-live-offers
   --adaptive-limit
-  --estimated-tokens-per-asin 4
+  --estimated-tokens-per-asin 12
+  --weekend-token-reserve 150
+  --business-timezone America/Los_Angeles
   --cycle-progress
   --no-history
   --no-rating
@@ -395,6 +397,10 @@ fba-pricing:
 The `keepa-catalog-priority` schedule captures live new-offer pricing data and
 omits rating, stock, and history payloads. It runs every 30 minutes because the
 offer-enriched call often processes only 1-3 ASINs after a 5-minute token refill.
+On Saturday and Sunday in Pacific time it protects 150 tokens for a lightweight
+Send to Amazon refresh of 150 ASINs. On weekdays the reserve is zero and the
+catalog cycle can use the full token pool. The adaptive offer-enrichment budget
+uses the production-observed estimate of 12 tokens per ASIN.
 Cycle progress is recorded so System Health can show progress through a full
 eligible-catalog pass. It is the only scheduled Keepa API caller. The
 manual/on-demand `fba-pricing` group remains available from the Send to Amazon
