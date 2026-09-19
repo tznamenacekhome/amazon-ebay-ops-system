@@ -1,6 +1,20 @@
 # CURRENT_STATE.md
 
-## ZFI current-month completeness repair (2026-09-19, local)
+## Web161 and ZFI P&L repair deployed (2026-09-19)
+
+Commit `36a248a1e5f1` is active on web161 and scheduler100/101/102. Web161 is
+stable with one healthy target; the Due by Saturday production RPC returns 13
+units / $273.07 through 9/19 and rolls to 18 units / $400.17 through 9/26 on
+9/20. Exactly seven of 20 schedules moved to the new scheduler image; cadence
+and all non-target configuration are unchanged. A bounded finance refresh,
+profitability recalculation, and ZFI push all exited zero. The new row generated
+at `2026-09-19T19:12:16.650797Z` reports 134 current-month shipped units,
+$5,681.38 revenue, $1,089.50 marketplace fees, $548.27 FBA fulfillment, null
+labels/COGS/refunds/gross profit/net profit, and $103.25 diagnostic observed
+refunds. Historical source samples are unchanged; refreshed COGS consumption was
+limited to September orders. [Release evidence](docs/RELEASE_2026-09-19_WEB161_ZFI_PNL.md).
+
+## ZFI current-month completeness repair (2026-09-19, implementation history)
 
 A read-only production audit found that pending rows nullified shipped revenue,
 and stale Transactions fallback fees could be added to legacy Finance API fees.
@@ -10,8 +24,9 @@ excluding refund fee credits. September 1-18 shipped gross sales are $5,506.59;
 after bounded profitability recalculation the audited fee totals are expected to
 be $1,056.08 marketplace fees and $533.84 FBA fulfillment. COGS, one MFN label,
 authoritative refunds, gross profit, and net profit remain null for documented
-source gaps. No migration, production write, deployment, ZFI push, or cadence
-change was performed. [Audit and continuation](docs/ZFI_MANAGEMENT_PNL_COMPLETENESS_2026-09-18.md).
+source gaps. At audit time no migration, production write, deployment, ZFI push,
+or cadence change had been performed; the deployment entry above supersedes that
+local status. [Audit and continuation](docs/ZFI_MANAGEMENT_PNL_COMPLETENESS_2026-09-18.md).
 
 ## Receiving dismissal fix and order receipt (2026-09-18)
 

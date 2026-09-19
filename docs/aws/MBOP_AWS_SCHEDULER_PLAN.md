@@ -1,5 +1,16 @@
 # MBOP AWS Scheduler Plan
 
+## September 19, 2026 ZFI P&L completeness repair
+
+Scheduler100 serves both Amazon-sales schedules plus FBA inventory and shipment
+schedules. Scheduler101 serves the three finance-refresh schedules and preserves
+finance payload archive configuration. Scheduler102 is the latest manual-launch
+revision and preserves Phase 3 configuration. All use commit `36a248a1e5f1` and
+image digest `sha256:a47b11f4d67f689341794bed56074e22d9f2907798061d7dd37516d6e58ee91c`.
+All 20 schedules were compared; only the same seven task references changed,
+with cadence and all other configuration unchanged. See [deployment and
+readback](../RELEASE_2026-09-19_WEB161_ZFI_PNL.md).
+
 ## September 18, 2026 ZFI v3 publisher
 
 Seven summary-producing schedules now use scheduler97 (sales/FBA) or scheduler98 (finance archive enabled). Scheduler99 is the latest family revision for manual launch, preserving the prior scheduler93 configuration. All use commit `0c94d3fb0b41`; web159 and the separate ZFI Buying purchase pin are unchanged. All 20 schedules were compared; only the seven task references changed. See [production push and verification](../ZFI_V3_DEPLOYMENT_2026-09-18.md).

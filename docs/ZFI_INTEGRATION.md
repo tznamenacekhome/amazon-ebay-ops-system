@@ -2,12 +2,13 @@
 
 ## Current-month completeness follow-up (2026-09-19)
 
-A local repair now excludes pending and replacement orders from recognized sale
-facts, separates FBA and label completeness gates, and prevents duplicate legacy
-and Transactions fee sources from being summed. It has not yet been deployed or
-used for a production recalculation/push. COGS, the one current MFN label, and
-refund-ledger coverage remain real blockers. See the [production audit, exact
-counts, and continuation steps](ZFI_MANAGEMENT_PNL_COMPLETENESS_2026-09-18.md).
+The repair is deployed on scheduler100/101/102 and a bounded production refresh
+and ZFI push completed. The row generated at `2026-09-19T19:12:16.650797Z`
+contains numeric shipped revenue, marketplace fees, and FBA fulfillment while
+preserving safe nulls for incomplete acquisition COGS, the one unverified MFN
+label, authoritative refunds, gross profit, and net profit. See the [deployment
+and exact readback](RELEASE_2026-09-19_WEB161_ZFI_PNL.md) and the underlying
+[completeness audit](ZFI_MANAGEMENT_PNL_COMPLETENESS_2026-09-18.md).
 
 ## Production activation (2026-09-18)
 

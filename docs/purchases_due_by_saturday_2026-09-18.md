@@ -1,5 +1,9 @@
 # Purchases due by Saturday metric
 
+Production status: active on web161 from commit `36a248a1e5f1`. The production
+RPC verified the 2026-09-19 cutoff and the 2026-09-20 rollover to 2026-09-26.
+See [release evidence](RELEASE_2026-09-19_WEB161_ZFI_PNL.md).
+
 The Purchases summary now includes **Due by Saturday M/D** beside the existing
 delivery totals. The date is the end of the current calendar week's Saturday in
 the `America/Los_Angeles` business timezone. For example, Friday 2026-09-18 uses
