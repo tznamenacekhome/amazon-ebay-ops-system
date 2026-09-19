@@ -153,6 +153,23 @@ def collect_price_requests(supabase, args: argparse.Namespace) -> list[dict[str,
                 continue
             requests[(asin, round(price, 2))] = fee_request(asin, price)
 
+        for row in fetch_all(
+            supabase,
+            "amazon_return_recovery_cases",
+            "amazon_return_recovery_case_id,asin,target_price,workflow_state,decision",
+        ):
+            asin = clean_asin(row.get("asin"))
+            price = to_float(row.get("target_price"))
+            if (
+                not asin
+                or price is None
+                or price <= 0
+                or clean_text(row.get("workflow_state")) != "ready_to_send_back_to_amazon"
+                or clean_text(row.get("decision")) != "send_back_to_amazon"
+            ):
+                continue
+            requests[(asin, round(price, 2))] = fee_request(asin, price)
+
     for asin_value in args.asin:
         asin = clean_asin(asin_value)
         if not asin:

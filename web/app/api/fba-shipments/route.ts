@@ -107,6 +107,7 @@ type ReturnRecoveryCaseRow = {
   amazon_order_id: string | null;
   lpn: string | null;
   return_date: string | null;
+  target_price: number | null;
   raw_evidence_json: unknown;
 };
 
@@ -404,6 +405,38 @@ export async function PATCH(request: NextRequest) {
       }
       if (!Object.keys(update).length) continue;
 
+      const returnCaseId = parseReturnRecoveryItemId(item.item_id);
+      if (returnCaseId) {
+        const returnUpdate: Record<string, unknown> = {
+          updated_at: new Date().toISOString(),
+        };
+        if (item.asin !== undefined) {
+          const metadata = item.asin ? await resolveAsinMetadata(supabase, item.asin) : null;
+          returnUpdate.asin = item.asin;
+          returnUpdate.title = metadata?.amazonTitle ?? null;
+          returnUpdate.target_price =
+            item.target_price !== undefined
+              ? item.target_price
+              : metadata?.targetPrice ?? null;
+        } else if (item.target_price !== undefined) {
+          returnUpdate.target_price = item.target_price;
+        }
+
+        const { data, error } = await supabase
+          .from("amazon_return_recovery_cases")
+          .update(returnUpdate)
+          .eq("amazon_return_recovery_case_id", returnCaseId)
+          .eq("workflow_state", "ready_to_send_back_to_amazon")
+          .select("amazon_return_recovery_case_id")
+          .limit(1);
+
+        if (error) throw new Error(error.message);
+        if (!data?.length) {
+          throw new Error("Amazon Return Recovery item is no longer available in the FBA prep queue.");
+        }
+        continue;
+      }
+
       const { error } = await supabase
         .from("purchase_items")
         .update(update)
@@ -656,7 +689,7 @@ async function fetchRoutedReturnRecoverySourceItems(shipmentIds: string[]) {
     .from("amazon_return_recovery_cases")
     .select(
       "amazon_return_recovery_case_id,workflow_state,decision,asin,seller_sku,sku,fnsku,title," +
-        "quantity,amazon_order_id,lpn,return_date,raw_evidence_json"
+        "quantity,amazon_order_id,lpn,return_date,target_price,raw_evidence_json"
     )
     .eq("workflow_state", "closed")
     .eq("decision", "send_back_to_amazon")
@@ -1087,7 +1120,7 @@ async function validateReturnRecoverySaveItems(requestedItems: SaveItem[]) {
     .from("amazon_return_recovery_cases")
     .select(
       "amazon_return_recovery_case_id,workflow_state,decision,asin,seller_sku,sku,fnsku,title," +
-        "quantity,amazon_order_id,lpn,return_date,raw_evidence_json"
+        "quantity,amazon_order_id,lpn,return_date,target_price,raw_evidence_json"
     )
     .in("amazon_return_recovery_case_id", caseIds);
 
@@ -1159,7 +1192,9 @@ async function listReturnRecoveryItem(
   const profitQuantity = toNumber(profit?.quantity) ?? quantity;
   const unitCost = cogs === null ? null : perUnit(cogs, profitQuantity);
   const targetPrice =
-    profit?.sale_price !== null && profit?.sale_price !== undefined
+    recoveryCase.target_price !== null && recoveryCase.target_price !== undefined
+      ? toNumber(recoveryCase.target_price)
+      : profit?.sale_price !== null && profit?.sale_price !== undefined
       ? perUnit(toNumber(profit.sale_price), profitQuantity)
       : null;
   const costSent = unitCost === null ? null : roundMoney(unitCost * quantityToSend);
@@ -1277,7 +1312,7 @@ async function fetchReturnRecoveryFbaCandidates(): Promise<FbaPrepCandidate[]> {
     .from("amazon_return_recovery_cases")
     .select(
       "amazon_return_recovery_case_id,workflow_state,decision,asin,seller_sku,sku,fnsku,title," +
-        "quantity,amazon_order_id,lpn,return_date,raw_evidence_json"
+        "quantity,amazon_order_id,lpn,return_date,target_price,raw_evidence_json"
     )
     .eq("workflow_state", "ready_to_send_back_to_amazon")
     .eq("decision", "send_back_to_amazon")
@@ -1308,9 +1343,11 @@ async function fetchReturnRecoveryFbaCandidates(): Promise<FbaPrepCandidate[]> {
 
     const profit = findReturnProfitRow(row, profitRows);
     const cogs = toNumber(profit?.cogs);
-    const salePrice = profit?.sale_price !== null && profit?.sale_price !== undefined
-      ? perUnit(toNumber(profit.sale_price), toNumber(profit.quantity) ?? quantity)
-      : null;
+    const salePrice =
+      toNumber(row.target_price) ??
+      (profit?.sale_price !== null && profit?.sale_price !== undefined
+        ? perUnit(toNumber(profit.sale_price), toNumber(profit.quantity) ?? quantity)
+        : null);
 
     return [
       {
