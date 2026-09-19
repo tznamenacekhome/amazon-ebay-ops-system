@@ -330,7 +330,6 @@ export async function GET() {
       inventoryRows,
       skuRows,
       listingRows,
-      planningRows,
       informedRows,
       informedRuleOverrides,
       inventoryLabRows,
@@ -338,17 +337,7 @@ export async function GET() {
       positionRows,
       snoozeRows,
     ] = await Promise.all([
-        fetchAll<InventoryRow>(
-          "vw_latest_amazon_fba_inventory_snapshot",
-          "seller_sku,marketplace_id,asin,fnsku,product_name,condition,total_quantity," +
-            "fulfillable_quantity,inbound_working_quantity,inbound_shipped_quantity," +
-            "inbound_receiving_quantity,reserved_quantity,researching_quantity," +
-            "unfulfillable_quantity,reserved_customer_order_quantity,reserved_fc_transfer_quantity," +
-            "reserved_fc_processing_quantity,future_supply_buyable_quantity,reserved_future_supply_quantity," +
-            "unfulfillable_customer_damaged_quantity,unfulfillable_warehouse_damaged_quantity," +
-            "unfulfillable_distributor_damaged_quantity,unfulfillable_carrier_damaged_quantity," +
-            "unfulfillable_defective_quantity,unfulfillable_expired_quantity,captured_at"
-        ),
+        fetchCurrentFbaInventoryRows(),
         fetchAll<AmazonSkuRow>(
           "amazon_skus",
           "amazon_sku_id,seller_sku,marketplace_id,asin,product_name,condition," +
@@ -358,15 +347,6 @@ export async function GET() {
           "vw_latest_amazon_listing_snapshot",
           "seller_sku,marketplace_id,asin,product_name,condition,listing_status,item_status," +
             "fulfillment_channel,issue_count,issue_severity,issues_json,captured_at"
-        ),
-        fetchAll<InventoryPlanningRow>(
-          "vw_latest_amazon_inventory_planning_snapshot",
-          "seller_sku,marketplace_id,asin,snapshot_date,available_quantity,pending_removal_quantity," +
-            "inv_age_0_to_90_days,inv_age_91_to_180_days,inv_age_181_to_270_days," +
-            "inv_age_271_to_365_days,inv_age_365_plus_days,estimated_storage_cost_next_month," +
-            "estimated_ltsf_next_charge,recommended_action,healthy_inventory_level," +
-            "sales_shipped_last_7_days,sales_shipped_last_30_days,sales_shipped_last_60_days," +
-            "sales_shipped_last_90_days,alert,captured_at"
         ),
         fetchAll<InformedListingRow>(
           "vw_latest_informed_listing_snapshot",
@@ -402,6 +382,7 @@ export async function GET() {
           "asin,seller_sku,snoozed_at,snoozed_until"
         ),
       ]);
+    const planningRows = await fetchPlanningRowsForInventory(inventoryRows);
 
     const preliminaryRows = buildAdvisorRows(
       inventoryRows,
@@ -547,6 +528,95 @@ async function fetchLatestKeepaRawRows(asins: string[]): Promise<Array<Pick<Keep
     }
   }
   return Array.from(latestByAsin.values());
+}
+
+async function fetchCurrentFbaInventoryRows() {
+  const { data: recentRows, error: latestError } = await supabase
+    .from("amazon_fba_inventory_snapshots")
+    .select("captured_at")
+    .eq("source", "amazon_spapi")
+    .order("captured_at", { ascending: false })
+    .limit(1000);
+  if (latestError) {
+    throw new Error(`amazon_fba_inventory_snapshots: ${latestError.message}`);
+  }
+
+  const captureCounts = new Map<string, number>();
+  for (const row of recentRows ?? []) {
+    const capturedAt = cleanText(row.captured_at);
+    if (capturedAt) captureCounts.set(capturedAt, (captureCounts.get(capturedAt) ?? 0) + 1);
+  }
+  // Full FBA inventory syncs contain thousands of rows. Ignore newer tiny
+  // targeted snapshots, which share the same table but are not a full account view.
+  const capturedAt =
+    Array.from(captureCounts).find(([, count]) => count >= 100)?.[0] ??
+    cleanText(recentRows?.[0]?.captured_at);
+  if (!capturedAt) return [] as InventoryRow[];
+
+  return fetchAll<InventoryRow>(
+    "amazon_fba_inventory_snapshots",
+    "seller_sku,marketplace_id,asin,fnsku,product_name,condition,total_quantity," +
+      "fulfillable_quantity,inbound_working_quantity,inbound_shipped_quantity," +
+      "inbound_receiving_quantity,reserved_quantity,researching_quantity," +
+      "unfulfillable_quantity,reserved_customer_order_quantity,reserved_fc_transfer_quantity," +
+      "reserved_fc_processing_quantity,future_supply_buyable_quantity,reserved_future_supply_quantity," +
+      "unfulfillable_customer_damaged_quantity,unfulfillable_warehouse_damaged_quantity," +
+      "unfulfillable_distributor_damaged_quantity,unfulfillable_carrier_damaged_quantity," +
+      "unfulfillable_defective_quantity,unfulfillable_expired_quantity,captured_at",
+    (query) =>
+      query
+        .eq("captured_at", capturedAt)
+        .eq("source", "amazon_spapi")
+        .or(
+          "total_quantity.gt.0,fulfillable_quantity.gt.0,inbound_working_quantity.gt.0," +
+            "inbound_shipped_quantity.gt.0,inbound_receiving_quantity.gt.0," +
+            "reserved_quantity.gt.0,unfulfillable_quantity.gt.0"
+        )
+  );
+}
+
+async function fetchPlanningRowsForInventory(inventoryRows: InventoryRow[]) {
+  const sellerSkus = Array.from(
+    new Set(
+      inventoryRows
+        .map((row) => cleanText(row.seller_sku))
+        .filter((sellerSku): sellerSku is string => Boolean(sellerSku))
+    )
+  );
+  const select =
+    "seller_sku,marketplace_id,asin,snapshot_date,available_quantity,pending_removal_quantity," +
+    "inv_age_0_to_90_days,inv_age_91_to_180_days,inv_age_181_to_270_days," +
+    "inv_age_271_to_365_days,inv_age_365_plus_days,estimated_storage_cost_next_month," +
+    "estimated_ltsf_next_charge,recommended_action,healthy_inventory_level," +
+    "sales_shipped_last_7_days,sales_shipped_last_30_days,sales_shipped_last_60_days," +
+    "sales_shipped_last_90_days,alert,captured_at";
+
+  const { data: reportRuns, error: reportRunError } = await supabase
+    .from("amazon_report_runs")
+    .select("amazon_report_run_id")
+    .eq("report_type", "GET_FBA_INVENTORY_PLANNING_DATA")
+    .eq("processing_status", "IMPORTED")
+    .gt("rows_imported", 0)
+    .order("completed_at", { ascending: false })
+    .limit(1);
+  if (reportRunError) throw new Error(`amazon_report_runs: ${reportRunError.message}`);
+  const reportRunId = cleanText(reportRuns?.[0]?.amazon_report_run_id);
+  if (!reportRunId) return [] as InventoryPlanningRow[];
+
+  const rows: InventoryPlanningRow[] = [];
+  for (const batch of chunkArray(chunkArray(sellerSkus, 50), 4)) {
+    const chunks = await Promise.all(
+      batch.map((chunk) =>
+        fetchAll<InventoryPlanningRow>(
+          "amazon_inventory_planning_snapshots",
+          select,
+          (query) => query.eq("amazon_report_run_id", reportRunId).in("seller_sku", chunk)
+        )
+      )
+    );
+    rows.push(...chunks.flat());
+  }
+  return rows;
 }
 
 function mergeKeepaRawRows(
