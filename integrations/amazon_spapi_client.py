@@ -59,6 +59,7 @@ READ_ONLY_OPERATION_PREFIXES = (
     "/products/fees/",
     "/catalog/2022-04-01/items",
     "/catalog/2022-04-01/items/",
+    "/definitions/2020-09-01/productTypes/",
     "/reports/2021-06-30/",
 )
 
@@ -161,15 +162,20 @@ class AmazonSPAPIClient:
         self,
         config: AmazonSPAPIConfig | None = None,
         session: requests.Session | None = None,
+        allow_listing_writes: bool = False,
     ) -> None:
         self.config = config or AmazonSPAPIConfig.from_env()
         self.session = session or requests.Session()
+        self.allow_listing_writes = allow_listing_writes
         self._access_token: str | None = None
         self._access_token_expires_at: dt.datetime | None = None
 
     @classmethod
-    def from_env(cls) -> "AmazonSPAPIClient":
-        return cls(AmazonSPAPIConfig.from_env())
+    def from_env(cls, *, allow_listing_writes: bool = False) -> "AmazonSPAPIClient":
+        return cls(
+            AmazonSPAPIConfig.from_env(),
+            allow_listing_writes=allow_listing_writes,
+        )
 
     def test_lwa_access_token(self) -> dict[str, Any]:
         token = self.get_lwa_access_token(force_refresh=True)
@@ -279,7 +285,7 @@ class AmazonSPAPIClient:
             "marketplaceIds": self.config.marketplace_id,
         }
         if seller_skus:
-            params["sellerSkus"] = seller_skus[:50]
+            params["sellerSkus"] = ",".join(seller_skus[:50])
         if next_token:
             params["nextToken"] = next_token
 
@@ -622,6 +628,77 @@ class AmazonSPAPIClient:
             f"{quote(selling_partner_id, safe='')}/{quote(seller_sku, safe='')}"
         )
         return self.request("GET", path, params=params)
+
+    def put_listing_item(
+        self,
+        seller_sku: str,
+        *,
+        product_type: str,
+        attributes: dict[str, Any],
+        requirements: str = "LISTING_OFFER_ONLY",
+        issue_locale: str = "en_US",
+        mode: str | None = None,
+        seller_id: str | None = None,
+    ) -> dict[str, Any]:
+        selling_partner_id = seller_id or self.config.seller_id
+        if not selling_partner_id:
+            raise AmazonSPAPIError(
+                "AMAZON_SP_API_SELLER_ID is required for putListingsItem"
+            )
+
+        params: dict[str, Any] = {
+            "marketplaceIds": self.config.marketplace_id,
+            "issueLocale": issue_locale,
+        }
+        if mode:
+            params["mode"] = mode
+        path = (
+            "/listings/2021-08-01/items/"
+            f"{quote(selling_partner_id, safe='')}/{quote(seller_sku, safe='')}"
+        )
+        return self.request(
+            "PUT",
+            path,
+            params=params,
+            json_body={
+                "productType": product_type,
+                "requirements": requirements,
+                "attributes": attributes,
+            },
+        )
+
+    def patch_listing_item(
+        self,
+        seller_sku: str,
+        *,
+        product_type: str,
+        patches: list[dict[str, Any]],
+        issue_locale: str = "en_US",
+        mode: str | None = None,
+        seller_id: str | None = None,
+    ) -> dict[str, Any]:
+        selling_partner_id = seller_id or self.config.seller_id
+        if not selling_partner_id:
+            raise AmazonSPAPIError(
+                "AMAZON_SP_API_SELLER_ID is required for patchListingsItem"
+            )
+
+        params: dict[str, Any] = {
+            "marketplaceIds": self.config.marketplace_id,
+            "issueLocale": issue_locale,
+        }
+        if mode:
+            params["mode"] = mode
+        path = (
+            "/listings/2021-08-01/items/"
+            f"{quote(selling_partner_id, safe='')}/{quote(seller_sku, safe='')}"
+        )
+        return self.request(
+            "PATCH",
+            path,
+            params=params,
+            json_body={"productType": product_type, "patches": patches},
+        )
 
     def get_listings_restrictions(
         self,
@@ -981,6 +1058,13 @@ class AmazonSPAPIClient:
         return response.json()
 
     def validate_read_only_request(self, method: str, path: str) -> None:
+        if (
+            self.allow_listing_writes
+            and method in {"PUT", "PATCH"}
+            and path.startswith("/listings/2021-08-01/items/")
+        ):
+            return
+
         if method != "GET":
             if not (
                 method == "POST"
