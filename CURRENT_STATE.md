@@ -1,5 +1,17 @@
 # CURRENT_STATE.md
 
+## Weekend Keepa reserve deployed (2026-09-19)
+
+Scheduler revision 104 runs commit `14c0f42d0063` for the ongoing
+`keepa-catalog-priority` schedule. Saturday and Sunday are determined in
+`America/Los_Angeles`; the catalog cycle protects 150 tokens for a lightweight
+Send to Amazon refresh of 150 ASINs. Monday through Friday use a zero reserve.
+The offer-enriched cycle now budgets 12 tokens per ASIN from production usage.
+The schedule remains enabled at `rate(30 minutes)`. Production run
+`fa4506d6-ed6a-4b6b-b35d-b94f4bd2dd1c` saw 62 tokens, applied the 150-token
+reserve, spent zero tokens, left cycle progress unchanged, and exited `ok`.
+[Deployment evidence](docs/KEEPA_WEEKEND_RESERVE_2026-09-19.md).
+
 ## FBA pricing refresh made lightweight (2026-09-19)
 
 Commit `50bd6d179b5f` is active in scheduler task definition 103. The previous
