@@ -1,5 +1,18 @@
 # CURRENT_STATE.md
 
+## FBA pricing refresh made lightweight (2026-09-19)
+
+Commit `50bd6d179b5f` is active in scheduler task definition 103. The previous
+FBA pricing run was stopped after live-offer requests exhausted the available
+Keepa tokens; its telemetry was closed as cancelled/failed. The replacement
+run `2a03d374-8cb7-4ec8-ad86-0f9eef84030e` completed successfully in 1,472.899
+seconds. It refreshed lightweight pricing statistics for all 115 eligible ASINs
+and cached 111 Amazon fee estimates with no job error. Future `Update Pricing`
+clicks use lightweight Keepa statistics by default; live-offer enrichment is
+available only through an explicit diagnostic command option. No scheduler
+cadence, shipment state, purchase history, or inventory workflow data changed.
+[Deployment evidence](docs/FBA_PRICING_REFRESH_2026-09-19.md).
+
 ## Web161 and ZFI P&L repair deployed (2026-09-19)
 
 Commit `36a248a1e5f1` is active on web161 and scheduler100/101/102. Web161 is
