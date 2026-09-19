@@ -99,10 +99,15 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Refresh all FBA prep Keepa pricing, waiting for token refills.")
     parser.add_argument("--batch-size", type=int, default=20)
     parser.add_argument("--min-tokens", type=int, default=20)
-    parser.add_argument("--estimated-tokens-per-asin", type=int, default=4)
+    parser.add_argument("--estimated-tokens-per-asin", type=int, default=1)
     parser.add_argument("--max-attempts", type=int, default=200)
     parser.add_argument("--max-sleep-seconds", type=int, default=15 * 60)
-    parser.add_argument("--offers", type=int, default=20)
+    parser.add_argument(
+        "--offers",
+        type=int,
+        default=None,
+        help="Optional live-offer enrichment. Omit for the lightweight FBA pricing refresh.",
+    )
     return parser.parse_args()
 
 
@@ -135,6 +140,16 @@ def refill_sleep_seconds(token_status: dict[str, Any], min_tokens: int, max_slee
 
 
 def run_keepa_batch(asins: list[str], args: argparse.Namespace) -> subprocess.CompletedProcess[str]:
+    command = keepa_batch_command(asins, args)
+
+    LOGGER.info("Running explicit FBA Keepa batch for %s ASIN(s).", len(asins))
+    result = subprocess.run(command, text=True)
+    if result.returncode != 0:
+        LOGGER.error("Explicit FBA Keepa batch failed with exit code %s.", result.returncode)
+    return result
+
+
+def keepa_batch_command(asins: list[str], args: argparse.Namespace) -> list[str]:
     command = [
         sys.executable,
         "integrations/keepa_sync_products.py",
@@ -142,21 +157,15 @@ def run_keepa_batch(asins: list[str], args: argparse.Namespace) -> subprocess.Co
         "explicit",
         "--batch-size",
         str(min(args.batch_size, len(asins))),
-        "--offers",
-        str(args.offers),
-        "--only-live-offers",
         "--no-history",
         "--no-rating",
         "--write",
     ]
+    if args.offers is not None:
+        command.extend(["--offers", str(args.offers), "--only-live-offers"])
     for asin in asins:
         command.extend(["--asin", asin])
-
-    LOGGER.info("Running explicit FBA Keepa batch for %s ASIN(s).", len(asins))
-    result = subprocess.run(command, text=True)
-    if result.returncode != 0:
-        LOGGER.error("Explicit FBA Keepa batch failed with exit code %s.", result.returncode)
-    return result
+    return command
 
 
 def chunks(values: list[str], size: int):
