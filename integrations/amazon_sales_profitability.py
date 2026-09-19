@@ -386,7 +386,7 @@ def split_fee_totals(events: list[dict[str, Any]]) -> dict[str, Any]:
     fba_fee = 0.0
     fees_present = False
 
-    for event in events:
+    for event in sale_fee_events(events):
         fee_type = (event.get("fee_type") or "").lower()
         amount = to_float(event.get("amount"))
         if amount is None or not fee_type:
@@ -403,6 +403,64 @@ def split_fee_totals(events: list[dict[str, Any]]) -> dict[str, Any]:
         "fba_fulfillment_fee": round(fba_fee, 2),
         "fees_present": fees_present,
     }
+
+
+def sale_fee_events(events: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Choose one sale-fee source and exclude refund-period fee credits."""
+    legacy = [
+        event for event in events
+        if event.get("fee_type")
+        and event.get("event_type") != "RefundEventList"
+        and event.get("source") != "amazon_spapi_transactions"
+    ]
+    if legacy:
+        return legacy
+
+    transaction_events = [
+        event for event in events
+        if event.get("fee_type") and event.get("event_type") == "TransactionEventList"
+        and transaction_type(event) in {None, "Shipment"}
+    ]
+    return preferred_transaction_status_events(transaction_events)
+
+
+def transaction_type(event: dict[str, Any]) -> str | None:
+    raw = event.get("raw_financial_event_json") or {}
+    transaction = raw.get("transaction") if isinstance(raw, dict) else None
+    return transaction.get("transactionType") if isinstance(transaction, dict) else None
+
+
+def preferred_transaction_status_events(events: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Avoid counting multiple lifecycle versions of the same transaction."""
+    ranks = {"DEFERRED": 1, "DEFERRED_RELEASED": 2, "RELEASED": 3}
+    groups: dict[str, list[dict[str, Any]]] = {}
+    for event in events:
+        groups.setdefault(transaction_group(event), []).append(event)
+    selected = []
+    for group in groups.values():
+        best_rank = max((ranks.get(transaction_status(event), 0) for event in group), default=0)
+        selected.extend(group if not best_rank else [
+            event for event in group if ranks.get(transaction_status(event), 0) == best_rank
+        ])
+    return selected
+
+
+def transaction_status(event: dict[str, Any]) -> str | None:
+    raw = event.get("raw_financial_event_json") or {}
+    return raw.get("transaction_status") if isinstance(raw, dict) else None
+
+
+def transaction_group(event: dict[str, Any]) -> str:
+    raw = event.get("raw_financial_event_json") or {}
+    transaction = raw.get("transaction") if isinstance(raw, dict) else None
+    if isinstance(transaction, dict):
+        for identifier in transaction.get("relatedIdentifiers") or []:
+            if isinstance(identifier, dict) and identifier.get("relatedIdentifierName") == "SHIPMENT_ID":
+                value = identifier.get("relatedIdentifierValue")
+                if value:
+                    return f"shipment:{value}"
+    transaction_id = raw.get("transaction_id") if isinstance(raw, dict) else None
+    return f"transaction:{transaction_id or id(event)}"
 
 
 def fulfillment_cost_for_order(

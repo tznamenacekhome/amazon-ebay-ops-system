@@ -99,19 +99,21 @@ def cost_categories(rows, labels):
     """Separate FBA fees from verified Veeqo costs, counting each order once."""
     fulfillment = []
     merchant_orders = set()
-    warnings = []
+    fulfillment_warnings = []
+    label_warnings = []
     for row in rows:
         channel = str(row.get("fulfillment_channel") or "").lower()
         if channel in {"afn", "amazon", "amazonfulfilled"}:
             if row.get("fulfillment_cost_source") == "amazon_fba_fee":
                 fulfillment.append(row)
             else:
-                warnings.append("FBA fulfillment cost source is missing or ambiguous.")
+                fulfillment_warnings.append("FBA fulfillment cost source is missing or ambiguous.")
         elif channel in {"mfn", "merchant", "merchantfulfilled"}:
             merchant_orders.add(row.get("amazon_order_id"))
         else:
-            warnings.append("Unknown fulfillment channel prevents independent cost totals.")
-    fulfillment_cost = total(fulfillment, "fulfillment_cost") if not warnings else None
+            fulfillment_warnings.append("Unknown fulfillment channel prevents a complete FBA fulfillment total.")
+            label_warnings.append("Unknown fulfillment channel prevents a complete MFN shipping-label total.")
+    fulfillment_cost = total(fulfillment, "fulfillment_cost") if not fulfillment_warnings else None
     label_rows = []
     for order_id in merchant_orders:
         shipments = [r for r in labels or [] if r.get("amazon_order_id") == order_id]
@@ -119,29 +121,46 @@ def cost_categories(rows, labels):
                                 amount(r.get("label_cost_amount")) is None or
                                 r.get("label_cost_source_field") not in {"outbound_label_charges", "label_cost"} or
                                 not r.get("veeqo_shipment_id") for r in shipments):
-            warnings.append("MFN shipping labels unavailable or unverified; generic Amazon adjustments/manual costs are not verified labels.")
+            label_warnings.append("MFN shipping labels unavailable or unverified; generic Amazon adjustments/manual costs are not verified labels.")
             continue
         by_id = {r["veeqo_shipment_id"]: r for r in shipments}
         label_rows.extend(by_id.values())
-    label_cost = total(label_rows, "label_cost_amount") if not warnings else None
+    label_cost = total(label_rows, "label_cost_amount") if not label_warnings else None
     if fulfillment_cost is None:
-        warnings.append("Fulfillment costs are incomplete.")
-    return fulfillment_cost, label_cost, sorted(set(warnings))
+        fulfillment_warnings.append("Fulfillment costs are incomplete.")
+    return fulfillment_cost, label_cost, sorted(set(fulfillment_warnings + label_warnings))
+
+
+def management_sale_rows(rows, start, end):
+    """Return economically recognized sale rows for a purchase-date cohort."""
+    selected = []
+    for row in rows:
+        day = local_date(row.get("sold_at"))
+        if day is None or not start <= day <= end:
+            continue
+        if row.get("data_status") == "cancelled" or row.get("is_replacement_order") is True:
+            continue
+        status = str(row.get("order_status") or "").lower()
+        if status and status != "shipped":
+            continue
+        selected.append(row)
+    return selected
 
 
 def summarize_management_window(rows, start, end, timestamps, refunds, labels):
-    selected = [r for r in rows if (day := local_date(r.get("sold_at"))) and start <= day <= end
-                and r.get("data_status") != "cancelled"]
-    warnings = ["Sales and cost facts cover stored profitability rows; source timestamps do not certify ingestion completeness."]
+    selected = management_sale_rows(rows, start, end)
+    warnings = [
+        "Sales and cost facts cover shipped, non-replacement stored profitability rows by original purchase date; source timestamps do not certify ingestion completeness."
+    ]
     revenue = total(selected, "sale_price")
     cogs = total(selected, "cogs")
     fees = total(selected, "amazon_fees_excluding_fulfillment")
     # Stored fee sums use absolute amounts, including refund fees/credits. Do not
     # advertise these as a refund-adjusted management expense ledger.
     warnings.append("Marketplace fees are sale-cohort operational aggregates excluding FBA fulfillment; refund fee credits are not reconciled by posting period.")
-    if any(r.get("data_status") in {"missing_fees", "refunded"} for r in selected):
+    if any(r.get("data_status") == "missing_fees" for r in selected):
         fees = None
-        warnings.append("Marketplace fees unavailable for missing-fee/refunded rows.")
+        warnings.append("Marketplace fees unavailable because applicable shipped rows are missing fee data.")
     fulfillment, shipping, cost_warnings = cost_categories(selected, labels)
     refund = refund_facts(refunds, start, end)
     warnings.extend(cost_warnings + refund.pop("completeness_warnings"))

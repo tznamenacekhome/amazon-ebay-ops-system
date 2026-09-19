@@ -16,6 +16,7 @@ def sale(**changes):
                  "sale_price": 50, "cogs": 10, "quantity": 1, "data_status": "complete",
                  "amazon_fees_excluding_fulfillment": 5, "fulfillment_cost": 4,
                  "fulfillment_cost_source": "amazon_fba_fee", "fulfillment_channel": "AFN",
+                 "order_status": "Shipped", "is_replacement_order": False,
                  "net_profit": 31}, **changes)
 
 
@@ -124,6 +125,40 @@ class ManagementContractTests(unittest.TestCase):
         self.assertEqual(result["shipping_label_costs"], 0)
         self.assertEqual(result["marketplace_fees"], 5)
 
+    def test_legitimate_zero_marketplace_fee_is_complete(self):
+        result = self.summary([sale(amazon_fees_excluding_fulfillment=0)])
+        self.assertEqual(result["marketplace_fees"], 0)
+
+    def test_missing_mfn_label_does_not_null_complete_fba_fulfillment(self):
+        result = self.summary([sale(amazon_order_id="fba"), sale(
+            amazon_order_id="mfn", fulfillment_channel="MFN",
+            fulfillment_cost=None, fulfillment_cost_source="missing")])
+        self.assertEqual(result["fulfillment_costs"], 4)
+        self.assertIsNone(result["shipping_label_costs"])
+
+    def test_missing_fba_cost_does_not_null_legitimate_zero_labels(self):
+        result = self.summary([sale(fulfillment_cost=None, fulfillment_cost_source="missing")])
+        self.assertIsNone(result["fulfillment_costs"])
+        self.assertEqual(result["shipping_label_costs"], 0)
+
+    def test_pending_cancelled_and_replacement_rows_do_not_block_shipped_sales(self):
+        result = self.summary([
+            sale(), sale(order_status="Pending", sale_price=None),
+            sale(order_status="Canceled", data_status="cancelled", sale_price=None),
+            sale(is_replacement_order=True, sale_price=None),
+        ])
+        self.assertEqual(result["gross_sales"], 50)
+        self.assertEqual(result["units_sold"], 1)
+
+    def test_refund_status_does_not_block_independent_fields(self):
+        result = self.summary([sale(data_status="refunded")])
+        self.assertEqual(result["gross_sales"], 50)
+        self.assertEqual(result["cogs"], 10)
+        self.assertEqual(result["marketplace_fees"], 5)
+        self.assertEqual(result["fulfillment_costs"], 4)
+        self.assertIsNone(result["refunds_returns"])
+        self.assertIsNone(result["net_profit"])
+
     def test_multi_item_mfn_label_counted_once(self):
         row = sale(fulfillment_channel="MFN", fulfillment_cost_source="veeqo_label", fulfillment_cost=3)
         result = self.summary([row, row], labels=[label(), label()])
@@ -182,17 +217,28 @@ class ManagementContractTests(unittest.TestCase):
         self.assertEqual(result["gross_profit"], 40)
 
     def test_missing_cost_not_zero_or_complete_subset(self):
-        self.assertIsNone(self.summary([sale(), sale(cogs=None)])["cogs"])
+        result = self.summary([sale(), sale(cogs=None)])
+        self.assertIsNone(result["cogs"])
+        self.assertEqual(result["gross_sales"], 100)
+        self.assertEqual(result["marketplace_fees"], 10)
+        self.assertEqual(result["fulfillment_costs"], 8)
+
+    def test_missing_fees_only_blocks_marketplace_fee_total(self):
+        result = self.summary([sale(data_status="missing_fees")])
+        self.assertEqual(result["gross_sales"], 50)
+        self.assertEqual(result["cogs"], 10)
+        self.assertIsNone(result["marketplace_fees"])
+        self.assertEqual(result["fulfillment_costs"], 4)
 
     def test_cancelled_excluded_refunded_sale_retained(self):
         result = self.summary([sale(data_status="cancelled"), sale(data_status="refunded")])
         self.assertEqual(result["gross_sales"], 50)
         self.assertEqual(result["units_sold"], 1)
-        self.assertIsNone(result["marketplace_fees"])
+        self.assertEqual(result["marketplace_fees"], 5)
 
     def test_publisher_contract_preserves_sections(self):
         with patch.multiple(publisher, fetch_sales_orders=lambda *a: {"order": "2026-09-10"},
-                            fetch_sales_orders_since=lambda *a: [{"amazon_order_id": "order", "purchase_date": "2026-09-10T12:00:00Z", "fulfillment_channel": "AFN"}],
+                            fetch_sales_orders_since=lambda *a: [{"amazon_order_id": "order", "purchase_date": "2026-09-10T12:00:00Z", "fulfillment_channel": "AFN", "order_status": "Shipped", "is_replacement_order": False}],
                             fetch_sales_profitability=lambda *a: [sale()], fetch_purchase_rows=lambda *a: [],
                             fetch_all=lambda *a, **k: [], fetch_latest_row=lambda *a: None,
                             fetch_refund_events=lambda *a: [], fetch_shipping_labels=lambda *a: []):

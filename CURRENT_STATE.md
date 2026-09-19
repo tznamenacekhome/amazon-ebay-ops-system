@@ -1,5 +1,18 @@
 # CURRENT_STATE.md
 
+## ZFI current-month completeness repair (2026-09-19, local)
+
+A read-only production audit found that pending rows nullified shipped revenue,
+and stale Transactions fallback fees could be added to legacy Finance API fees.
+The local repair selects shipped, non-replacement management rows, makes FBA and
+label completeness independent, and chooses one sale-fee lifecycle/source while
+excluding refund fee credits. September 1-18 shipped gross sales are $5,506.59;
+after bounded profitability recalculation the audited fee totals are expected to
+be $1,056.08 marketplace fees and $533.84 FBA fulfillment. COGS, one MFN label,
+authoritative refunds, gross profit, and net profit remain null for documented
+source gaps. No migration, production write, deployment, ZFI push, or cadence
+change was performed. [Audit and continuation](docs/ZFI_MANAGEMENT_PNL_COMPLETENESS_2026-09-18.md).
+
 ## Receiving dismissal fix and order receipt (2026-09-18)
 
 Web160 (`7e385e96f2c4`) is stable with its exact target healthy. Cancel, X and

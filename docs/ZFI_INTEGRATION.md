@@ -1,5 +1,14 @@
 # ZFI Integration
 
+## Current-month completeness follow-up (2026-09-19)
+
+A local repair now excludes pending and replacement orders from recognized sale
+facts, separates FBA and label completeness gates, and prevents duplicate legacy
+and Transactions fee sources from being summed. It has not yet been deployed or
+used for a production recalculation/push. COGS, the one current MFN label, and
+refund-ledger coverage remain real blockers. See the [production audit, exact
+counts, and continuation steps](ZFI_MANAGEMENT_PNL_COMPLETENESS_2026-09-18.md).
+
 ## Production activation (2026-09-18)
 
 V3 is deployed and its fresh ZFI row verified. Scheduler revisions 97/98/99 use `0c94d3fb0b41`; web159 is unchanged. Generated at `2026-09-18T14:18:10.960144Z`. The null-safe console fix does not alter payload semantics. Current-month and top-level management costs remain null where production source data is incomplete; observed refunds remain diagnostic. See [deployment evidence and exact values](ZFI_V3_DEPLOYMENT_2026-09-18.md). The local-only status in the implementation section below is historical.
@@ -29,9 +38,10 @@ Do not substitute legacy net profit when management net profit is null.
   Explicit historical end dates produce that historical calendar month.
 - YTD management facts: January 1 through the same inclusive end date in the
   same timezone. `30d` and `90d` remain rolling trend windows, not months.
-- `gross_sales` / `revenue`: stored sale prices of non-cancelled profitability
-  rows by original order purchase date, including later-refunded rows. Missing
-  prices produce null. `units_sold` uses that same population, not just complete
+- `gross_sales` / `revenue`: stored sale prices of shipped, non-replacement
+  profitability rows by original order purchase date, including later-refunded
+  rows. Missing prices produce null. Pending and canceled rows do not block
+  recognized sales. `units_sold` uses that same population, not just complete
   rows. No eBay seller revenue is added.
 - `cogs`: stored vendor-paid acquisition cost of the units sold, including
   later-refunded sales. Never add inbound-to-Amazon freight, prep, subsequent
@@ -40,7 +50,8 @@ Do not substitute legacy net profit when management net profit is null.
   Excludes FBA fulfillment fees. These remain operational sale-cohort aggregates,
   **not a posted-period fee ledger**: the upstream calculator uses absolute fee
   amounts and does not reconcile refund fee credits by processing period.
-  Missing-fee/refunded rows cause management fees to be null. Other values carry
+  A shipped row with missing applicable fee evidence makes management fees null;
+  a later refund classification does not erase its sale fee. Other values carry
   this explicit limitation. An actual fee-type breakdown is deferred because
   it would not safely reconcile to this aggregate without a fee-ledger repair.
 - `fulfillment_costs`: stored `fulfillment_cost` with source `amazon_fba_fee` on

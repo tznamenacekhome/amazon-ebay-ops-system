@@ -1665,6 +1665,13 @@ Implementation:
 - the 2026 repair pass reduced the shipped missing-fee set to mostly no-charge
   replacement orders, plus a small refund/adjustment edge case
 
+For profitability calculation, legacy Shipment fee events take precedence when
+they exist. Transactions remain the fallback; MBOP selects one lifecycle status
+per shipment and excludes Refund transactions and legacy Refund fee credits from
+sale-cohort expense. This prevents stale fallback rows or refund credits from
+being added to the original sale fee. Historical financial-event source rows are
+preserved.
+
 ---
 
 ## Sales Orders Fulfillment Cost Sources

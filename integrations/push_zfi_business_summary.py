@@ -387,7 +387,7 @@ def fetch_sales_orders_since(supabase, start: dt.date) -> list[dict[str, Any]]:
     return fetch_all(
         supabase,
         "amazon_sales_orders",
-        "amazon_order_id,purchase_date,order_status,order_total_amount,fulfillment_channel,updated_at",
+        "amazon_order_id,purchase_date,order_status,order_total_amount,fulfillment_channel,is_replacement_order,updated_at",
         filters=lambda query: query.gte("purchase_date", f"{start.isoformat()}T00:00:00Z"),
     )
 
@@ -396,7 +396,7 @@ def fetch_sales_profitability(supabase) -> list[dict[str, Any]]:
     return fetch_all(
         supabase,
         "amazon_sales_profitability",
-        "amazon_order_id,asin,seller_sku,title,quantity,sale_price,amazon_fees_excluding_fulfillment,fulfillment_cost,fulfillment_cost_source,cogs,net_profit,roi,data_status,calculated_at,updated_at",
+        "amazon_order_id,amazon_order_item_id,asin,seller_sku,title,quantity,sale_price,amazon_fees_excluding_fulfillment,fulfillment_cost,fulfillment_cost_source,cogs,cogs_source,net_profit,roi,data_status,calculated_at,updated_at",
     )
 
 
@@ -560,10 +560,14 @@ def attach_sold_dates(
         if row.get("amazon_order_id")
     }
     channels = {str(row.get("amazon_order_id")): row.get("fulfillment_channel") for row in sales_orders}
+    statuses = {str(row.get("amazon_order_id")): row.get("order_status") for row in sales_orders}
+    replacements = {str(row.get("amazon_order_id")): row.get("is_replacement_order") for row in sales_orders}
     return [
         {
             **row,
             "fulfillment_channel": channels.get(str(row.get("amazon_order_id") or "")),
+            "order_status": statuses.get(str(row.get("amazon_order_id") or "")),
+            "is_replacement_order": replacements.get(str(row.get("amazon_order_id") or "")),
             "sold_at": order_dates.get(str(row.get("amazon_order_id") or "")),
         }
         for row in profit_rows

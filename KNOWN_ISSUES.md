@@ -329,6 +329,14 @@ Recommended next mitigation:
 
 Status: ACTIVE
 
+September 2026 management-P&L audit update: the September 1-18 shipped cohort
+contains 74 profitability rows / 77 units without acquisition COGS and one MFN
+order without a verified Veeqo label. Pending rows are now excluded from
+recognized management sales locally. A fee-source selection repair is also local
+and needs a bounded recalculation after deployment. Authoritative refunds remain
+blocked by the uncertified posted-period ledger. See
+`docs/ZFI_MANAGEMENT_PNL_COMPLETENESS_2026-09-18.md`.
+
 Problem:
 Amazon Sales Orders and Amazon inventory are now substantially backfilled, but
 the operating dataset still has a small set of missing order profitability data
