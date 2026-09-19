@@ -244,13 +244,33 @@ function completionNotice(result: RunPollResult): RefreshNotice {
     updated ? `${updated} updates` : null,
     skipped ? `${skipped} skipped/error rows` : null,
     rateLimits ? `${rateLimits} quota waits/errors` : null,
+    failures ? `${failures} failed jobs` : null,
   ].filter(Boolean).join(", ");
 
   if (result.status === "ok") {
     return { tone: "success", text: suffix ? `Pricing refresh complete: ${suffix}.` : "Pricing refresh complete. Reloaded latest data." };
   }
+  if (result.status === "cancelled") {
+    return {
+      tone: "warning",
+      text: result.error ? `Pricing refresh was stopped: ${result.error}` : "Pricing refresh was stopped.",
+    };
+  }
+  if (result.status === "failed" || result.status === "blocked") {
+    return {
+      tone: "warning",
+      text: result.error ? `Pricing refresh failed: ${result.error}` : "Pricing refresh failed or was blocked.",
+    };
+  }
   if (result.status === "degraded" || failures || rateLimits || skipped) {
-    return { tone: "warning", text: suffix ? `Pricing refresh completed with warnings: ${suffix}.` : "Pricing refresh completed with warnings." };
+    return {
+      tone: "warning",
+      text: suffix
+        ? `Pricing refresh completed with warnings: ${suffix}.`
+        : result.error
+          ? `Pricing refresh completed with warnings: ${result.error}`
+          : "Pricing refresh completed with warnings.",
+    };
   }
   return { tone: "warning", text: result.error ? `Pricing refresh failed: ${result.error}` : "Pricing refresh failed or was blocked." };
 }

@@ -163,7 +163,7 @@ type SellPriceDraft = Record<string, string>;
 type AsinDraft = Record<string, string>;
 
 const LAST_OPENED_ASIN_KEY = "mbop:fba:last-opened-asin";
-const FBA_PRICING_REFRESH_KEY = "mbop:fba-pricing-refresh";
+const FBA_PRICING_REFRESH_KEY = "mbop:fba-pricing-refresh:v2";
 
 export default function FbaPage() {
   const [activeView, setActiveView] = useState<"prep" | "shipments">("prep");
