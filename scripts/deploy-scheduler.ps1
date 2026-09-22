@@ -127,6 +127,15 @@ $registered = aws ecs register-task-definition `
 
 $newTaskDefinitionArn = $registered.taskDefinition.taskDefinitionArn
 
+Write-Host "Updating EventBridge schedules to the new scheduler revision..." -ForegroundColor Cyan
+& (Join-Path $PSScriptRoot "update-scheduler-schedules.ps1") `
+  -Profile $Profile `
+  -Region $Region `
+  -TaskDefinitionArn $newTaskDefinitionArn
+if ($LASTEXITCODE -ne 0) {
+  throw "EventBridge schedule revision update failed."
+}
+
 Write-Host ""
 Write-Host "Scheduler deploy complete." -ForegroundColor Green
 Write-Host "Task definition: $newTaskDefinitionArn"

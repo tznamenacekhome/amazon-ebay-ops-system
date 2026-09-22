@@ -978,13 +978,14 @@ function buildSchedulerGroupSummaries(
     const groupRuns = runsByGroup.get(group.key) ?? [];
     const latestByJob = latestJobRunsForGroup(jobRunsByGroup.get(group.key) ?? []);
     const configuredJobRuns = jobRuns.filter((run) => group.jobNames.includes(run.jobName));
+    const previousRunAt = previousScheduledRunForGroup(group.key);
     const configuredJobs = group.jobNames.map((name) => {
       const telemetry = latestByJob.get(name) ?? latestByJobName.get(name);
       const configured = jobs.find((job) => job.name === name);
       const lastRunAt = telemetry?.finishedAt || telemetry?.startedAt || configured?.lastRunAt || null;
       const hoursSinceLastRun = lastRunAt ? hoursSince(lastRunAt) : null;
       const status = telemetry
-        ? healthStatusForSchedulerJobRun(telemetry, hoursSinceLastRun, group)
+        ? healthStatusForSchedulerJobRun(telemetry, hoursSinceLastRun, group, previousRunAt)
         : configured?.awsGroups.includes(group.key)
           ? configured.status
           : "unknown";
@@ -1033,7 +1034,6 @@ function buildSchedulerGroupSummaries(
     );
 
     const nextRunAt = nextScheduledRunForGroup(group.key);
-    const previousRunAt = previousScheduledRunForGroup(group.key);
 
     return {
       ...group,
@@ -1200,17 +1200,17 @@ function statusForSchedulerGroup(
   if (latestRun?.status === "failed" || latestRun?.status === "cancelled") return "failed";
   if (!latestRun) return "unknown";
   if (hoursSinceLastSuccess === null) return runStatusToHealth(latestRun.status);
-  if (hoursSinceLastSuccess >= group.criticalAfterHours) return "failed";
-  if (hoursSinceLastSuccess >= group.expectedEveryHours) return "delayed";
   if (previousRunAt && lastSuccessAt) {
     const previousRunTimestamp = Date.parse(previousRunAt);
     const lastSuccessTimestamp = Date.parse(lastSuccessAt);
     const graceMs = 75 * 60_000;
     if (Date.now() > previousRunTimestamp + graceMs && lastSuccessTimestamp < previousRunTimestamp) {
-      return "delayed";
+      return hoursSinceLastSuccess >= group.criticalAfterHours ? "failed" : "delayed";
     }
     return runStatusToHealth(latestRun.status);
   }
+  if (hoursSinceLastSuccess >= group.criticalAfterHours) return "failed";
+  if (hoursSinceLastSuccess >= group.expectedEveryHours) return "delayed";
   return runStatusToHealth(latestRun.status);
 }
 
@@ -1266,6 +1266,8 @@ function scheduledPacificTimesForGroup(groupKey: string): PacificRunTime[] {
         { hour: 16, minute: 40 },
         { hour: 20, minute: 40 },
       ];
+    case "amazon-return-recovery":
+      return [{ hour: 15, minute: 45 }];
     case "reconciliation":
       return [{ hour: 21, minute: 0 }];
     case "repricing-catalog":
@@ -1411,10 +1413,20 @@ function healthStatusForSchedulerJobRun(
   run: SchedulerJobRunRecord,
   hoursSinceLastRun: number | null,
   group: SchedulerGroupConfig,
+  previousRunAt: string | null,
 ): HealthStatus {
   const status = healthStatusForJobRun(run);
   if (status !== "ok" || group.expectedEveryHours <= 0) return status;
   if (hoursSinceLastRun === null) return "unknown";
+  if (previousRunAt) {
+    const previousRunTimestamp = Date.parse(previousRunAt);
+    const lastRunTimestamp = timestampForRun(run);
+    const graceMs = 75 * 60_000;
+    if (Date.now() > previousRunTimestamp + graceMs && lastRunTimestamp < previousRunTimestamp) {
+      return hoursSinceLastRun >= group.criticalAfterHours ? "failed" : "delayed";
+    }
+    return "ok";
+  }
   if (hoursSinceLastRun >= group.criticalAfterHours) return "failed";
   if (hoursSinceLastRun >= group.expectedEveryHours) return "delayed";
   return "ok";

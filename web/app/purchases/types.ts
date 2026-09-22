@@ -137,7 +137,7 @@ export type ProblemEvent = {
 };
 
 export type PurchaseDeliveryStats = {
-  dueBySaturday?: { throughDate: string; units: number; purchaseDollars: number; unpricedUnits: number };
+  dueDays?: Array<{ dueDate: string; units: number; purchaseDollars: number; unpricedUnits: number }>;
   notDelivered: { units: number; purchaseDollars: number; unpricedUnits: number };
   deliveredNotReceived: { units: number; purchaseDollars: number; unpricedUnits: number };
 };

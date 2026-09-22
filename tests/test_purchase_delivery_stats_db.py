@@ -16,6 +16,7 @@ def main():
         sql('create role anon; create role authenticated; create role service_role; create table purchases(purchase_id int primary key,raw_import_json jsonb); create table purchase_items(item_id int primary key,purchase_id int,exclude_from_purchase_reporting boolean,expected_delivery date); create table source(item_id int,purchase_id int,current_status text,quantity numeric,unit_cost numeric,estimated_delivery_date timestamptz); create view vw_purchases_dashboard as select * from source; grant select on purchases,purchase_items,vw_purchases_dashboard to service_role;')
         sql(Path('supabase/migrations/20260915145955_mbop_purchase_delivery_stats.sql').read_text(encoding='utf-8'))
         sql(Path('supabase/migrations/20260918235202_mbop_purchase_saturday_delivery_stats.sql').read_text(encoding='utf-8'))
+        sql(Path('supabase/migrations/20260922144931_mbop_purchase_daily_delivery_stats.sql').read_text(encoding='utf-8'))
         empty=json.loads(sql('set role service_role; select purchase_delivery_stats();'))
         assert empty['notDelivered']['units']==empty['deliveredNotReceived']['units']==0
         statuses=['no_tracking','shipped_no_tracking','awaiting_carrier_scan','in_transit','partially_delivered','multi_package_in_transit','available_for_pickup','out_for_delivery','exception','delivered','received','listed','cancelled','return_opened','return_pending']
@@ -30,8 +31,15 @@ def main():
         sunday=json.loads(sql("set role service_role; select purchase_saturday_delivery_stats('2026-09-20');"))
         assert friday=={'throughDate':'2026-09-19','units':2,'purchaseDollars':20.00,'unpricedUnits':0},friday
         assert sunday=={'throughDate':'2026-09-26','units':5,'purchaseDollars':35.00,'unpricedUnits':0},sunday
+        daily=json.loads(sql("set role service_role; select purchase_daily_delivery_stats('2026-09-18',7);"))
+        assert daily['startDate']=='2026-09-18'
+        assert [day['dueDate'] for day in daily['days']]==[f'2026-09-{day:02d}' for day in range(18,25)]
+        assert daily['days'][0]=={'dueDate':'2026-09-18','units':0,'purchaseDollars':0,'unpricedUnits':0},daily
+        assert daily['days'][1]=={'dueDate':'2026-09-19','units':2,'purchaseDollars':20.00,'unpricedUnits':0},daily
+        assert sum(day['units'] for day in daily['days'])==2,daily
         assert sql("select has_function_privilege('anon','purchase_saturday_delivery_stats(date)','execute') or has_function_privilege('authenticated','purchase_saturday_delivery_stats(date)','execute');")== 'f'
         assert sql("select has_function_privilege('anon','purchase_delivery_stats()','execute') or has_function_privilege('authenticated','purchase_delivery_stats()','execute');")=='f'
+        assert sql("select has_function_privilege('anon','purchase_daily_delivery_stats(date,integer)','execute') or has_function_privilege('authenticated','purchase_daily_delivery_stats(date,integer)','execute');")=='f'
         print('PASS: all inbound statuses; received/listed/cancelled/returns excluded; deduplication; quantity x authoritative cost; reporting exclusion; null cost; empty groups; service-only permissions')
     finally:
         subprocess.run(['docker','stop',name],check=True,capture_output=True)
