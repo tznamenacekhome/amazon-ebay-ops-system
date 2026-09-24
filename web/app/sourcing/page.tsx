@@ -71,6 +71,21 @@ type SourcingActionPayload = {
   myOutboundQuantity?: number;
 };
 
+function actionRemovesFromActiveQueue(
+  activeTab: (typeof tabs)[number],
+  payload: SourcingActionPayload,
+) {
+  if (activeTab === "Closest Excluded") {
+    return (
+      payload.actionType === "dismiss" ||
+      payload.actionType === "block_asin" ||
+      (payload.actionType === "mark_valid_match" && payload.diagnosticsFeedback?.queueChoice === "move_buy_list")
+    );
+  }
+  if (activeTab !== "Buy List") return false;
+  return ["dismiss", "block_asin", "watch", "purchased", "snooze_roi", "inventory_snooze"].includes(payload.actionType);
+}
+
 export default function SourcingPage() {
   useEffect(() => sourcingResources.start(), []);
   const [activeTab, setActiveTab] = useState<(typeof tabs)[number]>("Buy List");
@@ -137,12 +152,12 @@ export default function SourcingPage() {
       const result = await response.json();
       if (!response.ok) throw new Error(result.error ?? "Action failed.");
       reviewRequests.current.complete(JSON.stringify([row.opportunityId,payload]));
-      if (payload.actionType === "update_asin") await reload();
-      else if (["mark_valid_match","save_match_feedback","confirm_exclusion"].includes(payload.actionType)) await reload();
-      else if (payload.actionType === "dismiss") {
+      if (actionRemovesFromActiveQueue(activeTab, payload)) {
         removeRows([row.opportunityId]);
         void refreshInBackground();
-      } else { removeRows([row.opportunityId]); await reload(); }
+      } else {
+        await reload();
+      }
       return true;
     } catch (err) {
       setError(err instanceof Error ? err.message : "Action failed.");
@@ -157,10 +172,11 @@ export default function SourcingPage() {
     setActionBusyId("bulk");
     setError(null);
     try {
-      let dismissOnly = true;
+      let allRemoveFromActiveQueue = true;
       for (const row of rowsToUpdate) {
         const payload=payloadForRow(row);
-        dismissOnly = dismissOnly && payload.actionType === "dismiss";
+        const removesFromActiveQueue = actionRemovesFromActiveQueue(activeTab, payload);
+        allRemoveFromActiveQueue = allRemoveFromActiveQueue && removesFromActiveQueue;
         const response = await fetch(`/api/sourcing/opportunities/${row.opportunityId}/actions`, {
           method: "POST",
           headers: mutationHeaders({ "Content-Type": "application/json" }),
@@ -169,10 +185,10 @@ export default function SourcingPage() {
         const result = await response.json();
         if (!response.ok) throw new Error(result.error ?? "Action failed.");
         reviewRequests.current.complete(JSON.stringify([row.opportunityId,payload]));
-        removeRows([row.opportunityId]);
+        if (removesFromActiveQueue) removeRows([row.opportunityId]);
       }
       setSelectedIds(new Set());
-      if (dismissOnly) void refreshInBackground();
+      if (allRemoveFromActiveQueue) void refreshInBackground();
       else await reload();
       return true;
     } catch (err) {

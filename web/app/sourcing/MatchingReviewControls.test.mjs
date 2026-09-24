@@ -8,11 +8,18 @@ const require=createRequire(import.meta.url);
 const state=[];let cursor=0;
 function useState(initial){const index=cursor++;if(!(index in state))state[index]=typeof initial==='function'?initial():initial;return [state[index],value=>{state[index]=typeof value==='function'?value(state[index]):value;}];}
 const cache=new Map();
-function load(file){file=resolve(file);if(cache.has(file))return cache.get(file);let source=readFileSync(file,'utf8');if(file.endsWith('page.tsx'))source+='\nexport {DismissOpportunityDialog,DismissReasonButtons,BulkDismissOpportunityDialog};';const out={};cache.set(file,out);new Function('require','exports',ts.transpileModule(source,{compilerOptions:{jsx:ts.JsxEmit.ReactJSX,module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText)(name=>{if(name==='react')return {...require(name),useState};if(name.startsWith('.')){let next=resolve(dirname(file),name+'.ts');if(!existsSync(next))next=resolve(dirname(file),name+'.tsx');return load(next);}return require(name);},out);return out;}
-const {DismissOpportunityDialog,DismissReasonButtons,BulkDismissOpportunityDialog}=load('web/app/sourcing/page.tsx');
+function load(file){file=resolve(file);if(cache.has(file))return cache.get(file);let source=readFileSync(file,'utf8');if(file.endsWith('page.tsx'))source+='\nexport {DismissOpportunityDialog,DismissReasonButtons,BulkDismissOpportunityDialog,actionRemovesFromActiveQueue};';const out={};cache.set(file,out);new Function('require','exports',ts.transpileModule(source,{compilerOptions:{jsx:ts.JsxEmit.ReactJSX,module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText)(name=>{if(name==='react')return {...require(name),useState};if(name.startsWith('.')){let next=resolve(dirname(file),name+'.ts');if(!existsSync(next))next=resolve(dirname(file),name+'.tsx');return load(next);}return require(name);},out);return out;}
+const {DismissOpportunityDialog,DismissReasonButtons,BulkDismissOpportunityDialog,actionRemovesFromActiveQueue}=load('web/app/sourcing/page.tsx');
 const {buildDiagnosticComparison}=load('web/app/api/sourcing/diagnosticComparison.ts');
 const {incorrectMatchReason}=load('web/app/sourcing/reviewFields.ts');
 const fixture=JSON.parse(readFileSync('tests/fixtures/sourcing_review_prey.json','utf8'));
+for(const actionType of ['dismiss','block_asin','watch','purchased','snooze_roi','inventory_snooze'])assert.equal(actionRemovesFromActiveQueue('Buy List',{actionType}),true,`${actionType} leaves Buy List`);
+for(const actionType of ['update_asin','mark_valid_match','save_match_feedback','confirm_exclusion'])assert.equal(actionRemovesFromActiveQueue('Buy List',{actionType}),false,`${actionType} remains in Buy List`);
+assert.equal(actionRemovesFromActiveQueue('Closest Excluded',{actionType:'dismiss'}),true);
+assert.equal(actionRemovesFromActiveQueue('Closest Excluded',{actionType:'block_asin'}),true);
+assert.equal(actionRemovesFromActiveQueue('Closest Excluded',{actionType:'mark_valid_match',diagnosticsFeedback:{queueChoice:'move_buy_list'}}),true);
+assert.equal(actionRemovesFromActiveQueue('Closest Excluded',{actionType:'save_match_feedback',diagnosticsFeedback:{queueChoice:'keep_closest'}}),false);
+assert.equal(actionRemovesFromActiveQueue('Watchlist',{actionType:'purchased'}),false);
 const saves=[];let closed=0,confirmDiscard=false;
 globalThis.window={confirm:()=>confirmDiscard};
 const props={row:{opportunityId:'pair',asin:fixture.opportunity.asin,ebayTitle:fixture.candidate.ebay_title,diagnosticComparison:buildDiagnosticComparison(fixture)},initialDiagnosticsOpen:false,onClose:()=>closed++,onReview:async p=>saves.push(p),actionBusyId:null};
