@@ -19,6 +19,7 @@ import {
   type RefreshNotice,
 } from "../syncRefresh";
 import { DataFreshness } from "../DataFreshness";
+import { TrackingLink } from "../components/TrackingLink";
 import { mutationHeaders } from "../mutationHeaders";
 import { KeepaPriceIndicator } from "../components/KeepaPriceIndicator";
 
@@ -1076,14 +1077,12 @@ function ShipmentView({
                         <div className="text-slate-500">No ETA</div>
                       )}
                       {row.tracking_number ? (
-                        <a
+                        <TrackingLink
                           className="block text-xs text-blue-700 hover:underline"
-                          href={trackingUrl(row)}
-                          target="_blank"
-                          rel="noreferrer"
-                        >
-                          {row.tracking_number}
-                        </a>
+                          trackingNumber={row.tracking_number}
+                          carrier={row.carrier_name}
+                          trackingUrl={row.carrier_tracking_url}
+                        />
                       ) : null}
                     </td>
                     <td className="whitespace-nowrap px-3 py-2 text-xs text-slate-600">
@@ -1623,11 +1622,6 @@ function statusLabel(value?: string | null) {
 
 function formatMilestoneDate(value?: string | null) {
   return value ? formatDate(value) : "not captured";
-}
-
-function trackingUrl(row: ShipmentRow) {
-  if (row.carrier_tracking_url) return row.carrier_tracking_url;
-  return `https://www.ups.com/track?tracknum=${encodeURIComponent(row.tracking_number || "")}`;
 }
 
 function amazonAsinUrl(asin: string) {

@@ -18,9 +18,14 @@ export function ReviewEvidence({verdict,onVerdict,evidence,onEvidence,forBuyList
   evidence:string[];onEvidence:(v:string[])=>void;forBuyList?:boolean;
 }) {
   return <div className="space-y-2 text-xs text-slate-700">
-    <label>{forBuyList ? "Product match (required for Buy List) " : "Optional pair verdict "}<select aria-label="Product pair verdict" value={verdict} onChange={e=>onVerdict(e.target.value as MatchingFeedback["pairVerdict"])} className="rounded border p-1">
-      <option value="not_provided">Leave unchanged</option><option value="correct">Correct match</option><option value="incorrect">Incorrect match</option><option value="unsure">Not Sure</option>
-    </select></label>
+    <fieldset>
+      <legend className="font-medium text-slate-700">{forBuyList ? "Do these listings describe the same product? (required for Buy List)" : "Do these listings describe the same product? (optional)"}</legend>
+      <div className="mt-1 flex gap-4">
+        <label className="inline-flex items-center gap-2"><input type="radio" name="product-pair-verdict" aria-label="Product match Yes" checked={verdict === "correct"} onChange={()=>onVerdict("correct")} /> Yes</label>
+        <label className="inline-flex items-center gap-2"><input type="radio" name="product-pair-verdict" aria-label="Product match No" checked={verdict === "incorrect"} onChange={()=>onVerdict("incorrect")} /> No</label>
+      </div>
+      {!forBuyList ? <p className="mt-1 text-slate-600">Choose Yes when the match is correct but you are dismissing for price, condition, or seller-listing risk. Leave it blank if you are not reviewing the match.</p> : null}
+    </fieldset>
     <details><summary>Evidence I used</summary><div className="grid grid-cols-2 gap-1 py-2">{sources.map(source=><label key={source}><input type="checkbox" checked={evidence.includes(source)} onChange={e=>onEvidence(e.target.checked?[...evidence,source]:evidence.filter(x=>x!==source))}/> {source.replaceAll("_"," ")}</label>)}</div></details>
   </div>;
 }

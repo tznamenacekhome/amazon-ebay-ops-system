@@ -1,5 +1,6 @@
 import { ArrowDown, ArrowUp, ArrowUpDown, PanelRightOpen } from "lucide-react";
 
+import { TrackingLink } from "../components/TrackingLink";
 import { EditablePriceCell } from "./EditablePriceCell";
 import type {
   PurchaseRow,
@@ -261,7 +262,11 @@ export function PurchasesTable({
                     <div>{row.carrier || ""}</div>
                     {row.tracking_number && (
                       <div className="mt-1 break-all text-xs text-slate-500">
-                        {row.tracking_number}
+                        <TrackingLink
+                          trackingNumber={row.tracking_number}
+                          carrier={row.carrier}
+                          trackingUrl={row.tracking_url}
+                        />
                       </div>
                     )}
                   </td>

@@ -153,7 +153,7 @@ export function reviewSemantics(action: string, reason: string | null, verdict: 
   const identity = ["wrong_product","wrong_edition_version","wrong_platform","digital_item","incomplete_product","non_north_american_version"];
   const seller = ["listing_error","seller_listing_mismatch"];
   const condition = ["missing_shrink_wrap","suspected_reseal","packaging_damage","packaging_condition_issue","nfr"];
-  const business = ["roi_too_low","sales_velocity_too_low","asin_blocked","duplicate_open_asin_opportunity","inventory_snoozed","no_longer_available"];
+  const business = ["roi_too_low","return_risk_too_high","sales_velocity_too_low","asin_blocked","duplicate_open_asin_opportunity","inventory_snoozed","no_longer_available"];
   const category = identity.includes(reason ?? "") ? "identity" : seller.includes(reason ?? "") ? "seller_listing" : condition.includes(reason ?? "") ? "condition" : business.includes(reason ?? "") ? "business" : "unspecified";
   const pairVerdict = action === "mark_valid_match" ? "correct" : category === "identity" ? "incorrect" : verdict;
   const label = pairVerdict === "correct" ? {match_label:"match",label_type:"positive_identity"} : pairVerdict === "incorrect" ? {match_label:"non_match",label_type:"negative_identity"} : category === "seller_listing" ? {match_label:"non_match",label_type:"negative_identity"} : category === "condition" ? {match_label:"condition_problem",label_type:"condition_issue"} : category === "business" ? {match_label:"valid_match_poor_opportunity",label_type:"business_issue"} : {match_label:"needs_review",label_type:"unknown"};

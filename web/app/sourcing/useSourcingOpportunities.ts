@@ -76,6 +76,7 @@ export function useSourcingOpportunities(
     return () => { request.current?.abort(); unsubscribe(); };
   }, [load]);
   const reload = useCallback(() => load(true), [load]);
+  const refreshInBackground = useCallback(() => load(true, true), [load]);
 
   const removeRows = useCallback((opportunityIds: string[]) => {
     sourcingResources.invalidate();
@@ -85,5 +86,5 @@ export function useSourcingOpportunities(
     setRows(currentRows => currentRows.filter(row => !ids.has(row.opportunityId)));
   }, []);
 
-  return { rows, businessSuppressions, summary, batch, loading, error, freshnessError, exclusionOptions, reload, removeRows, setError };
+  return { rows, businessSuppressions, summary, batch, loading, error, freshnessError, exclusionOptions, reload, refreshInBackground, removeRows, setError };
 }

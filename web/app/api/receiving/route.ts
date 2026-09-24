@@ -319,6 +319,7 @@ function mapReceivingPackageRow(link: any) {
           ? "delivered"
           : item.current_status,
       tracking_number: shipment.tracking_number,
+      tracking_url: shipment.tracking_url,
       original_tracking_number: null,
       package_tracking_number: shipment.tracking_number,
       package_link_id: link.inbound_shipment_item_id,

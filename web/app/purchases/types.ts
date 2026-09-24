@@ -13,6 +13,7 @@ export type PurchaseRow = {
   sell_price?: number | null;
   target_price?: number | null;
   tracking_number?: string | null;
+  tracking_url?: string | null;
   original_tracking_number?: string | null;
   package_tracking_number?: string | null;
   package_link_id?: string | null;

@@ -76,6 +76,7 @@ type PurchaseProblemCase = {
 
 type CarrierTracking = {
   tracking_number: string;
+  tracking_url: string | null;
   carrier: string | null;
   carrier_status: string | null;
   normalized_status: string | null;
@@ -155,8 +156,10 @@ export async function GET(request: Request) {
     }
   }
   const carrierTrackingRows = await fetchCarrierTrackingRows(
-    problemCases
-      .map((problemCase) => problemCase.replacement_tracking_number)
+    [
+      ...viewRows.map((row) => row.tracking_number),
+      ...problemCases.map((problemCase) => problemCase.replacement_tracking_number),
+    ]
       .filter((value): value is string => Boolean(value))
   );
   const carrierTrackingByNumber = new Map(carrierTrackingRows.map((row) => [row.tracking_number, row]));
@@ -182,10 +185,14 @@ export async function GET(request: Request) {
     const replacementCarrierTracking = replacementTrackingNumber
       ? carrierTrackingByNumber.get(replacementTrackingNumber)
       : undefined;
+    const primaryCarrierTracking = row.tracking_number
+      ? carrierTrackingByNumber.get(row.tracking_number)
+      : undefined;
 
     return {
       ...row,
       tracking_number: replacementTrackingNumber ?? row.tracking_number,
+      tracking_url: replacementCarrierTracking?.tracking_url ?? primaryCarrierTracking?.tracking_url ?? null,
       original_tracking_number: row.tracking_number,
       carrier: replacementCarrierTracking?.carrier ?? row.carrier,
       carrier_status: replacementCarrierTracking?.carrier_status ?? null,
@@ -743,7 +750,7 @@ async function fetchCarrierTrackingRows(trackingNumbers: string[]) {
   for (const chunk of chunks(Array.from(new Set(trackingNumbers)), 500)) {
     const { data, error } = await supabase
       .from("inbound_shipments")
-      .select("tracking_number,carrier,carrier_status,normalized_status,shipment_status,estimated_delivery_date,delivered_date")
+      .select("tracking_number,tracking_url,carrier,carrier_status,normalized_status,shipment_status,estimated_delivery_date,delivered_date")
       .in("tracking_number", chunk);
     if (error) {
       console.warn("Replacement carrier tracking lookup failed", error.message);

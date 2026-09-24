@@ -2,6 +2,7 @@
 
 import { PanelRightOpen } from "lucide-react";
 
+import { TrackingLink } from "../components/TrackingLink";
 import type { PurchaseRow } from "./types";
 import {
   ebayOrderUrl,
@@ -202,7 +203,13 @@ export function PurchaseProblemTable({
                       <RefundAmount value={row.actual_refund_amount} />
                     </td>
                     <td className="px-2 py-2">
-                      <div className="break-all">{row.return_tracking_number || row.replacement_tracking_number || row.tracking_number || "--"}</div>
+                      <div className="break-all">
+                        <TrackingLink
+                          trackingNumber={problemTrackingNumber(row)}
+                          carrier={problemTrackingCarrier(row)}
+                          trackingUrl={problemTrackingUrl(row)}
+                        />
+                      </div>
                       <div className="text-xs text-slate-500">
                         {formatDate(row.problem_return_tracking_delivered_at || row.problem_replacement_estimated_delivery_date || row.estimated_delivery_date)}
                       </div>
@@ -268,6 +275,22 @@ function ReturnTrackingDetail({ row }: { row: PurchaseRow }) {
     label
   );
   return <div className="mt-1 text-xs text-slate-500">{content}</div>;
+}
+
+function problemTrackingNumber(row: PurchaseRow) {
+  return row.return_tracking_number || row.replacement_tracking_number || row.tracking_number;
+}
+
+function problemTrackingCarrier(row: PurchaseRow) {
+  if (row.return_tracking_number) return row.problem_return_tracking_carrier;
+  if (row.replacement_tracking_number) return row.problem_replacement_carrier;
+  return row.carrier;
+}
+
+function problemTrackingUrl(row: PurchaseRow) {
+  if (row.return_tracking_number) return row.problem_return_tracking_url;
+  if (row.replacement_tracking_number) return row.problem_replacement_tracking_url;
+  return row.tracking_url;
 }
 
 function problemDetailLabel(row: PurchaseRow) {

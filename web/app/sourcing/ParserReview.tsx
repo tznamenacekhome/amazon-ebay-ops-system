@@ -6,16 +6,20 @@ export function ParserReview({ parserAssessment, sourceAccuracy, setParserAssess
   setSourceAccuracy: (value: MatchingFeedback["sourceAccuracy"]) => void;
 }) {
   return <>
-            <label className="block text-sm">Did the parser read the listing correctly?
-              <select aria-label="Parser assessment" className="block w-full rounded border p-2" value={parserAssessment} onChange={e=>setParserAssessment(e.target.value as MatchingFeedback["parserAssessment"])}>
-                <option value="not_reviewed">Not reviewed</option><option value="correct">Yes - parser read the source correctly</option><option value="incorrect">No - parsing error</option><option value="unsure">Not sure</option>
-              </select>
-            </label>
-            <label className="block text-sm">Is the listing information accurate?
-              <select aria-label="Listing accuracy" className="block w-full rounded border p-2" value={sourceAccuracy} onChange={e=>setSourceAccuracy(e.target.value as MatchingFeedback["sourceAccuracy"])}>
-                <option value="not_reviewed">Not reviewed</option><option value="accurate">Accurate</option><option value="listing_error">Seller listing error</option><option value="unsure">Not sure</option>
-              </select>
-            </label>
-            <p className="text-xs text-slate-600">Parser feedback is separate from product identity. Use Wrong and edit the affected field for corrections. A seller listing error does not mean the parser failed.</p>
+            <fieldset className="text-sm">
+              <legend className="font-medium text-slate-700">Did MBOP read the seller listing correctly?</legend>
+              <div className="mt-1 flex gap-4">
+                <label className="inline-flex items-center gap-2"><input type="radio" name="parser-assessment" aria-label="Parser read correctly Yes" checked={parserAssessment === "correct"} onChange={()=>setParserAssessment("correct")} /> Yes</label>
+                <label className="inline-flex items-center gap-2"><input type="radio" name="parser-assessment" aria-label="Parser read correctly No" checked={parserAssessment === "incorrect"} onChange={()=>setParserAssessment("incorrect")} /> No</label>
+              </div>
+            </fieldset>
+            <fieldset className="text-sm">
+              <legend className="font-medium text-slate-700">Does the seller listing accurately describe the item shown?</legend>
+              <div className="mt-1 flex gap-4">
+                <label className="inline-flex items-center gap-2"><input type="radio" name="listing-accuracy" aria-label="Listing accurate Yes" checked={sourceAccuracy === "accurate"} onChange={()=>setSourceAccuracy("accurate")} /> Yes</label>
+                <label className="inline-flex items-center gap-2"><input type="radio" name="listing-accuracy" aria-label="Listing accurate No" checked={sourceAccuracy === "listing_error"} onChange={()=>setSourceAccuracy("listing_error")} /> No</label>
+              </div>
+            </fieldset>
+            <p className="text-xs text-slate-600">The first question checks MBOP's extraction. The second records a seller description or photo problem. Neither question decides whether the Amazon and eBay products match.</p>
   </>;
 }

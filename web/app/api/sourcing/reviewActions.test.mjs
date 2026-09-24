@@ -38,6 +38,7 @@ const feedback=load(resolve(root,'matchingFeedback.ts'));
 const normalized=feedback.normalizeMatchingFeedback({version:'matching_feedback_v3',allAssumptionsCorrect:true,pairVerdict:'incorrect',evidenceSources:['primary_image']});
 assert.deepEqual(normalized.evidenceSources,['primary_image']);assert.equal(normalized.pairVerdict,'incorrect');
 assert.equal(feedback.reviewSemantics('dismiss','roi_too_low','not_provided').label.label_type,'business_issue');
+const returnRisk=feedback.reviewSemantics('dismiss','return_risk_too_high','correct');assert.equal(returnRisk.category,'business');assert.equal(returnRisk.label.label_type,'positive_identity');
 assert.equal(feedback.reviewSemantics('confirm_exclusion',null,'not_provided').label.label_type,'unknown');
 assert.throws(()=>feedback.normalizeCorrections([{field:'edition',side:'ebay',scope:'asin',state:'unknown'}]));
 const {businessExclusion}=load(resolve(root,'businessExclusion.ts'));

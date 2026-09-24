@@ -27,11 +27,12 @@ args[6]=false;render();assert.equal(requests.length,3,"Inactive panels do not fe
 args[6]=true;render();await finish(3,"buy-again");
 const reload=render().reload();assert.equal(invalidations,1);await finish(4,"new");await reload;assert.equal(render().rows[0].opportunityId,"new");
 render().removeRows(["new"]);assert.equal(invalidations,2);assert.equal(render().rows.length,0);
-args[2]="m";render();args[2]="minecraft";render();assert.equal(requests.length,5,"Search is debounced");
-await new Promise(r=>setTimeout(r,280));render();assert.equal(requests.length,6);assert(requests[5].url.includes("q=minecraft"));await finish(5,"",500);assert.equal(render().error,"Actual error");
+const backgroundRefresh=render().refreshInBackground();assert.equal(invalidations,3);assert.equal(render().loading,false,"Post-dismiss refresh keeps the current table rendered");await finish(5,"background");await backgroundRefresh;assert.equal(render().rows[0].opportunityId,"background");
+args[2]="m";render();args[2]="minecraft";render();assert.equal(requests.length,6,"Search is debounced");
+await new Promise(r=>setTimeout(r,280));render();assert.equal(requests.length,7);assert(requests[6].url.includes("q=minecraft"));await finish(6,"",500);assert.equal(render().error,"Actual error");
 args[4]="closest_excluded"; args[7]="profitability"; render();
-assert(requests[6].url.includes("exclusionReason=profitability")); await finish(6,"filtered");
+assert(requests[7].url.includes("exclusionReason=profitability")); await finish(7,"filtered");
 onChanged();assert.equal(render().loading,false,"Freshness update retains the rendered table without a loading flash");
-assert.equal(render().rows[0].opportunityId,"filtered");await finish(7,"updated");assert.equal(render().rows[0].opportunityId,"updated");
+assert.equal(render().rows[0].opportunityId,"filtered");await finish(8,"updated");assert.equal(render().rows[0].opportunityId,"updated");
 slots.forEach(slot=>slot?.cleanup?.());
 console.log("Sourcing hook: Buy List first, stale response isolation, mutation invalidation, inactive panels, errors and debounce passed");

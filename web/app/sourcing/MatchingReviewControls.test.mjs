@@ -25,10 +25,11 @@ function change(aria,value){const n=control(aria);assert(n,aria);n.props.onChang
 const before=renderToStaticMarkup(render());
 assert(!before.includes('Wrong Platform'));assert(!before.includes('Wrong Edition / Version'));
 assert(before.includes('Product Comparison'));assert(!before.includes('Why MBOP'));assert(!before.includes('Matching Summary'));assert(!before.includes('Correct Details'));assert(!before.includes('<img'));assert(!before.includes('images available'));
+assert(!before.includes('Image clues'));assert.equal(control('Parser read correctly Yes').props.checked,false);assert.equal(control('Parser read correctly No').props.checked,false);assert.equal(control('Listing accurate Yes').props.checked,false);assert.equal(control('Listing accurate No').props.checked,false);assert.equal(control('Product match Yes').props.checked,false);assert.equal(control('Product match No').props.checked,false);
 for(const label of ['Core Game','Installment / Sequel','Edition / Version','Platform','Region'])assert(before.includes(label));
 assert.equal(nodes(render(),true).filter(n=>n.type==='textarea').length,1,'Only Notes editable initially');
 const historical=renderToStaticMarkup(DismissReasonButtons({busy:false,onChoose(){}}));assert(historical.includes('Wrong Platform'));assert(historical.includes('Wrong Edition / Version'));
-named('DismissReasonButtons').props.onChoose('roi_too_low');assert.equal(saves.length,0);
+named('DismissReasonButtons').props.onChoose('roi_too_low');assert.equal(saves.length,0);const selectedReason=nodes(render(),true).find(n=>n.type==='button'&&n.props['aria-pressed']===true);assert(selectedReason);assert.equal(selectedReason.props['aria-pressed'],true);assert(selectedReason.props.className.includes('border-red-600'));assert(renderToStaticMarkup(render()).includes('Selected'));
 change('Core Game Wrong',true);assert.equal(nodes(render(),true).filter(n=>n.type==='textarea').length,3);
 change('Core Game ebay value',fixture.corrections.ebay);assert.equal(named('MatchingReviewControls').props.corrections.length,1);assert.equal(named('MatchingReviewControls').props.corrections[0].side,'ebay');
 change('Core Game amazon value',fixture.corrections.amazon);assert.equal(named('MatchingReviewControls').props.corrections.length,2);
@@ -37,13 +38,13 @@ confirmDiscard=true;change('Core Game Wrong',false);assert.equal(named('Matching
 change('Core Game Wrong',true);change('Core Game ebay value','');assert.equal(named('MatchingReviewControls').props.corrections[0].state,'unknown');
 change('Core Game ebay state','not_applicable');assert.equal(named('MatchingReviewControls').props.corrections[0].state,'not_applicable');
 button('Undo row').props.onClick();assert.equal(control('Core Game ebay value').props.value,'Prey');assert.equal(named('MatchingReviewControls').props.corrections.length,0);
-button('Save feedback').props.onClick();assert.equal(saves.at(-1).diagnosticsFeedback.pairVerdict,'not_provided');assert.deepEqual(saves.at(-1).diagnosticsFeedback.failedRuleFamilies,['core_game_identity']);assert.equal(saves.at(-1).diagnosticsFeedback.corrections.length,0);
+button('Save review and keep opportunity').props.onClick();assert.equal(saves.at(-1).diagnosticsFeedback.pairVerdict,'not_provided');assert.deepEqual(saves.at(-1).diagnosticsFeedback.failedRuleFamilies,['core_game_identity']);assert.equal(saves.at(-1).diagnosticsFeedback.corrections.length,0);
 change('Core Game amazon value',fixture.corrections.amazon);change('Core Game ebay value',fixture.corrections.ebay);
 const after=renderToStaticMarkup(render());button('Incorrect Match').props.onClick();const preyPayload=saves.at(-1);
 assert.equal(preyPayload.actionType,'dismiss');assert.equal(preyPayload.reason,'wrong_product');assert.equal(preyPayload.diagnosticsFeedback.pairVerdict,'incorrect');assert.equal(preyPayload.diagnosticsFeedback.corrections.length,2);assert.equal(preyPayload.diagnosticsFeedback.corrections.find(c=>c.side==='ebay').value,fixture.corrections.ebay);assert(!preyPayload.diagnosticsFeedback.allAssumptionsCorrect);
 button('Confirm Match').props.onClick();assert.equal(saves.at(-1).diagnosticsFeedback.pairVerdict,'correct');assert.equal(saves.at(-1).diagnosticsFeedback.corrections.length,2);
-button('Save feedback').props.onClick();assert.equal(saves.at(-1).diagnosticsFeedback.pairVerdict,'not_provided');
-change('Product pair verdict','unsure');button('Save feedback').props.onClick();assert.equal(saves.at(-1).diagnosticsFeedback.pairVerdict,'unsure');
+button('Save review and keep opportunity').props.onClick();assert.equal(saves.at(-1).diagnosticsFeedback.pairVerdict,'not_provided');
+change('Product match No',true);button('Save review and keep opportunity').props.onClick();assert.equal(saves.at(-1).diagnosticsFeedback.pairVerdict,'incorrect');
 props.saveError='Stale pairing';assert(renderToStaticMarkup(render()).includes('Stale pairing'));assert.equal(control('Core Game ebay value').props.value,fixture.corrections.ebay);
 button('Cancel').props.onClick();assert.equal(closed,1);
 state.length=0;props.saveError=null;button('Incorrect Match').props.onClick();assert.equal(saves.at(-1).reason,'wrong_product');assert.deepEqual(saves.at(-1).diagnosticsFeedback.failedRuleFamilies,[]);assert.deepEqual(saves.at(-1).diagnosticsFeedback.corrections,[]);
@@ -55,16 +56,16 @@ const page=readFileSync('web/app/sourcing/page.tsx','utf8');assert(page.includes
 mkdirSync('tmp/sourcing-review-ui',{recursive:true});for(const [name,html] of Object.entries({before,prey:after,valid}))writeFileSync(`tmp/sourcing-review-ui/${name}-component.html`,html);writeFileSync('tmp/sourcing-review-ui/prey-payload.json',JSON.stringify(preyPayload,null,2));
 console.log('Actual dialog and row controls passed: toggles/paste/side edits/undo/discard/unknowns; negative/positive/unchanged/unsure; saved overlays; three views/single selection; bulk isolation; no photos/duplicate panels.');
 
-state.length=0;cursor=0;let bulkSaved=null;const bulkTree=BulkDismissOpportunityDialog({rows:[props.row,{...props.row,asin:"OTHER"}],busy:false,onClose(){},onBlockAsins(){},onDismiss:(...args)=>bulkSaved=args});nodes(bulkTree).find(n=>n.type?.name==="DismissReasonButtons").props.onChoose("wrong_platform");assert.deepEqual(bulkSaved,["wrong_platform","",[]]);
+state.length=0;cursor=0;let bulkSaved=null;const bulkTree=BulkDismissOpportunityDialog({rows:[props.row,{...props.row,asin:"OTHER"}],busy:false,onClose(){},onBlockAsins(){},onDismiss:(...args)=>bulkSaved=args});nodes(bulkTree).find(n=>n.type?.name==="DismissReasonButtons").props.onChoose("wrong_platform");assert.deepEqual(bulkSaved,["wrong_platform",""]);
 
 state.length=0;props.row.diagnosticComparison.rows.find(r=>r.key==="core_game_identity").amazonEvidence={state:"conflicting_sources"};props.row.diagnosticComparison.rows.find(r=>r.key==="core_game_identity").amazon=null;change("Core Game Wrong",true);assert.equal(control("Core Game amazon state").props.value,"unknown");assert.equal(named("MatchingReviewControls").props.corrections.length,0);
 
 state.length=0;props.closestQueue=true;
 assert.equal(button('Move confirmed match to Buy List').props.disabled,true);
 assert(button('Move confirmed match to Buy List').props.className.includes('disabled:bg-slate-200'));
-assert(renderToStaticMarkup(render()).includes('Product match (required for Buy List)'));
+assert(renderToStaticMarkup(render()).includes('Do these listings describe the same product? (required for Buy List)'));
 assert(renderToStaticMarkup(render()).includes('Parsing corrections alone do not confirm a match.'));
-change('Parser assessment','correct');change('Listing accuracy','listing_error');
+change('Parser read correctly Yes',true);change('Listing accurate No',true);
 named('ReviewEvidence').props.onVerdict('correct');
 named('MatchingReviewControls').props.onWrongRows(['edition_version']);
 button('Save and keep in Closest Excluded').props.onClick();
@@ -76,7 +77,7 @@ button('Move confirmed match to Buy List').props.onClick();
 assert.equal(saves.at(-1).diagnosticsFeedback.queueChoice,'move_buy_list');
 props.saveError='Profitability is below the configured threshold';
 assert.equal(nodes(render(),true).filter(n=>n.props?.role==='alert'&&n.props.children===props.saveError).length,2,'Save error visible at header and action footer');
-assert(renderToStaticMarkup(render()).includes(props.saveError));assert.equal(control('Parser assessment').props.value,'correct');
-named('ReviewEvidence').props.onVerdict('unsure');assert.equal(button('Move confirmed match to Buy List').props.disabled,true);
-change('Parser assessment','incorrect');button('Save and keep in Closest Excluded').props.onClick();assert(saves.at(-1).diagnosticsFeedback.failedRuleFamilies.includes('edition_version'));
+assert(renderToStaticMarkup(render()).includes(props.saveError));assert.equal(control('Parser read correctly Yes').props.checked,true);
+named('ReviewEvidence').props.onVerdict('not_provided');assert.equal(button('Move confirmed match to Buy List').props.disabled,true);
+change('Parser read correctly No',true);button('Save and keep in Closest Excluded').props.onClick();assert(saves.at(-1).diagnosticsFeedback.failedRuleFamilies.includes('edition_version'));
 console.log('Closest review choices: parser/source independence, keep/move payloads, no false parser error, uncertain move disabled, inline failure retains selection.');

@@ -1,6 +1,7 @@
 import { ExternalLink, Plus, RotateCcw, Save, X } from "lucide-react";
 import { useState } from "react";
 
+import { TrackingLink } from "../components/TrackingLink";
 import { SYSTEM_OPTIONS } from "./systemOptions";
 import type { PurchaseRow } from "./types";
 import {
@@ -226,7 +227,16 @@ export function PurchaseDetailDrawer({
                   <Identifier label="Return ID" value={row.ebay_return_id} />
                   <Identifier label="Inquiry ID" value={row.ebay_inquiry_id} />
                   <Identifier label="eBay Case ID" value={row.ebay_case_id} />
-                  <Identifier label="Return Tracking" value={row.return_tracking_number} href={row.problem_return_tracking_url} />
+                  {row.return_tracking_number && (
+                    <div className="break-all">
+                      Return Tracking:{" "}
+                      <TrackingLink
+                        trackingNumber={row.return_tracking_number}
+                        carrier={row.problem_return_tracking_carrier}
+                        trackingUrl={row.problem_return_tracking_url}
+                      />
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -299,7 +309,13 @@ export function PurchaseDetailDrawer({
                           {event.amount !== null && event.amount !== undefined && (
                             <span>{formatMoney(event.amount)}</span>
                           )}
-                          {event.tracking_number && <span>{event.tracking_number}</span>}
+                          {event.tracking_number && (
+                            <TrackingLink
+                              trackingNumber={event.tracking_number}
+                              carrier={trackingCarrierForRow(row, event.tracking_number)}
+                              trackingUrl={trackingUrlForRow(row, event.tracking_number)}
+                            />
+                          )}
                         </div>
                       </div>
                     ))
@@ -429,7 +445,12 @@ export function PurchaseDetailDrawer({
             </div>
 
             <div className="mt-1 break-all rounded-lg bg-slate-50 p-3 text-sm">
-              {row.tracking_number || "No tracking number"}
+              <TrackingLink
+                trackingNumber={row.tracking_number}
+                carrier={row.carrier}
+                trackingUrl={row.tracking_url}
+                emptyLabel="No tracking number"
+              />
             </div>
           </section>
         </div>
@@ -522,6 +543,20 @@ function Identifier({ label, value, href }: { label: string; value?: string | nu
       )}
     </div>
   );
+}
+
+function trackingUrlForRow(row: PurchaseRow, trackingNumber: string) {
+  if (trackingNumber === row.return_tracking_number) return row.problem_return_tracking_url;
+  if (trackingNumber === row.replacement_tracking_number) return row.problem_replacement_tracking_url;
+  if (trackingNumber === row.tracking_number) return row.tracking_url;
+  return null;
+}
+
+function trackingCarrierForRow(row: PurchaseRow, trackingNumber: string) {
+  if (trackingNumber === row.return_tracking_number) return row.problem_return_tracking_carrier;
+  if (trackingNumber === row.replacement_tracking_number) return row.problem_replacement_carrier;
+  if (trackingNumber === row.tracking_number) return row.carrier;
+  return null;
 }
 
 function problemDateDetails(row: PurchaseRow) {

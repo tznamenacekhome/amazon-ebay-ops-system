@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ArrowDown, ArrowUp, Check, PackageCheck, RefreshCw, Search, X } from "lucide-react";
 import { DataFreshness } from "../DataFreshness";
+import { TrackingLink } from "../components/TrackingLink";
 import { mutationHeaders } from "../mutationHeaders";
 import { ReceivingMetrics } from "./ReceivingMetrics";
 
@@ -727,7 +728,13 @@ export default function ReceivingPage() {
                     </td>
                     <td className="px-2 py-2">{row.carrier || ""}</td>
                     <td className="break-all px-2 py-2 text-xs">
-                      <div>{row.tracking_number || "--"}</div>
+                      <div>
+                        <TrackingLink
+                          trackingNumber={row.tracking_number}
+                          carrier={row.carrier}
+                          trackingUrl={trackingUrlForReceivingRow(row, row.tracking_number)}
+                        />
+                      </div>
                       {Number(row.package_count ?? 0) > 1 && (
                         <div className="mt-1 text-[11px] font-medium text-slate-500">
                           {row.packages_delivered ?? 0}/{row.package_count} packages delivered
@@ -761,7 +768,12 @@ export default function ReceivingPage() {
                 <div className="mt-2 grid gap-1 text-lg text-slate-700 md:grid-cols-3">
                   <div>Carrier: {selectedRow.carrier || "--"}</div>
                   <div className="break-all">
-                    Tracking: {selectedRow.tracking_number || "--"}
+                    Tracking:{" "}
+                    <TrackingLink
+                      trackingNumber={selectedRow.tracking_number}
+                      carrier={selectedRow.carrier}
+                      trackingUrl={trackingUrlForReceivingRow(selectedRow, selectedRow.tracking_number)}
+                    />
                   </div>
                   <div>
                     Items: {detailRows.length}
@@ -859,7 +871,12 @@ export default function ReceivingPage() {
                         </div>
                         {row.package_link_id && (
                           <div className="mt-2 text-sm text-slate-500">
-                            Package: {row.package_tracking_number || row.tracking_number || "--"} |{" "}
+                            Package:{" "}
+                            <TrackingLink
+                              trackingNumber={row.package_tracking_number || row.tracking_number}
+                              carrier={packageForTracking(row, row.package_tracking_number || row.tracking_number)?.carrier || row.carrier}
+                              trackingUrl={trackingUrlForReceivingRow(row, row.package_tracking_number || row.tracking_number)}
+                            />{" "}|{" "}
                             {formatStatus(row.package_status || row.delivery_status)}
                           </div>
                         )}
@@ -1108,6 +1125,15 @@ function SortableHeader({
       </button>
     </th>
   );
+}
+
+function packageForTracking(row: PurchaseRow, trackingNumber?: string | null) {
+  if (!trackingNumber) return undefined;
+  return row.inbound_packages?.find((candidate) => candidate.tracking_number === trackingNumber);
+}
+
+function trackingUrlForReceivingRow(row: PurchaseRow, trackingNumber?: string | null) {
+  return packageForTracking(row, trackingNumber)?.tracking_url ?? row.tracking_url;
 }
 
 function compareRows(left: PurchaseRow, right: PurchaseRow, column: SortColumn) {

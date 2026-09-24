@@ -13,6 +13,7 @@ export const dismissReasons = [
   ["non_north_american_version", "Non-North-American Version"],
   ["other", "Other"],
   ["roi_too_low", "ROI Too Low"],
+  ["return_risk_too_high", "Price Too Risky / Return Risk"],
   ["suspected_reseal", "Suspected Reseal"],
   ["nfr", "NFR"],
 ] as const;

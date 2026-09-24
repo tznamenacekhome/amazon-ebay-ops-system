@@ -5,6 +5,7 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 import {
   Ban,
+  Check,
   ChevronsUpDown,
   RefreshCw,
   Search,
@@ -58,7 +59,6 @@ type SourcingActionPayload = {
   reason?: string;
   selectedReason?: string;
   notes?: string;
-  imageClues?: string[];
   diagnosticsFeedback?: Partial<MatchingFeedback>;
   requiredMaxLandedCost?: number;
   requiredRoiPercent?: number;
@@ -91,7 +91,7 @@ export default function SourcingPage() {
           : activeTab === "Purchased Pending Match"
             ? "purchased_pending_match"
             : status;
-  const { rows, businessSuppressions, summary, batch, loading, error, freshnessError, exclusionOptions, reload, removeRows, setError } = useSourcingOpportunities(
+  const { rows, businessSuppressions, summary, batch, loading, error, freshnessError, exclusionOptions, reload, refreshInBackground, removeRows, setError } = useSourcingOpportunities(
     effectiveStatus,
     type,
     searchText,
@@ -139,7 +139,10 @@ export default function SourcingPage() {
       reviewRequests.current.complete(JSON.stringify([row.opportunityId,payload]));
       if (payload.actionType === "update_asin") await reload();
       else if (["mark_valid_match","save_match_feedback","confirm_exclusion"].includes(payload.actionType)) await reload();
-      else { removeRows([row.opportunityId]); await reload(); }
+      else if (payload.actionType === "dismiss") {
+        removeRows([row.opportunityId]);
+        void refreshInBackground();
+      } else { removeRows([row.opportunityId]); await reload(); }
       return true;
     } catch (err) {
       setError(err instanceof Error ? err.message : "Action failed.");
@@ -154,8 +157,10 @@ export default function SourcingPage() {
     setActionBusyId("bulk");
     setError(null);
     try {
+      let dismissOnly = true;
       for (const row of rowsToUpdate) {
         const payload=payloadForRow(row);
+        dismissOnly = dismissOnly && payload.actionType === "dismiss";
         const response = await fetch(`/api/sourcing/opportunities/${row.opportunityId}/actions`, {
           method: "POST",
           headers: mutationHeaders({ "Content-Type": "application/json" }),
@@ -167,8 +172,8 @@ export default function SourcingPage() {
         removeRows([row.opportunityId]);
       }
       setSelectedIds(new Set());
-      removeRows(rowsToUpdate.map((row) => row.opportunityId));
-      await reload();
+      if (dismissOnly) void refreshInBackground();
+      else await reload();
       return true;
     } catch (err) {
       setError(err instanceof Error ? err.message : "Bulk action failed.");
@@ -393,11 +398,11 @@ export default function SourcingPage() {
               rows={selectedRows}
               busy={actionBusyId === "bulk"}
               onClose={() => {reviewRequests.current.cancel();setBulkDismissOpen(false);}}
-              onBlockAsins={async (notes, imageClues) => {
-                if (await bulkAct(selectedRows, () => ({ actionType: "block_asin", notes, imageClues }))) {reviewRequests.current.cancel();setBulkDismissOpen(false);}
+              onBlockAsins={async (notes) => {
+                if (await bulkAct(selectedRows, () => ({ actionType: "block_asin", notes }))) {reviewRequests.current.cancel();setBulkDismissOpen(false);}
               }}
-              onDismiss={async (reason, notes, imageClues) => {
-                if (await bulkAct(selectedRows, () => ({ actionType: "dismiss", reason, notes, imageClues }))) {reviewRequests.current.cancel();setBulkDismissOpen(false);}
+              onDismiss={async (reason, notes) => {
+                if (await bulkAct(selectedRows, () => ({ actionType: "dismiss", reason, notes }))) {reviewRequests.current.cancel();setBulkDismissOpen(false);}
               }}
             />
           ) : null}
@@ -1013,16 +1018,15 @@ function DismissOpportunityDialog({row,actionBusyId,onClose,onReview,saveError,c
   onReview:(payload:SourcingActionPayload)=>Promise<void>; saveError?:string|null;
 }) {
   const [notes, setNotes] = useState("");
-  const [imageClues, setImageClues] = useState<string[]>([]);
   const diagnosticsOpen = true;
   const allAssumptionsCorrect = false;
   const [wrongRows, setWrongRows] = useState<string[]>([]);
   const failedRuleFamilies = [...new Set((row.diagnosticComparison?.rows ?? []).filter(r=>wrongRows.includes(r.key)).map(r=>r.ruleFamily).filter((v):v is string=>Boolean(v)))];
   const busy = actionBusyId === row.opportunityId;
   const [reason,setReason] = useState("");
-  const [parserAssessment,setParserAssessment] = useState<MatchingFeedback["parserAssessment"]>((row.latestReview?.feedback?.parserAssessment as MatchingFeedback["parserAssessment"]) ?? "not_reviewed");
-  const [sourceAccuracy,setSourceAccuracy] = useState<MatchingFeedback["sourceAccuracy"]>((row.latestReview?.feedback?.sourceAccuracy as MatchingFeedback["sourceAccuracy"]) ?? "not_reviewed");
-  const [pairVerdict,setPairVerdict] = useState<MatchingFeedback["pairVerdict"]>((row.latestReview?.pairVerdict as MatchingFeedback["pairVerdict"]) ?? "not_provided");
+  const [parserAssessment,setParserAssessment] = useState<MatchingFeedback["parserAssessment"]>("not_reviewed");
+  const [sourceAccuracy,setSourceAccuracy] = useState<MatchingFeedback["sourceAccuracy"]>("not_reviewed");
+  const [pairVerdict,setPairVerdict] = useState<MatchingFeedback["pairVerdict"]>("not_provided");
   const [corrections,setCorrections] = useState<MatchingFeedback["corrections"]>([]);
   const [usedEvidence,setUsedEvidence] = useState<string[]>([]);
   const diagnosticsFeedback: Partial<MatchingFeedback> = {
@@ -1030,7 +1034,7 @@ function DismissOpportunityDialog({row,actionBusyId,onClose,onReview,saveError,c
     failedRuleFamilies: parserAssessment === "correct" ? [] : failedRuleFamilies, flaggedFields:wrongRows.map(key=>reviewFieldKeys[key]),
     evidenceSources:usedEvidence, pairVerdict, corrections, note:notes.trim()||null,
   };
-  function save(actionType:string, verdict = pairVerdict, dismissReason = reason, queueChoice?: MatchingFeedback["queueChoice"]) { void onReview({actionType,reason:actionType === "dismiss"?dismissReason:undefined,selectedReason:reason||undefined,notes,imageClues,diagnosticsFeedback:{...diagnosticsFeedback,pairVerdict:verdict,...(queueChoice ? {queueChoice} : {})}}); }
+  function save(actionType:string, verdict = pairVerdict, dismissReason = reason, queueChoice?: MatchingFeedback["queueChoice"]) { void onReview({actionType,reason:actionType === "dismiss"?dismissReason:undefined,selectedReason:reason||undefined,notes,diagnosticsFeedback:{...diagnosticsFeedback,pairVerdict:verdict,...(queueChoice ? {queueChoice} : {})}}); }
 
   return (
     <div className="fixed inset-0 z-40 flex items-center justify-center bg-slate-950/20 p-4">
@@ -1046,12 +1050,12 @@ function DismissOpportunityDialog({row,actionBusyId,onClose,onReview,saveError,c
             <DismissReasonButtons
               busy={busy}
               single
+              selectedReason={reason}
               onChoose={setReason}
             />
             {reason ? <div className="text-xs">Selected reason: {label(reason)}</div> : null}
             <ParserReview parserAssessment={parserAssessment} sourceAccuracy={sourceAccuracy} setParserAssessment={setParserAssessment} setSourceAccuracy={setSourceAccuracy}/>
             <ReviewEvidence verdict={pairVerdict} onVerdict={setPairVerdict} evidence={usedEvidence} onEvidence={setUsedEvidence} forBuyList={closestQueue}/>
-            <ImageClueButtons selected={imageClues} onChange={setImageClues} />
             <button
               type="button"
               disabled={busy}
@@ -1076,7 +1080,7 @@ function DismissOpportunityDialog({row,actionBusyId,onClose,onReview,saveError,c
           {saveError ? <p role="alert" className="w-full text-right text-sm font-medium text-red-700">{saveError}</p> : null}
           </> : <button disabled={busy} onClick={()=>save("mark_valid_match", "correct")} className="rounded bg-emerald-700 px-3 py-2 text-sm text-white">Confirm Match</button>}
           <button disabled={busy} onClick={()=>save("dismiss", "incorrect", incorrectMatchReason(failedRuleFamilies))} className="rounded bg-red-700 px-3 py-2 text-sm text-white">Incorrect Match</button>
-          {!closestQueue ? <button disabled={busy} onClick={()=>save("save_match_feedback")} className="rounded border px-3 py-2 text-sm text-slate-700">Save feedback</button> : null}
+          {!closestQueue ? <button disabled={busy} onClick={()=>save("save_match_feedback")} className="rounded border px-3 py-2 text-sm text-slate-700">Save review and keep opportunity</button> : null}
           <button disabled={busy||!reason} onClick={()=>save("dismiss")} className="rounded bg-red-700 px-3 py-2 text-sm text-white disabled:opacity-50">Dismiss</button>
           <button onClick={onClose} disabled={busy} className="rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-700 hover:bg-slate-50">
             Cancel
@@ -1097,11 +1101,10 @@ function BulkDismissOpportunityDialog({
   rows: SourcingOpportunity[];
   busy: boolean;
   onClose: () => void;
-  onBlockAsins: (notes: string, imageClues: string[]) => Promise<void>;
-  onDismiss: (reason: string, notes: string, imageClues: string[]) => Promise<void>;
+  onBlockAsins: (notes: string) => Promise<void>;
+  onDismiss: (reason: string, notes: string) => Promise<void>;
 }) {
   const [notes, setNotes] = useState("");
-  const [imageClues, setImageClues] = useState<string[]>([]);
   const uniqueAsinCount = new Set(rows.map((row) => row.asin).filter(Boolean)).size;
 
   return (
@@ -1114,15 +1117,14 @@ function BulkDismissOpportunityDialog({
         <div className="space-y-3 px-4 py-3">
           <DismissReasonButtons
             busy={busy || rows.length === 0}
-            onChoose={(reason) => void onDismiss(reason, notes, imageClues)}
+            onChoose={(reason) => void onDismiss(reason, notes)}
           />
-          <ImageClueButtons selected={imageClues} onChange={setImageClues} />
           <button
             type="button"
             disabled={busy || rows.length === 0 || uniqueAsinCount === 0}
             onClick={() => {
               if (window.confirm(`Block ${uniqueAsinCount} ASIN${uniqueAsinCount === 1 ? "" : "s"} from future sourcing?`)) {
-                void onBlockAsins(notes, imageClues);
+                void onBlockAsins(notes);
               }
             }}
             className="inline-flex h-9 items-center gap-2 rounded-md border border-red-300 bg-white px-3 text-sm font-medium text-red-700 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
@@ -1562,66 +1564,30 @@ function DismissReasonButtons({
   single = false,
   busy,
   onChoose,
+  selectedReason,
 }: {
   busy: boolean;
   onChoose: (reason: string) => void;
   single?: boolean;
+  selectedReason?: string;
 }) {
   return (
     <div>
       <div className="mb-2 text-sm font-medium text-slate-700">Choose reason to dismiss</div>
       <div className="grid gap-2 sm:grid-cols-2">
-        {dismissReasons.filter(([value])=>!single || !["wrong_platform","wrong_edition_version"].includes(value)).map(([value, reasonLabel]) => (
-          <button
+        {dismissReasons.filter(([value])=>!single || !["wrong_platform","wrong_edition_version"].includes(value)).map(([value, reasonLabel]) => {
+          const selected = selectedReason === value;
+          return <button
             key={value}
+            type="button"
             disabled={busy}
+            aria-pressed={selected}
             onClick={() => onChoose(value)}
-            className="rounded-md border border-slate-300 bg-white px-3 py-2 text-left text-sm font-medium text-slate-700 hover:border-red-200 hover:bg-red-50 hover:text-red-700 disabled:cursor-not-allowed disabled:opacity-50"
+            className={`flex items-center justify-between gap-2 rounded-md border px-3 py-2 text-left text-sm font-medium disabled:cursor-not-allowed disabled:opacity-50 ${selected ? "border-red-600 bg-red-50 text-red-800 ring-2 ring-red-200" : "border-slate-300 bg-white text-slate-700 hover:border-red-200 hover:bg-red-50 hover:text-red-700"}`}
           >
-            {reasonLabel}
-          </button>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-const imageClueOptions = [
-  ["pegi", "PEGI"],
-  ["greatest_hits", "Greatest Hits"],
-  ["disc_only", "Disc Only"],
-  ["missing_shrink_wrap", "Missing Shrink Wrap"],
-  ["reseal", "Reseal"],
-  ["damaged_case", "Damaged Case"],
-] as const;
-
-function ImageClueButtons({
-  selected,
-  onChange,
-}: {
-  selected: string[];
-  onChange: (values: string[]) => void;
-}) {
-  return (
-    <div>
-      <div className="mb-2 text-sm font-medium text-slate-700">Image clues</div>
-      <div className="flex flex-wrap gap-2">
-        {imageClueOptions.map(([value, clueLabel]) => {
-          const active = selected.includes(value);
-          return (
-            <button
-              key={value}
-              type="button"
-              onClick={() => onChange(active ? selected.filter((item) => item !== value) : [...selected, value])}
-              className={`rounded-md border px-3 py-2 text-sm font-medium ${
-                active
-                  ? "border-blue-300 bg-blue-50 text-blue-700"
-                  : "border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
-              }`}
-            >
-              {clueLabel}
-            </button>
-          );
+            <span>{reasonLabel}</span>
+            {selected ? <span className="inline-flex items-center gap-1 text-xs font-semibold uppercase tracking-wide"><Check className="h-4 w-4" />Selected</span> : null}
+          </button>;
         })}
       </div>
     </div>
