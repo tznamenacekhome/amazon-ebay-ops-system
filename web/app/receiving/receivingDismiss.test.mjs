@@ -13,7 +13,7 @@ let cursor = 0, dirty = false, pending = [], tree;
 const listeners = new Map();
 const requests = [];
 const row = {item_id:"item",purchase_id:"purchase",supplier_order_id:"23-15127-96456",
-  title:"Ghost Recon Breakpoint",system:"Xbox One",quantity:1,current_status:"shipped_no_tracking",
+  title:"Ghost Recon Breakpoint",system:"Xbox One",quantity:2,current_status:"shipped_no_tracking",
   asin:null,target_price:null,unit_cost:13.99};
 globalThis.fetch = async (url, options) => {requests.push({url,options});return {ok:true,json:async()=>[row]};};
 globalThis.window = {setTimeout,clearTimeout,addEventListener:(k,v)=>listeners.set(k,v),
@@ -53,6 +53,9 @@ render();await new Promise(r=>setTimeout(r,0));render();
 for(const close of ["Cancel","X","Escape"]){
   search("");search(row.supplier_order_id);
   assert(hasDetail());assert(button("Received").props.disabled,"Missing ASIN must block save only");
+  const expectedCopies=nodes().find(n=>n.props?.["aria-label"]==="Expected copies: 2");
+  assert(expectedCopies,"Expected quantity must be shown next to the Received button");
+  assert.match(expectedCopies.props.className,/text-red-600/,"Expected quantities above one must be red");
   if(close==="Escape")listeners.get("keydown")({key:"Escape",preventDefault(){}});
   else if(close==="X")nodes().find(n=>n.props?.["aria-label"]==="Close receiving detail without saving").props.onClick();
   else button("Cancel").props.onClick();

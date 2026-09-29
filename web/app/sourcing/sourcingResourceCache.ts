@@ -27,6 +27,7 @@ export class SourcingResourceCache {
   private listeners = new Set<() => void>();
   private freshnessListeners = new Set<() => void>();
   private freshnessError: string | null = null;
+  private consecutiveFreshnessFailures = 0;
   constructor(private transport: typeof fetch = (...args) => fetch(...args)) {}
   subscribe = (listener: () => void) => { this.listeners.add(listener); return () => { this.listeners.delete(listener); }; };
   snapshot = () => this.generation;
@@ -44,21 +45,29 @@ export class SourcingResourceCache {
   async checkVersion() {
     if (this.checking) return this.checking;
     this.checking = (async () => {
-      const generation = this.generation;
-      const response = await this.transport("/api/sourcing/cache-version", { cache: "no-store", signal: AbortSignal.timeout(10_000) });
-      const body = await response.json();
-      if (!response.ok || typeof body.version !== "string") throw new Error(body.error ?? "Sourcing freshness unavailable.");
-      if (generation !== this.generation) return; // An operator changed data during this check.
-      const changed = this.version !== null && this.version !== body.version;
-      if (changed) this.invalidate(true);
-      this.version = body.version;
-      this.setFreshnessError(null);
+      try {
+        const generation = this.generation;
+        const response = await this.transport("/api/sourcing/cache-version", { cache: "no-store", signal: AbortSignal.timeout(20_000) });
+        const body = await response.json();
+        if (!response.ok || typeof body.version !== "string") throw new Error(body.error ?? "Sourcing freshness unavailable.");
+        if (generation !== this.generation) return; // An operator changed data during this check.
+        const changed = this.version !== null && this.version !== body.version;
+        if (changed) this.invalidate(true);
+        this.version = body.version;
+        this.consecutiveFreshnessFailures = 0;
+        this.setFreshnessError(null);
+      } catch (error) {
+        this.consecutiveFreshnessFailures++;
+        // A single background timeout must not alarm the operator or discard a
+        // usable cache. Initial loads and repeated failures remain visible.
+        if (this.version !== null && this.consecutiveFreshnessFailures === 1) return;
+        this.setFreshnessError(`Could not check for sourcing updates. Showing the last loaded data. ${error instanceof Error ? error.message : "Freshness check failed."}`);
+        throw error;
+      } finally {
+        this.checking = null;
+      }
     })();
-    try { await this.checking; }
-    catch (error) {
-      this.setFreshnessError(`Could not check for sourcing updates. Showing the last loaded data. ${error instanceof Error ? error.message : "Freshness check failed."}`);
-      throw error;
-    } finally { this.checking = null; }
+    return this.checking;
   }
   start() {
     this.active = true;
