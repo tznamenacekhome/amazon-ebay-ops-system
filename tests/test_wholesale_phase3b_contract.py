@@ -30,6 +30,10 @@ class WholesalePhase3BContractTests(unittest.TestCase):
         self.assertIn("status.evaluation?.asin === asin", source)
         self.assertIn("Select and recalculate", source)
 
+    def test_every_candidate_supplies_non_null_eligibility_reasons(self):
+        worker = (ROOT / "integrations/wholesale_enrichment.py").read_text(encoding="utf-8")
+        self.assertIn('"eligibility_reason_codes": [],', worker)
+
 
 if __name__ == "__main__":
     unittest.main()

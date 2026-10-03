@@ -86,6 +86,7 @@ class WholesaleEnrichmentService:
                 "prior_account_sale": asin in prior_sales,
                 "keepa_sales_rank_drops90": velocity.get("sales_rank_drops90"),
                 "keepa_captured_at": velocity.get("captured_at"),
+                "eligibility_reason_codes": [],
                 "last_discovered_at": now_iso(),
                 "last_enriched_at": now_iso(),
                 "updated_at": now_iso(),
