@@ -1,6 +1,6 @@
 # Wholesale Purchasing Phase 3: Opportunity Evaluation
 
-Status: implemented and validated locally. Phase 1, Phase 2, and Phase 3 migrations remain unapplied in production.
+Status: deployed to production on October 3, 2026. Phase 1 through Phase 3 migrations and the bounded first evaluation run are verified.
 
 ## Architecture
 

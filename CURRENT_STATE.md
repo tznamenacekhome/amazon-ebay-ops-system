@@ -1,15 +1,23 @@
 # CURRENT_STATE.md
 
-## Wholesale Phase 1 ready locally (2026-10-03)
+## Wholesale Phases 1-3B live in production (2026-10-03)
 
 The supplier catalog/import/history foundation is implemented and tested against
 Royal's actual September 9 workbook: 1,051 source products, one USED skip,
 1,050 accepted products, 17 identifier warnings retained without repair.
 Disposable PostgreSQL verifies exact reimport, revisions, history and absence.
-The migration is **not applied to production** and no wholesale deployment or
-live import occurred. See [implementation and operating instructions](docs/WHOLESALE_PHASE1.md).
-Amazon matching, Keepa, eligibility, profitability, opportunity UI and ordering
-remain future work; existing sourcing is unchanged.
+All three additive migrations are applied to linked project `froeucjkcepuhgwisped`.
+The real 2026-09-09 Royal list created 1,050 products and observations. Scheduler
+revision 109 contains the workers and all 20 schedules target it; web revision
+169 serves commit `695a4335c71e`. A bounded 10-product production run completed:
+6 matches, 1 identity review, 2 fully restricted results, and one previously
+completed item. Two exact fee estimates were cached and ten opportunities were
+evaluated. All remain in the pending/incomplete queue because the bounded cache
+evidence does not support a qualified actionable opportunity; no purchase order
+or draft commitment was created. Authenticated browser verification passed for
+Purchases, Receiving, Send to Amazon, the wholesale queue, the Phase 3B focused
+evaluation workspace, and candidate comparison, with no browser console errors.
+See [Phase 3B implementation and deployment record](docs/WHOLESALE_PHASE3B.md).
 
 ## Weekend Keepa reserve deployed (2026-09-19)
 
@@ -1543,7 +1551,7 @@ Schema:
 
 ## Wholesale purchasing
 
-Phases 1-3 are implemented locally and pending production migration. Phase 3 adds immutable dual-price True ROI evaluations, 30-day inventory capacity, informational risk/supplier history, reversible review decisions, the `/wholesale` workspace, and idempotent draft order commitments. Drafts are buying intent only and are not purchases, inventory, orders, or accounting. See `docs/WHOLESALE_PHASE2.md` and `docs/WHOLESALE_PHASE3.md`.
+Phases 1-3B are deployed. Phase 3 adds immutable dual-price True ROI evaluations, 30-day inventory capacity, informational risk/supplier history, reversible review decisions, the `/wholesale` workspace, and idempotent draft order commitments. Phase 3B adds focused side-by-side review, enriched candidate comparison, and bounded scheduler reevaluation after manual selection. Drafts are buying intent only and are not purchases, inventory, orders, or accounting. See `docs/WHOLESALE_PHASE2.md`, `docs/WHOLESALE_PHASE3.md`, and `docs/WHOLESALE_PHASE3B.md`.
 
 
 ## Phase 3 resume checkpoint - 2026-09-13 (latest)

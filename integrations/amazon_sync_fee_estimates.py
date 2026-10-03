@@ -30,7 +30,8 @@ def main() -> int:
         format="%(asctime)s %(levelname)s %(name)s - %(message)s",
     )
     logging.getLogger("httpx").setLevel(logging.WARNING)
-    load_dotenv()
+    load_dotenv(".env")
+    load_dotenv(".env.local")
 
     try:
         supabase = get_supabase_client()

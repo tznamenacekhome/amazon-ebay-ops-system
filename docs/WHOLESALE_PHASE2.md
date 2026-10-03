@@ -1,6 +1,6 @@
 # Wholesale Purchasing Phase 2: Amazon Matching and Enrichment
 
-Status: implemented locally; the Phase 1 and Phase 2 migrations have not been applied to production.
+Status: deployed to production on October 3, 2026. The first bounded 10-product run completed after a bulk-upsert invariant was repaired and regression tested.
 
 ## Pipeline
 

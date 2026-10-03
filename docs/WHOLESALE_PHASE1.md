@@ -1,7 +1,7 @@
 # Wholesale supplier history — Phase 1
 
-Implemented October 3, 2026. **Locally validated; not deployed or applied to the
-shared production database.** The discovery report remains historical design
+Implemented and deployed October 3, 2026. The shared production migration ledger
+and the real Royal 2026-09-09 import are verified. The discovery report remains historical design
 context; this document describes the implementation and the newer pricing decision.
 
 ## Ownership and scope
@@ -190,18 +190,12 @@ their time/observation weighting rather than pretending there is daily history.
 
 ## Migration and validation status
 
-The migration was applied only to networking-disabled disposable PostgreSQL 17
-containers by `tests/test_wholesale_db.py`. Those containers were removed after
-testing. No linked Supabase mutation, migration ledger change, AWS deployment,
-production import or external marketplace call was performed for Phase 1.
-
-Production application is intentionally pending. Before a future authorized
-`supabase db push`, verify project `froeucjkcepuhgwisped` and run `supabase migration
-list`, reconciling the **complete shared MBOP/College Planner ledger**. Review all
-pending migrations, then use the documented push workflow. Do not directly paste
-schema SQL into the linked database or modify applied migrations. Check capacity
-before a large catalog import; even this initial list adds 1,050 products and
-1,050 observations plus compact source evidence. This phase does not change quotas.
+The migration passed disposable PostgreSQL 17 validation and was then applied
+through the documented Supabase CLI workflow to verified project
+`froeucjkcepuhgwisped`. Remote migration history matches local history. Production
+import `31d4a7dc-5c5f-4141-881a-bef3cea365a6` accepted 1,050 products and created
+1,050 immutable observations, with 17 retained identifier warnings and no invalid,
+duplicate, or conflicting rows. Applied migrations must not be edited.
 
 Tests:
 
