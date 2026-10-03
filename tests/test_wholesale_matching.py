@@ -108,6 +108,26 @@ class WholesaleMatchingTests(unittest.TestCase):
         self.assertEqual(result.status, "incompatible")
         self.assertIn("edition_mismatch", result.reason_codes)
 
+    def test_named_catalog_line_and_named_editions_are_identity_evidence(self):
+        cases = [
+            ("Batman Arkham Knight PlayStation Hits", "Batman Arkham Knight"),
+            ("Sonic Forces", "Sonic Forces Bonusedition"),
+            ("007 First Light", "007 First Light Specialist Edition"),
+            ("007 First Light", "007 First Light Legacy Edition"),
+        ]
+        for supplier, candidate in cases:
+            with self.subTest(candidate=candidate):
+                result = evaluate_compatibility(product(supplier, "P4"), catalog(candidate, "PS 4"))
+                self.assertEqual(result.status, "incompatible")
+                self.assertIn("edition_mismatch", result.reason_codes)
+
+    def test_unnamed_supplier_edition_can_match_standard_edition(self):
+        result = evaluate_compatibility(
+            product("007 First Light", "PS5"),
+            catalog("007 First Light Standard Edition", "PS 5"),
+        )
+        self.assertEqual(result.status, "compatible")
+
     def test_bundle_mismatch_is_incompatible(self):
         result = evaluate_compatibility(product("Game Bundle"), catalog("Game"))
         self.assertEqual(result.status, "incompatible")
@@ -142,6 +162,19 @@ class WholesaleMatchingTests(unittest.TestCase):
 
     def test_region_without_candidate_evidence_is_uncertain(self):
         result = evaluate_compatibility(product("Metroid Prime 4 Beyond EU Version"), catalog())
+        self.assertEqual(result.status, "uncertain")
+        self.assertIn("region_evidence_incomplete", result.reason_codes)
+
+    def test_foreign_script_candidate_requires_region_review_even_with_identifier(self):
+        candidate = catalog(
+            "Atomic Heart アトミックハート PS4", "PS 4",
+            raw_catalog_json={"identifiers": [{"identifiers": [
+                {"identifierType": "UPC", "identifier": "850033668131"}
+            ]}]},
+        )
+        result = evaluate_compatibility(
+            product("P4 Atomic Heart", "P4", "850033668131"), candidate, ["identifier"],
+        )
         self.assertEqual(result.status, "uncertain")
         self.assertIn("region_evidence_incomplete", result.reason_codes)
 

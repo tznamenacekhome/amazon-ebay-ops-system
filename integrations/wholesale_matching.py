@@ -16,7 +16,7 @@ from title_cleaning import LEADING_SYSTEM_ALIASES, cleanup_search_text, decompos
 from video_game_identity import general_product_fields
 
 
-EVALUATOR_VERSION = "wholesale-v2"
+EVALUATOR_VERSION = "wholesale-v3"
 TITLE_SEARCH_STRATEGY_VERSION = "wholesale-title-v2"
 ROYAL_PLATFORM_CODES = {
     "SW": "Switch",
@@ -43,7 +43,10 @@ ACCESSORY_WORDS = {
     "accessory", "adapter", "case", "charger", "controller", "dock", "headset",
     "accessories", "protector", "stand", "wheel", "cable", "grip", "skin", "cover",
 }
-EDITION_WORDS = {"collector", "collectors", "deluxe", "gold", "limited", "ultimate"}
+EDITION_WORDS = {
+    "bonus", "bonusedition", "collector", "collectors", "deluxe", "gold", "legacy",
+    "limited", "specialist", "ultimate",
+}
 BUNDLE_WORDS = {"bundle", "pack", "set", "collection"}
 DIGITAL_WORDS = {"digital", "download", "code", "voucher"}
 REGION_MARKERS = {
@@ -229,8 +232,8 @@ def evaluate_compatibility(product: dict[str, Any], catalog: dict[str, Any],
     if supplier_format != candidate_format and (supplier_format != "physical" or candidate_format != "physical"):
         return result("incompatible", ["digital_physical_mismatch"], details)
 
-    supplier_edition = marker_set(supplier_title, EDITION_WORDS)
-    candidate_edition = marker_set(" ".join([candidate_title, str(catalog.get("normalized_edition") or "")]), EDITION_WORDS)
+    supplier_edition = commercial_editions(supplier_title)
+    candidate_edition = commercial_editions(" ".join([candidate_title, str(catalog.get("normalized_edition") or "")]))
     if supplier_edition != candidate_edition and (supplier_edition or candidate_edition):
         return result("incompatible", ["edition_mismatch"], {**details, "supplier_edition": sorted(supplier_edition), "candidate_edition": sorted(candidate_edition)})
 
@@ -295,7 +298,7 @@ def identity_signature(product: dict[str, Any]) -> str:
         "title": normalize_text(product.get("raw_title")),
         "platform": canonical_platform(product.get("raw_system")),
         "accessory": str(product.get("raw_system") or "").upper().startswith("ACC") or has_any(product.get("raw_title"), ACCESSORY_WORDS),
-        "edition": sorted(marker_set(product.get("raw_title"), EDITION_WORDS)),
+        "edition": sorted(commercial_editions(product.get("raw_title"))),
         "bundle": sorted(marker_set(product.get("raw_title"), BUNDLE_WORDS)),
         "format": commercial_format(product.get("raw_title")),
         "region": region(product.get("raw_title")),
@@ -362,11 +365,27 @@ def has_any(value: Any, markers: set[str]) -> bool:
 
 
 def region(value: Any) -> str | None:
+    raw = str(value or "")
+    if re.search(r"[\u3040-\u30ff\u3400-\u9fff\uac00-\ud7af]", raw):
+        return "non_na_script"
     value_words = words(value)
     for name, markers in REGION_MARKERS.items():
         if value_words & markers:
             return name
     return None
+
+
+def commercial_editions(value: Any) -> set[str]:
+    normalized = normalize_text(value)
+    editions = marker_set(value, EDITION_WORDS)
+    phrases = {
+        "playstation_hits": ("playstation hits", "ps hits"),
+        "greatest_hits": ("greatest hits",),
+        "nintendo_selects": ("nintendo selects",),
+        "goty": ("game of the year", "goty"),
+    }
+    editions.update(name for name, markers in phrases.items() if any(marker in normalized for marker in markers))
+    return editions
 
 
 def token_similarity(left: Any, right: Any) -> float:
