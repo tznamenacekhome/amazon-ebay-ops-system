@@ -117,27 +117,50 @@ def clean_marketplace_title_for_search(title: str | None) -> str:
     noise, drops release years inside system parentheticals, and moves leading
     system terms to the end of the query.
     """
-    if not title:
-        return ""
-
-    if re.search(r"\bwii\s+play\b", title, flags=re.IGNORECASE):
-        return "Wii Play"
-
-    title_with_clean_parentheticals = remove_parenthetical_release_years(title)
-    title_with_special_cases = apply_special_cases(
-        title_with_clean_parentheticals
-    )
-    title_without_noise = remove_noise_words(
-        trim_noise_words(
-            remove_noise_phrases(title_with_special_cases)
-        )
-    )
-    cleaned_title, leading_systems = move_leading_system_terms(title_without_noise)
+    cleaned_title, leading_systems = decompose_title_for_search(title)
     search_term = cleanup_search_text(
         " ".join([cleaned_title, " ".join(leading_systems)])
     )
 
     return search_term
+
+
+def decompose_title_for_search(
+    title: str | None,
+    *,
+    leading_system_aliases: list[str] | None = None,
+    remove_marketplace_noise: bool = True,
+    remove_platform_parentheticals: bool = False,
+) -> tuple[str, list[str]]:
+    """Return a cleaned core title and any leading platform terms.
+
+    The default path is the existing marketplace/eBay behavior. Supplier feeds
+    can reuse the same punctuation and leading-platform decomposition while
+    retaining edition, region, bundle, accessory, and other identity evidence.
+    """
+    if not title:
+        return "", []
+    if remove_marketplace_noise and re.search(r"\bwii\s+play\b", title, flags=re.IGNORECASE):
+        return "Wii Play", []
+
+    value = remove_parenthetical_release_years(title) if remove_marketplace_noise else title
+    if remove_platform_parentheticals:
+        value = strip_platform_only_parentheticals(value, leading_system_aliases or LEADING_SYSTEM_ALIASES)
+    value = apply_special_cases(value)
+    if remove_marketplace_noise:
+        value = remove_noise_words(trim_noise_words(remove_noise_phrases(value)))
+    return move_leading_system_terms(value, aliases=leading_system_aliases)
+
+
+def strip_platform_only_parentheticals(value: str, aliases: list[str]) -> str:
+    """Remove a parenthetical only when every segment is a platform alias."""
+    normalized_aliases = {cleanup_search_text(alias).casefold() for alias in aliases}
+
+    def replace(match: re.Match[str]) -> str:
+        segments = [cleanup_search_text(part).casefold() for part in re.split(r"[/,|]", match.group(1))]
+        return " " if segments and all(segment in normalized_aliases for segment in segments) else match.group(0)
+
+    return re.sub(r"\(([^()]*)\)", replace, value)
 
 
 def apply_special_cases(value: str) -> str:
@@ -202,7 +225,7 @@ def remove_noise_words(value: str) -> str:
     return " ".join(words)
 
 
-def move_leading_system_terms(value: str) -> tuple[str, list[str]]:
+def move_leading_system_terms(value: str, *, aliases: list[str] | None = None) -> tuple[str, list[str]]:
     leading_systems = []
     remaining_title = cleanup_search_text(value)
     matched = True
@@ -210,7 +233,7 @@ def move_leading_system_terms(value: str) -> tuple[str, list[str]]:
     while matched:
         matched = False
 
-        for alias in LEADING_SYSTEM_ALIASES:
+        for alias in aliases or LEADING_SYSTEM_ALIASES:
             match = re.match(
                 rf"^{re.escape(alias)}(?=\s|[-:/|]|$)",
                 remaining_title,

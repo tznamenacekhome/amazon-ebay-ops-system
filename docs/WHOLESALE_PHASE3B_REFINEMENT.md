@@ -61,6 +61,8 @@ Migration `20261003213000_mbop_wholesale_phase3b_refinement.sql` adds:
 
 ## Production evidence
 
+The October 3 wholesale recall follow-up versioned the title-search strategy, added bounded cleaned/core fallbacks, and exposed each variant in candidate evidence. Commercial identity terms remain in the primary search, and compatibility reuses the sourcing identity parser to reject missing or conflicting sequel numbers. The pre-reprocessing Royal baseline was 18 matched, 3 identity review, 4 restricted, and 1,025 products with no match state; the latter were displayed as Unmatched but had never been enriched. Supabase capacity and a tiny read passed before any production reprocessing.
+
 The additive migration was applied to verified project `froeucjkcepuhgwisped`; local and remote migration ledgers align through `20261003213000`. The CLI emitted its known pg-delta certificate-cache warning after successful application; the ledger and live reads confirm the migration.
 
 Bounded enrichment run `a70d2442-e0d7-4f10-bfb9-ea2ae47cbc47` processed 25 Royal products: 18 matched, 3 identity review, 4 restricted, and 0 errors. The resulting 215 candidates contain 16 identifier-only, 193 title-only, and 6 combined-source candidates; candidate eligibility is 20 eligible, 5 restricted, and 190 pending because eligibility is requested only for compatible candidates. Six exact fee estimates were refreshed without failures. Twenty-five current opportunities include one real Ready to Review row qualified on the 90-day basis, four restricted rows, three pending-match rows, and seventeen incomplete-economics rows.

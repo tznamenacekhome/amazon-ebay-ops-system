@@ -109,14 +109,25 @@ function candidateDto(candidate: any, catalog: any, keepa: any, product: any, se
       supplier_identifier: search.query_context?.supplier_identifier ?? product?.normalized_identifier ?? product?.raw_identifier ?? null,
       amazon_identifiers: amazonIdentifiers,
     } : {
-      type: "title_platform", label: "Matched by Title + Platform",
+      type: search.query_type === "title" ? "title" : "title_platform",
+      label: search.query_type === "title" ? "Matched by Title" : "Matched by Title + Platform",
       title_terms: search.query_context?.title_terms ?? product?.raw_title ?? null,
       platform_term: search.query_context?.platform_term ?? product?.raw_system ?? null,
+      variant_label: searchVariantLabel(search.query_context?.search_variant),
       query: search.query_value,
       amazon_title: attributes.title ?? keepa?.title ?? null,
       amazon_platform: catalog?.normalized_platform ?? attributes.platform ?? null,
     }),
   };
+}
+
+function searchVariantLabel(value: unknown) {
+  const labels: Record<string, string> = {
+    shared_cleaned_title_platform: "Shared cleaned title + platform",
+    core_title_platform: "Core title + platform",
+    core_title_fallback: "Core title fallback",
+  };
+  return labels[String(value ?? "")] ?? "Legacy title search";
 }
 
 function identifierLabel(value: unknown) {

@@ -7,11 +7,21 @@ Status: deployed to production on October 3, 2026. The first bounded 10-product 
 Each active supplier product is searched through the existing Amazon Catalog Items client in two independent branches:
 
 1. The exact Phase 1 normalized UPC/EAN is searched when Amazon can accept its type and length. No digit is added, repaired, or removed.
-2. The exact supplier title is searched with the canonical platform represented by the supplier `SYS` code.
+2. The supplier title is decomposed by the shared marketplace title-cleaning path. The worker removes only a recognized leading supplier platform code and platform-only parentheticals, preserves commercial identity terms, and tries at most three deduplicated variants in order: cleaned title plus platform, compact core plus platform, and core-only fallback. The compact form removes only known catalog/search-line labels such as PlayStation Hits or an LRG/LCIF catalog number.
 
-An empty or failed branch does not suppress the other branch. Results are merged by ASIN while retaining `identifier` and `title_platform` discovery sources. Search keys contain the query type, normalized query text, and marketplace; supplier price is deliberately absent.
+An empty or failed identifier branch does not suppress title discovery, and identifier success does not suppress it either. Title variants stop after the first result set containing a candidate that survives conservative identity checks. Results are merged by ASIN while retaining `identifier`, `title_platform`, and title-only discovery sources. Search keys contain the query type, normalized query text, marketplace, and the title-strategy version; this lets a corrected strategy bypass a still-fresh legacy empty result without invalidating identifier caches. Supplier price is deliberately absent.
 
-Catalog identity is read from or written to the shared `amazon_catalog_item_identity_snapshots` cache. Compatibility then compares title, platform, physical/digital form, edition, bundle, region/language evidence, and accessory/game type. A clear conflict is `incompatible`; incomplete or ambiguous evidence is `uncertain`; only sufficiently consistent evidence is `compatible`. The stored reason codes and details are intended for the Phase 3 review UI.
+Catalog identity is read from or written to the shared `amazon_catalog_item_identity_snapshots` cache. Compatibility then compares title, platform, physical/digital form, edition, bundle, region/language evidence, accessory/game type, and title/installment numbers. Installment extraction reuses the sourcing video-game identity parser, including Roman numeral handling; a title result cannot satisfy a supplier title that requires a missing or different sequel number. A clear conflict is `incompatible`; incomplete or ambiguous evidence is `uncertain`; only sufficiently consistent evidence is `compatible`. The stored reason codes and details are intended for the Phase 3 review UI.
+
+The October 3 recall investigation found that the latest 1,050-row Royal import contained only 25 match-state rows: 18 matched, 3 identity review, 4 restricted, and 1,025 products that had never entered enrichment. The low Full Import match count was therefore primarily missing bounded processing, with noisy literal searches such as `P4 Atomic Heart PS 4` as a secondary defect. A live 12-product Catalog diagnostic covered PS4, PS5, Switch, Switch 2, and Xbox. Cleaned first-page queries returned compatible results where the sample exposed one; although some 20-row responses advertised a next page, no sampled compatible result required pagination. The worker remains first-page bounded to protect Catalog quota.
+
+The diagnostic is repeatable without provider calls by default. Add `--live` only for a deliberately bounded Catalog sample:
+
+```powershell
+.\.venv\Scripts\python.exe tools\diagnose_wholesale_matching_recall.py --limit 12 --live
+```
+
+Migration `20261003223500_mbop_wholesale_title_search_variants.sql` extends the existing search-evidence constraint with the title-only branch. It changes no product, candidate, decision, opportunity, or order data.
 
 ## Ranking and eligibility
 

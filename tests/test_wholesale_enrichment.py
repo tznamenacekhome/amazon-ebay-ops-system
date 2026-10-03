@@ -12,8 +12,9 @@ from wholesale_enrichment import (  # noqa: E402
 
 
 class FakeRepository:
-    def __init__(self, cached=None):
+    def __init__(self, cached=None, snapshots=None):
         self.cached = cached
+        self.snapshots = snapshots or {}
         self.saved = []
 
     def fresh_search(self, *_args):
@@ -21,6 +22,9 @@ class FakeRepository:
 
     def save_search(self, row):
         self.saved.append(row)
+
+    def catalog_snapshots(self, asins):
+        return {asin: self.snapshots[asin] for asin in asins if asin in self.snapshots}
 
 
 class FakeAmazon:
@@ -57,11 +61,32 @@ class WholesaleEnrichmentTests(unittest.TestCase):
                         query_context={"title_terms": "Game", "platform_term": "PS 5"}, keywords=["Game", "PS", "5"])
         self.assertEqual(repository.saved[0]["query_context"], {"title_terms": "Game", "platform_term": "PS 5"})
 
+    def test_strategy_version_bypasses_legacy_empty_cache_fingerprint(self):
+        repository = FakeRepository()
+        amazon = FakeAmazon()
+        service = WholesaleEnrichmentService(repository, amazon, seller_id="seller", marketplace_id="US")
+        service._search({"supplier_product_id": "p1"}, "title_platform", "Atomic Heart PS4",
+                        strategy_version="wholesale-title-v2", keywords=["Atomic", "Heart", "PS4"])
+        self.assertEqual(len(amazon.calls), 1)
+        self.assertEqual(repository.saved[0]["query_value"], "Atomic Heart PS4")
+
+    def test_fallback_continues_when_results_are_different_installments(self):
+        repository = FakeRepository(snapshots={"B000000001": {
+            "normalized_platform": "Xbox Series X", "product_type": "VIDEO_GAME",
+            "relevant_attributes_json": {"title": "Call of Duty Black Ops III - Xbox Series X"},
+        }})
+        service = WholesaleEnrichmentService(repository, FakeAmazon(), seller_id="seller", marketplace_id="US")
+        plausible = service._has_plausible_title_result(
+            {"raw_title": "XBOX Call of Duty Black Ops 7", "raw_system": "XBOX"},
+            [{"asin": "B000000001"}],
+        )
+        self.assertFalse(plausible)
+
     def test_enrich_source_always_invokes_both_discovery_branches(self):
         source = (Path(__file__).resolve().parents[1] / "integrations/wholesale_enrichment.py").read_text(encoding="utf-8")
         identifier_position = source.index('self._search(product, "identifier"')
-        title_position = source.index('self._search(product, "title_platform"')
-        merge_position = source.index("merge_candidates(identifier_items, title_items)")
+        title_position = source.index("for variant in title_search_variants")
+        merge_position = source.index("merge_candidates(identifier_items, title_platform_items, title_only_items)")
         self.assertLess(identifier_position, title_position)
         self.assertLess(title_position, merge_position)
 
@@ -84,6 +109,8 @@ class WholesaleEnrichmentTests(unittest.TestCase):
     def test_non_na_classification_requires_explicit_low_ambiguity_marker(self):
         self.assertEqual(explicit_non_na_region("Game EU Version"), "eu")
         self.assertEqual(explicit_non_na_region("Jeu French Language"), "fr")
+        self.assertEqual(explicit_non_na_region("Assassin's Creed Mirage LATAM"), "latam")
+        self.assertEqual(explicit_non_na_region("Batman Arkham Knight Asia"), "asia")
         self.assertIsNone(explicit_non_na_region("It Takes Two"))
         self.assertIsNone(explicit_non_na_region("Friday the 13th"))
 

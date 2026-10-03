@@ -13,9 +13,9 @@ from amazon_spapi_client import AmazonSPAPIClient, AmazonSPAPIError
 from amazon_sync_catalog_items import INCLUDED_DATA, normalize_catalog_item
 from sourcing_common import get_supabase_client
 from wholesale_matching import (
-    EVALUATOR_VERSION, canonical_platform, evaluate_compatibility, identity_signature,
+    EVALUATOR_VERSION, TITLE_SEARCH_STRATEGY_VERSION, evaluate_compatibility, identity_signature,
     identifier_search, merge_candidates, query_fingerprint, search_items,
-    select_preferred, title_platform_query,
+    select_preferred, title_search_variants,
 )
 from wholesale_repository import WholesaleRepository
 
@@ -38,9 +38,12 @@ class WholesaleEnrichmentService:
         self.amazon = amazon
         self.seller_id = seller_id
         self.marketplace_id = marketplace_id
+        self._search_errors: list[str] = []
+        self._search_metrics = {"api_calls": 0, "cache_hits": 0, "errors": 0, "title_variants": []}
 
     def enrich_product(self, supplier_product_id: str) -> dict[str, Any]:
         self._search_errors: list[str] = []
+        self._search_metrics = {"api_calls": 0, "cache_hits": 0, "errors": 0, "title_variants": []}
         product = self.repository.get_product(supplier_product_id)
         if not product:
             raise ValueError(f"Wholesale product not found: {supplier_product_id}")
@@ -71,12 +74,27 @@ class WholesaleEnrichmentService:
             identifier_items = self._search(product, "identifier", value, force_refresh=force_search,
                                             query_context={"identifier_type": kind, "supplier_identifier": value},
                                             identifiers=[value], identifiers_type=kind)
-        title_query = title_platform_query(product.get("raw_title"), product.get("raw_system"))
-        title_items = self._search(product, "title_platform", title_query, force_refresh=force_search,
-                                   query_context={"title_terms": " ".join(str(product.get("raw_title") or "").split()),
-                                                  "platform_term": canonical_platform(product.get("raw_system"))},
-                                   keywords=title_query.split())
-        discovered = merge_candidates(identifier_items, title_items)
+        title_platform_items: list[dict] = []
+        title_only_items: list[dict] = []
+        for variant in title_search_variants(product.get("raw_title"), product.get("raw_system")):
+            items = self._search(
+                product, variant["query_type"], variant["query"], force_refresh=force_search,
+                strategy_version=TITLE_SEARCH_STRATEGY_VERSION,
+                query_context={
+                    "strategy_version": TITLE_SEARCH_STRATEGY_VERSION,
+                    "search_variant": variant["name"],
+                    "title_terms": variant["title_terms"],
+                    "platform_term": variant["platform_term"],
+                },
+                keywords=variant["query"].split(),
+            )
+            self._search_metrics["title_variants"].append({
+                "name": variant["name"], "query": variant["query"], "result_count": len(items),
+            })
+            (title_platform_items if variant["query_type"] == "title_platform" else title_only_items).extend(items)
+            if self._has_plausible_title_result(product, items):
+                break
+        discovered = merge_candidates(identifier_items, title_platform_items, title_only_items)
         asins = [row["asin"] for row in discovered]
 
         snapshots = self._catalog_snapshots(asins)
@@ -165,20 +183,40 @@ class WholesaleEnrichmentService:
         })
         return {"supplier_product_id": supplier_product_id, "candidate_count": len(ranked),
                 "status": "identity_review" if identity_changed and selection.status == "matched" else selection.status,
-                "selected_asin": None if identity_changed else selection.selected_asin}
+                "selected_asin": None if identity_changed else selection.selected_asin,
+                "search_metrics": self._search_metrics}
+
+    def _has_plausible_title_result(self, product: dict[str, Any], items: list[dict]) -> bool:
+        snapshot_rows = self.repository.catalog_snapshots([
+            str(item.get("asin") or "").strip().upper() for item in items if item.get("asin")
+        ])
+        for item in items:
+            asin = str(item.get("asin") or "").strip().upper()
+            if not asin:
+                continue
+            try:
+                catalog = snapshot_rows.get(asin) or normalize_catalog_item(asin, item, self.marketplace_id)
+                if evaluate_compatibility(product, catalog, ["title_platform"]).status != "incompatible":
+                    return True
+            except (KeyError, TypeError, ValueError):
+                continue
+        return False
 
     def _search(self, product: dict, query_type: str, query_value: str,
                 *, force_refresh: bool = False, query_context: dict[str, Any] | None = None,
+                strategy_version: str | None = None,
                 **kwargs: Any) -> list[dict]:
         product_id = product["supplier_product_id"]
-        fingerprint = query_fingerprint(query_type, query_value, self.marketplace_id)
+        fingerprint = query_fingerprint(query_type, query_value, self.marketplace_id, strategy_version)
         cached = self.repository.fresh_search(product_id, self.marketplace_id, query_type, fingerprint)
         if cached and not force_refresh:
+            self._search_metrics["cache_hits"] += 1
             if cached.get("search_status") == "error":
                 self._search_errors.append(f"{query_type}:{cached.get('error_code') or 'cached_error'}")
             return [{"asin": asin} for asin in cached.get("candidate_asins") or []]
         searched_at = dt.datetime.now(dt.UTC)
         try:
+            self._search_metrics["api_calls"] += 1
             payload = self.amazon.search_catalog_items(included_data=INCLUDED_DATA, page_size=20, **kwargs)
             items = search_items(payload)
             status = "success" if items else "empty"
@@ -186,6 +224,7 @@ class WholesaleEnrichmentService:
             error_code = error_summary = None
         except AmazonSPAPIError as error:
             items, status, ttl = [], "error", SEARCH_ERROR_TTL
+            self._search_metrics["errors"] += 1
             error_code, error_summary = "amazon_spapi_error", str(error)[:1000]
             self._search_errors.append(f"{query_type}:{error_code}")
         self.repository.save_search({
@@ -267,6 +306,8 @@ def explicit_non_na_region(title: Any) -> str | None:
         ("fr", r"\b(french|france version)\b"),
         ("it", r"\b(italian|italy version)\b"),
         ("mde", r"\bmde\b"),
+        ("latam", r"\blatam\b"),
+        ("asia", r"\b(asia|asian version)\b"),
     )
     return next((code for code, pattern in patterns if re.search(pattern, text)), None)
 

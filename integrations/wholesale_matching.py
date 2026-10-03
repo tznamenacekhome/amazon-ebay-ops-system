@@ -12,8 +12,12 @@ import re
 from dataclasses import dataclass
 from typing import Any, Iterable
 
+from title_cleaning import LEADING_SYSTEM_ALIASES, cleanup_search_text, decompose_title_for_search
+from video_game_identity import general_product_fields
 
-EVALUATOR_VERSION = "wholesale-v1"
+
+EVALUATOR_VERSION = "wholesale-v2"
+TITLE_SEARCH_STRATEGY_VERSION = "wholesale-title-v2"
 ROYAL_PLATFORM_CODES = {
     "SW": "Switch",
     "SW2": "Switch 2",
@@ -25,6 +29,15 @@ ROYAL_PLATFORM_CODES = {
     "ACCSW": "Switch",
     "ACCSW2": "Switch 2",
     "ACCPS5": "PS 5",
+}
+ROYAL_LEADING_SYSTEM_ALIASES = [
+    "ACCPS5", "ACCSW2", "ACCSW", "XBOX", "XB1", "SW2", "PS5", "PS3", "P4", "SW",
+    *LEADING_SYSTEM_ALIASES,
+]
+AMAZON_PLATFORM_TERMS = {
+    "Switch": "Nintendo Switch", "Switch 2": "Nintendo Switch 2",
+    "PS 3": "PS3", "PS 4": "PS4", "PS 5": "PS5",
+    "Xbox One": "Xbox One", "Xbox Series X": "Xbox Series X",
 }
 ACCESSORY_WORDS = {
     "accessory", "adapter", "case", "charger", "controller", "dock", "headset",
@@ -41,6 +54,8 @@ REGION_MARKERS = {
     "fr": {"fr", "french"},
     "it": {"it", "italian"},
     "mde": {"mde"},
+    "latam": {"latam"},
+    "asia": {"asia", "asian"},
 }
 STOP_WORDS = {
     "a", "an", "and", "edition", "for", "game", "nintendo", "of", "playstation",
@@ -99,9 +114,58 @@ def title_platform_query(title: Any, raw_system: Any) -> str:
     return f"{clean_title} {platform}" if platform else clean_title
 
 
-def query_fingerprint(query_type: str, query_value: str, marketplace_id: str) -> str:
+def title_search_variants(title: Any, raw_system: Any) -> list[dict[str, Any]]:
+    """Build bounded Amazon queries from shared title decomposition.
+
+    Identity-sensitive supplier wording is retained in the primary query. The
+    compact fallback removes only known search-line/catalog labels; downstream
+    compatibility remains authoritative for identity.
+    """
+    core_title, _leading = decompose_title_for_search(
+        str(title or ""), leading_system_aliases=ROYAL_LEADING_SYSTEM_ALIASES,
+        remove_marketplace_noise=False, remove_platform_parentheticals=True,
+    )
+    core_title = cleanup_search_text(core_title)
+    if not core_title:
+        raise ValueError("supplier title is required")
+    platform = canonical_platform(raw_system)
+    amazon_platform = AMAZON_PLATFORM_TERMS.get(platform or "", platform)
+    compact_title = compact_search_title(core_title)
+    variants: list[dict[str, Any]] = []
+
+    def add(name: str, search_title: str, include_platform: bool) -> None:
+        query = cleanup_search_text(" ".join(
+            part for part in (search_title, amazon_platform if include_platform else None) if part
+        ))
+        if query and all(normalize_text(row["query"]) != normalize_text(query) for row in variants):
+            variants.append({
+                "name": name,
+                "query_type": "title_platform" if include_platform and amazon_platform else "title",
+                "query": query,
+                "title_terms": search_title,
+                "platform_term": amazon_platform if include_platform else None,
+            })
+
+    add("shared_cleaned_title_platform", core_title, True)
+    add("core_title_platform", compact_title, True)
+    add("core_title_fallback", compact_title, False)
+    return variants
+
+
+def compact_search_title(title: Any) -> str:
+    value = str(title or "")
+    value = re.sub(r"\b(?:playstation|greatest)\s+hits\b", " ", value, flags=re.IGNORECASE)
+    value = re.sub(r"\b(?:lrg|lcif)\s*#?\s*\d+\b", " ", value, flags=re.IGNORECASE)
+    return cleanup_search_text(value)
+
+
+def query_fingerprint(query_type: str, query_value: str, marketplace_id: str,
+                      strategy_version: str | None = None) -> str:
+    parts = [query_type.strip().lower(), normalize_text(query_value), marketplace_id.strip()]
+    if strategy_version:
+        parts.append(strategy_version)
     payload = json.dumps(
-        [query_type.strip().lower(), normalize_text(query_value), marketplace_id.strip()],
+        parts,
         separators=(",", ":"), ensure_ascii=True,
     )
     return hashlib.sha256(payload.encode("utf-8")).hexdigest()
@@ -112,9 +176,10 @@ def search_items(payload: dict[str, Any] | None) -> list[dict[str, Any]]:
     return [row for row in container.get("items") or [] if isinstance(row, dict) and clean_asin(row.get("asin"))]
 
 
-def merge_candidates(identifier_items: Iterable[dict[str, Any]], title_items: Iterable[dict[str, Any]]) -> list[dict[str, Any]]:
+def merge_candidates(identifier_items: Iterable[dict[str, Any]], title_items: Iterable[dict[str, Any]],
+                     title_only_items: Iterable[dict[str, Any]] = ()) -> list[dict[str, Any]]:
     merged: dict[str, dict[str, Any]] = {}
-    for source, rows in (("identifier", identifier_items), ("title_platform", title_items)):
+    for source, rows in (("identifier", identifier_items), ("title_platform", title_items), ("title", title_only_items)):
         for row in rows:
             asin = clean_asin(row.get("asin"))
             if not asin:
@@ -181,7 +246,22 @@ def evaluate_compatibility(product: dict[str, Any], catalog: dict[str, Any],
     if bool(supplier_region) != bool(candidate_region):
         reasons.append("region_evidence_incomplete")
 
-    similarity = token_similarity(supplier_title, candidate_title)
+    supplier_installments = identity_installments(supplier_title)
+    candidate_installments = identity_installments(candidate_title)
+    details.update({
+        "supplier_installments": sorted(supplier_installments),
+        "candidate_installments": sorted(candidate_installments),
+    })
+    if supplier_installments and not supplier_installments.issubset(candidate_installments) and not exact_identifier:
+        return result("incompatible", [*reasons, "installment_mismatch"], details)
+
+    supplier_comparison_title = identity_title_for_comparison(supplier_title)
+    candidate_comparison_title = identity_title_for_comparison(candidate_title)
+    similarity = token_similarity(supplier_comparison_title, candidate_comparison_title)
+    details.update({
+        "supplier_comparison_title": supplier_comparison_title,
+        "candidate_comparison_title": candidate_comparison_title,
+    })
     details["title_token_similarity"] = round(similarity, 4)
     if similarity < 0.30:
         return result("incompatible", [*reasons, "title_mismatch"], details)
@@ -293,6 +373,30 @@ def token_similarity(left: Any, right: Any) -> float:
     a = words(left) - STOP_WORDS - EDITION_WORDS - BUNDLE_WORDS
     b = words(right) - STOP_WORDS - EDITION_WORDS - BUNDLE_WORDS
     return len(a & b) / len(a | b) if a and b else 0.0
+
+
+def identity_installments(value: Any) -> set[str]:
+    """Return identity numbers using the shared video-game decomposition.
+
+    Supplier platform prefixes are removed first so codes such as P4 never
+    become title numbers. The shared parser handles Roman numerals, annual
+    releases, and excludes package quantities and parenthetical release years.
+    """
+    core_title, _leading = decompose_title_for_search(
+        str(value or ""), leading_system_aliases=ROYAL_LEADING_SYSTEM_ALIASES,
+        remove_marketplace_noise=False,
+    )
+    core_title = re.sub(r"\bI\s*(?=&|and\s+II\b)", "1 ", core_title, flags=re.IGNORECASE)
+    handling = general_product_fields(core_title).get("tokenHandling") or {}
+    return {str(number) for number in handling.get("assignedInstallments") or []}
+
+
+def identity_title_for_comparison(value: Any) -> str:
+    core_title, _leading = decompose_title_for_search(
+        str(value or ""), leading_system_aliases=ROYAL_LEADING_SYSTEM_ALIASES,
+        remove_marketplace_noise=False, remove_platform_parentheticals=True,
+    )
+    return core_title
 
 
 def is_catalog_accessory(catalog: dict[str, Any], title: str) -> bool:

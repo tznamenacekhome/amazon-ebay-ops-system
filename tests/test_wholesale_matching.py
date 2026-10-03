@@ -5,9 +5,9 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "integrations"))
 
 from wholesale_matching import (  # noqa: E402
-    canonical_platform, evaluate_compatibility, identity_signature,
+    TITLE_SEARCH_STRATEGY_VERSION, canonical_platform, evaluate_compatibility, identity_signature,
     identifier_search, merge_candidates, query_fingerprint, select_preferred,
-    title_platform_query,
+    title_platform_query, title_search_variants,
 )
 
 
@@ -36,11 +36,52 @@ class WholesaleMatchingTests(unittest.TestCase):
         right = query_fingerprint("IDENTIFIER", "0123", "ATVPDKIKX0DER")
         self.assertEqual(left, right)
         self.assertNotEqual(left, query_fingerprint("identifier", "0123", "other"))
+        self.assertNotEqual(left, query_fingerprint("identifier", "0123", "ATVPDKIKX0DER", TITLE_SEARCH_STRATEGY_VERSION))
+
+    def test_title_strategy_cleans_royal_prefix_and_bounds_fallbacks(self):
+        variants = title_search_variants("P4 Batman: Arkham Knight PlayStation Hits", "P4")
+        self.assertEqual([row["query"] for row in variants], [
+            "Batman Arkham Knight PlayStation Hits PS4",
+            "Batman Arkham Knight PS4",
+            "Batman Arkham Knight",
+        ])
+        self.assertEqual([row["name"] for row in variants], [
+            "shared_cleaned_title_platform", "core_title_platform", "core_title_fallback",
+        ])
+
+    def test_royal_leading_system_codes_are_removed_and_platform_is_amazon_formatted(self):
+        cases = [
+            ("P4 Atomic Heart", "P4", "Atomic Heart PS4"),
+            ("PS5 Atomic Heart", "PS5", "Atomic Heart PS5"),
+            ("SW Carnival Games", "SW", "Carnival Games Nintendo Switch"),
+            ("SW2 Mario Kart World", "SW2", "Mario Kart World Nintendo Switch 2"),
+            ("XB1 Ben 10 Power Trip", "XB1", "Ben 10 Power Trip Xbox One"),
+        ]
+        for title, system, expected in cases:
+            with self.subTest(title=title):
+                self.assertEqual(title_search_variants(title, system)[0]["query"], expected)
+
+    def test_platform_only_parenthetical_does_not_duplicate_query_platform(self):
+        variants = title_search_variants(
+            "XB1 Call of Duty Black Ops 7 (XB1 / Xbox Series X)", "XB1",
+        )
+        self.assertEqual(variants[0]["query"], "Call of Duty Black Ops 7 Xbox One")
+
+    def test_primary_title_query_preserves_commercial_identity(self):
+        identity = "Game 2 Deluxe Limited Collector's Ultimate GOTY Code in Box Bundle Collection Import EU MDE French Italian Controller"
+        query = title_search_variants(f"P4 {identity}", "P4")[0]["query"]
+        for term in ("2", "Deluxe", "Limited", "Collector's", "Ultimate", "GOTY", "Code in Box",
+                     "Bundle", "Collection", "Import", "EU", "MDE", "French", "Italian", "Controller"):
+            self.assertIn(term, query)
 
     def test_merge_deduplicates_and_preserves_both_sources(self):
         rows = merge_candidates([{"asin": "B000000001"}], [{"asin": "B000000001"}, {"asin": "B000000002"}])
         self.assertEqual([row["asin"] for row in rows], ["B000000001", "B000000002"])
         self.assertEqual(rows[0]["match_sources"], ["identifier", "title_platform"])
+
+    def test_merge_preserves_platform_and_title_only_sources_for_same_asin(self):
+        rows = merge_candidates([], [{"asin": "B000000001"}], [{"asin": "B000000001"}])
+        self.assertEqual(rows[0]["match_sources"], ["title_platform", "title"])
 
     def test_platform_mismatch_is_incompatible(self):
         result = evaluate_compatibility(product(system="SW2"), catalog(platform="PS 5"))
@@ -72,10 +113,44 @@ class WholesaleMatchingTests(unittest.TestCase):
         self.assertEqual(result.status, "incompatible")
         self.assertIn("bundle_mismatch", result.reason_codes)
 
+    def test_different_sequel_number_is_incompatible(self):
+        result = evaluate_compatibility(
+            product("XBOX Call of Duty Black Ops 7", "XBOX"),
+            catalog("Call of Duty: Black Ops III - Xbox Series X", "Xbox Series X"),
+        )
+        self.assertEqual(result.status, "incompatible")
+        self.assertIn("installment_mismatch", result.reason_codes)
+        self.assertEqual(result.details["supplier_installments"], ["7"])
+        self.assertEqual(result.details["candidate_installments"], ["3"])
+
+    def test_missing_required_sequel_number_is_incompatible_without_exact_identifier(self):
+        result = evaluate_compatibility(
+            product("P4 Call of Duty Black Ops 6", "P4"),
+            catalog("Call of Duty Black Ops Cold War - PlayStation 4", "PS 4"),
+        )
+        self.assertEqual(result.status, "incompatible")
+        self.assertIn("installment_mismatch", result.reason_codes)
+
+    def test_roman_and_arabic_installments_are_equivalent(self):
+        result = evaluate_compatibility(
+            product("SW Dragon Quest 1 and 2 HD 2D Remake", "SW"),
+            catalog("DRAGON QUEST I & II HD-2D Remake (NSW)", "Switch"),
+        )
+        self.assertNotEqual(result.status, "incompatible")
+        self.assertEqual(result.details["supplier_installments"], ["1", "2"])
+        self.assertEqual(result.details["candidate_installments"], ["1", "2"])
+
     def test_region_without_candidate_evidence_is_uncertain(self):
         result = evaluate_compatibility(product("Metroid Prime 4 Beyond EU Version"), catalog())
         self.assertEqual(result.status, "uncertain")
         self.assertIn("region_evidence_incomplete", result.reason_codes)
+
+    def test_supplier_platform_prefix_does_not_reduce_title_similarity(self):
+        result = evaluate_compatibility(
+            product("P4 Borderlands: Game of The Year Edition", "P4"),
+            catalog("Borderlands: Game of The Year Edition - PlayStation 4", "PS 4"),
+        )
+        self.assertEqual(result.status, "compatible")
 
     def test_missing_platform_evidence_is_uncertain(self):
         result = evaluate_compatibility(product(), catalog(platform=None))

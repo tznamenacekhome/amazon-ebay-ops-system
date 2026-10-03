@@ -10,6 +10,7 @@ class WholesalePhase3BContractTests(unittest.TestCase):
         cls.page = (ROOT / "web/app/wholesale/page.tsx").read_text(encoding="utf-8")
         cls.full_api = (ROOT / "web/app/api/wholesale/full-import/route.ts").read_text(encoding="utf-8")
         cls.match_api = (ROOT / "web/app/api/wholesale/products/[productId]/matching/route.ts").read_text(encoding="utf-8")
+        cls.title_search_migration = (ROOT / "supabase/migrations/20261003223500_mbop_wholesale_title_search_variants.sql").read_text(encoding="utf-8")
 
     def test_exact_three_tab_navigation_and_order_list_name(self):
         self.assertIn('type Tab = "ready" | "order" | "full"', self.page)
@@ -48,12 +49,16 @@ class WholesalePhase3BContractTests(unittest.TestCase):
         self.assertNotIn('"Not Qualified"', self.page)
 
     def test_candidate_evidence_and_compatibility_are_human_readable(self):
-        for text in ("Matched by UPC + Title/Platform", "Matched by Title + Platform", "Supplier identifier:",
-                     "Amazon identifier:", "Search:", "Amazon result:", "Compatible — title and platform align",
+        for text in ("Matched by UPC + Title/Platform", "Matched by Title + Platform", "Matched by Title", "Supplier identifier:",
+                     "Amazon identifier:", "Search title:", "Search variant:", "Amazon result:", "Compatible — title and platform align",
                      "Not compatible — different platform", "Review needed — region unclear"):
             self.assertIn(text, self.page)
         self.assertIn("match_evidence", self.match_api)
         self.assertIn("query_context", self.match_api)
+        self.assertIn("different sequel or title number", self.page)
+
+    def test_title_only_search_evidence_is_allowed_by_schema(self):
+        self.assertIn("'identifier', 'title_platform', 'title'", self.title_search_migration)
 
     def test_candidate_selection_is_eligible_compatible_and_recalculated(self):
         self.assertIn('candidate.compatibility_status !== "compatible"', self.page)
