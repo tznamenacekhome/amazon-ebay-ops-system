@@ -45,8 +45,16 @@ def main(live: bool, limit: int):
     states = pages(db.table("wholesale_match_states").select("supplier_product_id,match_status")
                    .eq("marketplace_id", MARKETPLACE))
     state_map = {row["supplier_product_id"]: row["match_status"] for row in states if row["supplier_product_id"] in product_ids}
-    counts = Counter(state_map.get(row["supplier_product_id"], "missing_state") for row in observations)
-    unmatched = [row for row in observations if state_map.get(row["supplier_product_id"]) in {None, "no_candidates", "discovery_pending"}]
+    classifications = pages(db.table("wholesale_product_classifications")
+                            .select("supplier_product_id,classification_code")
+                            .eq("classification_status", "active"))
+    classification_map = {row["supplier_product_id"]: row["classification_code"] for row in classifications
+                          if row["supplier_product_id"] in product_ids}
+    status = lambda product_id: classification_map.get(product_id) or state_map.get(product_id) or "missing_state"
+    counts = Counter(status(row["supplier_product_id"]) for row in observations)
+    unmatched = [row for row in observations if status(row["supplier_product_id"]) in {
+        "missing_state", "no_candidates", "discovery_pending",
+    }]
 
     sample = []
     seen = set()

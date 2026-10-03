@@ -12,7 +12,10 @@ import re
 from dataclasses import dataclass
 from typing import Any, Iterable
 
-from title_cleaning import LEADING_SYSTEM_ALIASES, cleanup_search_text, decompose_title_for_search
+from title_cleaning import (
+    LEADING_SYSTEM_ALIASES, cleanup_search_text, decompose_title_for_search,
+    move_trailing_system_terms,
+)
 from video_game_identity import general_product_fields
 
 
@@ -128,6 +131,7 @@ def title_search_variants(title: Any, raw_system: Any) -> list[dict[str, Any]]:
         str(title or ""), leading_system_aliases=ROYAL_LEADING_SYSTEM_ALIASES,
         remove_marketplace_noise=False, remove_platform_parentheticals=True,
     )
+    core_title, _trailing = move_trailing_system_terms(core_title, aliases=ROYAL_LEADING_SYSTEM_ALIASES)
     core_title = cleanup_search_text(core_title)
     if not core_title:
         raise ValueError("supplier title is required")

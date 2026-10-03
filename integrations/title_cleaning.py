@@ -253,6 +253,18 @@ def move_leading_system_terms(value: str, *, aliases: list[str] | None = None) -
     return remaining_title, leading_systems
 
 
+def move_trailing_system_terms(value: str, *, aliases: list[str] | None = None) -> tuple[str, list[str]]:
+    trailing_systems = []
+    remaining_title = cleanup_search_text(value)
+    for alias in aliases or LEADING_SYSTEM_ALIASES:
+        match = re.search(rf"\s+{re.escape(alias)}$", remaining_title, flags=re.IGNORECASE)
+        if match:
+            trailing_systems.append(alias)
+            remaining_title = remaining_title[:match.start()]
+            break
+    return cleanup_search_text(remaining_title), trailing_systems
+
+
 def cleanup_search_text(value: str) -> str:
     text = re.sub(r"[()[\]{}\"]", " ", value or "")
     text = re.sub(r"[.,!?*]+", " ", text)

@@ -67,6 +67,16 @@ class WholesaleMatchingTests(unittest.TestCase):
         )
         self.assertEqual(variants[0]["query"], "Call of Duty Black Ops 7 Xbox One")
 
+    def test_trailing_platform_does_not_duplicate_query_platform(self):
+        cases = [
+            ("SW2 Assassins Creed Shadows - Switch 2", "SW2", "Assassins Creed Shadows Nintendo Switch 2"),
+            ("XBOX 7 Days to Die Console Edition Survival Bundle - Xbox Series X", "XBOX",
+             "7 Days to Die Console Edition Survival Bundle Xbox Series X"),
+        ]
+        for title, system, expected in cases:
+            with self.subTest(title=title):
+                self.assertEqual(title_search_variants(title, system)[0]["query"], expected)
+
     def test_primary_title_query_preserves_commercial_identity(self):
         identity = "Game 2 Deluxe Limited Collector's Ultimate GOTY Code in Box Bundle Collection Import EU MDE French Italian Controller"
         query = title_search_variants(f"P4 {identity}", "P4")[0]["query"]
