@@ -6,6 +6,7 @@ param(
   [string]$ContainerName = "mbop-scheduler",
   [string]$TaskRoleArn = "",
   [string]$BaseTaskDefinition = "",
+  [string]$ScheduleNamePrefix = "mbop-",
   [switch]$EnablePhase3,
   [switch]$AllowDirty
 )
@@ -131,7 +132,8 @@ Write-Host "Updating EventBridge schedules to the new scheduler revision..." -Fo
 & (Join-Path $PSScriptRoot "update-scheduler-schedules.ps1") `
   -Profile $Profile `
   -Region $Region `
-  -TaskDefinitionArn $newTaskDefinitionArn
+  -TaskDefinitionArn $newTaskDefinitionArn `
+  -ScheduleNamePrefix $ScheduleNamePrefix
 if ($LASTEXITCODE -ne 0) {
   throw "EventBridge schedule revision update failed."
 }

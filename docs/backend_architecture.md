@@ -7,6 +7,14 @@ public.zfi_ebay_purchase_facts aggregates item quantities/current costs at logic
 
 Last updated: 2026-08-30
 
+## Wholesale Supplier History
+
+Wholesale Phase 1 is a separate, offline-first Python importer with an atomic
+service-role RPC and bounded Python repository reads. Its source-of-truth tables
+store supplier products and dated quotes, with no eBay sourcing, purchase,
+receiving or marketplace behavior. Implementation is local and production
+migration is pending. See [wholesale Phase 1](WHOLESALE_PHASE1.md).
+
 ## Core Flow
 
 MBOP follows one primary architecture:
@@ -304,6 +312,8 @@ All external API integrations are read-only unless explicitly documented otherwi
   Amazon-specific dashboard tables. `GET_SELLER_FEEDBACK_DATA` is allowed only
   as a read-only Reports API source for 1-3 star feedback alerts.
 - Keepa token-spending calls are never triggered by frontend page loads.
+- Wholesale matching extends the existing read-only Amazon Catalog client with identifier and keyword searches. Its worker reuses catalog, Keepa, and Listings Restrictions caches and persists bounded resume state; the wholesale API only reads stored evidence or applies protected operator selections/rematch requests.
+- Wholesale Phase 3 economics run in the bounded backend evaluator and persist immutable inputs/results. The `/wholesale` frontend renders API DTOs. Product Fees are cached at each explicit price basis, draft commitments are separate soft exposure, and informational risk JSON is excluded from ROI, qualification, and capacity calculations.
 - Informed Listings Management upload/write paths are not used.
 - YNAB data belongs in ZFI. MBOP must not add new YNAB integrations or import
   ZFI-owned YNAB data.

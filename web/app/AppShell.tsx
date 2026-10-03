@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import {
   AlertTriangle,
   BarChart3,
+  Boxes,
   LogOut,
   PackageCheck,
   PackageOpen,
@@ -25,6 +26,11 @@ const navItems = [
     href: "/sourcing",
     label: "Sourcing",
     icon: Search,
+  },
+  {
+    href: "/wholesale",
+    label: "Wholesale",
+    icon: Boxes,
   },
   {
     href: "/",

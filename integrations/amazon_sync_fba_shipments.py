@@ -103,6 +103,7 @@ def main() -> int:
             latest_inventory = fetch_latest_inventory(
                 supabase,
                 seller_skus_for_amazon_items(amazon_items, sku_index),
+                client.config.marketplace_id,
             )
             planned = build_plan(
                 shipment,
@@ -837,6 +838,7 @@ def seller_skus_for_amazon_items(
 def fetch_latest_inventory(
     supabase,
     seller_skus: list[str],
+    marketplace_id: str,
 ) -> dict[str, dict[str, int]]:
     inventory: dict[str, dict[str, int]] = {}
     if not seller_skus:
@@ -847,11 +849,17 @@ def fetch_latest_inventory(
         "unfulfillable_quantity,total_quantity"
     )
     rows: list[dict[str, Any]] = []
-    for chunk in chunks(seller_skus, 100):
+    # The DISTINCT ON view reads historical rows for every requested SKU.
+    # Equality on the existing (seller_sku, marketplace_id, captured_at DESC)
+    # index plus LIMIT 1 bounds each lookup even as snapshot history grows.
+    for seller_sku in dict.fromkeys(seller_skus):
         response = (
-            supabase.table("vw_latest_amazon_fba_inventory_snapshot")
+            supabase.table("amazon_fba_inventory_snapshots")
             .select(columns)
-            .in_("seller_sku", chunk)
+            .eq("seller_sku", seller_sku)
+            .eq("marketplace_id", marketplace_id)
+            .order("captured_at", desc=True)
+            .limit(1)
             .execute()
         )
         rows.extend(response.data or [])

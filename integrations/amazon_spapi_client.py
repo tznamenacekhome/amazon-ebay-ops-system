@@ -750,6 +750,49 @@ class AmazonSPAPIClient:
         path = f"/catalog/2022-04-01/items/{quote(asin, safe='')}"
         return self.request("GET", path, params=params)
 
+    def search_catalog_items(
+        self,
+        *,
+        identifiers: list[str] | None = None,
+        identifiers_type: str | None = None,
+        keywords: list[str] | None = None,
+        included_data: list[str] | None = None,
+        page_size: int = 20,
+        page_token: str | None = None,
+    ) -> dict[str, Any]:
+        """Search Catalog Items v2022-04-01 by identifiers or one keyword query.
+
+        Amazon allows up to 20 identifiers. Identifier and keyword modes are
+        intentionally mutually exclusive so callers preserve both evidence branches.
+        """
+        clean_identifiers = [str(value).strip() for value in (identifiers or []) if str(value).strip()]
+        clean_keywords = [str(value).strip() for value in (keywords or []) if str(value).strip()]
+        if bool(clean_identifiers) == bool(clean_keywords):
+            raise ValueError("Use exactly one Catalog search mode: identifiers or keywords")
+        if clean_identifiers:
+            if not identifiers_type or len(clean_identifiers) > 20:
+                raise ValueError("Identifier search requires identifiers_type and at most 20 identifiers")
+        elif len(clean_keywords) > 20:
+            raise ValueError("Amazon Catalog keyword search accepts at most 20 keywords")
+        if not 1 <= page_size <= 20:
+            raise ValueError("Catalog page_size must be between 1 and 20")
+        params: dict[str, Any] = {
+            "marketplaceIds": self.config.marketplace_id,
+            "includedData": ",".join(included_data or [
+                "attributes", "identifiers", "images", "productTypes",
+                "relationships", "summaries",
+            ]),
+            "pageSize": page_size,
+        }
+        if clean_identifiers:
+            params["identifiers"] = ",".join(clean_identifiers)
+            params["identifiersType"] = identifiers_type
+        else:
+            params["keywords"] = " ".join(clean_keywords)
+        if page_token:
+            params["pageToken"] = page_token
+        return self.request("GET", "/catalog/2022-04-01/items", params=params)
+
     def get_item_offers(
         self,
         asin: str,

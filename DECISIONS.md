@@ -1,5 +1,15 @@
 # DECISIONS.md
 
+## Wholesale dual-price qualification (2026-10-03)
+
+Future wholesale True ROI must be calculated independently at current Buy Box
+price and Keepa 90-day average selling price, with a separate 25% hurdle for
+each. Either passing calculation can qualify a compatible, New-eligible product
+for human review; both must be shown. Neither basis replaces the other, and
+informational risk signals change neither calculation. This supersedes the
+discovery report's proposed single-primary-price policy. Phase 1 records this
+decision only; see [the supplier history foundation](docs/WHOLESALE_PHASE1.md).
+
 ## Sourcing matching closeout completed — 2026-09-14
 
 Phase 3 is active on sourcing scheduler93 from `a2247102a9e6`; web151 is unchanged. The authorized 30-day cohort contained 50,239 rows; 31,455 were evaluated and 28,013 guarded writes reconciled. Explicit human review and protected lifecycle/history were excluded; protected/stale rows skipped. Protected rows touched, reviewed rows overwritten, historical review rewrites, provider searches launched by closeout and marketplace writes are all zero. All 20 schedules preserve configuration except the sourcing revision. [Final counts and verification](docs/sourcing_matching_30_day_reprocess_2026-09-13.md); [feature/runbook](docs/SOURCING_MATCHING_CURRENT_STATE.md).
@@ -1699,6 +1709,14 @@ Implementation:
   `Missing Fees`
 - full refund rows are classified as `refunded` when refund principal equals or
   exceeds the item sale price, even if Amazon order status remains `Shipped`
+
+## Wholesale Amazon candidate selection
+
+Decision: search every usable wholesale product by both supplier identifier and title/platform, preserve multiple ASINs, and require conservative compatibility plus fresh `new_new` eligibility before selection. Prior account sales are the first preference and Keepa `sales_rank_drops90` is the velocity tie-break. Manual eligible/compatible choices persist until explicit reset or material invalidation. Supplier price changes do not invalidate discovery.
+
+## Wholesale opportunity economics and draft boundary
+
+Decision: calculate supplier-cost-denominator True ROI independently at current New Buy Box and Keepa 90-day Buy Box average; either may clear the 25% hurdle. Games use versioned `$0.3839` inbound, `$0.21` return-transaction, and `$0.0153` 30-day storage allowances. Accessories remain incomplete pending their own policy. Keepa velocity divided across its 90-day window supplies the 30-day target. Risk signals never alter economics or quantity. Add to Order creates a reversible, idempotent soft commitment rather than a supplier order or purchase.
 
 
 ## Phase 3 resume checkpoint - 2026-09-13 (latest)

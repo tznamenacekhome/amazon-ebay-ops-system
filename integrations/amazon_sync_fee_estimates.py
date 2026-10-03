@@ -121,7 +121,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--asin", action="append", default=[], help="ASIN to refresh.")
     parser.add_argument(
         "--source",
-        choices=["received_fba_prep", "explicit"],
+        choices=["received_fba_prep", "wholesale_selected", "explicit"],
         default="received_fba_prep",
     )
     parser.add_argument("--listing-price", type=float, default=None)
@@ -152,6 +152,36 @@ def collect_price_requests(supabase, args: argparse.Namespace) -> list[dict[str,
             ):
                 continue
             requests[(asin, round(price, 2))] = fee_request(asin, price)
+
+    if args.source == "wholesale_selected":
+        states = fetch_all(
+            supabase, "wholesale_match_states",
+            "selected_candidate_id,match_status",
+        )
+        candidate_ids = [row["selected_candidate_id"] for row in states
+                         if row.get("match_status") == "matched" and row.get("selected_candidate_id")]
+        candidates: list[dict[str, Any]] = []
+        for index in range(0, len(candidate_ids), 200):
+            response = (supabase.table("wholesale_amazon_candidates").select("candidate_id,asin,eligibility_status")
+                        .in_("candidate_id", candidate_ids[index:index + 200]).execute())
+            candidates.extend(response.data or [])
+        asins = sorted({clean_asin(row.get("asin")) for row in candidates
+                        if row.get("eligibility_status") == "eligible" and clean_asin(row.get("asin"))})
+        for index in range(0, len(asins), 200):
+            response = (supabase.table("keepa_product_snapshots")
+                        .select("asin,captured_at,buy_box_price_current_cents,buy_box_price_avg90_cents")
+                        .in_("asin", asins[index:index + 200]).eq("domain_id", 1)
+                        .order("captured_at", desc=True).execute())
+            latest: dict[str, dict[str, Any]] = {}
+            for row in response.data or []:
+                latest.setdefault(clean_asin(row.get("asin")) or "", row)
+            for asin, row in latest.items():
+                for cents in (row.get("buy_box_price_current_cents"), row.get("buy_box_price_avg90_cents")):
+                    price = to_float(cents)
+                    if price is None or price <= 0:
+                        continue
+                    dollars = round(price / 100, 2)
+                    requests[(asin, dollars)] = fee_request(asin, dollars)
 
         for row in fetch_all(
             supabase,

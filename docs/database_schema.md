@@ -20,6 +20,15 @@ this MBOP repository with `college_planner_` migration filenames.
 The current ownership inventory is maintained in
 `docs/shared_supabase_migration_ownership.md`.
 
+## Wholesale Supplier History
+
+Wholesale Phase 1 (local migration prepared; not applied to production):
+`wholesale_suppliers`, `wholesale_imports`, `wholesale_supplier_products`, and
+`wholesale_supplier_observations` form a separate supplier quote/history domain.
+Service-only transactional import and invoker read views preserve dated evidence
+and explicit corrections. They do not represent purchases or owned inventory.
+See [Phase 1 schema and runbook](WHOLESALE_PHASE1.md).
+
 ## Core Purchase Workflow
 
 - `purchases`: supplier/eBay buyer order-level records.
@@ -206,6 +215,24 @@ Inventory reconciliation tables are derived and additive. Workflow corrections m
 - `/api/order-problems`: backend-owned unified problem/return queue with
   candidate detection, stage filtering, sorting, pagination, and summary counts.
 - `/api/order-problems/[id]/actions`: MBOP-local order-problem workflow actions.
+- `/api/wholesale/products/[productId]/matching`: service-role wholesale candidate evidence and protected manual-selection/rematch actions.
+
+## Wholesale Amazon matching
+
+- `wholesale_catalog_searches`: cached identifier and title/platform result sets.
+- `wholesale_amazon_candidates`: per-product ASIN compatibility, prior sales, Keepa velocity, eligibility, rank, and reasons.
+- `amazon_listing_eligibility_evidence`: seller/marketplace/ASIN/condition eligibility cache shared by wholesale matching.
+- `wholesale_match_states`: selected candidate, manual/automatic source, identity signature, and workflow status.
+- `wholesale_enrichment_runs` and `wholesale_enrichment_work_items`: bounded resumable worker state.
+- `vw_wholesale_matching_products`: selected-match list projection.
+
+## Wholesale opportunity evaluation
+
+- `wholesale_opportunities`: one current lifecycle row per supplier product and marketplace.
+- `wholesale_evaluations`: immutable versioned economic, inventory, supplier-history, and risk snapshots.
+- `wholesale_decisions`: append-only temporary/hard pass, reversal, resurfacing, and draft action history.
+- `wholesale_order_candidates`: active/released draft buying intentions; never owned inventory or a submitted order.
+- `wholesale_order_candidate_requests`: durable Add to Order idempotency results.
 
 ## Important Views
 
