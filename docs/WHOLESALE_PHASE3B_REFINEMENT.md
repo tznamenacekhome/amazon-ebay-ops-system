@@ -1,6 +1,6 @@
 # Wholesale Phase 3B Refinement
 
-Status: implemented and production database migration applied on October 3, 2026. Web and scheduler deployment evidence is recorded below after rollout.
+Status: implemented, migrated, deployed, and browser-verified in production on October 3, 2026.
 
 ## Workflow
 
@@ -57,13 +57,19 @@ Migration `20261003213000_mbop_wholesale_phase3b_refinement.sql` adds:
 - `wholesale_product_classifications` and its service-role classification RPC;
 - the refined decision RPC with complete pass evidence snapshots and the reduced manual reason set.
 
-`GET /api/wholesale/full-import` owns supplier/list selection, current status derivation, filtering, and pagination. Candidate and opportunity routes continue to use the server service-role client. React does not contact Supabase or calculate ROI.
+`GET /api/wholesale/full-import` owns supplier/list selection, current status derivation, filtering, and pagination. It reads observations in bounded 500-row batches so imports larger than Supabase's per-request row cap remain complete. Candidate and opportunity routes continue to use the server service-role client. React does not contact Supabase or calculate ROI.
 
 ## Production evidence
 
 The additive migration was applied to verified project `froeucjkcepuhgwisped`; local and remote migration ledgers align through `20261003213000`. The CLI emitted its known pg-delta certificate-cache warning after successful application; the ledger and live reads confirm the migration.
 
 Bounded enrichment run `a70d2442-e0d7-4f10-bfb9-ea2ae47cbc47` processed 25 Royal products: 18 matched, 3 identity review, 4 restricted, and 0 errors. The resulting 215 candidates contain 16 identifier-only, 193 title-only, and 6 combined-source candidates; candidate eligibility is 20 eligible, 5 restricted, and 190 pending because eligibility is requested only for compatible candidates. Six exact fee estimates were refreshed without failures. Twenty-five current opportunities include one real Ready to Review row qualified on the 90-day basis, four restricted rows, three pending-match rows, and seventeen incomplete-economics rows.
+
+Scheduler task definition 110 runs refinement commit `c2ea94775d40` from image digest `sha256:40e5183bed149dd145ee0764816b9ae456553ec05a68d77a4b5050248c91f9c7`; all 20 production schedules target it with unchanged cadence. Web task definition 171 runs follow-up commit `1c780a3ee8af` from image digest `sha256:abd6cfd19888387581ae68d9549124857ad11d6d5151c04958167a29c79deee8`. ECS reported desired/running/pending `1/1/0`, completed rollout, and steady state.
+
+Authenticated production browser verification confirmed build `1c780a3`, exactly three workflow tabs, the required Ready column order, one real Ready row, all 1,050 accepted products in Full Import, explicit audit filters, and an empty draft Order List. The One Piece Odyssey candidate popup showed combined UPC plus title/platform evidence with an eligible selected listing. The `B0F2NZ8LKV` popup showed exact-identifier/platform compatibility, `Restricted for New condition`, `NOT ELIGIBLE`, and a disabled selection control. The browser console contained no warnings or errors.
+
+Validation includes 78 wholesale tests with 3 expected database/integration skips, 26 disposable-PostgreSQL tests with 1 optional workbook skip, 182 sourcing regressions, 44 Amazon tests, 5 Keepa tests, Python compilation, the local Next.js production build, and the Docker in-container production build.
 
 ## Remaining Phase 4 boundary
 
