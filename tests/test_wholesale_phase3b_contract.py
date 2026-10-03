@@ -51,7 +51,8 @@ class WholesalePhase3BContractTests(unittest.TestCase):
     def test_candidate_evidence_and_compatibility_are_human_readable(self):
         for text in ("Matched by UPC + Title/Platform", "Matched by Title + Platform", "Matched by Title", "Supplier identifier:",
                      "Amazon identifier:", "Search title:", "Search variant:", "Amazon result:", "Compatible — title and platform align",
-                     "Not compatible — different platform", "Review needed — region unclear"):
+                     "Not compatible — different platform", "Not compatible — different edition",
+                     "Not compatible — different bundle or collection", "Review needed — region unclear"):
             self.assertIn(text, self.page)
         self.assertIn("match_evidence", self.match_api)
         self.assertIn("query_context", self.match_api)

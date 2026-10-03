@@ -186,7 +186,8 @@ function compatibilityText(candidate: Candidate) {
   if (codes.has("region_mismatch")) return "Not compatible — EU/non-NA version";
   if (codes.has("digital_physical_mismatch")) return "Not compatible — digital vs physical mismatch";
   if (codes.has("accessory_type_mismatch")) return "Not compatible — accessory vs game mismatch";
-  if (codes.has("edition_mismatch")) return "Review needed — edition unclear";
+  if (codes.has("edition_mismatch")) return "Not compatible — different edition";
+  if (codes.has("bundle_mismatch")) return "Not compatible — different bundle or collection";
   if (codes.has("region_evidence_incomplete")) return "Review needed — region unclear";
   return candidate.compatibility_status === "incompatible" ? "Not compatible — identity differs" : "Review needed — identity evidence is incomplete";
 }
