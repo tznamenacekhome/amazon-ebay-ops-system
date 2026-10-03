@@ -33,6 +33,13 @@ class WholesalePhase3BContractTests(unittest.TestCase):
         self.assertIn("IMPORT_OBSERVATION_PAGE_SIZE = 500", self.full_api)
         self.assertIn("offset + IMPORT_OBSERVATION_PAGE_SIZE - 1", self.full_api)
 
+    def test_full_import_filter_requests_are_cancellable_and_keep_controls_responsive(self):
+        self.assertIn("useRef<AbortController | null>", self.page)
+        self.assertIn("activeRequest.current?.abort()", self.page)
+        self.assertIn("signal: controller.signal", self.page)
+        self.assertIn('role="status"', self.page)
+        self.assertIn('aria-busy={loading}', self.page)
+
     def test_full_import_explicit_filters(self):
         for text in ("ROI Too Low", "Restricted", "Eligibility Pending", "Pricing / Keepa Pending",
                      "Non-North-American Version", "Listing / ASIN Issue", "Unsupported Product Economics",

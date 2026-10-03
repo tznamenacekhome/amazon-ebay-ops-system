@@ -30,16 +30,17 @@ export async function GET(request: Request) {
   }
   const productIds = unique(observations.map(row => row.supplier_product_id));
   const [opportunities, states, candidates, drafts, classifications] = await Promise.all([
-    fetchChunks(supabase, "wholesale_opportunities", "supplier_product_id", productIds, "*"),
-    fetchChunks(supabase, "wholesale_match_states", "supplier_product_id", productIds, "*"),
-    fetchChunks(supabase, "wholesale_amazon_candidates", "supplier_product_id", productIds, "*"),
-    fetchChunks(supabase, "wholesale_order_candidates", "supplier_product_id", productIds, "*").then(rows => rows.filter(row => row.commitment_status === "draft")),
-    fetchChunks(supabase, "wholesale_product_classifications", "supplier_product_id", productIds, "*").then(rows => rows.filter(row => row.classification_status === "active")),
+    fetchChunks(supabase, "wholesale_opportunities", "supplier_product_id", productIds, "supplier_product_id,opportunity_id,current_evaluation_id,current_candidate_id,active_decision_scope,opportunity_status"),
+    fetchChunks(supabase, "wholesale_match_states", "supplier_product_id", productIds, "supplier_product_id,marketplace_id,selected_candidate_id,match_status"),
+    fetchChunks(supabase, "wholesale_amazon_candidates", "supplier_product_id", productIds, "candidate_id,supplier_product_id,asin,eligibility_status,compatibility_reason_codes"),
+    fetchChunks(supabase, "wholesale_order_candidates", "supplier_product_id", productIds, "supplier_product_id,order_candidate_id,quantity,extended_supplier_cost,commitment_status").then(rows => rows.filter(row => row.commitment_status === "draft")),
+    fetchChunks(supabase, "wholesale_product_classifications", "supplier_product_id", productIds, "supplier_product_id,classification_code,classification_status").then(rows => rows.filter(row => row.classification_status === "active")),
   ]);
   const evaluationIds = unique(opportunities.map(row => row.current_evaluation_id));
   const opportunityIds = unique(opportunities.map(row => row.opportunity_id));
   const [evaluations, decisions] = await Promise.all([
-    fetchChunks(supabase, "wholesale_evaluations", "evaluation_id", evaluationIds, "*"),
+    fetchChunks(supabase, "wholesale_evaluations", "evaluation_id", evaluationIds,
+      "evaluation_id,asin,source_evidence_json,current_buy_box_price,keepa_avg90_price,current_true_roi,avg90_true_roi,eligibility_status,purchase_capacity,fba_fulfillable_units,inbound_units,evaluation_status,allowance_status,incomplete_reasons,is_financially_qualified"),
     fetchChunks(supabase, "wholesale_decisions", "opportunity_id", opportunityIds,
       "decision_id,opportunity_id,decision_action,decision_scope,reason_code,notes,decision_context,created_at"),
   ]);
@@ -141,7 +142,8 @@ const IMPORT_OBSERVATION_PAGE_SIZE = 500;
 async function fetchImportObservations(supabase: any, importId: string) {
   const output: any[] = [];
   for (let offset = 0; ; offset += IMPORT_OBSERVATION_PAGE_SIZE) {
-    const { data, error } = await supabase.from("wholesale_supplier_observations").select("*")
+    const { data, error } = await supabase.from("wholesale_supplier_observations")
+      .select("observation_id,supplier_product_id,raw_title,raw_system,raw_identifier,supplier_price,availability_raw")
       .eq("import_id", importId).order("raw_title").order("observation_id")
       .range(offset, offset + IMPORT_OBSERVATION_PAGE_SIZE - 1);
     if (error) throw new Error(`wholesale_supplier_observations: ${error.message}`);
