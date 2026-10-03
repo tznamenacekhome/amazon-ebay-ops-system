@@ -1,183 +1,197 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { ArrowRight, ExternalLink, RefreshCw, ShoppingCart, X } from "lucide-react";
+import { ExternalLink, RefreshCw, ShoppingCart, X } from "lucide-react";
 import { mutationHeaders } from "../mutationHeaders";
 
-type Tab = "ready" | "temporary" | "added" | "pending" | "unqualified" | "hard";
+type Tab = "ready" | "order" | "full";
 type Row = {
   opportunityId: string; evaluationId: string | null; supplierProductId: string; status: string;
   supplier: string; supplierTitle: string; system: string; rawIdentifier: string; availabilityRaw: string | null;
   supplierCost: number | null; previousSupplierPrice: number | null; supplierHistoricalLow: number | null;
   supplierPriceChange30d: number | null; supplierPriceChange90d: number | null; asin: string | null;
   amazonTitle: string | null; amazonPlatform: string | null; imageUrl: string | null; eligibilityStatus: string | null;
-  evaluatedAt: string | null; currentBuyBox: number | null; keepaAvg30: number | null; keepaAvg90: number | null;
-  keepaVelocity90: number | null; currentFees: number | null; avg90Fees: number | null; inboundAllowance: number | null;
-  returnAllowance: number | null; storageAllowance: number | null; allowanceStatus: string | null;
-  currentProfit: number | null; currentRoi: number | null; avg90Profit: number | null; avg90Roi: number | null;
-  qualificationBasis: string; roiFloor: number | null; avg90RoiFloor: number | null; priceHeadroom: number | null;
-  expectedMonthlySales: number | null; fbaUnits: number; inboundUnits: number; draftUnits: number;
-  targetUnits: number | null; purchaseCapacity: number | null; offerCount: number | null; fbaSellerCount: number | null;
-  riskSignals: Record<string, unknown>; incompleteReasons: string[]; matchSources: string[]; priorAccountSale: boolean;
-  selectionSource: string | null; rankingRationale: Record<string, unknown>; compatibilityStatus: string | null;
-  compatibilityReasonCodes: string[]; evaluationRequested: boolean;
+  currentBuyBox: number | null; keepaAvg30: number | null; keepaAvg90: number | null; keepaVelocity90: number | null;
+  currentRoi: number | null; avg90Roi: number | null; expectedMonthlySales: number | null;
+  fbaUnits: number; inboundUnits: number; draftUnits: number; targetUnits: number | null; purchaseCapacity: number | null;
+  offerCount: number | null; fbaSellerCount: number | null; riskSignals: Record<string, unknown>;
   draft: { id: string; quantity: number; extendedCost: number | null; revision: number } | null;
 };
+type FullRow = {
+  supplierProductId: string; opportunityId: string | null; evaluationId: string | null; supplier: string;
+  supplierTitle: string; system: string; rawIdentifier: string; supplierCost: number | null; availabilityRaw: string | null;
+  statusKey: string; statusLabel: string; statusDetail: string | null; asin: string | null; amazonTitle: string | null;
+  currentBuyBox: number | null; keepaAvg90: number | null; currentRoi: number | null; avg90Roi: number | null;
+  eligibilityStatus: string | null; purchaseCapacity: number | null; fbaUnits: number; inboundUnits: number;
+  draft: { id: string; quantity: number; extendedCost: number | null } | null; passedAt: string | null; passReason: string | null;
+};
+type CandidateContext = { supplierProductId: string; opportunityId: string | null; supplier: string; supplierTitle: string; asin: string | null };
+type MatchEvidence = { type: string; label: string; supplier_identifier?: string; amazon_identifiers?: string[];
+  title_terms?: string; platform_term?: string; query?: string; amazon_title?: string; amazon_platform?: string };
 type Candidate = {
   candidate_id: string; asin: string; title: string | null; image_url: string | null; platform: string | null;
   edition: string | null; region: string | null; format: string | null; product_type: string | null;
   current_buy_box: number | null; keepa_avg90: number | null; match_sources: string[]; compatibility_status: string;
-  compatibility_reason_codes: string[]; prior_account_sale: boolean; keepa_sales_rank_drops90: number | null;
-  eligibility_status: string | null; rank_position: number | null; ranking_rationale: Record<string, unknown>;
+  compatibility_reason_codes: string[]; compatibility_details: Record<string, unknown>; prior_account_sale: boolean;
+  keepa_sales_rank_drops90: number | null; eligibility_status: string | null; eligibility_reason_codes: string[];
+  rank_position: number | null; ranking_rationale: Record<string, unknown>; match_evidence: MatchEvidence[];
 };
+type ImportInfo = { importId: string; supplierId: string; supplier: string; effectiveDate: string; importedAt: string; productCount: number; revision?: number };
 
-const tabs: Array<[Tab, string]> = [["ready", "Ready for Review"], ["temporary", "Temporary Passes"],
-  ["added", "Added to Order"], ["pending", "Pending Match / Eligibility"],
-  ["unqualified", "Not Qualified"], ["hard", "Hard Passes"]];
+const tabs: Array<[Tab, string]> = [["ready", "Ready to Review"], ["order", "Order List"], ["full", "Full Import"]];
+const fullFilters = [
+  ["all", "All"], ["ready", "Ready to Review"], ["order_list", "Order List"], ["restricted", "Restricted"],
+  ["unmatched", "Unmatched"], ["match_review", "Match Review Needed"], ["eligibility_pending", "Eligibility Pending"],
+  ["pricing_pending", "Pricing / Keepa Pending"], ["roi_too_low", "ROI Too Low"], ["non_na", "Non-North-American Version"],
+  ["listing_issue", "Listing / ASIN Issue"], ["unsupported_economics", "Unsupported Product Economics"],
+  ["passed_too_much_inventory", "Passed — Too Much Inventory"], ["passed_price_risk", "Passed — Price Risk"],
+  ["passed_competition", "Passed — Competition"], ["passed_other", "Passed — Other"],
+];
 
 export default function WholesalePage() {
   const [tab, setTab] = useState<Tab>("ready");
   const [rows, setRows] = useState<Row[]>([]);
-  const [counts, setCounts] = useState<Record<string, number>>({});
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [candidateRow, setCandidateRow] = useState<CandidateContext | null>(null);
   const [orderRow, setOrderRow] = useState<Row | null>(null);
-  const [candidateRow, setCandidateRow] = useState<Row | null>(null);
-  const [evaluationRow, setEvaluationRow] = useState<Row | null>(null);
 
   const load = useCallback(async () => {
+    if (tab === "full") return;
     setLoading(true); setError(null);
     try {
-      const response = await fetch(`/api/wholesale/opportunities?status=${tab}&pageSize=100`, { cache: "no-store" });
+      const response = await fetch(`/api/wholesale/opportunities?status=${tab}&pageSize=200`, { cache: "no-store" });
       const payload = await response.json();
-      if (!response.ok) throw new Error(payload.error || "Failed to load wholesale opportunities.");
-      const nextRows = payload.rows as Row[];
-      setRows(nextRows); setCounts(payload.counts || {});
-      return nextRows;
-    } catch (reason) {
-      setError(reason instanceof Error ? reason.message : "Failed to load wholesale opportunities.");
-      return [] as Row[];
-    } finally { setLoading(false); }
+      if (!response.ok) throw new Error(payload.error || "Could not load wholesale workflow.");
+      setRows(payload.rows ?? []);
+    } catch (reason) { setError(reason instanceof Error ? reason.message : "Could not load wholesale workflow."); }
+    finally { setLoading(false); }
   }, [tab]);
   useEffect(() => { void load(); }, [load]);
 
-  async function decide(row: Row, action: string, reason?: string) {
-    if (!row.evaluationId) return [] as Row[];
-    setError(null);
+  async function decide(row: Row, reason: string, notes?: string) {
+    if (!row.evaluationId) return;
+    const action = reason === "listing_asin_issue" ? "hard_pass" : "temporary_pass";
     const response = await fetch(`/api/wholesale/opportunities/${row.opportunityId}/actions`, {
       method: "POST", headers: mutationHeaders({ "Content-Type": "application/json" }),
-      body: JSON.stringify({ action, evaluationId: row.evaluationId, reason }),
+      body: JSON.stringify({ action, evaluationId: row.evaluationId, reason, notes: notes || null }),
     });
     const payload = await response.json();
-    if (!response.ok) { setError(payload.error || "Decision failed."); return [] as Row[]; }
-    return load();
+    if (!response.ok) return setError(payload.error || "Decision could not be saved.");
+    await load();
   }
 
-  async function advance(row: Row, action: string, reason?: string) {
-    const nextRows = await decide(row, action, reason);
-    setEvaluationRow(nextRows.find(item => item.opportunityId !== row.opportunityId) ?? null);
-  }
-
-  return <main className="min-h-screen bg-slate-100 px-5 py-5 text-slate-950">
-    <div className="mb-4 flex items-start justify-between pr-28">
-      <div><h1 className="text-2xl font-semibold">Wholesale Review</h1>
-        <p className="text-sm text-slate-600">Review one opportunity at a time, with supplier evidence beside the selected Amazon listing.</p></div>
-      <button onClick={() => void load()} className="inline-flex items-center gap-2 rounded border border-slate-300 bg-white px-3 py-2 text-sm"><RefreshCw className="h-4 w-4"/>Reload</button>
-    </div>
-    <div className="mb-4 flex gap-1 overflow-x-auto border-b border-slate-300">
-      {tabs.map(([key, text]) => <button key={key} onClick={() => { setTab(key); setEvaluationRow(null); }} className={`whitespace-nowrap border-b-2 px-3 py-2 text-sm font-medium ${tab === key ? "border-slate-950 text-slate-950" : "border-transparent text-slate-500"}`}>{text} <span className="ml-1 rounded bg-slate-200 px-1.5 py-0.5 text-xs">{counts[key] ?? 0}</span></button>)}
-    </div>
-    {error ? <div className="mb-3 rounded border border-red-200 bg-red-50 p-2 text-sm text-red-700">{error}</div> : null}
-    {tab === "ready" && rows.length ? <button onClick={() => setEvaluationRow(rows[0])} className="mb-3 inline-flex items-center gap-2 rounded bg-slate-900 px-4 py-2 text-sm font-medium text-white">Start review queue <ArrowRight className="h-4 w-4"/></button> : null}
-    <div className="overflow-x-auto rounded border border-slate-300 bg-white shadow-sm">
-      <table className="min-w-[1900px] w-full text-left text-xs">
-        <thead className="sticky top-0 bg-slate-100 text-slate-600"><tr><Th>Supplier item</Th><Th>Amazon match</Th><Th>Supplier history</Th><Th>Current Buy Box</Th><Th>90-day average</Th><Th>Costs / floor</Th><Th>Inventory / capacity</Th><Th>Risk signals</Th><Th>Actions</Th></tr></thead>
-        <tbody>{loading ? <tr><td colSpan={9} className="p-8 text-center text-slate-500">Loading...</td></tr> : rows.length === 0 ? <tr><td colSpan={9} className="p-8 text-center text-slate-500">No opportunities in this queue.</td></tr> : rows.map(row =>
-          <tr key={row.opportunityId} className="border-t border-slate-200 align-top hover:bg-slate-50">
-            <Td><div className="font-semibold">{row.supplierTitle}</div><div>{row.supplier} · {row.system}</div><div className="font-mono text-slate-500">{row.rawIdentifier}</div><div>Available: {row.availabilityRaw ?? "unknown"}</div></Td>
-            <Td><AmazonIdentity row={row}/><button className="mt-1 text-blue-700 underline" onClick={() => setCandidateRow(row)}>Review candidates</button></Td>
-            <Td><SupplierHistory row={row}/></Td><Td><RoiPanel row={row} basis="current"/></Td><Td><RoiPanel row={row} basis="average"/></Td>
-            <Td><CostPanel row={row}/></Td><Td><InventoryPanel row={row}/></Td><Td><RiskPanel row={row}/></Td>
-            <Td><button onClick={() => setEvaluationRow(row)} className="mb-2 block rounded bg-blue-700 px-2 py-1 text-white">Evaluate</button><Actions row={row} tab={tab} onOrder={() => setOrderRow(row)} onDecision={decide}/></Td>
-          </tr>)}</tbody>
-      </table>
-    </div>
-    {evaluationRow ? <EvaluationDialog row={evaluationRow} position={Math.max(rows.findIndex(item => item.opportunityId === evaluationRow.opportunityId), 0) + 1} total={rows.length} onClose={() => setEvaluationRow(null)} onCandidates={() => setCandidateRow(evaluationRow)} onOrder={() => setOrderRow(evaluationRow)} onDecision={advance}/> : null}
-    {orderRow ? <OrderDialog row={orderRow} onClose={() => setOrderRow(null)} onSaved={async () => { const current = orderRow; setOrderRow(null); const nextRows = await load(); if (evaluationRow?.opportunityId === current.opportunityId) setEvaluationRow(nextRows.find(item => item.opportunityId !== current.opportunityId) ?? null); }} setError={setError}/> : null}
-    {candidateRow ? <CandidateDialog row={candidateRow} onClose={() => setCandidateRow(null)} onSaved={async () => { const current = candidateRow; setCandidateRow(null); const nextRows = await load(); setEvaluationRow(nextRows.find(item => item.opportunityId === current.opportunityId) ?? null); }} setError={setError}/> : null}
+  return <main className="p-5">
+    <div className="mb-4 flex items-end justify-between"><div><h1 className="text-2xl font-semibold">Wholesale Purchasing</h1><p className="text-sm text-slate-600">Review qualified products, stage draft quantities, and audit complete supplier lists.</p></div><button onClick={() => void load()} className="inline-flex items-center gap-2 rounded border px-3 py-2 text-sm"><RefreshCw className="h-4 w-4"/>Refresh</button></div>
+    <nav className="mb-4 flex gap-1 border-b">{tabs.map(([key, title]) => <button key={key} onClick={() => setTab(key)} className={`border-b-2 px-4 py-2 text-sm font-medium ${tab === key ? "border-slate-950 text-slate-950" : "border-transparent text-slate-500"}`}>{title}</button>)}</nav>
+    {error ? <div className="mb-4 rounded border border-red-300 bg-red-50 p-3 text-sm text-red-800">{error}</div> : null}
+    {tab === "full" ? <FullImport onCandidates={setCandidateRow} setError={setError}/> : loading ? <div className="p-8 text-slate-500">Loading…</div> : <OpportunityTable rows={rows} tab={tab} onCandidates={setCandidateRow} onOrder={setOrderRow} onPass={decide} reload={load}/>}
+    {candidateRow ? <CandidateDialog row={candidateRow} onClose={() => setCandidateRow(null)} onSaved={async () => { setCandidateRow(null); await load(); }} setError={setError}/> : null}
+    {orderRow ? <OrderDialog row={orderRow} onClose={() => setOrderRow(null)} onSaved={async () => { setOrderRow(null); await load(); }} setError={setError}/> : null}
   </main>;
 }
 
-function EvaluationDialog({ row, position, total, onClose, onCandidates, onOrder, onDecision }: { row: Row; position: number; total: number; onClose: () => void; onCandidates: () => void; onOrder: () => void; onDecision: (row: Row, action: string, reason?: string) => Promise<void> }) {
-  const [reason, setReason] = useState("low_profitability");
-  const pending = pendingExplanation(row);
-  return <Modal title={`Opportunity evaluation · ${position} of ${total}`} onClose={onClose} wide>
-    <div className="max-h-[78vh] overflow-y-auto pr-1">
-      {pending ? <div className="mb-4 rounded border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900"><div className="font-semibold">Evaluation pending</div>{pending}</div> : null}
-      <div className="grid gap-4 lg:grid-cols-2">
-        <section className="rounded border border-slate-300 p-4"><h3 className="mb-3 font-semibold">Supplier evidence</h3><div className="text-lg font-semibold">{row.supplierTitle}</div><div className="text-sm text-slate-600">{row.supplier} · {row.system} · {row.rawIdentifier}</div><div className="mt-4 grid grid-cols-2 gap-2 text-sm"><Metric label="Unit cost" value={money(row.supplierCost)}/><Metric label="Availability" value={row.availabilityRaw ?? "Unknown"}/><SupplierHistory row={row}/></div></section>
-        <section className="rounded border border-slate-300 p-4"><h3 className="mb-3 font-semibold">Selected Amazon listing</h3><AmazonIdentity row={row}/><div className="mt-3 rounded bg-slate-100 p-3 text-sm"><Metric label="Selected by" value={label(row.selectionSource)}/><Metric label="Match evidence" value={row.matchSources.length ? row.matchSources.join(", ") : "No source recorded"}/><Metric label="Compatibility" value={`${label(row.compatibilityStatus)}${row.compatibilityReasonCodes.length ? ` · ${row.compatibilityReasonCodes.join(", ")}` : ""}`}/><Metric label="Prior account sale" value={row.priorAccountSale ? "Yes" : "No"}/><Metric label="Rank rationale" value={rationale(row.rankingRationale)}/></div><button onClick={onCandidates} className="mt-3 rounded border border-slate-400 px-3 py-2 text-sm">Compare alternative candidates</button></section>
-      </div>
-      <div className="mt-4 grid gap-4 lg:grid-cols-2"><section className="rounded border border-slate-300 p-4"><h3 className="mb-2 font-semibold">Current Buy Box economics</h3><RoiPanel row={row} basis="current"/></section><section className="rounded border border-slate-300 p-4"><h3 className="mb-2 font-semibold">90-day average economics</h3><RoiPanel row={row} basis="average"/></section></div>
-      <div className="mt-4 grid gap-4 lg:grid-cols-3"><section className="rounded border border-slate-300 p-4"><h3 className="mb-2 font-semibold">Cost assumptions</h3><CostPanel row={row}/></section><section className="rounded border border-slate-300 p-4"><h3 className="mb-2 font-semibold">Inventory and capacity</h3><InventoryPanel row={row}/></section><section className="rounded border border-slate-300 p-4"><h3 className="mb-2 font-semibold">Risk signals</h3><RiskPanel row={row}/></section></div>
-      <div className="sticky bottom-0 mt-4 flex flex-wrap items-end gap-2 border-t bg-white py-4"><button disabled={!row.evaluationId || row.status !== "ready_for_review"} onClick={onOrder} className="inline-flex items-center gap-2 rounded bg-slate-900 px-4 py-2 text-white disabled:bg-slate-300"><ShoppingCart className="h-4 w-4"/>Add to Order</button><label className="text-xs text-slate-600">Pass reason<select value={reason} onChange={event => setReason(event.target.value)} className="mt-1 block rounded border p-2 text-sm text-slate-950"><PassOptions/></select></label><button disabled={!row.evaluationId} onClick={() => void onDecision(row, hardReason(reason) ? "hard_pass" : "temporary_pass", reason)} className="rounded border px-4 py-2 disabled:text-slate-400">Pass and open next</button><button onClick={onClose} className="ml-auto rounded border px-4 py-2">Close</button></div>
-    </div>
-  </Modal>;
+function OpportunityTable({ rows, tab, onCandidates, onOrder, onPass, reload }: { rows: Row[]; tab: "ready" | "order";
+  onCandidates: (row: CandidateContext) => void; onOrder: (row: Row) => void; onPass: (row: Row, reason: string, notes?: string) => Promise<void>; reload: () => Promise<void> | void }) {
+  if (!rows.length) return <div className="rounded border bg-white p-10 text-center text-slate-500">No products in {tab === "ready" ? "Ready to Review" : "Order List"}.</div>;
+  return <div className="overflow-auto rounded border bg-white"><table className="min-w-[1750px] w-full text-left text-xs">
+    <thead className="sticky top-0 bg-slate-100 text-slate-600"><tr><Th>Supplier Item</Th><Th>Amazon Match</Th><Th>Supplier Price</Th><Th>Current Buy Box</Th><Th>90-Day Average</Th><Th>Supplier History</Th><Th>Inventory / Capacity</Th><Th>Risk Signals</Th><Th>Actions</Th></tr></thead>
+    <tbody>{rows.map(row => <tr key={row.opportunityId} className="border-t align-top">
+      <Td><div className="font-semibold">{row.supplierTitle}</div><div>{row.supplier} · {row.system}</div><div className="text-slate-500">{row.rawIdentifier} · Available {row.availabilityRaw ?? "unknown"}</div></Td>
+      <Td><AmazonMatch row={row}/><button className="mt-1 text-blue-700 underline" onClick={() => onCandidates(row)}>Review candidates</button></Td>
+      <Td><div className="text-base font-semibold">{money(row.supplierCost)}</div>{tab === "order" && row.draft ? <><div>Qty {row.draft.quantity}</div><div>Extended {money(row.draft.extendedCost)}</div></> : null}</Td>
+      <Td><div className="font-semibold">{money(row.currentBuyBox)}</div><div className={qualifies(row.currentRoi) ? "text-emerald-700" : ""}>ROI {percent(row.currentRoi)}</div></Td>
+      <Td><div className="font-semibold">{money(row.keepaAvg90)}</div><div className={qualifies(row.avg90Roi) ? "text-emerald-700" : ""}>ROI {percent(row.avg90Roi)}</div><div className="text-slate-500">30d {money(row.keepaAvg30)}</div></Td>
+      <Td><Metric label="Previous" value={money(row.previousSupplierPrice)}/><Metric label="Low" value={money(row.supplierHistoricalLow)}/><Metric label="30d" value={percent(row.supplierPriceChange30d)}/><Metric label="90d" value={percent(row.supplierPriceChange90d)}/></Td>
+      <Td><Metric label="FBA / inbound / draft" value={`${row.fbaUnits} / ${row.inboundUnits} / ${row.draftUnits}`}/><Metric label="Velocity 90d" value={units(row.keepaVelocity90)}/><Metric label="Target" value={units(row.targetUnits)}/><strong>Capacity {units(row.purchaseCapacity)}</strong></Td>
+      <Td><Metric label="Offers" value={row.offerCount === null ? "Unknown" : String(row.offerCount)}/><Metric label="FBA sellers" value={row.fbaSellerCount === null ? "Not available" : String(row.fbaSellerCount)}/><Metric label="Trend" value={String(row.riskSignals?.amazon_price_trend ?? "Unknown")}/></Td>
+      <Td>{tab === "ready" ? <ReadyActions row={row} onOrder={() => onOrder(row)} onPass={onPass}/> : <OrderActions row={row} onEdit={() => onOrder(row)} reload={reload}/>}</Td>
+    </tr>)}</tbody>
+  </table></div>;
 }
 
-function Actions({ row, tab, onOrder, onDecision }: { row: Row; tab: Tab; onOrder: () => void; onDecision: (row: Row, action: string, reason?: string) => Promise<Row[]> }) {
-  const [reason, setReason] = useState("low_profitability");
-  if (tab === "temporary" || tab === "hard") return <button onClick={() => void onDecision(row, "reverse_pass")} className="rounded border px-2 py-1">Reverse pass</button>;
-  if (tab === "added" && row.draft) return <div><button onClick={onOrder} className="mb-2 rounded bg-slate-900 px-2 py-1 text-white">Edit quantity</button><button onClick={async () => { const response = await fetch(`/api/wholesale/opportunities/${row.opportunityId}/actions`, { method: "POST", headers: mutationHeaders({ "Content-Type": "application/json" }), body: JSON.stringify({ action: "remove_draft", orderCandidateId: row.draft?.id }) }); if (response.ok) location.reload(); }} className="block text-red-700 underline">Remove draft</button></div>;
-  return <div className="space-y-2"><button disabled={!row.evaluationId || row.status !== "ready_for_review"} onClick={onOrder} className="inline-flex items-center gap-1 rounded bg-slate-900 px-2 py-1 text-white disabled:bg-slate-300"><ShoppingCart className="h-3 w-3"/>Add to Order</button><select value={reason} onChange={event => setReason(event.target.value)} className="block w-40 rounded border p-1"><PassOptions/></select><button onClick={() => void onDecision(row, hardReason(reason) ? "hard_pass" : "temporary_pass", reason)} className="rounded border px-2 py-1">Pass</button></div>;
+function FullImport({ onCandidates, setError }: { onCandidates: (row: CandidateContext) => void; setError: (value: string | null) => void }) {
+  const [rows, setRows] = useState<FullRow[]>([]); const [imports, setImports] = useState<ImportInfo[]>([]);
+  const [selected, setSelected] = useState<ImportInfo | null>(null); const [supplierId, setSupplierId] = useState("");
+  const [importId, setImportId] = useState(""); const [filter, setFilter] = useState("all"); const [system, setSystem] = useState("");
+  const [search, setSearch] = useState(""); const [searchInput, setSearchInput] = useState(""); const [systems, setSystems] = useState<string[]>([]); const [total, setTotal] = useState(0); const [page, setPage] = useState(1); const [loading, setLoading] = useState(true);
+  const load = useCallback(async () => {
+    setLoading(true); const params = new URLSearchParams({ pageSize: "200", filter, page: String(page) });
+    if (supplierId) params.set("supplierId", supplierId); if (importId) params.set("importId", importId);
+    if (system) params.set("system", system); if (search) params.set("search", search);
+    try { const response = await fetch(`/api/wholesale/full-import?${params}`, { cache: "no-store" }); const payload = await response.json();
+      if (!response.ok) throw new Error(payload.error || "Could not load supplier list.");
+      setRows(payload.rows ?? []); setImports(payload.imports ?? []); setSelected(payload.selectedImport ?? null); setSystems(payload.systems ?? []); setTotal(payload.total ?? 0);
+      if (!importId && payload.selectedImport?.importId) setImportId(payload.selectedImport.importId);
+    } catch (reason) { setError(reason instanceof Error ? reason.message : "Could not load supplier list."); } finally { setLoading(false); }
+  }, [filter, importId, page, search, setError, supplierId, system]);
+  useEffect(() => { void load(); }, [load]);
+  const suppliers = Array.from(new Map(imports.map(item => [item.supplierId, item.supplier])).entries());
+  return <div className="space-y-4">
+    <div className="rounded border bg-white p-4"><div className="grid gap-3 lg:grid-cols-5">
+      <label className="text-xs font-medium">Supplier<select value={supplierId} onChange={event => { setSupplierId(event.target.value); setImportId(""); setPage(1); }} className="mt-1 block w-full rounded border p-2 text-sm"><option value="">All suppliers</option>{suppliers.map(([id,name]) => <option key={id} value={id}>{name}</option>)}</select></label>
+      <label className="text-xs font-medium">Supplier list date<select value={importId} onChange={event => { setImportId(event.target.value); setPage(1); }} className="mt-1 block w-full rounded border p-2 text-sm">{imports.map(item => <option key={item.importId} value={item.importId}>{item.effectiveDate} · {item.supplier}{item.revision && item.revision > 1 ? ` · rev ${item.revision}` : ""}</option>)}</select></label>
+      <label className="text-xs font-medium">Status<select value={filter} onChange={event => { setFilter(event.target.value); setPage(1); }} className="mt-1 block w-full rounded border p-2 text-sm">{fullFilters.map(([value,label]) => <option key={value} value={value}>{label}</option>)}</select></label>
+      <label className="text-xs font-medium">System<select value={system} onChange={event => { setSystem(event.target.value); setPage(1); }} className="mt-1 block w-full rounded border p-2 text-sm"><option value="">All systems</option>{systems.map(value => <option key={value}>{value}</option>)}</select></label>
+      <label className="text-xs font-medium">Search<div className="mt-1 flex"><input value={searchInput} onChange={event => setSearchInput(event.target.value)} onKeyDown={event => { if (event.key === "Enter") { setSearch(searchInput); setPage(1); } }} placeholder="Title, UPC, ASIN" className="block min-w-0 flex-1 rounded-l border p-2 text-sm"/><button onClick={() => { setSearch(searchInput); setPage(1); }} className="rounded-r border border-l-0 px-2 text-sm">Go</button></div></label>
+    </div>{selected ? <div className="mt-3 flex flex-wrap gap-5 text-sm"><strong>{selected.supplier}</strong><span>Effective list date: {dateValue(selected.effectiveDate)}</span><span>Imported: {dateTime(selected.importedAt)}</span><span>Products: {selected.productCount}</span><span>Filtered results: {total}</span></div> : null}</div>
+    {loading ? <div className="p-8 text-slate-500">Loading complete import…</div> : <><div className="overflow-auto rounded border bg-white"><table className="min-w-[1450px] w-full text-left text-xs"><thead className="bg-slate-100"><tr><Th>Supplier Item</Th><Th>Current Status / Reason</Th><Th>Amazon Match</Th><Th>Supplier Price</Th><Th>Current Buy Box</Th><Th>90-Day Average</Th><Th>Inventory / Capacity</Th><Th>Actions</Th></tr></thead><tbody>{rows.map(row => <tr key={row.supplierProductId} className="border-t align-top"><Td><strong>{row.supplierTitle}</strong><div>{row.supplier} · {row.system}</div><div className="text-slate-500">{row.rawIdentifier} · Available {row.availabilityRaw ?? "unknown"}</div></Td><Td><div className="font-semibold">{row.statusLabel}</div>{row.passedAt ? <div>Passed {dateOnly(row.passedAt)}</div> : null}{row.statusDetail ? <div className="text-slate-500">{row.statusDetail}</div> : null}</Td><Td><div className="font-semibold">{row.amazonTitle ?? "No selected Amazon listing"}</div>{row.asin ? <AmazonLink asin={row.asin}/> : null}<div>Eligibility: {humanLabel(row.eligibilityStatus)}</div></Td><Td>{money(row.supplierCost)}</Td><Td>{money(row.currentBuyBox)}<div>ROI {percent(row.currentRoi)}</div></Td><Td>{money(row.keepaAvg90)}<div>ROI {percent(row.avg90Roi)}</div></Td><Td><Metric label="FBA / inbound" value={`${row.fbaUnits} / ${row.inboundUnits}`}/><Metric label="Capacity" value={units(row.purchaseCapacity)}/>{row.draft ? <Metric label="Order List qty" value={String(row.draft.quantity)}/> : null}</Td><Td><button className="text-blue-700 underline" onClick={() => onCandidates(row)}>Review candidates</button>{row.opportunityId && row.evaluationId && (row.statusKey.startsWith("passed_") || row.statusKey === "listing_issue") ? <button className="mt-2 block rounded border px-2 py-1" onClick={() => void reconsider(row, load, setError)}>Reconsider</button> : null}</Td></tr>)}</tbody></table></div><div className="flex items-center justify-end gap-3 text-sm"><button disabled={page === 1} onClick={() => setPage(value => value - 1)} className="rounded border px-3 py-1 disabled:text-slate-300">Previous</button><span>Page {page} of {Math.max(1, Math.ceil(total / 200))}</span><button disabled={page * 200 >= total} onClick={() => setPage(value => value + 1)} className="rounded border px-3 py-1 disabled:text-slate-300">Next</button></div></>}
+  </div>;
 }
 
-function PassOptions() { return <><option value="low_profitability">Low Profitability</option><option value="price_risk">Price Risk</option><option value="too_much_inventory">Too Much Inventory</option><option value="competition">Competition</option><option value="other">Other</option><option value="listing_asin_issue">Listing/ASIN Issue</option><option value="restricted_cant_sell">Restricted / Can&apos;t Sell</option></>; }
+async function reconsider(row: FullRow, reload: () => Promise<void>, setError: (value: string | null) => void) {
+  const response = await fetch(`/api/wholesale/opportunities/${row.opportunityId}/actions`, { method: "POST", headers: mutationHeaders({ "Content-Type": "application/json" }), body: JSON.stringify({ action: "reverse_pass", evaluationId: row.evaluationId }) });
+  const payload = await response.json(); if (!response.ok) return setError(payload.error || "Could not reconsider product."); await reload();
+}
 
+function ReadyActions({ row, onOrder, onPass }: { row: Row; onOrder: () => void; onPass: (row: Row, reason: string, notes?: string) => Promise<void> }) {
+  const [reason, setReason] = useState("too_much_inventory"); const [notes, setNotes] = useState("");
+  return <div className="space-y-2"><button onClick={onOrder} className="inline-flex items-center gap-1 rounded bg-slate-900 px-2 py-1 text-white"><ShoppingCart className="h-3 w-3"/>Add to Order List</button><select value={reason} onChange={event => setReason(event.target.value)} className="block w-44 rounded border p-1"><option value="too_much_inventory">Too Much Inventory</option><option value="price_risk">Price Risk</option><option value="competition">Competition</option><option value="listing_asin_issue">Listing / ASIN Issue</option><option value="other">Other</option></select>{reason === "other" ? <input value={notes} onChange={event => setNotes(event.target.value)} placeholder="Optional note" className="block w-44 rounded border p-1"/> : null}<button onClick={() => void onPass(row, reason, notes)} className="rounded border px-2 py-1">Pass</button></div>;
+}
+function OrderActions({ row, onEdit, reload }: { row: Row; onEdit: () => void; reload: () => Promise<void> | void }) {
+  return <div><button onClick={onEdit} className="mb-2 rounded bg-slate-900 px-2 py-1 text-white">Edit quantity</button><button onClick={async () => { const response = await fetch(`/api/wholesale/opportunities/${row.opportunityId}/actions`, { method: "POST", headers: mutationHeaders({ "Content-Type": "application/json" }), body: JSON.stringify({ action: "remove_draft", orderCandidateId: row.draft?.id }) }); if (response.ok) await reload(); }} className="block text-red-700 underline">Remove from Order List</button></div>;
+}
 function OrderDialog({ row, onClose, onSaved, setError }: { row: Row; onClose: () => void; onSaved: () => Promise<void>; setError: (value: string | null) => void }) {
   const [quantity, setQuantity] = useState(row.draft?.quantity ?? Math.max(1, Math.floor(row.purchaseCapacity ?? 1)));
-  const resultingSupply = row.expectedMonthlySales && row.expectedMonthlySales > 0 ? ((row.fbaUnits + row.inboundUnits + quantity) / row.expectedMonthlySales) * 30 : null;
-  async function save() { const response = await fetch(`/api/wholesale/opportunities/${row.opportunityId}/actions`, { method: "POST", headers: mutationHeaders({ "Content-Type": "application/json" }), body: JSON.stringify({ action: "add_to_order", evaluationId: row.evaluationId, quantity, requestId: crypto.randomUUID() }) }); const payload = await response.json(); if (!response.ok) { setError(payload.error || "Could not save draft commitment."); return; } await onSaved(); }
-  return <Modal title="Add to Order" onClose={onClose}><div className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm"><Metric label="Supplier availability" value={row.availabilityRaw ?? "Unknown"}/><Metric label="Unit cost" value={money(row.supplierCost)}/><Metric label="Monthly velocity" value={units(row.expectedMonthlySales)}/><Metric label="30-day target" value={units(row.targetUnits)}/><Metric label="FBA / inbound" value={`${row.fbaUnits} / ${row.inboundUnits}`}/><Metric label="Existing draft" value={units(row.draftUnits)}/><Metric label="30-day capacity" value={units(row.purchaseCapacity)}/></div><label className="mt-4 block text-sm font-medium">Quantity to order<input autoFocus type="number" min={1} step={1} value={quantity} onChange={event => setQuantity(Number(event.target.value))} className="mt-1 block w-full rounded border border-slate-300 p-2"/></label><div className="mt-3 rounded bg-slate-100 p-3 text-sm"><Metric label="Extended supplier cost" value={row.supplierCost === null ? "Unknown" : money(row.supplierCost * quantity)}/><Metric label="Resulting approximate supply" value={resultingSupply === null ? "Unknown" : `${resultingSupply.toFixed(0)} days`}/><p className="mt-2 text-xs text-slate-500">Capacity is guidance. Exact supplier availability is enforced by the server; “144+” is a lower bound.</p></div><div className="mt-4 flex justify-end gap-2"><button onClick={onClose} className="rounded border px-3 py-2">Cancel</button><button disabled={!Number.isInteger(quantity) || quantity <= 0} onClick={() => void save()} className="rounded bg-slate-900 px-3 py-2 text-white disabled:bg-slate-300">Save draft commitment</button></div></Modal>;
+  async function save() { const response = await fetch(`/api/wholesale/opportunities/${row.opportunityId}/actions`, { method: "POST", headers: mutationHeaders({ "Content-Type": "application/json" }), body: JSON.stringify({ action: "add_to_order", evaluationId: row.evaluationId, quantity, requestId: crypto.randomUUID() }) }); const payload = await response.json(); if (!response.ok) return setError(payload.error || "Could not save Order List quantity."); await onSaved(); }
+  return <Modal title="Order List quantity" onClose={onClose}><div className="mb-3 font-semibold">{row.supplier} · {row.supplierTitle}</div><div className="grid grid-cols-2 gap-2 text-sm"><Metric label="ASIN" value={row.asin ?? "Unknown"}/><Metric label="Unit price" value={money(row.supplierCost)}/><Metric label="Available" value={row.availabilityRaw ?? "Unknown"}/><Metric label="Capacity" value={units(row.purchaseCapacity)}/></div><label className="mt-4 block text-sm font-medium">Requested quantity<input autoFocus type="number" min={1} step={1} value={quantity} onChange={event => setQuantity(Number(event.target.value))} className="mt-1 block w-full rounded border p-2"/></label><div className="mt-3">Extended cost: {row.supplierCost === null ? "Unknown" : money(row.supplierCost * quantity)}</div><p className="mt-2 text-xs text-slate-500">This saves a draft commitment only. It does not create a supplier purchase order.</p><div className="mt-4 flex justify-end gap-2"><button onClick={onClose} className="rounded border px-3 py-2">Cancel</button><button disabled={!Number.isInteger(quantity) || quantity <= 0} onClick={() => void save()} className="rounded bg-slate-900 px-3 py-2 text-white disabled:bg-slate-300">Save to Order List</button></div></Modal>;
 }
 
-function CandidateDialog({ row, onClose, onSaved, setError }: { row: Row; onClose: () => void; onSaved: () => Promise<void>; setError: (value: string | null) => void }) {
-  const [candidates, setCandidates] = useState<Candidate[]>([]); const [loading, setLoading] = useState(true); const [recalculating, setRecalculating] = useState(false);
-  useEffect(() => { fetch(`/api/wholesale/products/${row.supplierProductId}/matching?marketplaceId=ATVPDKIKX0DER`, { cache: "no-store" }).then(async response => { const payload = await response.json(); if (!response.ok) throw new Error(payload.error); setCandidates(payload.candidates || []); }).catch(reason => setError(String(reason))).finally(() => setLoading(false)); }, [row.supplierProductId, setError]);
-  async function choose(asin: string) {
-    setRecalculating(true);
-    const response = await fetch(`/api/wholesale/products/${row.supplierProductId}/matching`, { method: "POST", headers: mutationHeaders({ "Content-Type": "application/json" }), body: JSON.stringify({ action: "select_candidate", marketplaceId: "ATVPDKIKX0DER", asin }) });
-    const payload = await response.json();
-    if (!response.ok) { setError(payload.error || "Candidate selection failed."); setRecalculating(false); return; }
-    for (let attempt = 0; attempt < 15; attempt += 1) {
-      await new Promise(resolve => setTimeout(resolve, 3000));
-      const statusResponse = await fetch(`/api/wholesale/opportunities/${row.opportunityId}`, { cache: "no-store" });
-      const status = await statusResponse.json();
-      if (statusResponse.ok && status.opportunity?.evaluation_requested === false && status.evaluation?.asin === asin) { await onSaved(); return; }
-    }
-    setError("The candidate was selected, but recalculation is still running. Reload the queue shortly to see the new economics.");
-    setRecalculating(false);
-  }
-  return <Modal title="Compare Amazon candidates" onClose={onClose} wide>{recalculating ? <div className="mb-3 rounded border border-blue-200 bg-blue-50 p-3 text-sm text-blue-900">The candidate was selected. Recalculating economics from cached evidence...</div> : null}{loading ? <div>Loading...</div> : <div className="max-h-[70vh] overflow-auto"><table className="min-w-[1300px] w-full text-left text-sm"><thead><tr><Th>Listing</Th><Th>Identity</Th><Th>Prices</Th><Th>Match evidence</Th><Th>Prior sales</Th><Th>Velocity</Th><Th>Eligibility</Th><Th></Th></tr></thead><tbody>{candidates.map(candidate => <tr key={candidate.candidate_id} className={`border-t align-top ${candidate.asin === row.asin ? "bg-emerald-50" : ""}`}><Td><div className="flex gap-2">{candidate.image_url ? <img src={candidate.image_url} alt="" className="h-16 w-16 object-contain"/> : null}<div><div className="font-semibold">{candidate.title ?? "Amazon title unavailable"}</div><a className="text-blue-700 underline" target="_blank" href={`https://www.amazon.com/dp/${candidate.asin}`}>{candidate.asin}</a>{candidate.asin === row.asin ? <div className="font-semibold text-emerald-700">Currently selected</div> : null}</div></div></Td><Td>{[candidate.platform, candidate.edition, candidate.region, candidate.format, candidate.product_type].filter(Boolean).join(" · ") || "Unknown"}<div className="mt-1 text-xs text-slate-500">{label(candidate.compatibility_status)} · {candidate.compatibility_reason_codes.join(", ") || "no reason codes"}</div></Td><Td><Metric label="Current" value={money(candidate.current_buy_box)}/><Metric label="90-day avg" value={money(candidate.keepa_avg90)}/></Td><Td>{candidate.match_sources.join(", ") || "Unknown"}<div className="mt-1 text-xs text-slate-500">Rank {candidate.rank_position ?? "?"} · {rationale(candidate.ranking_rationale)}</div></Td><Td>{candidate.prior_account_sale ? "Yes" : "No"}</Td><Td>{candidate.keepa_sales_rank_drops90 ?? "Unknown"}</Td><Td>{label(candidate.eligibility_status)}</Td><Td><button disabled={recalculating || candidate.compatibility_status !== "compatible" || candidate.eligibility_status !== "eligible" || candidate.asin === row.asin} onClick={() => void choose(candidate.asin)} className="rounded bg-slate-900 px-2 py-1 text-white disabled:bg-slate-300">Select and recalculate</button></Td></tr>)}</tbody></table></div>}<div className="mt-4 flex justify-end"><button onClick={onClose} className="rounded border px-3 py-2">Close</button></div></Modal>;
+function CandidateDialog({ row, onClose, onSaved, setError }: { row: CandidateContext; onClose: () => void; onSaved: () => Promise<void>; setError: (value: string | null) => void }) {
+  const [candidates, setCandidates] = useState<Candidate[]>([]); const [loading, setLoading] = useState(true); const [saving, setSaving] = useState(false);
+  useEffect(() => { fetch(`/api/wholesale/products/${row.supplierProductId}/matching?marketplaceId=ATVPDKIKX0DER`, { cache: "no-store" }).then(async response => { const payload = await response.json(); if (!response.ok) throw new Error(payload.error); setCandidates(payload.candidates ?? []); }).catch(reason => setError(String(reason))).finally(() => setLoading(false)); }, [row.supplierProductId, setError]);
+  async function choose(asin: string) { setSaving(true); const response = await fetch(`/api/wholesale/products/${row.supplierProductId}/matching`, { method: "POST", headers: mutationHeaders({ "Content-Type": "application/json" }), body: JSON.stringify({ action: "select_candidate", marketplaceId: "ATVPDKIKX0DER", asin }) }); const payload = await response.json(); if (!response.ok) { setSaving(false); return setError(payload.error || "Candidate selection failed."); } if (row.opportunityId) { for (let attempt = 0; attempt < 15; attempt += 1) { await new Promise(resolve => setTimeout(resolve, 3000)); const statusResponse = await fetch(`/api/wholesale/opportunities/${row.opportunityId}`, { cache: "no-store" }); const status = await statusResponse.json(); if (statusResponse.ok && status.opportunity?.evaluation_requested === false && status.evaluation?.asin === asin) break; } } await onSaved(); }
+  return <Modal title="Compare Amazon candidates" onClose={onClose} wide><div className="mb-3 rounded bg-slate-100 p-3 text-sm"><strong>{row.supplier}</strong> · {row.supplierTitle}</div>{loading ? <div>Loading…</div> : <div className="max-h-[72vh] overflow-auto"><table className="min-w-[1650px] w-full text-left text-sm"><thead><tr><Th>Amazon Listing</Th><Th>Platform / Version</Th><Th>Match Evidence</Th><Th>Compatibility</Th><Th>Prior Sales</Th><Th>Velocity</Th><Th>Prices</Th><Th>Eligibility</Th><Th>Selection</Th></tr></thead><tbody>{candidates.map(candidate => <tr key={candidate.candidate_id} className={`border-t align-top ${candidate.asin === row.asin ? "bg-emerald-50" : ""}`}><Td><div className="flex gap-2">{candidate.image_url ? <img src={candidate.image_url} alt="" className="h-16 w-16 object-contain"/> : null}<div><strong>{candidate.title ?? "Amazon title unavailable"}</strong><div><AmazonLink asin={candidate.asin}/></div></div></div></Td><Td>{[candidate.platform, candidate.edition, candidate.region, candidate.format, candidate.product_type].filter(Boolean).join(" · ") || "Unknown"}</Td><Td><Evidence candidate={candidate}/></Td><Td>{compatibilityText(candidate)}</Td><Td>{candidate.prior_account_sale ? "Yes" : "No"}</Td><Td>{candidate.keepa_sales_rank_drops90 ?? "Unknown"}</Td><Td><Metric label="Current Buy Box" value={money(candidate.current_buy_box)}/><Metric label="90-day average" value={money(candidate.keepa_avg90)}/></Td><Td><strong>{eligibilityText(candidate.eligibility_status)}</strong>{candidate.eligibility_reason_codes?.length ? <div className="text-xs text-slate-500">{candidate.eligibility_reason_codes.map(humanLabel).join(", ")}</div> : null}</Td><Td>{candidate.asin === row.asin ? <strong className="text-emerald-700">Selected</strong> : <button disabled={saving || candidate.compatibility_status !== "compatible" || candidate.eligibility_status !== "eligible"} onClick={() => void choose(candidate.asin)} className="rounded bg-slate-900 px-2 py-1 text-white disabled:bg-slate-300">Select</button>}<div className="mt-1 text-xs text-slate-500">Rank {candidate.rank_position ?? "?"}</div></Td></tr>)}</tbody></table></div>}<div className="mt-4 flex justify-end"><button onClick={onClose} className="rounded border px-3 py-2">Close</button></div></Modal>;
 }
-
-function AmazonIdentity({ row }: { row: Row }) { return <div className="flex gap-2">{row.imageUrl ? <img src={row.imageUrl} alt="" className="h-16 w-16 object-contain"/> : null}<div><div className="font-semibold">{row.amazonTitle ?? "Pending match"}</div>{row.asin ? <a className="inline-flex items-center gap-1 text-blue-700 underline" href={`https://www.amazon.com/dp/${row.asin}`} target="_blank">{row.asin}<ExternalLink className="h-3 w-3"/></a> : null}<div>{row.amazonPlatform ?? ""}</div><div>Eligibility: {label(row.eligibilityStatus)}</div>{row.priorAccountSale ? <div className="font-semibold text-blue-700">Prior account sale</div> : null}</div></div>; }
-function SupplierHistory({ row }: { row: Row }) { return <><Metric label="Current" value={money(row.supplierCost)}/><Metric label="Previous" value={money(row.previousSupplierPrice)}/><Metric label="Historical low" value={money(row.supplierHistoricalLow)}/><Metric label="30-day change" value={percent(row.supplierPriceChange30d)}/><Metric label="90-day change" value={percent(row.supplierPriceChange90d)}/></>; }
-function RoiPanel({ row, basis }: { row: Row; basis: "current" | "average" }) { const average = basis === "average"; const price = average ? row.keepaAvg90 : row.currentBuyBox; const roi = average ? row.avg90Roi : row.currentRoi; return <><div className="text-base font-semibold">{money(price)}</div>{average ? <Metric label="30-day avg" value={money(row.keepaAvg30)}/> : null}<Metric label="Amazon fees" value={money(average ? row.avg90Fees : row.currentFees)}/><Metric label="True profit" value={money(average ? row.avg90Profit : row.currentProfit)}/><Metric label="True ROI" value={percent(roi)} strong={qualifies(roi)}/><Metric label="25% ROI floor" value={money(average ? row.avg90RoiFloor : row.roiFloor)}/>{average ? <div className="mt-1 font-semibold">Qualifies: {qualification(row.qualificationBasis)}</div> : null}</>; }
-function CostPanel({ row }: { row: Row }) { return <><Metric label="Inbound" value={money(row.inboundAllowance)}/><Metric label="Returns" value={money(row.returnAllowance)}/><Metric label="30-day storage" value={money(row.storageAllowance)}/><Metric label="Current headroom" value={percent(row.priceHeadroom)}/>{row.allowanceStatus === "accessory_review_required" ? <div className="mt-1 text-amber-700">Accessory costs need review</div> : null}</>; }
-function InventoryPanel({ row }: { row: Row }) { return <><Metric label="Monthly velocity" value={units(row.expectedMonthlySales)}/><Metric label="FBA" value={units(row.fbaUnits)}/><Metric label="Inbound" value={units(row.inboundUnits)}/><Metric label="Draft" value={units(row.draftUnits)}/><Metric label="30-day target" value={units(row.targetUnits)}/><div className="mt-1 font-semibold">Capacity: {units(row.purchaseCapacity)}</div></>; }
-function RiskPanel({ row }: { row: Row }) { return <><Metric label="Amazon 30d" value={percent(asNumber(row.riskSignals.amazon_price_change_30d))}/><Metric label="Amazon 90d" value={percent(asNumber(row.riskSignals.amazon_price_change_90d))}/><Metric label="Direction" value={String(row.riskSignals.amazon_price_trend ?? "Unknown")}/><Metric label="Offers" value={row.offerCount === null ? "Unknown" : String(row.offerCount)}/><Metric label="FBA sellers" value={row.fbaSellerCount === null ? "Not available" : `${row.fbaSellerCount}*`}/>{row.riskSignals.supplier_amazon_divergence ? <div className="mt-2 rounded bg-amber-100 p-1.5 text-amber-800">Supplier price is declining substantially faster than Amazon market price.</div> : null}</>; }
-function Modal({ title, onClose, children, wide = false }: { title: string; onClose: () => void; children: React.ReactNode; wide?: boolean }) { return <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-950/40 p-6" onMouseDown={event => { if (event.target === event.currentTarget) onClose(); }}><div className={`w-full ${wide ? "max-w-[1500px]" : "max-w-4xl"} rounded-lg bg-white p-5 shadow-xl`}><div className="mb-4 flex items-center justify-between"><h2 className="text-lg font-semibold">{title}</h2><button onClick={onClose} aria-label="Close"><X className="h-5 w-5"/></button></div>{children}</div></div>; }
+function Evidence({ candidate }: { candidate: Candidate }) {
+  const hasIdentifier = candidate.match_evidence.some(item => item.type === "identifier"); const hasTitle = candidate.match_evidence.some(item => item.type === "title_platform");
+  const heading = hasIdentifier && hasTitle ? "Matched by UPC + Title/Platform" : hasIdentifier ? candidate.match_evidence.find(item => item.type === "identifier")?.label : "Matched by Title + Platform";
+  return <div><strong>{heading}</strong>{candidate.match_evidence.map((evidence, index) => evidence.type === "identifier" ? <div key={index} className="mt-1 text-xs"><div>Supplier identifier: {evidence.supplier_identifier ?? "Unknown"}</div><div>Amazon identifier: {evidence.amazon_identifiers?.join(", ") || "Not returned"}</div></div> : <div key={index} className="mt-1 text-xs"><div>Search: {evidence.title_terms ?? evidence.query ?? "Unknown"}</div><div>Platform: {evidence.platform_term ?? "Unknown"}</div><div>Amazon result: {evidence.amazon_title ?? "Unknown"}</div><div>Amazon platform: {evidence.amazon_platform ?? "Unknown"}</div></div>)}</div>;
+}
+function compatibilityText(candidate: Candidate) {
+  const codes = new Set(candidate.compatibility_reason_codes ?? []);
+  if (candidate.compatibility_status === "compatible") return codes.has("identifier_and_platform_compatible") ? "Compatible — identifier and platform align" : "Compatible — title and platform align";
+  if (codes.has("platform_mismatch")) return "Not compatible — different platform";
+  if (codes.has("title_mismatch")) return "Not compatible — different title";
+  if (codes.has("region_mismatch")) return "Not compatible — EU/non-NA version";
+  if (codes.has("digital_physical_mismatch")) return "Not compatible — digital vs physical mismatch";
+  if (codes.has("accessory_type_mismatch")) return "Not compatible — accessory vs game mismatch";
+  if (codes.has("edition_mismatch")) return "Review needed — edition unclear";
+  if (codes.has("region_evidence_incomplete")) return "Review needed — region unclear";
+  return candidate.compatibility_status === "incompatible" ? "Not compatible — identity differs" : "Review needed — identity evidence is incomplete";
+}
+function eligibilityText(value: string | null) { if (value === "eligible") return "Eligible for New condition"; if (value === "restricted") return "Restricted for New condition"; if (value === "unknown" || value === "error") return "Eligibility unresolved"; return "Eligibility pending"; }
+function AmazonMatch({ row }: { row: Row }) { return <div className="flex gap-2">{row.imageUrl ? <img src={row.imageUrl} alt="" className="h-14 w-14 object-contain"/> : null}<div><strong>{row.amazonTitle ?? "Pending match"}</strong>{row.asin ? <div><AmazonLink asin={row.asin}/></div> : null}<div>{row.amazonPlatform}</div><div>{eligibilityText(row.eligibilityStatus)}</div></div></div>; }
+function AmazonLink({ asin }: { asin: string }) { return <a className="inline-flex items-center gap-1 text-blue-700 underline" target="_blank" href={`https://www.amazon.com/dp/${asin}`}>{asin}<ExternalLink className="h-3 w-3"/></a>; }
+function Modal({ title, onClose, children, wide = false }: { title: string; onClose: () => void; children: React.ReactNode; wide?: boolean }) { return <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-950/40 p-6" onMouseDown={event => { if (event.target === event.currentTarget) onClose(); }}><div className={`w-full ${wide ? "max-w-[1650px]" : "max-w-3xl"} rounded-lg bg-white p-5 shadow-xl`}><div className="mb-4 flex items-center justify-between"><h2 className="text-lg font-semibold">{title}</h2><button onClick={onClose} aria-label="Close"><X className="h-5 w-5"/></button></div>{children}</div></div>; }
 function Th({ children }: { children?: React.ReactNode }) { return <th className="px-3 py-2 font-semibold">{children}</th>; }
 function Td({ children }: { children: React.ReactNode }) { return <td className="px-3 py-3">{children}</td>; }
-function Metric({ label: name, value, strong = false }: { label: string; value: string; strong?: boolean }) { return <div className={strong ? "font-semibold text-emerald-700" : ""}><span className="text-slate-500">{name}: </span>{value}</div>; }
+function Metric({ label, value }: { label: string; value: string }) { return <div><span className="text-slate-500">{label}: </span>{value}</div>; }
 function money(value: number | null) { return value === null ? "Unknown" : new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(value); }
 function percent(value: number | null) { return value === null ? "Unknown" : `${(value * 100).toFixed(1)}%`; }
 function units(value: number | null) { return value === null ? "Unknown" : Number(value).toFixed(value % 1 ? 1 : 0); }
 function qualifies(value: number | null) { return value !== null && value >= .25; }
-function qualification(value: string) { return ({ current_only: "Current Buy Box only", avg90_only: "90-day average only", both: "Both", neither: "Neither", incomplete: "Incomplete" } as Record<string, string>)[value] || value; }
-function label(value: string | null) { return value ? value.replaceAll("_", " ") : "Pending"; }
-function asNumber(value: unknown) { const parsed = Number(value); return value === null || value === undefined || !Number.isFinite(parsed) ? null : parsed; }
-function hardReason(reason: string) { return reason.startsWith("listing_") || reason.startsWith("restricted_"); }
-function rationale(value: Record<string, unknown>) { const entries = Object.entries(value ?? {}).filter(([, item]) => item !== null && item !== undefined && item !== false); return entries.length ? entries.map(([key, item]) => `${label(key)}: ${String(item)}`).join("; ") : "No ranking detail recorded"; }
-function pendingExplanation(row: Row) { if (row.status === "pending_matching") return "Amazon matching is still running or needs manual candidate review."; if (row.status === "pending_eligibility") return "A candidate exists, but fresh Amazon listing eligibility evidence is not available yet."; if (row.status === "evaluation_incomplete") return `Economics are incomplete: ${row.incompleteReasons.map(label).join(", ") || "required evidence is missing"}.`; if (row.evaluationRequested) return "A newer evaluation has been requested and will replace these figures when the scheduler finishes."; return null; }
+function humanLabel(value: string | null) { return value ? value.replaceAll("_", " ") : "Pending"; }
+function dateOnly(value: string) { return new Intl.DateTimeFormat("en-US", { dateStyle: "medium" }).format(new Date(value)); }
+function dateValue(value: string) { return new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeZone: "UTC" }).format(new Date(`${value.slice(0, 10)}T00:00:00Z`)); }
+function dateTime(value: string) { return new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeStyle: "short" }).format(new Date(value)); }

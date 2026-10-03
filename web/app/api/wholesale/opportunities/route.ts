@@ -3,9 +3,7 @@ import { createServerSupabaseClient } from "../../_server";
 
 export const dynamic = "force-dynamic";
 const STATUS_GROUPS: Record<string, string[]> = {
-  ready: ["ready_for_review"], temporary: ["temporarily_passed"],
-  added: ["added_to_order"], pending: ["pending_matching", "pending_eligibility", "evaluation_incomplete"],
-  unqualified: ["not_financially_qualified"], hard: ["hard_passed"],
+  ready: ["ready_for_review"], order: ["added_to_order"],
 };
 
 export async function GET(request: Request) {

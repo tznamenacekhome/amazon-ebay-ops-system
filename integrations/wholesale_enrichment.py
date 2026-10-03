@@ -5,6 +5,7 @@ import argparse
 import datetime as dt
 import logging
 import os
+import re
 from typing import Any
 
 from amazon_check_listing_restrictions import classify_restriction_payload
@@ -12,7 +13,7 @@ from amazon_spapi_client import AmazonSPAPIClient, AmazonSPAPIError
 from amazon_sync_catalog_items import INCLUDED_DATA, normalize_catalog_item
 from sourcing_common import get_supabase_client
 from wholesale_matching import (
-    EVALUATOR_VERSION, evaluate_compatibility, identity_signature,
+    EVALUATOR_VERSION, canonical_platform, evaluate_compatibility, identity_signature,
     identifier_search, merge_candidates, query_fingerprint, search_items,
     select_preferred, title_platform_query,
 )
@@ -44,6 +45,18 @@ class WholesaleEnrichmentService:
         if not product:
             raise ValueError(f"Wholesale product not found: {supplier_product_id}")
         product = effective_product_identity(product)
+        classification = self.repository.active_product_classification(supplier_product_id)
+        if classification and classification.get("classification_code") == "non_na_version":
+            return {"supplier_product_id": supplier_product_id, "candidate_count": 0,
+                    "status": "non_na_version", "selected_asin": None}
+        explicit_region = explicit_non_na_region(product.get("raw_title"))
+        if explicit_region:
+            self.repository.set_product_classification(supplier_product_id, "non_na_version", {
+                "source": "supplier_title", "region": explicit_region,
+                "supplier_title": product.get("raw_title"),
+            }, "wholesale-enrichment")
+            return {"supplier_product_id": supplier_product_id, "candidate_count": 0,
+                    "status": "non_na_version", "selected_asin": None}
         prior_detail = self.repository.get_matching_detail(supplier_product_id, self.marketplace_id)
         prior_state = prior_detail.get("match_state") or {}
         prior_candidates = prior_detail.get("candidates") or []
@@ -56,9 +69,12 @@ class WholesaleEnrichmentService:
         if identifier:
             value, kind = identifier
             identifier_items = self._search(product, "identifier", value, force_refresh=force_search,
+                                            query_context={"identifier_type": kind, "supplier_identifier": value},
                                             identifiers=[value], identifiers_type=kind)
         title_query = title_platform_query(product.get("raw_title"), product.get("raw_system"))
         title_items = self._search(product, "title_platform", title_query, force_refresh=force_search,
+                                   query_context={"title_terms": " ".join(str(product.get("raw_title") or "").split()),
+                                                  "platform_term": canonical_platform(product.get("raw_system"))},
                                    keywords=title_query.split())
         discovered = merge_candidates(identifier_items, title_items)
         asins = [row["asin"] for row in discovered]
@@ -70,7 +86,7 @@ class WholesaleEnrichmentService:
         compatible_asins: list[str] = []
         for discovered_row in discovered:
             asin = discovered_row["asin"]
-            compatibility = evaluate_compatibility(product, snapshots[asin])
+            compatibility = evaluate_compatibility(product, snapshots[asin], discovered_row["match_sources"])
             if compatibility.status == "compatible":
                 compatible_asins.append(asin)
             velocity = velocities.get(asin) or {}
@@ -152,7 +168,8 @@ class WholesaleEnrichmentService:
                 "selected_asin": None if identity_changed else selection.selected_asin}
 
     def _search(self, product: dict, query_type: str, query_value: str,
-                *, force_refresh: bool = False, **kwargs: Any) -> list[dict]:
+                *, force_refresh: bool = False, query_context: dict[str, Any] | None = None,
+                **kwargs: Any) -> list[dict]:
         product_id = product["supplier_product_id"]
         fingerprint = query_fingerprint(query_type, query_value, self.marketplace_id)
         cached = self.repository.fresh_search(product_id, self.marketplace_id, query_type, fingerprint)
@@ -174,7 +191,7 @@ class WholesaleEnrichmentService:
         self.repository.save_search({
             "supplier_product_id": product_id, "marketplace_id": self.marketplace_id,
             "query_type": query_type, "query_fingerprint": fingerprint,
-            "query_value": query_value, "search_status": status,
+            "query_value": query_value, "query_context": query_context or {}, "search_status": status,
             "candidate_asins": [row["asin"] for row in items], "error_code": error_code,
             "error_summary": error_summary, "searched_at": searched_at.isoformat(),
             "expires_at": (searched_at + ttl).isoformat(), "updated_at": searched_at.isoformat(),
@@ -238,6 +255,20 @@ def effective_product_identity(product: dict[str, Any]) -> dict[str, Any]:
             if observation.get(field) not in (None, ""):
                 effective[field] = observation[field]
     return effective
+
+
+def explicit_non_na_region(title: Any) -> str | None:
+    """Require an explicit, low-ambiguity supplier-title region marker."""
+    text = " ".join(re.sub(r"[^a-z0-9]+", " ", str(title or "").lower()).split())
+    patterns = (
+        ("eu", r"\b(eu|europe|european|pal)\b"),
+        ("jp", r"\b(japan|japanese|ntsc j)\b"),
+        ("uk", r"\b(uk version|british version)\b"),
+        ("fr", r"\b(french|france version)\b"),
+        ("it", r"\b(italian|italy version)\b"),
+        ("mde", r"\bmde\b"),
+    )
+    return next((code for code, pattern in patterns if re.search(pattern, text)), None)
 
 
 def process_work_batch(repository: WholesaleRepository, service: WholesaleEnrichmentService,

@@ -7,7 +7,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "integrations"))
 
 from amazon_spapi_client import AmazonSPAPIClient  # noqa: E402
 from wholesale_enrichment import (  # noqa: E402
-    WholesaleEnrichmentService, effective_product_identity, process_work_batch,
+    WholesaleEnrichmentService, effective_product_identity, explicit_non_na_region, process_work_batch,
 )
 
 
@@ -50,6 +50,21 @@ class WholesaleEnrichmentTests(unittest.TestCase):
         self.assertEqual(repository.saved[0]["search_status"], "success")
         self.assertEqual(repository.saved[0]["candidate_asins"], ["B000000001", "B000000002"])
 
+    def test_search_context_is_persisted_for_human_evidence(self):
+        repository = FakeRepository()
+        service = WholesaleEnrichmentService(repository, FakeAmazon(), seller_id="seller", marketplace_id="US")
+        service._search({"supplier_product_id": "p1"}, "title_platform", "Game PS 5",
+                        query_context={"title_terms": "Game", "platform_term": "PS 5"}, keywords=["Game", "PS", "5"])
+        self.assertEqual(repository.saved[0]["query_context"], {"title_terms": "Game", "platform_term": "PS 5"})
+
+    def test_enrich_source_always_invokes_both_discovery_branches(self):
+        source = (Path(__file__).resolve().parents[1] / "integrations/wholesale_enrichment.py").read_text(encoding="utf-8")
+        identifier_position = source.index('self._search(product, "identifier"')
+        title_position = source.index('self._search(product, "title_platform"')
+        merge_position = source.index("merge_candidates(identifier_items, title_items)")
+        self.assertLess(identifier_position, title_position)
+        self.assertLess(title_position, merge_position)
+
     def test_explicit_rematch_bypasses_fresh_search_cache(self):
         repository = FakeRepository({"candidate_asins": ["B000000009"], "search_status": "success"})
         amazon = FakeAmazon()
@@ -65,6 +80,12 @@ class WholesaleEnrichmentTests(unittest.TestCase):
         }})
         self.assertEqual((row["raw_title"], row["raw_system"]), ("New", "PS5"))
         self.assertNotIn("supplier_price", row)
+
+    def test_non_na_classification_requires_explicit_low_ambiguity_marker(self):
+        self.assertEqual(explicit_non_na_region("Game EU Version"), "eu")
+        self.assertEqual(explicit_non_na_region("Jeu French Language"), "fr")
+        self.assertIsNone(explicit_non_na_region("It Takes Two"))
+        self.assertIsNone(explicit_non_na_region("Friday the 13th"))
 
     def test_catalog_identifier_and_keyword_requests_use_same_client_method(self):
         client = AmazonSPAPIClient.__new__(AmazonSPAPIClient)

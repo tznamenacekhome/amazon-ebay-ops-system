@@ -1,5 +1,9 @@
 # DECISIONS.md
 
+## Wholesale pass resurfacing and audit workflow (2026-10-03)
+
+Wholesale has three operator views: Ready to Review, Order List, and Full Import. System exclusions remain explicit Full Import states rather than manual pass reasons. A new supplier list triggers reevaluation but never clears a pass by itself. Too Much Inventory, Price Risk, and Competition compare only their captured evidence; Other and Listing / ASIN Issue require manual reconsideration. Candidate discovery always runs identifier and title/platform branches, and `new_new` eligibility remains a hard gate.
+
 ## Wholesale dual-price qualification (2026-10-03)
 
 Future wholesale True ROI must be calculated independently at current Buy Box

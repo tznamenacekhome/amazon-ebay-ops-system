@@ -22,7 +22,7 @@ The current ownership inventory is maintained in
 
 ## Wholesale Supplier History
 
-Wholesale Phase 1 (local migration prepared; not applied to production):
+Wholesale Phase 1 (deployed to production):
 `wholesale_suppliers`, `wholesale_imports`, `wholesale_supplier_products`, and
 `wholesale_supplier_observations` form a separate supplier quote/history domain.
 Service-only transactional import and invoker read views preserve dated evidence
@@ -219,7 +219,7 @@ Inventory reconciliation tables are derived and additive. Workflow corrections m
 
 ## Wholesale Amazon matching
 
-- `wholesale_catalog_searches`: cached identifier and title/platform result sets.
+- `wholesale_catalog_searches`: cached identifier and title/platform result sets plus human-auditable query context.
 - `wholesale_amazon_candidates`: per-product ASIN compatibility, prior sales, Keepa velocity, eligibility, rank, and reasons.
 - `amazon_listing_eligibility_evidence`: seller/marketplace/ASIN/condition eligibility cache shared by wholesale matching.
 - `wholesale_match_states`: selected candidate, manual/automatic source, identity signature, and workflow status.
@@ -233,6 +233,8 @@ Inventory reconciliation tables are derived and additive. Workflow corrections m
 - `wholesale_decisions`: append-only temporary/hard pass, reversal, resurfacing, and draft action history.
 - `wholesale_order_candidates`: active/released draft buying intentions; never owned inventory or a submitted order.
 - `wholesale_order_candidate_requests`: durable Add to Order idempotency results.
+- `wholesale_product_classifications`: persistent, reversible product-level exclusions such as confirmed non-NA versions.
+- `wholesale_decisions.decision_context`: list identity, selected ASIN, and reason-specific evidence at pass time for conditional resurfacing.
 
 ## Important Views
 

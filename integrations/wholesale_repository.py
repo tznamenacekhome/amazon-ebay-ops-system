@@ -39,6 +39,20 @@ class WholesaleRepository:
                 "match_state": state_rows[0] if state_rows else None,
                 "candidates": candidates}
 
+    def active_product_classification(self, supplier_product_id: str) -> dict | None:
+        rows = (self.client.table("wholesale_product_classifications").select("*")
+                .eq("supplier_product_id", supplier_product_id).eq("classification_status", "active")
+                .order("created_at", desc=True).limit(1).execute().data or [])
+        return rows[0] if rows else None
+
+    def set_product_classification(self, supplier_product_id: str, code: str,
+                                   evidence: dict, actor: str) -> dict:
+        return self.client.rpc("wholesale_set_product_classification", {
+            "p_supplier_product_id": supplier_product_id,
+            "p_classification_code": code, "p_active": True,
+            "p_evidence_json": evidence, "p_actor": actor,
+        }).execute().data
+
     def fresh_search(self, supplier_product_id: str, marketplace_id: str,
                      query_type: str, fingerprint: str) -> dict | None:
         rows = (self.client.table("wholesale_catalog_searches").select("*")
@@ -242,9 +256,19 @@ class WholesaleRepository:
             prior = (self.client.table("wholesale_evaluations").select("input_fingerprint")
                      .eq("evaluation_id", opportunity["current_evaluation_id"]).limit(1).execute().data or [])
             previous_fingerprint = prior[0].get("input_fingerprint") if prior else None
+        active_decision = None
+        if opportunity.get("active_decision_scope") in {"temporary", "hard"}:
+            decisions = (self.client.table("wholesale_decisions")
+                         .select("decision_id,reason_code,decision_context,created_at")
+                         .eq("opportunity_id", opportunity["opportunity_id"])
+                         .in_("decision_scope", ["temporary", "hard"])
+                         .order("created_at", desc=True).limit(1).execute().data or [])
+            active_decision = decisions[0] if decisions else None
         status, active_scope, resurfaced = resolve_opportunity_state(
             row, opportunity.get("active_decision_scope"), previous_fingerprint,
             row["input_fingerprint"], self.active_draft_units(row["supplier_product_id"], row["marketplace_id"]),
+            active_reason=opportunity.get("active_decision_reason"),
+            decision_context=(active_decision or {}).get("decision_context"),
         )
         if resurfaced:
             self.client.table("wholesale_decisions").insert({
@@ -255,8 +279,16 @@ class WholesaleRepository:
                 "decision_scope": "system",
                 "reason_code": opportunity.get("active_decision_reason"),
                 "actor": "wholesale-evaluator",
-                "decision_context": {"previous_fingerprint": previous_fingerprint,
-                                     "new_fingerprint": row["input_fingerprint"]},
+                "decision_context": {
+                    "previous_fingerprint": previous_fingerprint,
+                    "new_fingerprint": row["input_fingerprint"],
+                    "prior_decision_id": (active_decision or {}).get("decision_id"),
+                    "reason_specific_change": pass_change_details(
+                        opportunity.get("active_decision_reason"),
+                        ((active_decision or {}).get("decision_context") or {}).get("condition_snapshot") or {},
+                        row,
+                    ),
+                },
             }).execute()
         updated = (self.client.table("wholesale_opportunities").update({
             "current_candidate_id": row.get("candidate_id"),
@@ -303,13 +335,66 @@ def opportunity_status(evaluation: dict) -> str:
 
 def resolve_opportunity_state(evaluation: dict, active_scope: str | None,
                               previous_fingerprint: str | None, new_fingerprint: str,
-                              draft_units: int) -> tuple[str, str | None, bool]:
+                              draft_units: int, *, active_reason: str | None = None,
+                              decision_context: dict | None = None) -> tuple[str, str | None, bool]:
     if active_scope == "hard":
         return "hard_passed", "hard", False
     if draft_units > 0:
         return "added_to_order", active_scope, False
-    if active_scope == "temporary" and previous_fingerprint == new_fingerprint:
-        return "temporarily_passed", "temporary", False
     if active_scope == "temporary":
-        return opportunity_status(evaluation), None, True
+        base_status = opportunity_status(evaluation)
+        snapshot = (decision_context or {}).get("condition_snapshot") or {}
+        changed = bool(pass_change_details(active_reason, snapshot, evaluation).get("changed"))
+        # A changed pass condition only becomes actionable after every normal
+        # eligibility and dual-price qualification gate passes again.
+        if changed and base_status == "ready_for_review":
+            return base_status, None, True
+        return "temporarily_passed", "temporary", False
     return opportunity_status(evaluation), active_scope, False
+
+
+def pass_change_details(reason: str | None, snapshot: dict, current: dict) -> dict:
+    if reason == "too_much_inventory":
+        before = _number(snapshot.get("purchase_capacity"))
+        after = _number(current.get("purchase_capacity"))
+        changed = after is not None and after >= 1 and (before is None or after >= before + 1)
+        return {"changed": changed, "before_capacity": before, "current_capacity": after}
+    if reason == "price_risk":
+        fields = {
+            "supplier_price": "supplier_unit_cost", "current_buy_box": "current_buy_box_price",
+            "avg30": "keepa_avg30_price", "avg90": "keepa_avg90_price",
+            "previous_supplier_price": "previous_supplier_price",
+            "supplier_price_30d": "supplier_price_30d", "supplier_price_90d": "supplier_price_90d",
+        }
+        changes = {name: _material_numeric_change(snapshot.get(name), current.get(field), .05)
+                   for name, field in fields.items()}
+        return {"changed": any(changes.values()), "threshold": "5_percent", "fields": changes}
+    if reason == "competition":
+        changes = {
+            "offer_count": _count_change(snapshot.get("offer_count"), current.get("offer_count_current")),
+            "fba_seller_count": _count_change(snapshot.get("fba_seller_count"), current.get("fba_seller_count")),
+        }
+        return {"changed": any(changes.values()), "fields": changes}
+    if reason == "low_profitability":  # legacy Phase 3 decisions only
+        return {"changed": snapshot.get("input_fingerprint") != current.get("input_fingerprint")}
+    return {"changed": False, "manual_reconsideration_required": reason in {"other", "listing_asin_issue"}}
+
+
+def _number(value):
+    try:
+        return float(value) if value is not None else None
+    except (TypeError, ValueError):
+        return None
+
+
+def _material_numeric_change(before, after, threshold: float) -> bool:
+    old, new = _number(before), _number(after)
+    if old is None or new is None:
+        return old is None and new is not None
+    denominator = max(abs(old), .01)
+    return abs(new - old) / denominator >= threshold
+
+
+def _count_change(before, after) -> bool:
+    old, new = _number(before), _number(after)
+    return old is not None and new is not None and int(old) != int(new)

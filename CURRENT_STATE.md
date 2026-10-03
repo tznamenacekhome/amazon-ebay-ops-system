@@ -1,5 +1,9 @@
 # CURRENT_STATE.md
 
+## Wholesale Phase 3B refinement (2026-10-03)
+
+The production schema now supports the simplified Ready to Review / Order List / Full Import workflow, list-date-aware full-import auditing, human candidate discovery evidence, reason-specific pass snapshots, conditional resurfacing, and persistent reversible non-NA classifications. The B0F2NZ8LKV diagnostic is resolved through the general exact-UPC compatibility path; Amazon returned `NOT_ELIGIBLE` for `new_new`, and the product is now `restricted_no_eligible`. Bounded run `a70d2442-e0d7-4f10-bfb9-ea2ae47cbc47` processed 25 Royal products with 18 matches, 3 identity reviews, 4 restricted results, and no errors. One real opportunity is Ready to Review on the 90-day ROI basis. See [Phase 3B refinement](docs/WHOLESALE_PHASE3B_REFINEMENT.md).
+
 ## Wholesale Phases 1-3B live in production (2026-10-03)
 
 The supplier catalog/import/history foundation is implemented and tested against
@@ -1551,7 +1555,7 @@ Schema:
 
 ## Wholesale purchasing
 
-Phases 1-3B are deployed. Phase 3 adds immutable dual-price True ROI evaluations, 30-day inventory capacity, informational risk/supplier history, reversible review decisions, the `/wholesale` workspace, and idempotent draft order commitments. Phase 3B adds focused side-by-side review, enriched candidate comparison, and bounded scheduler reevaluation after manual selection. Drafts are buying intent only and are not purchases, inventory, orders, or accounting. See `docs/WHOLESALE_PHASE2.md`, `docs/WHOLESALE_PHASE3.md`, and `docs/WHOLESALE_PHASE3B.md`.
+Phases 1-3B and the refinement schema are deployed. Phase 3 adds immutable dual-price True ROI evaluations, 30-day inventory capacity, informational risk/supplier history, reversible review decisions, the `/wholesale` workspace, and idempotent draft commitments. The refinement uses exactly Ready to Review, Order List, and Full Import; the table is the evaluation workspace, candidate comparison preserves both discovery branches, and pass resurfacing is reason-specific. Drafts are buying intent only and are not purchases, inventory, submitted supplier orders, or accounting. See `docs/WHOLESALE_PHASE2.md`, `docs/WHOLESALE_PHASE3.md`, `docs/WHOLESALE_PHASE3B.md`, and `docs/WHOLESALE_PHASE3B_REFINEMENT.md`.
 
 
 ## Phase 3 resume checkpoint - 2026-09-13 (latest)

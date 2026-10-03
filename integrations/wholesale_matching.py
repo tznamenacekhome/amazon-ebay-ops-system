@@ -127,7 +127,8 @@ def merge_candidates(identifier_items: Iterable[dict[str, Any]], title_items: It
     return [merged[asin] for asin in sorted(merged)]
 
 
-def evaluate_compatibility(product: dict[str, Any], catalog: dict[str, Any]) -> CompatibilityResult:
+def evaluate_compatibility(product: dict[str, Any], catalog: dict[str, Any],
+                           match_sources: Iterable[str] = ()) -> CompatibilityResult:
     supplier_title = str(product.get("raw_title") or "")
     supplier_system = str(product.get("raw_system") or "")
     attrs = catalog.get("relevant_attributes_json") if isinstance(catalog.get("relevant_attributes_json"), dict) else {}
@@ -135,7 +136,16 @@ def evaluate_compatibility(product: dict[str, Any], catalog: dict[str, Any]) -> 
     supplier_platform = canonical_platform(supplier_system)
     candidate_platform = canonical_platform(catalog.get("normalized_platform") or attrs.get("platform") or candidate_title)
     reasons: list[str] = []
-    details = {"supplier_platform": supplier_platform, "candidate_platform": candidate_platform}
+    supplier_identifier = re.sub(r"\D", "", str(product.get("normalized_identifier") or ""))
+    amazon_identifiers = catalog_identifiers(catalog)
+    exact_identifier = bool(supplier_identifier and supplier_identifier in amazon_identifiers)
+    details = {
+        "supplier_platform": supplier_platform,
+        "candidate_platform": candidate_platform,
+        "supplier_identifier": supplier_identifier or None,
+        "amazon_identifiers": sorted(amazon_identifiers),
+        "exact_identifier_match": exact_identifier,
+    }
 
     if supplier_platform and candidate_platform and supplier_platform != candidate_platform:
         return result("incompatible", ["platform_mismatch"], details)
@@ -175,9 +185,29 @@ def evaluate_compatibility(product: dict[str, Any], catalog: dict[str, Any]) -> 
     details["title_token_similarity"] = round(similarity, 4)
     if similarity < 0.30:
         return result("incompatible", [*reasons, "title_mismatch"], details)
+    if exact_identifier and "identifier" in set(match_sources) and not reasons and similarity >= 0.30:
+        return result("compatible", ["identifier_and_platform_compatible"], details)
     if reasons or similarity < 0.60:
         return result("uncertain", [*reasons, "insufficient_identity_evidence"], details)
     return result("compatible", ["platform_and_title_compatible"], details)
+
+
+def catalog_identifiers(catalog: dict[str, Any]) -> set[str]:
+    """Return normalized external identifiers from Catalog Items payloads."""
+    output: set[str] = set()
+    raw = catalog.get("raw_catalog_json") if isinstance(catalog.get("raw_catalog_json"), dict) else catalog
+    for group in raw.get("identifiers") or []:
+        for identifier in group.get("identifiers") or [] if isinstance(group, dict) else []:
+            value = re.sub(r"\D", "", str(identifier.get("identifier") or identifier.get("value") or ""))
+            if value:
+                output.add(value)
+    attributes = raw.get("attributes") if isinstance(raw.get("attributes"), dict) else {}
+    for identifier in attributes.get("externally_assigned_product_identifier") or []:
+        if isinstance(identifier, dict):
+            value = re.sub(r"\D", "", str(identifier.get("value") or ""))
+            if value:
+                output.add(value)
+    return output
 
 
 def identity_signature(product: dict[str, Any]) -> str:

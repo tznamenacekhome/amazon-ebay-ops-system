@@ -11,12 +11,14 @@ export async function GET(request: Request, context: Context) {
   const marketplaceId = new URL(request.url).searchParams.get("marketplaceId")?.trim();
   if (!marketplaceId) return json({ error: "marketplaceId is required." }, 400);
   const supabase = createServerSupabaseClient();
-  const [productResult, stateResult, candidateResult] = await Promise.all([
+  const [productResult, stateResult, candidateResult, searchResult] = await Promise.all([
     supabase.from("vw_wholesale_supplier_products").select("*").eq("supplier_product_id", productId).maybeSingle(),
     supabase.from("wholesale_match_states").select("*").eq("supplier_product_id", productId).eq("marketplace_id", marketplaceId).maybeSingle(),
     supabase.from("wholesale_amazon_candidates").select("*").eq("supplier_product_id", productId).eq("marketplace_id", marketplaceId).order("rank_position").order("asin"),
+    supabase.from("wholesale_catalog_searches").select("query_type,query_value,query_context,candidate_asins,searched_at")
+      .eq("supplier_product_id", productId).eq("marketplace_id", marketplaceId).order("searched_at", { ascending: false }),
   ]);
-  const error = productResult.error || stateResult.error || candidateResult.error;
+  const error = productResult.error || stateResult.error || candidateResult.error || searchResult.error;
   if (error) return json({ error: error.message }, 500);
   if (!productResult.data) return json({ error: "Wholesale product not found." }, 404);
   const candidates = candidateResult.data ?? [];
@@ -35,7 +37,8 @@ export async function GET(request: Request, context: Context) {
   return json({
     product: productResult.data,
     matchState: stateResult.data,
-    candidates: candidates.map(candidate => candidateDto(candidate, catalogs.get(candidate.asin), keepa.get(candidate.asin))),
+    candidates: candidates.map(candidate => candidateDto(candidate, catalogs.get(candidate.asin), keepa.get(candidate.asin),
+      productResult.data, (searchResult.data ?? []).filter(search => (search.candidate_asins ?? []).includes(candidate.asin)))),
   });
 }
 
@@ -86,8 +89,9 @@ export async function POST(request: Request, context: Context) {
   return json({ matchState: result.data, evaluation: action === "select_candidate" ? "requested" : null, taskArn });
 }
 
-function candidateDto(candidate: any, catalog: any, keepa: any) {
+function candidateDto(candidate: any, catalog: any, keepa: any, product: any, searches: any[]) {
   const attributes = catalog?.relevant_attributes_json ?? {};
+  const amazonIdentifiers = catalogIdentifiers(catalog?.raw_catalog_json);
   return {
     ...candidate,
     title: attributes.title ?? keepa?.title ?? null,
@@ -100,7 +104,37 @@ function candidateDto(candidate: any, catalog: any, keepa: any) {
     current_buy_box: cents(keepa?.buy_box_price_current_cents),
     keepa_avg90: cents(keepa?.buy_box_price_avg90_cents),
     evidence_captured_at: keepa?.captured_at ?? catalog?.fetched_at ?? null,
+    match_evidence: searches.map(search => search.query_type === "identifier" ? {
+      type: "identifier", label: `Matched by ${identifierLabel(search.query_context?.identifier_type ?? product?.identifier_type)}`,
+      supplier_identifier: search.query_context?.supplier_identifier ?? product?.normalized_identifier ?? product?.raw_identifier ?? null,
+      amazon_identifiers: amazonIdentifiers,
+    } : {
+      type: "title_platform", label: "Matched by Title + Platform",
+      title_terms: search.query_context?.title_terms ?? product?.raw_title ?? null,
+      platform_term: search.query_context?.platform_term ?? product?.raw_system ?? null,
+      query: search.query_value,
+      amazon_title: attributes.title ?? keepa?.title ?? null,
+      amazon_platform: catalog?.normalized_platform ?? attributes.platform ?? null,
+    }),
   };
+}
+
+function identifierLabel(value: unknown) {
+  const normalized = String(value ?? "identifier").toUpperCase().replace("UPC_A", "UPC");
+  return normalized === "EAN" || normalized === "UPC" ? normalized : "Identifier";
+}
+
+function catalogIdentifiers(payload: any) {
+  const values = new Set<string>();
+  for (const group of payload?.identifiers ?? []) for (const identifier of group?.identifiers ?? []) {
+    const value = String(identifier?.identifier ?? identifier?.value ?? "").replace(/\D/g, "");
+    if (value) values.add(value);
+  }
+  for (const identifier of payload?.attributes?.externally_assigned_product_identifier ?? []) {
+    const value = String(identifier?.value ?? "").replace(/\D/g, "");
+    if (value) values.add(value);
+  }
+  return Array.from(values);
 }
 
 function firstImage(payload: any) {

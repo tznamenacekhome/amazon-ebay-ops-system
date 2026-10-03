@@ -11,8 +11,8 @@ from wholesale_matching import (  # noqa: E402
 )
 
 
-def product(title="Metroid Prime 4 Beyond", system="SW2"):
-    return {"raw_title": title, "raw_system": system}
+def product(title="Metroid Prime 4 Beyond", system="SW2", identifier=None):
+    return {"raw_title": title, "raw_system": system, "normalized_identifier": identifier}
 
 
 def catalog(title="Metroid Prime 4 Beyond", platform="Switch 2", **values):
@@ -84,6 +84,18 @@ class WholesaleMatchingTests(unittest.TestCase):
 
     def test_compatible_exact_identity(self):
         self.assertEqual(evaluate_compatibility(product(), catalog()).status, "compatible")
+
+    def test_exact_returned_upc_resolves_abbreviated_b0f2_title(self):
+        candidate = catalog("DRAGON QUEST I & II HD-2D Remake (NSW)", "Switch",
+                            raw_catalog_json={"identifiers": [{"identifiers": [
+                                {"identifierType": "UPC", "identifier": "662248928180"}
+                            ]}]})
+        result = evaluate_compatibility(
+            product("SW Dragon Quest 1 and 2 HD 2D Remake", "SW", "662248928180"),
+            candidate, ["identifier"],
+        )
+        self.assertEqual(result.status, "compatible")
+        self.assertIn("identifier_and_platform_compatible", result.reason_codes)
 
     def test_prior_sales_win_before_velocity(self):
         result = select_preferred([

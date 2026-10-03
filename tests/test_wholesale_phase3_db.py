@@ -11,6 +11,7 @@ MIGRATIONS = [
     ROOT / "supabase/migrations/20261003175949_mbop_wholesale_supplier_foundation.sql",
     ROOT / "supabase/migrations/20261003181641_mbop_wholesale_matching_enrichment.sql",
     ROOT / "supabase/migrations/20261003183342_mbop_wholesale_opportunity_evaluation.sql",
+    ROOT / "supabase/migrations/20261003213000_mbop_wholesale_phase3b_refinement.sql",
 ]
 
 
@@ -41,7 +42,7 @@ class WholesalePhase3DatabaseTests(unittest.TestCase):
         return result.stdout.strip()
 
     def setUp(self):
-        self.sql("truncate wholesale_order_candidate_requests,wholesale_order_candidates,wholesale_decisions,wholesale_evaluations,wholesale_opportunities,wholesale_match_states,wholesale_amazon_candidates,wholesale_supplier_observations,wholesale_imports,wholesale_supplier_products,wholesale_suppliers cascade;")
+        self.sql("truncate wholesale_product_classifications,wholesale_order_candidate_requests,wholesale_order_candidates,wholesale_decisions,wholesale_evaluations,wholesale_opportunities,wholesale_match_states,wholesale_amazon_candidates,wholesale_supplier_observations,wholesale_imports,wholesale_supplier_products,wholesale_suppliers cascade;")
         self.supplier_id = self.sql("insert into wholesale_suppliers(supplier_key,name) values('royal','Royal') returning supplier_id")
         self.import_id = self.sql("insert into wholesale_imports(supplier_id,effective_date,date_source,original_filename,file_sha256,parser_version,revision,currency,status,summary,source_rows) values(" +
                                   f"'{self.supplier_id}','2026-10-01','operator_parameter','x.xlsx',repeat('a',64),'test',1,'USD','completed','{{}}','[]') returning import_id")
@@ -63,6 +64,8 @@ class WholesalePhase3DatabaseTests(unittest.TestCase):
         self.sql("set role service_role; select wholesale_apply_decision(" +
                  f"'{self.opportunity_id}','{self.evaluation_id}','temporary_pass','price_risk','note','tester')")
         self.assertEqual(self.sql("select opportunity_status||':'||active_decision_scope from wholesale_opportunities"), "temporarily_passed:temporary")
+        self.assertEqual(self.sql("select decision_context->'list_context'->>'effective_date' from wholesale_decisions"), "2026-10-01")
+        self.assertEqual(self.sql("select decision_context->'condition_snapshot'->>'supplier_price' from wholesale_decisions"), "15.0000")
         self.sql("set role service_role; select wholesale_apply_decision(" +
                  f"'{self.opportunity_id}','{self.evaluation_id}','reverse_pass',null,null,'tester')")
         self.assertEqual(self.sql("select opportunity_status from wholesale_opportunities"), "ready_for_review")
@@ -76,14 +79,18 @@ class WholesalePhase3DatabaseTests(unittest.TestCase):
                  f"'{self.opportunity_id}','{self.evaluation_id}','reverse_pass',null,null,'tester')")
         self.assertEqual(self.sql("select opportunity_status from wholesale_opportunities"), "ready_for_review")
 
-    def test_restricted_hard_pass_requires_confirmed_restricted_state(self):
-        with self.assertRaisesRegex(RuntimeError, "eligibility_not_confirmed_restricted"):
+    def test_restricted_is_system_state_not_manual_pass_reason(self):
+        with self.assertRaisesRegex(RuntimeError, "invalid_hard_pass_reason"):
             self.sql("set role service_role; select wholesale_apply_decision(" +
                      f"'{self.opportunity_id}','{self.evaluation_id}','hard_pass','restricted_cant_sell',null,'tester')")
-        self.sql(f"update wholesale_match_states set match_status='restricted_no_eligible' where supplier_product_id='{self.product_id}'")
-        self.sql("set role service_role; select wholesale_apply_decision(" +
-                 f"'{self.opportunity_id}','{self.evaluation_id}','hard_pass','restricted_cant_sell',null,'tester')")
-        self.assertEqual(self.sql("select opportunity_status from wholesale_opportunities"), "hard_passed")
+
+    def test_non_na_classification_persists_and_can_be_reversed(self):
+        self.sql("set role service_role; select wholesale_set_product_classification(" +
+                 f"'{self.product_id}','non_na_version',true,'{{\"region\":\"eu\"}}','tester')")
+        self.assertEqual(self.sql("select classification_status from wholesale_product_classifications"), "active")
+        self.sql("set role service_role; select wholesale_set_product_classification(" +
+                 f"'{self.product_id}','non_na_version',false,'{{}}','tester')")
+        self.assertEqual(self.sql("select classification_status from wholesale_product_classifications"), "reversed")
 
     def test_draft_commitment_idempotency_and_update(self):
         first = self.sql("set role service_role; select (wholesale_upsert_draft_commitment(" +
