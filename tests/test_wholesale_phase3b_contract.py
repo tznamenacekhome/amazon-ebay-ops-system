@@ -27,8 +27,11 @@ class WholesalePhase3BContractTests(unittest.TestCase):
     def test_full_import_is_supplier_and_list_date_aware(self):
         for text in ("Supplier list date", "Effective list date:", "Imported:", "Products:", "All suppliers"):
             self.assertIn(text, self.page)
-        self.assertIn('eq("import_id", selectedImport.import_id)', self.full_api)
+        self.assertIn("fetchImportObservations(supabase, selectedImport.import_id)", self.full_api)
+        self.assertIn('eq("import_id", importId)', self.full_api)
         self.assertIn("wholesale_supplier_observations", self.full_api)
+        self.assertIn("IMPORT_OBSERVATION_PAGE_SIZE = 500", self.full_api)
+        self.assertIn("offset + IMPORT_OBSERVATION_PAGE_SIZE - 1", self.full_api)
 
     def test_full_import_explicit_filters(self):
         for text in ("ROI Too Low", "Restricted", "Eligibility Pending", "Pricing / Keepa Pending",

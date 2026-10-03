@@ -22,10 +22,13 @@ export async function GET(request: Request) {
   const selectedImport = requestedImportId ? (imports ?? []).find(row => row.import_id === requestedImportId) : imports?.[0];
   if (!selectedImport) return json({ imports: [], suppliers: suppliers ?? [], rows: [], total: 0 }, 200);
 
-  const { data: observations, error: observationError } = await supabase.from("wholesale_supplier_observations")
-    .select("*").eq("import_id", selectedImport.import_id).order("raw_title").range(0, 4999);
-  if (observationError) return json({ error: observationError.message }, 500);
-  const productIds = unique((observations ?? []).map(row => row.supplier_product_id));
+  let observations: any[];
+  try {
+    observations = await fetchImportObservations(supabase, selectedImport.import_id);
+  } catch (error) {
+    return json({ error: error instanceof Error ? error.message : "Unable to load import observations" }, 500);
+  }
+  const productIds = unique(observations.map(row => row.supplier_product_id));
   const [opportunities, states, candidates, drafts, classifications] = await Promise.all([
     fetchChunks(supabase, "wholesale_opportunities", "supplier_product_id", productIds, "*"),
     fetchChunks(supabase, "wholesale_match_states", "supplier_product_id", productIds, "*"),
@@ -56,7 +59,7 @@ export async function GET(request: Request) {
     if (!decisionMap.has(decision.opportunity_id) && ["temporary", "hard"].includes(decision.decision_scope)) decisionMap.set(decision.opportunity_id, decision);
   }
 
-  let rows = (observations ?? []).map(observation => {
+  let rows = observations.map(observation => {
     const opportunity = opportunityMap.get(observation.supplier_product_id);
     const evaluation = opportunity ? evaluationMap.get(opportunity.current_evaluation_id) : null;
     const state = stateMap.get(observation.supplier_product_id);
@@ -90,7 +93,7 @@ export async function GET(request: Request) {
   if (system) rows = rows.filter(row => row.system?.toLowerCase() === system);
   if (search) rows = rows.filter(row => [row.supplierTitle, row.rawIdentifier, row.asin, row.amazonTitle]
     .some(value => String(value ?? "").toLowerCase().includes(search)));
-  const systems = unique((observations ?? []).map(row => row.raw_system)).sort();
+  const systems = unique(observations.map(row => row.raw_system)).sort();
   const total = rows.length;
   rows = rows.slice((page - 1) * pageSize, page * pageSize);
 
@@ -134,6 +137,19 @@ function classify(input: any) {
 }
 
 function result(key: string, label: string, detail: string | null = null) { return { key, label, detail }; }
+const IMPORT_OBSERVATION_PAGE_SIZE = 500;
+async function fetchImportObservations(supabase: any, importId: string) {
+  const output: any[] = [];
+  for (let offset = 0; ; offset += IMPORT_OBSERVATION_PAGE_SIZE) {
+    const { data, error } = await supabase.from("wholesale_supplier_observations").select("*")
+      .eq("import_id", importId).order("raw_title").order("observation_id")
+      .range(offset, offset + IMPORT_OBSERVATION_PAGE_SIZE - 1);
+    if (error) throw new Error(`wholesale_supplier_observations: ${error.message}`);
+    output.push(...(data ?? []));
+    if ((data ?? []).length < IMPORT_OBSERVATION_PAGE_SIZE) break;
+  }
+  return output;
+}
 async function fetchChunks(supabase: any, table: string, field: string, values: string[], select: string) {
   const output: any[] = [];
   for (let index = 0; index < values.length; index += 150) {
