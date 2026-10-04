@@ -2,16 +2,18 @@
 from __future__ import annotations
 
 import hashlib
+import csv
 import json
 import re
 from collections import Counter, defaultdict
 from datetime import date, datetime
 from decimal import Decimal, InvalidOperation
-from io import BytesIO
+from io import BytesIO, StringIO
 from pathlib import Path
+from tempfile import NamedTemporaryFile
 from zipfile import ZipFile
 
-from openpyxl import load_workbook
+from openpyxl import Workbook, load_workbook
 
 PARSER_VERSION = "royal-v1"
 SUPPLIER_KEY = "royal-electronics"
@@ -93,6 +95,28 @@ def parse_date(value) -> date:
         except ValueError:
             pass
     raise ValueError("Price-list date must be YYYY-MM-DD or MM/DD/YYYY")
+
+
+def filename_effective_date(filename: str) -> date | None:
+    """Accept only unambiguous dates in a supplier-looking filename."""
+    stem = Path(filename).stem
+    if not re.search(r"royal|price|list", stem, re.IGNORECASE):
+        return None
+    matches = []
+    for pattern, fmt in (
+        (r"(?<!\d)(20\d{2}[-_]?\d{2}[-_]?\d{2})(?!\d)", None),
+        (r"(?<!\d)(\d{1,2}[-_]\d{1,2}[-_]20\d{2})(?!\d)", "%m-%d-%Y"),
+    ):
+        for match in re.findall(pattern, stem):
+            try:
+                value = match.replace("_", "-")
+                matches.append(datetime.strptime(value, fmt or ("%Y-%m-%d" if "-" in value else "%Y%m%d")).date())
+            except ValueError:
+                continue
+    unique = set(matches)
+    if len(unique) > 1:
+        raise ValueError("Conflicting dates in supplier filename")
+    return next(iter(unique)) if unique else None
 
 
 def effective_date(workbook, explicit: date | str | None) -> tuple[date, str]:
@@ -235,3 +259,76 @@ def parse_workbook(path: str | Path, price_list_date: date | str | None = None) 
                 "warnings": warnings, "errors": errors, "source_rows": source_rows, "products": products}
     finally:
         workbook.close()
+
+
+def _converted_workbook(rows: list[list[object]], source_name: str,
+                        price_list_date: date | str | None) -> dict:
+    if len(rows) > MAX_ROWS or any(len(row) > 50 for row in rows):
+        raise ValueError("Supplier file exceeds bounded parser dimensions")
+    workbook = Workbook(write_only=False)
+    sheet = workbook.active
+    sheet.title = "COMPLETE LIST"
+    for row in rows:
+        sheet.append(row)
+    with NamedTemporaryFile(suffix=".xlsx", delete=False) as temp:
+        temp_path = Path(temp.name)
+    try:
+        workbook.save(temp_path)
+        parsed = parse_workbook(temp_path, price_list_date)
+    finally:
+        workbook.close()
+        temp_path.unlink(missing_ok=True)
+    parsed["filename"] = source_name
+    return parsed
+
+
+def parse_price_list(path: str | Path, price_list_date: date | str | None = None) -> dict:
+    """Parse XLSX, legacy XLS, or CSV through the Royal v1 row normalizer."""
+    path = Path(path)
+    content = path.read_bytes()
+    if len(content) > 10 * 1024 * 1024:
+        raise ValueError("Supplier file exceeds 10 MiB limit")
+    suffix = path.suffix.lower()
+    supplied = parse_date(price_list_date) if price_list_date is not None else None
+    filename_date = filename_effective_date(path.name)
+    candidate_date = supplied or filename_date
+    if suffix == ".xlsx":
+        parsed = parse_workbook(path, candidate_date)
+    elif suffix == ".csv":
+        text = None
+        for encoding in ("utf-8-sig", "cp1252"):
+            try:
+                text = content.decode(encoding)
+                break
+            except UnicodeDecodeError:
+                pass
+        if text is None or "\x00" in text:
+            raise ValueError("CSV is not valid bounded text")
+        try:
+            dialect = csv.Sniffer().sniff(text[:8192], delimiters=",;\t")
+        except csv.Error:
+            dialect = csv.excel
+        rows = [row for row in csv.reader(StringIO(text), dialect) if any(cell.strip() for cell in row)]
+        parsed = _converted_workbook(rows, path.name, candidate_date)
+    elif suffix == ".xls":
+        try:
+            import xlrd
+        except ImportError as exc:
+            raise ValueError("Legacy XLS support requires the xlrd package") from exc
+        book = xlrd.open_workbook(file_contents=content, on_demand=True)
+        try:
+            if "COMPLETE LIST" not in book.sheet_names():
+                raise ValueError("Required COMPLETE LIST sheet is missing")
+            source = book.sheet_by_name("COMPLETE LIST")
+            rows = [[source.cell_value(r, c) for c in range(source.ncols)] for r in range(source.nrows)]
+            parsed = _converted_workbook(rows, path.name, candidate_date)
+        finally:
+            book.release_resources()
+    else:
+        raise ValueError("Royal source must be .xlsx, .xls, or .csv")
+    parsed["filename"] = path.name
+    parsed["file_sha256"] = hashlib.sha256(content).hexdigest()
+    if (filename_date and not supplied and parsed["date_source"] == "operator_parameter"
+            and parsed["effective_date"] == filename_date.isoformat()):
+        parsed["date_source"] = "supplier_filename"
+    return parsed

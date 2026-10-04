@@ -13,6 +13,30 @@ class WholesaleRepository:
             "p_payload": payload, "p_replaces_import_id": replaces_import_id,
         }).execute().data
 
+    def operational_notification(self, dedupe_key: str, title: str, message: str,
+                                 severity: str = "error", href: str = "/wholesale") -> None:
+        existing = (self.client.table("mbop_notifications").select("notification_id,occurrence_count")
+                    .eq("dedupe_key", dedupe_key).limit(1).execute().data or [])
+        row = {"dedupe_key": dedupe_key, "severity": severity, "category": "royal_price_list",
+               "title": title, "message": message[:1000], "href": href,
+               "last_seen_at": self._now(), "read_at": None, "resolved_at": None}
+        if existing:
+            row["occurrence_count"] = int(existing[0].get("occurrence_count") or 1) + 1
+            self.client.table("mbop_notifications").update(row).eq(
+                "notification_id", existing[0]["notification_id"]).execute()
+        else:
+            self.client.table("mbop_notifications").insert(row).execute()
+
+    def latest_import_for_date(self, supplier_key: str, effective_date: str) -> dict | None:
+        suppliers = (self.client.table("wholesale_suppliers").select("supplier_id")
+                     .eq("supplier_key", supplier_key).limit(1).execute().data or [])
+        if not suppliers:
+            return None
+        rows = (self.client.table("wholesale_imports").select("import_id,file_sha256,revision")
+                .eq("supplier_id", suppliers[0]["supplier_id"]).eq("effective_date", effective_date)
+                .eq("status", "completed").order("revision", desc=True).limit(1).execute().data or [])
+        return rows[0] if rows else None
+
     def list_products(self, supplier_id: str, *, offset: int = 0, limit: int = 100,
                       present_only: bool = False) -> list[dict]:
         self._page(offset, limit)
@@ -168,6 +192,26 @@ class WholesaleRepository:
             } for row in products]).execute()
         return run
 
+    def create_targeted_enrichment_run(self, supplier_id: str, marketplace_id: str,
+                                       product_ids: list[str]) -> dict | None:
+        """Persist a bounded run for the exact products changed by one import."""
+        product_ids = list(dict.fromkeys(product_ids))[:5000]
+        if not product_ids:
+            return None
+        run = (self.client.table("wholesale_enrichment_runs").insert({
+            "supplier_id": supplier_id, "marketplace_id": marketplace_id,
+            "requested_limit": len(product_ids), "run_status": "pending",
+        }).execute().data or [])[0]
+        self.client.table("wholesale_enrichment_work_items").insert([{
+            "enrichment_run_id": run["enrichment_run_id"], "supplier_product_id": product_id,
+        } for product_id in product_ids]).execute()
+        return run
+
+    def products_for_import(self, import_id: str) -> list[str]:
+        rows = (self.client.table("wholesale_supplier_observations")
+                .select("supplier_product_id").eq("import_id", import_id).execute().data or [])
+        return [row["supplier_product_id"] for row in rows]
+
     def pending_work(self, enrichment_run_id: str, limit: int = 25) -> list[dict]:
         self._page(0, limit)
         return (self.client.table("wholesale_enrichment_work_items").select("*")
@@ -179,6 +223,19 @@ class WholesaleRepository:
         rows = (self.client.table("wholesale_enrichment_runs").select("*")
                 .eq("enrichment_run_id", enrichment_run_id).limit(1).execute().data or [])
         return rows[0] if rows else None
+
+    def oldest_pending_enrichment_run(self) -> dict | None:
+        rows = (self.client.table("wholesale_enrichment_runs").select("*")
+                .in_("run_status", ["pending", "running"])
+                .order("created_at").limit(1).execute().data or [])
+        return rows[0] if rows else None
+
+    def pending_evaluation_product_ids(self, marketplace_id: str, limit: int = 50) -> list[str]:
+        self._page(0, limit)
+        rows = (self.client.table("wholesale_opportunities").select("supplier_product_id")
+                .eq("marketplace_id", marketplace_id).eq("evaluation_requested", True)
+                .order("updated_at").limit(limit).execute().data or [])
+        return [row["supplier_product_id"] for row in rows]
 
     def update_enrichment_run(self, enrichment_run_id: str, values: dict) -> None:
         self.client.table("wholesale_enrichment_runs").update(values).eq(

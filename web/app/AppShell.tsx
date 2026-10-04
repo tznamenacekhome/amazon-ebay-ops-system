@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import {
   AlertTriangle,
   BarChart3,
+  Bell,
   Boxes,
   LogOut,
   PackageCheck,
@@ -15,6 +16,8 @@ import {
   ShoppingCart,
   TrendingDown,
 } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
+import { mutationHeaders } from "./mutationHeaders";
 
 const navItems = [
   {
@@ -72,6 +75,14 @@ const navItems = [
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const buildSha = process.env.NEXT_PUBLIC_MBOP_BUILD_SHA || "local";
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [notificationOpen, setNotificationOpen] = useState(false);
+  const loadNotifications = useCallback(async () => {
+    const response = await fetch("/api/notifications", { cache: "no-store" });
+    if (response.ok) setNotifications((await response.json()).rows ?? []);
+  }, []);
+  useEffect(() => { void loadNotifications(); const timer = window.setInterval(loadNotifications, 60000); return () => window.clearInterval(timer); }, [loadNotifications]);
+  const unread = notifications.filter(row => !row.read_at).length;
 
   return (
     <div className="flex min-h-screen bg-slate-100 text-slate-900">
@@ -113,6 +124,16 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           {buildSha.slice(0, 7)}
         </div>
       </aside>
+
+      <div className="absolute right-28 top-3 z-50">
+        <button onClick={() => setNotificationOpen(value => !value)} className="relative inline-flex h-9 w-9 items-center justify-center rounded-md border border-slate-300 bg-white text-slate-700 shadow-sm" aria-label="Notifications" title="Notifications">
+          <Bell className="h-4 w-4"/>{unread ? <span className="absolute -right-1 -top-1 min-w-4 rounded-full bg-red-600 px-1 text-[10px] text-white">{Math.min(unread, 99)}</span> : null}
+        </button>
+        {notificationOpen ? <div className="absolute right-0 mt-2 w-96 rounded border bg-white shadow-xl">
+          <div className="flex items-center justify-between border-b px-3 py-2 text-sm font-semibold"><span>Notifications</span>{unread ? <button className="text-xs text-blue-700" onClick={async () => { await fetch("/api/notifications", { method: "PATCH", headers: mutationHeaders() }); await loadNotifications(); }}>Mark all read</button> : null}</div>
+          <div className="max-h-96 overflow-auto">{notifications.length ? notifications.map(row => <a key={row.notification_id} href={row.href || "#"} className={`block border-b px-3 py-3 text-sm hover:bg-slate-50 ${row.read_at ? "text-slate-500" : "bg-blue-50/50"}`}><div className="font-semibold">{row.title}</div><div className="mt-1 text-xs">{row.message}</div>{row.occurrence_count > 1 ? <div className="mt-1 text-xs">Occurred {row.occurrence_count} times</div> : null}</a>) : <div className="p-5 text-center text-sm text-slate-500">No notifications.</div>}</div>
+        </div> : null}
+      </div>
 
       <a
         href="/api/logout"

@@ -7,6 +7,11 @@ param(
   [string]$TaskRoleArn = "",
   [string]$BaseTaskDefinition = "",
   [string]$ScheduleNamePrefix = "mbop-",
+  [switch]$EnableRoyalEmail,
+  [string]$RoyalDownloadAllowedDomains = "",
+  [string]$RoyalGraphTenantSecretId = "/mbop/prod/royal-graph-tenant-id",
+  [string]$RoyalGraphClientSecretId = "/mbop/prod/royal-graph-client-id",
+  [string]$RoyalGraphCredentialSecretId = "/mbop/prod/royal-graph-client-secret",
   [switch]$EnablePhase3,
   [switch]$AllowDirty
 )
@@ -113,6 +118,27 @@ $container.image = $pinnedImage
 if ($EnablePhase3) {
   $container.environment = @($container.environment | Where-Object { $_.name -ne "MBOP_SOURCING_PHASE3" }) + @(
     [pscustomobject]@{ name = "MBOP_SOURCING_PHASE3"; value = "1" }
+  )
+}
+if ($EnableRoyalEmail) {
+  if (-not ($container.PSObject.Properties.Name -contains "secrets")) {
+    $container | Add-Member -NotePropertyName secrets -NotePropertyValue @()
+  }
+  $secretMap = @{
+    ROYAL_GRAPH_TENANT_ID = $RoyalGraphTenantSecretId
+    ROYAL_GRAPH_CLIENT_ID = $RoyalGraphClientSecretId
+    ROYAL_GRAPH_CLIENT_SECRET = $RoyalGraphCredentialSecretId
+  }
+  foreach ($entry in $secretMap.GetEnumerator()) {
+    $arn = (aws secretsmanager describe-secret --profile $Profile --region $Region --secret-id $entry.Value --query ARN --output text).Trim()
+    if (-not $arn -or $arn -eq "None") { throw "Missing Royal Graph secret: $($entry.Value)" }
+    $container.secrets = @($container.secrets | Where-Object { $_.name -ne $entry.Key }) + @(
+      [pscustomobject]@{ name = $entry.Key; valueFrom = $arn }
+    )
+  }
+  $container.environment = @($container.environment | Where-Object { $_.name -notin @("ROYAL_GRAPH_MAILBOX", "ROYAL_DOWNLOAD_ALLOWED_DOMAINS") }) + @(
+    [pscustomobject]@{ name = "ROYAL_GRAPH_MAILBOX"; value = "tim@midnightbe.com" },
+    [pscustomobject]@{ name = "ROYAL_DOWNLOAD_ALLOWED_DOMAINS"; value = $RoyalDownloadAllowedDomains }
   )
 }
 

@@ -372,14 +372,20 @@ def main() -> int:
     parser.add_argument("--product-id", action="append", default=[])
     parser.add_argument("--run-id", help="Resume pending work from a persistent enrichment run")
     parser.add_argument("--supplier-id", help="Create a persistent enrichment run for an active supplier catalog")
+    parser.add_argument("--oldest-pending", action="store_true", help="Resume the oldest persistent queued run")
     parser.add_argument("--limit", type=int, default=25)
     args = parser.parse_args()
-    if not args.product_id and not args.run_id and not args.supplier_id:
-        parser.error("provide --product-id, --run-id, or --supplier-id")
+    if not args.product_id and not args.run_id and not args.supplier_id and not args.oldest_pending:
+        parser.error("provide --product-id, --run-id, --supplier-id, or --oldest-pending")
     repository = WholesaleRepository(get_supabase_client())
     amazon = AmazonSPAPIClient.from_env()
     service = WholesaleEnrichmentService(repository, amazon, seller_id=amazon.config.seller_id or os.getenv("AMAZON_SELLER_ID", ""), marketplace_id=amazon.config.marketplace_id)
     run_id = args.run_id
+    if args.oldest_pending and not run_id:
+        oldest = repository.oldest_pending_enrichment_run()
+        run_id = oldest["enrichment_run_id"] if oldest else None
+        if not run_id:
+            print({"status": "idle", "reason": "no_pending_enrichment_run"})
     if args.supplier_id:
         run = repository.create_enrichment_run(args.supplier_id, amazon.config.marketplace_id, args.limit)
         run_id = run["enrichment_run_id"]
@@ -401,6 +407,10 @@ def main() -> int:
             "error_count": int(current.get("error_count") or 0) + counters["errors"],
             "completed_at": None if remaining else now_iso(), "updated_at": now_iso(),
         })
+        if counters["errors"] and hasattr(repository, "operational_notification"):
+            repository.operational_notification(
+                f"royal-downstream:matching:{run_id}", "Royal matching needs attention",
+                f"{counters['errors']} product(s) failed in enrichment run {run_id}. Retry work remains queued.")
     return 0
 
 

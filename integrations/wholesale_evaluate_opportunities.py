@@ -270,17 +270,25 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Evaluate cached wholesale opportunity economics")
     parser.add_argument("--product-id", action="append", default=[])
     parser.add_argument("--supplier-id")
+    parser.add_argument("--pending", action="store_true", help="Evaluate persistently requested opportunities")
     parser.add_argument("--marketplace-id", default="ATVPDKIKX0DER")
     parser.add_argument("--limit", type=int, default=50)
     args = parser.parse_args()
     repository = WholesaleRepository(get_supabase_client())
     product_ids = args.product_id[:args.limit]
+    if args.pending:
+        product_ids.extend(product_id for product_id in repository.pending_evaluation_product_ids(
+            args.marketplace_id, args.limit
+        ) if product_id not in product_ids)
     if args.supplier_id:
         product_ids.extend(row["supplier_product_id"] for row in repository.list_products(
             args.supplier_id, limit=args.limit, present_only=True
         ) if row["supplier_product_id"] not in product_ids)
     if not product_ids:
-        parser.error("provide --product-id or --supplier-id")
+        if args.pending:
+            print('{"status":"idle","reason":"no_pending_evaluations"}')
+            return 0
+        parser.error("provide --product-id, --supplier-id, or --pending")
     for product_id in product_ids[:args.limit]:
         result = evaluate_product(repository, product_id, args.marketplace_id)
         evaluation = result["evaluation"]

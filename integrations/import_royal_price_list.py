@@ -10,7 +10,7 @@ from urllib.parse import urlparse
 from uuid import UUID
 
 from wholesale_repository import WholesaleRepository
-from wholesale_royal import parse_workbook
+from wholesale_royal import parse_price_list
 
 
 def get_repository(expected_project_ref: str) -> WholesaleRepository:
@@ -41,7 +41,7 @@ def main(argv: list[str] | None = None) -> int:
     if args.apply and not args.expected_project_ref:
         parser.error("--apply requires --expected-project-ref")
     try:
-        payload = parse_workbook(args.workbook, args.effective_date)
+        payload = parse_price_list(args.workbook, args.effective_date)
         result = None
         if args.apply:
             result = get_repository(args.expected_project_ref).apply_import(

@@ -29,7 +29,7 @@ RUN_HISTORY_PATH = LOG_DIR / "sync_runs.jsonl"
 LOCK_PATH = LOG_DIR / "run_all_syncs.lock"
 LOCK_STALE_HOURS = 10
 DEFAULT_TIMEOUT_SECONDS = 45 * 60
-DISTRIBUTED_LOCK_GROUPS = {"keepa-catalog-priority", "fba-pricing"}
+DISTRIBUTED_LOCK_GROUPS = {"keepa-catalog-priority", "fba-pricing", "wholesale-email-ingestion"}
 KEEPA_QUOTA_GROUPS = {"keepa-catalog-priority", "fba-pricing"}
 KEEPA_MANUAL_GROUP = "fba-pricing"
 KEEPA_SCHEDULED_GROUP = "keepa-catalog-priority"
@@ -66,6 +66,24 @@ def days_ago_iso(days: int) -> str:
 
 
 JOBS: tuple[SyncJob, ...] = (
+    SyncJob(
+        name="Royal wholesale mailbox ingestion",
+        command=static_command("integrations/royal_email_ingestion.py", "--lookback-days", "7", "--max-messages", "20"),
+        groups=("wholesale-email-ingestion",),
+        timeout_seconds=10 * 60,
+    ),
+    SyncJob(
+        name="Royal wholesale targeted matching",
+        command=static_command("integrations/wholesale_enrichment.py", "--oldest-pending", "--limit", "25"),
+        groups=("wholesale-email-ingestion",),
+        timeout_seconds=12 * 60,
+    ),
+    SyncJob(
+        name="Royal wholesale requested evaluation",
+        command=static_command("integrations/wholesale_evaluate_opportunities.py", "--pending", "--limit", "50"),
+        groups=("wholesale-email-ingestion",),
+        timeout_seconds=8 * 60,
+    ),
     SyncJob(
         name="eBay buyer declined offers",
         command=static_command("integrations/sync_ebay_buying_offers.py", "--apply"),
@@ -565,6 +583,7 @@ GROUPS = (
     "sourcing-catalog",
     "keepa-rolling-refresh",
     "keepa-catalog-priority",
+    "wholesale-email-ingestion",
     "all",
 )
 

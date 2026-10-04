@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ExternalLink, RefreshCw, ShoppingCart, X } from "lucide-react";
+import { ExternalLink, History, RefreshCw, ShoppingCart, X } from "lucide-react";
 import { mutationHeaders } from "../mutationHeaders";
 
 type Tab = "ready" | "order" | "full";
@@ -55,6 +55,7 @@ export default function WholesalePage() {
   const [error, setError] = useState<string | null>(null);
   const [candidateRow, setCandidateRow] = useState<CandidateContext | null>(null);
   const [orderRow, setOrderRow] = useState<Row | null>(null);
+  const [historyOpen, setHistoryOpen] = useState(false);
 
   const load = useCallback(async () => {
     if (tab === "full") return;
@@ -82,13 +83,20 @@ export default function WholesalePage() {
   }
 
   return <main className="p-5">
-    <div className="mb-4 flex items-end justify-between"><div><h1 className="text-2xl font-semibold">Wholesale Purchasing</h1><p className="text-sm text-slate-600">Review qualified products, stage draft quantities, and audit complete supplier lists.</p></div><button onClick={() => void load()} className="inline-flex items-center gap-2 rounded border px-3 py-2 text-sm"><RefreshCw className="h-4 w-4"/>Refresh</button></div>
+    <div className="mb-4 flex items-end justify-between"><div><h1 className="text-2xl font-semibold">Wholesale Purchasing</h1><p className="text-sm text-slate-600">Review qualified products, stage draft quantities, and audit complete supplier lists.</p></div><div className="flex gap-2"><button onClick={() => setHistoryOpen(true)} className="inline-flex items-center gap-2 rounded border px-3 py-2 text-sm"><History className="h-4 w-4"/>Import history</button><button onClick={() => void load()} className="inline-flex items-center gap-2 rounded border px-3 py-2 text-sm"><RefreshCw className="h-4 w-4"/>Refresh</button></div></div>
     <nav className="mb-4 flex gap-1 border-b">{tabs.map(([key, title]) => <button key={key} onClick={() => setTab(key)} className={`border-b-2 px-4 py-2 text-sm font-medium ${tab === key ? "border-slate-950 text-slate-950" : "border-transparent text-slate-500"}`}>{title}</button>)}</nav>
     {error ? <div className="mb-4 rounded border border-red-300 bg-red-50 p-3 text-sm text-red-800">{error}</div> : null}
     {tab === "full" ? <FullImport onCandidates={setCandidateRow} setError={setError}/> : loading ? <div className="p-8 text-slate-500">Loading…</div> : <OpportunityTable rows={rows} tab={tab} onCandidates={setCandidateRow} onOrder={setOrderRow} onPass={decide} reload={load}/>}
     {candidateRow ? <CandidateDialog row={candidateRow} onClose={() => setCandidateRow(null)} onSaved={async () => { setCandidateRow(null); await load(); }} setError={setError}/> : null}
     {orderRow ? <OrderDialog row={orderRow} onClose={() => setOrderRow(null)} onSaved={async () => { setOrderRow(null); await load(); }} setError={setError}/> : null}
+    {historyOpen ? <ImportHistoryDialog onClose={() => setHistoryOpen(false)}/> : null}
   </main>;
+}
+
+function ImportHistoryDialog({ onClose }: { onClose: () => void }) {
+  const [rows, setRows] = useState<any[]>([]); const [error, setError] = useState<string | null>(null);
+  useEffect(() => { void fetch("/api/wholesale/import-history", { cache: "no-store" }).then(async response => { const payload = await response.json(); if (!response.ok) throw new Error(payload.error); setRows(payload.rows ?? []); }).catch(reason => setError(reason instanceof Error ? reason.message : "Could not load import history.")); }, []);
+  return <Modal title="Royal import history" onClose={onClose} wide><div className="max-h-[70vh] overflow-auto"><table className="w-full min-w-[900px] text-left text-xs"><thead className="sticky top-0 bg-slate-100"><tr><Th>Received</Th><Th>Source</Th><Th>Effective date</Th><Th>Status</Th><Th>Rows</Th><Th>Details</Th></tr></thead><tbody>{rows.map(row => <tr key={row.ingestionId} className="border-t"><Td>{dateTime(row.receivedAt)}<div className="text-slate-500">{row.sender}</div></Td><Td>{row.sourceName ?? row.sourceType ?? "Pending"}{row.sourceHost ? <div className="text-slate-500">{row.sourceHost}</div> : null}</Td><Td>{row.effectiveDate ? dateValue(row.effectiveDate) : "—"}{row.revision ? <div>Revision {row.revision}</div> : null}</Td><Td><span className="font-semibold capitalize">{String(row.status).replace("_", " ")}</span><div>Attempts {row.attempts}</div></Td><Td>{row.rowCount ?? "—"}</Td><Td><div className="max-w-sm">{row.error ?? (row.status === "duplicate" ? "Duplicate file; no rows reimported." : "")}</div></Td></tr>)}</tbody></table>{!rows.length && !error ? <div className="p-8 text-center text-slate-500">No automated Royal imports yet.</div> : null}{error ? <div className="p-4 text-red-700">{error}</div> : null}</div></Modal>;
 }
 
 function OpportunityTable({ rows, tab, onCandidates, onOrder, onPass, reload }: { rows: Row[]; tab: "ready" | "order";
