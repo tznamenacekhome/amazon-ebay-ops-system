@@ -5,6 +5,8 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from openpyxl import Workbook
+
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "integrations"))
 
@@ -46,7 +48,39 @@ class RoyalEmailSafetyTests(unittest.TestCase):
 
     def test_filename_date_is_conservative(self):
         self.assertEqual(str(filename_effective_date("Royal Price List 2026-10-03.csv")), "2026-10-03")
+        self.assertEqual(str(filename_effective_date("PRICE LISTS 9082026.xlsx")), "2026-09-08")
+        self.assertEqual(
+            str(filename_effective_date("Royal NN 10-05.xlsx", "2026-10-04T23:41:09Z")),
+            "2026-10-05",
+        )
         self.assertIsNone(filename_effective_date("unrelated-2026-10-03.csv"))
+
+    def test_price_list_sheet_requires_exact_full_list_headers(self):
+        with tempfile.TemporaryDirectory() as directory:
+            accepted = Path(directory) / "Royal NN 10-05.xlsx"
+            workbook = Workbook()
+            sheet = workbook.active
+            sheet.title = "Price List"
+            sheet.append(["ORDER", "TITLE", "SYS", "UPC / SKU", "PRICE", "QTY", "SUB"])
+            sheet.append([1, "Example Game", "Switch", "012345678905", 19.99, 5, None])
+            workbook.save(accepted)
+            workbook.close()
+            parsed = parse_price_list(accepted, filename_reference_date="2026-10-04T23:41:09Z")
+
+            rejected = Path(directory) / "Royal Sale 10-05.xlsx"
+            workbook = Workbook()
+            sheet = workbook.active
+            sheet.title = "Price List"
+            sheet.append(["ITEM", "DESCRIPTION", "PRICE"])
+            workbook.save(rejected)
+            workbook.close()
+
+            with self.assertRaisesRegex(ValueError, "full-list sheet and headers"):
+                parse_price_list(rejected, filename_reference_date="2026-10-04T23:41:09Z")
+
+        self.assertEqual(parsed["status"], "completed")
+        self.assertEqual(parsed["effective_date"], "2026-10-05")
+        self.assertEqual(parsed["date_source"], "supplier_filename")
 
     def test_csv_uses_existing_royal_normalization(self):
         content = "ORDER,TITLE,SYS,UPC / SKU,PRICE,QTY,SUB\n1,Example Game,Switch,012345678905,19.99,5,\n"

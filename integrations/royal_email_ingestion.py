@@ -281,7 +281,7 @@ def process_message(graph: GraphClient, repository: IntakeRepository, message: d
             path = Path(directory) / name
             path.write_bytes(content)
             try:
-                payload = parse_price_list(path)
+                payload = parse_price_list(path, filename_reference_date=message.get("receivedDateTime"))
             except ValueError as error:
                 raise IntakeError("validation_failed", str(error)) from error
         if payload["status"] != "completed":

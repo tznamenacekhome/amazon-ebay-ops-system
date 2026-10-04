@@ -24,6 +24,7 @@ DATE_LABEL = re.compile(
     r"(?:price\s*list\s*(?:effective\s*)?date|effective\s*date)\s*[:=]\s*"
     r"(\d{4}-\d{2}-\d{2}|\d{1,2}/\d{1,2}/\d{4})", re.IGNORECASE
 )
+EXPECTED_HEADERS = ["ORDER", "TITLE", "SYS", "UPC / SKU", "PRICE", "QTY", "SUB"]
 
 
 def identity_text(value: str) -> str:
@@ -89,15 +90,21 @@ def parse_date(value) -> date:
         return value.date()
     if isinstance(value, date):
         return value
+    text = str(value).strip()
+    if re.fullmatch(r"\d{4}-\d{2}-\d{2}T.*", text):
+        try:
+            return datetime.fromisoformat(text.replace("Z", "+00:00")).date()
+        except ValueError:
+            pass
     for fmt in ("%Y-%m-%d", "%m/%d/%Y"):
         try:
-            return datetime.strptime(str(value).strip(), fmt).date()
+            return datetime.strptime(text, fmt).date()
         except ValueError:
             pass
     raise ValueError("Price-list date must be YYYY-MM-DD or MM/DD/YYYY")
 
 
-def filename_effective_date(filename: str) -> date | None:
+def filename_effective_date(filename: str, reference_date: date | datetime | str | None = None) -> date | None:
     """Accept only unambiguous dates in a supplier-looking filename."""
     stem = Path(filename).stem
     if not re.search(r"royal|price|list", stem, re.IGNORECASE):
@@ -106,27 +113,44 @@ def filename_effective_date(filename: str) -> date | None:
     for pattern, fmt in (
         (r"(?<!\d)(20\d{2}[-_]?\d{2}[-_]?\d{2})(?!\d)", None),
         (r"(?<!\d)(\d{1,2}[-_]\d{1,2}[-_]20\d{2})(?!\d)", "%m-%d-%Y"),
+        (r"(?<!\d)(\d{7,8})(?!\d)", "compact_us"),
     ):
         for match in re.findall(pattern, stem):
             try:
                 value = match.replace("_", "-")
-                matches.append(datetime.strptime(value, fmt or ("%Y-%m-%d" if "-" in value else "%Y%m%d")).date())
+                if fmt == "compact_us":
+                    month_digits = 1 if len(value) == 7 else 2
+                    matches.append(date(int(value[-4:]), int(value[:month_digits]), int(value[month_digits:month_digits + 2])))
+                else:
+                    matches.append(datetime.strptime(value, fmt or ("%Y-%m-%d" if "-" in value else "%Y%m%d")).date())
             except ValueError:
                 continue
+    if not matches and reference_date is not None:
+        reference = parse_date(reference_date)
+        for month, day in re.findall(r"(?<!\d)(\d{1,2})[-_](\d{1,2})(?![-_\d])", stem):
+            candidates = []
+            for year in (reference.year - 1, reference.year, reference.year + 1):
+                try:
+                    candidates.append(date(year, int(month), int(day)))
+                except ValueError:
+                    pass
+            if candidates:
+                nearest = min(candidates, key=lambda value: abs((value - reference).days))
+                if abs((nearest - reference).days) <= 45:
+                    matches.append(nearest)
     unique = set(matches)
     if len(unique) > 1:
         raise ValueError("Conflicting dates in supplier filename")
     return next(iter(unique)) if unique else None
 
 
-def effective_date(workbook, explicit: date | str | None) -> tuple[date, str]:
+def effective_date(workbook, sheet, explicit: date | str | None) -> tuple[date, str]:
     found = set()
     defined = workbook.defined_names.get("PRICE_LIST_DATE")
     if defined:
-        for sheet, coordinate in defined.destinations:
-            found.add(parse_date(workbook[sheet][coordinate].value))
+        for sheet_name, coordinate in defined.destinations:
+            found.add(parse_date(workbook[sheet_name][coordinate].value))
     texts = [workbook.properties.title, workbook.properties.subject, workbook.properties.description]
-    sheet = workbook["COMPLETE LIST"]
     texts.extend(str(getattr(sheet, name)) for name in (
         "oddHeader", "evenHeader", "firstHeader", "oddFooter", "evenFooter", "firstFooter"))
     # Only explicitly labelled document dates qualify; product dates and Excel &D do not.
@@ -157,15 +181,17 @@ def parse_workbook(path: str | Path, price_list_date: date | str | None = None) 
             raise ValueError("Expanded workbook exceeds 50 MiB limit")
     workbook = load_workbook(BytesIO(content), data_only=False, keep_links=False)
     try:
-        if "COMPLETE LIST" not in workbook.sheetnames:
-            raise ValueError("Required COMPLETE LIST sheet is missing")
-        sheet = workbook["COMPLETE LIST"]
+        sheet = next((workbook[name] for name in ("COMPLETE LIST", "Price List")
+                      if name in workbook.sheetnames and
+                      [raw_text(workbook[name].cell(1, col).value).strip().upper() for col in range(1, 8)] == EXPECTED_HEADERS), None)
+        if sheet is None:
+            raise ValueError("Required Royal full-list sheet and headers are missing")
         if sheet.max_row > MAX_ROWS or sheet.max_column > 50:
             raise ValueError("Workbook exceeds bounded parser dimensions")
         headers = [raw_text(sheet.cell(1, col).value).strip().upper() for col in range(1, 8)]
-        if headers != ["ORDER", "TITLE", "SYS", "UPC / SKU", "PRICE", "QTY", "SUB"]:
+        if headers != EXPECTED_HEADERS:
             raise ValueError("Expected Royal row-1 headers in columns A:G")
-        dated, date_source = effective_date(workbook, price_list_date)
+        dated, date_source = effective_date(workbook, sheet, price_list_date)
         date_cells = set()
         if workbook.defined_names.get("PRICE_LIST_DATE"):
             date_cells = {coordinate.replace("$", "") for name, coordinate in
@@ -282,7 +308,8 @@ def _converted_workbook(rows: list[list[object]], source_name: str,
     return parsed
 
 
-def parse_price_list(path: str | Path, price_list_date: date | str | None = None) -> dict:
+def parse_price_list(path: str | Path, price_list_date: date | str | None = None,
+                     filename_reference_date: date | datetime | str | None = None) -> dict:
     """Parse XLSX, legacy XLS, or CSV through the Royal v1 row normalizer."""
     path = Path(path)
     content = path.read_bytes()
@@ -290,7 +317,7 @@ def parse_price_list(path: str | Path, price_list_date: date | str | None = None
         raise ValueError("Supplier file exceeds 10 MiB limit")
     suffix = path.suffix.lower()
     supplied = parse_date(price_list_date) if price_list_date is not None else None
-    filename_date = filename_effective_date(path.name)
+    filename_date = filename_effective_date(path.name, filename_reference_date)
     candidate_date = supplied or filename_date
     if suffix == ".xlsx":
         parsed = parse_workbook(path, candidate_date)
