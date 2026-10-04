@@ -95,6 +95,12 @@ class GraphClient:
                     (key, values[-1]) for key, values in parse_qs(parsed.query).items())
         return sorted(output.values(), key=lambda row: row.get("receivedDateTime", ""))
 
+    def message(self, mailbox: str, message_id: str) -> dict:
+        return self.get(
+            f"/users/{mailbox}/messages/{message_id}",
+            {"$select": "id,internetMessageId,subject,receivedDateTime,from,hasAttachments,body"},
+        )
+
     def attachments(self, mailbox: str, message_id: str) -> list[dict]:
         payload = self.get(f"/users/{mailbox}/messages/{message_id}/attachments",
                            {"$select": "id,name,contentType,size,isInline"})
@@ -214,6 +220,15 @@ class IntakeRepository:
         if not rows:
             raise IntakeError("supplier_missing", "Royal supplier record is missing")
         return rows[0]
+
+    def replay_checkpoints(self, effective_dates: list[str]) -> list[dict]:
+        if not effective_dates:
+            return []
+        return (self.client.table("wholesale_email_ingestions")
+                .select("graph_message_id,effective_date,received_at,status")
+                .eq("mailbox", MAILBOX).in_("effective_date", effective_dates)
+                .in_("status", ["completed", "duplicate"])
+                .order("received_at", desc=True).execute().data or [])
 
     def queue_downstream(self, supplier_id: str, import_id: str) -> str | None:
         observations = (self.client.table("wholesale_supplier_observations")
@@ -347,11 +362,15 @@ def main() -> int:
     allowed = {host.strip().lower() for host in os.getenv("ROYAL_DOWNLOAD_ALLOWED_DOMAINS", "").split(",") if host.strip()}
     graph = GraphClient(required["ROYAL_GRAPH_TENANT_ID"], required["ROYAL_GRAPH_CLIENT_ID"], required["ROYAL_GRAPH_CLIENT_SECRET"])
     since = dt.datetime.now(dt.UTC) - dt.timedelta(days=max(1, min(args.lookback_days, 30)))
-    messages = graph.messages(MAILBOX, since)[:max(1, min(args.max_messages, 100))]
     if args.reprocess_effective_date:
         remaining = set(args.reprocess_effective_date)
         results = []
-        for message in messages:
+        checkpoints = repository.replay_checkpoints(sorted(remaining))
+        for checkpoint in checkpoints:
+            effective = checkpoint.get("effective_date")
+            if effective not in remaining:
+                continue
+            message = graph.message(MAILBOX, checkpoint["graph_message_id"])
             sender = str((((message.get("from") or {}).get("emailAddress") or {}).get("address")) or "").lower()
             if sender not in SENDERS:
                 continue
@@ -360,7 +379,7 @@ def main() -> int:
                 path = Path(directory) / name
                 path.write_bytes(content)
                 payload = parse_price_list(path, filename_reference_date=message.get("receivedDateTime"))
-            if payload["effective_date"] not in remaining:
+            if payload["effective_date"] != effective:
                 continue
             if payload["status"] != "completed":
                 raise IntakeError("validation_failed", f"Replay validation failed for {payload['effective_date']}")
@@ -382,6 +401,7 @@ def main() -> int:
             raise IntakeError("source_missing", f"No retained Royal message found for dates: {sorted(remaining)}")
         print({"status": "reprocessed", "results": results})
         return 0
+    messages = graph.messages(MAILBOX, since)[:max(1, min(args.max_messages, 100))]
     counts: dict[str, int] = {}
     for message in messages:
         outcome = process_message(graph, repository, message, allowed)
