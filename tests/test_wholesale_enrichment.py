@@ -26,6 +26,9 @@ class FakeRepository:
     def catalog_snapshots(self, asins):
         return {asin: self.snapshots[asin] for asin in asins if asin in self.snapshots}
 
+    def save_catalog_snapshot(self, row):
+        self.snapshots[row["asin"]] = row
+
 
 class FakeAmazon:
     def __init__(self):
@@ -81,6 +84,32 @@ class WholesaleEnrichmentTests(unittest.TestCase):
             [{"asin": "B000000001"}],
         )
         self.assertFalse(plausible)
+
+    def test_catalog_snapshot_hydration_batches_twenty_asins(self):
+        class BatchAmazon:
+            def __init__(self):
+                self.searches = []
+                self.exact = []
+
+            def search_catalog_items(self, **kwargs):
+                self.searches.append(kwargs)
+                return {"items": [
+                    {"asin": asin, "summaries": [{"marketplaceId": "US", "itemName": asin}]}
+                    for asin in kwargs["identifiers"]
+                ]}
+
+            def get_catalog_item(self, asin, **_kwargs):
+                self.exact.append(asin)
+                return {"asin": asin}
+
+        repository = FakeRepository()
+        amazon = BatchAmazon()
+        service = WholesaleEnrichmentService(repository, amazon, seller_id="seller", marketplace_id="US")
+        asins = [f"B{index:09d}" for index in range(25)]
+        snapshots = service._catalog_snapshots(asins)
+        self.assertEqual([len(call["identifiers"]) for call in amazon.searches], [20, 5])
+        self.assertEqual(amazon.exact, [])
+        self.assertEqual(set(snapshots), set(asins))
 
     def test_enrich_source_always_invokes_both_discovery_branches(self):
         source = (Path(__file__).resolve().parents[1] / "integrations/wholesale_enrichment.py").read_text(encoding="utf-8")

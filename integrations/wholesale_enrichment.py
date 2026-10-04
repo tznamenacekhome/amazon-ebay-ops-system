@@ -240,14 +240,39 @@ class WholesaleEnrichmentService:
     def _catalog_snapshots(self, asins: list[str]) -> dict[str, dict]:
         snapshots = self.repository.catalog_snapshots(asins)
         cutoff = dt.datetime.now(dt.UTC) - CATALOG_TTL
-        for asin in asins:
+        missing = []
+        for asin in dict.fromkeys(asins):
             row = snapshots.get(asin)
             if row and parse_time(row.get("fetched_at")) > cutoff:
                 continue
-            payload = self.amazon.get_catalog_item(asin, included_data=INCLUDED_DATA)
-            row = normalize_catalog_item(asin, payload, self.marketplace_id)
-            self.repository.save_catalog_snapshot(row)
-            snapshots[asin] = row
+            missing.append(asin)
+        for start in range(0, len(missing), 20):
+            batch = missing[start:start + 20]
+            payload = self.amazon.search_catalog_items(
+                identifiers=batch,
+                identifiers_type="ASIN",
+                included_data=INCLUDED_DATA,
+                page_size=20,
+            )
+            returned = set()
+            for item in search_items(payload):
+                asin = str(item.get("asin") or "").strip().upper()
+                if not asin or asin not in batch:
+                    continue
+                row = normalize_catalog_item(asin, item, self.marketplace_id)
+                self.repository.save_catalog_snapshot(row)
+                snapshots[asin] = row
+                returned.add(asin)
+            # Amazon documents identifier search as batch retrieval, but retain
+            # the exact endpoint as a bounded fallback if a requested ASIN is
+            # omitted from an otherwise successful batch response.
+            for asin in batch:
+                if asin in returned:
+                    continue
+                item = self.amazon.get_catalog_item(asin, included_data=INCLUDED_DATA)
+                row = normalize_catalog_item(asin, item, self.marketplace_id)
+                self.repository.save_catalog_snapshot(row)
+                snapshots[asin] = row
         return snapshots
 
     def _eligibility(self, asins: list[str]) -> dict[str, dict]:
