@@ -25,12 +25,13 @@ $windowFile = Join-Path ([System.IO.Path]::GetTempPath()) "$ScheduleName-window.
 $target | ConvertTo-Json -Depth 100 | Set-Content -LiteralPath $targetFile -Encoding ascii
 @{ Mode = "OFF" } | ConvertTo-Json | Set-Content -LiteralPath $windowFile -Encoding ascii
 
-$exists = aws scheduler get-schedule --profile $Profile --region $Region --name $ScheduleName --output json 2>$null
+$exists = (aws scheduler list-schedules --profile $Profile --region $Region `
+  --name-prefix $ScheduleName --query "Schedules[?Name=='$ScheduleName'].Name | [0]" --output text).Trim()
 $common = @("--profile", $Profile, "--region", $Region, "--name", $ScheduleName,
   "--schedule-expression", "rate(15 minutes)", "--flexible-time-window", "file://$windowFile",
   "--target", "file://$targetFile", "--state", $State,
   "--description", "Poll scoped Royal Electronics price-list email and run bounded wholesale follow-up")
-if ($LASTEXITCODE -eq 0 -and $exists) {
+if ($exists -eq $ScheduleName) {
   aws scheduler update-schedule @common | Out-Null
 } else {
   aws scheduler create-schedule @common | Out-Null
