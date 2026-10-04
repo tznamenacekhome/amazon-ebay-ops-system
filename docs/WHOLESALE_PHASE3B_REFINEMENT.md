@@ -65,6 +65,27 @@ The October 3 wholesale recall follow-up versioned the title-search strategy, ad
 
 The live 12-product cross-platform diagnostic and reprocessing cohort made 24 Catalog search calls. Amazon returned rate-limit responses during per-ASIN snapshot hydration, and the shared retry/backoff path completed with zero search errors. Final cohort outcomes were 6 matched, 3 identity review, 2 restricted, and 1 explicit LATAM non-NA classification. Aggregate Royal state moved from 18 to 24 matched (+33.3%), 3 to 6 identity review, 4 to 6 restricted, and 1,025 displayed Unmatched rows to 1,013; the deliberately small cohort did not attempt a full-list backfill. The six new matches were evaluated and correctly remain Pricing / Keepa Pending because their cached economics are incomplete.
 
+The authorized full follow-up completed production enrichment run
+`0cd817ff-accd-4399-bda5-3dd965e85e1e` for all 1,013 remaining products with no
+exhausted errors. Final import state is 768 matched, 128 identity review, 102
+restricted with no eligible candidate, 49 explicitly classified non-NA, and
+three no-candidate products. The 768 matched products use 762 unique selected
+ASINs. To remove the dominant throttle source, catalog snapshot hydration was
+changed from one `getCatalogItem` request per ASIN to Amazon's supported
+`searchCatalogItems` identifier batches of up to 20 ASINs; an exact-item request
+remains as a bounded fallback for an omitted identifier. The resumed worker
+completed at roughly 20 products per minute while repeated database capacity
+checks stayed healthy. The batching regression is covered by the focused
+wholesale test suite and is committed as `383658b`.
+
+The matched-ASIN Keepa follow-up uses only the explicit one-time source. It does
+not add wholesale ASINs to the ongoing `catalog_priority` cycle. The resumable
+worker requests lightweight price, rank, and velocity statistics without rating
+or normalized history expansion, preserves the configured 150-token weekend
+reserve, and checkpoints every completed batch locally. Initial production
+progress returned and stored the first 111 ASINs with zero missing products;
+the remaining calls continue at the account's five-token-per-minute refill rate.
+
 Production sampling found and corrected two unsafe result classes before expanding the cohort. Foreign-script Amazon titles now create incomplete region evidence even with an exact identifier, and PlayStation Hits, Greatest Hits, Nintendo Selects, GOTY, Bonus, Specialist, and Legacy variants participate in edition compatibility. Atomic Heart now selects the English PS4 listing `B0BSB3MWLL`; 007 First Light selects the Standard Edition `B0FQ5QBMGB`; related Black Ops titles with missing or conflicting installment numbers remain in identity review. A cached replay of all 12 products made zero Catalog search calls and produced the same final states.
 
 Migration `20261003223500_mbop_wholesale_title_search_variants.sql` is applied to verified project `froeucjkcepuhgwisped`, and the remote migration ledger matches local. Scheduler task definition 113 runs commit `2cf506a4ce57` from digest `sha256:a3e9dd95dc11026f2f07e20b4d510975beba7ae24a715dce9b1ef108b9459f0e`; all 20 schedules target it. Web task definition 174 runs commit `63237f90d1bf` from digest `sha256:d93ead02736e68e735eaa59ab68eddc9340a2052b2aac334adfa61feed139120`; ECS reached steady state at desired/running/pending `1/1/0`.

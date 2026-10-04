@@ -1,5 +1,20 @@
 # CURRENT_STATE.md
 
+## Royal wholesale full matching completed (2026-10-03)
+
+Production enrichment run `0cd817ff-accd-4399-bda5-3dd965e85e1e` completed all
+1,013 previously unprocessed/unmatched products from Royal import
+`31d4a7dc-5c5f-4141-881a-bef3cea365a6`, with no exhausted errors. Final import
+classification is 768 matched, 128 identity review, 102 fully restricted, 49
+explicit non-NA, and three no-candidate products. The 768 matches resolve to 762
+unique selected ASINs. Catalog identity hydration now uses Amazon's supported
+20-ASIN identifier search batches, with exact-item fallback only when Amazon
+omits a requested ASIN; focused wholesale tests pass. Commit `383658b` is on
+`main`. An explicit, resumable one-time Keepa lookup was started for the 762
+ASINs without adding them to recurring `catalog_priority`; the worker preserves
+the 150-token weekend reserve and records progress in
+`tmp/wholesale_keepa_once_state.json`.
+
 ## Wholesale Phase 3B refinement (2026-10-03)
 
 The production schema now supports the simplified Ready to Review / Order List / Full Import workflow, list-date-aware full-import auditing, human candidate discovery evidence, reason-specific pass snapshots, conditional resurfacing, and persistent reversible non-NA classifications. The B0F2NZ8LKV diagnostic is resolved through the general exact-UPC compatibility path; Amazon returned `NOT_ELIGIBLE` for `new_new`, and the product is now `restricted_no_eligible`. Bounded run `a70d2442-e0d7-4f10-bfb9-ea2ae47cbc47` processed 25 Royal products with 18 matches, 3 identity reviews, 4 restricted results, and no errors. One real opportunity is Ready to Review on the 90-day ROI basis. Scheduler revision 110 and web revision 172 are stable. The web follow-up cancels overlapping Full Import filter requests, rejects stale responses, keeps controls mounted during updates, and reduces database response payloads. Initial production browser verification confirmed all 1,050 accepted Royal rows, combined-match evidence, the B0 restriction, the empty draft Order List, and no console warnings or errors. See [Phase 3B refinement](docs/WHOLESALE_PHASE3B_REFINEMENT.md).
