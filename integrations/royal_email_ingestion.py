@@ -388,7 +388,8 @@ def main() -> int:
                 raise IntakeError("import_missing", f"No prior import exists for {payload['effective_date']}")
             result = repository.wholesale.apply_import(payload, latest["import_id"])
             supplier_id = repository.supplier()["supplier_id"]
-            run_id = repository.queue_downstream(supplier_id, result["import_id"])
+            run_id = (None if result.get("already_imported") else
+                      repository.queue_downstream(supplier_id, result["import_id"]))
             results.append({"effective_date": payload["effective_date"], "import_id": result["import_id"],
                             "already_imported": result.get("already_imported", False),
                             "rows_imported": (result.get("summary") or {}).get("rows_imported"),
