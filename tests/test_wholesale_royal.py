@@ -35,7 +35,8 @@ class RoyalParserTests(unittest.TestCase):
         self.assertEqual(parsed["summary"], {
             "rows_encountered": 4, "rows_imported": 3, "used_rows_skipped": 1,
             "non_product_rows_skipped": 2, "invalid_rows_skipped": 0, "duplicate_rows_skipped": 0,
-            "conflict_rows_skipped": 0, "identifier_warnings": 1, "availability_warnings": 0,
+            "conflict_rows_skipped": 0, "duplicate_price_superseded": 0,
+            "identifier_warnings": 1, "availability_warnings": 0,
             "products_accepted": 3, "warnings": 1, "errors": 0,
         })
         a, b, questionable = parsed["products"]
@@ -76,22 +77,25 @@ class RoyalParserTests(unittest.TestCase):
                                     ("Game Deluxe", "PS5", "012345678906")):
             self.assertNotEqual(base, product_identity(title, system, code))
 
-    def test_exact_duplicates_keep_provenance_conflicts_reject_list(self):
+    def test_exact_duplicates_keep_provenance_and_later_price_wins(self):
         p = self.parse([GAME_A, GAME_A])
         self.assertEqual(len(p["products"]), 1)
         self.assertEqual(p["products"][0]["source_row_numbers"], [2, 3])
         self.assertEqual(p["summary"]["duplicate_rows_skipped"], 1)
         conflict = self.parse([GAME_A, (*GAME_A[:3], 17, "144+")])
-        self.assertEqual(conflict["status"], "rejected")
-        self.assertEqual(conflict["summary"]["conflict_rows_skipped"], 2)
-        self.assertEqual(conflict["summary"]["rows_imported"], 0)
-        self.assertTrue(all(r["outcome"] == "conflict" for r in conflict["source_rows"][:2]))
+        self.assertEqual(conflict["status"], "completed")
+        self.assertEqual(conflict["summary"]["conflict_rows_skipped"], 0)
+        self.assertEqual(conflict["summary"]["duplicate_price_superseded"], 1)
+        self.assertEqual(conflict["summary"]["rows_imported"], 1)
+        self.assertEqual(conflict["products"][0]["supplier_price"], "17.00")
+        self.assertEqual(conflict["products"][0]["source_row_numbers"], [2, 3])
+        self.assertEqual([r["outcome"] for r in conflict["source_rows"][:2]], ["superseded", "accepted"])
 
         partial = self.parse([GAME_A, (*GAME_A[:3], 17, "144+"), GAME_B])
         self.assertEqual(partial["status"], "completed")
-        self.assertEqual(partial["summary"]["rows_imported"], 1)
-        self.assertEqual(partial["summary"]["conflict_rows_skipped"], 2)
-        self.assertEqual(partial["warnings"][-1]["kind"], "ambiguous_duplicate")
+        self.assertEqual(partial["summary"]["rows_imported"], 2)
+        self.assertEqual(partial["summary"]["conflict_rows_skipped"], 0)
+        self.assertEqual(partial["warnings"][-1]["kind"], "duplicate_price_superseded")
 
     def test_explicit_and_document_dates_no_filename_or_mtime_inference(self):
         path = royal_workbook(self.path, [GAME_A])

@@ -41,13 +41,31 @@ class WholesaleEnrichmentService:
         self._search_errors: list[str] = []
         self._search_metrics = {"api_calls": 0, "cache_hits": 0, "errors": 0, "title_variants": []}
 
-    def enrich_product(self, supplier_product_id: str) -> dict[str, Any]:
+    def enrich_product(self, supplier_product_id: str, *, reuse_existing: bool = False) -> dict[str, Any]:
         self._search_errors: list[str] = []
         self._search_metrics = {"api_calls": 0, "cache_hits": 0, "errors": 0, "title_variants": []}
         product = self.repository.get_product(supplier_product_id)
         if not product:
             raise ValueError(f"Wholesale product not found: {supplier_product_id}")
         product = effective_product_identity(product)
+        prior_detail = self.repository.get_matching_detail(supplier_product_id, self.marketplace_id)
+        prior_state = prior_detail.get("match_state") or {}
+        prior_candidates = prior_detail.get("candidates") or []
+        signature = identity_signature(product)
+        reusable_statuses = {"matched", "restricted_no_eligible", "identity_review", "eligibility_pending"}
+        if (reuse_existing and not prior_state.get("rematch_requested")
+                and prior_state.get("identity_signature") == signature
+                and prior_state.get("match_status") in reusable_statuses):
+            observation = product.get("latest_observation") or {}
+            self.repository.ensure_opportunity(
+                supplier_product_id, self.marketplace_id,
+                prior_state.get("selected_candidate_id"), observation.get("observation_id"),
+            )
+            selected = next((row for row in prior_candidates
+                             if row.get("candidate_id") == prior_state.get("selected_candidate_id")), None)
+            return {"supplier_product_id": supplier_product_id,
+                    "candidate_count": len(prior_candidates), "status": prior_state["match_status"],
+                    "selected_asin": (selected or {}).get("asin"), "reused": True}
         classification = self.repository.active_product_classification(supplier_product_id)
         if classification and classification.get("classification_code") == "non_na_version":
             return {"supplier_product_id": supplier_product_id, "candidate_count": 0,
@@ -60,9 +78,6 @@ class WholesaleEnrichmentService:
             }, "wholesale-enrichment")
             return {"supplier_product_id": supplier_product_id, "candidate_count": 0,
                     "status": "non_na_version", "selected_asin": None}
-        prior_detail = self.repository.get_matching_detail(supplier_product_id, self.marketplace_id)
-        prior_state = prior_detail.get("match_state") or {}
-        prior_candidates = prior_detail.get("candidates") or []
         prior_selected = next((row for row in prior_candidates if row.get("candidate_id") == prior_state.get("selected_candidate_id")), None)
         manual_asin = prior_selected.get("asin") if prior_state.get("selection_source") == "manual" and prior_selected else None
         force_search = bool(prior_state.get("rematch_requested"))
@@ -167,7 +182,6 @@ class WholesaleEnrichmentService:
                 "reason": "catalog_search_errors", "errors": self._search_errors,
             })
         selected_id = (persisted_by_asin.get(selection.selected_asin) or {}).get("candidate_id") if selection.selected_asin else None
-        signature = identity_signature(product)
         identity_changed = bool(prior_state.get("identity_signature") and prior_state.get("identity_signature") != signature)
         self.repository.upsert_match_state({
             "supplier_product_id": supplier_product_id,
@@ -181,6 +195,11 @@ class WholesaleEnrichmentService:
             "selection_rationale": {**selection.rationale, "identity_changed": identity_changed},
             "last_discovered_at": now_iso(), "last_enriched_at": now_iso(), "updated_at": now_iso(),
         })
+        observation = product.get("latest_observation") or {}
+        self.repository.ensure_opportunity(
+            supplier_product_id, self.marketplace_id,
+            None if identity_changed else selected_id, observation.get("observation_id"),
+        )
         return {"supplier_product_id": supplier_product_id, "candidate_count": len(ranked),
                 "status": "identity_review" if identity_changed and selection.status == "matched" else selection.status,
                 "selected_asin": None if identity_changed else selection.selected_asin,
@@ -348,7 +367,7 @@ def process_work_batch(repository: WholesaleRepository, service: WholesaleEnrich
                 "attempt_count": int(item.get("attempt_count") or 0) + 1,
                 "updated_at": now_iso(),
             })
-            outcome = service.enrich_product(item["supplier_product_id"])
+            outcome = service.enrich_product(item["supplier_product_id"], reuse_existing=True)
             print(outcome)
             counters["matched"] += int(outcome["status"] == "matched")
             counters["review"] += int(outcome["status"] in {"identity_review", "eligibility_pending"})
@@ -381,25 +400,31 @@ def main() -> int:
     amazon = AmazonSPAPIClient.from_env()
     service = WholesaleEnrichmentService(repository, amazon, seller_id=amazon.config.seller_id or os.getenv("AMAZON_SELLER_ID", ""), marketplace_id=amazon.config.marketplace_id)
     run_id = args.run_id
+    fair_work: list[dict[str, Any]] | None = None
     if args.oldest_pending and not run_id:
-        oldest = repository.oldest_pending_enrichment_run()
-        run_id = oldest["enrichment_run_id"] if oldest else None
-        if not run_id:
+        fair_work = repository.pending_work_fair(args.limit)
+        if not fair_work:
             print({"status": "idle", "reason": "no_pending_enrichment_run"})
     if args.supplier_id:
         run = repository.create_enrichment_run(args.supplier_id, amazon.config.marketplace_id, args.limit)
         run_id = run["enrichment_run_id"]
         print({"enrichment_run_id": run_id, "status": "created"})
-    work = repository.pending_work(run_id, args.limit) if run_id else []
+    work = fair_work if fair_work is not None else (repository.pending_work(run_id, args.limit) if run_id else [])
     for product_id in args.product_id[:args.limit]:
         print(service.enrich_product(product_id))
-    if run_id and work:
-        repository.update_enrichment_run(run_id, {"run_status": "running", "started_at": now_iso(), "updated_at": now_iso()})
-    counters = process_work_batch(repository, service, work)
-    if run_id and work:
-        current = repository.get_enrichment_run(run_id) or {}
-        remaining = repository.pending_work(run_id, 1)
-        repository.update_enrichment_run(run_id, {
+    run_ids = list(dict.fromkeys(item["enrichment_run_id"] for item in work))
+    for active_run_id in run_ids:
+        current = repository.get_enrichment_run(active_run_id) or {}
+        repository.update_enrichment_run(active_run_id, {
+            "run_status": "running", "started_at": current.get("started_at") or now_iso(), "updated_at": now_iso()})
+    counters_by_run = {}
+    for active_run_id in run_ids:
+        counters_by_run[active_run_id] = process_work_batch(
+            repository, service, [item for item in work if item["enrichment_run_id"] == active_run_id])
+    for active_run_id, counters in counters_by_run.items():
+        current = repository.get_enrichment_run(active_run_id) or {}
+        remaining = repository.pending_work(active_run_id, 1)
+        repository.update_enrichment_run(active_run_id, {
             "run_status": "running" if remaining else ("completed_with_errors" if counters["errors"] else "completed"),
             "processed_count": int(current.get("processed_count") or 0) + counters["processed"],
             "matched_count": int(current.get("matched_count") or 0) + counters["matched"],
@@ -409,8 +434,8 @@ def main() -> int:
         })
         if counters["errors"] and hasattr(repository, "operational_notification"):
             repository.operational_notification(
-                f"royal-downstream:matching:{run_id}", "Royal matching needs attention",
-                f"{counters['errors']} product(s) failed in enrichment run {run_id}. Retry work remains queued.")
+                f"royal-downstream:matching:{active_run_id}", "Royal matching needs attention",
+                f"{counters['errors']} product(s) failed in enrichment run {active_run_id}. Retry work remains queued.")
     return 0
 
 

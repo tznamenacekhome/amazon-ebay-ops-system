@@ -61,6 +61,14 @@ The schedule runs `python run_all_syncs.py --group wholesale-email-ingestion`
 every 15 minutes. That group has a Supabase distributed lock, so overlapping
 schedule invocations cannot mutate the wholesale workflow concurrently.
 
+The group shares matching capacity across active import runs, reuses fresh
+identity matches, hydrates previously unseen selected ASINs through a bounded
+missing-only Keepa lookup, fills missing exact Product Fees price points, and
+evaluates requested opportunities. Import History reports matching and
+evaluation progress. `--reprocess-effective-date` replays a retained source
+through a newer parser as an append-only same-date revision; an exact retry of
+that parser version remains idempotent.
+
 ## Controlled validation
 
 Forward or place one known Royal message in the scoped inbox. Run one ECS task

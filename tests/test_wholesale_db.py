@@ -16,7 +16,10 @@ sys.path.insert(0, str(ROOT / "integrations"))
 from wholesale_royal import parse_workbook
 from wholesale_fixtures import GAME_A, GAME_B, royal_workbook
 
-MIGRATION = ROOT / "supabase/migrations/20261003175949_mbop_wholesale_supplier_foundation.sql"
+MIGRATIONS = [
+    ROOT / "supabase/migrations/20261003175949_mbop_wholesale_supplier_foundation.sql",
+    ROOT / "supabase/migrations/20261004210000_mbop_wholesale_parser_replay.sql",
+]
 
 
 def literal(value):
@@ -41,7 +44,8 @@ class WholesaleDatabaseTests(unittest.TestCase):
             time.sleep(0.5)
         cls.sql("create role anon; create role authenticated; create role service_role bypassrls; "
                 "grant usage on schema public to service_role;")
-        cls.sql(MIGRATION.read_text(encoding="utf-8"))
+        for migration in MIGRATIONS:
+            cls.sql(migration.read_text(encoding="utf-8"))
 
     @classmethod
     def sql(cls, statement):
@@ -122,14 +126,24 @@ class WholesaleDatabaseTests(unittest.TestCase):
         self.assertEqual(self.sql("select raw_identifier from wholesale_supplier_products"), GAME_B[2])
         self.assertEqual(self.sql("select latest_observation->>'raw_identifier' from vw_wholesale_supplier_products"), "710425597527")
 
-    def test_ambiguous_duplicates_are_quarantined_not_promoted(self):
-        first = self.apply(self.payload([GAME_A]))
+    def test_same_identity_duplicate_uses_later_price_with_audit(self):
         conflict = self.payload([GAME_A, (*GAME_A[:3], 99, 1)], "2026-09-16", "bad.xlsx")
         result = self.apply(conflict)
-        self.assertEqual(result["status"], "rejected")
-        self.assertEqual(result["observations_created"], 0)
-        self.assertEqual(self.sql("select current_list_import_id from vw_wholesale_supplier_products"), first["import_id"])
-        self.assertEqual(self.sql("select jsonb_array_length(source_rows) from wholesale_imports where status='rejected'"), "4")
+        self.assertEqual(result["status"], "completed")
+        self.assertEqual(result["observations_created"], 1)
+        self.assertEqual(self.sql("select latest_observation->>'supplier_price' from vw_wholesale_supplier_products"), "99.00")
+        self.assertEqual(self.sql("select source_row_numbers::text from wholesale_supplier_observations"), "{2,3}")
+        self.assertEqual(self.sql("select warnings->0->>'kind' from wholesale_imports"), "duplicate_price_superseded")
+
+    def test_same_source_can_be_replayed_once_by_new_parser_version(self):
+        current = self.payload([GAME_A])
+        legacy = copy.deepcopy(current)
+        legacy["parser_version"] = "royal-v1"
+        first = self.apply(legacy)
+        replay = self.apply(current, first["import_id"])
+        self.assertFalse(replay["already_imported"])
+        self.assertEqual(replay["observations_created"], 1)
+        self.assertEqual(self.apply(current, first["import_id"])["import_id"], replay["import_id"])
 
     def test_transaction_rolls_back_all_products_and_source_on_late_error(self):
         payload = self.payload()

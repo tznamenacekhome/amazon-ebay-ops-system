@@ -224,14 +224,18 @@ class IntakeRepository:
             states.extend((self.client.table("wholesale_match_states").select("supplier_product_id,match_status,rematch_requested,updated_at,selected_candidate_id")
                            .eq("marketplace_id", MARKETPLACE_ID).in_("supplier_product_id", product_ids[start:start + 150]).execute().data or []))
         by_product = {row["supplier_product_id"]: row for row in states}
+        already_queued = self.wholesale.active_work_product_ids(product_ids)
         stale_before = dt.datetime.now(dt.UTC) - dt.timedelta(days=30)
         match_ids = []
         for observation in observations:
             state = by_product.get(observation["supplier_product_id"])
             stale = bool(state and dt.datetime.fromisoformat(state["updated_at"].replace("Z", "+00:00")) < stale_before)
-            if not state or state.get("rematch_requested") or stale or state.get("match_status") in {"discovery_pending", "no_candidates"}:
+            if (not state or state.get("rematch_requested") or stale or
+                    state.get("match_status") in {"discovery_pending", "no_candidates"}):
+                if observation["supplier_product_id"] in already_queued:
+                    continue
                 match_ids.append(observation["supplier_product_id"])
-            elif state.get("selected_candidate_id"):
+            else:
                 self.wholesale.ensure_opportunity(observation["supplier_product_id"], MARKETPLACE_ID,
                                                   state["selected_candidate_id"], observation["observation_id"])
         run = self.wholesale.create_targeted_enrichment_run(supplier_id, MARKETPLACE_ID, match_ids)
@@ -329,6 +333,8 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--lookback-days", type=int, default=7)
     parser.add_argument("--max-messages", type=int, default=20)
+    parser.add_argument("--reprocess-effective-date", action="append", default=[],
+                        help="Replay retained Royal source through the current parser as an audited revision.")
     args = parser.parse_args()
     if os.getenv("ROYAL_GRAPH_MAILBOX", MAILBOX).lower() != MAILBOX:
         raise SystemExit("ROYAL_GRAPH_MAILBOX must be tim@midnightbe.com")
@@ -341,8 +347,43 @@ def main() -> int:
     allowed = {host.strip().lower() for host in os.getenv("ROYAL_DOWNLOAD_ALLOWED_DOMAINS", "").split(",") if host.strip()}
     graph = GraphClient(required["ROYAL_GRAPH_TENANT_ID"], required["ROYAL_GRAPH_CLIENT_ID"], required["ROYAL_GRAPH_CLIENT_SECRET"])
     since = dt.datetime.now(dt.UTC) - dt.timedelta(days=max(1, min(args.lookback_days, 30)))
+    messages = graph.messages(MAILBOX, since)[:max(1, min(args.max_messages, 100))]
+    if args.reprocess_effective_date:
+        remaining = set(args.reprocess_effective_date)
+        results = []
+        for message in messages:
+            sender = str((((message.get("from") or {}).get("emailAddress") or {}).get("address")) or "").lower()
+            if sender not in SENDERS:
+                continue
+            source_type, name, content, host = select_source(graph, message, allowed)
+            with tempfile.TemporaryDirectory(prefix="mbop-royal-replay-") as directory:
+                path = Path(directory) / name
+                path.write_bytes(content)
+                payload = parse_price_list(path, filename_reference_date=message.get("receivedDateTime"))
+            if payload["effective_date"] not in remaining:
+                continue
+            if payload["status"] != "completed":
+                raise IntakeError("validation_failed", f"Replay validation failed for {payload['effective_date']}")
+            latest = repository.wholesale.latest_import_for_date(payload["supplier_key"], payload["effective_date"])
+            if not latest:
+                raise IntakeError("import_missing", f"No prior import exists for {payload['effective_date']}")
+            result = repository.wholesale.apply_import(payload, latest["import_id"])
+            supplier_id = repository.supplier()["supplier_id"]
+            run_id = repository.queue_downstream(supplier_id, result["import_id"])
+            results.append({"effective_date": payload["effective_date"], "import_id": result["import_id"],
+                            "already_imported": result.get("already_imported", False),
+                            "rows_imported": (result.get("summary") or {}).get("rows_imported"),
+                            "enrichment_run_id": run_id, "source_type": source_type,
+                            "source_host": host})
+            remaining.remove(payload["effective_date"])
+            if not remaining:
+                break
+        if remaining:
+            raise IntakeError("source_missing", f"No retained Royal message found for dates: {sorted(remaining)}")
+        print({"status": "reprocessed", "results": results})
+        return 0
     counts: dict[str, int] = {}
-    for message in graph.messages(MAILBOX, since)[:max(1, min(args.max_messages, 100))]:
+    for message in messages:
         outcome = process_message(graph, repository, message, allowed)
         counts[outcome] = counts.get(outcome, 0) + 1
     repository.alert_if_stale(max(24, int(os.getenv("ROYAL_EMAIL_SILENCE_HOURS", "36"))))

@@ -52,9 +52,10 @@ creates a separate product. There is no fuzzy merge. Future identity reconciliat
 must be explicit and audited; do not silently merge editions or systems.
 
 Identical duplicate rows produce one observation with every source row number.
-Different price or raw quantity for the same identity is a conflict: preserve
-both rows as quarantined evidence and reject promotion of the entire list.
-Different titles/platforms sharing a code remain separate products.
+When rows have the same normalized identity and only price or raw quantity
+differs, the later row is authoritative. Earlier rows remain audited with a
+`superseded` outcome and a `duplicate_price_superseded` warning. Different
+titles/platforms sharing a code remain separate products.
 
 ## Royal workbook contract
 

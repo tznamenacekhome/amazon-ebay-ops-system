@@ -219,6 +219,31 @@ class WholesaleRepository:
                 .in_("work_status", ["pending", "retry"])
                 .order("created_at").limit(limit).execute().data or [])
 
+    def pending_work_fair(self, limit: int = 50) -> list[dict]:
+        """Share a bounded batch across every active run so new lists cannot starve."""
+        self._page(0, limit)
+        runs = (self.client.table("wholesale_enrichment_runs")
+                .select("enrichment_run_id,created_at")
+                .in_("run_status", ["pending", "running"])
+                .order("created_at").execute().data or [])
+        if not runs:
+            return []
+        runs = alternate_oldest_newest(runs)
+        per_run = max(1, (limit + len(runs) - 1) // len(runs))
+        queues = [self.pending_work(run["enrichment_run_id"], per_run) for run in runs]
+        return round_robin_queues(queues, limit)
+
+    def active_work_product_ids(self, product_ids: list[str]) -> set[str]:
+        active: set[str] = set()
+        for start in range(0, len(product_ids), 150):
+            rows = (self.client.table("wholesale_enrichment_work_items")
+                    .select("supplier_product_id")
+                    .in_("supplier_product_id", product_ids[start:start + 150])
+                    .in_("work_status", ["pending", "running", "retry"])
+                    .execute().data or [])
+            active.update(row["supplier_product_id"] for row in rows)
+        return active
+
     def get_enrichment_run(self, enrichment_run_id: str) -> dict | None:
         rows = (self.client.table("wholesale_enrichment_runs").select("*")
                 .eq("enrichment_run_id", enrichment_run_id).limit(1).execute().data or [])
@@ -388,6 +413,49 @@ def opportunity_status(evaluation: dict) -> str:
     if status != "complete":
         return "evaluation_incomplete"
     return "ready_for_review" if evaluation.get("is_financially_qualified") else "not_financially_qualified"
+
+
+def round_robin_queues(queues: list[list[dict]], limit: int) -> list[dict]:
+    selected: list[dict] = []
+    while len(selected) < limit and any(queues):
+        for queue in queues:
+            if queue and len(selected) < limit:
+                selected.append(queue.pop(0))
+    return selected
+
+
+def alternate_oldest_newest(rows: list[dict]) -> list[dict]:
+    ordered: list[dict] = []
+    left, right = 0, len(rows) - 1
+    while left <= right:
+        ordered.append(rows[left])
+        left += 1
+        if left <= right:
+            ordered.append(rows[right])
+            right -= 1
+    return ordered
+
+
+def request_wholesale_evaluation_for_asins(client, asins: list[str]) -> int:
+    """Request reevaluation only where the ASIN is the currently selected wholesale match."""
+    normalized = sorted({str(asin or "").strip().upper() for asin in asins if str(asin or "").strip()})
+    candidate_ids: set[str] = set()
+    for start in range(0, len(normalized), 150):
+        rows = (client.table("wholesale_amazon_candidates").select("candidate_id")
+                .in_("asin", normalized[start:start + 150]).execute().data or [])
+        candidate_ids.update(row["candidate_id"] for row in rows)
+    product_ids: set[str] = set()
+    ids = list(candidate_ids)
+    for start in range(0, len(ids), 150):
+        rows = (client.table("wholesale_match_states").select("supplier_product_id")
+                .in_("selected_candidate_id", ids[start:start + 150]).execute().data or [])
+        product_ids.update(row["supplier_product_id"] for row in rows)
+    products = list(product_ids)
+    for start in range(0, len(products), 150):
+        (client.table("wholesale_opportunities")
+         .update({"evaluation_requested": True, "updated_at": dt.datetime.now(dt.UTC).isoformat()})
+         .in_("supplier_product_id", products[start:start + 150]).execute())
+    return len(products)
 
 
 def resolve_opportunity_state(evaluation: dict, active_scope: str | None,

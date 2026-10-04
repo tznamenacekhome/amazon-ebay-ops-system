@@ -23,6 +23,7 @@ from dotenv import load_dotenv
 from supabase import create_client
 
 from keepa_client import KeepaAPIError, KeepaClient
+from wholesale_repository import request_wholesale_evaluation_for_asins
 
 LOGGER = logging.getLogger("keepa_product_sync")
 BATCH_SIZE = 500
@@ -278,6 +279,9 @@ def main() -> int:
             domain_id=client.config.domain_id,
             max_points_per_metric=args.max_history_points,
         )
+        reevaluation_count = request_wholesale_evaluation_for_asins(
+            supabase, [row.get("asin") for row in snapshot_rows]
+        )
         updated_purchase_titles = update_missing_purchase_titles(supabase, snapshot_rows)
         if cycle_state is not None:
             cycle_state = finalize_catalog_cycle_state(
@@ -303,6 +307,7 @@ def main() -> int:
         LOGGER.info("History points inserted: %s", inserted_history)
         LOGGER.info("Purchase titles updated: %s", updated_purchase_titles)
         LOGGER.info("Failures: %s", failures)
+        LOGGER.info("Wholesale reevaluations requested: %s", reevaluation_count)
         print(f"Purchase titles updated: {updated_purchase_titles}")
         return 0
     except KeepaAPIError as error:
@@ -328,6 +333,7 @@ def parse_args() -> argparse.Namespace:
             "purchase_pre_listed",
             "received_fba_prep",
             "sourcing_active",
+            "wholesale_selected",
             "catalog_priority",
             "explicit",
         ],
@@ -336,6 +342,7 @@ def parse_args() -> argparse.Namespace:
             "ASIN source. canonical = current Amazon FBA plus pre-Listed MBOP purchase inventory. "
             "received_fba_prep = received Amazon-bound purchase items waiting for FBA shipment. "
             "sourcing_active = ASINs from active sourcing opportunities/watchlist. "
+            "wholesale_selected = selected eligible wholesale matches. "
             "catalog_priority = received FBA prep first, active sourcing second, then all known catalog ASINs. "
             "explicit = only ASINs passed with --asin."
         ),
@@ -532,6 +539,21 @@ def collect_source_asins(supabase, *, source: str) -> tuple[list[str], dict[str,
             status = clean_text(row.get("status"))
             if asin and status in {"open", "watching", "roi_snoozed", "inventory_snoozed", "purchased_pending_match"}:
                 add_asin(asin, SOURCE_PRIORITY_MEDIUM)
+
+    if source == "wholesale_selected":
+        states = fetch_all(
+            supabase, "wholesale_match_states",
+            "selected_candidate_id,match_status",
+        )
+        candidate_ids = [row["selected_candidate_id"] for row in states
+                         if row.get("match_status") == "matched" and row.get("selected_candidate_id")]
+        for index in range(0, len(candidate_ids), 200):
+            response = (supabase.table("wholesale_amazon_candidates")
+                        .select("candidate_id,asin,eligibility_status")
+                        .in_("candidate_id", candidate_ids[index:index + 200]).execute())
+            for row in response.data or []:
+                if row.get("eligibility_status") == "eligible":
+                    add_asin(row.get("asin"), SOURCE_PRIORITY_HIGH)
 
     if source == "catalog_priority":
         for asin in fetch_return_recovery_fba_asins(supabase):

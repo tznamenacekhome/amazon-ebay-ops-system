@@ -15,7 +15,7 @@ from zipfile import ZipFile
 
 from openpyxl import Workbook, load_workbook
 
-PARSER_VERSION = "royal-v1"
+PARSER_VERSION = "royal-v2"
 SUPPLIER_KEY = "royal-electronics"
 MAX_ROWS = 10000
 MAX_PRODUCTS = 5000
@@ -199,6 +199,7 @@ def parse_workbook(path: str | Path, price_list_date: date | str | None = None) 
         summary = Counter({key: 0 for key in (
             "rows_encountered", "rows_imported", "used_rows_skipped", "non_product_rows_skipped",
             "invalid_rows_skipped", "duplicate_rows_skipped", "conflict_rows_skipped",
+            "duplicate_price_superseded",
             "identifier_warnings", "availability_warnings")})
         systems = Counter()
         warnings, errors, source_rows = [], [], []
@@ -263,12 +264,19 @@ def parse_workbook(path: str | Path, price_list_date: date | str | None = None) 
             first = entries[0][0]
             compare = lambda row: (row["supplier_price"], row["currency"], row["availability_raw"])
             if any(compare(row) != compare(first) for row, _ in entries[1:]):
-                summary["conflict_rows_skipped"] += len(entries)
-                warnings.append({"identity_key": key, "kind": "ambiguous_duplicate",
-                                 "reason": "Conflicting duplicate product rows were excluded",
-                                 "rows": [row["source_row_numbers"][0] for row, _ in entries]})
-                for _, source in entries:
-                    source["outcome"] = "conflict"
+                authoritative = dict(entries[-1][0])
+                authoritative["source_row_numbers"] = [row["source_row_numbers"][0] for row, _ in entries]
+                superseded = [row["source_row_numbers"][0] for row, _ in entries[:-1]]
+                warnings.append({"identity_key": key, "kind": "duplicate_price_superseded",
+                                 "reason": "Later source row superseded earlier price or availability for the same product identity",
+                                 "superseded_rows": superseded,
+                                 "authoritative_row": entries[-1][0]["source_row_numbers"][0]})
+                for _, source in entries[:-1]:
+                    source["outcome"] = "superseded"
+                entries[-1][1]["outcome"] = "accepted"
+                summary["duplicate_price_superseded"] += len(entries) - 1
+                summary["duplicate_rows_skipped"] += len(entries) - 1
+                products.append(authoritative)
                 continue
             first["source_row_numbers"] = [row["source_row_numbers"][0] for row, _ in entries]
             for _, source in entries[1:]:

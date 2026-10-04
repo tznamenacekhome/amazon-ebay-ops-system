@@ -18,6 +18,7 @@ from dotenv import load_dotenv
 from supabase import create_client
 
 from amazon_spapi_client import AmazonSPAPIClient, AmazonSPAPIError
+from wholesale_repository import request_wholesale_evaluation_for_asins
 
 LOGGER = logging.getLogger("amazon_fee_estimates")
 DEFAULT_MARKETPLACE_ID = "ATVPDKIKX0DER"
@@ -37,6 +38,8 @@ def main() -> int:
         supabase = get_supabase_client()
         client = AmazonSPAPIClient.from_env()
         selected = collect_price_requests(supabase, args)
+        if args.missing_only:
+            selected = exclude_cached_requests(supabase, selected)
         if args.limit is not None:
             selected = selected[: args.limit]
 
@@ -103,6 +106,10 @@ def main() -> int:
                 .execute()
             )
             LOGGER.info("Upserted fee estimate rows: %s", len(response.data or rows))
+            reevaluation_count = request_wholesale_evaluation_for_asins(
+                supabase, [row.get("asin") for row in rows]
+            )
+            LOGGER.info("Wholesale reevaluations requested: %s", reevaluation_count)
 
         print(f"Cached fee estimates: {len(rows)}")
         print(f"Failures: {failures}")
@@ -128,6 +135,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--listing-price", type=float, default=None)
     parser.add_argument("--limit", type=int, default=None)
     parser.add_argument("--plan-only", action="store_true")
+    parser.add_argument("--missing-only", action="store_true",
+                        help="Skip exact ASIN/price points already cached successfully.")
     parser.add_argument("--delay-seconds", type=float, default=1.1)
     return parser.parse_args()
 
@@ -223,6 +232,21 @@ def fee_request(asin: str, price: float) -> dict[str, Any]:
         "shipping_price": 0.0,
         "currency": "USD",
     }
+
+
+def exclude_cached_requests(supabase, requests: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    asins = sorted({row["asin"] for row in requests})
+    cached: set[tuple[str, float]] = set()
+    for index in range(0, len(asins), 200):
+        response = (supabase.table("amazon_fee_estimates")
+                    .select("asin,listing_price,estimate_status,fulfillment_channel,shipping_price,currency")
+                    .in_("asin", asins[index:index + 200]).execute())
+        for row in response.data or []:
+            if (row.get("estimate_status") == "ok" and row.get("fulfillment_channel") == "AFN"
+                    and to_float(row.get("shipping_price")) == 0
+                    and row.get("currency") == "USD"):
+                cached.add((clean_asin(row.get("asin")) or "", round(to_float(row.get("listing_price")) or 0, 2)))
+    return [row for row in requests if (row["asin"], round(row["listing_price"], 2)) not in cached]
 
 
 def latest_received_target_price(supabase, asin: str) -> float | None:

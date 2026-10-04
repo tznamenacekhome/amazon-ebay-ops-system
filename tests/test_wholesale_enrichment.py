@@ -9,6 +9,7 @@ from amazon_spapi_client import AmazonSPAPIClient  # noqa: E402
 from wholesale_enrichment import (  # noqa: E402
     WholesaleEnrichmentService, effective_product_identity, explicit_non_na_region, process_work_batch,
 )
+from wholesale_repository import alternate_oldest_newest, round_robin_queues  # noqa: E402
 
 
 class FakeRepository:
@@ -167,7 +168,7 @@ class WholesaleEnrichmentTests(unittest.TestCase):
             def update_work(self, work_item_id, values):
                 self.updates.append((work_item_id, values["work_status"]))
         class Service:
-            def enrich_product(self, product_id):
+            def enrich_product(self, product_id, **_kwargs):
                 if product_id == "bad":
                     raise RuntimeError("temporary provider error")
                 return {"status": "matched"}
@@ -179,6 +180,15 @@ class WholesaleEnrichmentTests(unittest.TestCase):
         self.assertEqual(counters, {"processed": 2, "matched": 1, "review": 0, "errors": 1})
         self.assertIn(("w1", "retry"), repository.updates)
         self.assertIn(("w2", "completed"), repository.updates)
+
+    def test_fair_work_selection_interleaves_old_and_new_runs(self):
+        selected = round_robin_queues([
+            [{"id": "old-1"}, {"id": "old-2"}, {"id": "old-3"}],
+            [{"id": "new-1"}, {"id": "new-2"}],
+        ], 4)
+        self.assertEqual([row["id"] for row in selected], ["old-1", "new-1", "old-2", "new-2"])
+        ordered = alternate_oldest_newest([{"id": index} for index in range(5)])
+        self.assertEqual([row["id"] for row in ordered], [0, 4, 1, 3, 2])
 
 
 if __name__ == "__main__":

@@ -1,5 +1,18 @@
 # CURRENT_STATE.md
 
+## Royal downstream pipeline (2026-10-04)
+
+- Matching capacity is shared across active Royal import runs, and duplicate
+  queued products reuse a fresh identity match without repeating provider calls.
+- Terminal matching results create or refresh wholesale opportunities, while
+  new supplier observations and refreshed Keepa/fee evidence request evaluation.
+- The Royal scheduler performs bounded one-time Keepa hydration for selected
+  ASINs, missing-only Product Fees estimates, and requested economics evaluation.
+- Same-identity duplicate price/availability rows use the later row and retain
+  `duplicate_price_superseded` source-row audit evidence.
+- A retained source can be replayed through a newer parser as an append-only,
+  idempotent same-date revision while preserving its original SHA-256.
+
 ## Royal wholesale full matching completed (2026-10-03)
 
 Production enrichment run `0cd817ff-accd-4399-bda5-3dd965e85e1e` completed all

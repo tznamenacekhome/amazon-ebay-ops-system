@@ -74,13 +74,35 @@ JOBS: tuple[SyncJob, ...] = (
     ),
     SyncJob(
         name="Royal wholesale targeted matching",
-        command=static_command("integrations/wholesale_enrichment.py", "--oldest-pending", "--limit", "25"),
+        command=static_command("integrations/wholesale_enrichment.py", "--oldest-pending", "--limit", "50"),
         groups=("wholesale-email-ingestion",),
         timeout_seconds=12 * 60,
     ),
     SyncJob(
+        name="Royal wholesale one-time Keepa hydration",
+        command=static_command(
+            "integrations/keepa_sync_products.py", "--source", "wholesale_selected",
+            "--missing-only", "--limit", "30", "--batch-size", "5", "--min-tokens", "10",
+            "--adaptive-limit", "--estimated-tokens-per-asin", "12", "--weekend-token-reserve", "150",
+            "--business-timezone", "America/Los_Angeles", "--no-history", "--no-rating", "--write",
+        ),
+        groups=("wholesale-email-ingestion",),
+        blocking=False,
+        timeout_seconds=12 * 60,
+    ),
+    SyncJob(
+        name="Royal wholesale missing fee estimates",
+        command=static_command(
+            "integrations/amazon_sync_fee_estimates.py", "--source", "wholesale_selected",
+            "--missing-only", "--limit", "30", "--delay-seconds", "1.1",
+        ),
+        groups=("wholesale-email-ingestion",),
+        blocking=False,
+        timeout_seconds=12 * 60,
+    ),
+    SyncJob(
         name="Royal wholesale requested evaluation",
-        command=static_command("integrations/wholesale_evaluate_opportunities.py", "--pending", "--limit", "50"),
+        command=static_command("integrations/wholesale_evaluate_opportunities.py", "--pending", "--limit", "100"),
         groups=("wholesale-email-ingestion",),
         timeout_seconds=8 * 60,
     ),
