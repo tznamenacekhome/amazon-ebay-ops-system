@@ -82,8 +82,8 @@ export default function WholesalePage() {
     await load();
   }
 
-  return <main className="p-5">
-    <div className="mb-4 flex items-end justify-between"><div><h1 className="text-2xl font-semibold">Wholesale Purchasing</h1><p className="text-sm text-slate-600">Review qualified products, stage draft quantities, and audit complete supplier lists.</p></div><div className="flex gap-2"><button onClick={() => setHistoryOpen(true)} className="inline-flex items-center gap-2 rounded border px-3 py-2 text-sm"><History className="h-4 w-4"/>Import history</button><button onClick={() => void load()} className="inline-flex items-center gap-2 rounded border px-3 py-2 text-sm"><RefreshCw className="h-4 w-4"/>Refresh</button></div></div>
+  return <main className="min-h-screen p-5 pt-16 xl:pr-60 xl:pt-5">
+    <div className="mb-4 flex flex-wrap items-end justify-between gap-3"><div><h1 className="text-2xl font-semibold">Wholesale Purchasing</h1><p className="text-sm text-slate-600">Review qualified products, stage draft quantities, and audit complete supplier lists.</p></div><div className="flex flex-wrap justify-end gap-2"><button onClick={() => setHistoryOpen(true)} className="inline-flex items-center gap-2 rounded border px-3 py-2 text-sm"><History className="h-4 w-4"/>Import history</button><button onClick={() => void load()} className="inline-flex items-center gap-2 rounded border px-3 py-2 text-sm"><RefreshCw className="h-4 w-4"/>Refresh</button></div></div>
     <nav className="mb-4 flex gap-1 border-b">{tabs.map(([key, title]) => <button key={key} onClick={() => setTab(key)} className={`border-b-2 px-4 py-2 text-sm font-medium ${tab === key ? "border-slate-950 text-slate-950" : "border-transparent text-slate-500"}`}>{title}</button>)}</nav>
     {error ? <div className="mb-4 rounded border border-red-300 bg-red-50 p-3 text-sm text-red-800">{error}</div> : null}
     {tab === "full" ? <FullImport onCandidates={setCandidateRow} setError={setError}/> : loading ? <div className="p-8 text-slate-500">Loading…</div> : <OpportunityTable rows={rows} tab={tab} onCandidates={setCandidateRow} onOrder={setOrderRow} onPass={decide} reload={load}/>}
