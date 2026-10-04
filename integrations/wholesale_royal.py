@@ -210,9 +210,14 @@ def parse_workbook(path: str | Path, price_list_date: date | str | None = None) 
                       "cell_types": [c.data_type for c in cells[1:6]],
                       "identifier_number_format": identifier.number_format}
             source_rows.append(source)
+            quantity_total = (
+                all(not raw_text(cell.value).strip() for cell in cells[1:5])
+                and qty.data_type == "f"
+                and bool(re.fullmatch(rf"=SUM\(F2:F{number - 1}\)", raw_text(qty.value), re.IGNORECASE))
+            )
             metadata_only = all(not raw_text(c.value).strip() or c.coordinate in date_cells
                                 or DATE_LABEL.search(raw_text(c.value)) for c in cells[1:6])
-            if metadata_only or (
+            if metadata_only or quantity_total or (
                 any(re.fullmatch(r"(?:SUB\s*TOTAL|GRAND\s*TOTAL|TOTAL)\s*:?", raw_text(v).strip(), re.I)
                     for v in (title.value, identifier.value))
                 and not raw_text(system.value).strip()
@@ -259,8 +264,9 @@ def parse_workbook(path: str | Path, price_list_date: date | str | None = None) 
             compare = lambda row: (row["supplier_price"], row["currency"], row["availability_raw"])
             if any(compare(row) != compare(first) for row, _ in entries[1:]):
                 summary["conflict_rows_skipped"] += len(entries)
-                errors.append({"identity_key": key, "reason": "Conflicting duplicate product rows",
-                               "rows": [row["source_row_numbers"][0] for row, _ in entries]})
+                warnings.append({"identity_key": key, "kind": "ambiguous_duplicate",
+                                 "reason": "Conflicting duplicate product rows were excluded",
+                                 "rows": [row["source_row_numbers"][0] for row, _ in entries]})
                 for _, source in entries:
                     source["outcome"] = "conflict"
                 continue
@@ -271,8 +277,8 @@ def parse_workbook(path: str | Path, price_list_date: date | str | None = None) 
             products.append(first)
         if len(products) > MAX_PRODUCTS:
             raise ValueError("Workbook exceeds 5000 accepted products")
-        if summary["rows_encountered"] == 0:
-            errors.append({"reason": "No product rows found; refusing an empty current list"})
+        if not products:
+            errors.append({"reason": "No unambiguous product rows found; refusing an empty current list"})
         summary["rows_imported"] = 0 if errors else len(products)
         summary["products_accepted"] = len(products)
         summary["warnings"] = len(warnings)

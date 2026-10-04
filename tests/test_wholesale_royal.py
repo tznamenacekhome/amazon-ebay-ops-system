@@ -87,6 +87,12 @@ class RoyalParserTests(unittest.TestCase):
         self.assertEqual(conflict["summary"]["rows_imported"], 0)
         self.assertTrue(all(r["outcome"] == "conflict" for r in conflict["source_rows"][:2]))
 
+        partial = self.parse([GAME_A, (*GAME_A[:3], 17, "144+"), GAME_B])
+        self.assertEqual(partial["status"], "completed")
+        self.assertEqual(partial["summary"]["rows_imported"], 1)
+        self.assertEqual(partial["summary"]["conflict_rows_skipped"], 2)
+        self.assertEqual(partial["warnings"][-1]["kind"], "ambiguous_duplicate")
+
     def test_explicit_and_document_dates_no_filename_or_mtime_inference(self):
         path = royal_workbook(self.path, [GAME_A])
         with self.assertRaisesRegex(ValueError, "effective-date"):
@@ -128,6 +134,21 @@ class RoyalParserTests(unittest.TestCase):
         after = parse_workbook(path, "2026-09-09")
         self.assertEqual(before["products"], after["products"])
         self.assertNotEqual(before["file_sha256"], after["file_sha256"])
+
+    def test_supplier_quantity_total_formula_is_metadata(self):
+        path = royal_workbook(self.path, [GAME_A])
+        book = load_workbook(path)
+        final_row = book.active.max_row + 1
+        book.active.cell(final_row, 6, f"=SUM(F2:F{final_row - 1})")
+        book.save(path)
+        book.close()
+
+        parsed = parse_workbook(path, "2026-09-09")
+
+        self.assertEqual(parsed["status"], "completed")
+        self.assertEqual(parsed["summary"]["rows_encountered"], 1)
+        self.assertEqual(parsed["summary"]["non_product_rows_skipped"], 3)
+        self.assertEqual(parsed["source_rows"][-1]["outcome"], "non_product")
 
     def test_price_formula_missing_identity_and_empty_list_fail_safely(self):
         for row in [(*GAME_A[:3], -1, 4), (*GAME_A[:3], "=1+2", 4),
