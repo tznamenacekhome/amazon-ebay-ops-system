@@ -229,8 +229,10 @@ class WholesaleRepository:
         if not runs:
             return []
         runs = alternate_oldest_newest(runs)
-        per_run = max(1, (limit + len(runs) - 1) // len(runs))
-        queues = [self.pending_work(run["enrichment_run_id"], per_run) for run in runs]
+        # Fetch up to the global bound from each run, then stop the interleaver at
+        # the global bound. This redistributes unused shares from nearly complete
+        # runs without letting any one run monopolize the batch.
+        queues = [self.pending_work(run["enrichment_run_id"], limit) for run in runs]
         return round_robin_queues(queues, limit)
 
     def active_work_product_ids(self, product_ids: list[str]) -> set[str]:
