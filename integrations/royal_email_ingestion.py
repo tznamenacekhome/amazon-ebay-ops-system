@@ -97,7 +97,7 @@ class GraphClient:
 
     def attachments(self, mailbox: str, message_id: str) -> list[dict]:
         payload = self.get(f"/users/{mailbox}/messages/{message_id}/attachments",
-                           {"$select": "id,name,contentType,size,isInline,@odata.type,contentBytes"})
+                           {"$select": "id,name,contentType,size,isInline"})
         return payload.get("value", [])
 
     def attachment_bytes(self, mailbox: str, message_id: str, attachment: dict) -> bytes:

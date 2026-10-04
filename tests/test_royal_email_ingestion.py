@@ -8,11 +8,28 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "integrations"))
 
-from royal_email_ingestion import IntakeError, allowed_host, body_links, validate_source
+from royal_email_ingestion import GraphClient, IntakeError, allowed_host, body_links, validate_source
 from wholesale_royal import filename_effective_date, parse_price_list
 
 
 class RoyalEmailSafetyTests(unittest.TestCase):
+    def test_attachment_listing_uses_graph_supported_metadata_fields(self):
+        class Response:
+            status_code = 200
+            def json(self): return {"value": []}
+
+        class Session:
+            def __init__(self): self.params = None
+            def get(self, _url, *, params, headers, timeout):
+                self.params = params
+                return Response()
+
+        session = Session()
+        graph = GraphClient("tenant", "client", "secret", session=session)
+        graph._token = "token"
+        self.assertEqual(graph.attachments("mailbox", "message"), [])
+        self.assertEqual(session.params["$select"], "id,name,contentType,size,isInline")
+
     def test_download_domain_requires_exact_host_or_subdomain(self):
         allowed = {"portal.royalelec.com"}
         self.assertTrue(allowed_host("portal.royalelec.com", allowed))
