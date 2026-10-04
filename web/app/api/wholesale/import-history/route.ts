@@ -6,11 +6,12 @@ export const dynamic = "force-dynamic";
 export async function GET() {
   const supabase = createServerSupabaseClient();
   const { data, error } = await supabase.from("wholesale_email_ingestions")
-    .select("ingestion_id,source_type,source_name,source_host,sender_address,received_at,status,effective_date,wholesale_import_id,enrichment_run_id,error_summary,attempt_count,completed_at,wholesale_imports(summary,revision),wholesale_enrichment_runs(run_status,requested_limit,processed_count,matched_count,review_count,error_count)")
+    .select("ingestion_id,supplier_id,source_type,source_name,source_host,sender_address,received_at,status,effective_date,wholesale_import_id,enrichment_run_id,error_summary,attempt_count,completed_at,wholesale_imports(summary,revision),wholesale_enrichment_runs(run_status,requested_limit,processed_count,matched_count,review_count,error_count)")
     .order("received_at", { ascending: false }).limit(25);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  const progress = await Promise.all((data ?? []).map((row: any) => downstreamProgress(supabase, row)));
-  const rows = (data ?? []).map((row: any, index) => ({
+  const resolved = await resolveLatestImports(supabase, data ?? []);
+  const progress = await Promise.all(resolved.map((row: any) => downstreamProgress(supabase, row)));
+  const rows = resolved.map((row: any, index) => ({
     ingestionId: row.ingestion_id, sourceType: row.source_type, sourceName: row.source_name,
     sourceHost: row.source_host, sender: row.sender_address, receivedAt: row.received_at,
     status: row.status, effectiveDate: row.effective_date, importId: row.wholesale_import_id,
@@ -20,6 +21,31 @@ export async function GET() {
     downstream: progress[index],
   }));
   return NextResponse.json({ rows }, { headers: { "Cache-Control": "no-store" } });
+}
+
+async function resolveLatestImports(supabase: any, rows: any[]) {
+  const candidates = rows.filter(row => row.supplier_id && row.effective_date && row.wholesale_import_id);
+  if (!candidates.length) return rows;
+  const supplierIds = [...new Set(candidates.map(row => row.supplier_id))];
+  const effectiveDates = [...new Set(candidates.map(row => row.effective_date))];
+  const { data, error } = await supabase.from("wholesale_imports")
+    .select("import_id,supplier_id,effective_date,revision,summary")
+    .in("supplier_id", supplierIds).in("effective_date", effectiveDates)
+    .eq("status", "completed").order("revision", { ascending: false });
+  if (error) throw new Error(error.message);
+  const latest = new Map<string, any>();
+  for (const item of data ?? []) {
+    const key = `${item.supplier_id}:${item.effective_date}`;
+    if (!latest.has(key)) latest.set(key, item);
+  }
+  return rows.map(row => {
+    const item = latest.get(`${row.supplier_id}:${row.effective_date}`);
+    return item ? {
+      ...row,
+      wholesale_import_id: item.import_id,
+      wholesale_imports: { revision: item.revision, summary: item.summary },
+    } : row;
+  });
 }
 
 async function downstreamProgress(supabase: any, row: any) {
