@@ -19,6 +19,10 @@ if (-not $input.Overrides.ContainerOverrides) {
 $container = $input.Overrides.ContainerOverrides | Select-Object -First 1
 $container.Name = "mbop-scheduler"
 $container.Command = @("python", "run_all_syncs.py", "--group", "wholesale-email-ingestion")
+$scheduleEnvironment = @($container.Environment | Where-Object { $_.Name -ne "EVENTBRIDGE_SCHEDULE_NAME" })
+$container.Environment = $scheduleEnvironment + @(
+  [pscustomobject]@{ Name = "EVENTBRIDGE_SCHEDULE_NAME"; Value = $ScheduleName }
+)
 $target.Input = $input | ConvertTo-Json -Depth 100 -Compress
 $targetFile = Join-Path ([System.IO.Path]::GetTempPath()) "$ScheduleName-target.json"
 $windowFile = Join-Path ([System.IO.Path]::GetTempPath()) "$ScheduleName-window.json"
