@@ -31,8 +31,11 @@ KEEPA_EPOCH_SECONDS = 1293840000
 SOURCE_PRIORITY_HIGH = 0
 SOURCE_PRIORITY_MEDIUM = 1
 SOURCE_PRIORITY_LOW = 2
+CATALOG_SOURCES = {"catalog_priority", "freshness_24h"}
 BLOCKED_CATALOG_STATUSES = {"cancelled", "return_opened", "return_pending"}
-SOURCING_BLOCKED_KEEPA_SOURCES = {"catalog_priority", "sourcing_active", "canonical", "amazon_active"}
+SOURCING_BLOCKED_KEEPA_SOURCES = {
+    "catalog_priority", "sourcing_active", "canonical", "amazon_active"
+}
 
 CSV_AMAZON = 0
 CSV_NEW = 1
@@ -335,6 +338,7 @@ def parse_args() -> argparse.Namespace:
             "sourcing_active",
             "wholesale_selected",
             "catalog_priority",
+            "freshness_24h",
             "explicit",
         ],
         default="canonical",
@@ -344,6 +348,7 @@ def parse_args() -> argparse.Namespace:
             "sourcing_active = ASINs from active sourcing opportunities/watchlist. "
             "wholesale_selected = selected eligible wholesale matches. "
             "catalog_priority = received FBA prep first, active sourcing second, then all known catalog ASINs. "
+            "freshness_24h = all known catalog ASINs plus every ASIN discovered by wholesale matching. "
             "explicit = only ASINs passed with --asin."
         ),
     )
@@ -478,7 +483,7 @@ def collect_source_asins(supabase, *, source: str) -> tuple[list[str], dict[str,
             if asin and current_quantity(row) > 0:
                 add_asin(asin, SOURCE_PRIORITY_LOW)
 
-    if source == "catalog_priority":
+    if source in CATALOG_SOURCES:
         for row in fetch_all(
             supabase,
             "purchase_items",
@@ -529,7 +534,7 @@ def collect_source_asins(supabase, *, source: str) -> tuple[list[str], dict[str,
                 priority = SOURCE_PRIORITY_LOW if source == "catalog_priority" else SOURCE_PRIORITY_MEDIUM
                 add_asin(asin, priority)
 
-    if source in {"sourcing_active", "catalog_priority"}:
+    if source in {"sourcing_active", *CATALOG_SOURCES}:
         for row in fetch_all(
             supabase,
             "sourcing_opportunities",
@@ -555,7 +560,7 @@ def collect_source_asins(supabase, *, source: str) -> tuple[list[str], dict[str,
                 if row.get("eligibility_status") == "eligible":
                     add_asin(row.get("asin"), SOURCE_PRIORITY_HIGH)
 
-    if source == "catalog_priority":
+    if source in CATALOG_SOURCES:
         for asin in fetch_return_recovery_fba_asins(supabase):
             add_asin(asin, SOURCE_PRIORITY_HIGH)
 
@@ -588,6 +593,14 @@ def collect_source_asins(supabase, *, source: str) -> tuple[list[str], dict[str,
             "asin",
         ):
             add_asin(row.get("asin"), SOURCE_PRIORITY_LOW)
+
+    if source == "freshness_24h":
+        for row in fetch_all(
+            supabase,
+            "wholesale_amazon_candidates",
+            "asin",
+        ):
+            add_asin(row.get("asin"), SOURCE_PRIORITY_HIGH)
 
     return sorted(asins), priority_by_asin
 

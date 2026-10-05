@@ -12,6 +12,59 @@ if str(INTEGRATIONS) not in sys.path:
 import keepa_sync_products as keepa_sync  # noqa: E402
 
 
+class _Response:
+    def __init__(self, data):
+        self.data = data
+
+
+class _Query:
+    def __init__(self, rows):
+        self.rows = rows
+
+    def select(self, _columns):
+        return self
+
+    def range(self, start, end):
+        self.start = start
+        self.end = end
+        return self
+
+    def execute(self):
+        return _Response(self.rows[getattr(self, "start", 0):getattr(self, "end", len(self.rows) - 1) + 1])
+
+
+class _Supabase:
+    def __init__(self, tables):
+        self.tables = tables
+
+    def table(self, name):
+        return _Query(self.tables.get(name, []))
+
+
+def test_freshness_source_includes_every_wholesale_candidate(monkeypatch):
+    monkeypatch.setattr(keepa_sync, "fetch_return_recovery_fba_asins", lambda _supabase: [])
+    supabase = _Supabase({
+        "purchase_items": [],
+        "sourcing_opportunities": [],
+        "amazon_skus": [],
+        "amazon_sales_profitability": [],
+        "manual_item_matches": [],
+        "wholesale_amazon_candidates": [
+            {"asin": "B000000001"},
+            {"asin": "B000000002"},
+            {"asin": "B000000001"},
+        ],
+    })
+
+    asins, priorities = keepa_sync.collect_source_asins(supabase, source="freshness_24h")
+
+    assert asins == ["B000000001", "B000000002"]
+    assert priorities == {
+        "B000000001": keepa_sync.SOURCE_PRIORITY_HIGH,
+        "B000000002": keepa_sync.SOURCE_PRIORITY_HIGH,
+    }
+
+
 def test_catalog_cycle_continues_when_eligible_count_changes(monkeypatch):
     previous_cycle = {
         "cycle_started_at": "2026-07-28T17:30:23Z",

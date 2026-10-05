@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createServerSupabaseClient, isCloudDeployment, requireAdminApiToken } from "../../../../_server";
 import { runSchedulerCommandTask } from "../../../../_awsScheduler";
+import { fetchBuyBoxFulfillmentByAsin, fulfillmentForAsin } from "../../../_keepa";
 
 export const dynamic = "force-dynamic";
 type Context = { params: Promise<{ productId: string }> };
@@ -23,11 +24,12 @@ export async function GET(request: Request, context: Context) {
   if (!productResult.data) return json({ error: "Wholesale product not found." }, 404);
   const candidates = candidateResult.data ?? [];
   const asins = Array.from(new Set(candidates.map(row => row.asin).filter(Boolean)));
-  const [catalogResult, keepaResult] = await Promise.all([
+  const [catalogResult, keepaResult, fulfillmentByAsin] = await Promise.all([
     asins.length ? supabase.from("amazon_catalog_item_identity_snapshots").select("*").in("asin", asins) : Promise.resolve({ data: [], error: null }),
     asins.length ? supabase.from("keepa_product_snapshots")
       .select("asin,title,buy_box_price_current_cents,buy_box_price_avg90_cents,sales_rank_drops90,captured_at")
       .eq("domain_id", 1).in("asin", asins).order("captured_at", { ascending: false }) : Promise.resolve({ data: [], error: null }),
+    fetchBuyBoxFulfillmentByAsin(supabase, asins),
   ]);
   const evidenceError = catalogResult.error || keepaResult.error;
   if (evidenceError) return json({ error: evidenceError.message }, 500);
@@ -38,6 +40,7 @@ export async function GET(request: Request, context: Context) {
     product: productResult.data,
     matchState: stateResult.data,
     candidates: candidates.map(candidate => candidateDto(candidate, catalogs.get(candidate.asin), keepa.get(candidate.asin),
+      fulfillmentForAsin(fulfillmentByAsin, candidate.asin),
       productResult.data, (searchResult.data ?? []).filter(search => (search.candidate_asins ?? []).includes(candidate.asin)))),
   });
 }
@@ -89,7 +92,7 @@ export async function POST(request: Request, context: Context) {
   return json({ matchState: result.data, evaluation: action === "select_candidate" ? "requested" : null, taskArn });
 }
 
-function candidateDto(candidate: any, catalog: any, keepa: any, product: any, searches: any[]) {
+function candidateDto(candidate: any, catalog: any, keepa: any, fulfillment: "fba" | "mf" | null, product: any, searches: any[]) {
   const attributes = catalog?.relevant_attributes_json ?? {};
   const amazonIdentifiers = catalogIdentifiers(catalog?.raw_catalog_json);
   return {
@@ -102,6 +105,7 @@ function candidateDto(candidate: any, catalog: any, keepa: any, product: any, se
     format: catalog?.normalized_format ?? null,
     product_type: catalog?.product_type ?? null,
     current_buy_box: cents(keepa?.buy_box_price_current_cents),
+    current_buy_box_fulfillment: fulfillment,
     keepa_avg90: cents(keepa?.buy_box_price_avg90_cents),
     evidence_captured_at: keepa?.captured_at ?? catalog?.fetched_at ?? null,
     match_evidence: searches.map(search => search.query_type === "identifier" ? {

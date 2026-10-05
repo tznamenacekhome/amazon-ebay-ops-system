@@ -372,6 +372,16 @@ Historical deep `offers=20` plus `stock` mode cost roughly 9.8 tokens per ASIN f
 Current scheduler-safe defaults:
 
 ```text
+keepa-catalog-priority (24-hour freshness pass):
+  --source freshness_24h
+  --batch-size 100
+  --limit 500
+  --stale-days 1
+  --adaptive-limit
+  --estimated-tokens-per-asin 1
+  --no-history
+  --no-rating
+
 keepa-catalog-priority:
   --source catalog_priority
   --batch-size 5
@@ -396,11 +406,14 @@ fba-pricing:
   --no-rating
 ```
 
-The `keepa-catalog-priority` schedule captures live new-offer pricing data and
-omits rating, stock, and history payloads. It runs every 30 minutes and can
-process up to 100 ASINs per run. The adaptive limit uses the live balance, so
-the first run can draw down the larger accumulated pool while later runs settle
-at the sustainable 25-token-per-minute refill rate.
+The `keepa-catalog-priority` schedule first runs a one-token-per-ASIN freshness
+pass across every known catalog ASIN and every ASIN discovered by wholesale
+matching. It selects missing snapshots and snapshots older than 24 hours, and
+can process up to 500 ASINs per run. It then spends the remaining token budget
+on live new-offer pricing for up to 100 priority catalog ASINs. Both passes omit
+rating, stock, and history payloads. The schedule runs every 30 minutes, so the
+freshness pass drains a backlog quickly and then maintains the 24-hour target
+without starving richer offer enrichment.
 On Saturday and Sunday in Pacific time it protects 150 tokens for a lightweight
 Send to Amazon refresh of 150 ASINs. On weekdays the reserve is zero and the
 catalog cycle can use the full token pool. The adaptive offer-enrichment budget

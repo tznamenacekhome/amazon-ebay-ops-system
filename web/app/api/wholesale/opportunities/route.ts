@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createServerSupabaseClient } from "../../_server";
+import { fetchBuyBoxFulfillmentByAsin, fulfillmentForAsin } from "../_keepa";
 
 export const dynamic = "force-dynamic";
 const STATUS_GROUPS: Record<string, string[]> = {
@@ -42,17 +43,23 @@ export async function GET(request: Request) {
   const supplierResult = supplierIds.length ? await supabase.from("wholesale_suppliers").select("supplier_id,name").in("supplier_id", supplierIds) : { data: [], error: null };
   if (supplierResult.error) return json({ error: supplierResult.error.message }, 500);
   const suppliers = new Map((supplierResult.data ?? []).map(row => [row.supplier_id, row.name]));
+  let fulfillmentByAsin;
+  try {
+    fulfillmentByAsin = await fetchBuyBoxFulfillmentByAsin(supabase, Array.from(evaluations.values()).map(row => row.asin));
+  } catch (error) {
+    return json({ error: error instanceof Error ? error.message : "Could not load Keepa fulfillment." }, 500);
+  }
 
   return json({
     rows: rows.map(opportunity => dto(opportunity, products.get(opportunity.supplier_product_id),
       evaluations.get(opportunity.current_evaluation_id), drafts.get(opportunity.supplier_product_id),
       candidates.get(opportunity.current_candidate_id),
-      states.get(`${opportunity.supplier_product_id}:${opportunity.marketplace_id}`), suppliers)),
+      states.get(`${opportunity.supplier_product_id}:${opportunity.marketplace_id}`), suppliers, fulfillmentByAsin)),
     page, pageSize, total: count ?? 0, counts,
   });
 }
 
-function dto(opportunity: any, product: any, evaluation: any, draft: any, candidate: any, matchState: any, suppliers: Map<string, string>) {
+function dto(opportunity: any, product: any, evaluation: any, draft: any, candidate: any, matchState: any, suppliers: Map<string, string>, fulfillmentByAsin: Map<string, "fba" | "mf" | null>) {
   const target = number(evaluation?.target_units);
   const currentDraft = number(draft?.quantity) ?? 0;
   const exposureWithoutDraft = (number(evaluation?.fba_fulfillable_units) ?? 0) + (number(evaluation?.inbound_units) ?? 0);
@@ -78,6 +85,7 @@ function dto(opportunity: any, product: any, evaluation: any, draft: any, candid
     evaluationRequested: opportunity.evaluation_requested ?? false,
     eligibilityStatus: evaluation?.eligibility_status ?? null, evaluatedAt: evaluation?.evaluated_at ?? null,
     currentBuyBox: number(evaluation?.current_buy_box_price), keepaAvg30: number(evaluation?.keepa_avg30_price),
+    currentBuyBoxFulfillment: fulfillmentForAsin(fulfillmentByAsin, evaluation?.asin),
     keepaAvg90: number(evaluation?.keepa_avg90_price), keepaVelocity90: number(evaluation?.keepa_sales_rank_drops90),
     currentFees: number(evaluation?.current_total_amazon_fees), avg90Fees: number(evaluation?.avg90_total_amazon_fees),
     inboundAllowance: number(evaluation?.inbound_allowance), returnAllowance: number(evaluation?.return_allowance),

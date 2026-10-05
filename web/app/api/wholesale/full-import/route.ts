@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createServerSupabaseClient } from "../../_server";
+import { fetchBuyBoxFulfillmentByAsin, fulfillmentForAsin } from "../_keepa";
 
 export const dynamic = "force-dynamic";
 const MARKETPLACE_ID = "ATVPDKIKX0DER";
@@ -44,6 +45,12 @@ export async function GET(request: Request) {
     fetchChunks(supabase, "wholesale_decisions", "opportunity_id", opportunityIds,
       "decision_id,opportunity_id,decision_action,decision_scope,reason_code,notes,decision_context,created_at"),
   ]);
+  let fulfillmentByAsin;
+  try {
+    fulfillmentByAsin = await fetchBuyBoxFulfillmentByAsin(supabase, evaluations.map(row => row.asin));
+  } catch (error) {
+    return json({ error: error instanceof Error ? error.message : "Could not load Keepa fulfillment." }, 500);
+  }
 
   const supplierNames = new Map((suppliers ?? []).map(row => [row.supplier_id, row.name]));
   const byProduct = <T extends Record<string, any>>(rows: T[]) => new Map(rows.map(row => [row.supplier_product_id, row]));
@@ -78,6 +85,7 @@ export async function GET(request: Request) {
       statusKey: status.key, statusLabel: status.label, statusDetail: status.detail,
       asin: evaluation?.asin ?? selected?.asin ?? null, amazonTitle: evaluation?.source_evidence_json?.amazon_title ?? null,
       currentBuyBox: number(evaluation?.current_buy_box_price), keepaAvg90: number(evaluation?.keepa_avg90_price),
+      currentBuyBoxFulfillment: fulfillmentForAsin(fulfillmentByAsin, evaluation?.asin),
       currentRoi: number(evaluation?.current_true_roi), avg90Roi: number(evaluation?.avg90_true_roi),
       eligibilityStatus: evaluation?.eligibility_status ?? selected?.eligibility_status ?? null,
       purchaseCapacity: number(evaluation?.purchase_capacity), fbaUnits: number(evaluation?.fba_fulfillable_units) ?? 0,
