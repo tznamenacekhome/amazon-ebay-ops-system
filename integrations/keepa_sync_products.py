@@ -778,12 +778,18 @@ def build_catalog_cycle_state(
     eligible_set = set(eligible_asins)
     previous = fetch_latest_keepa_cycle_metadata(supabase)
     previous_cycle = previous.get("keepa_catalog_cycle") if isinstance(previous, dict) else None
-    previous_remaining = []
+    previous_remaining_raw: list[str] = []
+    previous_remaining: list[str] = []
     if isinstance(previous_cycle, dict):
-        previous_remaining = [
+        previous_remaining_raw = [
             asin
             for asin in previous_cycle.get("remaining_asins_after") or []
-            if isinstance(asin, str) and asin in eligible_set
+            if isinstance(asin, str)
+        ]
+        previous_remaining = [
+            asin
+            for asin in previous_remaining_raw
+            if asin in eligible_set
         ]
 
     previous_eligible = (
@@ -814,9 +820,24 @@ def build_catalog_cycle_state(
 
     if previous_start and previous_remaining and previous_remaining_count and previous_remaining_count > 0:
         cycle_started_at = previous_start
-        remaining = previous_remaining
-        cycle_eligible_count = previous_eligible or len(eligible_set)
-        covered_before = max(cycle_eligible_count - len(remaining), 0)
+        previously_queued = set(previous_remaining_raw)
+        newly_eligible = [asin for asin in eligible_asins if asin not in previously_queued]
+        latest_new = fetch_latest_snapshot_by_asin(supabase, newly_eligible)
+        new_missing = [asin for asin in newly_eligible if asin not in latest_new]
+        remaining_set = set(previous_remaining) | set(new_missing)
+        previous_position = {asin: index for index, asin in enumerate(previous_remaining_raw)}
+
+        def continuing_sort_key(asin: str) -> tuple[int, int, int, str]:
+            return (
+                priority_by_asin.get(asin, SOURCE_PRIORITY_LOW),
+                0 if asin in new_missing else 1,
+                previous_position.get(asin, len(previous_position)),
+                asin,
+            )
+
+        remaining = sorted(remaining_set, key=continuing_sort_key)
+        covered_before = max((previous_eligible or 0) - len(previous_remaining_raw), 0)
+        cycle_eligible_count = covered_before + len(remaining)
     else:
         cycle_started_at = captured_at
         cycle_eligible_count = len(eligible_set)

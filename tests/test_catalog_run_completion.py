@@ -2,10 +2,11 @@ import sys
 import unittest
 from pathlib import Path
 from types import SimpleNamespace
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "integrations"))
-from run_daily_catalog_sourcing import daily_run_failed
+from ebay_api_limits import EbayBrowseQuota
+from run_daily_catalog_sourcing import daily_run_failed, refresh_budget_from_live_quota
 from score_sourcing_opportunities import scoring_run_update, fetch_candidates
 
 
@@ -30,6 +31,31 @@ class CatalogCompletionTests(unittest.TestCase):
             self.assertTrue(daily_run_failed(reason))
         for reason in ("quota_reserve_reached", "manual_chunk_limit", "cycle_completed"):
             self.assertFalse(daily_run_failed(reason))
+
+    def test_live_quota_refresh_reports_no_budget_at_daily_limit(self):
+        refreshes = []
+        with patch(
+            "run_daily_catalog_sourcing.fetch_browse_quota",
+            return_value=EbayBrowseQuota(
+                resource="buy.browse",
+                limit=5000,
+                count=5000,
+                remaining=0,
+                reset="2026-10-05T07:00:00Z",
+                time_window_seconds=86400,
+            ),
+        ):
+            budget, remaining = refresh_budget_from_live_quota(
+                0,
+                api_calls_used=5924,
+                current_budget=5920,
+                quota_refreshes=refreshes,
+                reason="child_rate_limited",
+            )
+
+        self.assertEqual(budget, 5924)
+        self.assertEqual(remaining, 0)
+        self.assertEqual(refreshes[0]["reason"], "child_rate_limited")
 
     def test_chunk_and_historical_rescore_preserve_owner_status_and_time(self):
         self.assertEqual(scoring_run_update(123, True), {"opportunity_count": 123})

@@ -253,7 +253,18 @@ def main() -> int:
                 break
             continue
         if search_summary.get("rate_limited"):
-            stop_reason = "ebay_rate_limited"
+            budget, remaining_budget = refresh_budget_from_live_quota(
+                args.browse_quota_reserve,
+                api_calls_used,
+                budget,
+                quota_refreshes,
+                reason="child_rate_limited",
+            )
+            stop_reason = (
+                "quota_reserve_reached"
+                if remaining_budget == 0
+                else "ebay_rate_limited"
+            )
             break
         if search_summary.get("stop_reason") == "ebay_transient_error":
             stop_reason = "ebay_transient_error"

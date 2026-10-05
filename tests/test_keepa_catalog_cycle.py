@@ -26,6 +26,11 @@ def test_catalog_cycle_continues_when_eligible_count_changes(monkeypatch):
         "fetch_latest_keepa_cycle_metadata",
         lambda _supabase: {"keepa_catalog_cycle": previous_cycle},
     )
+    monkeypatch.setattr(
+        keepa_sync,
+        "fetch_latest_snapshot_by_asin",
+        lambda _supabase, _asins: {},
+    )
 
     state = keepa_sync.build_catalog_cycle_state(
         object(),
@@ -36,10 +41,38 @@ def test_catalog_cycle_continues_when_eligible_count_changes(monkeypatch):
 
     assert state["cycle_id"] == "keepa-20260728-2cf5ecd8"
     assert state["cycle_started_at"] == "2026-07-28T17:30:23Z"
-    assert state["eligible_count"] == 6171
-    assert state["remaining_asins"] == ["B001", "B002"]
+    assert state["eligible_count"] == 6172
+    assert state["remaining_asins"] == ["B003", "B001", "B002"]
     assert state["cycle_tokens_used_before"] == 100
     assert state["cycle_token_tracked_asins_before"] == 20
+
+
+def test_catalog_cycle_reprioritizes_unfinished_queue(monkeypatch):
+    previous_cycle = {
+        "cycle_started_at": "2026-07-28T17:30:23Z",
+        "eligible_count": 3,
+        "remaining_after": 3,
+        "remaining_asins_after": ["B001", "B002", "B003"],
+    }
+    monkeypatch.setattr(
+        keepa_sync,
+        "fetch_latest_keepa_cycle_metadata",
+        lambda _supabase: {"keepa_catalog_cycle": previous_cycle},
+    )
+    monkeypatch.setattr(
+        keepa_sync,
+        "fetch_latest_snapshot_by_asin",
+        lambda _supabase, _asins: {},
+    )
+
+    state = keepa_sync.build_catalog_cycle_state(
+        object(),
+        ["B001", "B002", "B003"],
+        priority_by_asin={"B003": keepa_sync.SOURCE_PRIORITY_HIGH},
+        captured_at="2026-08-01T15:59:50Z",
+    )
+
+    assert state["remaining_asins"] == ["B003", "B001", "B002"]
 
 
 def test_catalog_cycle_starts_new_cycle_after_previous_completes(monkeypatch):
