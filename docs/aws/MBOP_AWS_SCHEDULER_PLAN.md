@@ -367,7 +367,7 @@ Smoke validation completed:
 
 ## Keepa Guardrails
 
-Historical deep `offers=20` plus `stock` mode cost roughly 9.8 tokens per ASIN for active listings. MBOP no longer uses that mode for routine Keepa jobs. Keepa refills at about 5 tokens/minute with a 300-token cap.
+Historical deep `offers=20` plus `stock` mode cost roughly 9.8 tokens per ASIN for active listings. MBOP no longer uses that mode for routine Keepa jobs. The current Keepa subscription refills at 25 tokens/minute with a 1,500-token accumulated pool.
 
 Current scheduler-safe defaults:
 
@@ -375,12 +375,12 @@ Current scheduler-safe defaults:
 keepa-catalog-priority:
   --source catalog_priority
   --batch-size 5
-  --limit 30
+  --limit 100
   --min-tokens 10
   --offers 20
   --only-live-offers
   --adaptive-limit
-  --estimated-tokens-per-asin 12
+  --estimated-tokens-per-asin 10
   --weekend-token-reserve 150
   --business-timezone America/Los_Angeles
   --cycle-progress
@@ -397,12 +397,14 @@ fba-pricing:
 ```
 
 The `keepa-catalog-priority` schedule captures live new-offer pricing data and
-omits rating, stock, and history payloads. It runs every 30 minutes because the
-offer-enriched call often processes only 1-3 ASINs after a 5-minute token refill.
+omits rating, stock, and history payloads. It runs every 30 minutes and can
+process up to 100 ASINs per run. The adaptive limit uses the live balance, so
+the first run can draw down the larger accumulated pool while later runs settle
+at the sustainable 25-token-per-minute refill rate.
 On Saturday and Sunday in Pacific time it protects 150 tokens for a lightweight
 Send to Amazon refresh of 150 ASINs. On weekdays the reserve is zero and the
 catalog cycle can use the full token pool. The adaptive offer-enrichment budget
-uses the production-observed estimate of 12 tokens per ASIN.
+uses the production-observed estimate of 10 tokens per ASIN.
 Cycle progress is recorded so System Health can show progress through a full
 eligible-catalog pass. It is the only scheduled Keepa API caller. The
 manual/on-demand `fba-pricing` group remains available from the Send to Amazon
