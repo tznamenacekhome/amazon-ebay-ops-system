@@ -418,7 +418,17 @@ def build_wholesale_catalog_seeds(supabase, settings, limit: int, *, planning_ca
     catalog_by_asin = latest_catalog_context_by_asin(supabase)
     inventory_by_asin = latest_inventory_by_asin(supabase)
     planning_by_asin = latest_inventory_planning_by_asin(supabase, by_asin, cache=planning_cache)
-    provenance = {asin: row.pop("wholesale_provenance") for asin, row in by_asin.items()}
+    provenance = {
+        asin: sorted(
+            row.pop("wholesale_provenance"),
+            key=lambda item: (
+                str(item.get("supplier_id") or ""),
+                str(item.get("supplier_product_id") or ""),
+                str(item.get("selected_candidate_id") or ""),
+            ),
+        )
+        for asin, row in by_asin.items()
+    }
     eligibility_times = {
         asin: (row.pop("eligibility_checked_at"), row.pop("eligibility_expires_at"), row.pop("raw_system"))
         for asin, row in by_asin.items()

@@ -95,7 +95,18 @@ def main() -> int:
     batch_id = batch["batch_id"]
     if budget == 0:
         stop_reason = "quota_reserve_reached"
-        finish_daily_run(supabase, run_id, cycle["coverage_cycle_id"], batch_id, stop_reason, quota, args.browse_quota_reserve, 0, 0)
+        finish_daily_run(
+            supabase,
+            run_id,
+            cycle["coverage_cycle_id"],
+            batch_id,
+            stop_reason,
+            quota,
+            args.browse_quota_reserve,
+            0,
+            0,
+            added_count=added_count,
+        )
         print("Daily catalog sourcing")
         print("----------------------")
         print(f"Run ID: {run_id}")
