@@ -10,8 +10,10 @@ from typing import Any
 from build_sourcing_seed_asins import (
     build_full_listing_seeds,
     build_recent_sales_seeds,
+    build_wholesale_catalog_seeds,
     catalog_video_game_context,
     fetch_blocked_asins,
+    fetch_fresh_restricted_asins,
     infer_platform_context,
     is_video_game_seed,
     latest_catalog_context_by_asin,
@@ -47,16 +49,22 @@ def build_unified_priority_queue(
     recent = build_recent_sales_seeds(supabase, settings, limit, planning_cache=planning_cache)
     purchased = build_purchased_not_sent_seeds(supabase, settings, limit)
     catalog = build_full_listing_seeds(supabase, settings, limit, planning_cache=planning_cache)
+    wholesale = build_wholesale_catalog_seeds(supabase, settings, limit, planning_cache=planning_cache)
+    restricted_asins = fetch_fresh_restricted_asins(supabase)
 
     by_asin: dict[str, dict[str, Any]] = {}
     for priority, seeds in (
         (PRIORITY_RECENTLY_SOLD, recent),
         (PRIORITY_PURCHASED_NOT_SENT, purchased),
         (PRIORITY_CATALOG_REMAINING, catalog),
+        (PRIORITY_CATALOG_REMAINING, wholesale),
     ):
         for seed in seeds:
             asin = clean_asin(seed.get("asin"))
-            if not asin or asin in by_asin or asin in exclude_asins:
+            if not asin or asin in exclude_asins or asin in restricted_asins:
+                continue
+            if asin in by_asin:
+                merge_seed_provenance(by_asin[asin], seed)
                 continue
             by_asin[asin] = queue_row_from_seed(seed, priority)
 
@@ -209,6 +217,27 @@ def queue_row_from_seed(seed: dict[str, Any], priority_bucket: str) -> dict[str,
     }
 
 
+def merge_seed_provenance(queue_row: dict[str, Any], additional_seed: dict[str, Any]) -> None:
+    seed = queue_row.get("seed_snapshot_json")
+    if not isinstance(seed, dict):
+        return
+    raw = dict(seed.get("raw_context_json") or {})
+    additional_raw = dict(additional_seed.get("raw_context_json") or {})
+    source_modes = {
+        str(value)
+        for value in (
+            list(raw.get("source_modes") or [])
+            + list(additional_raw.get("source_modes") or [])
+            + [seed.get("source_mode"), additional_seed.get("source_mode")]
+        )
+        if value
+    }
+    raw["source_modes"] = sorted(source_modes)
+    if additional_raw.get("wholesale_catalog"):
+        raw["wholesale_catalog"] = additional_raw["wholesale_catalog"]
+    seed["raw_context_json"] = raw
+
+
 def queue_sort_key(row: dict[str, Any]) -> tuple[int, str, int, str]:
     priority_order = {
         PRIORITY_RECENTLY_SOLD: 1,
@@ -239,7 +268,7 @@ def seed_row_for_run(item: dict[str, Any], run_id: str, coverage_cycle_id: str) 
             "seller_sku": item.get("seller_sku"),
             "amazon_title": item.get("amazon_title"),
             "amazon_image_url": item.get("amazon_image_url"),
-            "source_mode": item.get("priority_bucket"),
+            "source_mode": "wholesale_catalog" if seed.get("source_mode") == "wholesale_catalog" else item.get("priority_bucket"),
             "coverage_cycle_id": coverage_cycle_id,
             "coverage_cycle_item_id": item.get("cycle_item_id"),
             "queue_position": item.get("queue_position"),
@@ -248,6 +277,76 @@ def seed_row_for_run(item: dict[str, Any], run_id: str, coverage_cycle_id: str) 
         }
     )
     return seed
+
+
+def mark_restricted_cycle_items(supabase, cycle_id: str, restricted_asins: set[str]) -> int:
+    """Prevent queued ASINs with a current New restriction from being searched."""
+    updated = 0
+    for asin_batch in chunked(sorted(restricted_asins), 100):
+        rows = (
+            supabase.table("sourcing_coverage_cycle_items")
+            .select("cycle_item_id")
+            .eq("coverage_cycle_id", cycle_id)
+            .in_("processing_status", sorted(PENDING_STATUSES))
+            .in_("asin", asin_batch)
+            .execute()
+            .data
+            or []
+        )
+        ids = [str(row["cycle_item_id"]) for row in rows]
+        for id_batch in chunked(ids, 100):
+            supabase.table("sourcing_coverage_cycle_items").update({
+                "processing_status": "ineligible",
+                "eligibility_reason": "current_new_condition_restriction",
+                "updated_at": dt.datetime.now(dt.UTC).isoformat(),
+            }).in_("cycle_item_id", id_batch).execute()
+        updated += len(ids)
+    return updated
+
+
+def dismiss_open_opportunities_for_restricted_asins(supabase, restricted_asins: set[str]) -> int:
+    """Dismiss unpurchased opportunities while retaining rows and action history."""
+    statuses = ["open", "watching", "roi_snoozed", "inventory_snoozed"]
+    dismissed = 0
+    checked_at = dt.datetime.now(dt.UTC).isoformat()
+    for asin_batch in chunked(sorted(restricted_asins), 100):
+        rows = (
+            supabase.table("sourcing_opportunities")
+            .select("opportunity_id,candidate_id,asin,ebay_item_id,status")
+            .in_("asin", asin_batch)
+            .in_("status", statuses)
+            .execute()
+            .data
+            or []
+        )
+        if not rows:
+            continue
+        actions = [{
+            "action_id": str(uuid.uuid5(uuid.NAMESPACE_URL, f"mbop:sourcing:new-restricted:{row['opportunity_id']}")),
+            "opportunity_id": row["opportunity_id"],
+            "candidate_id": row.get("candidate_id"),
+            "asin": row.get("asin"),
+            "ebay_item_id": row.get("ebay_item_id"),
+            "action_type": "dismissed",
+            "dismiss_reason": "amazon_new_condition_restricted",
+            "notes": "Automatically dismissed because current shared eligibility evidence blocks New-condition sale.",
+            "raw_action_context": {
+                "source": "amazon_listing_eligibility_evidence",
+                "condition_type": "new_new",
+                "checked_at": checked_at,
+                "previous_status": row.get("status"),
+            },
+        } for row in rows]
+        for action_batch in chunked(actions, 250):
+            supabase.table("sourcing_actions").upsert(action_batch, on_conflict="action_id").execute()
+        ids = [str(row["opportunity_id"]) for row in rows]
+        for id_batch in chunked(ids, 100):
+            supabase.table("sourcing_opportunities").update({
+                "status": "dismissed",
+                "updated_at": checked_at,
+            }).in_("opportunity_id", id_batch).execute()
+        dismissed += len(rows)
+    return dismissed
 
 
 def refresh_cycle_metrics(supabase, cycle_id: str, *, run_id: str | None = None, stop_reason: str | None = None) -> dict[str, Any]:

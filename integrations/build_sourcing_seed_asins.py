@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import datetime as dt
+import os
 import uuid
 from collections import defaultdict
 from typing import Any
@@ -295,6 +296,266 @@ def build_full_listing_seeds(supabase, settings, limit: int, *, planning_cache=N
         supabase,
         blocked_asins=blocked_asins,
     )
+
+
+def build_wholesale_catalog_seeds(supabase, settings, limit: int, *, planning_cache=None) -> list[dict[str, Any]]:
+    """Build conservative catalog-priority seeds from current wholesale selections."""
+    states = paginate_table(
+        supabase,
+        "wholesale_match_states",
+        "supplier_product_id,marketplace_id,match_status,selected_candidate_id,selection_source",
+        max_rows=10000,
+    )
+    states = [row for row in states if row.get("selected_candidate_id")]
+    if not states:
+        return []
+
+    candidate_ids = [str(row["selected_candidate_id"]) for row in states]
+    candidates: dict[str, dict[str, Any]] = {}
+    for batch in chunked(candidate_ids, 100):
+        rows = (
+            supabase.table("wholesale_amazon_candidates")
+            .select("candidate_id,supplier_product_id,marketplace_id,asin,match_sources,compatibility_status")
+            .in_("candidate_id", batch)
+            .execute()
+            .data
+            or []
+        )
+        candidates.update({str(row["candidate_id"]): row for row in rows})
+
+    product_ids = sorted({str(row["supplier_product_id"]) for row in states})
+    products: dict[str, dict[str, Any]] = {}
+    for batch in chunked(product_ids, 100):
+        rows = (
+            supabase.table("wholesale_supplier_products")
+            .select("supplier_product_id,supplier_id,raw_title,raw_system")
+            .in_("supplier_product_id", batch)
+            .execute()
+            .data
+            or []
+        )
+        products.update({str(row["supplier_product_id"]): row for row in rows})
+
+    supplier_ids = sorted({str(row.get("supplier_id")) for row in products.values() if row.get("supplier_id")})
+    suppliers: dict[str, str] = {}
+    for batch in chunked(supplier_ids, 100):
+        rows = supabase.table("wholesale_suppliers").select("supplier_id,name").in_("supplier_id", batch).execute().data or []
+        suppliers.update({str(row["supplier_id"]): str(row.get("name") or row["supplier_id"]) for row in rows})
+
+    active_non_na = {
+        str(row.get("supplier_product_id"))
+        for row in paginate_table(
+            supabase,
+            "wholesale_product_classifications",
+            "supplier_product_id,classification_code,classification_status",
+            max_rows=10000,
+        )
+        if row.get("classification_code") == "non_na_version" and row.get("classification_status") == "active"
+    }
+    selected_asins = sorted({
+        str(candidate.get("asin") or "").strip().upper()
+        for state in states
+        if (candidate := candidates.get(str(state.get("selected_candidate_id") or "")))
+        and candidate.get("asin")
+    })
+    evidence = fetch_fresh_new_eligibility_by_asin(supabase, selected_asins)
+    blocked_asins = fetch_blocked_asins(supabase)
+
+    keepa_by_asin: dict[str, dict[str, Any]] = {}
+    for batch in chunked(selected_asins, 100):
+        rows = (
+            supabase.table("vw_latest_keepa_product_snapshot")
+            .select("asin,captured_at,new_price_current_cents,buy_box_price_avg90_cents,buy_box_price_current_cents,title")
+            .in_("asin", batch)
+            .execute()
+            .data
+            or []
+        )
+        keepa_by_asin.update({str(row.get("asin") or "").upper(): row for row in rows if row.get("asin")})
+
+    by_asin: dict[str, dict[str, Any]] = {}
+    for state in states:
+        product_id = str(state.get("supplier_product_id") or "")
+        candidate = candidates.get(str(state.get("selected_candidate_id") or ""))
+        product = products.get(product_id) or {}
+        if not wholesale_selection_is_seed_eligible(state, candidate, product_id, active_non_na, evidence, blocked_asins):
+            continue
+        asin = str(candidate.get("asin") or "").upper()
+        keepa = keepa_by_asin.get(asin) or {}
+        target_sale_price = keepa_catalog_price(keepa)
+        if not is_recent_keepa_snapshot(keepa) or target_sale_price < settings.min_amazon_price:
+            continue
+        eligibility = evidence[asin]
+        provenance = {
+            "supplier_product_id": product_id,
+            "supplier_id": product.get("supplier_id"),
+            "supplier_name": suppliers.get(str(product.get("supplier_id") or "")),
+            "selection_source": state.get("selection_source"),
+            "selected_candidate_id": state.get("selected_candidate_id"),
+            "candidate_match_sources": candidate.get("match_sources") or [],
+        }
+        current = by_asin.setdefault(
+            asin,
+            {
+                "asin": asin,
+                "amazon_title": keepa.get("title") or product.get("raw_title") or asin,
+                "seller_sku": None,
+                "units_sold_lookback": 0,
+                "units_sold_60d": 0,
+                "last_sold_at": None,
+                "target_sale_price": round(target_sale_price, 2),
+                "fee_samples": [],
+                "target_sale_price_source_override": "keepa_new_90d_avg",
+                "listing_source": {"source_table": "wholesale_match_states"},
+                "wholesale_provenance": [],
+                "eligibility_checked_at": eligibility.get("checked_at"),
+                "eligibility_expires_at": eligibility.get("expires_at"),
+                "raw_system": product.get("raw_system"),
+            },
+        )
+        current["wholesale_provenance"].append(provenance)
+
+    catalog_by_asin = latest_catalog_context_by_asin(supabase)
+    inventory_by_asin = latest_inventory_by_asin(supabase)
+    planning_by_asin = latest_inventory_planning_by_asin(supabase, by_asin, cache=planning_cache)
+    provenance = {asin: row.pop("wholesale_provenance") for asin, row in by_asin.items()}
+    eligibility_times = {
+        asin: (row.pop("eligibility_checked_at"), row.pop("eligibility_expires_at"), row.pop("raw_system"))
+        for asin, row in by_asin.items()
+    }
+    seeds = finalize_seeds(
+        by_asin.values(),
+        inventory_by_asin,
+        settings,
+        limit,
+        planning_by_asin,
+        catalog_by_asin,
+        supabase,
+        blocked_asins=blocked_asins,
+    )
+    for seed in seeds:
+        asin = seed["asin"]
+        checked_at, expires_at, raw_system = eligibility_times[asin]
+        seed["source_mode"] = "wholesale_catalog"
+        seed["inventory_need_level"] = "low"
+        seed["raw_context_json"].update({
+            "source_modes": ["wholesale_catalog"],
+            "wholesale_catalog": {
+                "supplier_selections": provenance[asin],
+                "eligibility_condition": "new_new",
+                "eligibility_status": "eligible",
+                "eligibility_checked_at": checked_at,
+                "eligibility_expires_at": expires_at,
+                "raw_system": raw_system,
+                "priority_policy": "catalog_priority_without_invented_sales_velocity",
+            },
+        })
+    return seeds
+
+
+def wholesale_selection_is_seed_eligible(
+    state: dict[str, Any],
+    candidate: dict[str, Any] | None,
+    product_id: str,
+    active_non_na: set[str],
+    eligibility_by_asin: dict[str, dict[str, Any]],
+    blocked_asins: set[str],
+) -> bool:
+    if not candidate or state.get("match_status") != "matched":
+        return False
+    asin = str(candidate.get("asin") or "").strip().upper()
+    return bool(
+        asin
+        and candidate.get("compatibility_status") == "compatible"
+        and product_id not in active_non_na
+        and asin not in blocked_asins
+        and (eligibility_by_asin.get(asin) or {}).get("eligibility_status") == "eligible"
+    )
+
+
+def eligibility_scope() -> tuple[str, str]:
+    seller_id = str(os.getenv("AMAZON_SP_API_SELLER_ID") or os.getenv("AMAZON_SELLER_ID") or "").strip()
+    marketplace_id = str(os.getenv("AMAZON_SP_API_MARKETPLACE_ID") or "").strip()
+    if not seller_id or not marketplace_id:
+        raise RuntimeError("Amazon seller and marketplace IDs are required for sourcing eligibility gating.")
+    return seller_id, marketplace_id
+
+
+def fetch_fresh_new_eligibility_by_asin(
+    supabase,
+    asins: list[str],
+    *,
+    now: dt.datetime | None = None,
+    seller_id: str | None = None,
+    marketplace_id: str | None = None,
+) -> dict[str, dict[str, Any]]:
+    if not asins:
+        return {}
+    if not seller_id or not marketplace_id:
+        seller_id, marketplace_id = eligibility_scope()
+    now = now or dt.datetime.now(dt.UTC)
+    result: dict[str, dict[str, Any]] = {}
+    for batch in chunked(sorted({str(asin).upper() for asin in asins if asin}), 100):
+        rows = (
+            supabase.table("amazon_listing_eligibility_evidence")
+            .select("asin,eligibility_status,reason_codes,checked_at,expires_at")
+            .eq("seller_id", seller_id)
+            .eq("marketplace_id", marketplace_id)
+            .eq("condition_type", "new_new")
+            .in_("asin", batch)
+            .execute()
+            .data
+            or []
+        )
+        for row in rows:
+            expires_at = parse_datetime_utc(row.get("expires_at"))
+            if expires_at and expires_at > now:
+                result[str(row.get("asin") or "").upper()] = row
+    return result
+
+
+def fetch_fresh_restricted_asins(
+    supabase,
+    *,
+    now: dt.datetime | None = None,
+    seller_id: str | None = None,
+    marketplace_id: str | None = None,
+) -> set[str]:
+    if not seller_id or not marketplace_id:
+        seller_id, marketplace_id = eligibility_scope()
+    now = now or dt.datetime.now(dt.UTC)
+    rows: list[dict[str, Any]] = []
+    for start in range(0, 30000, 1000):
+        batch = (
+            supabase.table("amazon_listing_eligibility_evidence")
+            .select("asin,expires_at")
+            .eq("seller_id", seller_id)
+            .eq("marketplace_id", marketplace_id)
+            .eq("condition_type", "new_new")
+            .eq("eligibility_status", "restricted")
+            .range(start, start + 999)
+            .execute()
+            .data
+            or []
+        )
+        rows.extend(batch)
+        if len(batch) < 1000:
+            break
+    return {
+        str(row.get("asin") or "").upper()
+        for row in rows
+        if row.get("asin") and (parse_datetime_utc(row.get("expires_at")) or dt.datetime.min.replace(tzinfo=dt.UTC)) > now
+    }
+
+
+def parse_datetime_utc(value: Any) -> dt.datetime | None:
+    if not value:
+        return None
+    try:
+        parsed = dt.datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    return parsed.replace(tzinfo=dt.UTC) if parsed.tzinfo is None else parsed.astimezone(dt.UTC)
 
 
 def keepa_catalog_price(keepa: dict[str, Any]) -> float:

@@ -139,7 +139,11 @@ Keepa and Informed data are advisory intelligence only.
 - `sourcing_seed_asins`: ASINs selected for a sourcing run from the coverage
   queue, recent Amazon sales, purchased-not-sent Amazon-bound items, or active
   listings, including Amazon title/image, target sale context, velocity,
-  inventory need, queue position, and warning flags.
+  inventory need, queue position, and warning flags. `source_mode` accepts
+  `wholesale_catalog` when the primary discovery source is an eligible wholesale
+  selection. Duplicate-source provenance is retained in
+  `raw_context_json.source_modes` and `raw_context_json.wholesale_catalog`; the
+  existing priority and economics fields remain authoritative.
 - `sourcing_blocked_asins`: operator-maintained product-level blacklist for
   ASINs that should be excluded from future sourcing seed generation.
 - `sourcing_ebay_candidates`: eBay Browse candidate listings with raw payload,

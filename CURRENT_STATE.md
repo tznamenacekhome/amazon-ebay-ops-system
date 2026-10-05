@@ -1,5 +1,17 @@
 # CURRENT_STATE.md
 
+## Wholesale ASIN discovery for eBay sourcing (2026-10-04)
+
+Eligible ASINs selected by wholesale matching now join the existing unified
+sourcing coverage queue at catalog priority. The admission path requires a
+compatible selected candidate, current shared `new_new` eligibility for the
+configured seller/marketplace, no active product classification, and no sourcing
+block. Duplicate ASINs retain their normal priority/economics and gain supplier
+provenance. Fresh New-condition restrictions suppress every sourcing source and
+dismiss only unpurchased open opportunities with history retained. The read-only
+production baseline was 847 selected ASINs, 846 eligible, 605 already covered,
+and 241 net new. See `docs/WHOLESALE_TO_SOURCING_ASIN_DISCOVERY.md`.
+
 ## Royal downstream pipeline (2026-10-04)
 
 - Matching capacity is shared across active Royal import runs, and duplicate

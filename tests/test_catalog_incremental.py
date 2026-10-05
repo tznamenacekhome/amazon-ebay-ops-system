@@ -13,6 +13,50 @@ import sourcing_database_guard as guard
 
 
 class IncrementalTests(unittest.TestCase):
+    def test_active_cycle_refresh_merges_wholesale_provenance_without_requeue(self):
+        db = MagicMock()
+        table = db.table.return_value
+        table.upsert.return_value = table
+        table.execute.return_value = SimpleNamespace(data=[])
+        existing = {
+            "coverage_cycle_id": "cycle",
+            "cycle_item_id": "item",
+            "asin": "B000TEST01",
+            "queue_position": 4,
+            "processing_status": "pending",
+            "seed_snapshot_json": {
+                "asin": "B000TEST01",
+                "source_mode": "recent_sales",
+                "raw_context_json": {},
+            },
+        }
+        incoming = SimpleNamespace(rows=[{
+            "asin": "B000TEST01",
+            "queue_position": 1,
+            "seed_snapshot_json": {
+                "asin": "B000TEST01",
+                "source_mode": "recent_sales",
+                "raw_context_json": {
+                    "source_modes": ["recent_sales", "wholesale_catalog"],
+                    "wholesale_catalog": {"supplier_selections": [{"supplier_product_id": "product"}]},
+                },
+            },
+        }])
+
+        with (
+            patch.object(catalog, "build_unified_priority_queue", return_value=incoming),
+            patch.object(catalog, "paginate_cycle_item_keys", return_value=[existing]),
+            patch.object(catalog, "insert_cycle_items") as insert_items,
+            patch.object(catalog, "refresh_cycle_metrics"),
+        ):
+            added = catalog.refresh_active_cycle_queue(db, "cycle", object(), 100)
+
+        self.assertEqual(added, 0)
+        insert_items.assert_called_once_with(db, "cycle", [])
+        payload = table.upsert.call_args.args[0]
+        self.assertEqual(payload[0]["queue_position"], 4)
+        self.assertIn("wholesale_catalog", payload[0]["seed_snapshot_json"]["raw_context_json"])
+
     def test_candidate_query_restricts_seed_scope_on_every_page(self):
         db = MagicMock()
         q = db.table.return_value

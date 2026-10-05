@@ -220,6 +220,16 @@ Carrier/status syncs must not downgrade workflow-owned statuses.
 - Sales Velocity Too Low dismissals are ASIN-level business suppressions, not
   product identity negatives. They remain active until the ASIN's refreshed
   monthly velocity satisfies the current sourcing velocity threshold.
+- A wholesale-selected ASIN may enter the unified sourcing queue only when its
+  selected candidate is compatible, shared seller/marketplace `new_new`
+  eligibility evidence is eligible and unexpired, the product has no active
+  exclusion classification, and the ASIN is not sourcing-blocked. Manual and
+  automatic selections use the same gates. Wholesale-only seeds use catalog
+  priority and never substitute supplier cost for existing sourcing economics.
+- Current shared `new_new` restricted evidence excludes an ASIN from every
+  sourcing source. Pending cycle items become ineligible, and unpurchased open
+  opportunities are dismissed with retained rows and an idempotent action
+  record. Purchased and historical rows are not rewritten.
 - Sourcing opportunity Last Sold display is backend-owned. It should use the
   seed's stored sale context when present and otherwise fall back to Amazon
   sales history by ASIN so full-listing candidates do not lose recent sale

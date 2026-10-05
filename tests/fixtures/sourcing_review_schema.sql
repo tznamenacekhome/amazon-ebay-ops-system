@@ -241,6 +241,6 @@ alter table public.sourcing_opportunities add constraint sourcing_opportunities_
 alter table public.sourcing_sales_velocity_suppressions add constraint sourcing_sales_velocity_suppressions_pkey PRIMARY KEY (suppression_id);
 alter table public.sourcing_sales_velocity_suppressions add constraint sourcing_sales_velocity_suppressions_status_check CHECK ((status = ANY (ARRAY['active'::text, 'released'::text])));
 alter table public.sourcing_seed_asins add constraint sourcing_seed_asins_pkey PRIMARY KEY (seed_id);
-alter table public.sourcing_seed_asins add constraint sourcing_seed_asins_source_mode_check CHECK ((source_mode = ANY (ARRAY['recent_sales'::text, 'full_listings'::text, '1_recently_sold'::text, '2_purchased_not_sent'::text, '3_catalog_remaining'::text])));
+alter table public.sourcing_seed_asins add constraint sourcing_seed_asins_source_mode_check CHECK ((source_mode = ANY (ARRAY['recent_sales'::text, 'full_listings'::text, 'wholesale_catalog'::text, '1_recently_sold'::text, '2_purchased_not_sent'::text, '3_catalog_remaining'::text])));
 alter table public.sourcing_settings add constraint sourcing_settings_pkey PRIMARY KEY (setting_id);
 create unique index active_velocity_unique on public.sourcing_sales_velocity_suppressions(asin) where status='active';

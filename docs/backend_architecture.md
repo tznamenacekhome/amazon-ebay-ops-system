@@ -143,6 +143,14 @@ backend cycle/batch/quota
 diagnostics and does not calculate matching, profitability, or queue eligibility
 in React.
 
+Wholesale matching is an additive discovery input to this queue. Compatible
+selected ASINs with fresh shared New-condition eligibility join catalog priority,
+and duplicate ASINs merge supplier/import/product provenance without changing
+the stronger source's priority or economics. The runner reads the shared
+eligibility cache centrally: fresh restrictions exclude all seed sources, mark
+pending cycle items ineligible, and dismiss only unpurchased open opportunities
+with action history retained. This adds no scheduler or provider loop.
+
 Opportunity scoring enforces the open review queue as one display-eligible row
 per ASIN. After scoring inserts or updates rows, duplicate open/unreviewed ASIN
 opportunities are dismissed with `duplicate_open_asin_opportunity`, preserving

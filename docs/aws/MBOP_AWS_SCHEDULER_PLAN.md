@@ -150,7 +150,9 @@ These group names are now accepted by `run_all_syncs.py`:
 - `repricing-catalog`: Amazon listing status, Informed repricing reports
 - `sourcing-catalog`: unified daily catalog sourcing, Browse sourcing listing
   availability, Trading `GetItem` availability fallback, Matching Intelligence
-  refresh
+  refresh. The unified queue also admits eligible ASINs discovered by wholesale
+  matching at existing catalog priority using stored matching and shared
+  eligibility evidence; cadence, Browse quota reserve, and command are unchanged.
 - `keepa-catalog-priority`: the only scheduled Keepa token-spending group.
   It enriches purchases first, then active sourcing opportunities, then the
   remaining non-blocked catalog ASINs oldest Keepa snapshot first.

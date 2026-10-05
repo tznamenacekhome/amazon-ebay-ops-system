@@ -1,5 +1,18 @@
 # DECISIONS.md
 
+## Wholesale-selected ASINs feed normal sourcing coverage (2026-10-04)
+
+An Amazon ASIN selected by wholesale matching is an additive sourcing discovery
+source only after compatible identity, fresh seller/marketplace `new_new`
+eligibility, active-classification, and sourcing-block gates pass. Wholesale-only
+ASINs use the existing catalog priority; duplicate ASINs retain their higher
+priority and existing sourcing economics while recording wholesale provenance.
+Fresh shared New-condition restriction evidence suppresses the ASIN across every
+sourcing seed source and dismisses only unpurchased open opportunities with an
+audit action. Existing Browse quotas, search rules, economics, and operator
+purchase workflow are unchanged. See
+`docs/WHOLESALE_TO_SOURCING_ASIN_DISCOVERY.md`.
+
 ## Wholesale pass resurfacing and audit workflow (2026-10-03)
 
 Wholesale has three operator views: Ready to Review, Order List, and Full Import. System exclusions remain explicit Full Import states rather than manual pass reasons. A new supplier list triggers reevaluation but never clears a pass by itself. Too Much Inventory, Price Risk, and Competition compare only their captured evidence; Other and Listing / ASIN Issue require manual reconsideration. Candidate discovery always runs identifier and title/platform branches, and `new_new` eligibility remains a hard gate.

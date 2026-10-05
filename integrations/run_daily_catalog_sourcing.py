@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import copy
 import os
 import datetime as dt
 import subprocess
@@ -30,9 +31,13 @@ from sourcing_coverage_cycle import (
     PRIORITY_RECENTLY_SOLD,
     build_unified_priority_queue,
     clean_asin,
+    dismiss_open_opportunities_for_restricted_asins,
+    mark_restricted_cycle_items,
+    merge_seed_provenance,
     refresh_cycle_metrics,
     seed_row_for_run,
 )
+from build_sourcing_seed_asins import fetch_fresh_restricted_asins
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -66,8 +71,11 @@ def main() -> int:
     wait_for_database(supabase)
     run_id = args.run_id or str(uuid.uuid4())
     searched_asins_this_run: set[str] = set()
+    restricted_asins = fetch_fresh_restricted_asins(supabase)
+    dismissed_restricted = dismiss_open_opportunities_for_restricted_asins(supabase, restricted_asins)
     cycle = get_or_create_active_cycle(supabase, settings, args.queue_limit, searched_asins_this_run)
     recover_abandoned_searches(supabase, cycle["coverage_cycle_id"])
+    marked_restricted = mark_restricted_cycle_items(supabase, cycle["coverage_cycle_id"], restricted_asins)
     added_count = refresh_active_cycle_queue(
         supabase,
         cycle["coverage_cycle_id"],
@@ -76,6 +84,12 @@ def main() -> int:
         searched_asins_this_run,
     )
     create_daily_run(supabase, run_id, cycle["coverage_cycle_id"], settings, quota_snapshot, args.browse_quota_reserve)
+    if dismissed_restricted or marked_restricted:
+        print(
+            f"Fresh New-condition restrictions: dismissed opportunities={dismissed_restricted}, "
+            f"ineligible cycle items={marked_restricted}",
+            flush=True,
+        )
 
     batch = create_batch(supabase, run_id, 1, 0)
     batch_id = batch["batch_id"]
@@ -410,12 +424,23 @@ def refresh_active_cycle_queue(
     }
     max_position = max([int(row.get("queue_position") or 0) for row in existing.values()] or [0])
     new_rows = []
+    provenance_updates = []
     for row in queue.rows:
         asin = str(row.get("asin") or "").upper()
         if asin in existing:
+            current = existing[asin]
+            before = copy.deepcopy(current.get("seed_snapshot_json"))
+            merge_seed_provenance(current, row.get("seed_snapshot_json") or {})
+            if current.get("seed_snapshot_json") != before:
+                provenance_updates.append(current)
             continue
         max_position += 1
         new_rows.append({**row, "queue_position": max_position})
+    for batch in chunked(provenance_updates, 250):
+        supabase.table("sourcing_coverage_cycle_items").upsert(
+            batch,
+            on_conflict="coverage_cycle_id,asin",
+        ).execute()
     insert_cycle_items(supabase, cycle_id, new_rows)
     refresh_cycle_metrics(supabase, cycle_id)
     return len(new_rows)
@@ -427,7 +452,7 @@ def paginate_cycle_item_keys(supabase, cycle_id: str) -> list[dict[str, Any]]:
     while True:
         response = (
             supabase.table("sourcing_coverage_cycle_items")
-            .select("asin,queue_position")
+            .select("*")
             .eq("coverage_cycle_id", cycle_id)
             .range(start, start + 999)
             .execute()

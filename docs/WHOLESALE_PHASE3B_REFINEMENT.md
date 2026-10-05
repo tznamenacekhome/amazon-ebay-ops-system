@@ -1,5 +1,14 @@
 # Wholesale Phase 3B Refinement
 
+## Downstream ASIN discovery
+
+An eligible selected ASIN can feed the separate Amazon-to-eBay sourcing coverage
+workflow. This reuses the selected compatible candidate and current shared
+`new_new` eligibility evidence; it excludes active product classifications and
+sourcing blocks. It carries supplier/import/product provenance but does not
+carry supplier buying economics, create an order, or change wholesale review
+state. See `WHOLESALE_TO_SOURCING_ASIN_DISCOVERY.md`.
+
 Status: implemented, migrated, deployed, and browser-verified in production on October 3, 2026.
 
 ## Workflow

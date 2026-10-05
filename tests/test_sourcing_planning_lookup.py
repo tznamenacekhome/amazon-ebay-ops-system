@@ -64,7 +64,9 @@ class PlanningLookupTests(unittest.TestCase):
             return []
         with patch('sourcing_coverage_cycle.build_recent_sales_seeds', side_effect=recent), \
              patch('sourcing_coverage_cycle.build_full_listing_seeds', side_effect=catalog), \
-             patch('sourcing_coverage_cycle.build_purchased_not_sent_seeds', return_value=[]):
+             patch('sourcing_coverage_cycle.build_purchased_not_sent_seeds', return_value=[]), \
+             patch('sourcing_coverage_cycle.build_wholesale_catalog_seeds', side_effect=catalog), \
+             patch('sourcing_coverage_cycle.fetch_fresh_restricted_asins', return_value=set()):
             for _ in range(2):
                 build_unified_priority_queue(MagicMock(), settings=object())
         self.assertIsNot(caches[0], caches[1])
