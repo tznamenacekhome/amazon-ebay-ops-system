@@ -65,6 +65,32 @@ def test_freshness_source_includes_every_wholesale_candidate(monkeypatch):
     }
 
 
+def test_snapshot_inserts_are_batched_when_history_is_disabled():
+    batches = []
+
+    class InsertQuery:
+        def insert(self, rows):
+            batches.append(rows)
+            return self
+
+        def execute(self):
+            return _Response([])
+
+    class InsertSupabase:
+        def table(self, name):
+            assert name == "keepa_product_snapshots"
+            return InsertQuery()
+
+    rows = [{"asin": f"B{index:09d}"} for index in range(120)]
+    snapshots, history = keepa_sync.insert_keepa_rows(
+        InsertSupabase(), rows, build_history=False, domain_id=1, max_points_per_metric=60,
+    )
+
+    assert snapshots == 120
+    assert history == 0
+    assert [len(batch) for batch in batches] == [50, 50, 20]
+
+
 def test_catalog_cycle_continues_when_eligible_count_changes(monkeypatch):
     previous_cycle = {
         "cycle_started_at": "2026-07-28T17:30:23Z",

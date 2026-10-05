@@ -1156,6 +1156,12 @@ def insert_keepa_rows(
     inserted_snapshots = 0
     inserted_history = 0
 
+    if not build_history:
+        for chunk in chunks(snapshot_rows, 50):
+            supabase.table("keepa_product_snapshots").insert(chunk).execute()
+            inserted_snapshots += len(chunk)
+        return inserted_snapshots, inserted_history
+
     for row in snapshot_rows:
         response = supabase.table("keepa_product_snapshots").insert(row).execute()
         inserted = (response.data or [{}])[0]
