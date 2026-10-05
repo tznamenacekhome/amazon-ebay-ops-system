@@ -80,6 +80,7 @@ type KeepaSnapshotRow = {
   new_price_current_cents: number | null;
   keepa_stats: unknown;
   keepa_has_offers: boolean;
+  keepa_offers: unknown;
   keepa_images: unknown;
   keepa_images_csv: unknown;
 };
@@ -1712,18 +1713,18 @@ async function fetchKeepaPriceContextByAsin(asins: string[]) {
     const chunk = uniqueAsins.slice(index, index + 100);
     const { data, error } = await supabase
       .from("vw_latest_keepa_product_snapshot")
-      .select("asin,title,buy_box_price_current_cents,buy_box_price_avg90_cents,new_fba_price_current_cents,new_price_current_cents,keepa_stats:raw_keepa_json->stats,keepa_has_offers:sourcing_keepa_has_offers,keepa_images:raw_keepa_json->images,keepa_images_csv:raw_keepa_json->imagesCSV")
+      .select("asin,title,buy_box_price_current_cents,buy_box_price_avg90_cents,new_fba_price_current_cents,new_price_current_cents,keepa_stats:raw_keepa_json->stats,keepa_has_offers:sourcing_keepa_has_offers,keepa_offers:raw_keepa_json->offers,keepa_images:raw_keepa_json->images,keepa_images_csv:raw_keepa_json->imagesCSV")
       .in("asin", chunk);
     if (error) throw new Error(`Keepa snapshots: ${error.message}`);
 
     for (const row of (data ?? []) as KeepaSnapshotRow[]) {
       // Keep historical price arrays and other unused provider data in the database.
-      const rawKeepa = { stats: row.keepa_stats, offers: row.keepa_has_offers ? [{}] : [], images: row.keepa_images, imagesCSV: row.keepa_images_csv };
+      const rawKeepa = { stats: row.keepa_stats, offers: Array.isArray(row.keepa_offers) ? row.keepa_offers : row.keepa_has_offers ? [{}] : [], images: row.keepa_images, imagesCSV: row.keepa_images_csv };
       const asin = row.asin?.toUpperCase();
       if (asin) {
         const buyBoxCurrent = centsToDollars(row.buy_box_price_current_cents);
-        const lowFbaCurrent = centsToDollars(row.new_fba_price_current_cents);
-        const lowFbmCurrent = keepaStatsCentsToDollars(rawKeepa, "current", 7);
+        const lowFbaCurrent = centsToDollars(row.new_fba_price_current_cents) ?? lowestLiveNewOfferPrice(rawKeepa, true);
+        const lowFbmCurrent = keepaStatsCentsToDollars(rawKeepa, "current", 7) ?? lowestLiveNewOfferPrice(rawKeepa, false);
         const lowNewCurrent = centsToDollars(row.new_price_current_cents);
         const buyBoxAvg90 = centsToDollars(row.buy_box_price_avg90_cents);
         const newAvg90 = keepaStatsCentsToDollars(rawKeepa, "avg90", 1);
@@ -2006,6 +2007,26 @@ function keepaCurrentPriceContext(input: {
     fulfillment: null,
     isBuyBox: false,
   };
+}
+
+function lowestLiveNewOfferPrice(rawKeepa: unknown, isFba: boolean) {
+  if (!rawKeepa || typeof rawKeepa !== "object") return null;
+  const offers = (rawKeepa as Record<string, unknown>).offers;
+  if (!Array.isArray(offers)) return null;
+  let lowest: number | null = null;
+  for (const value of offers) {
+    if (!value || typeof value !== "object") continue;
+    const offer = value as Record<string, unknown>;
+    if (Number(offer.condition) !== 1 || offer.isFBA !== isFba || offer.isShippable === false) continue;
+    const csv = offer.offerCSV;
+    if (!Array.isArray(csv) || csv.length < 3) continue;
+    const price = Number(csv[csv.length - 2]);
+    const shipping = Number(csv[csv.length - 1]);
+    if (!Number.isFinite(price) || price < 0 || !Number.isFinite(shipping) || shipping < 0) continue;
+    const landed = (price + shipping) / 100;
+    lowest = lowest === null ? landed : Math.min(lowest, landed);
+  }
+  return lowest;
 }
 
 function hasKeepaOfferData(rawKeepa: unknown) {

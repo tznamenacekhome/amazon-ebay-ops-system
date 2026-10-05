@@ -382,6 +382,19 @@ keepa-catalog-priority (24-hour freshness pass):
   --no-history
   --no-rating
 
+keepa-catalog-priority (active sourcing offers):
+  --source sourcing_active
+  --batch-size 5
+  --limit 50
+  --stale-hours 23
+  --offers 20
+  --only-live-offers
+  --require-offer-data
+  --adaptive-limit
+  --estimated-tokens-per-asin 10
+  --no-history
+  --no-rating
+
 keepa-catalog-priority:
   --source catalog_priority
   --batch-size 5
@@ -411,7 +424,9 @@ pass across every known catalog ASIN and every ASIN discovered by wholesale
 matching. It selects missing snapshots and snapshots older than 23 hours, which
 allows the 30-minute schedule to complete each refresh before it reaches 24 hours, and
 can process up to 500 ASINs per run. It then spends the remaining token budget
-on live new-offer pricing for up to 100 priority catalog ASINs. Both passes omit
+on active sourcing ASINs that have not received offer enrichment or whose
+offer-enriched snapshot is older than 23 hours, followed by live new-offer
+pricing for up to 100 priority catalog ASINs. These passes omit
 rating, stock, and history payloads. The schedule runs every 30 minutes, so the
 freshness pass drains a backlog quickly and then maintains the 24-hour target
 without starving richer offer enrichment.

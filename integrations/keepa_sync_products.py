@@ -103,7 +103,16 @@ def main() -> int:
         if args.missing_only:
             existing_asins = fetch_existing_keepa_asins(supabase)
             asins = [asin for asin in asins if asin not in existing_asins]
-        if (args.stale_days is not None or args.stale_hours is not None) and cycle_state is None:
+        if args.require_offer_data:
+            if args.offers is None:
+                raise ValueError("--require-offer-data requires --offers")
+            asins = filter_offer_refresh_asins(
+                supabase,
+                asins,
+                stale_hours=args.stale_hours or 23,
+                priority_by_asin=priority_by_asin,
+            )
+        elif (args.stale_days is not None or args.stale_hours is not None) and cycle_state is None:
             asins = filter_stale_keepa_asins(
                 supabase,
                 asins,
@@ -233,6 +242,7 @@ def main() -> int:
                     domain_id=client.config.domain_id,
                     token_cost=to_int(payload.get("tokenFlowReduction"), default=None),
                     tokens_left=to_int(payload.get("tokensLeft"), default=None),
+                    source="keepa_product_offers" if args.offers is not None else "keepa_product",
                 )
                 snapshot_rows.append(snapshot)
                 history_rows.extend(
@@ -392,6 +402,14 @@ def parse_args() -> argparse.Namespace:
         "--only-live-offers",
         action="store_true",
         help="Ask Keepa to return only live offers when --offers is used.",
+    )
+    parser.add_argument(
+        "--require-offer-data",
+        action="store_true",
+        help=(
+            "Select ASINs whose latest snapshot did not request offer data, or whose offer-enriched "
+            "snapshot is older than --stale-hours. Requires --offers."
+        ),
     )
     parser.add_argument(
         "--adaptive-limit",
@@ -798,6 +816,58 @@ def filter_stale_keepa_asins(
     return sorted(selected, key=sort_key)
 
 
+def filter_offer_refresh_asins(
+    supabase,
+    asins: list[str],
+    *,
+    stale_hours: int,
+    priority_by_asin: dict[str, int] | None = None,
+) -> list[str]:
+    if stale_hours < 0:
+        raise ValueError("--stale-hours must be zero or greater.")
+    asin_set = {clean_asin(asin) for asin in asins}
+    asin_set.discard(None)
+    latest_by_asin: dict[str, tuple[datetime | None, str | None]] = {}
+
+    for chunk in chunks(sorted(asin for asin in asin_set if asin), 200):
+        response = (
+            supabase.table("vw_latest_keepa_product_snapshot")
+            .select("asin,captured_at,source")
+            .in_("asin", chunk)
+            .execute()
+        )
+        for row in response.data or []:
+            asin = clean_asin(row.get("asin"))
+            if asin and asin in asin_set:
+                latest_by_asin[asin] = (
+                    parse_timestamp(row.get("captured_at")),
+                    clean_text(row.get("source")),
+                )
+
+    cutoff = datetime.now(timezone.utc) - timedelta(hours=stale_hours)
+    selected = [
+        asin
+        for asin in asins
+        if asin not in latest_by_asin
+        or latest_by_asin[asin][0] is None
+        or latest_by_asin[asin][0] < cutoff
+        or latest_by_asin[asin][1] != "keepa_product_offers"
+    ]
+    priority_by_asin = priority_by_asin or {}
+
+    def sort_key(asin: str) -> tuple[int, int, datetime]:
+        captured_at, source = latest_by_asin.get(asin, (None, None))
+        if captured_at is None:
+            return (priority_by_asin.get(asin, SOURCE_PRIORITY_LOW), 0, datetime.min.replace(tzinfo=timezone.utc))
+        return (
+            priority_by_asin.get(asin, SOURCE_PRIORITY_LOW),
+            1 if source != "keepa_product_offers" else 2,
+            captured_at,
+        )
+
+    return sorted(selected, key=sort_key)
+
+
 def build_catalog_cycle_state(
     supabase,
     asins: list[str],
@@ -1090,6 +1160,7 @@ def build_snapshot_row(
     domain_id: int,
     token_cost: int | None,
     tokens_left: int | None,
+    source: str = "keepa_product",
 ) -> dict[str, Any]:
     stats = product.get("stats") if isinstance(product.get("stats"), dict) else {}
     current = stats.get("current") if isinstance(stats.get("current"), list) else []
@@ -1127,7 +1198,7 @@ def build_snapshot_row(
         "raw_keepa_json": product,
         "token_cost": token_cost,
         "tokens_left": tokens_left,
-        "source": "keepa_product",
+        "source": source,
     }
 
 

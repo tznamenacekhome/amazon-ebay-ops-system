@@ -40,4 +40,16 @@ assert.equal(
   "fba",
 );
 
+const helperExports = {};
+const helperSource = `${route.slice(start, end)}\nexports.lowestLiveNewOfferPrice = lowestLiveNewOfferPrice;`;
+new Function(
+  "exports",
+  ts.transpileModule(helperSource, {
+    compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
+  }).outputText,
+)(helperExports);
+assert.equal(helperExports.lowestLiveNewOfferPrice({ offers: [{ condition: 1, isFBA: true, isShippable: true, offerCSV: [8286419, 3999, 0] }] }, true), 39.99);
+assert.equal(helperExports.lowestLiveNewOfferPrice({ offers: [{ condition: 1, isFBA: false, isShippable: true, offerCSV: [8285166, 7210, 1020] }] }, false), 82.3);
+assert.equal(helperExports.lowestLiveNewOfferPrice({ offers: [{ condition: 2, isFBA: true, isShippable: true, offerCSV: [8286419, 2599, 0] }] }, true), null);
+
 console.log("Keepa Price now uses generic New fallback after Buy Box/FBA/FBM.");

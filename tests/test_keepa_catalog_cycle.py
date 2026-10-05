@@ -115,6 +115,25 @@ def test_hour_staleness_threshold_selects_before_24_hours():
     assert selected == ["B000000003", "B000000002"]
 
 
+def test_offer_refresh_selects_unenriched_and_stale_active_asins():
+    now = datetime.now(timezone.utc)
+    supabase = _Supabase({
+        "vw_latest_keepa_product_snapshot": [
+            {"asin": "B000000001", "captured_at": (now - timedelta(hours=2)).isoformat(), "source": "keepa_product"},
+            {"asin": "B000000002", "captured_at": (now - timedelta(hours=2)).isoformat(), "source": "keepa_product_offers"},
+            {"asin": "B000000003", "captured_at": (now - timedelta(hours=24)).isoformat(), "source": "keepa_product_offers"},
+        ],
+    })
+
+    selected = keepa_sync.filter_offer_refresh_asins(
+        supabase,
+        ["B000000001", "B000000002", "B000000003", "B000000004"],
+        stale_hours=23,
+    )
+
+    assert selected == ["B000000004", "B000000001", "B000000003"]
+
+
 def test_catalog_cycle_continues_when_eligible_count_changes(monkeypatch):
     previous_cycle = {
         "cycle_started_at": "2026-07-28T17:30:23Z",
