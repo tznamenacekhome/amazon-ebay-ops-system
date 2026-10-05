@@ -12,6 +12,15 @@ dismiss only unpurchased open opportunities with history retained. The read-only
 production baseline was 847 selected ASINs, 846 eligible, 605 already covered,
 and 241 net new. See `docs/WHOLESALE_TO_SOURCING_ASIN_DISCOVERY.md`.
 
+The production migration is applied and scheduler revision 123 is enabled from
+`c0d4ccf64c28`. A zero-call activation added 76 ASINs after all normal sourcing
+controls and attached wholesale provenance to 679 active-cycle rows. Of 544
+fresh restricted ASINs, zero remain pending/retryable. The bounded one-ASIN
+search attempt made zero calls because live Browse usage was already 5,060 of
+5,000; the existing quota guard stopped normally until the 07:00 UTC reset.
+An auto-deleting one-ASIN/eight-call retry is scheduled for 07:02 UTC, ahead of
+the normal 07:10 UTC sourcing run.
+
 ## Royal downstream pipeline (2026-10-04)
 
 - Matching capacity is shared across active Royal import runs, and duplicate
