@@ -39,7 +39,7 @@ export type SourcingOpportunity = {
   keepaAvg90Label: string | null;
   keepaCurrentPrice: number | null;
   keepaCurrentPriceLabel: string | null;
-  keepaCurrentPriceSource: "buy_box" | "fba" | "mf" | "used_only" | "no_data" | null;
+  keepaCurrentPriceSource: "buy_box" | "fba" | "mf" | "new" | "used_only" | "no_data" | null;
   keepaCurrentPriceFulfillment: "fba" | "mf" | null;
   keepaCurrentPriceIsBuyBox: boolean;
   myPrice: number | null;

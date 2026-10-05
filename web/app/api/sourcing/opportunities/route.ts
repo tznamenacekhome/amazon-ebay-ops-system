@@ -107,7 +107,7 @@ type KeepaPriceContext = {
   avg90Label: string | null;
   currentPrice: number | null;
   currentPriceLabel: string | null;
-  currentPriceSource: "buy_box" | "fba" | "mf" | "used_only" | "no_data" | null;
+  currentPriceSource: "buy_box" | "fba" | "mf" | "new" | "used_only" | "no_data" | null;
   currentPriceFulfillment: "fba" | "mf" | null;
   currentPriceIsBuyBox: boolean;
   imageUrl: string | null;
@@ -1724,6 +1724,7 @@ async function fetchKeepaPriceContextByAsin(asins: string[]) {
         const buyBoxCurrent = centsToDollars(row.buy_box_price_current_cents);
         const lowFbaCurrent = centsToDollars(row.new_fba_price_current_cents);
         const lowFbmCurrent = keepaStatsCentsToDollars(rawKeepa, "current", 7);
+        const lowNewCurrent = centsToDollars(row.new_price_current_cents);
         const buyBoxAvg90 = centsToDollars(row.buy_box_price_avg90_cents);
         const newAvg90 = keepaStatsCentsToDollars(rawKeepa, "avg90", 1);
         const current = keepaCurrentPriceContext({
@@ -1733,6 +1734,7 @@ async function fetchKeepaPriceContextByAsin(asins: string[]) {
           buyBoxIsFba: keepaBoolean(rawKeepa, "buyBoxIsFBA"),
           lowFbaCurrent,
           lowFbmCurrent,
+          lowNewCurrent,
           usedCurrent: keepaStatsCentsToDollars(rawKeepa, "current", 2),
         });
         byAsin.set(asin, {
@@ -1947,6 +1949,7 @@ function keepaCurrentPriceContext(input: {
   buyBoxIsFba: boolean | null;
   lowFbaCurrent: number | null;
   lowFbmCurrent: number | null;
+  lowNewCurrent: number | null;
   usedCurrent: number | null;
 }) {
   const buyBox = input.buyBoxIsUsed === true ? null : input.buyBoxCurrent;
@@ -1975,6 +1978,15 @@ function keepaCurrentPriceContext(input: {
       label: "Low MF New",
       source: "mf" as const,
       fulfillment: "mf" as const,
+      isBuyBox: false,
+    };
+  }
+  if (input.lowNewCurrent !== null) {
+    return {
+      price: input.lowNewCurrent,
+      label: "Low New",
+      source: "new" as const,
+      fulfillment: null,
       isBuyBox: false,
     };
   }
