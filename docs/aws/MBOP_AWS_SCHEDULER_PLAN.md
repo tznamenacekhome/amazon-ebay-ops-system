@@ -376,7 +376,7 @@ keepa-catalog-priority (24-hour freshness pass):
   --source freshness_24h
   --batch-size 100
   --limit 500
-  --stale-days 1
+  --stale-hours 23
   --adaptive-limit
   --estimated-tokens-per-asin 1
   --no-history
@@ -408,7 +408,8 @@ fba-pricing:
 
 The `keepa-catalog-priority` schedule first runs a one-token-per-ASIN freshness
 pass across every known catalog ASIN and every ASIN discovered by wholesale
-matching. It selects missing snapshots and snapshots older than 24 hours, and
+matching. It selects missing snapshots and snapshots older than 23 hours, which
+allows the 30-minute schedule to complete each refresh before it reaches 24 hours, and
 can process up to 500 ASINs per run. It then spends the remaining token budget
 on live new-offer pricing for up to 100 priority catalog ASINs. Both passes omit
 rating, stock, and history payloads. The schedule runs every 30 minutes, so the

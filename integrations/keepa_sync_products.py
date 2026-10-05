@@ -103,11 +103,12 @@ def main() -> int:
         if args.missing_only:
             existing_asins = fetch_existing_keepa_asins(supabase)
             asins = [asin for asin in asins if asin not in existing_asins]
-        if args.stale_days is not None and cycle_state is None:
+        if (args.stale_days is not None or args.stale_hours is not None) and cycle_state is None:
             asins = filter_stale_keepa_asins(
                 supabase,
                 asins,
                 stale_days=args.stale_days,
+                stale_hours=args.stale_hours,
                 priority_by_asin=priority_by_asin,
             )
         if args.asin:
@@ -360,12 +361,22 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Exclude ASINs that already have at least one Keepa product snapshot.",
     )
-    parser.add_argument(
+    stale_group = parser.add_mutually_exclusive_group()
+    stale_group.add_argument(
         "--stale-days",
         type=int,
         default=None,
         help=(
             "Only select ASINs without a snapshot or with latest snapshot older than this many days. "
+            "Selected ASINs are ordered oldest first."
+        ),
+    )
+    stale_group.add_argument(
+        "--stale-hours",
+        type=int,
+        default=None,
+        help=(
+            "Only select ASINs without a snapshot or with latest snapshot older than this many hours. "
             "Selected ASINs are ordered oldest first."
         ),
     )
@@ -739,11 +750,16 @@ def filter_stale_keepa_asins(
     supabase,
     asins: list[str],
     *,
-    stale_days: int,
+    stale_days: int | None = None,
+    stale_hours: int | None = None,
     priority_by_asin: dict[str, int] | None = None,
 ) -> list[str]:
-    if stale_days < 0:
+    if stale_days is None and stale_hours is None:
+        raise ValueError("stale_days or stale_hours is required")
+    if stale_days is not None and stale_days < 0:
         raise ValueError("--stale-days must be zero or greater.")
+    if stale_hours is not None and stale_hours < 0:
+        raise ValueError("--stale-hours must be zero or greater.")
 
     asin_set = {clean_asin(asin) for asin in asins}
     asin_set.discard(None)
@@ -761,7 +777,9 @@ def filter_stale_keepa_asins(
             if asin and asin in asin_set:
                 latest_by_asin[asin] = parse_timestamp(row.get("captured_at"))
 
-    cutoff = datetime.now(timezone.utc) - timedelta(days=stale_days)
+    cutoff = datetime.now(timezone.utc) - (
+        timedelta(hours=stale_hours) if stale_hours is not None else timedelta(days=stale_days or 0)
+    )
     selected = []
     for asin in asins:
         captured_at = latest_by_asin.get(asin)

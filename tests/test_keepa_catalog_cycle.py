@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import sys
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 
@@ -27,6 +28,11 @@ class _Query:
     def range(self, start, end):
         self.start = start
         self.end = end
+        return self
+
+    def in_(self, _column, values):
+        value_set = set(values)
+        self.rows = [row for row in self.rows if row.get("asin") in value_set]
         return self
 
     def execute(self):
@@ -89,6 +95,24 @@ def test_snapshot_inserts_are_batched_when_history_is_disabled():
     assert snapshots == 120
     assert history == 0
     assert [len(batch) for batch in batches] == [50, 50, 20]
+
+
+def test_hour_staleness_threshold_selects_before_24_hours():
+    now = datetime.now(timezone.utc)
+    supabase = _Supabase({
+        "vw_latest_keepa_product_snapshot": [
+            {"asin": "B000000001", "captured_at": (now - timedelta(hours=22)).isoformat()},
+            {"asin": "B000000002", "captured_at": (now - timedelta(hours=23, minutes=5)).isoformat()},
+        ],
+    })
+
+    selected = keepa_sync.filter_stale_keepa_asins(
+        supabase,
+        ["B000000001", "B000000002", "B000000003"],
+        stale_hours=23,
+    )
+
+    assert selected == ["B000000003", "B000000002"]
 
 
 def test_catalog_cycle_continues_when_eligible_count_changes(monkeypatch):
