@@ -323,7 +323,8 @@ def select_preferred(candidates: Iterable[dict[str, Any]], manual_asin: str | No
     if eligible:
         selected = eligible[0]
         return SelectionResult("matched", clean_asin(selected.get("asin")), "automatic", {
-            "reason": "prior_sales_then_keepa_velocity_then_asin",
+            "reason": "exact_identifier_then_prior_sales_then_keepa_velocity_then_asin",
+            "exact_identifier_match": exact_identifier_match(selected),
             "prior_account_sale": bool(selected.get("prior_account_sale")),
             "keepa_sales_rank_drops90": selected.get("keepa_sales_rank_drops90"),
             "manual_override_invalidated": bool(manual_asin),
@@ -338,10 +339,20 @@ def select_preferred(candidates: Iterable[dict[str, Any]], manual_asin: str | No
     return SelectionResult("restricted_no_eligible", None, "none", {"reason": "all_compatible_candidates_restricted"})
 
 
-def ranking_key(row: dict[str, Any]) -> tuple[int, int, int, str]:
+def exact_identifier_match(row: dict[str, Any]) -> bool:
+    return "identifier_and_platform_compatible" in set(row.get("compatibility_reason_codes") or [])
+
+
+def ranking_key(row: dict[str, Any]) -> tuple[int, int, int, int, str]:
     velocity = row.get("keepa_sales_rank_drops90")
     known = velocity is not None
-    return (-int(bool(row.get("prior_account_sale"))), -int(known), -int(velocity or 0), clean_asin(row.get("asin")))
+    return (
+        -int(exact_identifier_match(row)),
+        -int(bool(row.get("prior_account_sale"))),
+        -int(known),
+        -int(velocity or 0),
+        clean_asin(row.get("asin")),
+    )
 
 
 def fresh_eligible(row: dict[str, Any]) -> bool:

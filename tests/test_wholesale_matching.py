@@ -222,6 +222,28 @@ class WholesaleMatchingTests(unittest.TestCase):
         ])
         self.assertEqual(result.selected_asin, "B000000002")
 
+    def test_exact_identifier_wins_over_title_only_prior_sale_and_velocity(self):
+        result = select_preferred([
+            {
+                "asin": "B000000001",
+                "compatibility_status": "compatible",
+                "compatibility_reason_codes": ["platform_and_title_compatible"],
+                "eligibility_status": "eligible",
+                "prior_account_sale": True,
+                "keepa_sales_rank_drops90": 500,
+            },
+            {
+                "asin": "B000000002",
+                "compatibility_status": "compatible",
+                "compatibility_reason_codes": ["identifier_and_platform_compatible"],
+                "eligibility_status": "eligible",
+                "prior_account_sale": False,
+                "keepa_sales_rank_drops90": None,
+            },
+        ])
+        self.assertEqual(result.selected_asin, "B000000002")
+        self.assertTrue(result.rationale["exact_identifier_match"])
+
     def test_restricted_top_candidate_falls_through(self):
         result = select_preferred([
             {"asin": "B000000001", "compatibility_status": "compatible", "eligibility_status": "restricted", "prior_account_sale": True, "keepa_sales_rank_drops90": 500},

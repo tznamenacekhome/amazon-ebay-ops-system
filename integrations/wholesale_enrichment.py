@@ -15,7 +15,7 @@ from sourcing_common import get_supabase_client
 from wholesale_matching import (
     EVALUATOR_VERSION, TITLE_SEARCH_STRATEGY_VERSION, evaluate_compatibility, identity_signature,
     identifier_search, merge_candidates, query_fingerprint, search_items,
-    select_preferred, title_search_variants,
+    select_preferred, title_search_variants, ranking_key, exact_identifier_match,
 )
 from wholesale_repository import WholesaleRepository
 
@@ -156,13 +156,12 @@ class WholesaleEnrichmentService:
         ranked = sorted(candidate_rows, key=lambda row: (
             0 if row["compatibility_status"] == "compatible" else 1,
             0 if row.get("eligibility_status") == "eligible" else 1,
-            -int(row.get("prior_account_sale") or False),
-            -(row.get("keepa_sales_rank_drops90") if row.get("keepa_sales_rank_drops90") is not None else -1),
-            row["asin"],
+            *ranking_key(row),
         ))
         for position, row in enumerate(ranked, 1):
             row["rank_position"] = position
             row["ranking_rationale"] = {
+                "exact_identifier_match": exact_identifier_match(row),
                 "prior_account_sale": row["prior_account_sale"],
                 "keepa_sales_rank_drops90": row.get("keepa_sales_rank_drops90"),
                 "unknown_velocity_ranked_last": row.get("keepa_sales_rank_drops90") is None,
