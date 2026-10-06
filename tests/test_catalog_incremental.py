@@ -13,6 +13,24 @@ import sourcing_database_guard as guard
 
 
 class IncrementalTests(unittest.TestCase):
+    def test_cycle_item_pagination_has_stable_queue_order(self):
+        db = MagicMock()
+        query = db.table.return_value
+        for method in ("select", "eq", "order", "range"):
+            getattr(query, method).return_value = query
+        first_page = [{"asin": f"B{index:09d}", "queue_position": index} for index in range(1000)]
+        query.execute.side_effect = [
+            SimpleNamespace(data=first_page),
+            SimpleNamespace(data=[{"asin": "B000001000", "queue_position": 1000}]),
+        ]
+
+        rows = catalog.paginate_cycle_item_keys(db, "cycle")
+
+        self.assertEqual(len(rows), 1001)
+        query.order.assert_called_with("queue_position")
+        self.assertEqual(query.range.call_args_list[0].args, (0, 999))
+        self.assertEqual(query.range.call_args_list[1].args, (1000, 1999))
+
     def test_active_cycle_refresh_merges_wholesale_provenance_without_requeue(self):
         db = MagicMock()
         table = db.table.return_value

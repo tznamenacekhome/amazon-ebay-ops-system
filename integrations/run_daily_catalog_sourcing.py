@@ -476,6 +476,7 @@ def paginate_cycle_item_keys(supabase, cycle_id: str) -> list[dict[str, Any]]:
             supabase.table("sourcing_coverage_cycle_items")
             .select("*")
             .eq("coverage_cycle_id", cycle_id)
+            .order("queue_position")
             .range(start, start + 999)
             .execute()
         )
