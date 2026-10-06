@@ -179,15 +179,15 @@ def collect_price_requests(supabase, args: argparse.Namespace) -> list[dict[str,
         asins = sorted({clean_asin(row.get("asin")) for row in candidates
                         if row.get("eligibility_status") == "eligible" and clean_asin(row.get("asin"))})
         for index in range(0, len(asins), 200):
-            response = (supabase.table("keepa_product_snapshots")
-                        .select("asin,captured_at,buy_box_price_current_cents,buy_box_price_avg90_cents,new_fba_price_current_cents,new_price_current_cents,raw_keepa_json")
-                        .in_("asin", asins[index:index + 200]).eq("domain_id", 1)
-                        .order("captured_at", desc=True).execute())
-            latest: dict[str, dict[str, Any]] = {}
+            response = (supabase.table("vw_latest_keepa_product_snapshot")
+                        .select("asin,captured_at,buy_box_price_current_cents,buy_box_price_avg90_cents,new_fba_price_current_cents,new_price_current_cents,keepa_stats:raw_keepa_json->stats")
+                        .in_("asin", asins[index:index + 200]).eq("domain_id", 1).execute())
             for row in response.data or []:
-                latest.setdefault(clean_asin(row.get("asin")) or "", row)
-            for asin, row in latest.items():
-                current_price = keepa_current_price_context(row)["price"]
+                asin = clean_asin(row.get("asin"))
+                if not asin:
+                    continue
+                price_row = {**row, "raw_keepa_json": {"stats": row.get("keepa_stats") or {}}}
+                current_price = keepa_current_price_context(price_row)["price"]
                 avg90_cents = to_float(row.get("buy_box_price_avg90_cents"))
                 price_points = [to_float(current_price), avg90_cents / 100 if avg90_cents is not None else None]
                 for price in price_points:
