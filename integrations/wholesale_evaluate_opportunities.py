@@ -69,7 +69,8 @@ def evaluate_product(repository: WholesaleRepository, supplier_product_id: str,
     keepa = repository.latest_keepa_snapshot(asin) or {}
     raw_keepa = keepa.get("raw_keepa_json") if isinstance(keepa.get("raw_keepa_json"), dict) else {}
     stats = raw_keepa.get("stats") if isinstance(raw_keepa.get("stats"), dict) else {}
-    current_price = None if keepa_boolean(stats.get("buyBoxIsUsed")) is True else money_from_cents(keepa.get("buy_box_price_current_cents"))
+    current_context = keepa_current_price_context(keepa)
+    current_price = current_context["price"]
     avg30_price = money_from_cents(keepa.get("buy_box_price_avg30_cents"))
     avg90_price = money_from_cents(keepa.get("buy_box_price_avg90_cents"))
     current_fee_row = repository.fee_estimate(asin, marketplace_id, float(current_price) if current_price else None)
@@ -107,6 +108,10 @@ def evaluate_product(repository: WholesaleRepository, supplier_product_id: str,
         "image_url": first_image_url(catalog.get("raw_catalog_json")),
         "keepa_captured_at": keepa.get("captured_at"),
         "buy_box_is_fba": keepa_boolean(stats.get("buyBoxIsFBA")),
+        "current_price_source": current_context["source"],
+        "current_price_fulfillment": current_context["fulfillment"],
+        "current_price_is_buy_box": current_context["is_buy_box"],
+        "current_price_label": current_context["label"],
         "fee_current_requested_at": (current_fee_row or {}).get("requested_at"),
         "fee_avg90_requested_at": (avg90_fee_row or {}).get("requested_at"),
         "fba_seller_count_note": "Keepa stats.offerCountFBA; live retrieved offers may be incomplete" if fba_count is not None else None,
@@ -231,6 +236,59 @@ def keepa_boolean(value: Any) -> bool | None:
         if value.strip().lower() in {"false", "0", "no"}:
             return False
     return None
+
+
+def keepa_current_price_context(keepa: dict[str, Any]) -> dict[str, Any]:
+    raw = keepa.get("raw_keepa_json") if isinstance(keepa.get("raw_keepa_json"), dict) else {}
+    stats = raw.get("stats") if isinstance(raw.get("stats"), dict) else {}
+    buy_box_is_used = keepa_boolean(stats.get("buyBoxIsUsed"))
+    buy_box_is_fba = keepa_boolean(stats.get("buyBoxIsFBA"))
+    buy_box = None if buy_box_is_used is True else money_from_cents(keepa.get("buy_box_price_current_cents"))
+    low_fba = money_from_cents(keepa.get("new_fba_price_current_cents")) or lowest_live_new_offer_price(raw, True)
+    low_mf = keepa_stat_money(stats, "current", 7) or lowest_live_new_offer_price(raw, False)
+    low_new = money_from_cents(keepa.get("new_price_current_cents"))
+    used = keepa_stat_money(stats, "current", 2)
+    if buy_box is not None:
+        fulfillment = "fba" if buy_box_is_fba is True else "mf" if buy_box_is_fba is False else None
+        return {"price": buy_box, "source": "buy_box", "label": "Buy Box",
+                "fulfillment": fulfillment, "is_buy_box": True}
+    if low_fba is not None:
+        return {"price": low_fba, "source": "fba", "label": "Low FBA New",
+                "fulfillment": "fba", "is_buy_box": False}
+    if low_mf is not None:
+        return {"price": low_mf, "source": "mf", "label": "Low MF New",
+                "fulfillment": "mf", "is_buy_box": False}
+    if low_new is not None:
+        return {"price": low_new, "source": "new", "label": "Low New",
+                "fulfillment": None, "is_buy_box": False}
+    used_only = used is not None or buy_box_is_used is True
+    return {"price": None, "source": "used_only" if used_only else "no_data",
+            "label": "Used Only" if used_only else "No Data", "fulfillment": None,
+            "is_buy_box": False}
+
+
+def keepa_stat_money(stats: dict[str, Any], period: str, index: int) -> Decimal | None:
+    values = stats.get(period)
+    if not isinstance(values, list) or index >= len(values):
+        return None
+    return money_from_cents(values[index])
+
+
+def lowest_live_new_offer_price(raw_keepa: dict[str, Any], is_fba: bool) -> Decimal | None:
+    prices: list[Decimal] = []
+    for value in raw_keepa.get("offers") or []:
+        if not isinstance(value, dict) or integer_or_none(value.get("condition")) != 1:
+            continue
+        if keepa_boolean(value.get("isFBA")) is not is_fba or value.get("isShippable") is False:
+            continue
+        history = value.get("offerCSV")
+        if not isinstance(history, list) or len(history) < 3:
+            continue
+        price = money_from_cents(history[-2])
+        shipping = money_from_cents(history[-1])
+        if price is not None and shipping is not None:
+            prices.append(price + shipping)
+    return min(prices) if prices else None
 
 
 def money_value(row: dict | None, key: str) -> float | None:

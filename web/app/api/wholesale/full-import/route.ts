@@ -85,7 +85,11 @@ export async function GET(request: Request) {
       statusKey: status.key, statusLabel: status.label, statusDetail: status.detail,
       asin: evaluation?.asin ?? selected?.asin ?? null, amazonTitle: evaluation?.source_evidence_json?.amazon_title ?? null,
       currentBuyBox: number(evaluation?.current_buy_box_price), keepaAvg90: number(evaluation?.keepa_avg90_price),
-      currentBuyBoxFulfillment: fulfillmentForAsin(fulfillmentByAsin, evaluation?.asin),
+      currentPriceSource: evaluation?.source_evidence_json?.current_price_source ?? (number(evaluation?.current_buy_box_price) !== null ? "buy_box" : "no_data"),
+      currentPriceLabel: evaluation?.source_evidence_json?.current_price_label ?? (number(evaluation?.current_buy_box_price) !== null ? "Buy Box" : "No Data"),
+      currentPriceIsBuyBox: evaluation?.source_evidence_json?.current_price_is_buy_box ?? (number(evaluation?.current_buy_box_price) !== null),
+      currentBuyBoxFulfillment: evaluation?.source_evidence_json?.current_price_fulfillment ??
+        (number(evaluation?.current_buy_box_price) !== null ? fulfillmentForAsin(fulfillmentByAsin, evaluation?.asin) : null),
       currentRoi: number(evaluation?.current_true_roi), avg90Roi: number(evaluation?.avg90_true_roi),
       eligibilityStatus: evaluation?.eligibility_status ?? selected?.eligibility_status ?? null,
       purchaseCapacity: number(evaluation?.purchase_capacity), fbaUnits: number(evaluation?.fba_fulfillable_units) ?? 0,

@@ -1,7 +1,12 @@
-import unittest
 from datetime import date
 from decimal import Decimal
+from pathlib import Path
+import sys
+import unittest
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "integrations"))
+
+from wholesale_evaluate_opportunities import keepa_current_price_context  # noqa: E402
 from integrations.wholesale_economics import (
     EconomicsInput, FeeEvidence, evaluate_economics, informational_risk_signals,
     supplier_price_history,
@@ -24,6 +29,39 @@ def values(**overrides):
 
 
 class WholesaleEconomicsTests(unittest.TestCase):
+    def test_keepa_now_falls_back_from_used_buy_box_to_low_fba_new(self):
+        context = keepa_current_price_context({
+            "buy_box_price_current_cents": 3187,
+            "new_fba_price_current_cents": 3187,
+            "new_price_current_cents": 3019,
+            "raw_keepa_json": {"stats": {"buyBoxIsUsed": True, "buyBoxIsFBA": True}},
+        })
+        self.assertEqual(context, {
+            "price": D("31.87"), "source": "fba", "label": "Low FBA New",
+            "fulfillment": "fba", "is_buy_box": False,
+        })
+
+    def test_keepa_now_uses_low_mf_new_before_generic_new(self):
+        current = [-1] * 19
+        current[1] = 4200
+        current[2] = 3500
+        current[7] = 4100
+        context = keepa_current_price_context({
+            "new_price_current_cents": 4200,
+            "raw_keepa_json": {"stats": {"buyBoxIsUsed": True, "current": current}},
+        })
+        self.assertEqual((context["price"], context["source"], context["label"]),
+                         (D("41"), "mf", "Low MF New"))
+
+    def test_keepa_now_reports_used_only_when_no_new_offer_exists(self):
+        current = [-1] * 19
+        current[2] = 2500
+        context = keepa_current_price_context({
+            "raw_keepa_json": {"stats": {"buyBoxIsUsed": True, "current": current}},
+        })
+        self.assertEqual(context["source"], "used_only")
+        self.assertIsNone(context["price"])
+
     def test_true_roi_uses_supplier_cost_denominator_and_allowances(self):
         result = evaluate_economics(values())
         expected_profit = D("31.99") - D("15") - D("8") - D("0.3839") - D("0.21") - D("0.0153")

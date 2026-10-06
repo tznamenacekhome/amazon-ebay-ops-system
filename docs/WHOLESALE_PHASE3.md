@@ -12,7 +12,7 @@ The Next.js wholesale APIs read these server-owned results. React displays them 
 
 Both price bases are evaluated independently:
 
-- current price: the selected ASIN's current New Buy Box from the latest shared Keepa snapshot; a Buy Box explicitly marked Used is rejected
+- current price: the selected ASIN's current New Buy Box from the latest shared Keepa snapshot; when no New Buy Box exists, use the same fallback as the other MBOP Keepa screens: lowest FBA New, then lowest merchant-fulfilled New, then generic lowest New; when no New offer exists, show Used Only rather than treating a Used Buy Box as a New price
 - historical price: Keepa's existing 90-day Buy Box average
 
 For each available price and exact cached Product Fees estimate:

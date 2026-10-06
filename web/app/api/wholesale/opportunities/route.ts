@@ -85,7 +85,11 @@ function dto(opportunity: any, product: any, evaluation: any, draft: any, candid
     evaluationRequested: opportunity.evaluation_requested ?? false,
     eligibilityStatus: evaluation?.eligibility_status ?? null, evaluatedAt: evaluation?.evaluated_at ?? null,
     currentBuyBox: number(evaluation?.current_buy_box_price), keepaAvg30: number(evaluation?.keepa_avg30_price),
-    currentBuyBoxFulfillment: fulfillmentForAsin(fulfillmentByAsin, evaluation?.asin),
+    currentPriceSource: evaluation?.source_evidence_json?.current_price_source ?? (number(evaluation?.current_buy_box_price) !== null ? "buy_box" : "no_data"),
+    currentPriceLabel: evaluation?.source_evidence_json?.current_price_label ?? (number(evaluation?.current_buy_box_price) !== null ? "Buy Box" : "No Data"),
+    currentPriceIsBuyBox: evaluation?.source_evidence_json?.current_price_is_buy_box ?? (number(evaluation?.current_buy_box_price) !== null),
+    currentBuyBoxFulfillment: evaluation?.source_evidence_json?.current_price_fulfillment ??
+      (number(evaluation?.current_buy_box_price) !== null ? fulfillmentForAsin(fulfillmentByAsin, evaluation?.asin) : null),
     keepaAvg90: number(evaluation?.keepa_avg90_price), keepaVelocity90: number(evaluation?.keepa_sales_rank_drops90),
     currentFees: number(evaluation?.current_total_amazon_fees), avg90Fees: number(evaluation?.avg90_total_amazon_fees),
     inboundAllowance: number(evaluation?.inbound_allowance), returnAllowance: number(evaluation?.return_allowance),
