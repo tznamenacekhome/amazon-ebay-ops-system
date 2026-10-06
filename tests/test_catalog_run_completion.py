@@ -57,6 +57,30 @@ class CatalogCompletionTests(unittest.TestCase):
         self.assertEqual(remaining, 0)
         self.assertEqual(refreshes[0]["reason"], "child_rate_limited")
 
+    def test_zero_live_quota_discards_stale_parent_headroom(self):
+        refreshes = []
+        with patch(
+            "run_daily_catalog_sourcing.fetch_browse_quota",
+            return_value=EbayBrowseQuota(
+                resource="buy.browse",
+                limit=5000,
+                count=5000,
+                remaining=0,
+                reset="2026-10-07T07:00:00Z",
+                time_window_seconds=86400,
+            ),
+        ):
+            budget, remaining = refresh_budget_from_live_quota(
+                0,
+                api_calls_used=5418,
+                current_budget=5420,
+                quota_refreshes=refreshes,
+                reason="child_rate_limited",
+            )
+
+        self.assertEqual(budget, 5418)
+        self.assertEqual(remaining, 0)
+
     def test_chunk_and_historical_rescore_preserve_owner_status_and_time(self):
         self.assertEqual(scoring_run_update(123, True), {"opportunity_count": 123})
         update = scoring_run_update(123, False)

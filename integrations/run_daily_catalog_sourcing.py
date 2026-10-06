@@ -613,7 +613,10 @@ def refresh_budget_from_live_quota(
         return None, None
 
     new_budget = api_calls_used + live_budget
-    if current_budget is not None:
+    # A zero live balance is authoritative. Do not retain stale headroom from
+    # the parent's earlier estimate, or expected daily quota exhaustion can be
+    # misreported as an unexpected rate-limit failure.
+    if current_budget is not None and live_budget > 0:
         new_budget = max(current_budget, new_budget)
     remaining_budget = max(new_budget - api_calls_used, 0)
     quota_refreshes.append(
