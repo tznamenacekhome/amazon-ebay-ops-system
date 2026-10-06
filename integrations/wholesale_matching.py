@@ -318,7 +318,9 @@ def select_preferred(candidates: Iterable[dict[str, Any]], manual_asin: str | No
         if manual and fresh_eligible(manual):
             return SelectionResult("matched", clean_asin(manual_asin), "manual", {"reason": "valid_manual_override"})
 
-    eligible = [row for row in usable if fresh_eligible(row)]
+    exact_identifier_candidates = [row for row in usable if exact_identifier_match(row)]
+    automatic_pool = exact_identifier_candidates or usable
+    eligible = [row for row in automatic_pool if fresh_eligible(row)]
     eligible.sort(key=ranking_key)
     if eligible:
         selected = eligible[0]
@@ -333,10 +335,12 @@ def select_preferred(candidates: Iterable[dict[str, Any]], manual_asin: str | No
         return SelectionResult("no_candidates", None, "none", {"reason": "searches_returned_no_candidates"})
     if not usable:
         return SelectionResult("identity_review", None, "none", {"reason": "no_compatible_candidate"})
-    unresolved = [row for row in usable if row.get("eligibility_status") in {None, "unknown", "error"} or row.get("eligibility_is_fresh") is False]
+    unresolved = [row for row in automatic_pool if row.get("eligibility_status") in {None, "unknown", "error"} or row.get("eligibility_is_fresh") is False]
     if unresolved:
         return SelectionResult("eligibility_pending", None, "none", {"reason": "eligibility_unknown_or_stale"})
-    return SelectionResult("restricted_no_eligible", None, "none", {"reason": "all_compatible_candidates_restricted"})
+    return SelectionResult("restricted_no_eligible", None, "none", {
+        "reason": "exact_identifier_candidates_restricted" if exact_identifier_candidates else "all_compatible_candidates_restricted",
+    })
 
 
 def exact_identifier_match(row: dict[str, Any]) -> bool:

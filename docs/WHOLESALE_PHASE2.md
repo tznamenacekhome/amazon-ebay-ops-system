@@ -27,14 +27,15 @@ Migration `20261003223500_mbop_wholesale_title_search_variants.sql` extends the 
 
 Only compatible candidates enter selection. Existing `amazon_sales_order_items` data provides the prior-account-sale preference. The shared Keepa snapshot cache provides `sales_rank_drops90`; it is stored with the snapshot timestamp, and missing velocity remains unknown. Known velocity ranks ahead of unknown velocity.
 
-Listings Restrictions is checked for `new_new`. Evidence is keyed by seller, marketplace, ASIN, and condition. Eligible and restricted results are cached for seven days; unknown and error results are retried after six hours. A restricted candidate is skipped. Unknown, stale, or error evidence leaves the product in `eligibility_pending`. `restricted_no_eligible` is used only when all compatible candidates have fresh restricted evidence.
+Listings Restrictions is checked for `new_new`. Evidence is keyed by seller, marketplace, ASIN, and condition. Eligible and restricted results are cached for seven days; unknown and error results are retried after six hours. When Catalog returns a compatible exact supplier-identifier match, automatic selection is limited to exact-identifier candidates so an eligible title-only result cannot replace a restricted or pending exact product identity. Without an exact-identifier candidate, a restricted candidate is skipped. Unknown, stale, or error evidence in the applicable selection pool leaves the product in `eligibility_pending`. `restricted_no_eligible` is used when every candidate in that pool has fresh restricted evidence.
 
-The selection order is:
+The automatic selection order is:
 
-1. fresh, eligible, compatible candidates previously sold by this Amazon account;
-2. highest Keepa `sales_rank_drops90` within that group;
-3. if none were previously sold, highest known Keepa velocity among all fresh eligible compatible candidates;
-4. deterministic ASIN tie-break.
+1. compatible exact supplier-identifier candidates, when any exist;
+2. fresh, eligible candidates previously sold by this Amazon account;
+3. highest Keepa `sales_rank_drops90` within that group;
+4. if none were previously sold, highest known Keepa velocity among all fresh eligible candidates;
+5. deterministic ASIN tie-break.
 
 ## Manual selection and identity changes
 

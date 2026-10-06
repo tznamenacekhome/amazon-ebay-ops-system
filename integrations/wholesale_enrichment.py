@@ -155,6 +155,7 @@ class WholesaleEnrichmentService:
 
         ranked = sorted(candidate_rows, key=lambda row: (
             0 if row["compatibility_status"] == "compatible" else 1,
+            0 if exact_identifier_match(row) else 1,
             0 if row.get("eligibility_status") == "eligible" else 1,
             *ranking_key(row),
         ))
