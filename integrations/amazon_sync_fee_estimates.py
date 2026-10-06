@@ -18,6 +18,7 @@ from dotenv import load_dotenv
 from supabase import create_client
 
 from amazon_spapi_client import AmazonSPAPIClient, AmazonSPAPIError
+from wholesale_evaluate_opportunities import keepa_current_price_context
 from wholesale_repository import request_wholesale_evaluation_for_asins
 
 LOGGER = logging.getLogger("amazon_fee_estimates")
@@ -179,18 +180,20 @@ def collect_price_requests(supabase, args: argparse.Namespace) -> list[dict[str,
                         if row.get("eligibility_status") == "eligible" and clean_asin(row.get("asin"))})
         for index in range(0, len(asins), 200):
             response = (supabase.table("keepa_product_snapshots")
-                        .select("asin,captured_at,buy_box_price_current_cents,buy_box_price_avg90_cents")
+                        .select("asin,captured_at,buy_box_price_current_cents,buy_box_price_avg90_cents,new_fba_price_current_cents,new_price_current_cents,raw_keepa_json")
                         .in_("asin", asins[index:index + 200]).eq("domain_id", 1)
                         .order("captured_at", desc=True).execute())
             latest: dict[str, dict[str, Any]] = {}
             for row in response.data or []:
                 latest.setdefault(clean_asin(row.get("asin")) or "", row)
             for asin, row in latest.items():
-                for cents in (row.get("buy_box_price_current_cents"), row.get("buy_box_price_avg90_cents")):
-                    price = to_float(cents)
+                current_price = keepa_current_price_context(row)["price"]
+                avg90_cents = to_float(row.get("buy_box_price_avg90_cents"))
+                price_points = [to_float(current_price), avg90_cents / 100 if avg90_cents is not None else None]
+                for price in price_points:
                     if price is None or price <= 0:
                         continue
-                    dollars = round(price / 100, 2)
+                    dollars = round(price, 2)
                     requests[(asin, dollars)] = fee_request(asin, dollars)
 
         for row in fetch_all(
