@@ -441,6 +441,9 @@ JOBS: tuple[SyncJob, ...] = (
         name="Daily catalog sourcing",
         command=static_command(
             "integrations/run_daily_sourcing_discovery.py",
+            "--skip-weekends",
+            "--business-timezone",
+            "America/Los_Angeles",
         ),
         groups=("daily", "catalog", "sourcing-catalog"),
         blocking=False,

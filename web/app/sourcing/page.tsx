@@ -96,6 +96,7 @@ export default function SourcingPage() {
   const [scope, setScope] = useState("all_open");
   const [searchText, setSearchText] = useState("");
   const [exclusionReason, setExclusionReason] = useState("all");
+  const [coverageCycleId, setCoverageCycleId] = useState("all");
   const effectiveStatus =
     activeTab === "Closest Excluded"
       ? "all"
@@ -106,7 +107,7 @@ export default function SourcingPage() {
           : activeTab === "Purchased Pending Match"
             ? "purchased_pending_match"
             : status;
-  const { rows, businessSuppressions, summary, batch, loading, error, freshnessError, exclusionOptions, reload, refreshInBackground, removeRows, setError } = useSourcingOpportunities(
+  const { rows, businessSuppressions, summary, batch, loading, error, freshnessError, exclusionOptions, coverageCycles, reload, refreshInBackground, removeRows, setError } = useSourcingOpportunities(
     effectiveStatus,
     type,
     searchText,
@@ -115,6 +116,7 @@ export default function SourcingPage() {
     inventoryFilter,
     ["Buy List", "Closest Excluded", "Business Excluded", "Watchlist", "Purchased Pending Match"].includes(activeTab),
     activeTab === "Closest Excluded" ? exclusionReason : "all",
+    activeTab === "Closest Excluded" ? coverageCycleId : "all",
   );
   const [actionBusyId, setActionBusyId] = useState<string | null>(null);
   const [dismissRow, setDismissRow] = useState<SourcingOpportunity | null>(null);
@@ -286,6 +288,12 @@ export default function SourcingPage() {
                 placeholder="Search ASIN, Amazon title, or eBay title"
               />
             </div>
+            {activeTab === "Closest Excluded" ? (
+              <select aria-label="Coverage cycle" value={coverageCycleId} onChange={event => { setCoverageCycleId(event.target.value); setExclusionReason("all"); }} className="h-9 rounded-md border border-slate-300 bg-white px-2 text-sm">
+                <option value="all">Latest sourcing runs</option>
+                {coverageCycles.map(cycle => <option key={cycle.coverageCycleId} value={cycle.coverageCycleId}>Cycle {cycle.cycleNumber ?? cycle.coverageCycleId} · {date(cycle.startedAt)}</option>)}
+              </select>
+            ) : null}
             {activeTab === "Closest Excluded" ? (
               <select aria-label="Exclusion reason" value={exclusionReason} onChange={event => setExclusionReason(event.target.value)} className="h-9 rounded-md border border-slate-300 bg-white px-2 text-sm">
                 <option value="all">All exclusion reasons</option>

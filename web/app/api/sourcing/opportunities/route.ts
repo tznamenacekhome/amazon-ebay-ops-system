@@ -310,12 +310,21 @@ async function getOpportunities(request: NextRequest) {
   const type = searchParams.get("type") ?? "all";
   const runId = searchParams.get("runId");
   const scope = parseScope(searchParams.get("scope"), runId);
+  const requestedCoverageCycleId = scope === "closest_excluded" ? searchParams.get("coverageCycleId") : null;
   const sourceMode = searchParams.get("sourceMode") ?? "all";
   const inventoryFilter = parseInventoryFilter(searchParams.get("inventoryFilter"));
   const queryText = (searchParams.get("q") ?? "").trim();
   const limit = Math.min(toNumber(searchParams.get("limit"), 100), 250);
   const queryLimit = Math.min(Math.max(limit * 20, 1000), 5000);
-  const latestRunIds = runId ? [] : await fetchLatestSourcingRunIds(sourceMode);
+  const coverageCycles = scope === "closest_excluded" ? await fetchCoverageCycleOptions() : [];
+  const selectedCoverageCycle = requestedCoverageCycleId
+    ? coverageCycles.find(cycle => cycle.coverageCycleId === requestedCoverageCycleId) ?? null
+    : null;
+  if (requestedCoverageCycleId && !selectedCoverageCycle) {
+    return jsonNoStore({ error: "Coverage cycle was not found." }, { status: 400 });
+  }
+  const cycleRunIds = selectedCoverageCycle ? await fetchRunIdsForCoverageCycle(selectedCoverageCycle.coverageCycleId) : null;
+  const latestRunIds = runId ? [] : cycleRunIds ?? await fetchLatestSourcingRunIds(sourceMode);
   const latestBatches = await fetchLatestSourcingBatches(runId, latestRunIds);
   const latestBatch = latestBatches[0] ?? null;
   const latestBatchOpportunityIds = latestBatch ? await fetchBatchOpportunityIds([latestBatch.batch_id]) : null;
@@ -326,6 +335,7 @@ async function getOpportunities(request: NextRequest) {
       summary: emptySummary(),
       opportunities: [],
       batch: null,
+      coverageCycles,
     });
   }
   if ((scope === "new_this_run" || scope === "prior_unreviewed") && latestBatch && latestBatchOpportunityIds?.length === 0) {
@@ -335,6 +345,7 @@ async function getOpportunities(request: NextRequest) {
       summary: emptySummary(),
       opportunities: [],
       batch: latestBatch,
+      coverageCycles,
     });
   }
 
@@ -349,6 +360,7 @@ async function getOpportunities(request: NextRequest) {
         type,
         queryLimit,
         select: businessMode ? BUSINESS_OPPORTUNITY_SELECT : opportunitySelect,
+        restrictToRunIds: Boolean(selectedCoverageCycle),
       });
   if (error) return jsonNoStore({ error: error.message }, { status: 500 });
 
@@ -600,6 +612,7 @@ async function getOpportunities(request: NextRequest) {
     scope,
     summary: summarizeMappedRows(sortedRows, opportunities.length),
     ...(excluded ? { exclusionOptions: excluded.options } : {}),
+    ...(scope === "closest_excluded" ? { coverageCycles, selectedCoverageCycleId: selectedCoverageCycle?.coverageCycleId ?? null } : {}),
     opportunities,
     businessSuppressions: businessMode ? [...activeSuppressionByAsin.values()].filter(hold=>!queryText||hold.asin?.toLowerCase().includes(queryText.toLowerCase())) : [],
     batch: latestBatch,
@@ -671,6 +684,7 @@ async function fetchRunOpportunities({
   type,
   queryLimit,
   select = OPPORTUNITY_SELECT,
+  restrictToRunIds = false,
 }: {
   runId: string | null;
   latestRunIds: string[];
@@ -678,7 +692,9 @@ async function fetchRunOpportunities({
   type: string;
   queryLimit: number;
   select?: string;
+  restrictToRunIds?: boolean;
 }): Promise<OpportunityQueryResult> {
+  if (restrictToRunIds && !latestRunIds.length) return { data: [], error: null };
   let query = supabase
     .from("sourcing_opportunities")
     .select(select)
@@ -689,10 +705,42 @@ async function fetchRunOpportunities({
   if (status !== "all") query = query.eq("status", status);
   if (type !== "all") query = query.eq("opportunity_type", type);
   if (runId) query = query.eq("sourcing_run_id", runId);
-  if (!runId && status !== "open" && latestRunIds.length) query = query.in("sourcing_run_id", latestRunIds);
+  if (!runId && (status !== "open" || restrictToRunIds) && latestRunIds.length) query = query.in("sourcing_run_id", latestRunIds);
 
   const { data, error } = await query;
   return { data: (data ?? null) as OpportunityRow[] | null, error };
+}
+
+async function fetchCoverageCycleOptions() {
+  const { data, error } = await supabase
+    .from("sourcing_coverage_cycles")
+    .select("coverage_cycle_id,cycle_number,status,started_at,completed_at")
+    .in("status", ["active", "completed"])
+    .order("started_at", { ascending: false })
+    .limit(50);
+  if (error) throw new Error(`Coverage cycle options: ${error.message}`);
+  return (data ?? []).map(row => ({
+    coverageCycleId: row.coverage_cycle_id,
+    cycleNumber: row.cycle_number ?? null,
+    status: row.status,
+    startedAt: row.started_at ?? null,
+    completedAt: row.completed_at ?? null,
+  }));
+}
+
+async function fetchRunIdsForCoverageCycle(coverageCycleId: string) {
+  const runIds: string[] = [];
+  for (let start = 0; ; start += 1000) {
+    const { data, error } = await supabase
+      .from("sourcing_runs")
+      .select("sourcing_run_id")
+      .eq("coverage_cycle_id", coverageCycleId)
+      .range(start, start + 999);
+    if (error) throw new Error(`Coverage cycle runs: ${error.message}`);
+    const page = data ?? [];
+    runIds.push(...page.map(row => row.sourcing_run_id).filter(Boolean));
+    if (page.length < 1000) return runIds;
+  }
 }
 
 async function fetchBatchOpportunities(

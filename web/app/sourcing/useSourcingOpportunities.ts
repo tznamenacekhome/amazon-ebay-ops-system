@@ -13,6 +13,7 @@ export function useSourcingOpportunities(
   inventoryFilter = "all",
   enabled = true,
   exclusionReason = "all",
+  coverageCycleId = "all",
 ) {
   const [rows, setRows] = useState<SourcingOpportunity[]>([]);
   const [businessSuppressions,setBusinessSuppressions]=useState<Array<{asin:string;current_velocity:number|null;required_velocity:number|null;last_evaluated_at:string|null}>>([]);
@@ -21,6 +22,7 @@ export function useSourcingOpportunities(
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [exclusionOptions, setExclusionOptions] = useState<Array<{code: string; label: string; count: number}>>([]);
+  const [coverageCycles, setCoverageCycles] = useState<Array<{coverageCycleId: string; cycleNumber: number | null; status: string; startedAt: string | null; completedAt: string | null}>>([]);
   const [freshnessError, setFreshnessError] = useState<string | null>(null);
   useEffect(() => {
     const update = () => setFreshnessError(sourcingResources.getFreshnessError());
@@ -50,6 +52,7 @@ export function useSourcingOpportunities(
       if (sourceMode !== "all") params.set("sourceMode", sourceMode);
       if (inventoryFilter !== "all") params.set("inventoryFilter", inventoryFilter);
       if (scope === "closest_excluded" && exclusionReason !== "all") params.set("exclusionReason", exclusionReason);
+      if (scope === "closest_excluded" && coverageCycleId !== "all") params.set("coverageCycleId", coverageCycleId);
       if (debouncedSearch.trim()) params.set("q", debouncedSearch.trim());
       const response = await sourcingResources.get(`/api/sourcing/opportunities?${params}`, { fresh: force });
       const payload = await response.json();
@@ -59,6 +62,7 @@ export function useSourcingOpportunities(
       setBusinessSuppressions(payload.businessSuppressions ?? []);
       setSummary(payload.summary ?? {});
       setExclusionOptions(payload.exclusionOptions ?? []);
+      setCoverageCycles(payload.coverageCycles ?? []);
       setBatch(payload.batch ?? null);
       if (status === "open" && scope !== "closest_excluded" && payload.cacheVersion !== null) sourcingResources.prefetchAfterBuyList();
     } catch (err) {
@@ -67,7 +71,7 @@ export function useSourcingOpportunities(
     } finally {
       if (!controller.signal.aborted) setLoading(false);
     }
-  }, [inventoryFilter, scope, debouncedSearch, sourceMode, status, type, enabled, exclusionReason]);
+  }, [inventoryFilter, scope, debouncedSearch, sourceMode, status, type, enabled, exclusionReason, coverageCycleId]);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -86,5 +90,5 @@ export function useSourcingOpportunities(
     setRows(currentRows => currentRows.filter(row => !ids.has(row.opportunityId)));
   }, []);
 
-  return { rows, businessSuppressions, summary, batch, loading, error, freshnessError, exclusionOptions, reload, refreshInBackground, removeRows, setError };
+  return { rows, businessSuppressions, summary, batch, loading, error, freshnessError, exclusionOptions, coverageCycles, reload, refreshInBackground, removeRows, setError };
 }
