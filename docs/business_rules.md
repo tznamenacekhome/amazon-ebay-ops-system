@@ -204,7 +204,10 @@ Carrier/status syncs must not downgrade workflow-owned statuses.
   inactive seller listings, so out-of-stock products with known ASIN/MSKU
   history can still become replenishment candidates. Full-listing sourcing may
   also seed ASINs known only through current stored Keepa snapshots, but not
-  snapshots older than 7 days.
+  snapshots older than 7 days. Keepa snapshots created only because an ASIN was
+  discovered as a wholesale match candidate do not establish catalog ownership;
+  selected wholesale ASINs enter sourcing through the compatible, freshly
+  eligible wholesale seed path.
 - ASINs in `sourcing_blocked_asins`, including Amazon restriction blocks, must
   be excluded from sourcing seed generation and from scheduled Keepa
   `catalog_priority` catalog refresh selection.

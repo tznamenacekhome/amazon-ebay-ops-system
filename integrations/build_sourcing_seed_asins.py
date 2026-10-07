@@ -206,6 +206,16 @@ def build_full_listing_seeds(supabase, settings, limit: int, *, planning_cache=N
         max_rows=15000,
     )
     keepa_by_asin = {str(row.get("asin") or "").upper(): row for row in keepa_rows}
+    wholesale_candidate_asins = {
+        str(row.get("asin") or "").strip().upper()
+        for row in paginate_table(
+            supabase,
+            "wholesale_amazon_candidates",
+            "asin",
+            max_rows=30000,
+        )
+        if row.get("asin")
+    }
     inventory_by_asin = latest_inventory_by_asin(supabase)
     catalog_by_asin = latest_catalog_context_by_asin(supabase)
     blocked_asins = fetch_blocked_asins(supabase)
@@ -255,6 +265,12 @@ def build_full_listing_seeds(supabase, settings, limit: int, *, planning_cache=N
 
     for asin, keepa in keepa_by_asin.items():
         if asin in by_asin:
+            continue
+        # Wholesale freshness intentionally fetches Keepa for every discovered
+        # candidate, including incompatible and unselected alternatives. Those
+        # snapshots are research evidence, not catalog ownership. Valid selected
+        # wholesale ASINs enter through build_wholesale_catalog_seeds instead.
+        if asin in wholesale_candidate_asins:
             continue
         if not is_recent_keepa_snapshot(keepa):
             continue
