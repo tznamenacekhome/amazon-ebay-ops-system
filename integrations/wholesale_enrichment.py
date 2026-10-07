@@ -16,6 +16,7 @@ from wholesale_matching import (
     EVALUATOR_VERSION, TITLE_SEARCH_STRATEGY_VERSION, evaluate_compatibility, identity_signature,
     identifier_search, merge_candidates, query_fingerprint, search_items,
     select_preferred, title_search_variants, ranking_key, exact_identifier_match,
+    needs_exact_identifier_reselection,
 )
 from wholesale_repository import WholesaleRepository
 
@@ -55,7 +56,8 @@ class WholesaleEnrichmentService:
         reusable_statuses = {"matched", "restricted_no_eligible", "identity_review", "eligibility_pending"}
         if (reuse_existing and not prior_state.get("rematch_requested")
                 and prior_state.get("identity_signature") == signature
-                and prior_state.get("match_status") in reusable_statuses):
+                and prior_state.get("match_status") in reusable_statuses
+                and not needs_exact_identifier_reselection(prior_state, prior_candidates)):
             observation = product.get("latest_observation") or {}
             self.repository.ensure_opportunity(
                 supplier_product_id, self.marketplace_id,

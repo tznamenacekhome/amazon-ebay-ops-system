@@ -343,6 +343,23 @@ def select_preferred(candidates: Iterable[dict[str, Any]], manual_asin: str | No
     })
 
 
+def needs_exact_identifier_reselection(match_state: dict[str, Any], candidates: Iterable[dict[str, Any]]) -> bool:
+    """Return whether an automatic legacy selection should yield to an exact identifier match."""
+    if match_state.get("selection_source") == "manual":
+        return False
+    rows = list(candidates)
+    selected = next((row for row in rows
+                     if row.get("candidate_id") == match_state.get("selected_candidate_id")), None)
+    if selected and exact_identifier_match(selected):
+        return False
+    return any(
+        row.get("compatibility_status") == "compatible"
+        and row.get("eligibility_status") == "eligible"
+        and exact_identifier_match(row)
+        for row in rows
+    )
+
+
 def exact_identifier_match(row: dict[str, Any]) -> bool:
     return "identifier_and_platform_compatible" in set(row.get("compatibility_reason_codes") or [])
 

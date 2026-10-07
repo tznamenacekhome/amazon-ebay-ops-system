@@ -16,6 +16,7 @@ from urllib.parse import parse_qs, urlparse
 
 import requests
 from sourcing_common import get_supabase_client
+from wholesale_matching import needs_exact_identifier_reselection
 from wholesale_repository import WholesaleRepository
 from wholesale_royal import parse_price_list
 
@@ -235,17 +236,32 @@ class IntakeRepository:
                         .select("observation_id,supplier_product_id").eq("import_id", import_id).execute().data or [])
         product_ids = [row["supplier_product_id"] for row in observations]
         states = []
+        candidates = []
         for start in range(0, len(product_ids), 150):
-            states.extend((self.client.table("wholesale_match_states").select("supplier_product_id,match_status,rematch_requested,updated_at,selected_candidate_id")
-                           .eq("marketplace_id", MARKETPLACE_ID).in_("supplier_product_id", product_ids[start:start + 150]).execute().data or []))
+            product_batch = product_ids[start:start + 150]
+            states.extend((self.client.table("wholesale_match_states").select("supplier_product_id,match_status,rematch_requested,updated_at,selected_candidate_id,selection_source")
+                           .eq("marketplace_id", MARKETPLACE_ID).in_("supplier_product_id", product_batch).execute().data or []))
+            for offset in range(0, 5000, 1000):
+                page = (self.client.table("wholesale_amazon_candidates")
+                        .select("candidate_id,supplier_product_id,compatibility_status,compatibility_reason_codes,eligibility_status")
+                        .eq("marketplace_id", MARKETPLACE_ID).in_("supplier_product_id", product_batch)
+                        .range(offset, offset + 999).execute().data or [])
+                candidates.extend(page)
+                if len(page) < 1000:
+                    break
         by_product = {row["supplier_product_id"]: row for row in states}
+        candidates_by_product: dict[str, list[dict]] = {}
+        for candidate in candidates:
+            candidates_by_product.setdefault(candidate["supplier_product_id"], []).append(candidate)
         already_queued = self.wholesale.active_work_product_ids(product_ids)
         stale_before = dt.datetime.now(dt.UTC) - dt.timedelta(days=30)
         match_ids = []
         for observation in observations:
             state = by_product.get(observation["supplier_product_id"])
             stale = bool(state and dt.datetime.fromisoformat(state["updated_at"].replace("Z", "+00:00")) < stale_before)
-            if (not state or state.get("rematch_requested") or stale or
+            prefer_identifier = bool(state and needs_exact_identifier_reselection(
+                state, candidates_by_product.get(observation["supplier_product_id"], [])))
+            if (not state or state.get("rematch_requested") or stale or prefer_identifier or
                     state.get("match_status") in {"discovery_pending", "no_candidates"}):
                 if observation["supplier_product_id"] in already_queued:
                     continue

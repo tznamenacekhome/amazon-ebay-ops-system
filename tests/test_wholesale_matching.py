@@ -6,7 +6,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "integrations"))
 
 from wholesale_matching import (  # noqa: E402
     TITLE_SEARCH_STRATEGY_VERSION, canonical_platform, evaluate_compatibility, identity_signature,
-    identifier_search, merge_candidates, query_fingerprint, select_preferred,
+    identifier_search, merge_candidates, needs_exact_identifier_reselection, query_fingerprint, select_preferred,
     title_platform_query, title_search_variants,
 )
 
@@ -243,6 +243,26 @@ class WholesaleMatchingTests(unittest.TestCase):
         ])
         self.assertEqual(result.selected_asin, "B000000002")
         self.assertTrue(result.rationale["exact_identifier_match"])
+
+    def test_legacy_automatic_title_selection_is_reselected_when_upc_match_exists(self):
+        state = {"selected_candidate_id": "title", "selection_source": "automatic"}
+        candidates = [
+            {"candidate_id": "title", "compatibility_status": "compatible",
+             "compatibility_reason_codes": ["platform_and_title_compatible"], "eligibility_status": "eligible"},
+            {"candidate_id": "upc", "compatibility_status": "compatible",
+             "compatibility_reason_codes": ["identifier_and_platform_compatible"], "eligibility_status": "eligible"},
+        ]
+        self.assertTrue(needs_exact_identifier_reselection(state, candidates))
+
+    def test_manual_selection_is_not_replaced_by_upc_default(self):
+        state = {"selected_candidate_id": "title", "selection_source": "manual"}
+        candidates = [
+            {"candidate_id": "title", "compatibility_status": "compatible",
+             "compatibility_reason_codes": ["platform_and_title_compatible"], "eligibility_status": "eligible"},
+            {"candidate_id": "upc", "compatibility_status": "compatible",
+             "compatibility_reason_codes": ["identifier_and_platform_compatible"], "eligibility_status": "eligible"},
+        ]
+        self.assertFalse(needs_exact_identifier_reselection(state, candidates))
 
     def test_restricted_top_candidate_falls_through(self):
         result = select_preferred([
