@@ -16,11 +16,44 @@ export async function GET(request: Request) {
   const pageSize = Math.min(Math.max(Number(url.searchParams.get("pageSize") || 50), 1), 200);
   const supabase = createServerSupabaseClient();
   const start = (page - 1) * pageSize;
-  const { data: opportunities, error, count } = await supabase.from("wholesale_opportunities")
-    .select("*", { count: "exact" }).in("opportunity_status", statuses)
-    .order("updated_at", { ascending: false }).range(start, start + pageSize - 1);
-  if (error) return json({ error: error.message }, 500);
-  const rows = opportunities ?? [];
+  const supplierId = url.searchParams.get("supplierId") || null;
+  const requestedImportId = url.searchParams.get("importId") || null;
+  let imports: any[] = [];
+  let selectedImport: any = null;
+  let supplierRows: any[] = [];
+  let rows: any[] = [];
+  let count = 0;
+
+  if (group === "ready") {
+    let importQuery = supabase.from("wholesale_imports").select("*").eq("status", "completed")
+      .order("effective_date", { ascending: false }).order("revision", { ascending: false });
+    if (supplierId) importQuery = importQuery.eq("supplier_id", supplierId);
+    const [importsResult, suppliersResult] = await Promise.all([
+      importQuery.limit(500),
+      supabase.from("wholesale_suppliers").select("supplier_id,name,is_active").eq("is_active", true).order("name"),
+    ]);
+    if (importsResult.error || suppliersResult.error) return json({ error: (importsResult.error || suppliersResult.error)?.message }, 500);
+    imports = importsResult.data ?? [];
+    supplierRows = suppliersResult.data ?? [];
+    selectedImport = requestedImportId ? imports.find(row => row.import_id === requestedImportId) : imports[0];
+    if (selectedImport) {
+      try {
+        const importProductIds = await fetchImportProductIds(supabase, selectedImport.import_id);
+        const filtered = await fetchOpportunitiesForProducts(supabase, importProductIds, statuses);
+        count = filtered.length;
+        rows = filtered.slice(start, start + pageSize);
+      } catch (error) {
+        return json({ error: error instanceof Error ? error.message : "Could not filter opportunities by supplier list." }, 500);
+      }
+    }
+  } else {
+    const result = await supabase.from("wholesale_opportunities")
+      .select("*", { count: "exact" }).in("opportunity_status", statuses)
+      .order("updated_at", { ascending: false }).range(start, start + pageSize - 1);
+    if (result.error) return json({ error: result.error.message }, 500);
+    rows = result.data ?? [];
+    count = result.count ?? 0;
+  }
   const productIds = unique(rows.map(row => row.supplier_product_id));
   const evaluationIds = unique(rows.map(row => row.current_evaluation_id));
   const candidateIds = unique(rows.map(row => row.current_candidate_id));
@@ -42,7 +75,7 @@ export async function GET(request: Request) {
   const supplierIds = unique(Array.from(products.values()).map(row => row.supplier_id));
   const supplierResult = supplierIds.length ? await supabase.from("wholesale_suppliers").select("supplier_id,name").in("supplier_id", supplierIds) : { data: [], error: null };
   if (supplierResult.error) return json({ error: supplierResult.error.message }, 500);
-  const suppliers = new Map((supplierResult.data ?? []).map(row => [row.supplier_id, row.name]));
+  const suppliers = new Map([...supplierRows, ...(supplierResult.data ?? [])].map(row => [row.supplier_id, row.name]));
   let fulfillmentByAsin;
   try {
     fulfillmentByAsin = await fetchBuyBoxFulfillmentByAsin(supabase, Array.from(evaluations.values()).map(row => row.asin));
@@ -55,8 +88,41 @@ export async function GET(request: Request) {
       evaluations.get(opportunity.current_evaluation_id), drafts.get(opportunity.supplier_product_id),
       candidates.get(opportunity.current_candidate_id),
       states.get(`${opportunity.supplier_product_id}:${opportunity.marketplace_id}`), suppliers, fulfillmentByAsin)),
-    page, pageSize, total: count ?? 0, counts,
+    page, pageSize, total: count, counts,
+    imports: imports.map(row => ({ importId: row.import_id, supplierId: row.supplier_id,
+      supplier: suppliers.get(row.supplier_id) ?? "Unknown supplier", effectiveDate: row.effective_date,
+      importedAt: row.imported_at, productCount: row.summary?.rows_imported ?? 0, revision: row.revision })),
+    suppliers: supplierRows.map(row => ({ supplierId: row.supplier_id, supplier: row.name })),
+    selectedImport: selectedImport ? { importId: selectedImport.import_id, supplierId: selectedImport.supplier_id,
+      supplier: suppliers.get(selectedImport.supplier_id) ?? "Unknown supplier", effectiveDate: selectedImport.effective_date,
+      importedAt: selectedImport.imported_at, productCount: selectedImport.summary?.rows_imported ?? 0,
+      revision: selectedImport.revision } : null,
   });
+}
+
+async function fetchImportProductIds(supabase: ReturnType<typeof createServerSupabaseClient>, importId: string) {
+  const ids: string[] = [];
+  for (let from = 0; ; from += 1000) {
+    const result = await supabase.from("wholesale_supplier_observations").select("supplier_product_id")
+      .eq("import_id", importId).range(from, from + 999);
+    if (result.error) throw new Error(result.error.message);
+    ids.push(...(result.data ?? []).map(row => row.supplier_product_id));
+    if ((result.data ?? []).length < 1000) break;
+  }
+  return unique(ids);
+}
+
+async function fetchOpportunitiesForProducts(
+  supabase: ReturnType<typeof createServerSupabaseClient>, productIds: string[], statuses: string[],
+) {
+  const rows: any[] = [];
+  for (let index = 0; index < productIds.length; index += 150) {
+    const result = await supabase.from("wholesale_opportunities").select("*")
+      .in("supplier_product_id", productIds.slice(index, index + 150)).in("opportunity_status", statuses);
+    if (result.error) throw new Error(result.error.message);
+    rows.push(...(result.data ?? []));
+  }
+  return rows.sort((left, right) => String(right.updated_at ?? "").localeCompare(String(left.updated_at ?? "")));
 }
 
 function dto(opportunity: any, product: any, evaluation: any, draft: any, candidate: any, matchState: any, suppliers: Map<string, string>, fulfillmentByAsin: Map<string, "fba" | "mf" | null>) {
