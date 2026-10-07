@@ -331,7 +331,10 @@ def build_wholesale_catalog_seeds(supabase, settings, limit: int, *, planning_ca
     for batch in chunked(candidate_ids, 100):
         rows = (
             supabase.table("wholesale_amazon_candidates")
-            .select("candidate_id,supplier_product_id,marketplace_id,asin,match_sources,compatibility_status")
+            .select(
+                "candidate_id,supplier_product_id,marketplace_id,asin,match_sources,"
+                "compatibility_status,compatibility_reason_codes"
+            )
             .in_("candidate_id", batch)
             .execute()
             .data
@@ -490,9 +493,11 @@ def wholesale_selection_is_seed_eligible(
     if not candidate or state.get("match_status") != "matched":
         return False
     asin = str(candidate.get("asin") or "").strip().upper()
+    reason_codes = set(candidate.get("compatibility_reason_codes") or [])
     return bool(
         asin
         and candidate.get("compatibility_status") == "compatible"
+        and "identifier_and_platform_compatible" in reason_codes
         and product_id not in active_non_na
         and asin not in blocked_asins
         and (eligibility_by_asin.get(asin) or {}).get("eligibility_status") == "eligible"

@@ -206,8 +206,10 @@ Carrier/status syncs must not downgrade workflow-owned statuses.
   also seed ASINs known only through current stored Keepa snapshots, but not
   snapshots older than 7 days. Keepa snapshots created only because an ASIN was
   discovered as a wholesale match candidate do not establish catalog ownership;
-  selected wholesale ASINs enter sourcing through the compatible, freshly
-  eligible wholesale seed path.
+  selected wholesale ASINs enter sourcing only when Amazon confirms an exact
+  supplier UPC/EAN match and the selection is compatible and freshly eligible.
+  Title-only and title/platform-only wholesale matches remain review evidence
+  and must not seed Amazon-to-eBay sourcing.
 - ASINs in `sourcing_blocked_asins`, including Amazon restriction blocks, must
   be excluded from sourcing seed generation and from scheduled Keepa
   `catalog_priority` catalog refresh selection.

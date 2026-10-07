@@ -28,7 +28,13 @@ def state(**changes):
 
 
 def candidate(**changes):
-    return {"asin": ASIN, "compatibility_status": "compatible", **changes}
+    return {
+        "asin": ASIN,
+        "compatibility_status": "compatible",
+        "match_sources": ["identifier", "title_platform"],
+        "compatibility_reason_codes": ["identifier_and_platform_compatible"],
+        **changes,
+    }
 
 
 def eligible_evidence():
@@ -60,6 +66,18 @@ class WholesaleSourcingSeedTests(unittest.TestCase):
 
     def test_incompatible_candidate_is_excluded(self):
         self.assertFalse(self.qualifies(candidate_row=candidate(compatibility_status="incompatible")))
+
+    def test_title_only_selected_candidate_is_excluded(self):
+        self.assertFalse(self.qualifies(candidate_row=candidate(
+            match_sources=["title_platform"],
+            compatibility_reason_codes=["title_and_platform_compatible"],
+        )))
+
+    def test_identifier_search_without_confirmed_exact_identifier_is_excluded(self):
+        self.assertFalse(self.qualifies(candidate_row=candidate(
+            match_sources=["identifier"],
+            compatibility_reason_codes=["title_and_platform_compatible"],
+        )))
 
     def test_no_selected_candidate_is_excluded(self):
         self.assertFalse(wholesale_selection_is_seed_eligible(state(), None, PRODUCT, set(), eligible_evidence(), set()))
