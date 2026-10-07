@@ -82,6 +82,26 @@ class RoyalEmailSafetyTests(unittest.TestCase):
         self.assertEqual(parsed["effective_date"], "2026-10-05")
         self.assertEqual(parsed["date_source"], "supplier_filename")
 
+    def test_current_royal_layout_accepts_order_total_before_headers(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "Royal NN Price_List_10-07.xlsx"
+            workbook = Workbook()
+            sheet = workbook.active
+            sheet.title = "PRICE LIST"
+            sheet.append(["ORDER TOTAL:", None, None, None, None, None, "=SUM(G3:G4)"])
+            sheet.append(["ORDER", "TITLE", "SYS", "UPC/SKU", "PRICE", "QTY", "SUB"])
+            sheet.append([None, "Example Game", "Switch", "012345678905", 19.99, "144+", '=IF(A3="","",A3*E3)'])
+            workbook.save(path)
+            workbook.close()
+
+            parsed = parse_price_list(path, filename_reference_date="2026-10-06T23:36:54Z")
+
+        self.assertEqual(parsed["status"], "completed")
+        self.assertEqual(parsed["effective_date"], "2026-10-07")
+        self.assertEqual(parsed["date_source"], "supplier_filename")
+        self.assertEqual(parsed["summary"]["rows_imported"], 1)
+        self.assertEqual(parsed["products"][0]["normalized_identifier"], "012345678905")
+
     def test_csv_uses_existing_royal_normalization(self):
         content = "ORDER,TITLE,SYS,UPC / SKU,PRICE,QTY,SUB\n1,Example Game,Switch,012345678905,19.99,5,\n"
         with tempfile.TemporaryDirectory() as directory:

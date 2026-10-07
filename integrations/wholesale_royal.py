@@ -15,7 +15,7 @@ from zipfile import ZipFile
 
 from openpyxl import Workbook, load_workbook
 
-PARSER_VERSION = "royal-v2"
+PARSER_VERSION = "royal-v3"
 SUPPLIER_KEY = "royal-electronics"
 MAX_ROWS = 10000
 MAX_PRODUCTS = 5000
@@ -25,6 +25,24 @@ DATE_LABEL = re.compile(
     r"(\d{4}-\d{2}-\d{2}|\d{1,2}/\d{1,2}/\d{4})", re.IGNORECASE
 )
 EXPECTED_HEADERS = ["ORDER", "TITLE", "SYS", "UPC / SKU", "PRICE", "QTY", "SUB"]
+
+
+def normalized_headers(sheet, row_number: int) -> list[str]:
+    return [
+        re.sub(r"\s*/\s*", " / ", raw_text(sheet.cell(row_number, col).value).strip().upper())
+        for col in range(1, 8)
+    ]
+
+
+def full_list_sheet(workbook):
+    """Accept Royal's bounded full-list layouts without admitting promo sheets."""
+    for sheet in workbook.worksheets:
+        if sheet.title.strip().casefold() not in {"complete list", "price list"}:
+            continue
+        for header_row in (1, 2):
+            if normalized_headers(sheet, header_row) == EXPECTED_HEADERS:
+                return sheet, header_row
+    return None, None
 
 
 def identity_text(value: str) -> str:
@@ -181,16 +199,14 @@ def parse_workbook(path: str | Path, price_list_date: date | str | None = None) 
             raise ValueError("Expanded workbook exceeds 50 MiB limit")
     workbook = load_workbook(BytesIO(content), data_only=False, keep_links=False)
     try:
-        sheet = next((workbook[name] for name in ("COMPLETE LIST", "Price List")
-                      if name in workbook.sheetnames and
-                      [raw_text(workbook[name].cell(1, col).value).strip().upper() for col in range(1, 8)] == EXPECTED_HEADERS), None)
+        sheet, header_row = full_list_sheet(workbook)
         if sheet is None:
             raise ValueError("Required Royal full-list sheet and headers are missing")
         if sheet.max_row > MAX_ROWS or sheet.max_column > 50:
             raise ValueError("Workbook exceeds bounded parser dimensions")
-        headers = [raw_text(sheet.cell(1, col).value).strip().upper() for col in range(1, 8)]
+        headers = normalized_headers(sheet, header_row)
         if headers != EXPECTED_HEADERS:
-            raise ValueError("Expected Royal row-1 headers in columns A:G")
+            raise ValueError("Expected Royal headers in columns A:G")
         dated, date_source = effective_date(workbook, sheet, price_list_date)
         date_cells = set()
         if workbook.defined_names.get("PRICE_LIST_DATE"):
@@ -204,7 +220,7 @@ def parse_workbook(path: str | Path, price_list_date: date | str | None = None) 
         systems = Counter()
         warnings, errors, source_rows = [], [], []
         grouped = defaultdict(list)
-        for number, cells in enumerate(sheet.iter_rows(min_row=2, max_col=7), 2):
+        for number, cells in enumerate(sheet.iter_rows(min_row=header_row + 1, max_col=7), header_row + 1):
             title, system, identifier, price, qty = cells[1:6]
             values = [c.value for c in cells[1:6]]
             source = {"row_number": number, "values": [raw_text(v) for v in values],
@@ -214,7 +230,11 @@ def parse_workbook(path: str | Path, price_list_date: date | str | None = None) 
             quantity_total = (
                 all(not raw_text(cell.value).strip() for cell in cells[1:5])
                 and qty.data_type == "f"
-                and bool(re.fullmatch(rf"=SUM\(F2:F{number - 1}\)", raw_text(qty.value), re.IGNORECASE))
+                and bool(re.fullmatch(
+                    rf"=SUM\(F{header_row + 1}:F{number - 1}\)",
+                    raw_text(qty.value),
+                    re.IGNORECASE,
+                ))
             )
             metadata_only = all(not raw_text(c.value).strip() or c.coordinate in date_cells
                                 or DATE_LABEL.search(raw_text(c.value)) for c in cells[1:6])
