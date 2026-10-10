@@ -458,13 +458,16 @@ def refresh_active_cycle_queue(
             continue
         max_position += 1
         new_rows.append({**row, "queue_position": max_position})
-    for batch in chunked(provenance_updates, 250):
-        supabase.table("sourcing_coverage_cycle_items").upsert(
-            batch,
-            on_conflict="coverage_cycle_id,asin",
-        ).execute()
+    upsert_cycle_item_batches(
+        supabase,
+        provenance_updates,
+        description="refresh sourcing coverage cycle provenance",
+    )
     insert_cycle_items(supabase, cycle_id, new_rows)
-    refresh_cycle_metrics(supabase, cycle_id)
+    execute_with_transient_retry(
+        lambda: refresh_cycle_metrics(supabase, cycle_id),
+        "refresh sourcing coverage cycle metrics",
+    )
     return len(new_rows)
 
 
@@ -472,13 +475,16 @@ def paginate_cycle_item_keys(supabase, cycle_id: str) -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
     start = 0
     while True:
-        response = (
-            supabase.table("sourcing_coverage_cycle_items")
-            .select("*")
-            .eq("coverage_cycle_id", cycle_id)
-            .order("queue_position")
-            .range(start, start + 999)
-            .execute()
+        response = execute_with_transient_retry(
+            lambda start=start: (
+                supabase.table("sourcing_coverage_cycle_items")
+                .select("*")
+                .eq("coverage_cycle_id", cycle_id)
+                .order("queue_position")
+                .range(start, start + 999)
+                .execute()
+            ),
+            f"read sourcing coverage cycle items offset {start}",
         )
         batch = response.data or []
         rows.extend(batch)
@@ -489,8 +495,24 @@ def paginate_cycle_item_keys(supabase, cycle_id: str) -> list[dict[str, Any]]:
 
 def insert_cycle_items(supabase, cycle_id: str, rows: list[dict[str, Any]]) -> None:
     payload = [{**row, "coverage_cycle_id": cycle_id} for row in rows]
-    for batch in chunked(payload, 250):
-        supabase.table("sourcing_coverage_cycle_items").upsert(batch, on_conflict="coverage_cycle_id,asin").execute()
+    upsert_cycle_item_batches(supabase, payload, description="insert sourcing coverage cycle items")
+
+
+def upsert_cycle_item_batches(
+    supabase,
+    rows: list[dict[str, Any]],
+    *,
+    description: str,
+) -> None:
+    for batch_number, batch in enumerate(chunked(rows, 250), start=1):
+        execute_with_transient_retry(
+            lambda batch=batch: (
+                supabase.table("sourcing_coverage_cycle_items")
+                .upsert(batch, on_conflict="coverage_cycle_id,asin")
+                .execute()
+            ),
+            f"{description} batch {batch_number}",
+        )
 
 
 def fetch_pending_cycle_items(supabase, cycle_id: str, limit: int) -> list[dict[str, Any]]:
