@@ -29,4 +29,15 @@ Preflight on October 15 found web revision 186 healthy with its prior dirty-buil
 
 The signed-out helper can inspect/configure the existing logout infrastructure. Its October 11 application is documented in the recovery notes; verify live configuration rather than broadening public routes.
 
-Post-deployment evidence will be recorded in a follow-up deployment receipt.
+## Deployment receipt
+
+Application commit: `86952d6d42d5`, pushed to `origin/main`.
+
+- Web: `mbop-web-task:187`, pinned image `sha256:da0aed8e723991e42296b171b6a45dc4f8b6b0e22a7d53574252e3ef9c9bf871`. `deploy-web.ps1` completed successfully. At 19:27 Pacific October 15, ECS reported deployment COMPLETED, desired/running 1, pending 0; `aws-web-status.ps1` confirmed both build variables equal `86952d6d42d5`.
+- Scheduler: `mbop-scheduler-task:143`, pinned image `sha256:6f1042e5090ec3a9f064f114bf6f970601d8a09ae6981f1e38e7c4c6c8c1a404`. Deployment used revision 142 as the base and changed only `mbop-sourcing-catalog`. Live schedule inspection confirmed ENABLED, `cron(10 0 ? * * *)`, America/Los_Angeles, with launch input pointing to revision 143 and `python run_all_syncs.py --group sourcing-catalog`. `CLOUD_DEPLOYMENT=true` and `LOCAL_SYNC_ENABLED=false` remain set. The image's read-only `--group sourcing-catalog --list` smoke test exited 0 and showed discovery without weekend arguments. No sync was launched and no completed production sync is claimed.
+- Logout infrastructure: live Cognito configuration includes `/signed-out`; the ALB has an exact `/signed-out` forward rule. Existing configuration required no mutation.
+- Authenticated production browser: build badge `86952d6`; Business Excluded tab absent. Closest Excluded has three selectors (cycle, exclusion reason, inventory), no per-row Review match / Dismiss buttons, and reason/evidence-only explanations. Cycle 99 loaded 11 rows, versus 84 in latest-run mode; no API error appeared. Visible examples identify the recorded core-game difference, including Amazon Minecraft versus eBay Minecraft Story Mode Season Pass Disc. This verifies the UI/backend path; regression fixtures verify pair identity boundaries and history filtering independently.
+- Coverage Cycle browser view shows Calls Last Run, Quota After Run, Recorded quota reset, and the last-run explanation.
+- Browser logout test: Log out reached Signed out of MBOP, remained there after reload without automatic login, and displayed no operational shell. Clicking Sign in returned to the authenticated Purchases screen. Cookie contents were not inspected.
+
+This receipt is a documentation-only follow-up; the application image remains tied to the application commit above.
