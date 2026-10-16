@@ -81,8 +81,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     const response = await fetch("/api/notifications", { cache: "no-store" });
     if (response.ok) setNotifications((await response.json()).rows ?? []);
   }, []);
-  useEffect(() => { void loadNotifications(); const timer = window.setInterval(loadNotifications, 60000); return () => window.clearInterval(timer); }, [loadNotifications]);
+  useEffect(() => {
+    if (pathname === "/signed-out") return;
+    void loadNotifications();
+    const timer = window.setInterval(loadNotifications, 60000);
+    return () => window.clearInterval(timer);
+  }, [loadNotifications, pathname]);
   const unread = notifications.filter(row => !row.read_at).length;
+
+  if (pathname === "/signed-out") return <>{children}</>;
 
   return (
     <div className="flex min-h-screen bg-slate-100 text-slate-900">

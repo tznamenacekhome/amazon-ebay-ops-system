@@ -407,6 +407,10 @@ async function getOpportunities(request: NextRequest) {
     });
   }
   const businessReasonFor=(row:OpportunityRow)=>reviewFor(row)?.feedback?.queueChoice === "keep_closest" ? null : businessExclusion(row,reviewFor(row),activeSuppressionByAsin.get(row.asin?.toUpperCase()),blockedAsins.has(row.asin?.toUpperCase()));
+  if (selectedCoverageCycle?.startedAt) {
+    const priorPairs = await fetchPriorCycleListingKeys(rows, selectedCoverageCycle);
+    rows = rows.filter(row => !priorPairs.has(opportunityListingKey(row) ?? ""));
+  }
   const closestExcludedContext = scope === "closest_excluded"
     ? await buildClosestExcludedContext(rows)
     : null;
@@ -455,11 +459,12 @@ async function getOpportunities(request: NextRequest) {
       const myListing = myListingByAsin.get(row.asin.toUpperCase()) ?? null;
       const landedCost = row.sourcing_ebay_candidates?.landed_cost ?? null;
       const conservativeProfit = conservativeDisplayedProfit(targetSalePrice, landedCost, row.profit);
-      const exclusionReason = businessMode ? businessReasonFor(row) : scope === "closest_excluded" ? reviewFor(row)?.feedback?.queueChoice === "keep_closest" ? {
+      let exclusionReason = businessMode ? businessReasonFor(row) : scope === "closest_excluded" ? reviewFor(row)?.feedback?.queueChoice === "keep_closest" ? {
         code:"operator_kept_closest",label:"Kept in Closest Excluded",summary:"Saved operator review. This opportunity stays here until you choose to move it; profitability rules still apply.",
         source:"operator_review",severity:"other_eligibility_gate" as const,category:"operator_review",diagnosticKeys:[],
         finalRecommendation:reviewFor(row)?.pairVerdict === "correct" ? "Operator confirmed match" : null,finalStatus:row.status,secondaryReasons:[],supportingSignals:[],
       } : closestExcludedReason(row) : null;
+      if (exclusionReason && scope === "closest_excluded") exclusionReason = explainExclusion(exclusionReason, row);
       const decisionTrace = scope === "closest_excluded" ? persistedDecisionTrace(row.matching_diagnostics_json) : [];
       const velocitySuppression = activeSuppressionByAsin.get(row.asin.toUpperCase()) ?? null;
       return {
@@ -586,6 +591,30 @@ async function getOpportunities(request: NextRequest) {
   // Large descriptions/aspects are only needed by the visible rows' review panels.
   // Keep qualification, ordering, deduplication and summary over the entire result set.
   const eligibleById = new Map(eligibleRows.map(row => [row.opportunity_id, row]));
+  // Fetch parsed identity evidence only for the visible exclusions. The list
+  // projection intentionally strips it from the wider qualification query.
+  if (listOnly && scope === "closest_excluded") {
+    for (let index = 0; index < opportunities.length; index += 100) {
+      const visible = opportunities.slice(index, index + 100);
+      const { data: evidence, error: evidenceError } = await supabase.from("sourcing_opportunities")
+        .select("opportunity_id,identity_evidence:matching_diagnostics_json->static_rules->identity_comparison,legacy_identity_evidence:matching_diagnostics_json->identity_comparison")
+        .in("opportunity_id", visible.map(row => row.opportunityId));
+      if (evidenceError) throw new Error(`Exclusion identity evidence: ${evidenceError.message}`);
+      const byId = new Map((evidence ?? []).map(item => [item.opportunity_id, item]));
+      for (const display of visible) {
+        const original = eligibleById.get(display.opportunityId)!;
+        const saved = byId.get(display.opportunityId);
+        if (!saved) throw new Error("Sourcing rows changed while loading. Refresh this tab.");
+        const diagnostics = isRecord(original.matching_diagnostics_json) ? original.matching_diagnostics_json : {};
+        const staticRules = isRecord(diagnostics.static_rules) ? diagnostics.static_rules : {};
+        if (display.exclusionReason) display.exclusionReason = explainExclusion(display.exclusionReason, {
+          ...original, matching_diagnostics_json: { ...diagnostics, static_rules: {
+            ...staticRules, identity_comparison: saved.identity_evidence ?? saved.legacy_identity_evidence ?? staticRules.identity_comparison,
+          } },
+        });
+      }
+    }
+  }
   for (let index = 0; !listOnly && index < opportunities.length; index += 100) {
     const visible = opportunities.slice(index, index + 100);
     const { data: evidence, error: evidenceError } = await supabase.from("sourcing_opportunities")
@@ -1030,6 +1059,59 @@ function isOperatorActionType(actionType: string | null | undefined) {
     "seller_listing_mismatch",
     "inventory_snoozed",
   ].includes(String(actionType ?? "").toLowerCase());
+}
+
+function explainExclusion(reason: ExclusionReason, row: OpportunityRow): ExclusionReason {
+  const comparison = buildDiagnosticComparison({
+    opportunity: row as unknown as Record<string, unknown>,
+    seed: row.sourcing_seed_asins ?? {}, candidate: row.sourcing_ebay_candidates ?? {},
+    diagnostics: row.matching_diagnostics_json,
+  });
+  const differences = comparison.rows.filter(detail => detail.kind === "identity" &&
+    (detail.comparisonResult === "conflict" || detail.comparisonResult === "review") &&
+    (reason.diagnosticKeys.includes(detail.key) || reason.diagnosticKeys.includes(detail.ruleFamily ?? "") ||
+      ["review_threshold", "probable_non_match"].includes(reason.code)));
+  if (differences.length) return {
+    ...reason,
+    summary: differences.map(detail =>
+      `${detail.label}: Amazon ${detail.amazon ?? "not specified"}; eBay ${detail.ebay ?? "not specified"}${detail.comparisonReason ? ` (${detail.comparisonReason})` : ""}.`).join(" "),
+  };
+  const details = persistedDecisionTrace(row.matching_diagnostics_json).filter(detail =>
+    ["fail", "warning"].includes(detail.result) && reason.diagnosticKeys.includes(detail.diagnosticKey) &&
+    !["final_recommendation", "confidence_summary", "opportunity_context"].includes(detail.diagnosticKey));
+  if (details.length) return { ...reason, summary: [...new Set(details.map(detail => detail.summary))].join("; ") };
+  const rule = EXCLUSION_REASON_RULES.find(rule => rule.code === reason.code);
+  const signals = reason.supportingSignals.filter(signal => rule?.patterns.some(pattern => signal.toLowerCase().includes(pattern)));
+  if (signals.length) return { ...reason, summary: [...new Set(signals)].join("; ") };
+  return reason;
+}
+
+// Compare stable ASIN/listing identities across cycle-specific opportunity IDs.
+// Narrow by current ASINs and paginate identity columns only.
+async function fetchPriorCycleListingKeys(
+  rows: OpportunityRow[], cycle: { coverageCycleId: string; startedAt: string | null },
+) {
+  const keys = new Set<string>();
+  const wanted = new Set(rows.map(opportunityListingKey).filter(Boolean));
+  const asins = [...new Set(rows.map(row => row.asin).filter(Boolean))];
+  for (let index = 0; index < asins.length; index += 75) {
+    for (let start = 0; ; start += 1000) {
+      const { data, error } = await supabase.from("sourcing_opportunities")
+        .select("opportunity_id,asin,sourcing_runs!inner(coverage_cycle_id,started_at),sourcing_ebay_candidates(ebay_item_id,ebay_legacy_item_id,ebay_item_web_url)")
+        .in("asin", asins.slice(index, index + 75))
+        .neq("sourcing_runs.coverage_cycle_id", cycle.coverageCycleId)
+        .lt("sourcing_runs.started_at", cycle.startedAt!)
+        .order("opportunity_id").range(start, start + 999);
+      if (error) throw new Error(`Prior cycle match history: ${error.message}`);
+      const page = (data ?? []) as unknown as OpportunityRow[];
+      for (const row of page) {
+        const key = opportunityListingKey(row);
+        if (key && wanted.has(key)) keys.add(key);
+      }
+      if (page.length < 1000) break;
+    }
+  }
+  return keys;
 }
 
 async function fetchPresentedListingKeys(candidateRows: OpportunityRow[]) {

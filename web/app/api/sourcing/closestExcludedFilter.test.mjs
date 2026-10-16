@@ -7,8 +7,23 @@ import ts from 'typescript';
 const require=createRequire(import.meta.url),root=dirname(fileURLToPath(import.meta.url));
 const rows=Array.from({length:53},(_,i)=>({opportunity_id:`opp-${i}`,candidate_id:`candidate-${i}`,asin:`ASIN${i}`,ebay_item_id:`listing-${i}`,status:'rejected',opportunity_type:'review',score:100-i,profit:i===51?-1:10,matching_diagnostics_json:i===52?{hard_blocks:['wrong platform']}:{recommendation:'Review'},sourcing_seed_asins:{asin:`ASIN${i}`,amazon_title:'Game',source_mode:'recent_sales'},sourcing_ebay_candidates:{ebay_item_id:`listing-${i}`,ebay_title:'Game listing',listing_status:'active',display_price:{currency:'USD'},display_shipping:[]}}));
 let reviews=[];
+let priorRows=[];
+const cycles=[{coverage_cycle_id:'cycle-2',cycle_number:2,status:'completed',started_at:'2026-10-15T00:00:00Z'}];
 const db={rpc:async()=>({data:reviews,error:null}),from(table){
- const query=new Proxy({}, {get(_,method){if(method==='then')return done=>Promise.resolve(done({data:table==='sourcing_opportunities'?rows:table==='sourcing_actions'&&reviews.length?[{opportunity_id:'opp-0',action_type:'matching_feedback'}]:[],error:null}));return ()=>query;}});return query;
+ let selection='',filters=[];
+ const query=new Proxy({}, {get(_,method){
+  if(method==='then')return done=>{
+   let data=table==='sourcing_opportunities'?(selection.includes('sourcing_runs!inner')?priorRows:rows):
+     table==='sourcing_coverage_cycles'?cycles:table==='sourcing_runs'?[{sourcing_run_id:'run-2',coverage_cycle_id:'cycle-2'}]:
+     table==='sourcing_actions'&&reviews.length?[{opportunity_id:'opp-0',action_type:'matching_feedback'}]:[];
+   if(selection.includes('sourcing_runs!inner')) {
+    assert(filters.some(([method,column])=>method==='lt'&&column==='sourcing_runs.started_at'));
+    assert(filters.some(([method,column])=>method==='neq'&&column==='sourcing_runs.coverage_cycle_id'));
+   }
+   return Promise.resolve(done({data,error:null}));
+  };
+  return (...args)=>{if(method==='select')selection=args[0];else filters.push([method,...args]);return query;};
+ }});return query;
 }};
 const modules=new Map();function load(file){file=resolve(file);if(modules.has(file))return modules.get(file);const out={};modules.set(file,out);new Function('require','exports',ts.transpileModule(readFileSync(file,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText)(name=>{
  if(name==='next/server')return {NextResponse:{json:(body,init)=>({body,json:async()=>body,ok:!init?.status||init.status<400,status:init?.status??200,headers:new Headers()})}};
@@ -55,3 +70,22 @@ rows[0].matching_diagnostics_json.decisionTrace=[];
 assert((await get('review_threshold')).body.opportunities[0].exclusionReason.summary.includes('did not record a specific matching reason'));
 assert.equal((await get('profitability')).body.opportunities[0].exclusionReason.code,'profitability');
 console.log('Specific saved review reasons replace generic gate text; multiple reasons, legacy/missing trace and category filters preserved');
+
+// The same pair gets a new opportunity ID in each cycle. Suppress that pair,
+// while keeping another ASIN for the same listing and another listing for the ASIN.
+priorRows=[{opportunity_id:'old-pair',asin:'ASIN1',sourcing_ebay_candidates:{ebay_item_id:'listing-1'}},
+ {opportunity_id:'different-asin',asin:'OTHER',sourcing_ebay_candidates:{ebay_item_id:'listing-2'}},
+ {opportunity_id:'different-listing',asin:'ASIN3',sourcing_ebay_candidates:{ebay_item_id:'another-listing'}}];
+const cycleResult=await route.GET({url:'https://example.test/api/sourcing/opportunities?status=all&scope=closest_excluded&format=list&limit=50&coverageCycleId=cycle-2'});
+assert.equal(cycleResult.status,200,JSON.stringify(cycleResult.body));
+assert.equal(cycleResult.body.summary.total,52);
+assert(!cycleResult.body.opportunities.some(row=>row.opportunityId==='opp-1'));
+assert(cycleResult.body.opportunities.some(row=>row.opportunityId==='opp-2'));
+assert(cycleResult.body.opportunities.some(row=>row.opportunityId==='opp-3'));
+assert.equal((await get('all')).body.summary.total,53,'Latest runs retain their existing behavior');
+priorRows=[];
+rows[0].matching_diagnostics_json={hard_blocks:['game name mismatch'],static_rules:{identity_comparison:{amazon:{coreGame:'Blazing Angels 2'},ebay:{coreGame:'Blazing Angels'},evidenceDecision:{comparisons:{coreGame:{result:'conflict',reason:'Different installment'}}}}}};
+const identityReason=(await get('game_name_conflict')).body.opportunities.find(row=>row.opportunityId==='opp-0').exclusionReason;
+assert(identityReason.summary.includes('Amazon Blazing Angels 2; eBay Blazing Angels'));
+assert(identityReason.summary.includes('Different installment'));
+console.log('Prior-cycle pair suppression before counts/limit, pair identity boundaries, latest-run behavior and specific mismatch evidence passed');

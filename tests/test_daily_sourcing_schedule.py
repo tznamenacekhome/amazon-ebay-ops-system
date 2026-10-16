@@ -1,25 +1,34 @@
 import datetime as dt
 import sys
 import unittest
+from unittest.mock import patch
 from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "integrations"))
 
-from run_daily_sourcing_discovery import is_weekend  # noqa: E402
+import run_daily_sourcing_discovery as discovery
+import run_all_syncs
 
 
 class DailySourcingScheduleTests(unittest.TestCase):
-    def test_weekends_are_skipped_in_business_timezone(self):
-        saturday = dt.datetime(2026, 10, 10, 19, tzinfo=dt.UTC)
-        sunday = dt.datetime(2026, 10, 11, 19, tzinfo=dt.UTC)
-        self.assertTrue(is_weekend("America/Los_Angeles", now=saturday))
-        self.assertTrue(is_weekend("America/Los_Angeles", now=sunday))
+    def test_discovery_runs_on_both_weekend_days(self):
+        for day in (10, 11):
+            with self.subTest(day=day):
+                with patch("sys.argv", ["discovery"]), \
+                     patch("time.time", return_value=dt.datetime(2026, 10, day, 19, tzinfo=dt.UTC).timestamp()), \
+                     patch.object(discovery.subprocess, "run") as run, \
+                     patch.object(discovery, "fetch_browse_quota", return_value={}), \
+                     patch.object(discovery, "browse_call_budget", return_value=0):
+                    self.assertEqual(discovery.main(), 0)
+                    run.assert_called_once()
+                    self.assertIn("integrations/run_daily_catalog_sourcing.py", run.call_args.args[0])
 
-    def test_weekdays_continue_spending_quota(self):
-        monday = dt.datetime(2026, 10, 12, 19, tzinfo=dt.UTC)
-        self.assertFalse(is_weekend("America/Los_Angeles", now=monday))
+    def test_production_group_does_not_skip_weekends(self):
+        job = next(job for job in run_all_syncs.JOBS if job.name == "Daily catalog sourcing")
+        self.assertIn("sourcing-catalog", job.groups)
+        self.assertNotIn("--skip-weekends", job.command())
 
 
 if __name__ == "__main__":

@@ -24,7 +24,7 @@ import type { MatchingFeedback } from "../api/sourcing/matchingFeedback";
 import { ParserReview } from "./ParserReview";
 import { ReviewRequestIds } from "./reviewRequestIds";
 
-const tabs = ["Buy List", "Closest Excluded", "Business Excluded", "Coverage Cycle", "Watchlist", "Purchased Pending Match", "Sourcing History", "Matching Intelligence", "Settings"] as const;
+const tabs = ["Buy List", "Closest Excluded", "Coverage Cycle", "Watchlist", "Purchased Pending Match", "Sourcing History", "Matching Intelligence", "Settings"] as const;
 const opportunityTypes = ["all", "buy_now", "multi_unit", "best_offer", "auction", "watch"] as const;
 const inventoryFilters = ["all", "exclude_in_stock", "only_in_stock"] as const;
 const GIXEN_URL = "https://www.gixen.com/main/index.php";
@@ -100,21 +100,19 @@ export default function SourcingPage() {
   const effectiveStatus =
     activeTab === "Closest Excluded"
       ? "all"
-      : activeTab === "Business Excluded"
-        ? "business_excluded"
-        : activeTab === "Watchlist"
+      : activeTab === "Watchlist"
           ? "watching"
           : activeTab === "Purchased Pending Match"
             ? "purchased_pending_match"
             : status;
-  const { rows, businessSuppressions, summary, batch, loading, error, freshnessError, exclusionOptions, coverageCycles, reload, refreshInBackground, removeRows, setError } = useSourcingOpportunities(
+  const { rows, summary, batch, loading, error, freshnessError, exclusionOptions, coverageCycles, reload, refreshInBackground, removeRows, setError } = useSourcingOpportunities(
     effectiveStatus,
-    type,
+    activeTab === "Closest Excluded" ? "all" : type,
     searchText,
-    sourceMode,
+    activeTab === "Closest Excluded" ? "all" : sourceMode,
     activeTab === "Closest Excluded" ? "closest_excluded" : activeTab === "Buy List" ? scope : "all_open",
     inventoryFilter,
-    ["Buy List", "Closest Excluded", "Business Excluded", "Watchlist", "Purchased Pending Match"].includes(activeTab),
+    ["Buy List", "Closest Excluded", "Watchlist", "Purchased Pending Match"].includes(activeTab),
     activeTab === "Closest Excluded" ? exclusionReason : "all",
     activeTab === "Closest Excluded" ? coverageCycleId : "all",
   );
@@ -127,7 +125,7 @@ export default function SourcingPage() {
 
   const visibleRows = useMemo(() => {
     if (activeTab === "Purchased Pending Match") return rows.filter((row) => row.status === "purchased_pending_match");
-    if (activeTab === "Buy List" || activeTab === "Watchlist" || activeTab === "Closest Excluded" || activeTab === "Business Excluded") return rows;
+    if (activeTab === "Buy List" || activeTab === "Watchlist" || activeTab === "Closest Excluded") return rows;
     return [];
   }, [activeTab, rows]);
   const selectedRows = useMemo(
@@ -270,10 +268,10 @@ export default function SourcingPage() {
         <SourcingSettingsPanel onApplied={reload} />
       ) : (
         <>
-          {activeTab === "Business Excluded" ? <div className="mb-3 flex gap-3"><Metric label="Matched business exclusions" value={summary.total??0}/><Metric label="Active suppression records" value={businessSuppressions.length}/></div> : <div className="mb-3 grid grid-cols-2 gap-3 md:grid-cols-5">
+          <div className="mb-3 grid grid-cols-2 gap-3 md:grid-cols-5">
             <Metric label={activeTab === "Buy List" ? "Actionable Rows" : "Open Rows"} value={summary.total ?? visibleRows.length} />
             <Metric label="Buy Now" value={summary.buyNow ?? 0} /><Metric label="Best Offer" value={summary.bestOffer ?? 0} /><Metric label="Auction" value={summary.auction ?? 0} /><Metric label="Multi-Unit" value={summary.multiUnit ?? 0} />
-          </div>}
+          </div>
           {activeTab === "Buy List" ? (
             <BatchStatus batch={batch} busy={batchContinueRunning} onContinue={() => void continueSourcingBatch()} />
           ) : null}
@@ -326,6 +324,7 @@ export default function SourcingPage() {
                 <option value="inventory_snoozed">Inventory Snoozed</option>
               </select>
             ) : null}
+            {activeTab !== "Closest Excluded" ? <>
             <select
               value={type}
               onChange={(event) => setType(event.target.value)}
@@ -349,6 +348,7 @@ export default function SourcingPage() {
               <option value="recent_sales">Recently Sold</option>
               <option value="full_listings">All Listings</option>
             </select>
+            </> : null}
             <select
               value={inventoryFilter}
               onChange={(event) => setInventoryFilter(event.target.value as (typeof inventoryFilters)[number])}
@@ -360,10 +360,6 @@ export default function SourcingPage() {
             </select>
           </div>
 
-          {activeTab === "Business Excluded" ? <details className="mb-3 rounded border bg-white p-3" open><summary>Suppression records ({businessSuppressions.length})</summary>
-            <p className="my-2 text-xs text-slate-600">Active ASIN holds, including those without a positively matched listing. Synced sales metrics control release. Values below are recorded values; check the evaluation date.</p>
-            <div className="max-h-48 overflow-auto"><table className="w-full text-xs"><thead><tr><th>ASIN</th><th>Recorded velocity</th><th>Required velocity</th><th>Last evaluated</th></tr></thead><tbody>{businessSuppressions.map(hold=><tr key={hold.asin}><td>{hold.asin}</td><td>{hold.current_velocity??"Unavailable"} units/month</td><td>{hold.required_velocity??"Unavailable"} units/month</td><td>{hold.last_evaluated_at??"Unavailable"}</td></tr>)}</tbody></table></div>
-          </details> : null}
           <ReplenishmentTable
             rows={visibleRows}
             loading={loading}
@@ -397,8 +393,8 @@ export default function SourcingPage() {
             }}
             purchasedMode={activeTab === "Purchased Pending Match"}
             closestExcludedMode={activeTab === "Closest Excluded"}
-            salesVelocitySuppressedMode={activeTab === "Business Excluded"}
-            onReviewRow={activeTab === "Buy List" || activeTab === "Closest Excluded" || activeTab === "Business Excluded" ? setDismissRow : undefined}
+            salesVelocitySuppressedMode={false}
+            onReviewRow={activeTab === "Buy List" ? setDismissRow : undefined}
             onUpdateAsin={(row, asin) => void act(row, { actionType: "update_asin", asin })}
           />
           {dismissRow ? (
@@ -981,22 +977,13 @@ function PresentationBadge({ row }: { row: SourcingOpportunity }) {
 function ExcludedBecause({ reason }: { reason: SourcingOpportunity["exclusionReason"] | null }) {
   const label = reason?.label ?? "Unknown - inspect diagnostics";
   const summary = reason?.summary ?? "No backend exclusion reason was returned.";
-  const moreCount = reason?.secondaryReasons?.length ?? 0;
-  const statusText = reason?.eligible === true
-    ? "Current rules: eligible"
-    : `Final: ${reason?.finalRecommendation ?? reason?.finalStatus ?? "not available"}`;
   return (
     <div className="mt-2 max-w-xl rounded-md border border-amber-200 bg-amber-50 px-2 py-1.5 text-xs text-amber-950">
       <div className="flex flex-wrap items-center gap-1.5">
         <span className="font-semibold text-amber-900">Excluded Because</span>
-        <span className="rounded bg-white px-1.5 py-0.5 text-[11px] font-medium text-amber-800">{reason?.severity ?? "unknown"}</span>
-        {moreCount ? <span className="text-[11px] text-amber-700">+{moreCount} more</span> : null}
       </div>
       <div className="mt-1 font-medium">{label}</div>
       <div className="mt-0.5 text-amber-800">{summary}</div>
-      <div className="mt-0.5 text-[11px] text-amber-700">
-        Source: {reason?.source ?? "unknown"} / {statusText}
-      </div>
     </div>
   );
 }
@@ -1798,15 +1785,16 @@ function CoverageCyclePanel() {
           <Metric label="Searched" value={cycle.searched_count ?? 0} />
           <Metric label="Remaining" value={cycle.remaining_count ?? 0} />
           <Metric label="Opportunities Presented" value={summary?.opportunitiesPresented?.total ?? 0} />
-          <Metric label="Calls Today" value={lastRun?.api_call_count ?? 0} />
-          <Metric label="Quota Left" value={lastRun?.ending_browse_quota_remaining ?? lastRun?.starting_browse_quota_remaining ?? 0} />
+          <Metric label="Calls Last Run" value={lastRun?.api_call_count ?? 0} />
+          <Metric label="Quota After Run" value={lastRun?.ending_browse_quota_remaining ?? lastRun?.starting_browse_quota_remaining ?? 0} />
         </div>
         <div className="mt-3 grid gap-2 text-xs text-slate-600 md:grid-cols-4">
           <div>Cycle status: <span className="font-medium text-slate-800">{label(cycle.status ?? "")}</span></div>
           <div>Last run: <span className="font-medium text-slate-800">{date(lastRun?.started_at)}</span></div>
           <div>Stop reason: <span className="font-medium text-slate-800">{stopReasonLabel(lastRun?.stop_reason ?? cycle.last_stop_reason ?? "", lastRun)}</span></div>
-          <div>Next reset: <span className="font-medium text-slate-800">{date(lastRun?.browse_quota_reset_at ?? cycle.last_quota_reset_at)}</span></div>
+          <div>Recorded quota reset: <span className="font-medium text-slate-800">{date(lastRun?.browse_quota_reset_at ?? cycle.last_quota_reset_at)}</span></div>
         </div>
+        <div className="mt-2 text-xs text-slate-500">Calls, quota, and reset time above reflect the last discovery run.</div>
       </div>
 
       <div className="rounded-md border border-slate-200 bg-white shadow-sm">
