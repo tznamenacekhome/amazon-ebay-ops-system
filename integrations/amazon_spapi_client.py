@@ -49,6 +49,7 @@ READ_ONLY_OPERATION_PREFIXES = (
     "/inbound/fba/2024-03-20/",
     "/orders/v0/orders",
     "/orders/v0/orders/",
+    "/orders/2026-01-01/orders",
     "/finances/v0/financialEventGroups",
     "/finances/v0/financialEventGroups/",
     "/finances/v0/orders/",
@@ -849,6 +850,58 @@ class AmazonSPAPIClient:
         }
         path = f"/products/fees/v0/items/{quote(asin, safe='')}/feesEstimate"
         return self.request("POST", path, json_body=body)
+
+    def search_sales_orders(
+        self, *, last_updated_after: str | None = None,
+        created_after: str | None = None, created_before: str | None = None,
+        pagination_token: str | None = None, max_results_per_page: int = 100,
+    ) -> dict[str, Any]:
+        """Read operational orders/items without buyer, recipient or package data."""
+        if bool(last_updated_after) == bool(created_after):
+            raise AmazonSPAPIError("Provide exactly one orders search lower bound")
+        if created_before and not created_after:
+            raise AmazonSPAPIError("created_before requires created_after")
+        params = {
+            "marketplaceIds": self.config.marketplace_id,
+            "maxResultsPerPage": str(max_results_per_page),
+            "includedData": "FULFILLMENT,PROCEEDS,CANCELLATION",
+        }
+        if last_updated_after:
+            params["lastUpdatedAfter"] = last_updated_after
+        if created_after:
+            params["createdAfter"] = created_after
+        if created_before:
+            params["createdBefore"] = created_before
+        if pagination_token:
+            # Unlike v0, repeat the original filters on subsequent pages.
+            params["paginationToken"] = pagination_token
+        return self.request("GET", "/orders/2026-01-01/orders", params=params)
+
+    def iter_sales_orders(
+        self, *, last_updated_after: str | None = None,
+        created_after: str | None = None, created_before: str | None = None,
+        max_pages: int | None = None, page_delay_seconds: float = 1.0,
+    ):
+        token = None
+        seen_tokens = set()
+        pages = 0
+        while True:
+            response = self.search_sales_orders(
+                last_updated_after=last_updated_after, created_after=created_after,
+                created_before=created_before, pagination_token=token,
+            )
+            if not isinstance(response.get("orders"), list):
+                raise AmazonSPAPIError("Orders search response is missing orders")
+            yield from response["orders"]
+            pages += 1
+            token = (response.get("pagination") or {}).get("nextToken")
+            if not token or (max_pages and pages >= max_pages):
+                return
+            if token in seen_tokens:
+                raise AmazonSPAPIError("Orders search returned a repeated pagination token")
+            seen_tokens.add(token)
+            if page_delay_seconds > 0:
+                time.sleep(page_delay_seconds)
 
     def get_order(self, amazon_order_id: str) -> dict[str, Any]:
         path = f"/orders/v0/orders/{quote(amazon_order_id, safe='')}"

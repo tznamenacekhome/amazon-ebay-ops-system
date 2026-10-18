@@ -35,7 +35,7 @@ except ImportError:
 ALLOW_REENRICHMENT = False
 PURCHASE_ITEMS_PAGE_SIZE = 1000
 DIAGNOSTIC_OUTPUT_PATH = f"data/revseller_enrichment_diagnostics_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
-DEFAULT_AI_MODEL = "gpt-4.1-mini"
+DEFAULT_AI_MODEL = "gpt-6-luna"
 AI_CONFIDENCE_THRESHOLD = Decimal("0.86")
 AI_MIN_LOCAL_SCORE = 0.25
 AI_CANDIDATE_LIMIT = 8
@@ -1073,7 +1073,7 @@ class AiMatchClient:
             "candidates": candidate_payload,
         }
 
-        return {
+        payload = {
             "model": self.model,
             "input": [
                 {
@@ -1107,6 +1107,10 @@ class AiMatchClient:
                 }
             },
         }
+        if self.model == "gpt-6-luna":
+            # Preserve the low-latency classification role of the retired mini model.
+            payload["reasoning"] = {"effort": "none"}
+        return payload
 
 
 def extract_response_json(response_payload):
@@ -1202,6 +1206,7 @@ def main():
     print("Starting RevSeller sheet enrichment...")
     print(f"ALLOW_REENRICHMENT: {ALLOW_REENRICHMENT}")
     print(f"AI review enabled: {args.ai_review}")
+    print(f"AI matching model: {args.ai_model}")
     print(f"Dry run: {args.dry_run}")
 
     supabase = get_supabase_client()

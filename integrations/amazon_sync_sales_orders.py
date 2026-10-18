@@ -19,6 +19,7 @@ from dotenv import load_dotenv
 from supabase import create_client
 
 from amazon_spapi_client import AmazonSPAPIClient, AmazonSPAPIError
+from amazon_orders_2026 import normalize_order, preserve_missing_fields
 
 LOGGER = logging.getLogger("amazon_sales_order_sync")
 BATCH_SIZE = 200
@@ -47,6 +48,11 @@ def main() -> int:
             supabase,
             [row["amazon_order_id"] for row in order_rows if row.get("amazon_order_id")],
         )
+        order_rows = [
+            preserve_missing_fields(row, existing_context.get(row["amazon_order_id"], {}).get("row", {}))
+            if order.get("_orders_api_version") else row
+            for order, row in zip(orders, order_rows)
+        ]
         item_rows: list[dict[str, Any]] = []
 
         item_fetch_failures: list[str] = []
@@ -60,7 +66,10 @@ def main() -> int:
             ):
                 continue
             try:
-                items = list(client.iter_order_items(amazon_order_id))
+                items = order.get("_order_items")
+                if items is None:
+                    # Targeted --order-id remains on its existing optional v0 path.
+                    items = list(client.iter_order_items(amazon_order_id))
             except AmazonSPAPIError as error:
                 item_fetch_failures.append(amazon_order_id)
                 LOGGER.warning(
@@ -69,8 +78,13 @@ def main() -> int:
                     error,
                 )
                 continue
-            item_rows.extend(build_item_row(amazon_order_id, item) for item in items)
-            if args.order_item_delay_seconds > 0:
+            existing_items = existing_context.get(amazon_order_id, {}).get("items", {})
+            item_rows.extend(
+                preserve_missing_fields(build_item_row(amazon_order_id, item), existing_items.get(item.get("OrderItemId"), {}))
+                if order.get("_orders_api_version") else build_item_row(amazon_order_id, item)
+                for item in items
+            )
+            if order.get("_order_items") is None and args.order_item_delay_seconds > 0:
                 time.sleep(args.order_item_delay_seconds)
 
         print_summary(
@@ -171,15 +185,15 @@ def fetch_orders(client: AmazonSPAPIClient, args: argparse.Namespace) -> list[di
             dt.datetime.now(dt.timezone.utc) - dt.timedelta(days=args.lookback_days)
         )
 
-    orders = list(
-        client.iter_orders(
+    orders = [normalize_order(order) for order in
+        client.iter_sales_orders(
             last_updated_after=last_updated_after,
             created_after=args.created_after,
             created_before=args.created_before,
             max_pages=args.max_pages,
             page_delay_seconds=args.order_page_delay_seconds,
         )
-    )
+    ]
     if args.limit is not None:
         return orders[: args.limit]
     return orders
@@ -222,7 +236,7 @@ def fetch_existing_order_context(
     for chunk in chunks(amazon_order_ids, 100):
         orders = (
             supabase.table("amazon_sales_orders")
-            .select("amazon_order_id,last_update_date")
+            .select(",".join(key for key in build_order_row({}, "") if key not in {"raw_order_json", "updated_at", "import_batch_id"}))
             .in_("amazon_order_id", chunk)
             .execute()
         )
@@ -232,20 +246,32 @@ def fetch_existing_order_context(
                 context[order_id] = {
                     "last_update_date": clean_text(row.get("last_update_date")),
                     "item_count": 0,
+                    "row": row,
+                    "items": {},
                 }
 
-        items = (
-            supabase.table("amazon_sales_order_items")
-            .select("amazon_order_id")
-            .in_("amazon_order_id", chunk)
-            .execute()
-        )
-        for row in items.data or []:
+        item_rows = []
+        offset = 0
+        while True:
+            page = (
+                supabase.table("amazon_sales_order_items")
+                .select(",".join(key for key in build_item_row("", {}) if key not in {"raw_order_item_json", "updated_at"}))
+                .in_("amazon_order_id", chunk)
+                .order("amazon_order_item_id")
+                .range(offset, offset + 999)
+                .execute()
+            ).data or []
+            item_rows.extend(page)
+            if len(page) < 1000:
+                break
+            offset += 1000
+        for row in item_rows:
             order_id = row.get("amazon_order_id")
             if not order_id:
                 continue
-            context.setdefault(order_id, {"last_update_date": None, "item_count": 0})
+            context.setdefault(order_id, {"last_update_date": None, "item_count": 0, "items": {}})
             context[order_id]["item_count"] += 1
+            context[order_id]["items"][row["amazon_order_item_id"]] = row
 
     return context
 
@@ -342,7 +368,7 @@ def scrub_order_payload(order: dict[str, Any]) -> dict[str, Any]:
         "ShippingAddress",
         "BuyerTaxInformation",
     }
-    return {key: value for key, value in order.items() if key not in blocked}
+    return {key: value for key, value in order.items() if key not in blocked and not key.startswith("_")}
 
 
 def scrub_item_payload(item: dict[str, Any]) -> dict[str, Any]:
