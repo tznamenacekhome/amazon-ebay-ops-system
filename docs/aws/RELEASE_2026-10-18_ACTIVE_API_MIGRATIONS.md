@@ -43,7 +43,7 @@ bounded API evaluation instead. No prompt rewrite was required.
 ## Validation before deployment
 
 - `python -m unittest tests.test_amazon_orders_2026 tests.test_revseller_model_migration tests.test_amazon_sales_profitability_fees`:
-  18 tests passed. Coverage includes pagination/filter retention, no PII datasets,
+  19 tests passed after the canary correction. Coverage includes pagination/filter retention, no PII datasets,
   missing/repeated-response failure, status/channel/quantity mapping, monetary
   separation, preserved missing values versus zero, optional-path preservation,
   the applied sync's destination tables, platform separation and AI error gates.
@@ -74,8 +74,9 @@ documentation. Deploy from a clean detached worktree of that commit so unrelated
 sourcing edits cannot enter the image. Use `mbop-scheduler-task:141` as the base
 to preserve the configuration currently used by both affected workloads.
 
-Batch 1 updates only `mbop-purchase-enrichment`; batch 2 points only
-`mbop-amazon-sales-recent-*` to the same verified digest/revision. Cadences,
+Batch 1 updates only `mbop-purchase-enrichment`; batch 2 updates only
+`mbop-amazon-sales-recent-*`. The corrected Orders batch uses its own verified
+image/revision as recorded below. Cadences,
 networking, CPU/memory overrides, role permissions and secret references remain
 unchanged. Do not retarget sourcing or other schedules. Verify bounded ECS
 canaries and resulting schedule metadata/logs; no broad sync is needed as a
@@ -86,8 +87,6 @@ prior revision 141 with `scripts/update-scheduler-schedules.ps1`, using exact
 schedule prefixes. This restores the previous model/API behavior without a
 schema rollback. Keep v0's retirement deadline in view; rollback is temporary.
 
-Deployment receipt will be added after production verification.
-
 ## Canary correction before completing delivery
 
 Revision 144 passed the AI and five-order dry-run ECS canaries. The subsequent
@@ -97,6 +96,56 @@ null to zero when the provider supplied item tax without a shipping charge.
 Amazon sales schedules were temporarily returned to revision 141; purchase
 enrichment remained on the verified revision 144. The adapter now leaves
 shipping tax unknown when shipping price is absent, with a dedicated regression
-test. Restore only the four introduced zeroes, conditional on their unchanged
-canary timestamp/value, and repeat deployment/canary verification before
-completing the release.
+test. The four introduced zeroes were restored to null, conditional on their
+unchanged canary timestamp/value. The baseline audit then returned zero
+normalized differences. The corrected deployment/canary results follow.
+
+## Deployment receipt
+
+Application commits, both pushed to `origin/main`:
+
+- `3a19e4855a7f`: active Orders/model migration, regression tests and review/release
+  documentation.
+- `cc030cf24bb2`: no-shipping-charge tax correction and regression/documentation.
+
+Both images were built from a clean detached deployment worktree, without
+dirty-build overrides or the unrelated sourcing changes.
+
+| Workload | Final definition | Image digest |
+| --- | --- | --- |
+| `mbop-purchase-enrichment` | `mbop-scheduler-task:144` | `sha256:cd883f48a606be26676e6687c0ba435629113029c4bc5fbf5607fc0a7ce3a2c1` |
+| `mbop-amazon-sales-recent-catchup`, `mbop-amazon-sales-recent-day` | `mbop-scheduler-task:145` | `sha256:e5aff39fb725af93b5d12f64d2be99bc91303001f7ae4dc08c94116e481c7ec5` |
+
+Revision 144 was based on 141; task-definition comparison confirmed the image
+was the only configuration difference. Revision 145 was based on 144. Live
+schedule comparison confirmed existing timing, timezone, enabled state,
+networking/launch overrides and scheduler role were preserved. All three
+affected schedules remain ENABLED. Only their task-definition targets changed.
+
+Production ECS canaries:
+
+- `52d2eb627ecd41cba77d6a2b6ca9db4d` (revision 144): synthetic AI decision
+  using the deployed `gpt-6-luna` default; expected match, exit 0. No purchase
+  mutations.
+- `58a50640f9cf48ca85e90256fcd34689` (revision 144): one-page/five-order dry
+  run with unchanged-item skipping disabled to exercise item normalization;
+  orders 5, items 5, failures 0, exit 0, no writes.
+- Initial apply `85e8123f4f06420b899a0e2d261ed542` (144): the null/zero issue
+  above was detected and corrected before completing delivery.
+- Corrected apply `c3d556f73f194fe3ae1385045f08b2d0` (145): at 09:02 Pacific,
+  orders 5, items 5, failures 0, exit 0. Logs explicitly show
+  `/orders/2026-01-01/orders`. Fresh database capacity guard passed before launch.
+  A bounded audit over 42 existing orders and 43 items found five headers and
+  five items refreshed, with **zero normalized field differences** from the
+  captured baseline. Sync timestamps/import batch IDs and sanitized raw payload
+  projections are expected refreshes and are outside that equality check.
+
+At final verification, web revision 187 was COMPLETED, desired/running 1/1,
+pending 0, and its ALB target was healthy. Sourcing remains on revision 143.
+No web deployment or broad orchestration run was performed. Normal scheduled
+workloads will use the updated targets; canaries verify their migrated paths,
+not completion of an entire future finance/enrichment schedule.
+
+Documentation-only follow-up records this receipt; no image rebuild is needed
+for that follow-up. The optional targeted v0 order path and manual draft-search
+model remain unchanged as instructed.

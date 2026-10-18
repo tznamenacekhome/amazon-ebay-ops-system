@@ -130,3 +130,9 @@ and merit migration planning before their parent-reported retirement dates.
 That is a recommendation for subsequent work, not authorization exercised in
 this review. Single-order and draft paths need usage confirmation if separate
 migration scope is proposed. No code or deployed configuration was changed.
+
+Subsequent authorization approved implementation for the two active paths.
+Delivery, validation, scoped commits and production revisions are recorded in
+[the migration release receipt](RELEASE_2026-10-18_ACTIVE_API_MIGRATIONS.md).
+The findings above describe the pre-migration usage inspection; they are not
+the final deployed model/API configuration.
