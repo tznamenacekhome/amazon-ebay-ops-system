@@ -7,6 +7,7 @@ import { businessExclusion, recordedHoldCheck, selectRecordedHold } from "../bus
 import { fetchLatestReviews } from "../reviewActions";
 import { excludeBlockedOpportunities, fetchBlockedAsins } from "../blockedAsins";
 import { excludeDeclinedOffers } from "../declinedOffers";
+import { excludeActionedListings } from "../actionedListings";
 
 type OpportunityRow = {
   business_checks?: unknown;
@@ -384,6 +385,7 @@ async function getOpportunities(request: NextRequest) {
   } else {
     rows = await excludeBlockedOpportunities(rows);
     rows = await excludeDeclinedOffers(rows);
+    rows = await excludeActionedListings(rows);
     if (status === "open" && scope !== "closest_excluded") rows = rows.filter(row=>!activeSuppressionByAsin.has(row.asin?.toUpperCase()));
   }
   if(businessMode) rows=rows.map(row=>({...row,matching_diagnostics_json:{businessEligibilityChecks:row.business_checks??[],static_rules:{identity_comparison:{evidenceDecision:{productIdentityVerdict:row.identity_verdict??row.fallback_identity_verdict??"unknown"}}}}}));

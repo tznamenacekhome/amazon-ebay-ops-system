@@ -8,6 +8,7 @@ const require=createRequire(import.meta.url),root=dirname(fileURLToPath(import.m
 const rows=Array.from({length:53},(_,i)=>({opportunity_id:`opp-${i}`,candidate_id:`candidate-${i}`,asin:`ASIN${i}`,ebay_item_id:`listing-${i}`,status:'rejected',opportunity_type:'review',score:100-i,profit:i===51?-1:10,matching_diagnostics_json:i===52?{hard_blocks:['wrong platform']}:{recommendation:'Review'},sourcing_seed_asins:{asin:`ASIN${i}`,amazon_title:'Game',source_mode:'recent_sales'},sourcing_ebay_candidates:{ebay_item_id:`listing-${i}`,ebay_title:'Game listing',listing_status:'active',display_price:{currency:'USD'},display_shipping:[]}}));
 let reviews=[];
 let priorRows=[];
+let listingActions=[];
 const cycles=[{coverage_cycle_id:'cycle-2',cycle_number:2,status:'completed',started_at:'2026-10-15T00:00:00Z'}];
 const db={rpc:async()=>({data:reviews,error:null}),from(table){
  let selection='',filters=[];
@@ -15,7 +16,7 @@ const db={rpc:async()=>({data:reviews,error:null}),from(table){
   if(method==='then')return done=>{
    let data=table==='sourcing_opportunities'?(selection.includes('sourcing_runs!inner')?priorRows:rows):
      table==='sourcing_coverage_cycles'?cycles:table==='sourcing_runs'?[{sourcing_run_id:'run-2',coverage_cycle_id:'cycle-2'}]:
-     table==='sourcing_actions'&&reviews.length?[{opportunity_id:'opp-0',action_type:'matching_feedback'}]:[];
+     table==='sourcing_actions'?(listingActions.length?listingActions:reviews.length?[{opportunity_id:'opp-0',action_type:'matching_feedback'}]:[]):[];
    if(selection.includes('sourcing_runs!inner')) {
     assert(filters.some(([method,column])=>method==='lt'&&column==='sourcing_runs.started_at'));
     assert(filters.some(([method,column])=>method==='neq'&&column==='sourcing_runs.coverage_cycle_id'));
@@ -89,3 +90,15 @@ const identityReason=(await get('game_name_conflict')).body.opportunities.find(r
 assert(identityReason.summary.includes('Amazon Blazing Angels 2; eBay Blazing Angels'));
 assert(identityReason.summary.includes('Different installment'));
 console.log('Prior-cycle pair suppression before counts/limit, pair identity boundaries, latest-run behavior and specific mismatch evidence passed');
+
+for (const row of rows.slice(0,2)) {
+ row.ebay_item_id='v1|287652912629|0';
+ row.sourcing_ebay_candidates.ebay_item_id=row.ebay_item_id;
+}
+listingActions=[{asin:'ASIN0',ebay_item_id:'v1|287652912629|0',action_type:'purchased',created_at:'2026-10-18T00:00:00Z',action_id:'purchase'}];
+const actioned=await get('all');
+assert.equal(actioned.status,200,JSON.stringify(actioned.body));
+assert.equal(actioned.body.summary.total,51,'Actioned listings are removed before summary and row limit');
+assert(!actioned.body.opportunities.some(row=>['opp-0','opp-1'].includes(row.opportunityId)),'A purchase hides duplicate ASIN candidates without relabeling either record');
+assert.equal(rows[1].status,'rejected','Presentation suppression must not alter stored lifecycle status');
+console.log('Actual GET suppresses purchased duplicate listings before counts/limits without mutating lifecycle status.');

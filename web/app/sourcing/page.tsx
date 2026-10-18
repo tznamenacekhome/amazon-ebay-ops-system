@@ -935,6 +935,15 @@ function isVisibleSourcingFlag(flag: string) {
 
 function CostCell({ row }: { row: SourcingOpportunity }) {
   const originalCostLabel = originalCurrencyCostLabel(row);
+  const buyingOptions = new Set(row.buyingOptions ?? []);
+  const listingType = buyingOptions.has("AUCTION")
+    ? "Auction"
+    : row.bestOfferEnabled || buyingOptions.has("BEST_OFFER")
+      ? "Best Offer"
+      : buyingOptions.has("FIXED_PRICE") ? "BuyItNow" : null;
+  const listingTypeLabel = listingType
+    ? <div className="text-xs font-medium text-slate-600">{listingType}</div>
+    : null;
   if (row.shippingQuoteStatus === "unknown_no_cost" || row.shippingQuoteStatus === "unknown_no_options") {
     return (
       <div>
@@ -942,6 +951,7 @@ function CostCell({ row }: { row: SourcingOpportunity }) {
         <div className="text-xs text-slate-500">Item {money(row.itemPrice)}</div>
         {originalCostLabel ? <div className="text-xs text-slate-500">{originalCostLabel}</div> : null}
         <div className="text-xs font-medium text-amber-700">{row.shippingQuoteLabel}</div>
+        {listingTypeLabel}
       </div>
     );
   }
@@ -952,6 +962,7 @@ function CostCell({ row }: { row: SourcingOpportunity }) {
       <div className="text-xs text-slate-500">
         {row.shippingQuoteStatus === "known_free" ? "Free shipping" : `Shipping ${money(row.shippingPrice)}`}
       </div>
+      {listingTypeLabel}
       {originalCostLabel ? <div className="text-xs text-slate-500">{originalCostLabel}</div> : null}
     </div>
   );
