@@ -75,6 +75,8 @@ def normalize_item(item):
         result["PromotionDiscount"]["Amount"] = str(total - shipping)
     if result["GiftWrapPrice"] is None:
         result["GiftWrapTax"] = None
+    if result["ShippingPrice"] is None:
+        result["ShippingTax"] = None
     # Keep only operational fields, even if Amazon adds unsolicited PII members.
     return result
 

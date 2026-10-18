@@ -62,6 +62,14 @@ class Orders2026Tests(unittest.TestCase):
         self.assertNotIn("must-not-persist", str(normalized))
         self.assertNotIn("_order_items", row["raw_order_json"])
 
+    def test_no_shipping_charge_keeps_unknown_shipping_tax(self):
+        item = sample()["orderItems"][0]
+        item["proceeds"]["breakdowns"] = [x for x in item["proceeds"]["breakdowns"] if x["type"] != "SHIPPING"]
+        row = build_item_row("test-order", normalize_item(item))
+        self.assertIsNone(row["shipping_price_amount"])
+        self.assertIsNone(row["shipping_tax_amount"])
+        self.assertEqual(row["item_tax_amount"], 4.2)
+
     def test_pending_omissions_preserve_known_values_but_zero_updates(self):
         normalized = normalize_order(sample())
         normalized["OrderTotal"] = None

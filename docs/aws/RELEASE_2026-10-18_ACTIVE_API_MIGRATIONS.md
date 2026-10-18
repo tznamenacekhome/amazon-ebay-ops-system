@@ -87,3 +87,16 @@ schedule prefixes. This restores the previous model/API behavior without a
 schema rollback. Keep v0's retirement deadline in view; rollback is temporary.
 
 Deployment receipt will be added after production verification.
+
+## Canary correction before completing delivery
+
+Revision 144 passed the AI and five-order dry-run ECS canaries. The subsequent
+five-order apply canary exited 0 and retained all normalized order headers, but
+the exact before/after check found four item shipping-tax fields changed from
+null to zero when the provider supplied item tax without a shipping charge.
+Amazon sales schedules were temporarily returned to revision 141; purchase
+enrichment remained on the verified revision 144. The adapter now leaves
+shipping tax unknown when shipping price is absent, with a dedicated regression
+test. Restore only the four introduced zeroes, conditional on their unchanged
+canary timestamp/value, and repeat deployment/canary verification before
+completing the release.
