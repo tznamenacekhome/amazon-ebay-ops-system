@@ -139,7 +139,7 @@ class Orders2026Tests(unittest.TestCase):
 
     def test_single_order_endpoint_and_item_compatibility_are_non_pii(self):
         client = AmazonSPAPIClient(config=SimpleNamespace(marketplace_id="US"))
-        client.request = Mock(return_value=sample())
+        client.request = Mock(return_value={"order": sample()})
         self.assertEqual(client.get_order("test-order"), sample())
         client.request.assert_called_once_with("GET", "/orders/2026-01-01/orders/test-order",
             params={"includedData": "FULFILLMENT,PROCEEDS,CANCELLATION"})
@@ -155,7 +155,7 @@ class Orders2026Tests(unittest.TestCase):
 
     def test_single_order_missing_mismatched_or_failed_response_fails_closed(self):
         client = AmazonSPAPIClient(config=SimpleNamespace(marketplace_id="US"))
-        for response in ({}, {"orderId": "other", "orderItems": []}, {"orderId": "test-order"}):
+        for response in ({}, sample(), {"order": None}, {"order": {"orderId": "other", "orderItems": []}}, {"order": {"orderId": "test-order"}}):
             client.request = Mock(return_value=response)
             with self.assertRaises(AmazonSPAPIError): client.get_order("test-order")
         client.request = Mock(side_effect=AmazonSPAPIError("not found"))

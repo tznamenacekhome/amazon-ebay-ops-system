@@ -58,4 +58,16 @@ Compare captured schedules and task configuration; preserve all fields except
 the intended image/task revision. Web, sourcing and purchase enrichment do not
 need redeployment. Rollback only the two sales schedules to revision 145.
 
+## Canary correction before rollout
+
+The first read-only ECS canary on revision 146, task
+`568f2af3c38d429fa41e303a32f292a1`, exited 1 at response validation. The initial
+fixture incorrectly modeled getOrder as an unwrapped Order; the official
+[GetOrderResponse schema](https://github.com/amzn/selling-partner-api-models/blob/main/models/orders-api-model/orders_2026-01-01.json)
+requires an `order` envelope. The client now unwraps and validates that envelope,
+and regression fixtures reflect it, including rejecting bare/missing/null orders.
+No database reads/writes occurred and no live schedules had been retargeted.
+Revision 146 is not approved for production schedules. The corrected revision
+must pass the repeated read-only canary before rollout.
+
 Deployment receipt follows after production verification.

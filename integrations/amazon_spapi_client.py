@@ -908,10 +908,11 @@ class AmazonSPAPIClient:
         if not amazon_order_id or not amazon_order_id.strip():
             raise AmazonSPAPIError("An Amazon order ID is required")
         path = f"/orders/2026-01-01/orders/{quote(amazon_order_id, safe='')}"
-        order = self.request("GET", path, params={
+        response = self.request("GET", path, params={
             "includedData": "FULFILLMENT,PROCEEDS,CANCELLATION",
         })
-        if order.get("orderId") != amazon_order_id or not isinstance(order.get("orderItems"), list):
+        order = response.get("order")
+        if not isinstance(order, dict) or order.get("orderId") != amazon_order_id or not isinstance(order.get("orderItems"), list):
             raise AmazonSPAPIError("Single order response has an invalid order ID or missing orderItems")
         return order
 
