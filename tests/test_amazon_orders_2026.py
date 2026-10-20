@@ -121,20 +121,56 @@ class Orders2026Tests(unittest.TestCase):
         client.request = Mock(return_value={"unexpected": []})
         with self.assertRaises(AmazonSPAPIError): list(client.iter_sales_orders(last_updated_after="x"))
 
-    def test_active_sync_uses_embedded_items_and_optional_target_is_unchanged(self):
+    def test_active_and_targeted_sync_use_embedded_items(self):
         args = SimpleNamespace(order_id=None,last_updated_after="x",created_after=None,created_before=None,max_pages=1,order_page_delay_seconds=0,limit=None)
         client = Mock(); client.iter_sales_orders.return_value = [sample()]
         orders = fetch_orders(client, args)
         self.assertEqual(orders[0]["_order_items"][0]["OrderItemId"], "test-item")
         client.iter_orders.assert_not_called()
         client.iter_order_items.assert_not_called()
-        args.order_id = "target"
-        client.get_order.return_value = {"payload": {"AmazonOrderId": "target"}}
-        self.assertEqual(fetch_orders(client, args), [{"AmazonOrderId": "target"}])
+        args.order_id = "test-order"
+        client.get_order.return_value = sample()
+        targeted = fetch_orders(client, args)
+        self.assertEqual(targeted, orders)
+        self.assertNotIn("must-not-persist", str(targeted))
+        client.get_order.assert_called_once_with("test-order")
+        self.assertEqual(client.iter_sales_orders.call_count, 1)
+        client.iter_order_items.assert_not_called()
+
+    def test_single_order_endpoint_and_item_compatibility_are_non_pii(self):
+        client = AmazonSPAPIClient(config=SimpleNamespace(marketplace_id="US"))
+        client.request = Mock(return_value=sample())
+        self.assertEqual(client.get_order("test-order"), sample())
+        client.request.assert_called_once_with("GET", "/orders/2026-01-01/orders/test-order",
+            params={"includedData": "FULFILLMENT,PROCEEDS,CANCELLATION"})
+        client.request.reset_mock()
+        items = list(client.iter_order_items("test-order"))
+        self.assertEqual(items, normalize_order(sample())["_order_items"])
+        self.assertNotIn("must-not-persist", str(items))
+        self.assertEqual(client.request.call_count, 1)
+        client.request.reset_mock()
+        with self.assertRaises(AmazonSPAPIError): client.get_order_items("test-order", next_token="old-token")
+        with self.assertRaises(AmazonSPAPIError): client.get_order(" ")
+        client.request.assert_not_called()
+
+    def test_single_order_missing_mismatched_or_failed_response_fails_closed(self):
+        client = AmazonSPAPIClient(config=SimpleNamespace(marketplace_id="US"))
+        for response in ({}, {"orderId": "other", "orderItems": []}, {"orderId": "test-order"}):
+            client.request = Mock(return_value=response)
+            with self.assertRaises(AmazonSPAPIError): client.get_order("test-order")
+        client.request = Mock(side_effect=AmazonSPAPIError("not found"))
+        with self.assertRaisesRegex(AmazonSPAPIError, "not found"): client.get_order("test-order")
+
+    def test_targeted_apply_uses_embedded_items_and_preserves_stored_fields(self):
+        self.check_apply(order_id="test-order")
 
     def test_apply_uses_embedded_items_and_preserves_stored_fields(self):
-        args = SimpleNamespace(order_id=None,last_updated_after="x",created_after=None,created_before=None,max_pages=1,order_page_delay_seconds=0,limit=None,skip_unchanged_order_items=False,order_item_delay_seconds=0,apply=True)
+        self.check_apply(order_id=None)
+
+    def check_apply(self, order_id):
+        args = SimpleNamespace(order_id=order_id,last_updated_after="x",created_after=None,created_before=None,max_pages=1,order_page_delay_seconds=0,limit=None,skip_unchanged_order_items=False,order_item_delay_seconds=0,apply=True)
         client = Mock(); client.iter_sales_orders.return_value = [sample()]
+        client.get_order.return_value = sample()
         existing = {"test-order": {"row": {"payment_method":"Other","is_prime":True},"items":{"test-item":{"gift_wrap_price_amount":0}},"item_count":1,"last_update_date":"older"}}
         with patch.object(sync,"parse_args",return_value=args), patch.object(sync.AmazonSPAPIClient,"from_env",return_value=client), patch.object(sync,"get_supabase_client",return_value=Mock()), patch.object(sync,"fetch_existing_order_context",return_value=existing), patch.object(sync,"print_summary"), patch.object(sync,"upsert_rows") as writes:
             self.assertEqual(sync.main(), 0)
@@ -147,6 +183,17 @@ class Orders2026Tests(unittest.TestCase):
         self.assertEqual(item_write[1], "amazon_sales_order_items")
         self.assertEqual(item_write[2][0]["gift_wrap_price_amount"], 0)
         self.assertEqual(item_write[2][0]["item_promotion_discount_amount"], 0)
+        self.assertNotIn("must-not-persist", str(writes.call_args_list))
+        if order_id:
+            client.iter_sales_orders.assert_not_called()
+            client.get_order.assert_called_once_with(order_id)
+
+    def test_targeted_provider_failure_exits_without_writes(self):
+        args = SimpleNamespace(order_id="test-order")
+        client = Mock(); client.get_order.side_effect = AmazonSPAPIError("not found")
+        with patch.object(sync,"parse_args",return_value=args), patch.object(sync.AmazonSPAPIClient,"from_env",return_value=client), patch.object(sync,"get_supabase_client",return_value=Mock()), patch.object(sync,"upsert_rows") as writes:
+            self.assertEqual(sync.main(), 1)
+        writes.assert_not_called()
 
 
 if __name__ == "__main__": unittest.main()

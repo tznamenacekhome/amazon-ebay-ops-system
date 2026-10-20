@@ -904,8 +904,16 @@ class AmazonSPAPIClient:
                 time.sleep(page_delay_seconds)
 
     def get_order(self, amazon_order_id: str) -> dict[str, Any]:
-        path = f"/orders/v0/orders/{quote(amazon_order_id, safe='')}"
-        return self.request("GET", path)
+        """Read a single operational order with embedded items, without PII datasets."""
+        if not amazon_order_id or not amazon_order_id.strip():
+            raise AmazonSPAPIError("An Amazon order ID is required")
+        path = f"/orders/2026-01-01/orders/{quote(amazon_order_id, safe='')}"
+        order = self.request("GET", path, params={
+            "includedData": "FULFILLMENT,PROCEEDS,CANCELLATION",
+        })
+        if order.get("orderId") != amazon_order_id or not isinstance(order.get("orderItems"), list):
+            raise AmazonSPAPIError("Single order response has an invalid order ID or missing orderItems")
+        return order
 
     def get_order_items(
         self,
@@ -913,22 +921,16 @@ class AmazonSPAPIClient:
         *,
         next_token: str | None = None,
     ) -> dict[str, Any]:
-        path = f"/orders/v0/orders/{quote(amazon_order_id, safe='')}/orderItems"
-        params = {"NextToken": next_token} if next_token else None
-        return self.request("GET", path, params=params)
+        """Compatibility projection; 2026 getOrder includes all items without pagination."""
+        from amazon_orders_2026 import normalize_item
+
+        if next_token:
+            raise AmazonSPAPIError("Single order items no longer accept pagination tokens")
+        order = self.get_order(amazon_order_id)
+        return {"payload": {"OrderItems": [normalize_item(item) for item in order["orderItems"]]}}
 
     def iter_order_items(self, amazon_order_id: str):
-        next_token: str | None = None
-
-        while True:
-            payload = self.get_order_items(amazon_order_id, next_token=next_token)
-            container = payload.get("payload") or payload
-            for item in container.get("OrderItems") or []:
-                yield item
-
-            next_token = container.get("NextToken")
-            if not next_token:
-                return
+        yield from self.get_order_items(amazon_order_id)["payload"]["OrderItems"]
 
     def list_orders(
         self,

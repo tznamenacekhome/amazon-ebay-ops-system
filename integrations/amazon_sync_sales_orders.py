@@ -68,7 +68,7 @@ def main() -> int:
             try:
                 items = order.get("_order_items")
                 if items is None:
-                    # Targeted --order-id remains on its existing optional v0 path.
+                    # Compatibility fallback for callers supplying orders without embedded items.
                     items = list(client.iter_order_items(amazon_order_id))
             except AmazonSPAPIError as error:
                 item_fetch_failures.append(amazon_order_id)
@@ -175,9 +175,7 @@ def parse_args() -> argparse.Namespace:
 
 def fetch_orders(client: AmazonSPAPIClient, args: argparse.Namespace) -> list[dict[str, Any]]:
     if args.order_id:
-        payload = client.get_order(args.order_id)
-        order = payload.get("payload") or payload
-        return [order] if order else []
+        return [normalize_order(client.get_order(args.order_id))]
 
     last_updated_after = args.last_updated_after
     if not last_updated_after and not args.created_after:
