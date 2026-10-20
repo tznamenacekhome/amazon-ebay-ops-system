@@ -70,4 +70,41 @@ No database reads/writes occurred and no live schedules had been retargeted.
 Revision 146 is not approved for production schedules. The corrected revision
 must pass the repeated read-only canary before rollout.
 
-Deployment receipt follows after production verification.
+## Deployment receipt
+
+Application commits `63407503f9e6` and corrected `83ec65d47131` were pushed to
+origin/main. Both builds used a clean working tree and the documented scheduler
+deployment helper, based on revision 145. The nonmatching schedule prefix
+updated zero schedules during image registration.
+
+The approved corrected image is
+`sha256:16cc9505f6732443540de165d9ebc69e7ba417ed9114845181f700ed6337414d`,
+tagged `scheduler-83ec65d47131`, registered as `mbop-scheduler-task:147`.
+Read-only ECS canary `71a95707694c48fab9bc79c70aaa3efc` reached STOPPED with
+exit 0 and logged:
+
+```text
+ORDERS_MANUAL_CANARY_OK api=2026-01-01 orders=1 items=1 database_reads=0 database_writes=0
+```
+
+It searched one recent page to choose an order, exercised the actual targeted
+fetch/normalization path, and built its order/item rows without constructing a
+database client. No raw order payloads or personal fields were logged or saved.
+This proves the deployed live lookup and normalization, while persistence and
+error gates are covered by the mocked regression tests; no apply canary or broad
+sync was necessary for this manual-path change.
+
+Only `mbop-amazon-sales-recent-catchup` and `mbop-amazon-sales-recent-day` were
+retargeted from 145 to 147. Both remain ENABLED. Exact before/after comparison
+confirmed schedule expressions, timezone, networking, overrides, role, state and
+other configuration were retained. Task-definition comparison confirmed image
+was the only configured change, accounting for AWS runtime metadata and unordered
+compatibility-list ordering. Sourcing remains ENABLED on 143 and purchase
+enrichment ENABLED on 144. No web rollout was required; revision 188 remained
+healthy with build `93740307e3d9` and a healthy ALB target.
+
+Remote main was verified at corrected application commit `83ec65d47131` before
+this documentation-only receipt. The receipt does not require another image
+build. The overnight catch-up and developer-notice batch are complete with no
+remaining blocker. This does not claim completion of a future scheduled sales
+run, or removal of the unused legacy list helpers described above.
