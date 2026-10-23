@@ -35,11 +35,13 @@ Capacity guardrails for Supabase billing limits, Disk IO Budget, and recovery ar
 - `docs/aws/MBOP_AWS_DEPLOYMENT.md`: authoritative AWS production deployment state.
 - `docs/aws/MBOP_AWS_SCHEDULER_PLAN.md`: EventBridge/ECS scheduler design, groups, cadence, and telemetry.
 - `docs/aws/MBOP_AWS_OPERATIONS_RUNBOOK.md`: deploy, rotate, troubleshoot, and cost-check procedures.
+- [Sourcing request/cache architecture](docs/MBOP_Sourcing_Workspace_Architecture.md): current retry, freshness and save-response behavior.
+- [October 23 sourcing recovery release](docs/aws/RELEASE_2026-10-23_SOURCING_RECOVERY.md): web189 deployment evidence and validation limits.
 
 ## Sync Orchestration
 
 `run_all_syncs.py` is the Python integration orchestrator. In production, AWS
-EventBridge Scheduler launches ECS/Fargate `mbop-scheduler-task:1` runs with
+EventBridge Scheduler launches ECS/Fargate `mbop-scheduler-task` runs with
 explicit group names documented in `docs/aws/MBOP_AWS_SCHEDULER_PLAN.md`.
 
 The deployed web app image is web-only and does not run scheduler jobs. The

@@ -11,7 +11,37 @@ Related requirements document:
 
 ---
 
-# Implementation Status - 2026-07-12 PT
+## Request recovery implementation — 2026-10-23
+
+The deployed client uses `web/app/sourcing/sourcingRequest.ts` for
+`sourcingResourceCache.ts` resource/version reads and page.tsx single/bulk review
+action POSTs. This is not a global fetch wrapper: unrelated requests retain
+their own behavior. Frontend requests still go through API routes.
+
+- GET transport or response-body failures retry at most once unless already
+  aborted. HTTP/API errors and authentication responses are not retried.
+- Manual redirect handling recognizes opaque redirects, 401/302 and HTML
+  responses before JSON parsing. Recovery messages expose a Reload / sign in
+  link to `/sourcing`; authentication enforcement is unchanged.
+- POSTs are never replayed automatically. A lost response can follow a successful
+  server write, so reload and check before retrying. Bulk review stops on failure;
+  preceding rows may already have completed.
+- Structured API error status/body and headers survive transport handling.
+  Empty 204/205/304 responses retain a null body and their status.
+- Freshness probes retain cached views on failure. An established version's
+  first consecutive background failure is suppressed; initial/repeated failures
+  surface a warning. Recovery clears the warning; only an actual version change
+  invalidates/notifies. Existing 30-second visible-page polling, focus probes,
+  single-flight requests and Buy List-first preloading remain in place.
+
+Web189 deployed `12e16c0e5d8c`; the [release receipt](aws/RELEASE_2026-10-23_SOURCING_RECOVERY.md)
+records validation and limitations. Session expiry and interrupted saves were
+tested with controlled transports; live browser checks covered authenticated
+reads/reload, without session or operational save failure injection.
+See [operator recovery](aws/MBOP_AWS_OPERATIONS_RUNBOOK.md) and
+[cache design/history](sourcing_run_cache_2026-09-14.md).
+
+# Implementation Status - 2026-07-12 PT (historical baseline)
 
 Implemented entry points:
 - `web/app/sourcing/page.tsx`

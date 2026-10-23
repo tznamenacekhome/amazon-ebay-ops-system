@@ -1,5 +1,23 @@
 # Sourcing workspace run-aware cache
 
+## October 23, 2026 recovery follow-up
+
+Web189 (`12e16c0e5d8c`, receipt `e0c77e2`) adds bounded transport recovery to
+cache/version reads and no-replay handling to review saves. A first background
+freshness failure with an established version is suppressed; initial/repeated
+failures warn while retaining the last loaded data. A successful probe clears
+the warning, and an actual revision change still invalidates the cache.
+Cached rows must not be treated as freshly verified while the warning persists.
+
+See the maintained [request recovery architecture](MBOP_Sourcing_Workspace_Architecture.md),
+[operator recovery procedure](aws/MBOP_AWS_OPERATIONS_RUNBOOK.md), and
+[validation/deployment receipt](aws/RELEASE_2026-10-23_SOURCING_RECOVERY.md).
+The September measurements and browser limitations below describe their dated
+releases; October 23 authenticated browser verification covered reload and
+Sourcing views, while failure injection remained controlled-test coverage.
+
+## September release history
+
 September 15 follow-up: [focus cache handling and exclusion filters](purchase_metrics_sourcing_fixes_2026-09-15.md) are deployed and verified on web155. That change retains cached rows with a warning if a freshness probe fails and refreshes actual changes without blanking the table. The web154 release evidence below is historical.
 
 Supersedes the 15-second browser-cache design in web152. Scope: web/API performance and additive database read-model/cache metadata. No matching/routing rules, scheduler definitions, provider searches or bounded decision refresh.

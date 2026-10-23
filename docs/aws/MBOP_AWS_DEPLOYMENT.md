@@ -1,12 +1,24 @@
 # MBOP AWS Deployment
 
-Last updated: 2026-07-20
+Last updated: 2026-10-23 (latest web release checkpoint)
 
 This document records the AWS production state for MBOP as inspected from AWS
 CLI. Live AWS state remains the highest authority; run
 `scripts/aws-web-status.ps1` before making deploy decisions.
 
-## Current Live State
+## Latest verified web release — October 23, 2026
+
+Web revision `mbop-web-task:189` deployed application commit `12e16c0e5d8c`;
+receipt commit `e0c77e2` documents it. ECS reached COMPLETED/steady state at
+07:35:48 Pacific, desired/running 1/1, pending 0, and the new ALB target was
+healthy. Authenticated browser verification showed the exact build and loaded
+Buy List, Coverage Cycle and Closest Excluded after reload. See the
+[release receipt](RELEASE_2026-10-23_SOURCING_RECOVERY.md) for image digest,
+controlled-test versus live verification limits, and rollback to web188.
+This web-only release did not change scheduler targets. Recheck live AWS before
+making deployment decisions; this checkpoint is dated evidence.
+
+## Infrastructure reference — July 20, 2026 snapshot
 
 Verified from AWS CLI on 2026-07-20:
 

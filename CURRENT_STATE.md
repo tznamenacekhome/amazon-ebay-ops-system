@@ -1,5 +1,24 @@
 # CURRENT_STATE.md
 
+## Sourcing request recovery deployed (2026-10-23)
+
+Web revision 189 serves application commit `12e16c0e5d8c`; receipt commit
+`e0c77e2` records the completed rollout. Sourcing resource/cache reads retry once
+on transport/body interruption; session redirects, 401 and HTML responses show
+sign-in/reconnect guidance. Single and bulk review saves are never automatically
+replayed. After an uncertain save, reload and inspect the opportunity before
+retrying; earlier rows in a bulk action may already have saved.
+
+Failed freshness probes retain loaded data; a first background failure with an
+established version is suppressed, while repeated/initial failures show a
+warning. These cached rows do not prove current freshness. See the
+[sourcing architecture](docs/MBOP_Sourcing_Workspace_Architecture.md) and
+[operator recovery procedure](docs/aws/MBOP_AWS_OPERATIONS_RUNBOOK.md).
+Transport/cache/review tests, lint and production builds passed. Authenticated
+browser verification covered reload, Buy List, Coverage Cycle and Closest
+Excluded; expired-session/lost-save failures were controlled tests, not injected
+into production. [Release and validation receipt](docs/aws/RELEASE_2026-10-23_SOURCING_RECOVERY.md).
+
 ## Wholesale ASIN discovery for eBay sourcing (2026-10-04)
 
 Eligible ASINs selected by wholesale matching now join the existing unified

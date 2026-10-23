@@ -1,6 +1,32 @@
 # MBOP AWS Operations Runbook
 
-Last updated: 2026-06-28
+Last updated: 2026-10-23 (sourcing recovery procedure)
+
+## Sourcing session or interrupted-save recovery
+
+If Sourcing reports sign-in needed, an unavailable HTML page, or a connection
+failure, use **Reload / sign in** (or reload `/sourcing`) and complete the normal
+sign-in flow if prompted. Do not repeatedly submit a save to recover a session.
+
+After **the change may have saved** or **save is not confirmed**, reload and
+inspect that opportunity and its history before deciding whether to retry.
+Single and bulk review POSTs are never replayed automatically. A bulk request
+sequence stops at the failure, but earlier rows may already have saved; inspect
+those rows before resubmitting a selection.
+
+Resource/version GETs retry once for transport/body interruption; authentication
+and structured API errors are not retried. A freshness warning retains the last
+loaded rows, which must not be assumed current. Successful freshness checks clear
+the warning; a real version change invalidates the view. An established cache's
+first background failure is suppressed, while repeated/initial failures warn.
+If reload/sign-in does not recover, inspect web service status and errors using
+the procedures below; this message alone does not justify rerunning sourcing.
+
+See [architecture](../MBOP_Sourcing_Workspace_Architecture.md) and
+[web189 release evidence](RELEASE_2026-10-23_SOURCING_RECOVERY.md). Tests simulate
+expired-session and lost-save failures. Production verification covered normal
+authenticated reads/reload; it did not expire cookies or submit test saves.
+Documentation-only updates do not require rebuilding/redeploying the web image.
 
 ## AWS CLI Preflight
 
