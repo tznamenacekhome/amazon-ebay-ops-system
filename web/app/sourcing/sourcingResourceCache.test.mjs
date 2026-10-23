@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
 import {readFileSync} from "node:fs";
 import ts from "typescript";
-const out={};new Function("exports",ts.transpileModule(readFileSync(new URL("./sourcingResourceCache.ts",import.meta.url),"utf8"),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText)(out);
+const requestModule={};new Function("exports",ts.transpileModule(readFileSync(new URL("./sourcingRequest.ts",import.meta.url),"utf8"),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText)(requestModule);
+const out={};new Function("require","exports",ts.transpileModule(readFileSync(new URL("./sourcingResourceCache.ts",import.meta.url),"utf8"),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText)(()=>requestModule,out);
 const {SourcingResourceCache,sourcingTabUrls}=out;
 let version="v1",running=false;const calls=[];let deferred=null;
 const transport=async url=>{
@@ -45,7 +46,7 @@ probeFails=true;events.get('focus')();await new Promise(r=>setImmediate(r));
 assert.equal(focusCache.getFreshnessError(),null,'One transient focus failure is suppressed');await focusCache.get(url);
 assert.equal(listReads,1,'Failed focus probe retains cache');assert.equal(notifications,0);
 events.get('focus')();await new Promise(r=>setImmediate(r));
-assert.match(focusCache.getFreshnessError(),/Network unavailable/,'Repeated freshness failures remain visible');
+assert.match(focusCache.getFreshnessError(),/Could not reach MBOP/,'Repeated freshness failures remain visible');
 probeFails=false;events.get('focus')();await focusCache.checkVersion();
 assert.equal(focusCache.getFreshnessError(),null);assert.equal(listReads,1);
 focusVersion='focus-v2';events.get('focus')();await focusCache.checkVersion();await focusCache.get(url);

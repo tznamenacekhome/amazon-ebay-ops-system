@@ -1,5 +1,7 @@
 "use client";
 
+import { sourcingRequest } from "./sourcingRequest";
+
 type Stored = { text: string; status: number };
 export const sourcingTabUrls = [
   "/api/sourcing/opportunities?status=all&type=all&limit=50&scope=closest_excluded&format=list",
@@ -47,7 +49,7 @@ export class SourcingResourceCache {
     this.checking = (async () => {
       try {
         const generation = this.generation;
-        const response = await this.transport("/api/sourcing/cache-version", { cache: "no-store", signal: AbortSignal.timeout(20_000) });
+        const response = await sourcingRequest("/api/sourcing/cache-version", { cache: "no-store", signal: AbortSignal.timeout(20_000) }, this.transport);
         const body = await response.json();
         if (!response.ok || typeof body.version !== "string") throw new Error(body.error ?? "Sourcing freshness unavailable.");
         if (generation !== this.generation) return; // An operator changed data during this check.
@@ -94,7 +96,7 @@ export class SourcingResourceCache {
       let task = this.pending.get(requestKey);
       if (!task) {
         task = (async () => {
-          const response = await this.transport(key + (options.fresh ? `${parsed.search ? "&" : "?"}fresh=1` : ""), { cache: "no-store", signal: AbortSignal.timeout(60_000) });
+          const response = await sourcingRequest(key + (options.fresh ? `${parsed.search ? "&" : "?"}fresh=1` : ""), { cache: "no-store", signal: AbortSignal.timeout(60_000) }, this.transport);
           const stored = { text: await response.text(), status: response.status };
           if (response.ok && generation === this.generation) {
             const body = JSON.parse(stored.text);

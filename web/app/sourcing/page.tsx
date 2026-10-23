@@ -13,6 +13,7 @@ import {
 import type { SourcingBatch, SourcingOpportunity, SourcingRun, SourcingSettings } from "./types";
 import { fetchSourcing, sourcingResources } from "./sourcingResourceCache";
 import { LazySourcingReview } from "./LazySourcingReview";
+import { sourcingRequest } from "./sourcingRequest";
 import { useSourcingOpportunities } from "./useSourcingOpportunities";
 import { incorrectMatchReason, reviewFieldKeys } from "./reviewFields";
 import { dismissReasons } from "./matchingTaxonomy";
@@ -144,7 +145,7 @@ export default function SourcingPage() {
     setActionBusyId(row.opportunityId);
     setError(null);
     try {
-      const response = await fetch(`/api/sourcing/opportunities/${row.opportunityId}/actions`, {
+      const response = await sourcingRequest(`/api/sourcing/opportunities/${row.opportunityId}/actions`, {
         method: "POST",
         headers: mutationHeaders({ "Content-Type": "application/json" }),
         body: JSON.stringify(reviewPayload(row,payload)),
@@ -177,7 +178,7 @@ export default function SourcingPage() {
         const payload=payloadForRow(row);
         const removesFromActiveQueue = actionRemovesFromActiveQueue(activeTab, payload);
         allRemoveFromActiveQueue = allRemoveFromActiveQueue && removesFromActiveQueue;
-        const response = await fetch(`/api/sourcing/opportunities/${row.opportunityId}/actions`, {
+        const response = await sourcingRequest(`/api/sourcing/opportunities/${row.opportunityId}/actions`, {
           method: "POST",
           headers: mutationHeaders({ "Content-Type": "application/json" }),
           body: JSON.stringify(reviewPayload(row,payload)),
@@ -255,8 +256,8 @@ export default function SourcingPage() {
       </div>
 
       {notice ? <div className="mb-3 rounded-md border border-sky-200 bg-sky-50 px-3 py-2 text-sm text-sky-800">{notice}</div> : null}
-      {freshnessError ? <div role="status" className="mb-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">{freshnessError}</div> : null}
-      {error ? <div className="mb-3 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div> : null}
+      {freshnessError ? <div role="status" className="mb-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">{freshnessError} {freshnessError.includes("Reload this page") ? <a href="/sourcing" className="ml-2 font-medium underline">Reload / sign in</a> : null}</div> : null}
+      {error ? <div className="mb-3 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error} {error.includes("Reload this page") ? <a href="/sourcing" className="ml-2 font-medium underline">Reload / sign in</a> : null}</div> : null}
 
       {activeTab === "Sourcing History" ? (
         <SourcingHistory />
