@@ -33,6 +33,8 @@ This folder contains the Midnight Blue Operations Platform receiving workflow UI
 - Amazon title links to the Amazon ASIN page when ASIN exists.
 - Amazon title display may append the system label when the stored title omits the system.
 - System is shown in the item title area so operators can verify platform while receiving.
+- Large eBay and Amazon cover panels sit side by side below the titles/package details, using the remaining left-column space. Covers use contain sizing so the full artwork is visible and link to their listings. Missing/failed images have explicit placeholders.
+- `ReceivingCoverImages.tsx` loads `/api/receiving/images?item_id=...` only for open detail rows. The backend resolves eBay images from that item's import or exact legacy listing ID in sourcing candidates, and Amazon images from the saved ASIN's listing snapshot, sourcing seed, or ASIN image URL. No title matching, provider calls, schema changes, or queue-wide image hydration are used.
 - Quantity received, return flag, and marketplace are recorded per item.
 - ASIN and sell price are editable per item, with buy price shown beside sell price for quick margin checks.
 - Amazon-bound received items require ASIN and sell price before save is enabled.

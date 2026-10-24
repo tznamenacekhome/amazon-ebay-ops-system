@@ -6,6 +6,7 @@ import { DataFreshness } from "../DataFreshness";
 import { TrackingLink } from "../components/TrackingLink";
 import { mutationHeaders } from "../mutationHeaders";
 import { ReceivingMetrics } from "./ReceivingMetrics";
+import { ReceivingCoverImages } from "./ReceivingCoverImages";
 
 import type { PurchaseRow } from "../purchases/types";
 import {
@@ -837,7 +838,7 @@ export default function ReceivingPage() {
                       key={key}
                       className="grid gap-5 rounded-lg border border-slate-200 p-5 lg:grid-cols-[minmax(0,1fr)_minmax(460px,520px)]"
                     >
-                      <div className="min-w-0">
+                      <div className="flex min-w-0 flex-col">
                         <div className="text-xs uppercase tracking-wide text-slate-500">
                           eBay Title
                         </div>
@@ -889,6 +890,12 @@ export default function ReceivingPage() {
                             {formatStatus(row.package_status || row.delivery_status)}
                           </div>
                         )}
+                        <ReceivingCoverImages
+                          key={row.item_id}
+                          itemId={row.item_id}
+                          ebayUrl={ebayListingUrl}
+                          amazonUrl={row.asin ? amazonAsinUrl(row.asin) : null}
+                        />
                       </div>
 
                       <div className="grid min-w-0 gap-4 sm:grid-cols-[120px_minmax(150px,1fr)_140px]">
