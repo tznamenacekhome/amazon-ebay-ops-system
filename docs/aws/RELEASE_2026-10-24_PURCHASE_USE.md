@@ -27,3 +27,17 @@ the selector and dismissal in the authenticated production browser. Avoid
 changing a real purchase merely to smoke-test the controls.
 
 Rollback uses the preceding web task revision; no database rollback is needed.
+
+## Deployment receipt
+
+- Application commit: `ed6302777356`, pushed to `origin/main`.
+- Deployed task: `mbop-web-task:190`; preceding revision: `189`.
+- ECR digest: `sha256:f2bedfbd0bb74cb24e3af6914ca3b16c45bc47fa36441e5e6edad311b71964e3`.
+- Production Docker build and TypeScript passed; focused page/drawer lint passed.
+- ECS services-stable waiter exited successfully on October 24, 2026.
+- Authenticated browser showed build `ed63027`, loaded Purchases rows, and
+  displayed all three Purchase use options. Selecting Personal purchase enabled
+  Save Purchase Use; Supply was selectable. Closing without saving and reopening
+  restored Resale with the save button disabled. No production item was changed.
+- A transient chunk-load error occurred during traffic transition and cleared
+  after reloading once the new task served traffic.
