@@ -24,3 +24,18 @@ Deploy using scripts/deploy-web.ps1, confirm stable ECS service and build SHA
 using scripts/aws-web-status.ps1, then inspect an existing Receiving detail in
 the authenticated production browser without receiving or editing inventory.
 Rollback uses the preceding web task revision; no database rollback is needed.
+
+## Deployment receipt
+
+- Application commit `430429f6466c`, pushed to `origin/main`.
+- Production task `mbop-web-task:191`; previous revision `190`.
+- ECR digest `sha256:5eb602f3db9a5f6253aa17c472c2a170b2c402e2855f284e436cca9c2a521359`.
+- Production Docker build passed compilation, TypeScript, and static generation.
+- ECS service reached COMPLETED/steady state on October 24 at 1:21 PM Pacific,
+  with one running task and zero pending tasks. The services-stable waiter passed.
+- Authenticated production browser displayed build `430429f`. Receiving detail
+  for order `07-15321-06628` loaded both the eBay listing photo (573 × 573) and
+  Amazon cover (309 × 500). Visual inspection confirmed side-by-side panels
+  beneath the titles and package details, with full artwork visible.
+- The detail closed successfully without saving. No receiving, inventory,
+  classification, provider sync, or other operational mutation was submitted.
