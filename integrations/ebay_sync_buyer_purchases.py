@@ -10,6 +10,11 @@ from dotenv import load_dotenv
 from supabase import create_client
 
 try:
+    from ebay_listing_images import attach_listing_images, image_metadata, listing_picture_urls, IMAGE_METADATA_KEY
+except ImportError:
+    from integrations.ebay_listing_images import attach_listing_images, image_metadata, listing_picture_urls, IMAGE_METADATA_KEY
+
+try:
     from system_detection import detect_system_from_title, normalize_system
 except ImportError:
     from integrations.system_detection import detect_system_from_title, normalize_system
@@ -50,6 +55,25 @@ BUY_BROWSE_LEGACY_ITEM_ENDPOINT = "https://api.ebay.com/buy/browse/v1/item/get_i
 COMPATIBILITY_LEVEL = "1423"
 SITE_ID = "0"
 ITEM_ASPECT_CACHE = {}
+ITEM_PICTURE_CACHE = {}
+MAX_LISTING_IMAGE_LOOKUPS = 25
+
+
+def transaction_with_listing_images(transaction, access_token, existing_item):
+    raw = element_to_dict(transaction)
+    item_id = transaction_item_id(transaction)
+    saved = image_metadata((existing_item or {}).get("raw_import_json"))
+    if saved and saved.get("ItemID") == item_id and saved.get("PictureURL"):
+        raw[IMAGE_METADATA_KEY] = saved
+        return raw
+    # Bound extra provider work per sync; image failures must never stop ingestion.
+    if item_id not in ITEM_PICTURE_CACHE and len(ITEM_PICTURE_CACHE) < MAX_LISTING_IMAGE_LOOKUPS:
+        ITEM_PICTURE_CACHE[item_id] = []
+        try:
+            ITEM_PICTURE_CACHE[item_id] = listing_picture_urls(access_token, item_id)
+        except (requests.RequestException, ET.ParseError) as exc:
+            print(f"eBay listing images unavailable for {item_id}: {type(exc).__name__}")
+    return attach_listing_images(raw, item_id, ITEM_PICTURE_CACHE.get(item_id, []))
 
 
 def iso(dt):
@@ -1149,7 +1173,7 @@ def build_item_payload(
             else False
         ),
         "import_batch_id": import_batch_id,
-        "raw_import_json": element_to_dict(transaction),
+        "raw_import_json": transaction_with_listing_images(transaction, access_token, existing_item),
     }
 
 
