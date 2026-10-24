@@ -60,3 +60,31 @@ migration, and assertions into an isolated PostgreSQL 17 database. They verify
 full-refund validation, audit preservation, sync replay protection, Received and
 Listed progression, idempotency, new return episodes, and client access denial.
 Never load the fixture table definitions into production.
+
+## Production receipt — October 24, 2026
+
+- Feature commit `158ca0d` pushed to origin/main. Migration `20261024204208`
+  applied using reconciled migration list, single-file dry-run and linked db
+  push. The shared local/remote ledger now matches, including College Planner.
+- CLI reported a pg-delta catalog-cache certificate-path warning after applying
+  the migration; the schema objects and remote migration ledger were verified
+  successfully. No migration repair or direct schema application was used.
+- Targeted adjustment created recovery `5c582ccc-761b-4ce1-bb29-279bce3a5749`
+  for item `95f098c4-66b6-45dc-9cef-e5622f328819` and its original refund case.
+  Original unit cost and confirmed refund are both $26.07; operational cost is
+  $0, quantity one, status Delivered, warehouse received_date unset. One recovery
+  event exists; the original problem remains resolved_refunded and closed.
+- Original open package now has expected one, received zero, and verification
+  false. This removes the old wrong-item quantity from the remaining-unit check.
+- Authenticated production Purchases search and Receiving search for
+  23-15229-99266 both showed one Delivered row at $0. Receiving Detail showed
+  expected remaining one, ASIN B08PMRRN7K, sell price $62.98, and enabled Received.
+  No Receiving save or FBA shipment action was submitted during verification.
+- Restored this item's original eBay listing-photo metadata using the bounded
+  exact-item repair. No provider sync or broad backfill was launched.
+- Disposable PostgreSQL regression tests passed. Production privilege checks
+  confirmed anon cannot read the recovery table, authenticated cannot execute
+  the RPC, and service_role can execute it. Security advisor's no-policy info
+  for this server-only table is intentional; no client policies/grants exist.
+- No web or scheduler deployment is necessary: the database transaction and
+  trigger are live, and existing APIs/UI consume the corrected source fields.
