@@ -69,6 +69,7 @@ This folder contains the Midnight Blue Operations Platform purchases workflow UI
 - `/api/purchases` applies search, filters, sort, and pagination before returning rows.
 - Status filters use backend-normalized `purchase_items.current_status`.
 - Rows marked `exclude_from_purchase_reporting` are excluded before database pagination.
+- The detail drawer's Purchase use selector saves Resale, Personal purchase, or Supply independently of ASIN/price edits. The API writes the item-specific reporting exclusion flag and reason together, without propagating them to matching items. Saving refreshes the list and keeps the drawer open for correction; excluded items leave resale reporting and operational queues.
 - Purchase item and purchase metadata hydration is scoped to the returned page rows so detail-only fields do not slow down the list.
 - Purchases browser caching is currently disabled for performance testing.
 - The Refresh button clears all purchases cache entries and calls the API directly when the operator wants fresher data.

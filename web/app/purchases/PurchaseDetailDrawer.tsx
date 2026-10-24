@@ -32,6 +32,7 @@ type PurchaseDetailDrawerProps = {
   onSystemChange: (value: string) => void;
   onOperatorNotesChange: (value: string) => void;
   onSaveOperatorNotes: () => void;
+  onSavePurchaseUse: (reason: string | null) => void;
   onAddSplitItem: () => void;
   onMarkReturnPending: () => void;
   onProblemAction?: (action: string, payload?: { notes?: string; amount?: number | null; tracking_number?: string | null; problem_type?: string | null }) => void;
@@ -57,12 +58,15 @@ export function PurchaseDetailDrawer({
   onSystemChange,
   onOperatorNotesChange,
   onSaveOperatorNotes,
+  onSavePurchaseUse,
   onAddSplitItem,
   onMarkReturnPending,
   onProblemAction,
   onSave,
   onClose,
 }: PurchaseDetailDrawerProps) {
+  const savedPurchaseUse = row.exclude_from_purchase_reporting ? row.exclusion_reason || "other" : "";
+  const [purchaseUse, setPurchaseUse] = useState(savedPurchaseUse);
   const [problemNotes, setProblemNotes] = useState("");
   const [problemAmount, setProblemAmount] = useState("");
   const [problemTracking, setProblemTracking] = useState("");
@@ -129,6 +133,37 @@ export function PurchaseDetailDrawer({
                 </div>
               </>
             )}
+          </section>
+
+          <section className="rounded-xl border border-slate-200 p-4">
+            <label className="grid gap-1 text-xs font-medium uppercase tracking-wide text-slate-500">
+              Purchase use
+              <select
+                value={purchaseUse}
+                onChange={(event) => setPurchaseUse(event.target.value)}
+                disabled={isSaving}
+                className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-normal normal-case tracking-normal text-slate-900"
+              >
+                <option value="">Resale</option>
+                <option value="Personal purchase">Personal purchase</option>
+                <option value="Business supply / non-resale">Supply</option>
+                {purchaseUse !== "" && purchaseUse !== "Personal purchase" && purchaseUse !== "Business supply / non-resale" && (
+                  <option value={purchaseUse}>Excluded: {row.exclusion_reason || "Other"}</option>
+                )}
+              </select>
+            </label>
+            <p className="mt-2 text-xs text-slate-500">
+              Personal purchases and supplies are excluded from resale reporting and the Purchases, Receiving, and FBA queues after saving.
+            </p>
+            <button
+              type="button"
+              onClick={() => onSavePurchaseUse(purchaseUse || null)}
+              disabled={isSaving || purchaseUse === savedPurchaseUse}
+              className="mt-2 inline-flex items-center justify-center gap-2 rounded-lg bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-60"
+            >
+              <Save className="h-4 w-4" />
+              {isSaving ? "Saving" : "Save Purchase Use"}
+            </button>
           </section>
 
           <section className="rounded-xl border border-slate-200 p-4">

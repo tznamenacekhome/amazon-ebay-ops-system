@@ -220,6 +220,18 @@ export default function PurchasesPage() {
     }
   }
 
+  async function savePurchaseUse(reason: string | null) {
+    if (!selectedRow) return;
+    const updatedRow = await patchPurchase(selectedRow, {
+      exclude_from_purchase_reporting: reason !== null,
+      exclusion_reason: reason,
+    });
+    if (updatedRow) {
+      setSelectedRow(updatedRow);
+      await loadPurchases({ forceRefresh: true });
+    }
+  }
+
   async function saveOperatorNotes() {
     if (!selectedRow) return;
 
@@ -475,6 +487,7 @@ export default function PurchasesPage() {
 
       {selectedRow && (
         <PurchaseDetailDrawer
+          key={rowKey(selectedRow)}
           row={selectedRow}
           drawerAsin={drawerAsin}
           drawerAmazonTitle={drawerAmazonTitle}
@@ -492,6 +505,7 @@ export default function PurchasesPage() {
           onSystemChange={setDrawerSystem}
           onOperatorNotesChange={setDrawerOperatorNotes}
           onSaveOperatorNotes={saveOperatorNotes}
+          onSavePurchaseUse={savePurchaseUse}
           onAddSplitItem={addSplitItem}
           onMarkReturnPending={markSelectedReturnPending}
           onProblemAction={runSelectedProblemAction}

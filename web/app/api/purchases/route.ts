@@ -852,8 +852,22 @@ export async function PATCH(request: Request) {
     notes?: string | null;
     current_status?: string;
     manual_title_override?: boolean;
+    exclude_from_purchase_reporting?: boolean;
+    exclusion_reason?: string | null;
     manual_unit_cost_override?: boolean;
   } = {};
+
+  if ("exclude_from_purchase_reporting" in body || "exclusion_reason" in body) {
+    const excluded = body.exclude_from_purchase_reporting;
+    const reason = body.exclusion_reason;
+    if (typeof excluded !== "boolean" ||
+        (excluded && reason !== "Personal purchase" && reason !== "Business supply / non-resale") ||
+        (!excluded && reason !== null)) {
+      return NextResponse.json({ error: "Choose Resale, Personal purchase, or Supply" }, { status: 400 });
+    }
+    updates.exclude_from_purchase_reporting = excluded;
+    updates.exclusion_reason = reason;
+  }
 
   if ("asin" in body) {
     updates.asin = body.asin ? String(body.asin).trim().toUpperCase() : null;
