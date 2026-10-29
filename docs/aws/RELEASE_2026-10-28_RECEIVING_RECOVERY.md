@@ -29,3 +29,17 @@ Deploy with scripts/deploy-web.ps1, confirm stable ECS state with
 scripts/aws-web-status.ps1, then verify authenticated production Receiving.
 The SQL file for the earlier one-unit Ice Age routing adjustment is recorded
 in a separate audit commit; it is not applied again by this release.
+
+## Deployment receipt
+
+- Application commit `463e140afb33`, pushed to origin/main.
+- ECS web task revision `192` replaces `191`.
+- ECR digest `sha256:8c07ed87f44e6e533a3d20e63712bda2d067931bf05e4d3cc35785c032b0d5c5`.
+- Production Docker build passed compilation, TypeScript and page generation.
+- ECS services-stable waiter passed; one running task, zero pending.
+- Authenticated browser confirmed build `463e140` and successful Receiving
+  queue/totals loads. The page's Refresh button completed without HTML/JSON
+  errors. Current production result was zero units and no receiving candidates.
+- No receipt save, provider sync, inventory update, or schema change was made.
+- Expired-session/HTML/interrupted-save behavior was verified with transport
+  fixtures; the operator's live authentication session was not invalidated.
