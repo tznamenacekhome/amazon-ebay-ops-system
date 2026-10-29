@@ -6,6 +6,7 @@ import { DataFreshness } from "../DataFreshness";
 import { TrackingLink } from "../components/TrackingLink";
 import { mutationHeaders } from "../mutationHeaders";
 import { ReceivingMetrics } from "./ReceivingMetrics";
+import { receivingRequest } from "./receivingRequest";
 import { ReceivingCoverImages } from "./ReceivingCoverImages";
 
 import type { PurchaseRow } from "../purchases/types";
@@ -82,7 +83,7 @@ export default function ReceivingPage() {
   const loadQueue = useCallback(async () => {
     setMetricsKey((current) => current + 1);
     try {
-      const response = await fetch("/api/receiving", { cache: "no-store" });
+      const response = await receivingRequest("/api/receiving", { cache: "no-store" });
 
       if (!response.ok) {
         throw new Error(`Failed to load receiving queue: ${response.status}`);
@@ -133,7 +134,7 @@ export default function ReceivingPage() {
     const controller = new AbortController();
     const timeoutId = window.setTimeout(async () => {
       try {
-        const response = await fetch(
+        const response = await receivingRequest(
           `/api/receiving?scan=${encodeURIComponent(normalizedSearch)}`,
           { cache: "no-store", signal: controller.signal }
         );
@@ -142,8 +143,8 @@ export default function ReceivingPage() {
 
         setScanRows(await response.json());
       } catch (err) {
-        if ((err as Error).name !== "AbortError") {
-          console.warn("Receiving scan lookup failed", err);
+        if (!controller.signal.aborted) {
+          setError(err instanceof Error ? err.message : "Receiving scan lookup failed.");
         }
       }
     }, 120);
@@ -417,7 +418,7 @@ export default function ReceivingPage() {
     setError(null);
 
     try {
-      const response = await fetch("/api/receiving", {
+      const response = await receivingRequest("/api/receiving", {
         method: "POST",
         headers: mutationHeaders({ "Content-Type": "application/json" }),
         body: JSON.stringify({
@@ -604,6 +605,7 @@ export default function ReceivingPage() {
       {error && (
         <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
           {error}
+          {" "}<a href="/receiving" className="font-medium underline">Reload / sign in</a>
         </div>
       )}
 
@@ -703,7 +705,7 @@ export default function ReceivingPage() {
             ) : sortedRows.length === 0 ? (
               <tr>
                 <td className="px-2 py-6 text-center text-slate-500" colSpan={10}>
-                  No receiving candidates found.
+                  {error ? "Receiving queue unavailable. Reload this page to reconnect." : "No receiving candidates found."}
                 </td>
               </tr>
             ) : (

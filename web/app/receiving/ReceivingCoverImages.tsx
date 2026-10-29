@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { receivingRequest } from "./receivingRequest";
 
 type Images = { ebay: string | null; amazon: string | null };
 
@@ -13,7 +14,7 @@ export function ReceivingCoverImages({ itemId, ebayUrl, amazonUrl }: {
   useEffect(() => {
     if (!itemId) return;
     const controller = new AbortController();
-    fetch(`/api/receiving/images?item_id=${encodeURIComponent(itemId)}`, { signal: controller.signal })
+    receivingRequest(`/api/receiving/images?item_id=${encodeURIComponent(itemId)}`, { signal: controller.signal })
       .then(async (response) => {
         if (!response.ok) throw new Error("Images unavailable");
         return await response.json() as Images;

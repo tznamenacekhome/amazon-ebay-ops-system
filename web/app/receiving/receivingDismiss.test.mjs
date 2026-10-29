@@ -15,7 +15,7 @@ const requests = [];
 const row = {item_id:"item",purchase_id:"purchase",supplier_order_id:"23-15127-96456",
   title:"Ghost Recon Breakpoint",system:"Xbox One",quantity:2,current_status:"shipped_no_tracking",
   asin:null,target_price:null,unit_cost:13.99};
-globalThis.fetch = async (url, options) => {requests.push({url,options});return {ok:true,json:async()=>[row]};};
+globalThis.fetch = async (url, options) => {requests.push({url,options});return Response.json([row]);};
 globalThis.window = {setTimeout,clearTimeout,addEventListener:(k,v)=>listeners.set(k,v),
   removeEventListener:(k,v)=>{if(listeners.get(k)===v)listeners.delete(k);}};
 const same = (a,b) => a && b && a.length===b.length && a.every((v,i)=>Object.is(v,b[i]));

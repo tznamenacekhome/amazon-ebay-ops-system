@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import type { PurchaseDeliveryStats } from "../purchases/types";
+import { receivingRequest } from "./receivingRequest";
 
 type Metric = PurchaseDeliveryStats["deliveredNotReceived"];
 
@@ -16,7 +17,7 @@ export function ReceivingMetrics({ refreshKey }: { refreshKey: number }) {
       setValue(null);
       setError(null);
       try {
-        const response = await fetch("/api/receiving/stats", { cache: "no-store", signal: controller.signal });
+        const response = await receivingRequest("/api/receiving/stats", { cache: "no-store", signal: controller.signal });
         const result = await response.json();
         if (!response.ok || result.deliveryError) {
           throw new Error(result.deliveryError || `Failed to load receiving totals: ${response.status}`);
@@ -37,6 +38,6 @@ export function ReceivingMetrics({ refreshKey }: { refreshKey: number }) {
     </div>
     <div className="text-xs text-slate-500">All fully delivered resale purchases; independent of search. Same totals as Purchases.</div>
     {value && value.unpricedUnits > 0 ? <div className="text-xs text-amber-700">{value.unpricedUnits} units have no recorded cost</div> : null}
-    {error ? <div role="alert" className="text-xs text-red-700">{error}</div> : null}
+    {error ? <div role="alert" className="text-xs text-red-700">{error} <a href="/receiving" className="font-medium underline">Reload / sign in</a></div> : null}
   </div>;
 }

@@ -1,0 +1,21 @@
+﻿import assert from "node:assert/strict";
+import {readFileSync} from "node:fs";
+import ts from "typescript";
+const api={};new Function("exports",ts.transpileModule(readFileSync(new URL("./receivingRequest.ts",import.meta.url),"utf8"),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText)(api);
+let calls=0;
+const recovered=await api.receivingRequest('/api/test',{},async (_url,init)=>{assert.equal(init.redirect,'manual');if(++calls===1)throw new TypeError('Failed to fetch');return Response.json({ok:true});});
+assert.equal(calls,2);assert.equal((await recovered.json()).ok,true);
+calls=0;await assert.rejects(api.receivingRequest('/api/save',{method:'POST'},async()=>{calls++;throw new TypeError('Failed to fetch');}),/change may have saved/);assert.equal(calls,1,'Never replay a save after losing its response');
+await assert.rejects(api.receivingRequest('/api/save',{method:'POST'},async()=>({type:'opaqueredirect',status:0})),/session needs sign-in.*save is not confirmed/);
+await assert.rejects(api.receivingRequest('/api/test',{},async()=>new Response('',{status:401})),/session needs sign-in/);
+await assert.rejects(api.receivingRequest('/api/test',{},async()=>new Response('<html>Sign in</html>',{headers:{'content-type':'text/html'}})),/sign-in or unavailable page/);
+const denied=await api.receivingRequest('/api/save',{method:'POST'},async()=>Response.json({error:'Stale review'},{status:409}));assert.equal(denied.status,409);assert.equal((await denied.json()).error,'Stale review');
+calls=0;await assert.rejects(api.receivingRequest('/api/save',{method:'POST'},async()=>{calls++;return {type:'basic',status:200,headers:new Headers(),text:async()=>{throw new TypeError('stream disconnected');}};}),/change may have saved/);assert.equal(calls,1);
+calls=0;const controller=new AbortController();controller.abort();await assert.rejects(api.receivingRequest('/api/test',{signal:controller.signal},async()=>{calls++;throw new Error('aborted');}));assert.equal(calls,1);
+calls=0;await assert.rejects(api.receivingRequest('/api/test',{},async()=>{calls++;throw new TypeError('offline');}),/Reload this page/);assert.equal(calls,2,'At most one read retry');
+calls=0;const bodyRecovered=await api.receivingRequest('/api/test',{},async()=>{calls++;return calls===1?{type:'basic',status:200,headers:new Headers(),text:async()=>{throw new TypeError('stream disconnected');}}:Response.json({recovered:true});});assert.equal(calls,2);assert.equal((await bodyRecovered.json()).recovered,true);
+calls=0;await assert.rejects(api.receivingRequest('/api/test',{},async()=>{calls++;return {type:'opaqueredirect',status:0};}),/session needs sign-in/);assert.equal(calls,1,'Do not retry an expired session');
+const empty=await api.receivingRequest('/api/save',{method:'POST'},async()=>new Response(null,{status:204}));assert.equal(empty.status,204);assert.equal(await empty.text(),'');
+console.log('Receiving transport: bounded read/network/body retries, auth redirects/401/HTML, API and empty-response preservation, interrupted saves, aborts and no save replay passed');
+calls=0;await assert.rejects(api.receivingRequest('/api/test',{},async()=>{calls++;return new Response('  <html>Gateway failure</html>',{status:502});}),/sign-in or unavailable page/);assert.equal(calls,1,'HTML without a content-type must not reach JSON parsing or be retried');
+

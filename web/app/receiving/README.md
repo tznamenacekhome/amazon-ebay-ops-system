@@ -11,6 +11,10 @@ This folder contains the Midnight Blue Operations Platform receiving workflow UI
 
 ## Queue Behavior
 
+- Queue, totals, scan, image and save requests use `receivingRequest`: auth redirects and HTML responses produce recovery messages instead of JSON parser errors. Queue/totals errors offer Reload / sign in. Network/interrupted-body GET failures retry once; saves are never automatically replayed. Reload before retrying an unconfirmed save and inspect the item's current state.
+
+- Queue, totals, scan, image and save requests use `receivingRequest`: auth redirects and HTML responses produce recovery messages instead of JSON parser errors. Queue/totals errors offer Reload / sign in. Network/interrupted-body GET failures retry once; saves are never automatically replayed. Reload before retrying an unconfirmed save and inspect the item's current state.
+
 - `/api/receiving` returns only backend-normalized `Delivered` and `Shipped (No Tracking)` rows.
 - Queue displays the count of items ready to receive, and the current matching count while searching.
 - Search input autofocuses on load for barcode scanning.
