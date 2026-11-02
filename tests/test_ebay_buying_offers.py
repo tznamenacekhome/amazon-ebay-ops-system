@@ -4,7 +4,7 @@ import unittest
 from unittest.mock import Mock, patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "integrations"))
-from sync_ebay_buying_offers import declined_evidence, fetch_offers, parse_page, request_body
+from sync_ebay_buying_offers import declined_evidence, unresolved_evidence, fetch_offers, parse_page, request_body
 
 
 def xml(status="Declined", amount="60.00", currency="USD", pages=1, ack="Success"):
@@ -15,6 +15,45 @@ def xml(status="Declined", amount="60.00", currency="USD", pages=1, ack="Success
 
 
 class BuyingOfferTests(unittest.TestCase):
+    def test_on_demand_checks_history_before_progressive_run(self):
+        import run_sourcing_workflow as workflow
+        from types import SimpleNamespace
+        args = SimpleNamespace(single_pass=False, run_id="run")
+        calls = []
+        with patch.object(workflow, "parse_args", return_value=args), \
+             patch.object(workflow, "run_python", side_effect=lambda step: calls.append(step)), \
+             patch.object(workflow, "run_progressive", side_effect=lambda value: calls.append("score") or 0):
+            self.assertEqual(workflow.main(), 0)
+        self.assertEqual(calls, [["integrations/sync_ebay_buying_offers.py", "--apply"], "score"])
+
+    def test_failed_history_check_does_not_run_sourcing(self):
+        import run_sourcing_workflow as workflow
+        from types import SimpleNamespace
+        for single in [False, True]:
+            with patch.object(workflow, "parse_args", return_value=SimpleNamespace(single_pass=single, run_id="run")), \
+                 patch.object(workflow, "run_python", side_effect=RuntimeError("eBay unavailable")), \
+                 patch.object(workflow, "mark_run_failed") as failed, \
+                 patch.object(workflow, "run_progressive") as score:
+                with self.assertRaisesRegex(RuntimeError, "eBay unavailable"):
+                    workflow.main()
+                score.assert_not_called()
+                failed.assert_called_once()
+
+    def test_live_status_omitted_offer_is_retained_without_inventing_decline(self):
+        for item, amount in [("137887648197", "17.0"), ("403002608732", "19.0")]:
+            response = xml(amount=amount).replace("123456789012", item).replace("<BestOfferStatus>Declined</BestOfferStatus>", "")
+            rows, _ = parse_page(response)
+            self.assertEqual(declined_evidence(rows), [])
+            self.assertEqual(unresolved_evidence(rows), [{"ebay_legacy_item_id": item, "offer_amount": amount}])
+
+    def test_unresolved_requires_valid_usd_nonvariation_offer_and_missing_status(self):
+        for response in [xml(status="Pending"), xml(status="Accepted"), xml(status="Declined"),
+                         xml(status="", currency="GBP"), xml(status="", amount="NaN"), xml(status="", amount="0")]:
+            self.assertEqual(unresolved_evidence(parse_page(response)[0]), [])
+        rows, _ = parse_page(xml(status=""))
+        rows[0]["variation"] = True
+        self.assertEqual(unresolved_evidence(rows), [])
+
     def test_scoring_keeps_stream_and_bounds_raw_candidate_memory(self):
         from score_sourcing_opportunities import score_candidate_batches
         candidates = ({"seed_id": "seed", "candidate_id": n} for n in range(205))

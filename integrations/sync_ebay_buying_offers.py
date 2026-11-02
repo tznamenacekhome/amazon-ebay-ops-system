@@ -1,4 +1,4 @@
-"""Read buyer Best Offers; retain only explicit USD declines for sourcing.
+"""Read buyer Best Offers; retain USD declines and separately unknown statuses.
 
 Default is read-only. --apply writes compact evidence, never purchase data or
 eBay offers. An incomplete/failed fetch must not be reported as a successful sync.
@@ -82,9 +82,19 @@ def fetch_offers(token: str, max_pages: int = 20, post=requests.post) -> list[di
 
 
 def declined_evidence(rows: list[dict]) -> list[dict]:
+    return offer_evidence(rows, {"Declined"}, "declined_offer_amount")
+
+
+def unresolved_evidence(rows: list[dict]) -> list[dict]:
+    # Live eBay responses can include BestOffer but omit BestOfferStatus.
+    # Keep unknown evidence separate; never label it a seller decline.
+    return offer_evidence(rows, {""}, "offer_amount")
+
+
+def offer_evidence(rows: list[dict], statuses: set[str], amount_field: str) -> list[dict]:
     highest: dict[str, Decimal] = {}
     for row in rows:
-        if row.get("status") != "Declined" or row.get("currency") != "USD" or row.get("variation"):
+        if row.get("status") not in statuses or row.get("currency") != "USD" or row.get("variation"):
             continue
         item_id = row.get("ebay_legacy_item_id") or ""
         if not item_id.isascii() or not item_id.isdigit():
@@ -98,7 +108,7 @@ def declined_evidence(rows: list[dict]) -> list[dict]:
         except InvalidOperation:
             continue
         highest[item_id] = max(highest.get(item_id, Decimal(0)), amount)
-    return [{"ebay_legacy_item_id": item_id, "declined_offer_amount": str(amount)} for item_id, amount in highest.items()]
+    return [{"ebay_legacy_item_id": item_id, amount_field: str(amount)} for item_id, amount in highest.items()]
 
 
 def main() -> int:
@@ -108,12 +118,15 @@ def main() -> int:
     load_environment()
     rows = fetch_offers(get_access_token())
     evidence = declined_evidence(rows)
+    unresolved = unresolved_evidence(rows)
     if args.apply:
         db = get_supabase_client()
         for batch in chunked(evidence, 100):
             db.rpc("record_sourcing_declined_offers", {"offers": batch}).execute()
+        for batch in chunked(unresolved, 100):
+            db.rpc("record_sourcing_unresolved_offers", {"offers": batch}).execute()
     print(json.dumps({"offers_returned": len(rows), "statuses": dict(Counter(r["status"] for r in rows)),
-                      "declined_usd_listings": len(evidence), "applied": args.apply}))
+                      "declined_usd_listings": len(evidence), "unresolved_usd_listings": len(unresolved), "applied": args.apply}))
     return 0
 
 

@@ -1,4 +1,4 @@
-"""Shared read-only sourcing eligibility for previously declined item offers."""
+"""Shared sourcing eligibility for declined or status-omitted buyer offers."""
 from decimal import Decimal
 from sourcing_common import chunked
 
@@ -18,7 +18,7 @@ def fetch_declines(db, candidates):
     ids = sorted({key for candidate in candidates if (key := listing_id(candidate))})
     result = {}
     for batch in chunked(ids, 100):
-        rows = db.table("sourcing_declined_ebay_offers").select("ebay_legacy_item_id,declined_offer_amount").in_("ebay_legacy_item_id", batch).execute().data or []
+        rows = db.table("vw_sourcing_offer_limits").select("ebay_legacy_item_id,declined_offer_amount").in_("ebay_legacy_item_id", batch).execute().data or []
         result.update({r["ebay_legacy_item_id"]: r["declined_offer_amount"] for r in rows})
     return result
 

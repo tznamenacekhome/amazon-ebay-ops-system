@@ -38,7 +38,7 @@ export async function excludeDeclinedOffers<T extends OfferOpportunity>(rows: T[
   const ids = [...new Set(rows.map(declinedOfferListingId).filter((id): id is string => id !== null))];
   const declined = new Map<string, number>();
   for (let offset = 0; offset < ids.length; offset += 100) {
-    const { data, error } = await supabase.from("sourcing_declined_ebay_offers")
+    const { data, error } = await supabase.from("vw_sourcing_offer_limits")
       .select("ebay_legacy_item_id,declined_offer_amount").in("ebay_legacy_item_id", ids.slice(offset, offset + 100));
     if (error) throw new Error(`Could not verify declined eBay offers: ${error.message}`);
     for (const row of data ?? []) declined.set(row.ebay_legacy_item_id, Number(row.declined_offer_amount));

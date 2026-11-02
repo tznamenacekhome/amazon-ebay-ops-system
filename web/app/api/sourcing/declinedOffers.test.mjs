@@ -7,7 +7,7 @@ const js = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind
 let failure = false;
 const batches = [];
 const db = { from(table) {
-  assert.equal(table, "sourcing_declined_ebay_offers");
+  assert.equal(table, "vw_sourcing_offer_limits");
   return { select() { return { async in(column, ids) {
     assert.equal(column, "ebay_legacy_item_id");
     batches.push(ids);

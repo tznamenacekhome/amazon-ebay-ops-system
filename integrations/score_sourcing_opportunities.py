@@ -666,9 +666,9 @@ def score_candidate(
     if is_suppressed(candidate, opportunity_type, max_offer_price, (matching_context or {}).get("declined_offers", {})):
         if status == "open":
             status = "rejected"
-        flags.append("Declined offer: no higher profitable item offer available")
+        flags.append("Previous eBay offer: no higher profitable item offer available")
         matching_diagnostics["declined_offer_suppressed"] = True
-        score_reason = "Seller declined an item offer at or above the current profitable offer limit"
+        score_reason = "Prior declined or unresolved item offer is at or above the current profitable offer limit"
     # Record outcomes of the existing business policy separately from identity.
     # Reuse classify/suggested_offer; this does not change admission or thresholds.
     economic_passes = profit is not None and roi is not None and profit >= settings.min_profit_dollars and roi >= settings.min_roi_percent
@@ -692,7 +692,7 @@ def score_candidate(
         inventory_context = (historical_status.get("raw_action_context") or {}).get("inventorySnooze") or {}
         check("inventory_hold", "Inventory sell-through hold", current_owned_units, inventory_context.get("representAtUnits"), "units", True, "Original sell-through release condition retained.", "active operator hold")
     if matching_diagnostics.get("declined_offer_suppressed"):
-        check("declined_offer", "Declined profitable offer", max_offer_price, None, "USD", True, "No higher profitable offer is available under the existing declined-offer policy.", "declined offer")
+        check("declined_offer", "Prior eBay offer", max_offer_price, None, "USD", True, "No higher profitable offer is available above the prior declined or unresolved offer.", "previous offer")
     matching_diagnostics["businessEligibilityChecks"] = checks
     matching_diagnostics = enrich_sourcing_diagnostics(
         matching_diagnostics,
