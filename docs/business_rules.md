@@ -467,3 +467,9 @@ maximum profitable item offer. Recomputed ASIN pricing must support a strictly
 higher offer before the listing qualifies again. Shipping remains fully included
 in profitability, separately from the offer. Pending/countered/expired offers
 are not declines. See `DECLINED_EBAY_OFFERS_2026-09-08.md` for rollout and limits.
+
+When eBay returns an actual buyer offer amount but omits its status, retain that
+amount separately as unresolved history and apply the same presentation floor.
+Never infer a decline from an omitted status. On-demand daily, progressive, and
+single-pass sourcing must refresh buyer history before scoring, and fail the run
+if that check fails. See `SOURCING_PRIOR_OFFERS_2026-11-01.md`.

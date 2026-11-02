@@ -4,6 +4,10 @@ Status: migration applied and import activated September 8, 2026. Scheduler
 revision 86 and web revision 138 use release commit `11dfabd0a41c`.
 See `RELEASE_2026-09-08_SOURCING_OFFERS.md` for deployment verification.
 
+November 1 update: status-omitted buyer offers are now retained separately and
+checked before repeat presentation. See `SOURCING_PRIOR_OFFERS_2026-11-01.md`;
+the September import description below documents the original release.
+
 ## Behavior
 
 The buyer's explicit eBay `Declined` status is retained against the exact eBay listing ID.
