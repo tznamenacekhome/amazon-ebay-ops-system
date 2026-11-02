@@ -19,13 +19,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 def main() -> int:
     args = parse_args()
-    try:
-        # Refresh buyer history before either workflow can score/present repeats.
-        # Failure must stop this run rather than treating unchecked history as new.
-        run_python(["integrations/sync_ebay_buying_offers.py", "--apply"])
-    except Exception as error:
-        mark_run_failed(args.run_id, f"Buyer offer history check failed: {error}")
-        raise
+    refresh_buyer_offer_history(args.run_id)
     if not args.single_pass:
         try:
             return run_progressive(args)
@@ -70,6 +64,17 @@ def main() -> int:
         return 0
     except Exception as error:
         mark_run_failed(args.run_id, str(error))
+        raise
+
+
+def refresh_buyer_offer_history(run_id: str | None) -> None:
+    try:
+        # Refresh buyer history before either workflow can score/present repeats.
+        # Failure must stop this run rather than treating unchecked history as new.
+        run_python(["integrations/sync_ebay_buying_offers.py", "--apply"])
+    except Exception as error:
+        if run_id:
+            mark_run_failed(run_id, f"Buyer offer history check failed: {error}")
         raise
 
 

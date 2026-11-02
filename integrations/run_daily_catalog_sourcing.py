@@ -16,6 +16,7 @@ from typing import Any
 from sourcing_database_guard import wait_for_database, DatabasePressureError
 from ebay_api_limits import browse_call_budget, fetch_browse_quota, quota_summary
 from run_sourcing_workflow import (
+    refresh_buyer_offer_history,
     clean_ebay_key,
     complete_batch,
     create_batch,
@@ -69,6 +70,7 @@ def main() -> int:
 
     os.environ["MBOP_CATALOG_DATABASE_GUARD"] = "1"
     wait_for_database(supabase)
+    refresh_buyer_offer_history(args.run_id)
     run_id = args.run_id or str(uuid.uuid4())
     searched_asins_this_run: set[str] = set()
     restricted_asins = fetch_fresh_restricted_asins(supabase)
