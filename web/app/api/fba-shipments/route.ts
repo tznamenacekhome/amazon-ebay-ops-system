@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerSupabaseClient, requireAdminApiToken } from "../_server";
 import { normalizeAsin as normalizeCatalogAsin, resolveAsinMetadata } from "../_asinMetadata";
+import { returnPurchaseBasis } from "./returnPurchaseBasis";
 
 const supabase = createServerSupabaseClient();
 
@@ -719,7 +720,7 @@ async function fetchRoutedReturnRecoverySourceItems(shipmentIds: string[]) {
     const profit = findReturnProfitRow(row, profitRows);
     const cogs = toNumber(profit?.cogs);
     const profitQuantity = toNumber(profit?.quantity) ?? quantity;
-    const unitCost = cogs === null ? null : perUnit(cogs, profitQuantity);
+    const unitCost = returnPurchaseBasis(row)?.unitCost ?? (cogs === null ? null : perUnit(cogs, profitQuantity));
     const targetPrice =
       profit?.sale_price !== null && profit?.sale_price !== undefined
         ? perUnit(toNumber(profit.sale_price), profitQuantity)
@@ -1190,7 +1191,7 @@ async function listReturnRecoveryItem(
   const profit = findReturnProfitRow(recoveryCase, profitRows);
   const cogs = toNumber(profit?.cogs);
   const profitQuantity = toNumber(profit?.quantity) ?? quantity;
-  const unitCost = cogs === null ? null : perUnit(cogs, profitQuantity);
+  const unitCost = returnPurchaseBasis(recoveryCase)?.unitCost ?? (cogs === null ? null : perUnit(cogs, profitQuantity));
   const targetPrice =
     recoveryCase.target_price !== null && recoveryCase.target_price !== undefined
       ? toNumber(recoveryCase.target_price)
@@ -1343,6 +1344,7 @@ async function fetchReturnRecoveryFbaCandidates(): Promise<FbaPrepCandidate[]> {
 
     const profit = findReturnProfitRow(row, profitRows);
     const cogs = toNumber(profit?.cogs);
+    const purchaseBasis = returnPurchaseBasis(row);
     const salePrice =
       toNumber(row.target_price) ??
       (profit?.sale_price !== null && profit?.sale_price !== undefined
@@ -1354,14 +1356,14 @@ async function fetchReturnRecoveryFbaCandidates(): Promise<FbaPrepCandidate[]> {
         item_id: `amazon-return:${row.amazon_return_recovery_case_id}`,
         purchase_id: null,
         supplier_order_id: row.amazon_order_id ?? row.lpn ?? null,
-        order_date: row.return_date,
+        order_date: purchaseBasis?.purchaseDate ?? null,
         amazon_title: row.title ?? profit?.title ?? null,
         asin,
         seller_sku: cleanString(row.seller_sku ?? row.sku),
         fnsku: cleanString(row.fnsku),
         system: null,
         quantity,
-        unit_cost: cogs === null ? null : perUnit(cogs, toNumber(profit?.quantity) ?? quantity),
+        unit_cost: purchaseBasis?.unitCost ?? (cogs === null ? null : perUnit(cogs, toNumber(profit?.quantity) ?? quantity)),
         sell_price: salePrice,
         supplier: "Amazon Return Recovery",
         source_type: "amazon_return_recovery" as const,
