@@ -43,3 +43,7 @@ precedence, conflicting lots, chronology, mismatched SKU/known costs, broken
 allocation, preserved operator overrides, and lookup failures. The original
 purchase-basis, merged CSV export, and TypeScript checks pass. Importer defaults
 have regression tests. Deployment receipt follows.
+
+FBA display also preserves date-only values without converting through UTC into
+the browser timezone, preventing purchase dates from appearing one day early.
+The actual page formatter has timezone regression coverage.
