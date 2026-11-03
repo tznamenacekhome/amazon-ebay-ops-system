@@ -43,15 +43,14 @@ complete, selected weighted costs, earliest selected dates, ASIN merging,
 combined suppliers, valid zero cost, excluded incomplete rows,
 optional MSKU/FNSKU, quantity validation, unknown/invalid dates, leap years, full years,
 and UTC/Los Angeles/Honolulu. Node tests, TypeScript, and the production Docker
-build pass. Final application commit: `540fd1702496`; web task `197`, image
-`sha256:cd5ab399ee3b5c00d0c08ebfa72e0930f0d0298b56b562feb971a42c121cba9c`.
+build pass. Final application commit: `d1ac3ae495b7`; web task `198`, image
+`sha256:16a218caa8f1e8471ce75069059d73798ccd17044c3db01316f0ec10ceaa5dad`.
 Both verified source updates were read back from production. The temporary
 Docker credential config was removed after deployment. Direct browser export
 verification remains unavailable because the browser-control Node runtime
 cannot start; tests and production-data checks do not establish an actual
 InventoryLab import success.
 
-Production verification: the only RUNNING service task is revision 197, and its
-private IP matches the healthy ALB target. The previous target was draining at
-verification time, so full ECS deployment cleanup was still in progress. The
-MSKU-optional build is serving traffic; no claim of a completed IL import is made.
+Production verification: ECS services-stable wait completed. Revision 198 is running with a healthy ALB target;
+revision 197 has zero running tasks. The ASIN-merged, MSKU-optional build is
+serving traffic. No claim of a completed IL import is made.
