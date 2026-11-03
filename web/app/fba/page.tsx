@@ -19,7 +19,7 @@ import {
   type RefreshNotice,
 } from "../syncRefresh";
 import { DataFreshness } from "../DataFreshness";
-import { inventoryLabPurchaseDate } from "./inventoryLabExport";
+import { inventoryLabExportRows } from "./inventoryLabExport";
 import { TrackingLink } from "../components/TrackingLink";
 import { mutationHeaders } from "../mutationHeaders";
 import { KeepaPriceIndicator } from "../components/KeepaPriceIndicator";
@@ -403,7 +403,14 @@ export default function FbaPage() {
   }
 
   function exportCsv() {
-    const rows = getSelectedExportRows(data?.rows ?? [], quantityDrafts);
+    let exportRows: string[][];
+    try {
+      exportRows = inventoryLabExportRows(data?.rows ?? [], quantityDrafts);
+    } catch (error) {
+      setError(error instanceof Error ? error.message : "Complete all required fields before exporting.");
+      return;
+    }
+    setError(null);
     const csvRows = [
       [
         "ASIN",
@@ -416,17 +423,7 @@ export default function FbaPage() {
         "Purchase date",
         "Supplier",
       ],
-      ...rows.map((row) => [
-        row.asin,
-        row.msku || "",
-        row.title || "Missing Amazon title",
-        row.system || "",
-        moneyForCsv(row.cost_per_unit),
-        moneyForCsv(row.sell_price),
-        String(row.quantity),
-        inventoryLabPurchaseDate(row.purchase_date),
-        row.supplier || "",
-      ]),
+      ...exportRows,
     ];
 
     const blob = new Blob([csvRows.map(toCsvRow).join("\n")], {
@@ -1221,30 +1218,6 @@ function ShipmentDetailTable({ details }: { details: ShipmentDetail[] }) {
   );
 }
 
-function getSelectedExportRows(rows: FbaRow[], quantityDrafts: QuantityDraft) {
-  return rows.flatMap((row) => {
-    let quantity = 0;
-    let totalCost = 0;
-
-    for (const detail of row.details) {
-      const detailQuantity = parseQuantity(quantityDrafts[detail.item_id]);
-      quantity += detailQuantity;
-      totalCost += detailQuantity * Number(detail.unit_cost ?? 0);
-    }
-
-    if (quantity <= 0) return [];
-
-    return [
-      {
-        ...row,
-        quantity,
-        total_cost: totalCost,
-        cost_per_unit: quantity > 0 ? totalCost / quantity : null,
-      },
-    ];
-  });
-}
-
 function quantityDraftsForData(data: FbaData) {
   const drafts: QuantityDraft = {};
   for (const row of data.rows) {
@@ -1561,14 +1534,6 @@ function toCsvRow(values: string[]) {
   return values
     .map((value) => `"${String(value).replace(/"/g, '""')}"`)
     .join(",");
-}
-
-function moneyForCsv(value?: number | null) {
-  if (value === null || value === undefined || Number.isNaN(Number(value))) {
-    return "";
-  }
-
-  return Number(value).toFixed(2);
 }
 
 function formatNumber(value?: number | null) {

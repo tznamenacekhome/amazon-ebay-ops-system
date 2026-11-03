@@ -1365,7 +1365,7 @@ async function fetchReturnRecoveryFbaCandidates(): Promise<FbaPrepCandidate[]> {
         quantity,
         unit_cost: purchaseBasis?.unitCost ?? (cogs === null ? null : perUnit(cogs, toNumber(profit?.quantity) ?? quantity)),
         sell_price: salePrice,
-        supplier: "Amazon Return Recovery",
+        supplier: purchaseBasis?.supplier ?? null,
         source_type: "amazon_return_recovery" as const,
         source_status: sourceStatus,
       },
