@@ -33,7 +33,6 @@ export function inventoryLabExportRows(groups: ExportGroup[], quantities: Record
     const supplier = detail.supplier?.trim();
     const date = inventoryLabPurchaseDate(detail.order_date);
     if (!/^[A-Z0-9]{10}$/.test(asin)) missing.push("ASIN");
-    if (!sku) missing.push("MSKU");
     if (!title) missing.push("title");
     if (detail.unit_cost === null || !Number.isFinite(detail.unit_cost) || detail.unit_cost < 0) missing.push("purchase cost");
     if (group.sell_price === null || !Number.isFinite(group.sell_price) || group.sell_price <= 0) missing.push("list price");
@@ -45,7 +44,7 @@ export function inventoryLabExportRows(groups: ExportGroup[], quantities: Record
       issues.push(`${asin || detail.item_id}: ${missing.join(", ")}`);
       continue;
     }
-    rows.push([asin, sku!, title!, group.system || "", detail.unit_cost!.toFixed(2),
+    rows.push([asin, sku || "", title!, group.system || "", detail.unit_cost!.toFixed(2),
       group.sell_price!.toFixed(2), String(quantity), date, supplier!]);
   }
   if (issues.length) throw new Error(`Export blocked. Complete the required fields for every selected unit: ${issues.join("; ")}.`);

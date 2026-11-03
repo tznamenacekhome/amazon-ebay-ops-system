@@ -33,10 +33,10 @@ for (const [field, value, label] of [["unit_cost", null, "purchase cost"], ["ord
   // An excluded incomplete unit must not block a complete selected unit.
   assert.equal(mod.inventoryLabExportRows([{ ...group, details: [changed, { ...detail, item_id: "b" }] }], { a: "0", b: "1" }).length, 1);
 }
-assert.throws(() => mod.inventoryLabExportRows([{ ...group, msku: null }], { a: "1" }), /MSKU/);
+assert.equal(mod.inventoryLabExportRows([{ ...group, msku: null }], { a: "1" })[0][1], "");
 assert.throws(() => mod.inventoryLabExportRows([{ ...group, sell_price: null }], { a: "1" }), /list price/);
 for (const value of ["-1", "1.5", "3", "bad"]) assert.throws(() => mod.inventoryLabExportRows([group], { a: value }), /quantity/);
 assert.throws(() => mod.inventoryLabExportRows([group], {}), /at least one/);
 assert.equal(mod.inventoryLabExportRows([{ ...group, details: [{ ...detail, unit_cost: 0 }] }], { a: "1" })[0][4], "0.00");
-// FNSKU is deliberately not required; these valid records have none.
-console.log("InventoryLab export gate tests passed: every selected source, no averaging, required fields, optional FNSKU, excluded rows.");
+// MSKU and FNSKU are optional for listings InventoryLab will create.
+console.log("InventoryLab export gate tests passed: every selected source, no averaging, required fields, optional MSKU/FNSKU, excluded rows.");

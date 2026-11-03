@@ -6,8 +6,9 @@ placeholder is `--`. It also used a two-digit year and converted date-only
 values through the browser timezone.
 
 Per the operator's requirement, export is blocked unless every selected source
-row has a valid ASIN, MSKU, title, original unit cost, list price, quantity,
-purchase date, and supplier. FNSKU is optional; System is descriptive game
+row has a valid ASIN, title, original unit cost, list price, quantity,
+purchase date, and supplier. MSKU and FNSKU are optional: InventoryLab creates
+new listings during shipment prep, before MBOP knows the MSKU. System is descriptive game
 metadata and not applicable to shoes/pet supplies. Zero purchase cost is valid.
 An error identifies each incomplete selected source row; the entire download
 is blocked, rather than silently dropping units or writing incomplete rows.
@@ -30,7 +31,7 @@ API now displays the verified original supplier rather than a recovery label.
 
 Regression checks cover missing required fields even when ASIN aggregates look
 complete, separate costs/dates, valid zero cost, excluded incomplete rows,
-optional FNSKU, quantity validation, unknown/invalid dates, leap years, full years,
+optional MSKU/FNSKU, quantity validation, unknown/invalid dates, leap years, full years,
 and UTC/Los Angeles/Honolulu. Node tests and TypeScript pass. Deployment receipt
 follows. The earlier date-format-only build was task 195; the complete-unit gate
 supersedes that approach.
