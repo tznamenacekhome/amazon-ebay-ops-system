@@ -24,7 +24,8 @@ Original purchase fields are shown separately
 from original sale financial figures in the return detail drawer.
 
 Historical import preview: 951 CSV metadata rows, all exact-SKU matches, no
-ambiguities; 11 rows genuinely lack cost/date. A successful tiny read and database
+ambiguities; the importer flagged 11 rows for missing/non-positive cost or missing
+date. A successful tiny read and database
 size check (13 GB, previously provisioned disk 32 GB) preceded the bounded import.
 The existing metadata-only importer was run with `--include-inactive --apply`;
 it does not modify purchase rows or operational inventory quantities. Future
@@ -47,3 +48,13 @@ have regression tests. Deployment receipt follows.
 FBA display also preserves date-only values without converting through UTC into
 the browser timezone, preventing purchase dates from appearing one day early.
 The actual page formatter has timezone regression coverage.
+
+Deployment: source resolver commit `608eb9109ba2`; final date-correct build
+`e1ec530549b6`, ECS web task `200`, image
+`sha256:44f96b4959632407a6cab5f5562d8687c3d4daa336c4e987828fee512bd3e92e`.
+Both production Docker builds passed. The actual resolver was verified against
+live production records, and the new web task is running with the prior revision
+at zero running tasks. ECS services-stable wait completed. Temporary Docker
+credential files were removed. Direct
+authenticated browser verification remains unavailable because the browser
+control runtime cannot start; no browser/InventoryLab import success is claimed.
