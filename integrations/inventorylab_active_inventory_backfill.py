@@ -93,7 +93,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--include-inactive",
         action="store_true",
-        help="Also consider rows with On Hand zero. Default only imports active On Hand rows.",
+        default=True,
+        help="Include zero-on-hand historical metadata (the default; needed for future returns).",
+    )
+    parser.add_argument(
+        "--active-only", dest="include_inactive", action="store_false",
+        help="Explicitly restrict metadata import to positive On Hand rows.",
     )
     parser.add_argument(
         "--apply",

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireAdminApiToken } from "../../../../_server";
+import { resolveReturnPurchaseBases } from "../../../../fba-shipments/returnPurchaseBasis";
 import {
   fetchCasesAndEventsForReturn,
   fetchCustomerReturnRow,
@@ -60,7 +61,7 @@ export async function POST(request: Request, context: RouteContext) {
 
     const caseData = await fetchCasesAndEventsForReturn(supabase, customerReturn);
     const existingCase = findBestCase(customerReturn, caseData.cases);
-    const recoveryCase = existingCase ?? await createRecoveryCase(supabase, customerReturn);
+    const [recoveryCase] = await resolveReturnPurchaseBases(supabase, [existingCase ?? await createRecoveryCase(supabase, customerReturn)]);
     const previousInspection = inspectionFromCase(recoveryCase);
     const previousDecision = recoveryCase.decision;
     const previousWorkflowState = recoveryCase.workflow_state;

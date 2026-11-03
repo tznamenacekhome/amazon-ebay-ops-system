@@ -65,6 +65,7 @@ type QueueRow = {
   reimbursement_currency: string | null;
   latest_reimbursement_approval_date: string | null;
   original_sale: OriginalSaleFinancialImpact;
+  original_purchase?: { unitCost: number; purchaseDate: string; supplier: string | null; supplierOrderId: string | null } | null;
   case_id: string | null;
   workflow_state: string;
   decision: string;
@@ -701,10 +702,16 @@ function ReturnDetailDrawer({
               </DetailSection>
 
               <DetailSection title="Original Sale / Return Financial Context">
+                {!detail?.row.original_purchase ? (
+                  <p className="mb-3 text-sm text-amber-700">Original purchase details need source review before this item can be exported.</p>
+                ) : null}
                 {originalSale ? (
                   <div className="space-y-4">
                     <div className="grid gap-3 md:grid-cols-3">
                       <InfoPair label="Original Order Date" value={displayDate(originalSale.order_date)} />
+                      <InfoPair label="Original Purchase Cost / Unit" value={displayMoney(detail?.row.original_purchase?.unitCost)} important />
+                      <InfoPair label="Original Purchase Date" value={displayDate(detail?.row.original_purchase?.purchaseDate)} />
+                      <InfoPair label="Original Purchase Supplier" value={displayValue(detail?.row.original_purchase?.supplier)} />
                       <InfoPair label="Order Status" value={displayValue(originalSale.order_status)} />
                       <InfoPair label="Fulfillment" value={displayValue(originalSale.fulfillment_channel)} />
                       <InfoPair label="Sale Price" value={displayMoney(originalSale.sale_price)} important />

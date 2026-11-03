@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerSupabaseClient, requireAdminApiToken } from "../_server";
 import { normalizeAsin as normalizeCatalogAsin, resolveAsinMetadata } from "../_asinMetadata";
-import { returnPurchaseBasis } from "./returnPurchaseBasis";
+import { returnPurchaseBasis, resolveReturnPurchaseBases } from "./returnPurchaseBasis";
 import { inventoryLabExportRows } from "./inventoryLabExport";
 
 const supabase = createServerSupabaseClient();
@@ -710,10 +710,10 @@ async function fetchRoutedReturnRecoverySourceItems(shipmentIds: string[]) {
     return [];
   }
 
-  const cases = ((data ?? []) as unknown as ReturnRecoveryCaseRow[]).filter((row) => {
+  const cases = await resolveReturnPurchaseBases(supabase, ((data ?? []) as unknown as ReturnRecoveryCaseRow[]).filter((row) => {
     const routing = fbaRoutingFromRaw(row.raw_evidence_json);
     return Boolean(routing.fba_shipment_id && shipmentIdSet.has(routing.fba_shipment_id));
-  });
+  }));
   const orderIds = Array.from(
     new Set(cases.map((row) => cleanString(row.amazon_order_id)).filter((value): value is string => Boolean(value)))
   );
@@ -1209,6 +1209,7 @@ async function listReturnRecoveryItem(
     throw new Error("Partial Amazon Return Recovery FBA routing is not supported yet.");
   }
 
+  [recoveryCase] = await resolveReturnPurchaseBases(supabase, [recoveryCase]);
   const amazonOrderId = cleanString(recoveryCase.amazon_order_id);
   const profitRows = await fetchReturnRecoveryProfitRows(amazonOrderId ? [amazonOrderId] : []);
   const profit = findReturnProfitRow(recoveryCase, profitRows);
@@ -1352,7 +1353,7 @@ async function fetchReturnRecoveryFbaCandidates(selectedIds?: string[]): Promise
     return [];
   }
 
-  const cases = (data ?? []) as unknown as ReturnRecoveryCaseRow[];
+  const cases = await resolveReturnPurchaseBases(supabase, (data ?? []) as unknown as ReturnRecoveryCaseRow[]);
   const orderIds = Array.from(
     new Set(cases.map((row) => cleanString(row.amazon_order_id)).filter((value): value is string => Boolean(value)))
   );

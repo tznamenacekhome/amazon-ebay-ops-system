@@ -1,4 +1,5 @@
 import { createServerSupabaseClient } from "../../_server";
+import { resolveReturnPurchaseBases, returnPurchaseBasis } from "../../fba-shipments/returnPurchaseBasis";
 
 const CUSTOMER_RETURN_SELECT =
   "amazon_fba_customer_return_row_id,amazon_report_run_id,source_row_number,marketplace_id," +
@@ -37,6 +38,7 @@ const SALES_FINANCIAL_EVENT_SELECT =
 type ServerSupabaseClient = ReturnType<typeof createServerSupabaseClient>;
 
 export type CustomerReturnRow = {
+  raw_evidence_json?: unknown;
   amazon_fba_customer_return_row_id: string;
   amazon_report_run_id: string | null;
   source_row_number: number | null;
@@ -239,6 +241,7 @@ export type QueueRow = {
   reimbursement_currency: string | null;
   latest_reimbursement_approval_date: string | null;
   original_sale: OriginalSaleFinancialImpact;
+  original_purchase: ReturnType<typeof returnPurchaseBasis>;
   case_id: string | null;
   workflow_state: string;
   decision: string;
@@ -268,7 +271,7 @@ export async function fetchCustomerReturnRows(supabase: ServerSupabaseClient) {
     .limit(1000);
 
   if (error) throw new Error(`amazon_fba_customer_return_rows: ${error.message}`);
-  return (data ?? []) as unknown as CustomerReturnRow[];
+  return resolveReturnPurchaseBases(supabase, (data ?? []) as unknown as CustomerReturnRow[]);
 }
 
 export async function fetchCustomerReturnRow(supabase: ServerSupabaseClient, id: string) {
@@ -279,7 +282,8 @@ export async function fetchCustomerReturnRow(supabase: ServerSupabaseClient, id:
     .maybeSingle();
 
   if (error) throw new Error(`amazon_fba_customer_return_rows: ${error.message}`);
-  return data as unknown as CustomerReturnRow | null;
+  if (!data) return null;
+  return (await resolveReturnPurchaseBases(supabase, [data as unknown as CustomerReturnRow]))[0];
 }
 
 export async function fetchRecentReimbursementRows(supabase: ServerSupabaseClient) {
@@ -444,6 +448,7 @@ export function buildQueueRow(
       evidence.map((item) => dateOnly(item.approval_date)).filter(Boolean).sort().reverse()[0] ??
       null,
     original_sale: buildOriginalSaleFinancialImpact(row, salesContext),
+    original_purchase: (caseRow ? returnPurchaseBasis(caseRow) : null) ?? returnPurchaseBasis({ ...row, raw_evidence_json: row.raw_evidence_json }),
     case_id: caseRow?.amazon_return_recovery_case_id ?? null,
     workflow_state: caseRow?.workflow_state ?? "needs_inspection",
     decision: caseRow?.decision ?? "needs_review",
