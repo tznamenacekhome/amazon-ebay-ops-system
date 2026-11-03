@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import ts from "typescript";
-const source = readFileSync(new URL("./inventoryLabExport.ts", import.meta.url), "utf8");
-const js = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS } }).outputText;
+const source = readFileSync(new URL("../api/fba-shipments/inventoryLabExport.ts", import.meta.url), "utf8");
+const js = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText;
 const mod = {};
 new Function("exports", js)(mod);
 for (const value of [null, undefined, "", "--", "invalid", "2025-02-29", "2026-13-01"]) {
@@ -20,11 +20,16 @@ const detail = { item_id: "a", asin: "B07FYN3JDL", amazon_title: "Labo", quantit
 const group = { asin: detail.asin, msku: "existing-sku", title: "Labo", system: "Switch", sell_price: 114.99,
   purchase_date: "2025-01-01", cost_per_unit: 99, details: [detail, { ...detail, item_id: "b", unit_cost: 47.2, order_date: "2025-12-07" }] };
 const rows = mod.inventoryLabExportRows([group], { a: "1", b: "2" });
-assert.equal(rows.length, 2);
-assert.equal(rows[0][4], "35.00");
-assert.equal(rows[1][4], "47.20");
-assert.equal(rows[0][7], "12/21/2025");
-assert.equal(rows[1][7], "12/07/2025");
+assert.equal(rows.length, 1);
+assert.equal(rows[0][4], "43.13"); // (35 + 2 * 47.20) / 3, computed server-side.
+assert.equal(rows[0][6], "3");
+assert.equal(rows[0][7], "12/07/2025");
+const mixedSuppliers = { ...group, details: [detail, { ...detail, item_id: "b", supplier: "Sierra" }] };
+assert.equal(mod.inventoryLabExportRows([mixedSuppliers], { a: "1", b: "1" })[0][8], "eBay, Sierra");
+assert.equal(mod.inventoryLabExportRows([group], { a: "1", b: "0" })[0][4], "35.00");
+assert.equal(mod.inventoryLabExportRows([group], { a: "1", b: "0" })[0][7], "12/21/2025");
+const anotherAsin = { ...group, asin: "B000IONGVI", details: [{ ...detail, item_id: "c", asin: "B000IONGVI" }] };
+assert.equal(mod.inventoryLabExportRows([group, anotherAsin], { a: "1", c: "1" }).length, 2);
 for (const [field, value, label] of [["unit_cost", null, "purchase cost"], ["order_date", null, "purchase date"],
   ["supplier", "", "supplier"], ["asin", "", "ASIN"], ["amazon_title", "", "title"]]) {
   const changed = { ...detail, [field]: value };
@@ -39,4 +44,4 @@ for (const value of ["-1", "1.5", "3", "bad"]) assert.throws(() => mod.inventory
 assert.throws(() => mod.inventoryLabExportRows([group], {}), /at least one/);
 assert.equal(mod.inventoryLabExportRows([{ ...group, details: [{ ...detail, unit_cost: 0 }] }], { a: "1" })[0][4], "0.00");
 // MSKU and FNSKU are optional for listings InventoryLab will create.
-console.log("InventoryLab export gate tests passed: every selected source, no averaging, required fields, optional MSKU/FNSKU, excluded rows.");
+console.log("InventoryLab export tests passed: ASIN merge, selected weighted cost, earliest selected date, suppliers, per-source validation, optional MSKU/FNSKU.");

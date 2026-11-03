@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createServerSupabaseClient, requireAdminApiToken } from "../_server";
 import { normalizeAsin as normalizeCatalogAsin, resolveAsinMetadata } from "../_asinMetadata";
 import { returnPurchaseBasis } from "./returnPurchaseBasis";
+import { inventoryLabExportRows } from "./inventoryLabExport";
 
 const supabase = createServerSupabaseClient();
 
@@ -281,15 +282,19 @@ export async function GET(request: NextRequest) {
   if (mode === "shipments") {
     return getShipments();
   }
+  return getPrepResponse();
+}
 
+async function getPrepResponse(selection?: Record<string, string>) {
   try {
-    const rows = await fetchReceivedRows();
+    const selectedIds = selection ? Object.keys(selection) : undefined;
+    const rows = await fetchReceivedRows(selectedIds?.filter(id => !id.startsWith("amazon-return:")));
     const itemIds = rows.map((row) => row.item_id).filter(Boolean);
     const purchaseIds = rows.map((row) => row.purchase_id).filter(Boolean);
     const [itemMeta, purchaseMeta, returnCandidates] = await Promise.all([
       fetchItemMeta(itemIds),
       fetchPurchaseMeta(purchaseIds),
-      fetchReturnRecoveryFbaCandidates(),
+      fetchReturnRecoveryFbaCandidates(selectedIds?.filter(id => id.startsWith("amazon-return:")).map(id => id.slice("amazon-return:".length))),
     ]);
 
     const metaByItemId = new Map(itemMeta.map((item) => [item.item_id, item]));
@@ -354,8 +359,7 @@ export async function GET(request: NextRequest) {
       system: candidate.system || systemFallbacks.get(candidate.asin) || null,
     }));
 
-    return NextResponse.json(
-      groupCandidates(
+    const grouped = groupCandidates(
         candidatesWithFallbacks,
         titleFallbacks,
         preferredMskus,
@@ -364,12 +368,17 @@ export async function GET(request: NextRequest) {
         skuPrices,
         lastSoldPrices,
         feeEstimates
-      )
-    );
+      );
+    if (selection) {
+      const available = new Set(grouped.rows.flatMap(row => row.details.map(detail => detail.item_id)));
+      if (Object.keys(selection).some(id => !available.has(id))) throw new Error("A selected item is no longer eligible for Send to Amazon. Refresh and review the selection.");
+      return NextResponse.json({ rows: inventoryLabExportRows(grouped.rows, selection) });
+    }
+    return NextResponse.json(grouped);
   } catch (error) {
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Failed to load FBA workflow" },
-      { status: 500 }
+      { status: selection ? 400 : 500 }
     );
   }
 }
@@ -887,6 +896,20 @@ export async function POST(request: Request) {
   if (adminError) return adminError;
 
   const body = await request.json();
+  if (body.mode === "export") {
+    const entries = Object.entries(body.quantities ?? {});
+    if (entries.length > 500) return NextResponse.json({ error: "Select at most 500 source rows per export." }, { status: 400 });
+    const selection: Record<string, string> = {};
+    for (const [id, value] of entries) {
+      if (value === "" || Number(value) === 0) continue;
+      if (!/^(?:amazon-return:)?[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id) ||
+          !Number.isInteger(Number(value)) || Number(value) < 1) {
+        return NextResponse.json({ error: "Selected items require valid IDs and positive whole quantities." }, { status: 400 });
+      }
+      selection[id] = String(value);
+    }
+    return getPrepResponse(selection);
+  }
   const shipmentCode =
     typeof body.shipment_id === "string" ? body.shipment_id.trim() : "";
   const items = Array.isArray(body.items) ? body.items : [];
@@ -1285,17 +1308,19 @@ async function listReturnRecoveryItem(
   return shipmentItem ?? sourceItemPayload;
 }
 
-async function fetchReceivedRows() {
+async function fetchReceivedRows(selectedIds?: string[]) {
+  if (selectedIds && !selectedIds.length) return [] as DashboardRow[];
   const rows: DashboardRow[] = [];
   const pageSize = 1000;
   let offset = 0;
 
   while (true) {
-    const { data, error } = await supabase
+    let query = supabase
       .from("vw_purchases_dashboard")
       .select("*")
-      .eq("current_status", "received")
-      .range(offset, offset + pageSize - 1);
+      .eq("current_status", "received");
+    if (selectedIds) query = query.in("item_id", selectedIds);
+    const { data, error } = await query.range(offset, offset + pageSize - 1);
 
     if (error) throw new Error(error.message);
 
@@ -1308,8 +1333,9 @@ async function fetchReceivedRows() {
   return rows;
 }
 
-async function fetchReturnRecoveryFbaCandidates(): Promise<FbaPrepCandidate[]> {
-  const { data, error } = await supabase
+async function fetchReturnRecoveryFbaCandidates(selectedIds?: string[]): Promise<FbaPrepCandidate[]> {
+  if (selectedIds && !selectedIds.length) return [];
+  let query = supabase
     .from("amazon_return_recovery_cases")
     .select(
       "amazon_return_recovery_case_id,workflow_state,decision,asin,seller_sku,sku,fnsku,title," +
@@ -1318,6 +1344,8 @@ async function fetchReturnRecoveryFbaCandidates(): Promise<FbaPrepCandidate[]> {
     .eq("workflow_state", "ready_to_send_back_to_amazon")
     .eq("decision", "send_back_to_amazon")
     .limit(500);
+  if (selectedIds) query = query.in("amazon_return_recovery_case_id", selectedIds);
+  const { data, error } = await query;
 
   if (error) {
     console.warn("FBA Amazon return recovery lookup failed", error.message);

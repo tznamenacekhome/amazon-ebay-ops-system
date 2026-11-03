@@ -18,9 +18,9 @@ type ExportGroup = {
   sell_price: number | null; details: ExportDetail[];
 };
 
-/** Validate every selected source row; never average or substitute its cost/date. */
+/** Server only: validate sources first, then merge selected units by ASIN. */
 export function inventoryLabExportRows(groups: ExportGroup[], quantities: Record<string, string>): string[][] {
-  const rows: string[][] = [];
+  const merged = new Map<string, { row: string[]; quantity: number; totalCost: number; date: string; suppliers: Set<string> }>();
   const issues: string[] = [];
   for (const group of groups) for (const detail of group.details) {
     const draft = quantities[detail.item_id];
@@ -44,10 +44,25 @@ export function inventoryLabExportRows(groups: ExportGroup[], quantities: Record
       issues.push(`${asin || detail.item_id}: ${missing.join(", ")}`);
       continue;
     }
-    rows.push([asin, sku || "", title!, group.system || "", detail.unit_cost!.toFixed(2),
-      group.sell_price!.toFixed(2), String(quantity), date, supplier!]);
+    const existing = merged.get(asin);
+    if (existing) {
+      existing.quantity += quantity;
+      existing.totalCost += detail.unit_cost! * quantity;
+      if (detail.order_date! < existing.date) existing.date = detail.order_date!;
+      existing.suppliers.add(supplier!);
+    } else {
+      merged.set(asin, { row: [asin, group.msku || sku || "", title!, group.system || "", "",
+        group.sell_price!.toFixed(2), "", "", ""], quantity, totalCost: detail.unit_cost! * quantity,
+        date: detail.order_date!, suppliers: new Set([supplier!]) });
+    }
   }
   if (issues.length) throw new Error(`Export blocked. Complete the required fields for every selected unit: ${issues.join("; ")}.`);
-  if (!rows.length) throw new Error("Select at least one unit to export.");
-  return rows;
+  if (!merged.size) throw new Error("Select at least one unit to export.");
+  return [...merged.values()].map(({ row, quantity, totalCost, date, suppliers }) => {
+    row[4] = (totalCost / quantity).toFixed(2);
+    row[6] = String(quantity);
+    row[7] = inventoryLabPurchaseDate(date);
+    row[8] = [...suppliers].join(", ");
+    return row;
+  });
 }

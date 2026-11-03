@@ -15,10 +15,19 @@ is blocked, rather than silently dropping units or writing incomplete rows.
 
 Valid calendar dates use `MM/DD/YYYY` without timezone shifts. The formatter's
 unknown-date result is never exported because the gate requires a valid date.
-Display placeholders in the app are unchanged. Export uses one line per selected
-source row, preserving original cost/date/supplier for multiple purchases under
-one ASIN. The previous client-side weighted cost calculation was removed;
-authoritative backend unit costs are exported directly.
+Display placeholders in the app are unchanged. Export validates every selected
+source row, then merges by ASIN: quantities sum, cost is the quantity-weighted
+average, purchase date is the earliest selected source date, and suppliers are
+deduplicated and combined. MSKU remains optional and uses the preferred ASIN
+MSKU when available.
+
+The completeness change in `c0e079a` accidentally replaced the existing ASIN
+merge with per-purchase CSV rows. This regression is corrected. Export aggregation
+now runs in the FBA API against authoritative database unit costs. The browser
+sends only selected source IDs and quantities, not cost/date/supplier values.
+Database reads are restricted to those IDs (at most 500 selected source rows),
+and missing/ineligible selected items block export rather than disappearing.
+The export POST performs no writes and does not create or finalize a shipment.
 
 The two remaining ready returns were matched by exact SKU to InventoryLab and
 independently checked against consumed legacy sale COGS. Comfortiva SKU
@@ -30,7 +39,8 @@ bases, not inferred matches to a particular non-eBay source-sheet row. The FBA
 API now displays the verified original supplier rather than a recovery label.
 
 Regression checks cover missing required fields even when ASIN aggregates look
-complete, separate costs/dates, valid zero cost, excluded incomplete rows,
+complete, selected weighted costs, earliest selected dates, ASIN merging,
+combined suppliers, valid zero cost, excluded incomplete rows,
 optional MSKU/FNSKU, quantity validation, unknown/invalid dates, leap years, full years,
 and UTC/Los Angeles/Honolulu. Node tests, TypeScript, and the production Docker
 build pass. Final application commit: `540fd1702496`; web task `197`, image

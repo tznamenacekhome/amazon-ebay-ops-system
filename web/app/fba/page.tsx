@@ -19,7 +19,6 @@ import {
   type RefreshNotice,
 } from "../syncRefresh";
 import { DataFreshness } from "../DataFreshness";
-import { inventoryLabExportRows } from "./inventoryLabExport";
 import { TrackingLink } from "../components/TrackingLink";
 import { mutationHeaders } from "../mutationHeaders";
 import { KeepaPriceIndicator } from "../components/KeepaPriceIndicator";
@@ -402,10 +401,17 @@ export default function FbaPage() {
     }
   }
 
-  function exportCsv() {
+  async function exportCsv() {
     let exportRows: string[][];
     try {
-      exportRows = inventoryLabExportRows(data?.rows ?? [], quantityDrafts);
+      const response = await fetch("/api/fba-shipments", {
+        method: "POST",
+        headers: mutationHeaders({ "Content-Type": "application/json" }),
+        body: JSON.stringify({ mode: "export", quantities: Object.fromEntries(Object.entries(quantityDrafts).filter(([, value]) => value.trim() !== "" && Number(value) !== 0)) }),
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || "Export failed.");
+      exportRows = result.rows;
     } catch (error) {
       setError(error instanceof Error ? error.message : "Complete all required fields before exporting.");
       return;
