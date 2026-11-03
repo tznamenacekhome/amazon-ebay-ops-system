@@ -40,3 +40,8 @@ Docker credential config was removed after deployment. Direct browser export
 verification remains unavailable because the browser-control Node runtime
 cannot start; tests and production-data checks do not establish an actual
 InventoryLab import success.
+
+Production verification: the only RUNNING service task is revision 197, and its
+private IP matches the healthy ALB target. The previous target was draining at
+verification time, so full ECS deployment cleanup was still in progress. The
+MSKU-optional build is serving traffic; no claim of a completed IL import is made.
