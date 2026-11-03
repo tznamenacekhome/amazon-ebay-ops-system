@@ -32,6 +32,11 @@ API now displays the verified original supplier rather than a recovery label.
 Regression checks cover missing required fields even when ASIN aggregates look
 complete, separate costs/dates, valid zero cost, excluded incomplete rows,
 optional MSKU/FNSKU, quantity validation, unknown/invalid dates, leap years, full years,
-and UTC/Los Angeles/Honolulu. Node tests and TypeScript pass. Deployment receipt
-follows. The earlier date-format-only build was task 195; the complete-unit gate
-supersedes that approach.
+and UTC/Los Angeles/Honolulu. Node tests, TypeScript, and the production Docker
+build pass. Final application commit: `540fd1702496`; web task `197`, image
+`sha256:cd5ab399ee3b5c00d0c08ebfa72e0930f0d0298b56b562feb971a42c121cba9c`.
+Both verified source updates were read back from production. The temporary
+Docker credential config was removed after deployment. Direct browser export
+verification remains unavailable because the browser-control Node runtime
+cannot start; tests and production-data checks do not establish an actual
+InventoryLab import success.
