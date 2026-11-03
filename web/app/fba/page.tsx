@@ -19,6 +19,7 @@ import {
   type RefreshNotice,
 } from "../syncRefresh";
 import { DataFreshness } from "../DataFreshness";
+import { inventoryLabPurchaseDate } from "./inventoryLabExport";
 import { TrackingLink } from "../components/TrackingLink";
 import { mutationHeaders } from "../mutationHeaders";
 import { KeepaPriceIndicator } from "../components/KeepaPriceIndicator";
@@ -423,7 +424,7 @@ export default function FbaPage() {
         moneyForCsv(row.cost_per_unit),
         moneyForCsv(row.sell_price),
         String(row.quantity),
-        formatDate(row.purchase_date),
+        inventoryLabPurchaseDate(row.purchase_date),
         row.supplier || "",
       ]),
     ];
