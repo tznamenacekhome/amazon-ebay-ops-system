@@ -23,7 +23,12 @@ import { TrackingLink } from "../components/TrackingLink";
 import { mutationHeaders } from "../mutationHeaders";
 import { KeepaPriceIndicator } from "../components/KeepaPriceIndicator";
 
+import { allocationSelection, toggleAsin } from "./allocationSelection";
+import { businessLocalNow } from "./listingBatch";
+import { ListingBatches, type ListingBatch } from "./ListingBatches";
+
 type FbaDetail = {
+  condition?: string | null;
   item_id: string;
   source_type?: "purchase_item" | "amazon_return_recovery";
   source_status?: string | null;
@@ -167,6 +172,8 @@ const LAST_OPENED_ASIN_KEY = "mbop:fba:last-opened-asin";
 const FBA_PRICING_REFRESH_KEY = "mbop:fba-pricing-refresh:v2";
 
 export default function FbaPage() {
+  const [method, setMethod] = useState<"FBA" | "MF">("FBA");
+  const [batch, setBatch] = useState<ListingBatch | null>(null);
   const [activeView, setActiveView] = useState<"prep" | "shipments">("prep");
   const [data, setData] = useState<FbaData | null>(null);
   const [shipmentData, setShipmentData] = useState<ShipmentData | null>(null);
@@ -315,7 +322,7 @@ export default function FbaPage() {
           quantity > 0 &&
           detail.source_status !== "Ready for Send to Amazon"
         ) {
-          return detail.source_status || "This Amazon Return Recovery row is not eligible for Send to Amazon.";
+          return detail.source_status || "This Amazon Return Recovery row is not eligible for List on Amazon.";
         }
         if (quantity < 0) return "Quantity to send cannot be negative.";
         if (quantity > detail.quantity) {
@@ -327,7 +334,7 @@ export default function FbaPage() {
     return "";
   }, [data, quantityDrafts, selectedTotals.units, shipmentId]);
 
-  async function loadFba() {
+  async function loadFba(reset = false) {
     setLoading(true);
     setError(null);
     setNotice(null);
@@ -341,7 +348,7 @@ export default function FbaPage() {
 
       const payload = (await response.json()) as FbaData;
       setData(payload);
-      setQuantityDrafts(quantityDraftsForData(payload));
+      if (!batch || reset) setQuantityDrafts(quantityDraftsForData(payload));
       setSellPriceDrafts(sellPriceDraftsForData(payload));
       setAsinDrafts(asinDraftsForData(payload));
     } catch (err) {
@@ -401,48 +408,6 @@ export default function FbaPage() {
     }
   }
 
-  async function exportCsv() {
-    let exportRows: string[][];
-    try {
-      const response = await fetch("/api/fba-shipments", {
-        method: "POST",
-        headers: mutationHeaders({ "Content-Type": "application/json" }),
-        body: JSON.stringify({ mode: "export", quantities: Object.fromEntries(Object.entries(quantityDrafts).filter(([, value]) => value.trim() !== "" && Number(value) !== 0)) }),
-      });
-      const result = await response.json();
-      if (!response.ok) throw new Error(result.error || "Export failed.");
-      exportRows = result.rows;
-    } catch (error) {
-      setError(error instanceof Error ? error.message : "Complete all required fields before exporting.");
-      return;
-    }
-    setError(null);
-    const csvRows = [
-      [
-        "ASIN",
-        "MSKU",
-        "Title",
-        "System",
-        "Cost per unit",
-        "List Price",
-        "Quantity",
-        "Purchase date",
-        "Supplier",
-      ],
-      ...exportRows,
-    ];
-
-    const blob = new Blob([csvRows.map(toCsvRow).join("\n")], {
-      type: "text/csv;charset=utf-8",
-    });
-    const url = URL.createObjectURL(blob);
-    const anchor = document.createElement("a");
-    anchor.href = url;
-    anchor.download = `mbop-fba-${new Date().toISOString().slice(0, 10)}.csv`;
-    anchor.click();
-    URL.revokeObjectURL(url);
-  }
-
   async function saveShipment() {
     if (validationMessage) {
       setError(validationMessage);
@@ -461,11 +426,17 @@ export default function FbaPage() {
     setNotice(null);
 
     try {
+      let listingBatch = batch;
+      if (!listingBatch) {
+        const draftResponse = await fetch("/api/amazon-listing-batches", {method:"POST",headers:mutationHeaders({"Content-Type":"application/json"}),body:JSON.stringify({id:crypto.randomUUID(),action:"draft",method:"FBA",local:businessLocalNow(),reference:shipmentId.trim(),quantities:quantityDrafts})});
+        const draft=await draftResponse.json();if(!draftResponse.ok)throw new Error(draft.error);listingBatch=draft;setBatch(draft);
+      }
       const response = await fetch("/api/fba-shipments", {
         method: "POST",
         headers: mutationHeaders({ "Content-Type": "application/json" }),
         body: JSON.stringify({
           shipment_id: shipmentId.trim(),
+          listing_batch_id: listingBatch?.id,
           items,
         }),
       });
@@ -475,10 +446,11 @@ export default function FbaPage() {
         throw new Error(payload?.error || `Save failed: ${response.status}`);
       }
 
+      setBatch(null);
       setNotice(`Shipment ${shipmentId.trim()} saved.`);
       setShipmentId("");
       setExpandedAsin(null);
-      await loadFba();
+      await loadFba(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to save shipment.");
     } finally {
@@ -580,9 +552,9 @@ export default function FbaPage() {
     <main className="min-h-screen bg-slate-100 p-4 pr-32 text-slate-900 lg:pr-40">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Ready to ship to Amazon FBA</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">List on Amazon</h1>
           <p className="text-sm text-slate-600">
-            MBOP shipment preparation and Amazon inbound visibility
+            Prepare InventoryLab listing batches for FBA or merchant fulfillment
           </p>
         </div>
 
@@ -608,15 +580,7 @@ export default function FbaPage() {
               Oldest pricing cache: {formatDateTime(data?.totals.pricing_cache_oldest_at)}
             </div>
           ) : null}
-          <button
-            onClick={exportCsv}
-            disabled={activeView !== "prep" || !data?.rows.length}
-            className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium shadow-sm hover:bg-slate-50 disabled:opacity-50"
-            type="button"
-          >
-            <Download className="h-4 w-4" />
-            Export CSV
-          </button>
+
         </div>
       </div>
 
@@ -661,7 +625,7 @@ export default function FbaPage() {
           type="button"
         >
           <Truck className="h-4 w-4" />
-          Shipments
+          FBA Shipments
         </button>
       </div>
 
@@ -674,6 +638,9 @@ export default function FbaPage() {
         />
       ) : (
         <>
+
+      <ListingBatches key={batch?.id || "new"} quantities={quantityDrafts} method={method} setMethod={setMethod} batch={batch} shipmentId={shipmentId}
+        onBatch={b => {setBatch(b); if(b?.fulfillment_method === "FBA" && b.external_reference !== "FBA draft")setShipmentId(b.external_reference); if (!b && data) setQuantityDrafts(quantityDraftsForData(data));}} onRestore={setQuantityDrafts} onCompleted={async () => { await loadFba(); }} />
 
       <section className="mb-4 rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
         <label className="grid gap-1 text-sm font-medium text-slate-700">
@@ -708,11 +675,12 @@ export default function FbaPage() {
         />
       </section>
 
-      <section className="mb-4 rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+      <section hidden={method === "MF"} className="mb-4 rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
         <div className="grid gap-3 lg:grid-cols-[minmax(260px,360px)_1fr_auto] lg:items-end">
           <label className="grid gap-1 text-sm font-medium text-slate-700">
-            Amazon Shipment ID
+            {method === "FBA" ? "Amazon Shipment ID" : "Merchant fulfillment"}
             <input
+              disabled={method === "MF"}
               value={shipmentId}
               onChange={(event) => setShipmentId(event.target.value)}
               className="h-11 rounded-lg border border-slate-300 px-3 text-base font-medium"
@@ -733,7 +701,7 @@ export default function FbaPage() {
 
           <button
             onClick={saveShipment}
-            disabled={saving || !!validationMessage}
+            disabled={method !== "FBA" || saving || !!validationMessage || (!!batch && batch.status !== "exported" && batch.status !== "draft")}
             className="inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-slate-900 px-4 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-50"
             type="button"
             title={validationMessage || "Save shipment"}
@@ -744,6 +712,7 @@ export default function FbaPage() {
         </div>
       </section>
 
+      <fieldset disabled={!!batch && batch.status !== "draft"}>
       <section className="overflow-x-auto rounded-lg border border-slate-200 bg-white shadow-sm">
         <table
           className="min-w-[1562px] max-w-[1880px] table-fixed text-left text-sm"
@@ -751,7 +720,7 @@ export default function FbaPage() {
         >
           <colgroup>
             <col className="w-8" />
-            <col className="w-[115px]" />
+            <col className="w-[140px]" />
             <col />
             <col className="w-[60px]" />
             <col className="w-[85px]" />
@@ -769,7 +738,7 @@ export default function FbaPage() {
             <tr>
               <th className="sticky left-0 z-30 bg-slate-50 px-2 py-2 align-middle" />
               <th className="sticky left-8 z-30 whitespace-nowrap bg-slate-50 px-3 py-2 align-middle">ASIN</th>
-              <th className="sticky left-[147px] z-30 bg-slate-50 px-3 py-2 align-middle shadow-[3px_0_5px_-4px_rgba(15,23,42,0.6)]">Title</th>
+              <th className="sticky left-[172px] z-30 bg-slate-50 px-3 py-2 align-middle shadow-[3px_0_5px_-4px_rgba(15,23,42,0.6)]">Title</th>
               <th className="whitespace-nowrap px-2 py-2 text-center align-middle">System</th>
               <th className="whitespace-nowrap px-2 py-2 text-right align-middle">Buy Price</th>
               <th className="whitespace-nowrap px-2 py-2 text-right align-middle">Sell Price</th>
@@ -787,19 +756,19 @@ export default function FbaPage() {
             {loading ? (
               <tr>
                 <td className="px-3 py-8 text-center text-slate-500" colSpan={14}>
-                  Loading FBA candidates...
+                  Loading listing candidates...
                 </td>
               </tr>
             ) : !data?.rows.length ? (
               <tr>
                 <td className="px-3 py-8 text-center text-slate-500" colSpan={14}>
-                  No Received Amazon inventory is ready for FBA.
+                  No Received Amazon inventory is ready to list.
                 </td>
               </tr>
             ) : !filteredPrepRows.length ? (
               <tr>
                 <td className="px-3 py-8 text-center text-slate-500" colSpan={14}>
-                  No FBA candidates match search.
+                  No listing candidates match search.
                 </td>
               </tr>
             ) : (
@@ -845,6 +814,11 @@ export default function FbaPage() {
                         isLastOpened ? "bg-amber-50" : "bg-white"
                       }`}
                     >
+                      <input type="checkbox" aria-label={`Select ASIN ${row.asin}`}
+                        checked={allocationSelection(row.details,quantityDrafts).checked}
+                        disabled={allocationSelection(row.details,quantityDrafts).disabled}
+                        ref={el => { if(el) el.indeterminate=allocationSelection(row.details,quantityDrafts).indeterminate; }}
+                        onChange={e => {const checked=e.target.checked;setQuantityDrafts(v=>toggleAsin(row.details,v,checked));}} />
                       <a
                         href={amazonAsinUrl(row.asin)}
                         target="_blank"
@@ -856,7 +830,7 @@ export default function FbaPage() {
                       </a>
                     </td>
                     <td
-                      className={`sticky left-[147px] z-20 whitespace-normal break-words px-3 py-2 align-middle font-medium leading-snug shadow-[3px_0_5px_-4px_rgba(15,23,42,0.6)] ${
+                      className={`sticky left-[172px] z-20 whitespace-normal break-words px-3 py-2 align-middle font-medium leading-snug shadow-[3px_0_5px_-4px_rgba(15,23,42,0.6)] ${
                         isLastOpened ? "bg-amber-50" : "bg-white"
                       }`}
                     >
@@ -972,6 +946,7 @@ export default function FbaPage() {
           </tbody>
         </table>
       </section>
+      </fieldset>
         </>
       )}
     </main>
@@ -1401,7 +1376,7 @@ function DetailTable({
     <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
       <div className="flex items-center gap-2 border-b border-slate-200 px-3 py-2 text-sm font-medium text-slate-700">
         <PackageOpen className="h-4 w-4" />
-        Shipment Detail
+        Listing Allocation Detail
       </div>
       <table className="w-full text-left text-sm">
         <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
@@ -1411,9 +1386,9 @@ function DetailTable({
             <th className="px-3 py-2">Amazon Title</th>
             <th className="px-3 py-2">ASIN</th>
             <th className="px-3 py-2 text-right">Received Qty</th>
-            <th className="px-3 py-2 text-right">Qty To Send</th>
+            <th className="px-3 py-2 text-right">Selected Qty</th>
             <th className="px-3 py-2 text-right">Cost / Unit</th>
-            <th className="px-3 py-2">Status After Save</th>
+            <th className="px-3 py-2">After completion</th>
           </tr>
         </thead>
         <tbody>
@@ -1424,7 +1399,10 @@ function DetailTable({
             return (
               <tr key={detail.item_id} className="border-t border-slate-100">
                 <td className="whitespace-nowrap px-3 py-2 font-medium">
-                  <div>{detail.supplier_order_id || "--"}</div>
+                  <div><input type="checkbox" aria-label={`Select allocation ${detail.item_id}`}
+                    checked={quantityToSend > 0} disabled={detail.source_type === "amazon_return_recovery" && detail.source_status !== "Ready for Send to Amazon"}
+                    onChange={e => setQuantityDrafts(v => ({...v,[detail.item_id]:e.target.checked ? String(detail.quantity) : "0"}))} /> {detail.supplier_order_id || "--"}</div>
+                  <div className="text-xs text-slate-500">{detail.condition || "Condition unspecified"} · {detail.item_id}</div>
                   {detail.source_type === "amazon_return_recovery" ? (
                     <div className="mt-1 inline-flex rounded border border-blue-200 bg-blue-50 px-2 py-0.5 text-xs font-semibold text-blue-700">
                       Amazon return
@@ -1469,7 +1447,7 @@ function DetailTable({
                 <td className="px-3 py-2 text-right">{detail.quantity}</td>
                 <td className="px-3 py-2 text-right">
                   <input
-                    value={quantityDrafts[detail.item_id] ?? String(detail.quantity)}
+                    value={quantityDrafts[detail.item_id] ?? "0"}
                     onChange={(event) =>
                       setQuantityDrafts((current) => ({
                         ...current,
@@ -1494,7 +1472,7 @@ function DetailTable({
                     >
                       {detail.source_status === "Ready for Send to Amazon"
                         ? "Will route Return Recovery case to FBA shipment"
-                        : detail.source_status || "Not eligible for Send to Amazon"}
+                        : detail.source_status?.replace("Send to Amazon", "List on Amazon") || "Not eligible for List on Amazon"}
                     </span>
                   ) : quantityToSend === 0 ? (
                     <span className="text-slate-600">Remain Received</span>

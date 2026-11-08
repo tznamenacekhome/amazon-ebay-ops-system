@@ -76,6 +76,8 @@ type FeeEstimateRow = {
 
 type ItemMeta = {
   item_id: string;
+  condition: string | null;
+  received_date: string | null;
   amazon_title: string | null;
   marketplace: "Amazon" | "eBay" | null;
   exclude_from_purchase_reporting: boolean | null;
@@ -125,6 +127,8 @@ type ReturnRecoverySalesProfitRow = {
 
 type FbaPrepCandidate = {
   item_id: string;
+  condition?: string | null;
+  received_date?: string | null;
   purchase_id: string | null;
   supplier_order_id: string | null;
   order_date: string | null;
@@ -316,6 +320,8 @@ async function getPrepResponse(selection?: Record<string, string>) {
       return [
         {
           item_id: row.item_id,
+          condition: meta?.condition ?? null,
+          received_date: meta?.received_date ?? null,
           purchase_id: row.purchase_id,
           supplier_order_id: row.supplier_order_id,
           order_date: row.order_date,
@@ -371,7 +377,7 @@ async function getPrepResponse(selection?: Record<string, string>) {
       );
     if (selection) {
       const available = new Set(grouped.rows.flatMap(row => row.details.map(detail => detail.item_id)));
-      if (Object.keys(selection).some(id => !available.has(id))) throw new Error("A selected item is no longer eligible for Send to Amazon. Refresh and review the selection.");
+      if (Object.keys(selection).some(id => !available.has(id))) throw new Error("A selected item is no longer eligible for List on Amazon. Refresh and review the selection.");
       return NextResponse.json({ rows: inventoryLabExportRows(grouped.rows, selection) });
     }
     return NextResponse.json(grouped);
@@ -931,6 +937,18 @@ export async function POST(request: Request) {
   }
 
   try {
+    if (body.listing_batch_id) {
+      const {data:batch,error}=await supabase.from("amazon_listing_batches").select("fulfillment_method,selection").eq("id",body.listing_batch_id).single();
+      if(error) throw new Error(error.message);
+      if(batch.fulfillment_method!=="FBA") throw new Error("MF batches cannot be saved as FBA shipments.");
+      const selected = Object.entries(batch.selection as Record<string,string>).filter(([,q])=>Number(q)>0);
+      if(selected.length!==requestedItems.length || selected.some(([id,q])=>!requestedItems.some(i=>i.item_id===id && i.quantity_to_send===Number(q)))) throw new Error("Save the draft selection or export again before saving the FBA shipment.");
+    }
+    const recordBatch = async () => {
+      if (!body.listing_batch_id) return;
+      const {error}=await supabase.rpc("mbop_finish_fba_listing_batch",{p_batch:body.listing_batch_id,p_code:shipmentCode});
+      if(error) throw new Error(error.message);
+    };
     const existingShipment = await fetchShipmentByCode(shipmentCode);
     const existingLinked = existingShipment
       ? await fetchExistingShipmentLinks(existingShipment.fba_shipment_id)
@@ -943,6 +961,7 @@ export async function POST(request: Request) {
 
     if (itemsToSave.length === 0) {
       if (existingShipment && skippedItems.some((item) => item.reason === "already_saved")) {
+        await recordBatch();
         return NextResponse.json({
           success: true,
           shipment: existingShipment,
@@ -977,6 +996,7 @@ export async function POST(request: Request) {
       savedItems.push(savedItem);
     }
 
+    await recordBatch();
     return NextResponse.json({
       success: true,
       shipment,
@@ -1164,7 +1184,7 @@ async function validateReturnRecoverySaveItems(requestedItems: SaveItem[]) {
       recoveryCase.workflow_state !== "ready_to_send_back_to_amazon" ||
       recoveryCase.decision !== "send_back_to_amazon"
     ) {
-      throw new Error("Only Return Recovery items marked Ready for Send to Amazon can be saved to an FBA shipment.");
+      throw new Error("Only Return Recovery items marked Ready for List on Amazon can be saved to an FBA shipment.");
     }
 
     const asin = normalizeAsin(recoveryCase.asin);
@@ -1175,7 +1195,7 @@ async function validateReturnRecoverySaveItems(requestedItems: SaveItem[]) {
     const observedCondition = observedConditionFromRaw(recoveryCase.raw_evidence_json);
     if (observedCondition !== "new") {
       throw new Error(
-        `Amazon Return Recovery item ${asin} is blocked from Send to Amazon because observed condition is ${formatStatus(observedCondition)}. Only observed condition New can be routed to FBA in this workflow.`
+        `Amazon Return Recovery item ${asin} is blocked from List on Amazon because observed condition is ${formatStatus(observedCondition)}. Only observed condition New can be routed to FBA in this workflow.`
       );
     }
 
@@ -1443,7 +1463,7 @@ async function fetchItemMeta(itemIds: string[]) {
     const chunk = itemIds.slice(index, index + chunkSize);
     const { data, error } = await supabase
       .from("purchase_items")
-      .select("item_id,amazon_title,marketplace,exclude_from_purchase_reporting")
+    .select("item_id,amazon_title,marketplace,exclude_from_purchase_reporting,condition,received_date")
       .in("item_id", chunk);
 
     if (error) {

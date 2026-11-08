@@ -1,4 +1,6 @@
-# MBOP Amazon FBA Workflow
+# MBOP List on Amazon Workflow
+
+For FBA/MF batch selection, immutable exports, and merchant-held completion, see [MF listing batches](../../../docs/mf_listing_batches.md). The FBA behavior below remains supported.
 
 The Amazon FBA workspace prepares Received Amazon-bound purchase items for InventoryLab shipment creation.
 

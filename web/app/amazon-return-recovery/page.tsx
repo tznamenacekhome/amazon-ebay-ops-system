@@ -1027,10 +1027,10 @@ function WorkflowPill({ row }: { row: QueueRow }) {
 function workflowDisplayLabel(workflowState: string, decision: string) {
   if (workflowState === "needs_inspection") return "Needs inspection";
   if (workflowState === "reimbursement_review") return "Needs case review";
-  if (workflowState === "ready_to_send_back_to_amazon") return "Ready for Send to Amazon";
+  if (workflowState === "ready_to_send_back_to_amazon") return "Ready for List on Amazon";
   if (decision === "sell_on_ebay") return "eBay decision recorded";
   if (decision === "dispose_donate") return "Dispose/donate recorded";
-  if (decision === "send_back_to_amazon") return "Ready for Send to Amazon";
+  if (decision === "send_back_to_amazon") return "Ready for List on Amazon";
   return formatStatusText(workflowState);
 }
 

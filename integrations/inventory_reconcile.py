@@ -159,6 +159,7 @@ def sources_unchanged_since_last_reconciliation(supabase) -> bool:
     source_checks = [
         ("purchases", "created_at"),
         ("purchase_items", "created_at"),
+        ("amazon_merchant_inventory_lots", "listed_at"),
         ("fba_shipments", "created_at"),
         ("fba_shipments", "updated_at"),
         ("fba_shipment_items", "created_at"),
@@ -344,7 +345,7 @@ def fetch_item_meta(
     meta: dict[str, dict[str, Any]] = {}
     select = (
         "item_id,amazon_title,marketplace,received_date,"
-        "exclude_from_purchase_reporting,exclusion_reason"
+        "exclude_from_purchase_reporting,exclusion_reason,raw_import_json"
     )
 
     for chunk in chunks(item_ids, ITEM_LOOKUP_BATCH_SIZE):
@@ -557,6 +558,9 @@ def project_purchase_state(
     if status == "return_pending":
         return StateProjection("return_pending", "home", "return_to_supplier", "none", "return_pending")
     if status == "listed":
+        raw = meta.get("raw_import_json") or {}
+        if isinstance(raw, dict) and raw.get("listing_fulfillment_method") == "MF":
+            return StateProjection("home_amazon_mfn_listed", "home", "amazon_mfn", "amazon", "listed", needs_reconciliation=True)
         if marketplace == "eBay":
             return StateProjection("home_ebay_resale_listed", "home", "ebay_resale", "ebay", "listed")
         if has_current_fba_link:

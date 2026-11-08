@@ -279,7 +279,7 @@ const SCHEDULER_GROUPS: SchedulerGroupConfig[] = [
     expectedEveryHours: 8,
     criticalAfterHours: 18,
     description: "Refreshes active FBA shipment status and carrier tracking.",
-    features: ["Send to Amazon", "FBA shipment tracking", "Inventory availability"],
+    features: ["List on Amazon", "FBA shipment tracking", "Inventory availability"],
     jobNames: ["Amazon FBA shipments", "FBA EasyPost carrier tracking", "ZFI business summary push"],
   },
   {
@@ -357,12 +357,12 @@ const SCHEDULER_GROUPS: SchedulerGroupConfig[] = [
     label: "FBA Pricing",
     domain: "Amazon FBA",
     cadence: "Manual/on-demand",
-    schedule: "Manual from Send to Amazon pricing refresh",
+    schedule: "Manual from List on Amazon pricing refresh",
     scheduleNames: [],
     expectedEveryHours: 0,
     criticalAfterHours: 0,
     description: "Refreshes Keepa and Amazon fee estimates for received FBA prep rows.",
-    features: ["Send to Amazon", "FBA prep pricing", "Fee estimate review"],
+    features: ["List on Amazon", "FBA prep pricing", "Fee estimate review"],
     jobNames: ["Keepa FBA prep pricing", "Amazon Product Fees estimates"],
   },
 ];
