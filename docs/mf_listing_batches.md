@@ -36,6 +36,7 @@ supabase db push --linked
 
 ```powershell
 node web/app/fba/listingBatch.test.mjs
+node web/app/fba/listingBatchApi.test.mjs
 node web/app/fba/inventoryLabExport.test.mjs
 .venv/Scripts/python.exe tests/test_mf_listing_batches.py
 .venv/Scripts/python.exe -m unittest discover -s tests -p test_mf_inventory_projection.py
@@ -45,3 +46,5 @@ npm.cmd run build
 ```
 
 The transaction suite starts an isolated disposable PostgreSQL 17 Docker container, publishes no port, applies the real migration over minimal workflow fixtures, and removes the container. It tests partial/full completion, original cost/receipt preservation, concurrent retries, immutable re-export, rollback across allocations, stale competing batches, missing MSKUs, draft zeroes, and existing FBA history behavior. It never changes production inventory.
+
+The API fixture checks validate selected allocation snapshots, exact CSV persistence, MF reference formatting, exclusion of FBA-only SKU mappings, draft zeroes, rejected stale/invalid selections, and immutable re-export without preparation reads.
