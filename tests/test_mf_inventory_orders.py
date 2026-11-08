@@ -12,6 +12,7 @@ class MFInventory(ListingTransactions):
     def setUpClass(cls):
         super().setUpClass()
         cls.sql((ROOT/'supabase/migrations/20261108042001_mbop_mf_inventory_orders.sql').read_text(encoding='utf-8-sig'))
+        cls.sql((ROOT/'supabase/migrations/20261108044257_mbop_mf_historical_order_baseline.sql').read_text(encoding='utf-8'))
     def setUp(self):
         super().setUp()
         self.sql('truncate amazon_mf_accounts cascade;truncate amazon_merchant_inventory_lots cascade;')
@@ -81,5 +82,14 @@ class MFInventory(ListingTransactions):
         self.sql(f"select mbop_mf_sync_finish({lit(run)},now(),'Orders permission HTTP 403','{{}}');")
         self.assertEqual(self.sql('select last_success_at is null and orders_through is null from amazon_mf_accounts'),'t')
         self.assertIn('403',self.sql('select last_error from amazon_mf_accounts'))
+
+    def test_historical_refund_update_cannot_consume_newly_counted_stock(self):
+        self.stock();row=self.orderrow(shipped=2,ordered=2,status='Shipped')
+        row['purchased_at']=(self.t-timedelta(days=3)).isoformat()
+        self.apply(row)
+        self.assertEqual(self.balance()['on_hand'],4)
+        self.assertEqual(self.sql('select baseline_shipped from amazon_mf_order_items'),'2')
+        self.assertIn('timing requires reconciliation',self.sql('select anomaly from amazon_mf_order_items'))
+        self.assertEqual(self.sql('select count(*) from amazon_mf_shipment_events'),'0')
 
 if __name__=='__main__':unittest.main()

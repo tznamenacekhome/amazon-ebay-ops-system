@@ -30,7 +30,7 @@ The existing economic allocation convention is FIFO. Physical MF allocation narr
 
 Cumulative fulfilled quantity creates only a positive high-water delta. Repeated downloads cannot consume it twice. Partial fulfillment consumes only the delta and retains outstanding demand. Cancellation releases unshipped reservations but never returns shipped units. Quantity decreases and replacement orders use their own Amazon identities; a shipped-quantity regression is flagged without restocking. Buyer cancellation requests alone are not confirmed cancellations. Refunds have no stock-writing path.
 
-Shipment event timestamps retain Amazon's order LastUpdatedTime, which is an observation boundary rather than a carrier dispatch timestamp. First observed historical fulfilled quantities before the tracking start are baseline quantities, displayed separately. A newly counted opening cannot satisfy an earlier unresolved shipment: its stock_start_at is later than that event. Such shortfalls remain reconciliation evidence instead of consuming current stock twice.
+Shipment event timestamps retain Amazon's order LastUpdatedTime, which is an observation boundary rather than a carrier dispatch timestamp. First-seen fulfilled quantities on orders created before tracking began are historical baselines, even if an old order was updated recently (for example, by a refund). Ambiguous first sightings after tracking began are flagged for reconciliation; known unshipped orders still consume fulfillment deltas normally. A newly counted opening cannot satisfy an earlier unresolved shipment: its stock_start_at is later than that event. Such shortfalls remain reconciliation evidence instead of consuming current stock twice.
 
 The existing inventory projection reads remaining MF listing-lot balances rather than projecting sold units as physically present. It remains a derived scheduled projection; MF Inventory uses current ledger balances directly.
 
@@ -44,7 +44,7 @@ Inspection-held and FBA-allocation columns are represented independently and def
 
 ## Deployment and validation
 
-Migration: `supabase/migrations/20261108042001_mbop_mf_inventory_orders.sql`. It is additive to the listing foundation and does not modify applied migrations. Reconcile all shared versions with `supabase migration list --linked`, dry-run the linked push, then list again before the real push. Verify project `froeucjkcepuhgwisped`. All MF tables have RLS and only server-role access; functions use invoker security with public/anon/authenticated execution revoked.
+Migrations: `supabase/migrations/20261108042001_mbop_mf_inventory_orders.sql` and `supabase/migrations/20261108044257_mbop_mf_historical_order_baseline.sql`. It is additive to the listing foundation and does not modify applied migrations. Reconcile all shared versions with `supabase migration list --linked`, dry-run the linked push, then list again before the real push. Verify project `froeucjkcepuhgwisped`. All MF tables have RLS and only server-role access; functions use invoker security with public/anon/authenticated execution revoked.
 
 Before initial discovery, the existing Supabase capacity guard requires fresh memory/disk metrics and a tiny read. This does not measure remaining Disk IO Budget. Initial discovery is bounded to MF order windows and at most 5,000 seller listing records; it is not a broad historical order backfill. Do not run full orchestration as a verification shortcut.
 
