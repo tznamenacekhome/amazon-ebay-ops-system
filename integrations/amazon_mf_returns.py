@@ -12,7 +12,8 @@ REPORT_TYPE = 'GET_FLAT_FILE_RETURNS_DATA_BY_RETURN_DATE'
 
 
 def text(value):
-    return str(value or '').strip() or None
+    value = '' if value is None else str(value).strip()
+    return None if value.lower() in ('', 'n/a', 'not available', 'null', '--') else value
 
 
 def date(value, business_timezone='America/Los_Angeles'):

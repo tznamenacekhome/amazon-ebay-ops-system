@@ -3,11 +3,14 @@ import unittest
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'integrations'))
-from amazon_mf_returns import parse_report, financial_transaction, windows
+from amazon_mf_returns import parse_report, financial_transaction, windows, amount, date
 from amazon_sync_mf_returns import transactions, verify_order
 
 
 class ReturnSources(unittest.TestCase):
+    def test_zero_is_known_and_unavailable_dates_are_unknown(self):
+        self.assertEqual(amount(0),'0')
+        self.assertIsNone(date('N/A'))
     def test_report_multiple_items_packages_duplicate_and_unknown_dates(self):
         header='Order ID\tAmazon RMA ID\tOrder Item ID\tMerchant SKU\tReturn quantity\tTracking ID\tReturn request date\tRefunded Amount\n'
         lines=parse_report(header+'ORDER\tRMA\tITEM1\tSKU1\t2\t1Z123\t2026-11-01\t10.20\n'+
