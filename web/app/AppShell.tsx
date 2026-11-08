@@ -50,6 +50,8 @@ const navItems = [
     label: "List on Amazon",
     icon: Send,
   },
+  { href: "/mf-inventory", label: "MF Inventory", icon: PackageOpen },
+  { href: "/mf-orders", label: "MF Orders", icon: ReceiptText },
   {
     href: "/amazon-return-recovery",
     label: "Amazon Returns",
@@ -98,7 +100,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           MB
         </div>
 
-        <nav className="flex w-full flex-1 flex-col items-center gap-2">
+        <nav className="flex min-h-0 w-full flex-1 flex-col items-center gap-2 overflow-y-auto">
           {navItems.map((item) => {
             const Icon = item.icon;
             const active =
@@ -110,7 +112,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               <Link
                 key={item.href}
                 href={item.href}
-                className={`flex h-11 w-11 items-center justify-center rounded-lg transition ${
+                className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-lg transition ${
                   active
                     ? "bg-slate-900 text-white"
                     : "text-slate-500 hover:bg-slate-100 hover:text-slate-900"

@@ -189,6 +189,13 @@ JOBS: tuple[SyncJob, ...] = (
         timeout_seconds=20 * 60,
     ),
     SyncJob(
+        name="Amazon MF inventory and orders",
+        command=static_command("integrations/amazon_sync_mf.py"),
+        groups=("mf", "amazon-sales-recent"),
+        timeout_seconds=90 * 60,
+        blocking=False,
+    ),
+    SyncJob(
         name="Amazon sales orders",
         command=static_command("integrations/amazon_sync_sales_orders.py", "--apply"),
         groups=("core", "sales-orders", "amazon-sales-recent"),
@@ -640,6 +647,7 @@ JOBS: tuple[SyncJob, ...] = (
 )
 
 GROUPS = (
+    "mf",
     "core",
     "daily",
     "catalog",

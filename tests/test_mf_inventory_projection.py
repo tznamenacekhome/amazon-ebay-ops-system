@@ -17,4 +17,9 @@ class MerchantProjection(unittest.TestCase):
         row={'asin':'B07RCCHQLD','current_status':'listed'}
         self.assertEqual(project_purchase_state(row,{'marketplace':'Amazon'},True,set()).inventory_state,'outbound_to_amazon')
         self.assertEqual(project_purchase_state(row,{'marketplace':'Amazon'},False,set()).inventory_state,'sold_amazon')
+    def test_shipped_mf_lot_is_not_projected_as_physically_present(self):
+        row={'item_id':'source','asin':'B07RCCHQLD','quantity':2,'unit_cost':12.34,'current_status':'listed'}
+        meta={'source':{'marketplace':'Amazon','raw_import_json':{'listing_fulfillment_method':'MF'},'mf_on_hand':0}}
+        self.assertEqual(build_mbop_positions([row],meta,{},set()),[])
+
 if __name__=='__main__':unittest.main()

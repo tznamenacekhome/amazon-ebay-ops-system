@@ -160,6 +160,7 @@ def sources_unchanged_since_last_reconciliation(supabase) -> bool:
         ("purchases", "created_at"),
         ("purchase_items", "created_at"),
         ("amazon_merchant_inventory_lots", "listed_at"),
+        ("amazon_mf_accounts", "revised_at"),
         ("fba_shipments", "created_at"),
         ("fba_shipments", "updated_at"),
         ("fba_shipment_items", "created_at"),
@@ -353,6 +354,13 @@ def fetch_item_meta(
         for item in response.data or []:
             meta[item["item_id"]] = item
 
+    mf_ids = [item_id for item_id, item in meta.items()
+              if isinstance(item.get("raw_import_json"), dict)
+              and item["raw_import_json"].get("listing_fulfillment_method") == "MF"]
+    for chunk in chunks(mf_ids, ITEM_LOOKUP_BATCH_SIZE):
+        response = supabase.rpc("mbop_mf_purchase_balances", {"p_items": chunk}).execute()
+        for balance in response.data or []:
+            meta[balance["listed_item_id"]]["mf_on_hand"] = balance["on_hand"]
     return meta
 
 
@@ -448,7 +456,7 @@ def build_mbop_positions(
         if bool(meta.get("exclude_from_purchase_reporting")):
             continue
 
-        quantity = to_int(row.get("quantity"), default=0)
+        quantity = to_int(meta.get("mf_on_hand", row.get("quantity")), default=0)
         if quantity <= 0:
             continue
 

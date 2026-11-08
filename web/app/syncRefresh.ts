@@ -6,6 +6,7 @@ export type RefreshTarget =
   | "purchases"
   | "dashboard"
   | "sales-orders"
+  | "mf"
   | "inventory-reconciliation"
   | "repricing"
   | "fba"
