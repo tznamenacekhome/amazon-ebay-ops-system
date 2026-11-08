@@ -46,7 +46,7 @@ export function ListingBatches({ quantities, method, setMethod, onRestore, onBat
     setMethod: (method: "FBA" | "MF") => void;
     onRestore: (quantities: Record<string, string>) => void;
     onBatch: (batch: ListingBatch | null) => void;
-    onCompleted: () => Promise<void>;
+    onCompleted: (reset?: boolean) => Promise<void>;
     batch: ListingBatch | null;
     shipmentId: string;
 }) {
@@ -180,7 +180,7 @@ export function ListingBatches({ quantities, method, setMethod, onRestore, onBat
       {(!frozen || batch?.export_csv) && <button className={button} disabled={busy || !id} onClick={() => save("export")}>{frozen ? "Download saved export" : "Export selected CSV"}</button>}
       {frozen && batch.status !== "completed" && <button className={button} disabled={busy} onClick={() => save("reference")}>Correct IL reference</button>}
       {method === "MF" && frozen && batch.status !== "completed" && <button className={button} disabled={busy} onClick={startConfirmation}>Mark listed</button>}
-      <button className={button} disabled={busy} onClick={() => { onBatch(null); setId(crypto.randomUUID()); setLocal(businessLocalNow()); setConfirming(false); attempt.current = null; void onCompleted(); }}>New selection</button>
+      <button className={button} disabled={busy} onClick={() => { onBatch(null); setId(crypto.randomUUID()); setLocal(businessLocalNow()); setConfirming(false); attempt.current = null; void onCompleted(true); }}>New selection</button>
     </div>
     {batch && <p className="mt-2 text-sm">{batch.external_reference} · {batch.fulfillment_method} · {batch.status.replaceAll("_", " ")} <span className="text-xs text-slate-500">Internal ID {batch.id}</span></p>}
     {method === "MF" && <p className="mt-2 text-xs text-slate-600">Export leaves inventory in Received. Mark listed confirms merchant-held stock manually; Amazon acceptance and availability are unverified. A unique existing MF mapping for the same ASIN and condition is prefilled when available; otherwise enter the actual InventoryLab/Amazon MSKU.</p>}

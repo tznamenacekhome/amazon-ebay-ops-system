@@ -640,7 +640,7 @@ export default function FbaPage() {
         <>
 
       <ListingBatches key={batch?.id || "new"} quantities={quantityDrafts} method={method} setMethod={setMethod} batch={batch} shipmentId={shipmentId}
-        onBatch={b => {setBatch(b); if(b?.fulfillment_method === "FBA" && b.external_reference !== "FBA draft")setShipmentId(b.external_reference); if (!b && data) setQuantityDrafts(quantityDraftsForData(data));}} onRestore={setQuantityDrafts} onCompleted={async () => { await loadFba(); }} />
+        onBatch={b => {setBatch(b); if(b?.fulfillment_method === "FBA" && b.external_reference !== "FBA draft")setShipmentId(b.external_reference); if (!b && data) setQuantityDrafts(quantityDraftsForData(data));}} onRestore={setQuantityDrafts} onCompleted={async (reset = false) => { await loadFba(reset); }} />
 
       <section className="mb-4 rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
         <label className="grid gap-1 text-sm font-medium text-slate-700">

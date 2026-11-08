@@ -3,6 +3,7 @@ Run: python tests/test_mf_listing_batches.py (Docker Desktop, postgres:17).
 Never connects to production or publishes a database port.
 """
 import json
+import os
 import subprocess
 import time
 import unittest
@@ -18,6 +19,7 @@ def lit(value):
 def js(value):
     return lit(json.dumps(value)) + '::jsonb'
 
+@unittest.skipUnless(__name__ == "__main__" or os.environ.get("MBOP_POSTGRES_TESTS") == "1", "Run explicitly with Docker, or set MBOP_POSTGRES_TESTS=1")
 class ListingTransactions(unittest.TestCase):
     @classmethod
     def sql(cls, query, ok=True):
