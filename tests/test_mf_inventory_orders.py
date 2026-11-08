@@ -91,5 +91,8 @@ class MFInventory(ListingTransactions):
         self.assertEqual(self.sql('select baseline_shipped from amazon_mf_order_items'),'2')
         self.assertIn('timing requires reconciliation',self.sql('select anomaly from amazon_mf_order_items'))
         self.assertEqual(self.sql('select count(*) from amazon_mf_shipment_events'),'0')
+        row['source_updated_at']=(self.t+timedelta(seconds=60)).isoformat();self.apply(row)
+        self.assertEqual(self.balance()['on_hand'],4)
+        self.assertIn('timing requires reconciliation',self.sql('select anomaly from amazon_mf_order_items'))
 
 if __name__=='__main__':unittest.main()
