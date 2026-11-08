@@ -196,6 +196,13 @@ JOBS: tuple[SyncJob, ...] = (
         blocking=False,
     ),
     SyncJob(
+        name="Amazon MF returns, finances and carrier tracking",
+        command=static_command("integrations/amazon_sync_mf_returns.py"),
+        groups=("mf-returns", "amazon-sales-recent"),
+        timeout_seconds=80 * 60,
+        blocking=False,
+    ),
+    SyncJob(
         name="Amazon sales orders",
         command=static_command("integrations/amazon_sync_sales_orders.py", "--apply"),
         groups=("core", "sales-orders", "amazon-sales-recent"),
@@ -648,6 +655,7 @@ JOBS: tuple[SyncJob, ...] = (
 
 GROUPS = (
     "mf",
+    "mf-returns",
     "core",
     "daily",
     "catalog",

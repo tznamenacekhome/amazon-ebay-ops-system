@@ -52,6 +52,7 @@ const navItems = [
   },
   { href: "/mf-inventory", label: "MF Inventory", icon: PackageOpen },
   { href: "/mf-orders", label: "MF Orders", icon: ReceiptText },
+  { href: "/mf-returns", label: "MF Returns", icon: PackageOpen },
   {
     href: "/amazon-return-recovery",
     label: "Amazon Returns",

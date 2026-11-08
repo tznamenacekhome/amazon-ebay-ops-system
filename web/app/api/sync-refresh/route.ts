@@ -18,6 +18,7 @@ const TARGET_GROUPS: Record<string, string | null> = {
   dashboard: "dashboard",
   "sales-orders": "sales-orders",
   mf: "mf",
+  "mf-returns": "mf-returns",
   "inventory-reconciliation": "reconciliation",
   repricing: "repricing",
   fba: "fba",

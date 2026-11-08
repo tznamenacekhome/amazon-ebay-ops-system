@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
             return NextResponse.json({ account, runs, rows: data?.map(l => {
                     const { listing_lot, opening, ...lot } = l;
                     const allocation = listing_lot?.allocation;
-                    return { ...lot, lineage: listing_lot ? { purchase_id: listing_lot.purchase_id, source_item_id: listing_lot.source_item_id, listed_item_id: listing_lot.listed_item_id, batch_id: allocation?.batch_id, supplier_order_id: allocation?.snapshot?.supplier_order_id, received_date: allocation?.snapshot?.received_date } : { opening_id: opening?.id, notes: opening?.notes, confirmed_at: opening?.confirmed_at } };
+                    return { ...lot, lineage: listing_lot ? { purchase_id: listing_lot.purchase_id, source_item_id: listing_lot.source_item_id, listed_item_id: listing_lot.listed_item_id, batch_id: allocation?.batch_id, supplier_order_id: allocation?.snapshot?.supplier_order_id, received_date: allocation?.snapshot?.received_date } : lot.return_inspection_id ? { return_inspection_id: lot.return_inspection_id, original_shipped_lot_id: lot.parent_lot_id, cost_lineage: lot.parent_lot_id ? "Inherited from original shipped lot" : "Unknown original purchase cost" } : { opening_id: opening?.id, notes: opening?.notes, confirmed_at: opening?.confirmed_at } };
                 }) });
         }
         if (!["inventory", "orders"].includes(view))
