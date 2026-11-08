@@ -1,4 +1,4 @@
-﻿-- MBOP MF workflow: stock is never inferred from offer quantities.
+-- MBOP MF workflow: stock is never inferred from offer quantities.
 create table public.amazon_mf_accounts (
  id uuid primary key default gen_random_uuid(), seller_id text not null, marketplace_id text not null,
  configured boolean not null default true, tracking_started_at timestamptz not null default now(),
