@@ -71,6 +71,13 @@ IDs are reconciled, so the same economic transaction is shown once. Deferred
 records remain visible but are not treated as posted refunds. No financial
 operation can restock inventory.
 
+Financial `ORDER_ID` references are not sufficient proof of a customer order:
+Amazon also returned `FBA19W1MLF5L` on a shipment-related adjustment. The worker
+requires the documented customer 3-7-7 ID format before any Orders lookup or MF
+financial admission. Non-customer references are counted in run statistics and
+excluded from this MF workflow; genuine customer-order read errors still fail
+visibly. Return reports still require independently verified MF orders.
+
 Net refund amounts are explicitly **order-level signed net**, including fees,
 and must not be summed across repeated return-item rows. Item IDs and adjustment
 IDs remain distinct. An unmatched adjustment is flagged for item review rather

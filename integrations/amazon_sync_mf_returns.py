@@ -11,7 +11,7 @@ from dotenv import load_dotenv
 from supabase import create_client
 
 from amazon_mf import order_items
-from amazon_mf_returns import REPORT_TYPE, financial_transaction, parse_report, windows
+from amazon_mf_returns import REPORT_TYPE, financial_transaction, parse_report, windows, is_customer_order_id
 from amazon_spapi_client import AmazonSPAPIClient
 from sourcing_database_guard import wait_for_database
 
@@ -27,6 +27,8 @@ def now():
 
 
 def verify_order(db, client, account, order_id):
+    if not is_customer_order_id(order_id):
+        return False
     rows = db.table('amazon_mf_order_items').select('id').eq('account_id', account['id']).eq('amazon_order_id', order_id).limit(1).execute().data
     if rows:
         return True
@@ -173,7 +175,7 @@ def synchronize(db, client, account):
                     report_windows.append(window)
     if len(report_windows) > 6:
         raise ValueError('More than six historical return windows require bounded reconciliation')
-    stats = {'returns': 0, 'financial_transactions': 0, 'packages_checked': 0}
+    stats = {'returns': 0, 'financial_transactions': 0, 'packages_checked': 0, 'non_customer_financial_references': 0}
     errors = []
     for lower, higher in report_windows:
         try:
@@ -191,6 +193,9 @@ def synchronize(db, client, account):
         projected = financial_transaction(source)
         if not projected['amazon_order_id']:
             continue  # Account-level charges cannot be assigned to an MF customer return.
+        if not is_customer_order_id(projected['amazon_order_id']):
+            stats['non_customer_financial_references'] += 1
+            continue  # e.g. FBA shipment postage; outside the MF customer-return ledger.
         market = projected.get('marketplace_id')
         if market and market != account['marketplace_id']:
             continue

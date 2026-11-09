@@ -3,11 +3,53 @@ import unittest
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'integrations'))
-from amazon_mf_returns import parse_report, financial_transaction, windows, amount, date
+from amazon_mf_returns import parse_report, financial_transaction, windows, amount, date, is_customer_order_id
 from amazon_sync_mf_returns import transactions, verify_order
 
 
 class ReturnSources(unittest.TestCase):
+    def test_shipment_finance_reference_never_calls_customer_orders_or_database(self):
+        from unittest.mock import Mock
+        db, client = Mock(), Mock()
+        for invalid in ('FBA19W1MLF5L', 'FBA123456789', '', None, 'ORDER', '123-1234567-1234567/other'):
+            self.assertFalse(verify_order(db, client, {'id':'ACCOUNT'}, invalid))
+        db.table.assert_not_called()
+        client.get_order.assert_not_called()
+        self.assertTrue(is_customer_order_id('123-1234567-1234567'))
+
+    def test_real_customer_order_lookup_errors_remain_visible(self):
+        from unittest.mock import Mock
+        db, client = Mock(), Mock()
+        db.table.return_value.select.return_value.eq.return_value.eq.return_value.limit.return_value.execute.return_value.data=[]
+        db.table.return_value.select.return_value.eq.return_value.limit.return_value.execute.return_value.data=[]
+        client.get_order.side_effect=RuntimeError('Real customer order read failed')
+        with self.assertRaisesRegex(RuntimeError,'Real customer order read failed'):
+            verify_order(db, client, {'id':'ACCOUNT','marketplace_id':'US'}, '123-1234567-1234567')
+        client.get_order.assert_called_once_with('123-1234567-1234567')
+
+    def test_returns_ui_static_text_has_no_corrupt_encoding(self):
+        root=Path(__file__).resolve().parents[1]/'web/app/mf-returns'
+        for name in ('ReturnsWorkspace.tsx','ReturnForms.tsx'):
+            self.assertTrue((root/name).read_text(encoding='utf-8').isascii(), name)
+
+    def test_shipment_adjustment_does_not_stop_following_mf_refund(self):
+        from unittest.mock import Mock, patch
+        from amazon_sync_mf_returns import synchronize
+        db, client = Mock(), Mock()
+        db.table.return_value.select.return_value.eq.return_value.neq.return_value.order.return_value.limit.return_value.execute.return_value.data=[]
+        account={'id':'ACCOUNT','marketplace_id':'US'}
+        def source(oid,kind,tid):
+            return {'transactionId':tid,'transactionType':kind,'transactionStatus':'RELEASED','postedDate':'2026-11-08T10:00:00Z',
+                    'relatedIdentifiers':[{'relatedIdentifierName':'ORDER_ID','relatedIdentifierValue':oid}],
+                    'totalAmount':{'currencyAmount':-5,'currencyCode':'USD'}}
+        feed=[source('FBA19W1MLF5L','Adjustment','POSTAGE'),source('123-1234567-1234567','Refund','REFUND')]
+        with patch('amazon_sync_mf_returns.report',return_value=0),patch('amazon_sync_mf_returns.transactions',return_value=iter(feed)),patch('amazon_sync_mf_returns.verify_order',return_value=True) as verify,patch('amazon_sync_mf_returns.rpc') as apply,patch('amazon_sync_mf_returns.sync_carriers',return_value=0),patch('amazon_sync_mf_returns.time.sleep'):
+            stats=synchronize(db,client,account)
+        self.assertEqual(stats['non_customer_financial_references'],1)
+        self.assertEqual(stats['financial_transactions'],1)
+        verify.assert_called_once_with(db,client,account,'123-1234567-1234567')
+        self.assertEqual(apply.call_args.kwargs['p_transaction']['transaction_id'],'REFUND')
+
     def test_zero_is_known_and_unavailable_dates_are_unknown(self):
         self.assertEqual(amount(0),'0')
         self.assertIsNone(date('N/A'))

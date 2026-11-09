@@ -11,6 +11,15 @@ from zoneinfo import ZoneInfo
 REPORT_TYPE = 'GET_FLAT_FILE_RETURNS_DATA_BY_RETURN_DATE'
 
 
+def is_customer_order_id(value):
+    """Financial ORDER_ID references can also contain FBA shipment IDs.
+
+    Ordinary Amazon customer order IDs use the documented 3-7-7 format.
+    Never send a shipment/removal/account reference to the Orders endpoint.
+    """
+    return isinstance(value, str) and re.fullmatch(r'[0-9]{3}-[0-9]{7}-[0-9]{7}', value) is not None
+
+
 def text(value):
     value = '' if value is None else str(value).strip()
     return None if value.lower() in ('', 'n/a', 'not available', 'null', '--') else value
