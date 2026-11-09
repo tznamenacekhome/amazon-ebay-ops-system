@@ -1,5 +1,15 @@
 # CURRENT_STATE.md
 
+## Non-eBay receipt intake implemented, activation pending (2026-11-08)
+
+Purchases has a Non-eBay purchases tab with PDF/image upload, screenshot paste,
+background AI extraction, editable drafts and authoritative landed-cost review.
+Atomic saves retain source receipts and create Ordered purchase items for physical
+Receiving, with exact cost allocations and retry protection. The private receipt
+bucket is new infrastructure, so migration and AWS activation await the operator's
+storage decision. No production schema or deployment has changed for this feature.
+See [workflow, validation and activation](docs/NON_EBAY_PURCHASE_INTAKE.md).
+
 ## Sourcing request recovery deployed (2026-10-23)
 
 Web revision 189 serves application commit `12e16c0e5d8c`; receipt commit

@@ -8,6 +8,7 @@ import { PurchaseFilters } from "./purchases/PurchaseFilters";
 import { PurchaseMetrics } from "./purchases/PurchaseMetrics";
 import { PurchaseProblemTable } from "./purchases/PurchaseProblemTable";
 import { PurchasesTable } from "./purchases/PurchasesTable";
+import { NonEbayPurchases } from "./purchases/NonEbayPurchases";
 import type {
   PurchaseQuery,
   PurchaseRow,
@@ -23,7 +24,7 @@ import { mutationHeaders } from "./mutationHeaders";
 const PAGE_SIZE = 100;
 
 export default function PurchasesPage() {
-  const [viewMode, setViewMode] = useState<"purchases" | "order_problems">(
+  const [viewMode, setViewMode] = useState<"purchases" | "order_problems" | "non_ebay">(
     "purchases"
   );
   const [searchText, setSearchText] = useState("");
@@ -34,6 +35,7 @@ export default function PurchasesPage() {
   const [sortDirection, setSortDirection] =
     useState<PurchaseSortDirection>("desc");
   const [page, setPage] = useState(1);
+  const orderProblemsView = viewMode === "order_problems";
   const effectiveAsinFilter =
     viewMode === "order_problems" ? "order_problems" : asinFilter;
   const effectiveStatusFilter =
@@ -51,7 +53,7 @@ export default function PurchasesPage() {
       sortDirection: effectiveSortDirection,
       page,
       pageSize: PAGE_SIZE,
-      problemStage: viewMode === "order_problems" ? problemStage : undefined,
+      problemStage: orderProblemsView ? problemStage : undefined,
     }),
     [
       effectiveAsinFilter,
@@ -61,7 +63,7 @@ export default function PurchasesPage() {
       page,
       problemStage,
       searchText,
-      viewMode,
+      orderProblemsView,
     ]
   );
 
@@ -347,7 +349,7 @@ export default function PurchasesPage() {
     setPage(1);
   }
 
-  function updateViewMode(mode: "purchases" | "order_problems") {
+  function updateViewMode(mode: "purchases" | "order_problems" | "non_ebay") {
     setViewMode(mode);
     setPage(1);
   }
@@ -375,7 +377,7 @@ export default function PurchasesPage() {
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center justify-end gap-3">
+        {viewMode !== "non_ebay" && <div className="flex flex-wrap items-center justify-end gap-3">
           <DataFreshness screen="purchases" refreshKey={freshnessKey} />
           <button
             onClick={refreshPurchases}
@@ -385,7 +387,7 @@ export default function PurchasesPage() {
             <RefreshCw className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
             {refreshing ? "Refreshing" : "Refresh"}
           </button>
-        </div>
+        </div>}
       </div>
 
       {refreshNotice && (
@@ -407,8 +409,12 @@ export default function PurchasesPage() {
         >
           Order Problems
         </TabButton>
+        <TabButton active={viewMode === "non_ebay"} onClick={() => updateViewMode("non_ebay")}>
+          Non-eBay purchases
+        </TabButton>
       </div>
 
+      {viewMode === "non_ebay" ? <NonEbayPurchases onPurchaseSaved={() => void loadPurchases()} /> : <>
       {viewMode === "purchases" ? (
         <>
           <PurchaseMetrics stats={stats} />
@@ -485,6 +491,7 @@ export default function PurchasesPage() {
         </div>
       </div>
 
+      </>}
       {selectedRow && (
         <PurchaseDetailDrawer
           key={rowKey(selectedRow)}

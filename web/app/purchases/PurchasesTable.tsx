@@ -188,14 +188,14 @@ export function PurchasesTable({
                   <td className="px-2 py-2">
                     {row.supplier_order_id ? (
                       <div>
-                        <a
+                        {row.supplier && row.supplier.toLowerCase() !== "ebay" ? <span>{row.supplier_order_id}</span> : <a
                           href={ebayOrderUrl(row.supplier_order_id)}
                           target="_blank"
                           rel="noreferrer"
                           className="text-blue-700 hover:underline"
                         >
                           {row.supplier_order_id}
-                        </a>
+                        </a>}
                         {hasOpenCase(row) && (
                           <div className="mt-1 inline-flex rounded border border-amber-300 bg-amber-50 px-1.5 py-0.5 text-[11px] font-medium text-amber-800">
                             Episode Open
@@ -214,7 +214,7 @@ export function PurchasesTable({
 
                     {showEbaySubtitle && (
                       <div className="mt-1 line-clamp-2 text-xs leading-snug text-slate-500">
-                        ebay: {ebayTitle}
+                        {row.supplier && row.supplier.toLowerCase() !== "ebay" ? `${row.supplier}: ` : "ebay: "}{ebayTitle}
                       </div>
                     )}
                   </td>

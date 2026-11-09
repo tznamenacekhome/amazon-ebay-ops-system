@@ -57,7 +57,9 @@ export async function GET(httpRequest: Request) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  const dashboardRows = (data ?? []).map((row) => ({
+  const intake = await supabase.from("vw_purchase_intake_receiving").select("*").order("order_date", { ascending: false }).limit(1000);
+  if (intake.error) return NextResponse.json({ error: intake.error.message }, { status: 500 });
+  const dashboardRows = [...(data ?? []), ...(intake.data ?? [])].map((row) => ({
     ...row,
     ebay_title: row.title,
   }));

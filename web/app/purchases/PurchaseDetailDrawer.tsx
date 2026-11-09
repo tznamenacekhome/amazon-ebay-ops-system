@@ -125,7 +125,7 @@ export function PurchaseDetailDrawer({
             {getEbayTitle(row) && (
               <>
                 <div className="mt-4 text-xs uppercase tracking-wide text-slate-500">
-                  eBay Title
+                  {row.supplier && row.supplier.toLowerCase() !== "ebay" ? "Supplier Title" : "eBay Title"}
                 </div>
 
                 <div className="mt-1 text-sm text-slate-700">
@@ -367,12 +367,12 @@ export function PurchaseDetailDrawer({
           <section className="rounded-xl border border-slate-200 p-4">
             <div className="grid gap-3">
               <label className="grid gap-1 text-xs font-medium uppercase tracking-wide text-slate-500">
-                eBay Title
+                {row.supplier && row.supplier.toLowerCase() !== "ebay" ? "Supplier Title" : "eBay Title"}
                 <textarea
                   value={drawerEbayTitle}
                   onChange={(event) => onEbayTitleChange(event.target.value)}
                   className="min-h-20 rounded-lg border border-slate-300 px-3 py-2 text-sm font-normal normal-case tracking-normal text-slate-900"
-                  placeholder="Enter eBay listing title"
+                  placeholder="Enter supplier listing title"
                 />
               </label>
 

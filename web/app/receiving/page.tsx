@@ -67,6 +67,12 @@ export default function ReceivingPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [searchText, setSearchText] = useState("");
+  useEffect(() => {
+    const search = new URLSearchParams(window.location.search).get("search");
+    // Initialize a user-followed purchase link once; later edits/dismissals stay local.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (search) setSearchText(search);
+  }, []);
   const [selectedRow, setSelectedRow] = useState<PurchaseRow | null>(null);
   const [scanRows, setScanRows] = useState<PurchaseRow[]>([]);
   const [drafts, setDrafts] = useState<Record<string, ReceivingDraft>>({});
@@ -206,6 +212,8 @@ export default function ReceivingPage() {
       }
 
       return [
+        row.purchase_id,
+        row.supplier,
         row.supplier_order_id,
         row.tracking_number,
         row.carrier,
@@ -729,7 +737,7 @@ export default function ReceivingPage() {
                       </div>
                       {row.amazon_title && (row.ebay_title || row.title) && (
                         <div className="mt-1 line-clamp-2 text-xs text-slate-500">
-                          ebay: {row.ebay_title || row.title}
+                          {row.supplier && row.supplier.toLowerCase() !== "ebay" ? `${row.supplier}: ` : "ebay: "}{row.ebay_title || row.title}
                         </div>
                       )}
                     </td>
@@ -842,7 +850,7 @@ export default function ReceivingPage() {
                     >
                       <div className="flex min-w-0 flex-col">
                         <div className="text-xs uppercase tracking-wide text-slate-500">
-                          eBay Title
+                          {row.supplier && row.supplier.toLowerCase() !== "ebay" ? "Supplier Title" : "eBay Title"}
                         </div>
                         {ebayListingUrl ? (
                           <a

@@ -1,4 +1,5 @@
 export type PurchaseRow = {
+  supplier?: string | null;
   purchase_id?: string;
   item_id?: string;
   supplier_order_id?: string;
