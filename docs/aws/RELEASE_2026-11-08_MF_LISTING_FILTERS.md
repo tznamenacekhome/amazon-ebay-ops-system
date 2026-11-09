@@ -64,3 +64,11 @@ Images built from `b41901e5e4bd`:
 
 - Web task211: `297464765814.dkr.ecr.us-west-2.amazonaws.com/mbop-web@sha256:0d8d83f0f9d7394bc896e225bfe02c50caf44426e49cf505aa2f5870a36017de`
 - Scheduler163: `297464765814.dkr.ecr.us-west-2.amazonaws.com/mbop-scheduler@sha256:2a09f2ebf32309d2985a0fd43635bed960578334719cb558c51d35d21b6144c6`
+
+`scripts/aws-web-status.ps1` confirmed task211 PRIMARY COMPLETED, desired/running
+one, pending zero; task210 drained. Authenticated Chrome verified build
+`b41901e5e4bd`, default In stock with all four offers and quantities 8/12/1/16,
+title search `stocking` with two rows, exact wreath ASIN search with one row,
+Out of stock with zero rows for the current live account, and All with four
+rows (inactive records excluded). The UI was left on In stock with an empty
+search. Last successful synchronization displayed 5:56:42 PM Pacific.
