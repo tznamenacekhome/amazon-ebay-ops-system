@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerSupabaseClient, requireAdminApiToken } from "../_server";
+import { listingSearch, stockFilter } from "./listingFilters";
 export const dynamic = "force-dynamic";
 const db = createServerSupabaseClient();
 async function scope() { const { data, error } = await db.from("amazon_mf_accounts").select("*").eq("configured", true).maybeSingle(); if (error)
@@ -28,14 +29,16 @@ export async function GET(request: NextRequest) {
         if (!["inventory", "orders"].includes(view))
             throw Error("Unknown MF view");
         const page = Math.max(0, Math.min(10000, Math.floor(Number(p.get("page")) || 0)));
-        let query = db.from(view === "inventory" ? "vw_mf_inventory" : "vw_mf_orders").select("*", { count: "exact" }).eq("account_id", account.id);
-        if (sku)
-            query = query.ilike("seller_sku", `%${sku.replace(/[\\%_]/g, "\\$&")}%`);
+        const stock = stockFilter(view === "inventory" ? p.get("stock") : "all");
+        let query = db.from(view === "inventory" ? "vw_mf_inventory_listings" : "vw_mf_orders").select("*", { count: "exact" }).eq("account_id", account.id);
+        if (view === "inventory" && stock !== "all") query = query.eq("listing_state", stock);
+        const search = p.get("q") || sku;
+        if (search) query = query.or(listingSearch(search));
         query = view === "inventory" ? query.order("seller_sku").order("condition") : query.order("purchased_at", { ascending: false }).order("id");
         const { data, error, count } = await query.range(page * 100, page * 100 + 99);
         if (error)
             throw error;
-        return NextResponse.json({ account, runs, rows: data, total: count, page });
+        return NextResponse.json({ account, runs, rows: data, total: count, page, stock });
     }
     catch (e) {
         return failure(e);

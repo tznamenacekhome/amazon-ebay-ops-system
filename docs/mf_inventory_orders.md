@@ -2,6 +2,36 @@
 
 MF Inventory (`/mf-inventory`) and MF Orders (`/mf-orders`) extend List on Amazon. All reads/mutations go through `/api/mf`; provider traffic runs in the existing Python scheduler. No new queue, service, upload workflow or Amazon write endpoint is introduced. The workflow is explicitly scoped to the configured seller, marketplace and merchant fulfillment channel. Amazon customer order/item identities remain separate from purchase orders.
 
+## Current listing filters and complete discovery (November 8, 2026)
+
+MF Inventory defaults to **In stock**, with **Out of stock** and **All** options.
+These filters use live Amazon MF offer quantity, not MBOP's physical lot balance.
+Search matches title, ASIN or MSKU in the server query before pagination. All
+includes retained zero-quantity offers, excluding inactive/suppressed,
+FBA-only and deleted/absent-from-last-successful-scan listings. Physical stock,
+purchase costs, lots and Keep MF preferences are preserved even when a listing
+is hidden. Unknown live quantities remain unknown and can appear under All.
+
+BUYABLE with positive live DEFAULT quantity is in stock. A retained DEFAULT
+zero-quantity offer is out of stock unless listing/catalog removal enforcement
+blocks it. SEARCH_SUPPRESSED alone does not hide a BUYABLE offer (the wreath in
+the operator's screenshot is BUYABLE but search-suppressed). Live AMAZON
+fulfillment takes precedence over old submitted DEFAULT attributes. Submitted
+quantities never replace live quantities.
+
+Amazon's official Listings model caps pagination at 1,000 SKUs per search even
+when numberOfResults is larger. The production account had 1,217 listings, so
+the original single search missed later SKUs. `amazon_mf_listings.py` partitions
+by source createdDate until each search fits under the cap, overlaps inclusive
+boundaries, deduplicates exact SKUs and verifies downloaded counts. It stops
+without a success checkpoint on truncated pages, repeated tokens or exhausted
+budgets (5,000 items / 350 calls). Discovery requests issues for accurate
+suppression classification. No new infrastructure is involved.
+
+Additive migration `20261109014929_mbop_mf_listing_visibility.sql` adds explicit
+listing_state and the server-only invoker view `vw_mf_inventory_listings`.
+Refresh with the updated scheduler before relying on default stock results.
+
 ## Sources and synchronization
 
 `integrations/amazon_sync_mf.py` uses the existing `AmazonSPAPIClient`, LWA credentials, retry/backoff, Supabase service-role persistence, ECS scheduler and telemetry. Job group `mf` supports manual refresh; the same job participates in the existing `amazon-sales-recent` scheduled group. No buyer, recipient, package or other PII datasets are requested or persisted.

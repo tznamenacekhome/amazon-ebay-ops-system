@@ -48,9 +48,20 @@ def offer(item,marketplace,observed,run):
     mf=[x for x in availability if x.get('fulfillmentChannelCode')=='DEFAULT']
     attributes=item.get('attributes') or {}
     submitted=[x for x in attributes.get('fulfillment_availability',[]) if x.get('fulfillment_channel_code')=='DEFAULT']
+    if not mf and any(x.get('fulfillmentChannelCode','').startswith('AMAZON') for x in availability): return None
     if not mf and not submitted: return None # Never classify FBA as MF from a title/quantity guess.
     if len(mf)>1: raise ValueError('Multi-source MF availability requires reconciliation')
+    live_quantity=quantity(mf[0]['quantity']) if mf and 'quantity' in mf[0] else None
+    status=summary.get('status',[])
+    blocking_actions={action.get('action') for issue in item.get('issues',[]) if marketplace in issue.get('marketplaceIds',[marketplace])
+        and (issue.get('enforcements') or {}).get('exemption',{}).get('status')!='EXEMPT'
+        for action in (issue.get('enforcements') or {}).get('actions',[])} & {'LISTING_SUPPRESSED','CATALOG_ITEM_REMOVED'}
+    if 'BUYABLE' in status:
+        state='in_stock' if live_quantity is not None and live_quantity>0 else 'out_of_stock' if live_quantity==0 else 'unknown'
+    elif live_quantity==0 and not blocking_actions:
+        state='out_of_stock'
+    else:state='inactive'
     brand=next((x.get('value') for x in attributes.get('brand',[]) if x.get('marketplace_id',marketplace)==marketplace),None)
     return {'seller_sku':item['sku'],'asin':summary.get('asin'),'title':summary.get('itemName'),
-        'condition':condition(summary.get('conditionType')),'quantity':quantity(mf[0]['quantity']) if mf and 'quantity' in mf[0] else None,
-        'source_updated_at':summary.get('lastUpdatedDate'),'observed_at':observed,'status':summary.get('status',[]),'brand':brand,'run_id':run}
+        'condition':condition(summary.get('conditionType')),'quantity':live_quantity,'listing_state':state,
+        'source_updated_at':summary.get('lastUpdatedDate'),'observed_at':observed,'status':status,'brand':brand,'run_id':run}

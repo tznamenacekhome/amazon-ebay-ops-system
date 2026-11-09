@@ -1,0 +1,13 @@
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import ts from 'typescript';
+const source=readFileSync(new URL('./listingFilters.ts',import.meta.url),'utf8');
+const {outputText}=ts.transpileModule(source,{compilerOptions:{module:ts.ModuleKind.ES2022,target:ts.ScriptTarget.ES2022}});
+const {stockFilter,listingSearch}=await import(`data:text/javascript;base64,${Buffer.from(outputText).toString('base64')}`);
+assert.equal(stockFilter(null),'in_stock');
+for(const value of ['all','in_stock','out_of_stock']) assert.equal(stockFilter(value),value);
+assert.throws(()=>stockFilter('inactive'));
+assert.equal(listingSearch('B07FY34QQ2'),'seller_sku.ilike."%B07FY34QQ2%",title.ilike."%B07FY34QQ2%",asin.ilike."%B07FY34QQ2%"');
+assert.match(listingSearch('Sock "U", (Red)_100%'),/\\"U\\"/);
+assert.match(listingSearch('Sock "U", (Red)_100%'),/\\\\_/);
+console.log('MF stock defaults and title/ASIN/MSKU search escaping passed');

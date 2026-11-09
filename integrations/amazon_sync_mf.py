@@ -1,11 +1,11 @@
 ﻿"""Read Amazon MF offers/orders; persist atomic inventory effects without PII or marketplace writes."""
 import logging,os,time,uuid
 from datetime import datetime,timedelta,timezone
-from urllib.parse import quote
 from dotenv import load_dotenv
 from supabase import create_client
 from amazon_spapi_client import AmazonSPAPIClient
 from amazon_mf import order_items,offer
+from amazon_mf_listings import discover_listings
 from sourcing_database_guard import wait_for_database
 
 LOG=logging.getLogger('amazon_mf_sync')
@@ -60,9 +60,10 @@ def synchronize(db,client,run_id):
         order=client.get_order(oid)
         for item in order_items(order,market):rpc(db,'mbop_mf_apply_order',p_account=aid,p_item=item);stats['items']+=1
         time.sleep(2.2)
-    listing_params={'marketplaceIds':market,'includedData':'summaries,attributes,fulfillmentAvailability','pageSize':'20','sortBy':'sku','sortOrder':'ASC'}
     observed=stamp(now());stats['offers_observed_at']=observed
-    for item in pages(client,'/listings/2021-08-01/items/'+quote(seller,safe=''),listing_params,'items','pageToken',delay=.3,max_pages=250):
+    listings,calls=discover_listings(client,seller,market,observed)
+    stats['listings_read']=len(listings);stats['listing_api_calls']=calls
+    for item in listings:
         row=offer(item,market,observed,run_id)
         if row:rpc(db,'mbop_mf_apply_offer',p_account=aid,p_offer=row);stats['offers']+=1
     rpc(db,'mbop_mf_allocate',p_account=aid)
