@@ -68,3 +68,8 @@ these commits.
 `scripts/aws-web-status.ps1` confirmed PRIMARY **COMPLETED**, desired/running 1,
 pending 0, task210 only, at 5:36 PM Pacific. The previous task209 drained.
 The returns-only ECS container exited zero and logged a successful sync group.
+
+Authenticated Chrome verification at `/mf-returns?build=1c3a553` confirmed build
+`1c3a553e76a4`, readable header/pagination punctuation, last successful sync
+**11/8/2026, 5:33:49 PM**, no failure/stale warning and zero records in Open
+Returns. Screenshot inspection confirmed the table and shared header fit.
