@@ -38,7 +38,9 @@ export async function GET(request: NextRequest) {
         const { data, error, count } = await query.range(page * 100, page * 100 + 99);
         if (error)
             throw error;
-        return NextResponse.json({ account, runs, rows: data, total: count, page, stock });
+        const pending = view === "inventory" ? await db.from("vw_mf_pending_msku").select("id,asin,title,quantity,unit_cost,condition,external_reference").eq("account_id", account.id).order("listed_at").limit(100) : null;
+        if (pending?.error) throw pending.error;
+        return NextResponse.json({ account, runs, rows: data, total: count, page, stock, pending_msku: pending?.data || [] });
     }
     catch (e) {
         return failure(e);

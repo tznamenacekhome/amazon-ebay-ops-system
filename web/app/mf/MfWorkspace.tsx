@@ -28,6 +28,7 @@ type Account = {
     last_error: string | null;
 };
 type Payload = {
+    pending_msku?: { id: string; asin: string; title: string | null; quantity: number; unit_cost: number; condition: string | null; external_reference: string }[];
     account: Account | null;
     rows: Row[];
     total: number;
@@ -146,6 +147,7 @@ export function MfWorkspace({ view }: {
     const a = data?.account, stale = !a || a.stale, columns = view === "inventory" ? inventoryColumns : orderColumns;
     return <main className="min-w-0 flex-1 bg-slate-100 p-4 text-slate-900"><header className="mb-4 flex flex-wrap justify-between gap-3 pr-40"><div><h1 className="text-2xl font-semibold">MF {view === "inventory" ? "Inventory" : "Orders"}</h1><p className="text-sm text-slate-600">{a ? `${a.seller_id} / ${a.marketplace_id} / merchant fulfilled` : "Amazon account not initialized"}</p></div><button className={button} disabled={busy} onClick={refresh}>{busy ? "Refreshing..." : "Refresh from Amazon"}</button></header>
  <nav className="mb-3 flex gap-3 text-sm"><a className="text-blue-700 underline" href="/mf-inventory">MF Inventory</a><a className="text-blue-700 underline" href="/mf-orders">MF Orders</a><a className="text-blue-700 underline" href="/fba">List on Amazon</a></nav>
+ {view === "inventory" && !!data?.pending_msku?.length && <details className="mb-3 border border-amber-300 bg-amber-50 p-3 text-sm" open><summary>Merchant-held stock awaiting Amazon MSKU reconciliation</summary><p className="my-2">These listed units are recorded once with their original costs. Amazon has not yet provided a unique matching MF SKU and condition. They cannot be assigned to customer orders until reconciled.</p>{data.pending_msku.map(lot => <div key={lot.id}>{lot.title || lot.asin} / {lot.asin} / {lot.condition || "unknown condition"}: {lot.quantity} units at ${Number(lot.unit_cost).toFixed(2)} — {lot.external_reference}</div>)}</details>}
  <div className={`mb-3 border px-3 py-2 text-sm ${stale || a?.last_error ? "border-amber-300 bg-amber-50" : "border-slate-200 bg-white"}`}>Last successful synchronization: {date(a?.last_success_at)}  |  Last attempt: {date(a?.last_attempt_at)} {stale && "  |  STALE / never synchronized"}{a?.last_error && <div className="text-red-700">Sync failure: {a.last_error}</div>}</div>
  <p className="mb-3 text-xs text-slate-600">Physical stock comes from MBOP lots and explicit counted opening balances. Amazon-listed quantity is a separate offer observation. Refunds never restock inventory. Returns receiving and FBA transfer execution remain separate workflows. Before-tracking shipped quantities are historical baselines, not removals from newly counted stock.</p>
  {notice && <p className="mb-3 border bg-white p-3 text-sm">{notice.text}</p>}{error && <p role="alert" className="mb-3 bg-red-50 p-3 text-red-700">{error}</p>}
