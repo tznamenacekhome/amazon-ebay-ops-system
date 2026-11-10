@@ -12,5 +12,13 @@ const restored=JSON.parse(JSON.stringify(q));assert.deepEqual(batch.selectedQuan
 q=selection.toggleAsin(details,q,false);assert.deepEqual(batch.selectedQuantities(q),{});assert.equal(selection.allocationSelection(details,q).indeterminate,false);
 assert.equal(batch.mfReference("2026-01-17T17:42"),"MF 2026-01-17 05:42 PM");assert.equal(batch.mfReference("2026-01-17T00:01"),"MF 2026-01-17 12:01 AM");
 assert.equal(batch.businessLocalNow(new Date("2026-01-18T01:42:00Z")),"2026-01-17T17:42");assert.equal(batch.businessLocalNow(new Date("2026-07-18T00:42:00Z")),"2026-07-17T17:42");
+assert.equal(batch.formatInventoryLabInput("2026-11-09T20:26"),"11/09/2026 08:26 PM");
+assert.equal(batch.parseInventoryLabInput("11/09/2026 08:26 PM"),"2026-11-09T20:26");
+assert.equal(batch.parseInventoryLabInput("MF 2026-11-09 08:26 PM"),"2026-11-09T20:26");
+assert.equal(batch.parseInventoryLabInput("1/7/2026 5:42 PM"),"2026-01-07T17:42");
+assert.equal(batch.parseInventoryLabInput("2026-01-17T17:42"),"2026-01-17T17:42");
+assert.equal(batch.parseInventoryLabInput("02/30/2026 08:26 PM"),null);
+assert.equal(batch.parseInventoryLabInput("13/09/2026 08:26 PM"),null);
+assert.equal(batch.parseInventoryLabInput("11/09/2026 00:26 PM"),null);
 assert.throws(()=>batch.mfReference("2026-02-30T12:00"));assert.throws(()=>batch.selectedQuantities({[a]:"1.5"}));assert.throws(()=>batch.selectedQuantities({[a]:"-1"}));
 console.log("Listing selection, draft zeroes, partial quantities, MF reference and Pacific timezone checks passed.");

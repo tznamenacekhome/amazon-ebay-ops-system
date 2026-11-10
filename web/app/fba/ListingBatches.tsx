@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import { mutationHeaders } from "../mutationHeaders";
-import { BUSINESS_TIMEZONE, businessLocalNow, mfReference } from "./listingBatch";
+import { BUSINESS_TIMEZONE, businessLocalNow, formatInventoryLabInput, mfReference, parseInventoryLabInput } from "./listingBatch";
 export type ListingBatch = {
     id: string;
     fulfillment_method: "FBA" | "MF";
@@ -53,6 +53,7 @@ export function ListingBatches({ quantities, method, setMethod, onRestore, onBat
     const [draftId, setId] = useState(() => crypto.randomUUID());
     const id = batch?.id || draftId;
     const [local, setLocal] = useState(() => batch?.il_batch_local.slice(0, 16) || businessLocalNow());
+    const [localText, setLocalText] = useState(() => formatInventoryLabInput(batch?.il_batch_local.slice(0, 16) || businessLocalNow()));
     const [history, setHistory] = useState<ListingBatch[]>([]);
     const [pending, setPending] = useState<Record<string, {
         quantity: string;
@@ -93,6 +94,7 @@ export function ListingBatches({ quantities, method, setMethod, onRestore, onBat
         setId(b.id);
         setMethod(b.fulfillment_method);
         setLocal(b.il_batch_local.slice(0, 16));
+        setLocalText(formatInventoryLabInput(b.il_batch_local.slice(0, 16)));
         onRestore(b.selection);
         onBatch(b);
         setConfirming(false);
@@ -108,7 +110,11 @@ export function ListingBatches({ quantities, method, setMethod, onRestore, onBat
         setBusy(true);
         setError("");
         try {
-            const b = await post({ id, action, method, local, reference: shipmentId, quantities });
+            const parsedLocal = parseInventoryLabInput(localText);
+            if (!parsedLocal)
+                throw Error("Enter a valid InventoryLab date/time, such as 11/09/2026 08:26 PM.");
+            setLocal(parsedLocal);
+            const b = await post({ id, action, method, local: parsedLocal, reference: shipmentId, quantities });
             onBatch(b);
             await loadHistory();
             if (action === "export")
@@ -153,7 +159,10 @@ export function ListingBatches({ quantities, method, setMethod, onRestore, onBat
             if (attempt.current && attempt.current.payload !== payload)
                 throw Error("A prior completion may have succeeded. Reopen this batch before changing a retry.");
             attempt.current ??= { id: crypto.randomUUID(), payload };
-            const b = await post({ id, action: "complete", local, items, request_id: attempt.current.id });
+            const parsedLocal = parseInventoryLabInput(localText);
+            if (!parsedLocal)
+                throw Error("Enter a valid InventoryLab date/time, such as 11/09/2026 08:26 PM.");
+            const b = await post({ id, action: "complete", local: parsedLocal, items, request_id: attempt.current.id });
             onBatch(b);
             setConfirming(false);
             await onCompleted();
@@ -175,12 +184,12 @@ export function ListingBatches({ quantities, method, setMethod, onRestore, onBat
     return <section className="mb-4 rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
     <div className="flex flex-wrap items-end gap-3">
       <label className="grid gap-1 text-sm">Fulfillment method<select className={input} value={method} disabled={frozen || busy} onChange={e => setMethod(e.target.value as "FBA" | "MF")} required><option>FBA</option><option>MF</option></select></label>
-      <label className="grid gap-1 text-sm">InventoryLab batch date/time<input className={input} type="datetime-local" value={local} onChange={e => setLocal(e.target.value)} disabled={busy || batch?.status === "completed"} required/><span className="text-xs text-slate-500">{BUSINESS_TIMEZONE} · {method === "MF" ? preview : "FBA shipment reference entered below"}</span></label>
-      {!frozen && <button className={button} disabled={busy || !id} onClick={() => save("draft")}>Save draft</button>}
-      {(!frozen || batch?.export_csv) && <button className={button} disabled={busy || !id} onClick={() => save("export")}>{frozen ? "Download saved export" : "Export selected CSV"}</button>}
-      {frozen && batch.status !== "completed" && <button className={button} disabled={busy} onClick={() => save("reference")}>Correct IL reference</button>}
+      <label className="grid gap-1 text-sm">InventoryLab batch date/time<input className={input} type="text" value={localText} placeholder="MM/DD/YYYY h:mm AM/PM" aria-invalid={!parseInventoryLabInput(localText)} onChange={e => { setLocalText(e.target.value); const parsed = parseInventoryLabInput(e.target.value); if (parsed) setLocal(parsed); }} disabled={busy || batch?.status === "completed"} required/><span className="text-xs text-slate-500">Paste date/time or batch reference · {BUSINESS_TIMEZONE} · {method === "MF" ? preview : "FBA shipment reference entered below"}</span></label>
+      {!frozen && <button className={button} disabled={busy || !id || !parseInventoryLabInput(localText)} onClick={() => save("draft")}>Save draft</button>}
+      {(!frozen || batch?.export_csv) && <button className={button} disabled={busy || !id || (!frozen && !parseInventoryLabInput(localText))} onClick={() => save("export")}>{frozen ? "Download saved export" : "Export selected CSV"}</button>}
+      {frozen && batch.status !== "completed" && <button className={button} disabled={busy || !parseInventoryLabInput(localText)} onClick={() => save("reference")}>Correct IL reference</button>}
       {method === "MF" && frozen && batch.status !== "completed" && <button className={button} disabled={busy} onClick={startConfirmation}>Mark listed</button>}
-      <button className={button} disabled={busy} onClick={() => { onBatch(null); setId(crypto.randomUUID()); setLocal(businessLocalNow()); setConfirming(false); attempt.current = null; void onCompleted(true); }}>New selection</button>
+      <button className={button} disabled={busy} onClick={() => { onBatch(null); setId(crypto.randomUUID()); const now = businessLocalNow(); setLocal(now); setLocalText(formatInventoryLabInput(now)); setConfirming(false); attempt.current = null; void onCompleted(true); }}>New selection</button>
     </div>
     {batch && <p className="mt-2 text-sm">{batch.external_reference} · {batch.fulfillment_method} · {batch.status.replaceAll("_", " ")} <span className="text-xs text-slate-500">Internal ID {batch.id}</span></p>}
     {method === "MF" && <p className="mt-2 text-xs text-slate-600">Export leaves inventory in Received. Mark listed confirms merchant-held stock manually; Amazon acceptance and availability are unverified. MSKU is not required here. MBOP will reconcile it from a later Amazon synchronization; unresolved stock remains visible as pending reconciliation.</p>}
