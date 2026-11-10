@@ -1,14 +1,13 @@
 # CURRENT_STATE.md
 
-## Non-eBay receipt intake implemented, activation pending (2026-11-08)
+## Non-eBay receipt intake (2026-11-09)
 
-Purchases has a Non-eBay purchases tab with PDF/image upload, screenshot paste,
-background AI extraction, editable drafts and authoritative landed-cost review.
-Atomic saves retain source receipts and create Ordered purchase items for physical
-Receiving, with exact cost allocations and retry protection. The private receipt
-bucket is new infrastructure, so migration and AWS activation await the operator's
-storage decision. No production schema or deployment has changed for this feature.
-See [workflow, validation and activation](docs/NON_EBAY_PURCHASE_INTAKE.md).
+The private receipt bucket and initial workflow are deployed (web212, worker164).
+Draft review now supports ASIN/sell-price matching from existing Amazon records,
+automatic backend landed costs, and packing/handling charges without creating
+fee inventory. Platform, condition, currency and the acknowledgment checkbox are
+removed from the review form. Follow-up migration and web deployment are being
+verified. See [workflow, validation and activation](docs/NON_EBAY_PURCHASE_INTAKE.md).
 
 ## Sourcing request recovery deployed (2026-10-23)
 

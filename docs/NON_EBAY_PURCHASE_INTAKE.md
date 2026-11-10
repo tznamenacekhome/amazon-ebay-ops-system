@@ -1,6 +1,41 @@
 # Non-eBay receipt intake
 
-Implementation: 2026-11-08. **Not deployed; private receipt storage approval pending.**
+Initial deployment: approved and deployed 2026-11-09 (web212, worker164).
+
+## Draft review improvements (2026-11-09)
+
+The draft displays ASIN, sell price and automatically recalculated backend landed
+cost. Platform/condition and currency controls are removed; existing extracted
+platform/condition and USD validation remain internal. The acknowledgment
+checkbox and its text are removed. Save remains subject to backend validation.
+
+On opening, the server tries exact matches in existing MBOP Amazon SKU, MF offer
+and reviewed match records. It fills a unique ASIN and a suggested sell price
+from the existing metadata resolver, without replacing a manual price or ASIN.
+Uncertain matches remain blank with a Search Amazon link. Game platform guards
+remain enforced using backend/extracted platform data. This uses cached Amazon
+records, not a new live Amazon catalog query; the first 30 product lines receive
+automatic lookup per request, and broad/truncated matches are not auto-selected.
+
+Known non-resale packing/handling fee lines move to Other charges and are
+allocated across merchandise. A known fee removed from a draft can be recovered
+from the immutable original extraction when it explains an outstanding gap.
+Arbitrary missing products are never reclassified from a numerical difference.
+Charge lineage is retained in `charge_lines`, and preparation is idempotent.
+Example: Rainforest Flora invoice INV/2026/00714 has 50 Tilly Tacker units at
+$300 merchandise + $23 shipping + $10 packing = $333, or $6.66 landed per unit.
+The packing charge creates no inventory.
+
+Follow-up SQL: `20261110040733_mbop_receipt_review_costs_and_matching.sql`. It
+replaces the invoker cost/save RPCs, adding allocated charges and persistence
+of reviewed ASIN, Amazon title and target sell price. Existing imports, exact
+unit-cent allocation and duplicate-save locks remain in place.
+
+Validation includes 11 isolated PostgreSQL transaction tests, the TypeScript
+receipt preparation/matching test (removed fees, repeated preparation, real
+supplies, ambiguity, game platform protection and manual prices), focused lint
+and a production build. The operator's existing draft is inspected read-only;
+no purchase is saved by deployment or verification.
 
 ## Operator workflow
 
@@ -31,7 +66,7 @@ backend allocates that total to its units while leaving merchandise subtotal,
 shipping and tax unknown. It does not manufacture a zero breakdown. This option
 is rejected for several products because their cost weights are not established.
 
-Preview landed costs, check the review confirmation, then Save purchase. Save
+Preview landed costs, then Save purchase. Save
 draft preserves incomplete edits. Every dialog permits dismissal without saving,
 regardless of missing fields; an upload completed after dismissal does not reopen
 the review automatically. The original extraction and final reviewed snapshot
@@ -122,9 +157,8 @@ intake files pass focused lint. The real configured `gpt-6-luna` API successfull
 extracted a synthetic PDF's supplier, invoice/date, quantity, merchandise,
 shipping/tax/discount and $22 total; no purchase or inventory was created.
 
-Before activation, obtain approval for the new private receipt bucket (requested
-because repository instructions require asking before new infrastructure).
-Then verify project `froeucjkcepuhgwisped`, run `supabase migration list --linked`,
+Initial private-bucket approval was received and the initial migration is applied.
+For each follow-up migration, verify project `froeucjkcepuhgwisped`, run `supabase migration list --linked`,
 reconcile the entire shared migration ledger, and apply the committed migration
 through `supabase db push --linked`. Do not apply it as ad-hoc remote SQL.
 

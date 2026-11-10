@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { createServerSupabaseClient, requireAdminApiToken } from "../../_server";
 import { BUCKET, COLUMNS, UUID, launchExtraction } from "../_shared";
+import { matchReceiptItems, prepareReceipt } from "../receiptPreparation";
+import type { ReceiptData } from "../../../purchases/receiptTypes";
 
 export const dynamic = "force-dynamic";
 type Context = { params: Promise<{ id: string }> };
@@ -37,19 +39,27 @@ export async function POST(request: Request, context: Context) {
       await launchExtraction(id);
       return NextResponse.json({ queued: true });
     }
+    if (!body.data || typeof body.data !== "object" || !Array.isArray(body.data.items) || body.data.items.length > 100) throw new Error("Invalid draft.");
+    const draft = await db.from("purchase_intake_drafts").select("extracted_data,status").eq("id", id).single();
+    if (draft.error) throw new Error("Receipt draft not found.");
+    let prepared = prepareReceipt(body.data as ReceiptData, draft.data.extracted_data);
+    let matchWarning: string | undefined;
+    if (body.action === "prepare" || body.action === "match") {
+      try { prepared = await matchReceiptItems(db, prepared); }
+      catch (error) { matchWarning = error instanceof Error ? error.message : "ASIN lookup unavailable. Enter the ASIN manually."; }
+    }
     if (body.action === "draft") {
-      if (!body.data || typeof body.data !== "object" || !Array.isArray(body.data.items) || body.data.items.length > 100) throw new Error("Invalid draft.");
-      const { data, error } = await db.from("purchase_intake_drafts").update({ reviewed_data: body.data, updated_at: new Date().toISOString() })
+      const { data, error } = await db.from("purchase_intake_drafts").update({ reviewed_data: prepared, updated_at: new Date().toISOString() })
         .eq("id", id).in("status", ["review", "failed"]).select("id").maybeSingle();
       if (error) throw error; if (!data) throw new Error("Draft is not editable. Reload its current status.");
       return NextResponse.json({ saved: true });
     }
-    if (body.action !== "preview" && body.action !== "save") throw new Error("Unknown receipt action.");
+    if (!["preview", "save", "prepare", "match"].includes(body.action)) throw new Error("Unknown receipt action.");
     const { data, error } = body.action === "save"
-      ? await db.rpc("mbop_save_purchase_intake", { p_id: id, p_data: body.data })
-      : await db.rpc("mbop_purchase_intake_costs", { p_data: body.data });
-    if (error) return NextResponse.json({ error: error.message }, { status: 409 });
-    return NextResponse.json(body.action === "save" ? { result: data } : { costs: data });
+      ? await db.rpc("mbop_save_purchase_intake", { p_id: id, p_data: prepared })
+      : await db.rpc("mbop_purchase_intake_costs", { p_data: prepared });
+    if (error && body.action === "save") return NextResponse.json({ error: error.message }, { status: 409 });
+    return NextResponse.json(body.action === "save" ? { result: data } : { data: prepared, costs: error ? null : data, costError: error?.message, matchWarning });
   } catch (error) {
     return NextResponse.json({ error: error instanceof Error ? error.message : "Receipt action failed." }, { status: 400 });
   }

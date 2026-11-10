@@ -37,10 +37,11 @@ class ReceiptTransactions(unittest.TestCase):
         create schema storage;
         create table storage.buckets(id text primary key,name text,public boolean,file_size_limit bigint,allowed_mime_types text[]);
         create table purchases(purchase_id uuid primary key default gen_random_uuid(),supplier text not null,supplier_order_id text,order_date date,total_order_cost numeric(12,2),shipping_cost numeric(12,2),tax_amount numeric(12,2),order_status text,raw_import_json jsonb,notes text);
-        create table purchase_items(item_id uuid primary key default gen_random_uuid(),purchase_id uuid references purchases,title text not null,supplier_sku text,system text,quantity integer,unit_cost numeric(12,2),current_status text,condition text,manual_unit_cost_override boolean,exclude_from_purchase_reporting boolean,exclusion_reason text,raw_import_json jsonb);
+        create table purchase_items(item_id uuid primary key default gen_random_uuid(),purchase_id uuid references purchases,title text not null,supplier_sku text,system text,quantity integer,unit_cost numeric(12,2),current_status text,condition text,asin text,amazon_title text,target_price numeric(12,2),manual_unit_cost_override boolean,exclude_from_purchase_reporting boolean,exclusion_reason text,raw_import_json jsonb);
         create view vw_purchases_dashboard as select pi.*,p.order_date,p.supplier from purchase_items pi join purchases p using(purchase_id);
         ''')
         cls.sql(MIGRATION.read_text(encoding='utf-8-sig'))
+        cls.sql((ROOT / 'supabase/migrations/20261110040733_mbop_receipt_review_costs_and_matching.sql').read_text(encoding='utf-8-sig'))
 
     def setUp(self):
         self.sql('truncate purchase_intake_drafts,purchase_items,purchases;')
@@ -72,6 +73,21 @@ class ReceiptTransactions(unittest.TestCase):
         self.data.update(items=[self.item('A', 2, 20), self.item('B', 1, 30)], discount=5, shipping=4, tax=1, order_total=50)
         self.assertEqual([v['landed_total'] for v in self.preview()['items']], [20, 30])
         self.save(); self.assertEqual(self.sql('select sum(unit_cost*quantity) from purchase_items'), '50.00')
+
+    def test_packing_fee_is_landed_cost_not_stock_and_asin_price_survive(self):
+        self.data.update(supplier='Rainforest Flora Inc',order_id='INV/2026/00714',shipping=23,other_charges=10,order_total=333,items=[self.item('Tilly Tacker 3.7 oz',50,300)])
+        self.data['items'][0].update(asin='B092FLB415',amazon_title='Tilly Tacker, 3.7 oz',sell_price='31.99')
+        costs=self.preview()
+        self.assertEqual(costs['other_charges'],10)
+        self.assertAlmostEqual(costs['items'][0]['average_unit_cost'],6.66)
+        self.save()
+        self.assertEqual(self.sql('select sum(quantity),sum(quantity*unit_cost) from purchase_items'),'50|333.00')
+        self.assertEqual(self.sql("select asin||'|'||target_price||'|'||amazon_title from purchase_items"),'B092FLB415|31.99|Tilly Tacker, 3.7 oz')
+
+    def test_invalid_asin_and_sell_price_rejected_atomically(self):
+        self.data['items'][0]['asin']='BAD';self.save(ok=False)
+        self.data['items'][0]['asin']='B092FLB415';self.data['items'][0]['sell_price']='-1';self.save(ok=False)
+        self.assertEqual(self.sql('select count(*) from purchases'),'0')
 
     def test_single_product_grand_total_preserves_unknown_charge_breakdown(self):
         self.data.update(cost_basis='total_only',shipping=None,tax=None,discount=None)
