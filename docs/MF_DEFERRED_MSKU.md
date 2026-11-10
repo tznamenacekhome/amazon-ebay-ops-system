@@ -35,3 +35,18 @@ acceptance cases for no-SKU partial completion/retries/costs, complete-snapshot
 reconciliation and reservations, ambiguity/condition/stale evidence, opening
 overlap, and unchanged known-SKU/FBA behavior. The web build and focused lint
 also pass. No operator batch is completed by deployment or verification.
+
+## Deployment
+
+Migration applied to the verified MBOP project `froeucjkcepuhgwisped` through
+its reconciled shared CLI migration history. Production checks confirm MSKU is
+nullable and anonymous access to the pending-stock view is denied. Web214 serves
+source `729757acdb4b` and reached a stable ECS deployment (one running task,
+zero pending, one deployment). It was built from a clean checkout excluding unrelated shipping
+work. The existing worker164 and scheduled jobs are unchanged; reconciliation
+runs through the updated database sync-finish function.
+
+Browser verification was not completed at the time of this deployment record;
+prior native browser attempts were blocked by current-URL detection. No real
+operator batch was completed as a test. Five isolated acceptance tests, focused
+lint and the production build passed.

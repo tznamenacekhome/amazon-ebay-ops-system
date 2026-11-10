@@ -1,5 +1,16 @@
 # CURRENT_STATE.md
 
+## Deferred MF MSKU reconciliation deployed (2026-11-10)
+
+Web214 serves `729757acdb4b` with the MSKU-free Mark listed form. Physical stock
+can be confirmed before its Amazon SKU is known; pending units retain cost and
+purchase lineage and remain visible in MF Inventory. Successful existing MF
+syncs reconcile only unique, current, matching ASIN/condition offers. Duplicate
+completion and opening overlap protections remain active. Migration, five
+isolated transaction tests, focused lint, build and stable ECS rollout passed.
+Browser verification remains incomplete due to native current-URL detection.
+See [workflow and deployment](docs/MF_DEFERRED_MSKU.md).
+
 ## Non-eBay receipt intake (2026-11-09)
 
 The private receipt bucket and initial workflow are deployed (web212, worker164).
