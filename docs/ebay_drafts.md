@@ -15,10 +15,14 @@ Next.js API routes; only the server uses the Supabase service role.
   copy; later rotations create another corrected copy and preserve the original.
 - A repeated import with the same relative paths and source image hashes reuses
   the existing batch instead of creating duplicate drafts.
-- AI image analysis is optional and requires server-side `OPENAI_API_KEY`.
-  `MBOP_EBAY_DRAFT_VISION_MODEL` can select a configured compatible vision
-  model; the default is `gpt-4.1-mini`. AI output is stored as suggestions and
-  does not replace seller edits.
+- Automatic photo grouping and per-listing image analysis require the
+  server-side `OPENAI_API_KEY`. `MBOP_EBAY_DRAFT_VISION_MODEL` can select a
+  configured compatible vision model; the default is `gpt-4.1-mini`. Grouping
+  examines the complete photo set using small previews and reports which photos
+  belong together. Low-confidence groups remain for seller review. If the key is
+  missing or analysis fails, flat-folder intake stays in a manual review group
+  and requires explicit seller confirmation before import. AI listing analysis
+  is stored as suggestions and does not replace seller edits.
 - Sold-search URLs follow the query pattern from
   `integrations/price_ebay_draft_listings.py` (`LH_Sold=1`, `LH_Complete=1`,
   `rt=nc`). MBOP has no verified sold-comp price feed or automated price

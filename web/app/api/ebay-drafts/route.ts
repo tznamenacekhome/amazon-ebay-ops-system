@@ -47,7 +47,7 @@ export async function POST(request: Request) {
   const denied = requireAdminApiToken(request); if (denied) return denied;
   try {
     const form = await request.formData();
-    const metadata = JSON.parse(String(form.get("manifest") || "{}")) as { photos?: Array<Record<string, unknown>>; sourceName?: string };
+    const metadata = JSON.parse(String(form.get("manifest") || "{}")) as { photos?: Array<Record<string, unknown>>; sourceName?: string; groupingSummary?: Record<string, unknown> | null };
     const files = form.getAll("original");
     if (!files.length || files.length > MAX_DRAFT_PHOTOS || files.some(value => !(value instanceof File))) return NextResponse.json({ error: `Choose 1 to ${MAX_DRAFT_PHOTOS} photos.` }, { status: 400 });
     const corrected = form.getAll("corrected");
@@ -65,14 +65,14 @@ export async function POST(request: Request) {
       const record = meta[i];
       const relativePath = safeRelativePath(String(record.relativePath || original.name));
       entries.push({ original, fixed, originalBytes, fixedBytes, mime, relativePath,
-        groupKey: String(record.groupKey || `photo-${i + 1}`).slice(0, 120), groupName: String(record.groupName || `Item ${i + 1}`).slice(0, 240),
+        groupKey: String(record.groupKey || `photo-${i + 1}`).slice(0, 120), groupName: String(record.groupName || `Item ${i + 1}`).slice(0, 240), groupingConfirmed: record.groupingConfirmed === true,
         confidence: Math.max(0, Math.min(1, Number(record.groupingConfidence) || 0)), reason: String(record.groupingReason || "Seller grouped in folder review").slice(0, 500),
         kind: record.listingKind === "lot" ? "lot" : "single", order: Number(record.order) || i, rotation: [0,90,180,270].includes(Number(record.rotation)) ? Number(record.rotation) : 0,
         role: ["hero","alternate_angle","label","included_item","flaw","unknown"].includes(String(record.role)) ? record.role : "unknown",
         width: Math.max(1, Number(record.width) || 1), height: Math.max(1, Number(record.height) || 1), itemNumber: detectedItemNumber(relativePath),
       });
     }
-    const key = importIdempotencyKey(entries.map(e => ({ relativePath: e.relativePath, sha256: createHash("sha256").update(e.originalBytes).digest("hex") })));
+    const key = importIdempotencyKey(entries.map(e => ({ relativePath: `${e.relativePath}#group=${e.groupKey}`, sha256: createHash("sha256").update(e.originalBytes).digest("hex") })));
     const db = createServerSupabaseClient();
     const { data: previous } = await db.from("ebay_draft_imports").select("id").eq("idempotency_key", key).maybeSingle();
     if (previous) return NextResponse.json({ importId: previous.id, duplicate: true });
@@ -80,7 +80,7 @@ export async function POST(request: Request) {
     for (const entry of entries) groups.set(entry.groupKey, [...(groups.get(entry.groupKey) || []), entry]);
     const importId = randomUUID();
     const sourceName = String(metadata.sourceName || "Photo folder").slice(0, 240);
-    const { error: importError } = await db.from("ebay_draft_imports").insert({ id: importId, idempotency_key: key, source_name: sourceName, source_manifest: { photos: entries.map(e => ({ path: e.relativePath, sha256: createHash("sha256").update(e.originalBytes).digest("hex") })) }, grouping_summary: { photoCount: entries.length, groupCount: groups.size } });
+    const { error: importError } = await db.from("ebay_draft_imports").insert({ id: importId, idempotency_key: key, source_name: sourceName, source_manifest: { photos: entries.map(e => ({ path: e.relativePath, sha256: createHash("sha256").update(e.originalBytes).digest("hex"), groupKey:e.groupKey })) }, grouping_summary: { photoCount: entries.length, groupCount: groups.size, analysis: metadata.groupingSummary || null } });
     if (importError) {
       if (importError.code === "23505") { const { data } = await db.from("ebay_draft_imports").select("id").eq("idempotency_key", key).single(); return NextResponse.json({ importId: data?.id, duplicate: true }); }
       throw importError;
@@ -88,7 +88,7 @@ export async function POST(request: Request) {
     const draftIds = new Map<string, string>();
     const draftRows = [...groups].map(([groupKey, photos]) => {
       const id = randomUUID(); draftIds.set(groupKey, id); const first = photos[0];
-      return { id, import_id: importId, group_key: groupKey, group_name: first.groupName, source_item_number: first.itemNumber, grouping_confidence: Math.min(...photos.map(p => p.confidence)), grouping_reason: first.reason, grouping_confirmed: false, listing_kind: first.kind };
+      return { id, import_id: importId, group_key: groupKey, group_name: first.groupName, source_item_number: first.itemNumber, grouping_confidence: Math.min(...photos.map(p => p.confidence)), grouping_reason: first.reason, grouping_confirmed: photos.every(photo => photo.groupingConfirmed), listing_kind: first.kind };
     });
     const { error: draftError } = await db.from("ebay_listing_drafts").insert(draftRows);
     if (draftError) throw draftError;
