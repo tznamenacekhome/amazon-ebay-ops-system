@@ -26,7 +26,7 @@ export function EbayDraftWorkspace() {
   const [intake, setIntake] = useState<Photo[]>([]), [sourceName, setSourceName] = useState("Photo folder"), [loading, setLoading] = useState(false), [error, setError] = useState(""), [message, setMessage] = useState(""), [analysis, setAnalysis] = useState<any>(null);
   const [fields, setFields] = useState<Record<string, any>>({}), [specificsText, setSpecificsText] = useState("{}"), [specificsError, setSpecificsError] = useState("");
   const load = useCallback(async (id?: string) => {
-    const response = await fetch(`/api/ebay-drafts${id ? `?id=${encodeURIComponent(id)}` : ""}`, { cache: "no-store" }); const body = await response.json();
+    const response = await fetch(`/api/ebay-drafts${id ? `?id=${encodeURIComponent(id)}` : ""}`, { cache: "no-store", headers: mutationHeaders() }); const body = await response.json();
     if (!response.ok) throw new Error(body.error || "Could not load eBay drafts.");
     if (id) { const draft = (body.drafts || [])[0] || null; setSelected(draft); if (draft) { setFields(Object.fromEntries(["group_name","grouping_confirmed","listing_kind","title","category_id","category_name","condition_id","condition_name","condition_notes","tested_status","description","quantity","price","item_specifics","required_inputs","identification_status","visible_flaws","included_items","seller_notes"].map(key => [key, draft[key]]))); setSpecificsText(JSON.stringify(draft.item_specifics || {}, null, 2)); setAnalysis(draft.ai_analysis); } }
     else { setDrafts(body.drafts || []); }
@@ -77,7 +77,7 @@ export function EbayDraftWorkspace() {
   }
   async function analyze() {
     if (!selected) return; setLoading(true); setError("");
-    try { const response = await fetch(`/api/ebay-drafts/${selected.id}/analyze`, { method: "POST", headers: mutationHeaders() }); const body = await response.json(); if (!response.ok) throw new Error(body.error || "Analysis failed."); setAnalysis(body.analysis); setMessage("Analysis saved as suggestions. Review and apply each suggestion explicitly."); const refresh = await fetch(`/api/ebay-drafts?id=${encodeURIComponent(selected.import_id)}`,{cache:"no-store"}); const refreshed = await refresh.json(); const current = (refreshed.drafts || []).find((d:any) => d.id === selected.id); if (current) setSelected(current); }
+    try { const response = await fetch(`/api/ebay-drafts/${selected.id}/analyze`, { method: "POST", headers: mutationHeaders() }); const body = await response.json(); if (!response.ok) throw new Error(body.error || "Analysis failed."); setAnalysis(body.analysis); setMessage("Analysis saved as suggestions. Review and apply each suggestion explicitly."); const refresh = await fetch(`/api/ebay-drafts?id=${encodeURIComponent(selected.import_id)}`,{cache:"no-store",headers:mutationHeaders()}); const refreshed = await refresh.json(); const current = (refreshed.drafts || []).find((d:any) => d.id === selected.id); if (current) setSelected(current); }
     catch (e) { setError(e instanceof Error ? e.message : "Analysis failed."); } finally { setLoading(false); }
   }
   async function updatePhoto(photo: any, changes: Record<string, unknown>) {
@@ -109,7 +109,7 @@ export function EbayDraftWorkspace() {
       const form = new FormData(); form.set("file",rotated.fixed); form.set("rotation",String(nextRotation)); form.set("width",String(rotated.width)); form.set("height",String(rotated.height));
       const saved = await fetch(`/api/ebay-drafts/${selected.id}/photos/${photo.id}`,{method:"POST",headers:mutationHeaders(),body:form}); const body = await saved.json();
       if (!saved.ok) throw new Error(body.error || "Rotation save failed.");
-      const refreshedResponse = await fetch(`/api/ebay-drafts?id=${encodeURIComponent(selected.import_id)}`,{cache:"no-store"}); const result = await refreshedResponse.json();
+      const refreshedResponse = await fetch(`/api/ebay-drafts?id=${encodeURIComponent(selected.import_id)}`,{cache:"no-store",headers:mutationHeaders()}); const result = await refreshedResponse.json();
       const refreshed = (result.drafts || []).find((d:any) => d.id === selected.id); if (refreshed) setSelected(refreshed);
     } catch (e) { setError(e instanceof Error ? e.message : "Could not rotate the photo."); } finally { setLoading(false); }
   }
@@ -134,5 +134,5 @@ export function EbayDraftWorkspace() {
     </>}
   </main>;
 
-  function setSelectedIdForImport(importId: string, draftId: string) { void fetch(`/api/ebay-drafts?id=${encodeURIComponent(importId)}`).then(r => r.json()).then(data => { const draft = (data.drafts || []).find((d: Draft) => d.id === draftId); if (draft) { setSelected(draft); setFields(Object.fromEntries(["group_name","grouping_confirmed","listing_kind","title","category_id","category_name","condition_id","condition_name","condition_notes","tested_status","description","quantity","price","item_specifics","required_inputs","identification_status","visible_flaws","included_items","seller_notes"].map(key => [key,draft[key]]))); setSpecificsText(JSON.stringify(draft.item_specifics || {},null,2)); setAnalysis(draft.ai_analysis); } }).catch(e => setError(e.message)); }
+  function setSelectedIdForImport(importId: string, draftId: string) { void fetch(`/api/ebay-drafts?id=${encodeURIComponent(importId)}`,{headers:mutationHeaders()}).then(r => r.json()).then(data => { const draft = (data.drafts || []).find((d: Draft) => d.id === draftId); if (draft) { setSelected(draft); setFields(Object.fromEntries(["group_name","grouping_confirmed","listing_kind","title","category_id","category_name","condition_id","condition_name","condition_notes","tested_status","description","quantity","price","item_specifics","required_inputs","identification_status","visible_flaws","included_items","seller_notes"].map(key => [key,draft[key]]))); setSpecificsText(JSON.stringify(draft.item_specifics || {},null,2)); setAnalysis(draft.ai_analysis); } }).catch(e => setError(e.message)); }
 }

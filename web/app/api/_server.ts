@@ -85,7 +85,8 @@ export function requireAdminApiToken(request: Request) {
   if (expected && (bearer === expected || header === expected)) return null;
 
   const csrfHeader = request.headers.get("x-mbop-csrf")?.trim();
-  const origin = request.headers.get("origin");
+  const origin = request.headers.get("origin") ??
+    (request.method === "GET" ? request.headers.get("referer") : null);
   const host = request.headers.get("x-forwarded-host") ?? request.headers.get("host");
   const albAuthenticated =
     Boolean(request.headers.get("x-amzn-oidc-data")) ||
