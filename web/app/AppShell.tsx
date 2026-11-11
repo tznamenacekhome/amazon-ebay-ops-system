@@ -10,6 +10,7 @@ import {
   LogOut,
   PackageCheck,
   PackageOpen,
+  Camera,
   ReceiptText,
   Send,
   Search,
@@ -45,6 +46,7 @@ const navItems = [
     label: "Receiving",
     icon: PackageCheck,
   },
+  { href: "/ebay-drafts", label: "eBay Drafts", icon: Camera },
   {
     href: "/fba",
     label: "List on Amazon",
