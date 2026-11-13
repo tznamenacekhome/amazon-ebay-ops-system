@@ -1,0 +1,21 @@
+{
+  "taskArn": "arn:aws:ecs:us-west-2:297464765814:task/mbop-cluster1/37b7b4420cbb4eb2a7d63eebadcd170b",
+  "taskDefinition": "arn:aws:ecs:us-west-2:297464765814:task-definition/mbop-scheduler-task:152",
+  "command": [
+    "python",
+    "integrations/veeqo_sync_sales_labels.py",
+    "--asin",
+    "B092FLB415",
+    "--last-units",
+    "25",
+    "--limit",
+    "30",
+    "--apply"
+  ],
+  "status": "STOPPED",
+  "exitCodes": [
+    0
+  ],
+  "stoppedReason": "Essential container in task exited",
+  "logStream": "scheduled/mbop-scheduler/37b7b4420cbb4eb2a7d63eebadcd170b"
+}

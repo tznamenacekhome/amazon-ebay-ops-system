@@ -26,6 +26,7 @@ import { KeepaPriceIndicator } from "../components/KeepaPriceIndicator";
 import { allocationSelection, toggleAsin } from "./allocationSelection";
 import { businessLocalNow } from "./listingBatch";
 import { ListingBatches, type ListingBatch } from "./ListingBatches";
+import { ListedBatches } from "./ListedBatches";
 
 type FbaDetail = {
   condition?: string | null;
@@ -625,17 +626,27 @@ export default function FbaPage() {
           type="button"
         >
           <Truck className="h-4 w-4" />
-          FBA Shipments
+          Batches Listed
         </button>
       </div>
 
       {activeView === "shipments" ? (
+        <>
+        <ListedBatches refreshKey={freshnessKey} onOpen={opened => {
+          setBatch(opened);
+          setMethod(opened.fulfillment_method);
+          setQuantityDrafts(opened.selection);
+          if (opened.fulfillment_method === "FBA" && opened.external_reference !== "FBA draft") setShipmentId(opened.external_reference);
+          setActiveView("prep");
+        }} />
+        <h2 className="mb-3 text-lg font-semibold">FBA shipment tracking</h2>
         <ShipmentView
           data={shipmentData}
           loading={loading}
           expandedShipment={expandedShipment}
           setExpandedShipment={setExpandedShipment}
         />
+        </>
       ) : (
         <>
 

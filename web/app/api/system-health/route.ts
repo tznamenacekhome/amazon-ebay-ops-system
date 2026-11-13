@@ -827,7 +827,20 @@ export async function GET() {
             message: job.disabledReason || null,
           };
         }
-        const signal = await safeSignal(job);
+        const shippingRun = job.id === "veeqo-sales-labels"
+          ? schedulerJobRuns.find((run) => run.jobName === job.name) : undefined;
+        const shipping = objectValue(shippingRun?.metadata.shipping_reconciliation);
+        const shippingStatus = shippingRun ? healthStatusForJobRun(shippingRun) : undefined;
+        const signal: JobSignal = shippingRun && Object.keys(shipping).length
+          ? {
+              lastRunAt: shippingRun.finishedAt || shippingRun.startedAt,
+              source: "scheduler_run_jobs shipping reconciliation",
+              stats: metricStatsForJobRuns([shippingRun]),
+              statusOverride: shippingStatus === "ok" ? undefined : shippingStatus,
+              message: shipping.queue_status === "empty" ? "Shipping reconciliation queue is empty; eligible orders have verified costs."
+                : `Shipping reconciliation: ${String(shipping.queue_status)}.`,
+            }
+          : await safeSignal(job);
         const failure = latestFailureForCommand(failures, job.command);
         const localRun = latestLocalRunForJob(localRuns, job);
         const localRunAt = stringValue(localRun?.finished_at) || stringValue(localRun?.started_at);
@@ -853,7 +866,7 @@ export async function GET() {
             status = "failed";
             message = localRun.message || `${job.command} failed in the latest local orchestrator run.`;
           } else {
-            status = statusForSignal({ ...signal, statusOverride: undefined, lastRunAt }, hoursSinceLastRun, job);
+            status = statusForSignal({ ...signal, statusOverride: job.id === "veeqo-sales-labels" ? signal.statusOverride : undefined, lastRunAt }, hoursSinceLastRun, job);
           }
         }
 
@@ -1037,7 +1050,8 @@ function buildSchedulerGroupSummaries(
 
     return {
       ...group,
-      status: statusForSchedulerGroup(group, latestRun, lastSuccessAt, hoursSinceLastSuccess, previousRunAt),
+      status: configuredJobs.some((job) => job.status === "delayed") && latestRun?.status === "ok"
+        ? "delayed" : statusForSchedulerGroup(group, latestRun, lastSuccessAt, hoursSinceLastSuccess, previousRunAt),
       nextRunAt,
       lastRunAt: latestRunAt,
       lastSuccessAt,
@@ -1402,6 +1416,8 @@ function latestJobRunsForGroup(runs: SchedulerJobRunRecord[]) {
 }
 
 function healthStatusForJobRun(run: SchedulerJobRunRecord): HealthStatus {
+  const shipping = objectValue(run.metadata.shipping_reconciliation);
+  if (run.status === "ok" && ["backlog", "incomplete", "missing_credentials", "failed"].includes(String(shipping.queue_status))) return "delayed";
   if (run.status === "ok") return "ok";
   if (run.status === "failed") return "failed";
   if (run.status === "blocked") return "blocked";
@@ -1820,6 +1836,12 @@ function metricStatsForJobRuns(runs: SchedulerJobRunRecord[]) {
 }
 
 function metadataMetricStatsForJobRuns(runs: SchedulerJobRunRecord[]) {
+  const shippingRun = runs.find((run) => Object.keys(objectValue(run.metadata.shipping_reconciliation)).length > 0);
+  if (shippingRun) {
+    const shipping = objectValue(shippingRun.metadata.shipping_reconciliation);
+    return ["eligible_orders", "attempted_orders", "matched_orders", "reconciled_costs", "pending_orders", "unresolved_shipped_orders", "api_failures", "backlog_age_days"]
+      .map((key) => ({ label: key.replaceAll("_", " "), value: formatCount(numberValue(shipping[key]) ?? 0) }));
+  }
   const totals = new Map<string, number>();
   for (const run of runs) {
     const metrics = Array.isArray(run.metadata.metrics) ? run.metadata.metrics : [];

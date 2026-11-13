@@ -1,0 +1,6 @@
+{
+  "previousTaskDefinition": "arn:aws:ecs:us-west-2:297464765814:task-definition/mbop-web-task:201",
+  "taskDefinition": "arn:aws:ecs:us-west-2:297464765814:task-definition/mbop-web-task:202",
+  "image": "297464765814.dkr.ecr.us-west-2.amazonaws.com/mbop-web@sha256:6e809ba3432c5441d1d1ac6743cc682931fee960cb6b29a6c6630aac6a6f25f1",
+  "build": "898067e5d021-shipping-health"
+}

@@ -1,0 +1,45 @@
+{
+  "tilly": {
+    "units": 25,
+    "orders": 24,
+    "missing_shipping_before": 22,
+    "missing_shipping_after": 0,
+    "veeqo_source_units": 24,
+    "amazon_source_units": 1,
+    "unchanged_cogs": true,
+    "missing_cogs_units": 25
+  },
+  "veeqo": {
+    "stored_orders": 363,
+    "missing_label_before": 60,
+    "missing_label_after": 27,
+    "newly_recovered_label_orders": 33,
+    "remaining_cancelled": 21,
+    "remaining_refunded": 2,
+    "remaining_amazon_postage": 3,
+    "remaining_operator_label_override": 1
+  },
+  "eligible_shipping_queue": {
+    "eligible_orders": 324,
+    "unresolved_orders": 0,
+    "api_failures": 0,
+    "write_failures": 0
+  },
+  "validation": {
+    "unittest_count": 32,
+    "web_build": "passed",
+    "browser_shipping_health": "healthy; eligible 324; unresolved 0; queue empty",
+    "schedule_count_verified": 21,
+    "schedule_targets_changed": 2
+  },
+  "scheduler": {
+    "taskDefinition": "arn:aws:ecs:us-west-2:297464765814:task-definition/mbop-scheduler-task:157",
+    "image": "297464765814.dkr.ecr.us-west-2.amazonaws.com/mbop-scheduler@sha256:9d477d52f75f7c29727e334e10625f2fff6649f18da0c85e0ab1418a756ed66a"
+  },
+  "web": {
+    "previousTaskDefinition": "arn:aws:ecs:us-west-2:297464765814:task-definition/mbop-web-task:201",
+    "taskDefinition": "arn:aws:ecs:us-west-2:297464765814:task-definition/mbop-web-task:202",
+    "image": "297464765814.dkr.ecr.us-west-2.amazonaws.com/mbop-web@sha256:6e809ba3432c5441d1d1ac6743cc682931fee960cb6b29a6c6630aac6a6f25f1",
+    "build": "898067e5d021-shipping-health"
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "previousTaskDefinition": "arn:aws:ecs:us-west-2:297464765814:task-definition/mbop-web-task:200",
+  "taskDefinition": "arn:aws:ecs:us-west-2:297464765814:task-definition/mbop-web-task:201",
+  "image": "297464765814.dkr.ecr.us-west-2.amazonaws.com/mbop-web@sha256:65f5f5cb2f5d5e93cf73317ec542c2af9687c59b585d1dec22e51d495961605a",
+  "build": "898067e5d021-shipping"
+}

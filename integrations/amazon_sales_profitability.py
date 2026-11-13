@@ -14,6 +14,10 @@ from typing import Any
 
 from dotenv import load_dotenv
 from supabase import create_client
+try:
+    from .sales_shipping_costs import allocate_cost, order_label_cost
+except ImportError:
+    from sales_shipping_costs import allocate_cost, order_label_cost
 
 LOGGER = logging.getLogger("amazon_sales_profitability")
 BATCH_SIZE = 200
@@ -192,6 +196,11 @@ def build_order_profitability(
     rows: list[dict[str, Any]] = []
     consumption_rows: list[dict[str, Any]] = []
 
+    order_shipping, order_shipping_source = fulfillment_cost_for_order(
+        order, 0, label_cost, amazon_shipping_label_cost(financial_events), order_fulfillment_override
+    )
+    allocated_shipping = allocate_cost(order_shipping, items)
+
     for item in items:
         item_id = item["amazon_order_item_id"]
         quantity = int(item.get("quantity_ordered") or item.get("quantity_shipped") or 0)
@@ -208,13 +217,12 @@ def build_order_profitability(
             amazon_order_id,
             item_id,
         )
-        fulfillment_cost, fulfillment_source = fulfillment_cost_for_order(
-            order,
-            fee_totals["fba_fulfillment_fee"],
-            label_cost,
-            amazon_shipping_label_cost(financial_events),
-            item_fulfillment_override or order_fulfillment_override,
-        )
+        if item_fulfillment_override or (not order_fulfillment_override and (order.get("fulfillment_channel") or "").lower() in {"afn", "amazon", "amazonfulfilled"}):
+            fulfillment_cost, fulfillment_source = fulfillment_cost_for_order(
+                order, fee_totals["fba_fulfillment_fee"], None, None, item_fulfillment_override
+            )
+        else:
+            fulfillment_cost, fulfillment_source = allocated_shipping[item_id], order_shipping_source
         existing_fifo_consumption = fetch_existing_mbop_fifo_consumption(supabase, item_id)
         if existing_fifo_consumption:
             cogs = round(
@@ -319,14 +327,13 @@ def fetch_financial_events(supabase, amazon_order_id: str) -> list[dict[str, Any
 
 def fetch_veeqo_label_cost(supabase, amazon_order_id: str) -> float | None:
     result = (
-        supabase.table("veeqo_sales_shipments")
-        .select("label_cost_amount")
+        supabase.table("veeqo_sales_orders")
+        .select("raw_veeqo_order_json")
         .eq("amazon_order_id", amazon_order_id)
         .execute()
     )
-    amounts = [to_float(row.get("label_cost_amount")) for row in result.data or []]
-    amounts = [amount for amount in amounts if amount is not None]
-    return round(sum(amounts), 2) if amounts else None
+    costs = [order_label_cost(row.get("raw_veeqo_order_json") or {})[0] for row in result.data or []]
+    return round(sum(costs), 2) if costs and all(cost is not None for cost in costs) else None
 
 
 def fetch_fulfillment_cost_override(
@@ -471,6 +478,8 @@ def fulfillment_cost_for_order(
     fulfillment_override: dict[str, Any] | None,
 ) -> tuple[float | None, str]:
     if fulfillment_override and to_float(fulfillment_override.get("fulfillment_cost")) is not None:
+        if fulfillment_override.get("currency") not in {None, "USD"}:
+            return None, "missing"
         return (
             round(to_float(fulfillment_override.get("fulfillment_cost")) or 0, 2),
             fulfillment_override.get("fulfillment_cost_source") or "manual",
@@ -487,17 +496,57 @@ def fulfillment_cost_for_order(
 
 
 def amazon_shipping_label_cost(events: list[dict[str, Any]]) -> float | None:
-    adjustment_costs = [
-        abs(amount)
-        for event in events
-        if (event.get("event_type") or "") == "AdjustmentEventList"
-        and not event.get("fee_type")
-        and not event.get("charge_type")
-        and not event.get("promotion_type")
-        for amount in [to_float(event.get("amount"))]
-        if amount is not None and amount < 0
-    ]
-    return round(sum(adjustment_costs), 2) if adjustment_costs else None
+    # Actual payload evidence: PostageBilling_Postage at AdjustmentAmount.
+    # Require the outbound postage namespace and exact order association; never
+    # infer shipping from an arbitrary negative AdjustmentAmount or return postage.
+    amounts = {}
+    for event in events:
+        if event.get("event_type") != "AdjustmentEventList" or event.get("currency") != "USD":
+            continue
+        raw = event.get("raw_financial_event_json") or {}
+        path = raw.get("path") or []
+        adjustment = (raw.get("event") or {}).get("AdjustmentType", "")
+        if not adjustment.startswith(("PostageBilling_", "PostageRefund_")) or path[-1:] != ["AdjustmentAmount"]:
+            continue
+        amount = to_float(event.get("amount"))
+        if amount is not None:
+            amounts[event.get("financial_event_id") or str(path)] = -amount
+    return round(sum(amounts.values()), 2) if amounts and sum(amounts.values()) >= 0 else None
+
+
+def refresh_shipping_profitability(supabase, order):
+    """Shipping-only repair: preserve stored COGS, fees, sale values and consumption."""
+    order_id = order["amazon_order_id"]
+    items = fetch_order_items(supabase, order_id)
+    events = fetch_financial_events(supabase, order_id)
+    total, source = fulfillment_cost_for_order(order, 0, fetch_veeqo_label_cost(supabase, order_id),
+        amazon_shipping_label_cost(events), fetch_fulfillment_cost_override(supabase, order_id, None))
+    allocated = allocate_cost(total, items)
+    existing = supabase.table("amazon_sales_profitability").select("*").eq("amazon_order_id", order_id).execute().data or []
+    if not existing:
+        # The regular profitability pass will initialize all financial/COGS fields.
+        # Keep this repair strictly shipping-only rather than inventing those values.
+        raise RuntimeError("Profitability rows are absent; initialize profitability before shipping repair")
+    all_costs_known = True
+    for row in existing:
+        if row.get("data_status") in {"cancelled", "refunded"}:
+            continue
+        item_id = row["amazon_order_item_id"]
+        override = fetch_fulfillment_cost_override(supabase, order_id, item_id)
+        cost, cost_source = (fulfillment_cost_for_order(order, 0, None, None, override)
+                             if override else (allocated.get(item_id), source))
+        all_costs_known = all_costs_known and cost is not None
+        sale, fees, cogs = (to_float(row.get(k)) for k in ("sale_price", "amazon_fees_excluding_fulfillment", "cogs"))
+        profit = round(sale - fees - cogs - cost, 2) if all(v is not None for v in (sale, fees, cogs, cost)) else None
+        status = row["data_status"]
+        if status != "missing_fees":
+            status = "missing_fulfillment_cost" if cost is None else "missing_cogs" if cogs is None else "complete"
+        supabase.table("amazon_sales_profitability").update({
+            "fulfillment_cost": cost, "fulfillment_cost_source": cost_source,
+            "net_profit": profit, "roi": round(profit / (cogs + cost), 4) if profit is not None and cogs + cost > 0 else None,
+            "data_status": status,
+        }).eq("amazon_order_id", order_id).eq("amazon_order_item_id", item_id).execute()
+    return all_costs_known
 
 
 def lookup_cogs(

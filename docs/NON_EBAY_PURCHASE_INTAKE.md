@@ -51,14 +51,16 @@ The existing ECS scheduler task runs the extraction command on demand (no new
 service or schedule). Startup can take a minute. Close the progress window and
 reopen the draft later. Failed extraction can be retried or reviewed manually.
 
-Review supplier, actual purchase date, order reference, currency, all product
-lines, quantities, conditions, platform and resale flags. Unknown fields remain
+Review supplier, actual purchase date, order reference, product lines, quantities,
+ASINs, sell prices and resale flags. Platform/condition remain internal metadata;
+USD is the supported currency and has no editable draft control. Unknown fields remain
 blank; verify before entering zero. Merchandise line totals include line-specific
 discounts and exclude order-wide discount, shipping and tax. The receipt total
 must reconcile. Only USD is supported. Non-resale items retain their share of
 costs but are explicitly excluded from resale reports and operational queues.
-ASIN and Amazon sell price are established through existing matching/Receiving,
-not guessed by the receipt extractor. Purchase date is not the warehouse date.
+ASIN and sell price are suggested from existing Amazon records and can be edited
+in the draft or established later through matching/Receiving. The receipt
+extractor does not invent an ASIN. Purchase date is not the warehouse date.
 
 For a one-product invoice showing only quantity and the grand total (such as the
 Eastern Leaf receipt), explicitly select the grand-total-only checkbox. The
@@ -173,7 +175,7 @@ production UI upload/paste, draft reopen, totals preview, dismissal, saved-sourc
 links and Receiving access. Do not create fictitious production purchases for
 verification. Local build results do not constitute production verification.
 
-Current limits: USD only; one document/order; no automatic ASIN inference,
+Current limits: USD only; one document/order; no new live Amazon catalog search,
 shipping tracking import, historical stock reconciliation, automatic returns or
 marketplace writes. AI extraction may need manual correction, especially cropped
 screenshots, ambiguous discounts, or missing tax/shipping details.

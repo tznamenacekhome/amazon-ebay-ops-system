@@ -1,0 +1,488 @@
+{
+  "mbop-finance-refresh-afternoon": {
+    "ActionAfterCompletion": "NONE",
+    "Arn": "arn:aws:scheduler:us-west-2:297464765814:schedule/default/mbop-finance-refresh-afternoon",
+    "CreationDate": "2026-06-20 12:29:10.840000-07:00",
+    "FlexibleTimeWindow": {
+      "Mode": "OFF"
+    },
+    "GroupName": "default",
+    "LastModificationDate": "2026-10-09 19:43:27.022000-07:00",
+    "Name": "mbop-finance-refresh-afternoon",
+    "ScheduleExpression": "cron(0 14 ? * * *)",
+    "ScheduleExpressionTimezone": "America/Los_Angeles",
+    "State": "ENABLED",
+    "Target": {
+      "Arn": "arn:aws:scheduler:::aws-sdk:ecs:runTask",
+      "Input": "{\"LaunchType\":\"FARGATE\",\"Count\":1,\"Cluster\":\"arn:aws:ecs:us-west-2:297464765814:cluster/mbop-cluster1\",\"PlatformVersion\":\"LATEST\",\"TaskDefinition\":\"arn:aws:ecs:us-west-2:297464765814:task-definition/mbop-scheduler-task:141\",\"EnableECSManagedTags\":true,\"Overrides\":{\"ContainerOverrides\":[{\"Environment\":[{\"Value\":\"mbop-finance-refresh-afternoon\",\"Name\":\"EVENTBRIDGE_SCHEDULE_NAME\"},{\"Value\":\"eventbridge-scheduler\",\"Name\":\"SCHEDULER_TRIGGER_SOURCE\"},{\"Value\":\"512\",\"Name\":\"CONTAINER_CPU\"},{\"Value\":\"1024\",\"Name\":\"CONTAINER_MEMORY\"}],\"Command\":[\"python\",\"run_all_syncs.py\",\"--group\",\"finance-refresh\"],\"Name\":\"mbop-scheduler\"}]},\"NetworkConfiguration\":{\"AwsvpcConfiguration\":{\"Subnets\":[\"subnet-04169524e0f9bdd8b\",\"subnet-07558cd00060ff69d\",\"subnet-0acbbc29cdf301200\",\"subnet-0b2f04002f8b85fa0\"],\"AssignPublicIp\":\"ENABLED\",\"SecurityGroups\":[\"sg-0b05e7760083c5e31\"]}}}",
+      "RetryPolicy": {
+        "MaximumEventAgeInSeconds": 3600,
+        "MaximumRetryAttempts": 1
+      },
+      "RoleArn": "arn:aws:iam::297464765814:role/mbopEventBridgeSchedulerEcsRole"
+    }
+  },
+  "mbop-keepa-rolling-refresh": {
+    "ActionAfterCompletion": "NONE",
+    "Arn": "arn:aws:scheduler:us-west-2:297464765814:schedule/default/mbop-keepa-rolling-refresh",
+    "CreationDate": "2026-06-20 12:29:25.282000-07:00",
+    "FlexibleTimeWindow": {
+      "Mode": "OFF"
+    },
+    "GroupName": "default",
+    "LastModificationDate": "2026-10-09 19:43:37.387000-07:00",
+    "Name": "mbop-keepa-rolling-refresh",
+    "ScheduleExpression": "cron(10 1,9,17 ? * * *)",
+    "ScheduleExpressionTimezone": "America/Los_Angeles",
+    "State": "DISABLED",
+    "Target": {
+      "Arn": "arn:aws:scheduler:::aws-sdk:ecs:runTask",
+      "Input": "{\"LaunchType\":\"FARGATE\",\"Count\":1,\"Cluster\":\"arn:aws:ecs:us-west-2:297464765814:cluster/mbop-cluster1\",\"PlatformVersion\":\"LATEST\",\"TaskDefinition\":\"arn:aws:ecs:us-west-2:297464765814:task-definition/mbop-scheduler-task:141\",\"EnableECSManagedTags\":true,\"Overrides\":{\"ContainerOverrides\":[{\"Environment\":[{\"Value\":\"mbop-keepa-rolling-refresh\",\"Name\":\"EVENTBRIDGE_SCHEDULE_NAME\"},{\"Value\":\"eventbridge-scheduler\",\"Name\":\"SCHEDULER_TRIGGER_SOURCE\"},{\"Value\":\"512\",\"Name\":\"CONTAINER_CPU\"},{\"Value\":\"1024\",\"Name\":\"CONTAINER_MEMORY\"}],\"Command\":[\"python\",\"run_all_syncs.py\",\"--group\",\"keepa-rolling-refresh\"],\"Name\":\"mbop-scheduler\"}]},\"NetworkConfiguration\":{\"AwsvpcConfiguration\":{\"Subnets\":[\"subnet-04169524e0f9bdd8b\",\"subnet-07558cd00060ff69d\",\"subnet-0acbbc29cdf301200\",\"subnet-0b2f04002f8b85fa0\"],\"AssignPublicIp\":\"ENABLED\",\"SecurityGroups\":[\"sg-0b05e7760083c5e31\"]}}}",
+      "RetryPolicy": {
+        "MaximumEventAgeInSeconds": 3600,
+        "MaximumRetryAttempts": 1
+      },
+      "RoleArn": "arn:aws:iam::297464765814:role/mbopEventBridgeSchedulerEcsRole"
+    }
+  },
+  "mbop-repricing-catalog": {
+    "ActionAfterCompletion": "NONE",
+    "Arn": "arn:aws:scheduler:us-west-2:297464765814:schedule/default/mbop-repricing-catalog",
+    "CreationDate": "2026-06-20 12:29:21.207000-07:00",
+    "FlexibleTimeWindow": {
+      "Mode": "OFF"
+    },
+    "GroupName": "default",
+    "LastModificationDate": "2026-10-09 19:43:58.145000-07:00",
+    "Name": "mbop-repricing-catalog",
+    "ScheduleExpression": "cron(30 21 ? * * *)",
+    "ScheduleExpressionTimezone": "America/Los_Angeles",
+    "State": "ENABLED",
+    "Target": {
+      "Arn": "arn:aws:scheduler:::aws-sdk:ecs:runTask",
+      "Input": "{\"LaunchType\":\"FARGATE\",\"Count\":1,\"Cluster\":\"arn:aws:ecs:us-west-2:297464765814:cluster/mbop-cluster1\",\"PlatformVersion\":\"LATEST\",\"TaskDefinition\":\"arn:aws:ecs:us-west-2:297464765814:task-definition/mbop-scheduler-task:141\",\"EnableECSManagedTags\":true,\"Overrides\":{\"ContainerOverrides\":[{\"Environment\":[{\"Value\":\"mbop-repricing-catalog\",\"Name\":\"EVENTBRIDGE_SCHEDULE_NAME\"},{\"Value\":\"eventbridge-scheduler\",\"Name\":\"SCHEDULER_TRIGGER_SOURCE\"},{\"Value\":\"512\",\"Name\":\"CONTAINER_CPU\"},{\"Value\":\"1024\",\"Name\":\"CONTAINER_MEMORY\"}],\"Command\":[\"python\",\"run_all_syncs.py\",\"--group\",\"repricing-catalog\"],\"Name\":\"mbop-scheduler\"}]},\"NetworkConfiguration\":{\"AwsvpcConfiguration\":{\"Subnets\":[\"subnet-04169524e0f9bdd8b\",\"subnet-07558cd00060ff69d\",\"subnet-0acbbc29cdf301200\",\"subnet-0b2f04002f8b85fa0\"],\"AssignPublicIp\":\"ENABLED\",\"SecurityGroups\":[\"sg-0b05e7760083c5e31\"]}}}",
+      "RetryPolicy": {
+        "MaximumEventAgeInSeconds": 3600,
+        "MaximumRetryAttempts": 1
+      },
+      "RoleArn": "arn:aws:iam::297464765814:role/mbopEventBridgeSchedulerEcsRole"
+    }
+  },
+  "mbop-returns-order-problems-late": {
+    "ActionAfterCompletion": "NONE",
+    "Arn": "arn:aws:scheduler:us-west-2:297464765814:schedule/default/mbop-returns-order-problems-late",
+    "CreationDate": "2026-06-20 12:29:00.253000-07:00",
+    "FlexibleTimeWindow": {
+      "Mode": "OFF"
+    },
+    "GroupName": "default",
+    "LastModificationDate": "2026-10-09 19:44:03.593000-07:00",
+    "Name": "mbop-returns-order-problems-late",
+    "ScheduleExpression": "cron(0 22 ? * * *)",
+    "ScheduleExpressionTimezone": "America/Los_Angeles",
+    "State": "ENABLED",
+    "Target": {
+      "Arn": "arn:aws:scheduler:::aws-sdk:ecs:runTask",
+      "Input": "{\"LaunchType\":\"FARGATE\",\"Count\":1,\"Cluster\":\"arn:aws:ecs:us-west-2:297464765814:cluster/mbop-cluster1\",\"PlatformVersion\":\"LATEST\",\"TaskDefinition\":\"arn:aws:ecs:us-west-2:297464765814:task-definition/mbop-scheduler-task:141\",\"EnableECSManagedTags\":true,\"Overrides\":{\"ContainerOverrides\":[{\"Environment\":[{\"Value\":\"mbop-returns-order-problems-late\",\"Name\":\"EVENTBRIDGE_SCHEDULE_NAME\"},{\"Value\":\"eventbridge-scheduler\",\"Name\":\"SCHEDULER_TRIGGER_SOURCE\"},{\"Value\":\"512\",\"Name\":\"CONTAINER_CPU\"},{\"Value\":\"1024\",\"Name\":\"CONTAINER_MEMORY\"}],\"Command\":[\"python\",\"run_all_syncs.py\",\"--group\",\"returns-order-problems\"],\"Name\":\"mbop-scheduler\"}]},\"NetworkConfiguration\":{\"AwsvpcConfiguration\":{\"Subnets\":[\"subnet-04169524e0f9bdd8b\",\"subnet-07558cd00060ff69d\",\"subnet-0acbbc29cdf301200\",\"subnet-0b2f04002f8b85fa0\"],\"AssignPublicIp\":\"ENABLED\",\"SecurityGroups\":[\"sg-0b05e7760083c5e31\"]}}}",
+      "RetryPolicy": {
+        "MaximumEventAgeInSeconds": 3600,
+        "MaximumRetryAttempts": 1
+      },
+      "RoleArn": "arn:aws:iam::297464765814:role/mbopEventBridgeSchedulerEcsRole"
+    }
+  },
+  "mbop-purchase-tracking-catchup": {
+    "ActionAfterCompletion": "NONE",
+    "Arn": "arn:aws:scheduler:us-west-2:297464765814:schedule/default/mbop-purchase-tracking-catchup",
+    "CreationDate": "2026-06-20 12:28:55.842000-07:00",
+    "FlexibleTimeWindow": {
+      "Mode": "OFF"
+    },
+    "GroupName": "default",
+    "LastModificationDate": "2026-10-09 19:43:48.604000-07:00",
+    "Name": "mbop-purchase-tracking-catchup",
+    "ScheduleExpression": "cron(20 4 ? * * *)",
+    "ScheduleExpressionTimezone": "America/Los_Angeles",
+    "State": "ENABLED",
+    "Target": {
+      "Arn": "arn:aws:scheduler:::aws-sdk:ecs:runTask",
+      "Input": "{\"LaunchType\":\"FARGATE\",\"Count\":1,\"Cluster\":\"arn:aws:ecs:us-west-2:297464765814:cluster/mbop-cluster1\",\"PlatformVersion\":\"LATEST\",\"TaskDefinition\":\"arn:aws:ecs:us-west-2:297464765814:task-definition/mbop-scheduler-task:141\",\"EnableECSManagedTags\":true,\"Overrides\":{\"ContainerOverrides\":[{\"Environment\":[{\"Value\":\"mbop-purchase-tracking-catchup\",\"Name\":\"EVENTBRIDGE_SCHEDULE_NAME\"},{\"Value\":\"eventbridge-scheduler\",\"Name\":\"SCHEDULER_TRIGGER_SOURCE\"},{\"Value\":\"512\",\"Name\":\"CONTAINER_CPU\"},{\"Value\":\"1024\",\"Name\":\"CONTAINER_MEMORY\"}],\"Command\":[\"python\",\"run_all_syncs.py\",\"--group\",\"purchase-tracking\"],\"Name\":\"mbop-scheduler\"}]},\"NetworkConfiguration\":{\"AwsvpcConfiguration\":{\"Subnets\":[\"subnet-04169524e0f9bdd8b\",\"subnet-07558cd00060ff69d\",\"subnet-0acbbc29cdf301200\",\"subnet-0b2f04002f8b85fa0\"],\"AssignPublicIp\":\"ENABLED\",\"SecurityGroups\":[\"sg-0b05e7760083c5e31\"]}}}",
+      "RetryPolicy": {
+        "MaximumEventAgeInSeconds": 3600,
+        "MaximumRetryAttempts": 1
+      },
+      "RoleArn": "arn:aws:iam::297464765814:role/mbopEventBridgeSchedulerEcsRole"
+    }
+  },
+  "mbop-fba-shipments-active-window": {
+    "ActionAfterCompletion": "NONE",
+    "Arn": "arn:aws:scheduler:us-west-2:297464765814:schedule/default/mbop-fba-shipments-active-window",
+    "CreationDate": "2026-06-20 12:29:17.066000-07:00",
+    "FlexibleTimeWindow": {
+      "Mode": "OFF"
+    },
+    "GroupName": "default",
+    "LastModificationDate": "2026-10-09 19:43:24.311000-07:00",
+    "Name": "mbop-fba-shipments-active-window",
+    "ScheduleExpression": "cron(40 8,12,16,20 ? * * *)",
+    "ScheduleExpressionTimezone": "America/Los_Angeles",
+    "State": "ENABLED",
+    "Target": {
+      "Arn": "arn:aws:scheduler:::aws-sdk:ecs:runTask",
+      "Input": "{\"LaunchType\":\"FARGATE\",\"Count\":1,\"Cluster\":\"arn:aws:ecs:us-west-2:297464765814:cluster/mbop-cluster1\",\"PlatformVersion\":\"LATEST\",\"TaskDefinition\":\"arn:aws:ecs:us-west-2:297464765814:task-definition/mbop-scheduler-task:141\",\"EnableECSManagedTags\":true,\"Overrides\":{\"ContainerOverrides\":[{\"Environment\":[{\"Value\":\"mbop-fba-shipments-active-window\",\"Name\":\"EVENTBRIDGE_SCHEDULE_NAME\"},{\"Value\":\"eventbridge-scheduler\",\"Name\":\"SCHEDULER_TRIGGER_SOURCE\"},{\"Value\":\"512\",\"Name\":\"CONTAINER_CPU\"},{\"Value\":\"1024\",\"Name\":\"CONTAINER_MEMORY\"}],\"Command\":[\"python\",\"run_all_syncs.py\",\"--group\",\"fba-shipments\"],\"Name\":\"mbop-scheduler\"}]},\"NetworkConfiguration\":{\"AwsvpcConfiguration\":{\"Subnets\":[\"subnet-04169524e0f9bdd8b\",\"subnet-07558cd00060ff69d\",\"subnet-0acbbc29cdf301200\",\"subnet-0b2f04002f8b85fa0\"],\"AssignPublicIp\":\"ENABLED\",\"SecurityGroups\":[\"sg-0b05e7760083c5e31\"]}}}",
+      "RetryPolicy": {
+        "MaximumEventAgeInSeconds": 3600,
+        "MaximumRetryAttempts": 1
+      },
+      "RoleArn": "arn:aws:iam::297464765814:role/mbopEventBridgeSchedulerEcsRole"
+    }
+  },
+  "mbop-reconciliation": {
+    "ActionAfterCompletion": "NONE",
+    "Arn": "arn:aws:scheduler:us-west-2:297464765814:schedule/default/mbop-reconciliation",
+    "CreationDate": "2026-06-20 12:29:19.159000-07:00",
+    "FlexibleTimeWindow": {
+      "Mode": "OFF"
+    },
+    "GroupName": "default",
+    "LastModificationDate": "2026-10-09 19:43:55.206000-07:00",
+    "Name": "mbop-reconciliation",
+    "ScheduleExpression": "cron(0 21 ? * * *)",
+    "ScheduleExpressionTimezone": "America/Los_Angeles",
+    "State": "ENABLED",
+    "Target": {
+      "Arn": "arn:aws:scheduler:::aws-sdk:ecs:runTask",
+      "Input": "{\"LaunchType\":\"FARGATE\",\"Count\":1,\"Cluster\":\"arn:aws:ecs:us-west-2:297464765814:cluster/mbop-cluster1\",\"PlatformVersion\":\"LATEST\",\"TaskDefinition\":\"arn:aws:ecs:us-west-2:297464765814:task-definition/mbop-scheduler-task:141\",\"EnableECSManagedTags\":true,\"Overrides\":{\"ContainerOverrides\":[{\"Environment\":[{\"Value\":\"mbop-reconciliation\",\"Name\":\"EVENTBRIDGE_SCHEDULE_NAME\"},{\"Value\":\"eventbridge-scheduler\",\"Name\":\"SCHEDULER_TRIGGER_SOURCE\"},{\"Value\":\"512\",\"Name\":\"CONTAINER_CPU\"},{\"Value\":\"1024\",\"Name\":\"CONTAINER_MEMORY\"}],\"Command\":[\"python\",\"run_all_syncs.py\",\"--group\",\"reconciliation\"],\"Name\":\"mbop-scheduler\"}]},\"NetworkConfiguration\":{\"AwsvpcConfiguration\":{\"Subnets\":[\"subnet-04169524e0f9bdd8b\",\"subnet-07558cd00060ff69d\",\"subnet-0acbbc29cdf301200\",\"subnet-0b2f04002f8b85fa0\"],\"AssignPublicIp\":\"ENABLED\",\"SecurityGroups\":[\"sg-0b05e7760083c5e31\"]}}}",
+      "RetryPolicy": {
+        "MaximumEventAgeInSeconds": 3600,
+        "MaximumRetryAttempts": 1
+      },
+      "RoleArn": "arn:aws:iam::297464765814:role/mbopEventBridgeSchedulerEcsRole"
+    }
+  },
+  "mbop-keepa-catalog-priority": {
+    "ActionAfterCompletion": "NONE",
+    "Arn": "arn:aws:scheduler:us-west-2:297464765814:schedule/default/mbop-keepa-catalog-priority",
+    "CreationDate": "2026-07-09 17:49:37.052000-07:00",
+    "Description": "Priority Keepa refresh for Send to Amazon, sourcing opportunities, and back catalog.",
+    "FlexibleTimeWindow": {
+      "Mode": "OFF"
+    },
+    "GroupName": "default",
+    "LastModificationDate": "2026-10-09 19:43:34.575000-07:00",
+    "Name": "mbop-keepa-catalog-priority",
+    "ScheduleExpression": "rate(30 minutes)",
+    "ScheduleExpressionTimezone": "UTC",
+    "State": "ENABLED",
+    "Target": {
+      "Arn": "arn:aws:scheduler:::aws-sdk:ecs:runTask",
+      "Input": "{\"LaunchType\":\"FARGATE\",\"Count\":1,\"Cluster\":\"arn:aws:ecs:us-west-2:297464765814:cluster/mbop-cluster1\",\"PlatformVersion\":\"LATEST\",\"TaskDefinition\":\"arn:aws:ecs:us-west-2:297464765814:task-definition/mbop-scheduler-task:141\",\"EnableECSManagedTags\":true,\"Overrides\":{\"ContainerOverrides\":[{\"Environment\":[{\"Value\":\"mbop-keepa-catalog-priority\",\"Name\":\"EVENTBRIDGE_SCHEDULE_NAME\"},{\"Value\":\"eventbridge-scheduler\",\"Name\":\"SCHEDULER_TRIGGER_SOURCE\"},{\"Value\":\"512\",\"Name\":\"CONTAINER_CPU\"},{\"Value\":\"1024\",\"Name\":\"CONTAINER_MEMORY\"}],\"Command\":[\"python\",\"run_all_syncs.py\",\"--group\",\"keepa-catalog-priority\"],\"Name\":\"mbop-scheduler\"}]},\"NetworkConfiguration\":{\"AwsvpcConfiguration\":{\"Subnets\":[\"subnet-04169524e0f9bdd8b\",\"subnet-07558cd00060ff69d\",\"subnet-0acbbc29cdf301200\",\"subnet-0b2f04002f8b85fa0\"],\"AssignPublicIp\":\"ENABLED\",\"SecurityGroups\":[\"sg-0b05e7760083c5e31\"]}}}",
+      "RetryPolicy": {
+        "MaximumEventAgeInSeconds": 3600,
+        "MaximumRetryAttempts": 1
+      },
+      "RoleArn": "arn:aws:iam::297464765814:role/mbopEventBridgeSchedulerEcsRole"
+    }
+  },
+  "mbop-purchase-ingestion-catchup": {
+    "ActionAfterCompletion": "NONE",
+    "Arn": "arn:aws:scheduler:us-west-2:297464765814:schedule/default/mbop-purchase-ingestion-catchup",
+    "CreationDate": "2026-06-20 12:28:51.338000-07:00",
+    "FlexibleTimeWindow": {
+      "Mode": "OFF"
+    },
+    "GroupName": "default",
+    "LastModificationDate": "2026-11-01 17:22:06.718000-08:00",
+    "Name": "mbop-purchase-ingestion-catchup",
+    "ScheduleExpression": "cron(0 4 ? * * *)",
+    "ScheduleExpressionTimezone": "America/Los_Angeles",
+    "State": "ENABLED",
+    "Target": {
+      "Arn": "arn:aws:scheduler:::aws-sdk:ecs:runTask",
+      "Input": "{\"LaunchType\":\"FARGATE\",\"Count\":1,\"Cluster\":\"arn:aws:ecs:us-west-2:297464765814:cluster/mbop-cluster1\",\"PlatformVersion\":\"LATEST\",\"TaskDefinition\":\"arn:aws:ecs:us-west-2:297464765814:task-definition/mbop-scheduler-task:149\",\"EnableECSManagedTags\":true,\"Overrides\":{\"ContainerOverrides\":[{\"Environment\":[{\"Value\":\"mbop-purchase-ingestion-catchup\",\"Name\":\"EVENTBRIDGE_SCHEDULE_NAME\"},{\"Value\":\"eventbridge-scheduler\",\"Name\":\"SCHEDULER_TRIGGER_SOURCE\"},{\"Value\":\"512\",\"Name\":\"CONTAINER_CPU\"},{\"Value\":\"1024\",\"Name\":\"CONTAINER_MEMORY\"}],\"Command\":[\"python\",\"run_all_syncs.py\",\"--group\",\"purchase-ingestion\"],\"Name\":\"mbop-scheduler\"}]},\"NetworkConfiguration\":{\"AwsvpcConfiguration\":{\"Subnets\":[\"subnet-04169524e0f9bdd8b\",\"subnet-07558cd00060ff69d\",\"subnet-0acbbc29cdf301200\",\"subnet-0b2f04002f8b85fa0\"],\"AssignPublicIp\":\"ENABLED\",\"SecurityGroups\":[\"sg-0b05e7760083c5e31\"]}}}",
+      "RetryPolicy": {
+        "MaximumEventAgeInSeconds": 3600,
+        "MaximumRetryAttempts": 1
+      },
+      "RoleArn": "arn:aws:iam::297464765814:role/mbopEventBridgeSchedulerEcsRole"
+    }
+  },
+  "mbop-purchase-tracking-hourly": {
+    "ActionAfterCompletion": "NONE",
+    "Arn": "arn:aws:scheduler:us-west-2:297464765814:schedule/default/mbop-purchase-tracking-hourly",
+    "CreationDate": "2026-06-20 12:28:53.687000-07:00",
+    "FlexibleTimeWindow": {
+      "Mode": "OFF"
+    },
+    "GroupName": "default",
+    "LastModificationDate": "2026-10-09 19:43:52.123000-07:00",
+    "Name": "mbop-purchase-tracking-hourly",
+    "ScheduleExpression": "cron(20 7-22 ? * * *)",
+    "ScheduleExpressionTimezone": "America/Los_Angeles",
+    "State": "ENABLED",
+    "Target": {
+      "Arn": "arn:aws:scheduler:::aws-sdk:ecs:runTask",
+      "Input": "{\"LaunchType\":\"FARGATE\",\"Count\":1,\"Cluster\":\"arn:aws:ecs:us-west-2:297464765814:cluster/mbop-cluster1\",\"PlatformVersion\":\"LATEST\",\"TaskDefinition\":\"arn:aws:ecs:us-west-2:297464765814:task-definition/mbop-scheduler-task:141\",\"EnableECSManagedTags\":true,\"Overrides\":{\"ContainerOverrides\":[{\"Environment\":[{\"Value\":\"mbop-purchase-tracking-hourly\",\"Name\":\"EVENTBRIDGE_SCHEDULE_NAME\"},{\"Value\":\"eventbridge-scheduler\",\"Name\":\"SCHEDULER_TRIGGER_SOURCE\"},{\"Value\":\"512\",\"Name\":\"CONTAINER_CPU\"},{\"Value\":\"1024\",\"Name\":\"CONTAINER_MEMORY\"}],\"Command\":[\"python\",\"run_all_syncs.py\",\"--group\",\"purchase-tracking\"],\"Name\":\"mbop-scheduler\"}]},\"NetworkConfiguration\":{\"AwsvpcConfiguration\":{\"Subnets\":[\"subnet-04169524e0f9bdd8b\",\"subnet-07558cd00060ff69d\",\"subnet-0acbbc29cdf301200\",\"subnet-0b2f04002f8b85fa0\"],\"AssignPublicIp\":\"ENABLED\",\"SecurityGroups\":[\"sg-0b05e7760083c5e31\"]}}}",
+      "RetryPolicy": {
+        "MaximumEventAgeInSeconds": 3600,
+        "MaximumRetryAttempts": 1
+      },
+      "RoleArn": "arn:aws:iam::297464765814:role/mbopEventBridgeSchedulerEcsRole"
+    }
+  },
+  "mbop-returns-order-problems-day": {
+    "ActionAfterCompletion": "NONE",
+    "Arn": "arn:aws:scheduler:us-west-2:297464765814:schedule/default/mbop-returns-order-problems-day",
+    "CreationDate": "2026-06-20 12:28:58.125000-07:00",
+    "FlexibleTimeWindow": {
+      "Mode": "OFF"
+    },
+    "GroupName": "default",
+    "LastModificationDate": "2026-10-09 19:44:00.940000-07:00",
+    "Name": "mbop-returns-order-problems-day",
+    "ScheduleExpression": "cron(15 7,11,15,19 ? * * *)",
+    "ScheduleExpressionTimezone": "America/Los_Angeles",
+    "State": "ENABLED",
+    "Target": {
+      "Arn": "arn:aws:scheduler:::aws-sdk:ecs:runTask",
+      "Input": "{\"LaunchType\":\"FARGATE\",\"Count\":1,\"Cluster\":\"arn:aws:ecs:us-west-2:297464765814:cluster/mbop-cluster1\",\"PlatformVersion\":\"LATEST\",\"TaskDefinition\":\"arn:aws:ecs:us-west-2:297464765814:task-definition/mbop-scheduler-task:141\",\"EnableECSManagedTags\":true,\"Overrides\":{\"ContainerOverrides\":[{\"Environment\":[{\"Value\":\"mbop-returns-order-problems-day\",\"Name\":\"EVENTBRIDGE_SCHEDULE_NAME\"},{\"Value\":\"eventbridge-scheduler\",\"Name\":\"SCHEDULER_TRIGGER_SOURCE\"},{\"Value\":\"512\",\"Name\":\"CONTAINER_CPU\"},{\"Value\":\"1024\",\"Name\":\"CONTAINER_MEMORY\"}],\"Command\":[\"python\",\"run_all_syncs.py\",\"--group\",\"returns-order-problems\"],\"Name\":\"mbop-scheduler\"}]},\"NetworkConfiguration\":{\"AwsvpcConfiguration\":{\"Subnets\":[\"subnet-04169524e0f9bdd8b\",\"subnet-07558cd00060ff69d\",\"subnet-0acbbc29cdf301200\",\"subnet-0b2f04002f8b85fa0\"],\"AssignPublicIp\":\"ENABLED\",\"SecurityGroups\":[\"sg-0b05e7760083c5e31\"]}}}",
+      "RetryPolicy": {
+        "MaximumEventAgeInSeconds": 3600,
+        "MaximumRetryAttempts": 1
+      },
+      "RoleArn": "arn:aws:iam::297464765814:role/mbopEventBridgeSchedulerEcsRole"
+    }
+  },
+  "mbop-sourcing-catalog": {
+    "ActionAfterCompletion": "NONE",
+    "Arn": "arn:aws:scheduler:us-west-2:297464765814:schedule/default/mbop-sourcing-catalog",
+    "CreationDate": "2026-06-20 12:29:23.201000-07:00",
+    "FlexibleTimeWindow": {
+      "Mode": "OFF"
+    },
+    "GroupName": "default",
+    "LastModificationDate": "2026-11-01 17:22:25.376000-08:00",
+    "Name": "mbop-sourcing-catalog",
+    "ScheduleExpression": "cron(10 0 ? * * *)",
+    "ScheduleExpressionTimezone": "America/Los_Angeles",
+    "State": "ENABLED",
+    "Target": {
+      "Arn": "arn:aws:scheduler:::aws-sdk:ecs:runTask",
+      "Input": "{\"LaunchType\":\"FARGATE\",\"Count\":1,\"Cluster\":\"arn:aws:ecs:us-west-2:297464765814:cluster/mbop-cluster1\",\"PlatformVersion\":\"LATEST\",\"TaskDefinition\":\"arn:aws:ecs:us-west-2:297464765814:task-definition/mbop-scheduler-task:150\",\"EnableECSManagedTags\":true,\"Overrides\":{\"ContainerOverrides\":[{\"Environment\":[{\"Value\":\"mbop-sourcing-catalog\",\"Name\":\"EVENTBRIDGE_SCHEDULE_NAME\"},{\"Value\":\"eventbridge-scheduler\",\"Name\":\"SCHEDULER_TRIGGER_SOURCE\"},{\"Value\":\"1024\",\"Name\":\"CONTAINER_CPU\"},{\"Value\":\"2048\",\"Name\":\"CONTAINER_MEMORY\"}],\"Command\":[\"python\",\"run_all_syncs.py\",\"--group\",\"sourcing-catalog\"],\"Name\":\"mbop-scheduler\"}],\"Cpu\":\"1024\",\"Memory\":\"2048\"},\"NetworkConfiguration\":{\"AwsvpcConfiguration\":{\"Subnets\":[\"subnet-04169524e0f9bdd8b\",\"subnet-07558cd00060ff69d\",\"subnet-0acbbc29cdf301200\",\"subnet-0b2f04002f8b85fa0\"],\"AssignPublicIp\":\"ENABLED\",\"SecurityGroups\":[\"sg-0b05e7760083c5e31\"]}}}",
+      "RetryPolicy": {
+        "MaximumEventAgeInSeconds": 3600,
+        "MaximumRetryAttempts": 1
+      },
+      "RoleArn": "arn:aws:iam::297464765814:role/mbopEventBridgeSchedulerEcsRole"
+    }
+  },
+  "mbop-purchase-enrichment": {
+    "ActionAfterCompletion": "NONE",
+    "Arn": "arn:aws:scheduler:us-west-2:297464765814:schedule/default/mbop-purchase-enrichment",
+    "CreationDate": "2026-06-20 12:29:02.267000-07:00",
+    "FlexibleTimeWindow": {
+      "Mode": "OFF"
+    },
+    "GroupName": "default",
+    "LastModificationDate": "2026-10-18 08:56:53.369000-07:00",
+    "Name": "mbop-purchase-enrichment",
+    "ScheduleExpression": "cron(35 8/2 ? * * *)",
+    "ScheduleExpressionTimezone": "America/Los_Angeles",
+    "State": "ENABLED",
+    "Target": {
+      "Arn": "arn:aws:scheduler:::aws-sdk:ecs:runTask",
+      "Input": "{\"LaunchType\":\"FARGATE\",\"Count\":1,\"Cluster\":\"arn:aws:ecs:us-west-2:297464765814:cluster/mbop-cluster1\",\"PlatformVersion\":\"LATEST\",\"TaskDefinition\":\"arn:aws:ecs:us-west-2:297464765814:task-definition/mbop-scheduler-task:144\",\"EnableECSManagedTags\":true,\"Overrides\":{\"ContainerOverrides\":[{\"Environment\":[{\"Value\":\"mbop-purchase-enrichment\",\"Name\":\"EVENTBRIDGE_SCHEDULE_NAME\"},{\"Value\":\"eventbridge-scheduler\",\"Name\":\"SCHEDULER_TRIGGER_SOURCE\"},{\"Value\":\"512\",\"Name\":\"CONTAINER_CPU\"},{\"Value\":\"1024\",\"Name\":\"CONTAINER_MEMORY\"}],\"Command\":[\"python\",\"run_all_syncs.py\",\"--group\",\"purchase-enrichment\"],\"Name\":\"mbop-scheduler\"}]},\"NetworkConfiguration\":{\"AwsvpcConfiguration\":{\"Subnets\":[\"subnet-04169524e0f9bdd8b\",\"subnet-07558cd00060ff69d\",\"subnet-0acbbc29cdf301200\",\"subnet-0b2f04002f8b85fa0\"],\"AssignPublicIp\":\"ENABLED\",\"SecurityGroups\":[\"sg-0b05e7760083c5e31\"]}}}",
+      "RetryPolicy": {
+        "MaximumEventAgeInSeconds": 3600,
+        "MaximumRetryAttempts": 1
+      },
+      "RoleArn": "arn:aws:iam::297464765814:role/mbopEventBridgeSchedulerEcsRole"
+    }
+  },
+  "mbop-purchase-ingestion-hourly": {
+    "ActionAfterCompletion": "NONE",
+    "Arn": "arn:aws:scheduler:us-west-2:297464765814:schedule/default/mbop-purchase-ingestion-hourly",
+    "CreationDate": "2026-06-20 12:28:48.895000-07:00",
+    "FlexibleTimeWindow": {
+      "Mode": "OFF"
+    },
+    "GroupName": "default",
+    "LastModificationDate": "2026-11-01 17:22:09.546000-08:00",
+    "Name": "mbop-purchase-ingestion-hourly",
+    "ScheduleExpression": "cron(0 7-22 ? * * *)",
+    "ScheduleExpressionTimezone": "America/Los_Angeles",
+    "State": "ENABLED",
+    "Target": {
+      "Arn": "arn:aws:scheduler:::aws-sdk:ecs:runTask",
+      "Input": "{\"LaunchType\":\"FARGATE\",\"Count\":1,\"Cluster\":\"arn:aws:ecs:us-west-2:297464765814:cluster/mbop-cluster1\",\"PlatformVersion\":\"LATEST\",\"TaskDefinition\":\"arn:aws:ecs:us-west-2:297464765814:task-definition/mbop-scheduler-task:149\",\"EnableECSManagedTags\":true,\"Overrides\":{\"ContainerOverrides\":[{\"Environment\":[{\"Value\":\"mbop-purchase-ingestion-hourly\",\"Name\":\"EVENTBRIDGE_SCHEDULE_NAME\"},{\"Value\":\"eventbridge-scheduler\",\"Name\":\"SCHEDULER_TRIGGER_SOURCE\"},{\"Value\":\"512\",\"Name\":\"CONTAINER_CPU\"},{\"Value\":\"1024\",\"Name\":\"CONTAINER_MEMORY\"}],\"Command\":[\"python\",\"run_all_syncs.py\",\"--group\",\"purchase-ingestion\"],\"Name\":\"mbop-scheduler\"}]},\"NetworkConfiguration\":{\"AwsvpcConfiguration\":{\"Subnets\":[\"subnet-04169524e0f9bdd8b\",\"subnet-07558cd00060ff69d\",\"subnet-0acbbc29cdf301200\",\"subnet-0b2f04002f8b85fa0\"],\"AssignPublicIp\":\"ENABLED\",\"SecurityGroups\":[\"sg-0b05e7760083c5e31\"]}}}",
+      "RetryPolicy": {
+        "MaximumEventAgeInSeconds": 3600,
+        "MaximumRetryAttempts": 1
+      },
+      "RoleArn": "arn:aws:iam::297464765814:role/mbopEventBridgeSchedulerEcsRole"
+    }
+  },
+  "mbop-amazon-return-recovery-daily": {
+    "ActionAfterCompletion": "NONE",
+    "Arn": "arn:aws:scheduler:us-west-2:297464765814:schedule/default/mbop-amazon-return-recovery-daily",
+    "CreationDate": "2026-08-30 18:09:21.456000-07:00",
+    "Description": "Daily Amazon Return Recovery customer returns and reimbursement reports.",
+    "FlexibleTimeWindow": {
+      "Mode": "OFF"
+    },
+    "GroupName": "default",
+    "LastModificationDate": "2026-10-09 19:43:14.461000-07:00",
+    "Name": "mbop-amazon-return-recovery-daily",
+    "ScheduleExpression": "cron(45 15 ? * * *)",
+    "ScheduleExpressionTimezone": "America/Los_Angeles",
+    "State": "ENABLED",
+    "Target": {
+      "Arn": "arn:aws:scheduler:::aws-sdk:ecs:runTask",
+      "Input": "{\"LaunchType\":\"FARGATE\",\"Count\":1,\"Cluster\":\"arn:aws:ecs:us-west-2:297464765814:cluster/mbop-cluster1\",\"PlatformVersion\":\"LATEST\",\"TaskDefinition\":\"arn:aws:ecs:us-west-2:297464765814:task-definition/mbop-scheduler-task:141\",\"EnableECSManagedTags\":true,\"Overrides\":{\"ContainerOverrides\":[{\"Environment\":[{\"Value\":\"mbop-amazon-return-recovery-daily\",\"Name\":\"EVENTBRIDGE_SCHEDULE_NAME\"},{\"Value\":\"eventbridge-scheduler\",\"Name\":\"SCHEDULER_TRIGGER_SOURCE\"},{\"Value\":\"512\",\"Name\":\"CONTAINER_CPU\"},{\"Value\":\"1024\",\"Name\":\"CONTAINER_MEMORY\"}],\"Command\":[\"python\",\"run_all_syncs.py\",\"--group\",\"amazon-return-recovery\"],\"Name\":\"mbop-scheduler\"}],\"Cpu\":\"512\",\"Memory\":\"1024\"},\"NetworkConfiguration\":{\"AwsvpcConfiguration\":{\"Subnets\":[\"subnet-04169524e0f9bdd8b\",\"subnet-07558cd00060ff69d\",\"subnet-0acbbc29cdf301200\",\"subnet-0b2f04002f8b85fa0\"],\"AssignPublicIp\":\"ENABLED\",\"SecurityGroups\":[\"sg-0b05e7760083c5e31\"]}}}",
+      "RetryPolicy": {
+        "MaximumEventAgeInSeconds": 3600,
+        "MaximumRetryAttempts": 1
+      },
+      "RoleArn": "arn:aws:iam::297464765814:role/mbopEventBridgeSchedulerEcsRole"
+    }
+  },
+  "mbop-amazon-sales-recent-catchup": {
+    "ActionAfterCompletion": "NONE",
+    "Arn": "arn:aws:scheduler:us-west-2:297464765814:schedule/default/mbop-amazon-sales-recent-catchup",
+    "CreationDate": "2026-06-20 12:29:06.565000-07:00",
+    "FlexibleTimeWindow": {
+      "Mode": "OFF"
+    },
+    "GroupName": "default",
+    "LastModificationDate": "2026-10-20 10:16:54.662000-07:00",
+    "Name": "mbop-amazon-sales-recent-catchup",
+    "ScheduleExpression": "cron(30 4 ? * * *)",
+    "ScheduleExpressionTimezone": "America/Los_Angeles",
+    "State": "ENABLED",
+    "Target": {
+      "Arn": "arn:aws:scheduler:::aws-sdk:ecs:runTask",
+      "Input": "{\"LaunchType\":\"FARGATE\",\"Count\":1,\"Cluster\":\"arn:aws:ecs:us-west-2:297464765814:cluster/mbop-cluster1\",\"PlatformVersion\":\"LATEST\",\"TaskDefinition\":\"arn:aws:ecs:us-west-2:297464765814:task-definition/mbop-scheduler-task:147\",\"EnableECSManagedTags\":true,\"Overrides\":{\"ContainerOverrides\":[{\"Environment\":[{\"Value\":\"mbop-amazon-sales-recent-catchup\",\"Name\":\"EVENTBRIDGE_SCHEDULE_NAME\"},{\"Value\":\"eventbridge-scheduler\",\"Name\":\"SCHEDULER_TRIGGER_SOURCE\"},{\"Value\":\"512\",\"Name\":\"CONTAINER_CPU\"},{\"Value\":\"1024\",\"Name\":\"CONTAINER_MEMORY\"}],\"Command\":[\"python\",\"run_all_syncs.py\",\"--group\",\"amazon-sales-recent\"],\"Name\":\"mbop-scheduler\"}]},\"NetworkConfiguration\":{\"AwsvpcConfiguration\":{\"Subnets\":[\"subnet-04169524e0f9bdd8b\",\"subnet-07558cd00060ff69d\",\"subnet-0acbbc29cdf301200\",\"subnet-0b2f04002f8b85fa0\"],\"AssignPublicIp\":\"ENABLED\",\"SecurityGroups\":[\"sg-0b05e7760083c5e31\"]}}}",
+      "RetryPolicy": {
+        "MaximumEventAgeInSeconds": 3600,
+        "MaximumRetryAttempts": 1
+      },
+      "RoleArn": "arn:aws:iam::297464765814:role/mbopEventBridgeSchedulerEcsRole"
+    }
+  },
+  "mbop-finance-refresh-evening": {
+    "ActionAfterCompletion": "NONE",
+    "Arn": "arn:aws:scheduler:us-west-2:297464765814:schedule/default/mbop-finance-refresh-evening",
+    "CreationDate": "2026-06-20 12:29:12.907000-07:00",
+    "FlexibleTimeWindow": {
+      "Mode": "OFF"
+    },
+    "GroupName": "default",
+    "LastModificationDate": "2026-10-09 19:43:29.541000-07:00",
+    "Name": "mbop-finance-refresh-evening",
+    "ScheduleExpression": "cron(45 20 ? * * *)",
+    "ScheduleExpressionTimezone": "America/Los_Angeles",
+    "State": "ENABLED",
+    "Target": {
+      "Arn": "arn:aws:scheduler:::aws-sdk:ecs:runTask",
+      "Input": "{\"LaunchType\":\"FARGATE\",\"Count\":1,\"Cluster\":\"arn:aws:ecs:us-west-2:297464765814:cluster/mbop-cluster1\",\"PlatformVersion\":\"LATEST\",\"TaskDefinition\":\"arn:aws:ecs:us-west-2:297464765814:task-definition/mbop-scheduler-task:141\",\"EnableECSManagedTags\":true,\"Overrides\":{\"ContainerOverrides\":[{\"Environment\":[{\"Value\":\"mbop-finance-refresh-evening\",\"Name\":\"EVENTBRIDGE_SCHEDULE_NAME\"},{\"Value\":\"eventbridge-scheduler\",\"Name\":\"SCHEDULER_TRIGGER_SOURCE\"},{\"Value\":\"512\",\"Name\":\"CONTAINER_CPU\"},{\"Value\":\"1024\",\"Name\":\"CONTAINER_MEMORY\"}],\"Command\":[\"python\",\"run_all_syncs.py\",\"--group\",\"finance-refresh\"],\"Name\":\"mbop-scheduler\"}]},\"NetworkConfiguration\":{\"AwsvpcConfiguration\":{\"Subnets\":[\"subnet-04169524e0f9bdd8b\",\"subnet-07558cd00060ff69d\",\"subnet-0acbbc29cdf301200\",\"subnet-0b2f04002f8b85fa0\"],\"AssignPublicIp\":\"ENABLED\",\"SecurityGroups\":[\"sg-0b05e7760083c5e31\"]}}}",
+      "RetryPolicy": {
+        "MaximumEventAgeInSeconds": 3600,
+        "MaximumRetryAttempts": 1
+      },
+      "RoleArn": "arn:aws:iam::297464765814:role/mbopEventBridgeSchedulerEcsRole"
+    }
+  },
+  "mbop-amazon-sales-recent-day": {
+    "ActionAfterCompletion": "NONE",
+    "Arn": "arn:aws:scheduler:us-west-2:297464765814:schedule/default/mbop-amazon-sales-recent-day",
+    "CreationDate": "2026-06-20 12:29:04.428000-07:00",
+    "FlexibleTimeWindow": {
+      "Mode": "OFF"
+    },
+    "GroupName": "default",
+    "LastModificationDate": "2026-10-20 10:16:56.979000-07:00",
+    "Name": "mbop-amazon-sales-recent-day",
+    "ScheduleExpression": "cron(50 7,9,11,13,15,17,19,21 ? * * *)",
+    "ScheduleExpressionTimezone": "America/Los_Angeles",
+    "State": "ENABLED",
+    "Target": {
+      "Arn": "arn:aws:scheduler:::aws-sdk:ecs:runTask",
+      "Input": "{\"LaunchType\":\"FARGATE\",\"Count\":1,\"Cluster\":\"arn:aws:ecs:us-west-2:297464765814:cluster/mbop-cluster1\",\"PlatformVersion\":\"LATEST\",\"TaskDefinition\":\"arn:aws:ecs:us-west-2:297464765814:task-definition/mbop-scheduler-task:147\",\"EnableECSManagedTags\":true,\"Overrides\":{\"ContainerOverrides\":[{\"Environment\":[{\"Value\":\"mbop-amazon-sales-recent-day\",\"Name\":\"EVENTBRIDGE_SCHEDULE_NAME\"},{\"Value\":\"eventbridge-scheduler\",\"Name\":\"SCHEDULER_TRIGGER_SOURCE\"},{\"Value\":\"512\",\"Name\":\"CONTAINER_CPU\"},{\"Value\":\"1024\",\"Name\":\"CONTAINER_MEMORY\"}],\"Command\":[\"python\",\"run_all_syncs.py\",\"--group\",\"amazon-sales-recent\"],\"Name\":\"mbop-scheduler\"}]},\"NetworkConfiguration\":{\"AwsvpcConfiguration\":{\"Subnets\":[\"subnet-04169524e0f9bdd8b\",\"subnet-07558cd00060ff69d\",\"subnet-0acbbc29cdf301200\",\"subnet-0b2f04002f8b85fa0\"],\"AssignPublicIp\":\"ENABLED\",\"SecurityGroups\":[\"sg-0b05e7760083c5e31\"]}}}",
+      "RetryPolicy": {
+        "MaximumEventAgeInSeconds": 3600,
+        "MaximumRetryAttempts": 1
+      },
+      "RoleArn": "arn:aws:iam::297464765814:role/mbopEventBridgeSchedulerEcsRole"
+    }
+  },
+  "mbop-fba-inventory-daily": {
+    "ActionAfterCompletion": "NONE",
+    "Arn": "arn:aws:scheduler:us-west-2:297464765814:schedule/default/mbop-fba-inventory-daily",
+    "CreationDate": "2026-06-20 12:29:14.932000-07:00",
+    "FlexibleTimeWindow": {
+      "Mode": "OFF"
+    },
+    "GroupName": "default",
+    "LastModificationDate": "2026-10-09 19:43:21.794000-07:00",
+    "Name": "mbop-fba-inventory-daily",
+    "ScheduleExpression": "cron(30 20 ? * * *)",
+    "ScheduleExpressionTimezone": "America/Los_Angeles",
+    "State": "ENABLED",
+    "Target": {
+      "Arn": "arn:aws:scheduler:::aws-sdk:ecs:runTask",
+      "Input": "{\"LaunchType\":\"FARGATE\",\"Count\":1,\"Cluster\":\"arn:aws:ecs:us-west-2:297464765814:cluster/mbop-cluster1\",\"PlatformVersion\":\"LATEST\",\"TaskDefinition\":\"arn:aws:ecs:us-west-2:297464765814:task-definition/mbop-scheduler-task:141\",\"EnableECSManagedTags\":true,\"Overrides\":{\"ContainerOverrides\":[{\"Environment\":[{\"Value\":\"mbop-fba-inventory-daily\",\"Name\":\"EVENTBRIDGE_SCHEDULE_NAME\"},{\"Value\":\"eventbridge-scheduler\",\"Name\":\"SCHEDULER_TRIGGER_SOURCE\"},{\"Value\":\"512\",\"Name\":\"CONTAINER_CPU\"},{\"Value\":\"1024\",\"Name\":\"CONTAINER_MEMORY\"}],\"Command\":[\"python\",\"run_all_syncs.py\",\"--group\",\"fba-inventory-daily\"],\"Name\":\"mbop-scheduler\"}]},\"NetworkConfiguration\":{\"AwsvpcConfiguration\":{\"Subnets\":[\"subnet-04169524e0f9bdd8b\",\"subnet-07558cd00060ff69d\",\"subnet-0acbbc29cdf301200\",\"subnet-0b2f04002f8b85fa0\"],\"AssignPublicIp\":\"ENABLED\",\"SecurityGroups\":[\"sg-0b05e7760083c5e31\"]}}}",
+      "RetryPolicy": {
+        "MaximumEventAgeInSeconds": 3600,
+        "MaximumRetryAttempts": 1
+      },
+      "RoleArn": "arn:aws:iam::297464765814:role/mbopEventBridgeSchedulerEcsRole"
+    }
+  },
+  "mbop-finance-refresh-morning": {
+    "ActionAfterCompletion": "NONE",
+    "Arn": "arn:aws:scheduler:us-west-2:297464765814:schedule/default/mbop-finance-refresh-morning",
+    "CreationDate": "2026-06-20 12:29:08.741000-07:00",
+    "FlexibleTimeWindow": {
+      "Mode": "OFF"
+    },
+    "GroupName": "default",
+    "LastModificationDate": "2026-10-09 19:43:32.171000-07:00",
+    "Name": "mbop-finance-refresh-morning",
+    "ScheduleExpression": "cron(30 6 ? * * *)",
+    "ScheduleExpressionTimezone": "America/Los_Angeles",
+    "State": "ENABLED",
+    "Target": {
+      "Arn": "arn:aws:scheduler:::aws-sdk:ecs:runTask",
+      "Input": "{\"LaunchType\":\"FARGATE\",\"Count\":1,\"Cluster\":\"arn:aws:ecs:us-west-2:297464765814:cluster/mbop-cluster1\",\"PlatformVersion\":\"LATEST\",\"TaskDefinition\":\"arn:aws:ecs:us-west-2:297464765814:task-definition/mbop-scheduler-task:141\",\"EnableECSManagedTags\":true,\"Overrides\":{\"ContainerOverrides\":[{\"Environment\":[{\"Value\":\"mbop-finance-refresh-morning\",\"Name\":\"EVENTBRIDGE_SCHEDULE_NAME\"},{\"Value\":\"eventbridge-scheduler\",\"Name\":\"SCHEDULER_TRIGGER_SOURCE\"},{\"Value\":\"512\",\"Name\":\"CONTAINER_CPU\"},{\"Value\":\"1024\",\"Name\":\"CONTAINER_MEMORY\"}],\"Command\":[\"python\",\"run_all_syncs.py\",\"--group\",\"finance-refresh\"],\"Name\":\"mbop-scheduler\"}]},\"NetworkConfiguration\":{\"AwsvpcConfiguration\":{\"Subnets\":[\"subnet-04169524e0f9bdd8b\",\"subnet-07558cd00060ff69d\",\"subnet-0acbbc29cdf301200\",\"subnet-0b2f04002f8b85fa0\"],\"AssignPublicIp\":\"ENABLED\",\"SecurityGroups\":[\"sg-0b05e7760083c5e31\"]}}}",
+      "RetryPolicy": {
+        "MaximumEventAgeInSeconds": 3600,
+        "MaximumRetryAttempts": 1
+      },
+      "RoleArn": "arn:aws:iam::297464765814:role/mbopEventBridgeSchedulerEcsRole"
+    }
+  },
+  "mbop-wholesale-email-ingestion": {
+    "ActionAfterCompletion": "NONE",
+    "Arn": "arn:aws:scheduler:us-west-2:297464765814:schedule/default/mbop-wholesale-email-ingestion",
+    "CreationDate": "2026-10-03 20:40:15.117000-07:00",
+    "Description": "Poll scoped Royal Electronics price-list email and run bounded wholesale follow-up",
+    "FlexibleTimeWindow": {
+      "Mode": "OFF"
+    },
+    "GroupName": "default",
+    "LastModificationDate": "2026-10-09 19:44:08.455000-07:00",
+    "Name": "mbop-wholesale-email-ingestion",
+    "ScheduleExpression": "rate(15 minutes)",
+    "ScheduleExpressionTimezone": "UTC",
+    "State": "ENABLED",
+    "Target": {
+      "Arn": "arn:aws:scheduler:::aws-sdk:ecs:runTask",
+      "Input": "{\"LaunchType\":\"FARGATE\",\"Count\":1,\"Cluster\":\"arn:aws:ecs:us-west-2:297464765814:cluster/mbop-cluster1\",\"PlatformVersion\":\"LATEST\",\"TaskDefinition\":\"arn:aws:ecs:us-west-2:297464765814:task-definition/mbop-scheduler-task:141\",\"EnableECSManagedTags\":true,\"Overrides\":{\"ContainerOverrides\":[{\"Environment\":[{\"Value\":\"eventbridge-scheduler\",\"Name\":\"SCHEDULER_TRIGGER_SOURCE\"},{\"Value\":\"512\",\"Name\":\"CONTAINER_CPU\"},{\"Value\":\"1024\",\"Name\":\"CONTAINER_MEMORY\"},{\"Name\":\"EVENTBRIDGE_SCHEDULE_NAME\",\"Value\":\"mbop-wholesale-email-ingestion\"}],\"Command\":[\"python\",\"run_all_syncs.py\",\"--group\",\"wholesale-email-ingestion\"],\"Name\":\"mbop-scheduler\"}]},\"NetworkConfiguration\":{\"AwsvpcConfiguration\":{\"Subnets\":[\"subnet-04169524e0f9bdd8b\",\"subnet-07558cd00060ff69d\",\"subnet-0acbbc29cdf301200\",\"subnet-0b2f04002f8b85fa0\"],\"AssignPublicIp\":\"ENABLED\",\"SecurityGroups\":[\"sg-0b05e7760083c5e31\"]}}}",
+      "RetryPolicy": {
+        "MaximumEventAgeInSeconds": 3600,
+        "MaximumRetryAttempts": 1
+      },
+      "RoleArn": "arn:aws:iam::297464765814:role/mbopEventBridgeSchedulerEcsRole"
+    }
+  }
+}

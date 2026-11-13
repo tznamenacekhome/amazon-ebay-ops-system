@@ -1,0 +1,4 @@
+{
+  "taskDefinition": "arn:aws:ecs:us-west-2:297464765814:task-definition/mbop-scheduler-task:157",
+  "image": "297464765814.dkr.ecr.us-west-2.amazonaws.com/mbop-scheduler@sha256:9d477d52f75f7c29727e334e10625f2fff6649f18da0c85e0ab1418a756ed66a"
+}

@@ -1,0 +1,15 @@
+{
+  "schedules_checked": 21,
+  "changed": [
+    {
+      "name": "mbop-amazon-sales-recent-catchup",
+      "from": "arn:aws:ecs:us-west-2:297464765814:task-definition/mbop-scheduler-task:147",
+      "to": "arn:aws:ecs:us-west-2:297464765814:task-definition/mbop-scheduler-task:157"
+    },
+    {
+      "name": "mbop-amazon-sales-recent-day",
+      "from": "arn:aws:ecs:us-west-2:297464765814:task-definition/mbop-scheduler-task:147",
+      "to": "arn:aws:ecs:us-west-2:297464765814:task-definition/mbop-scheduler-task:157"
+    }
+  ]
+}

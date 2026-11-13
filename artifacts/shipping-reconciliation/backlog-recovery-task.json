@@ -1,0 +1,16 @@
+{
+  "taskArn": "arn:aws:ecs:us-west-2:297464765814:task/mbop-cluster1/857f5813b44e4ad69f1c604d009e24d5",
+  "taskDefinition": "arn:aws:ecs:us-west-2:297464765814:task-definition/mbop-scheduler-task:154",
+  "command": [
+    "python",
+    "run_all_syncs.py",
+    "--group",
+    "amazon-shipping-reconciliation"
+  ],
+  "status": "STOPPED",
+  "exitCodes": [
+    0
+  ],
+  "stoppedReason": "Essential container in task exited",
+  "logStream": "scheduled/mbop-scheduler/857f5813b44e4ad69f1c604d009e24d5"
+}

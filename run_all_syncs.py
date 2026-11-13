@@ -230,9 +230,11 @@ JOBS: tuple[SyncJob, ...] = (
             "--purchase-date-start",
             days_ago_iso(14),
             "--missing-only",
+            "--limit", "50",
+            "--backlog-limit", "20",
             "--apply",
         ],
-        groups=("core", "sales-orders", "amazon-sales-recent"),
+        groups=("core", "sales-orders", "amazon-sales-recent", "amazon-shipping-reconciliation"),
         blocking=False,
         timeout_seconds=30 * 60,
     ),
@@ -674,6 +676,7 @@ GROUPS = (
     "returns-order-problems",
     "purchase-enrichment",
     "amazon-sales-recent",
+    "amazon-shipping-reconciliation",
     "finance-refresh",
     "provider-costs",
     "fba-inventory-daily",
@@ -1345,6 +1348,17 @@ def parse_job_metric_lines(lines) -> dict[str, object]:
         bucket = metric_bucket(label)
         if bucket:
             counters[bucket] += value
+
+    shipping = metadata.get("shipping_reconciliation")
+    if isinstance(shipping, dict):
+        # These counts have explicit meanings; do not add eligible/attempted/API
+        # metric lines together into a misleading generic "rows read" total.
+        for column, key in {
+            "rows_read": "attempted_orders", "rows_updated": "reconciled_costs",
+            "rows_skipped": "unresolved_shipped_orders", "external_api_calls": "external_api_calls",
+            "retry_count": "retry_count", "rate_limit_count": "rate_limit_count",
+        }.items():
+            counters[column] = int(shipping.get(key) or 0)
 
     return {
         "rows_read": counters["rows_read"],
