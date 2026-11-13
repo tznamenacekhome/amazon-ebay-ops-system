@@ -18,3 +18,13 @@
 ## Deployment scope
 
 Deploy the web image for batch history and System Health. Deploy the scheduler image for the committed shipping worker and orchestration, scoped to the `mbop-amazon-sales-recent-` schedules. Existing recovery evidence documents an earlier scheduler deployment of this worker. This release records the implementation in Git and publishes an image tied to the release commit. No database migration is required.
+
+## Published release
+
+Application commit `d2ef4dcd9954` was pushed to `origin/main`, including the outstanding local commits preceding this release.
+
+- Web task `mbop-web-task:221` uses image digest `sha256:3c4a7d3e23755c3f8553409b157fdab54d4a83e6ce1341fc6fcb86d879421b50` and build SHA `d2ef4dcd9954`.
+- Scheduler task `mbop-scheduler-task:165` uses image digest `sha256:0f535fd8a74c2445dfc119966af7c849683e1ac7a53a21390119a7e13e740384`. Both enabled `mbop-amazon-sales-recent-day` and `mbop-amazon-sales-recent-catchup` schedules were read back referencing revision 165.
+- ECS confirmed the web rollout completed at 8:09 AM Pacific on November 13, with one desired/running task and zero pending tasks. Both web and scheduler retain `CLOUD_DEPLOYMENT=true` and `LOCAL_SYNC_ENABLED=false`.
+- Temporary ECR authentication bypassed the Windows Docker credential-helper failure during the repository deployment flow. Temporary authentication files were removed. Both deployments completed before empty temporary-directory cleanup reported a PowerShell error. A subsequent cleanup verified authentication files were absent and removed the empty directories.
+- Production UI verification remains pending. Computer use stopped because it could not determine the current Chrome URL with sufficient confidence. Local build and AWS deployment checks were completed independently of that browser check.
