@@ -201,12 +201,24 @@ def synchronize(db, client, account):
             continue
         oid = projected['amazon_order_id']
         if oid not in verified:
-            verified[oid] = verify_order(db, client, account, oid)
-            time.sleep(.5)
+            try:
+                verified[oid] = verify_order(db, client, account, oid)
+            except Exception as error:
+                verified[oid] = False
+                message = f'Order {oid} verification failed: {error}'
+                errors.append(message)
+                LOG.warning('%s; continuing remaining transactions', message)
+            finally:
+                time.sleep(.5)
         if not verified[oid]:
             continue
-        rpc(db, 'mbop_mf_return_finance', p_account=account['id'], p_transaction=projected, p_observed=end.isoformat())
-        stats['financial_transactions'] += 1
+        try:
+            rpc(db, 'mbop_mf_return_finance', p_account=account['id'], p_transaction=projected, p_observed=end.isoformat())
+            stats['financial_transactions'] += 1
+        except Exception as error:
+            message = f"Order {oid} transaction {projected['transaction_id']} import failed: {error}"
+            errors.append(message)
+            LOG.warning('%s; continuing remaining transactions', message)
     try:
         stats['packages_checked'] = sync_carriers(db, account)
     except Exception as error:

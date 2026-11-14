@@ -8,6 +8,33 @@ from amazon_sync_mf_returns import transactions, verify_order
 
 
 class ReturnSources(unittest.TestCase):
+    def test_order_failures_allow_following_transactions_and_carrier_sync(self):
+        from unittest.mock import Mock, patch
+        from amazon_sync_mf_returns import synchronize
+        db, client = Mock(), Mock()
+        db.table.return_value.select.return_value.eq.return_value.neq.return_value.order.return_value.limit.return_value.execute.return_value.data = []
+        account = {'id': 'ACCOUNT', 'marketplace_id': 'US'}
+        missing = '114-8866055-7493009'
+        broken = '123-1234567-1234567'
+        valid = '123-7654321-7654321'
+        feed = [
+            {'transactionId': str(index), 'transactionType': 'Refund',
+             'relatedIdentifiers': [{'relatedIdentifierName': 'ORDER_ID', 'relatedIdentifierValue': oid}]}
+            for index, oid in enumerate([missing, missing, broken, valid])
+        ]
+        with patch('amazon_sync_mf_returns.report', return_value=0), \
+             patch('amazon_sync_mf_returns.transactions', return_value=iter(feed)), \
+             patch('amazon_sync_mf_returns.verify_order', side_effect=[RuntimeError('HTTP 404'), True, True]) as verify, \
+             patch('amazon_sync_mf_returns.rpc', side_effect=[RuntimeError('Import rejected'), None]) as apply, \
+             patch('amazon_sync_mf_returns.sync_carriers', return_value=2) as carriers, \
+             patch('amazon_sync_mf_returns.time.sleep'):
+            with self.assertRaisesRegex(ValueError, 'HTTP 404.*Import rejected'):
+                synchronize(db, client, account)
+        self.assertEqual(verify.call_count, 3)
+        self.assertEqual(apply.call_count, 2)
+        self.assertEqual(apply.call_args.kwargs['p_transaction']['amazon_order_id'], valid)
+        carriers.assert_called_once_with(db, account)
+
     def test_shipment_finance_reference_never_calls_customer_orders_or_database(self):
         from unittest.mock import Mock
         db, client = Mock(), Mock()
