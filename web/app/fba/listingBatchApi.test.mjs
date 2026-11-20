@@ -32,11 +32,12 @@ history = [
  {fulfillment_method:"MF",allocations:[{quantity:1,listed_quantity:1,snapshot:{unit_cost:0}}]},
  {fulfillment_method:"MF",allocations:[{quantity:1,listed_quantity:0,snapshot:{unit_cost:null}}]},
  {fulfillment_method:"MF",allocations:[]},
+ {fulfillment_method:"MF",allocations:[{quantity:3,listed_quantity:1,transferred_quantity:2,snapshot:{unit_cost:"12.34"}}]},
  {fulfillment_method:"FBA",allocations:[{quantity:1,listed_quantity:1,snapshot:{unit_cost:20}}]},
 ];
 const listed = await route.GET({nextUrl:new URL("https://mbop.example/api/amazon-listing-batches")});
 assert.equal(listed.status,200);
 const listedRows = (await listed.json()).rows;
-assert.deepEqual(listedRows.map(row=>row.total_cost),[77.02,0,null,null,null]);
-assert.deepEqual(listedRows[0].allocations[0],{quantity:3,listed_quantity:1});
+assert.deepEqual(listedRows.map(row=>row.total_cost),[77.02,0,null,null,12.34,null]);
+assert.deepEqual(listedRows[0].allocations[0],{quantity:3,listed_quantity:1,transferred_quantity:0});
 console.log("Listing API checks passed: selected allocation snapshots, exact CSV, MF reference, FBA SKU exclusion, draft zeroes, stale/invalid selections, immutable retry.");

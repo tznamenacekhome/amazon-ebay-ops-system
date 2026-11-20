@@ -8,6 +8,7 @@ export type ListingBatch = {
     external_reference: string;
     il_batch_local: string;
     status: string;
+    recovery_evidence?: { source_url: string };
     total_cost?: number | null;
     selection: Record<string, string>;
     export_csv?: string;
@@ -31,6 +32,9 @@ type Allocation = {
     source_key: string;
     quantity: number;
     listed_quantity: number;
+    transferred_quantity?: number;
+    recovery_batch_id?: string | null;
+    recovery_source_allocation_id?: string | null;
     snapshot: {
         asin: string;
         condition?: string;
@@ -138,7 +142,7 @@ export function ListingBatches({ quantities, method, setMethod, onRestore, onBat
             if (!r.ok)
                 throw Error(b.error);
             onBatch(b);
-            setPending(Object.fromEntries(b.allocations.map((a: Allocation) => [a.id, { quantity: String(a.quantity - a.listed_quantity), sku: a.suggested_sku || "" }])));
+            setPending(Object.fromEntries(b.allocations.map((a: Allocation) => [a.id, { quantity: String(a.quantity - a.listed_quantity - (a.transferred_quantity || 0)), sku: a.suggested_sku || "" }])));
             setConfirming(true);
             attempt.current = null;
         }
@@ -181,6 +185,8 @@ export function ListingBatches({ quantities, method, setMethod, onRestore, onBat
         preview = mfReference(local);
     }
     catch { }
+    const canComplete = !!batch && ["exported", "partially_listed"].includes(batch.status);
+    const moved = batch?.allocations?.reduce((n, a) => n + (a.transferred_quantity || 0), 0) || 0;
     const frozen = !!batch && batch.status !== "draft";
     return <section className="mb-4 rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
     <div className="flex flex-wrap items-end gap-3">
@@ -189,19 +195,21 @@ export function ListingBatches({ quantities, method, setMethod, onRestore, onBat
         setMethod(nextMethod);
         if (batch) onBatch({ ...batch, id: crypto.randomUUID(), fulfillment_method: nextMethod, status: "draft", export_csv: undefined, exported_at: undefined, completed_at: undefined, allocations: [], lots: [] });
       }} required><option>FBA</option><option>MF</option></select></label>
-      <label className="grid gap-1 text-sm">InventoryLab batch date/time<input className={input} type="text" value={localText} placeholder="MM/DD/YYYY h:mm AM/PM" aria-invalid={!parseInventoryLabInput(localText)} onChange={e => { setLocalText(e.target.value); const parsed = parseInventoryLabInput(e.target.value); if (parsed) setLocal(parsed); }} disabled={busy || batch?.status === "completed"} required/><span className="text-xs text-slate-500">Paste date/time or batch reference · {BUSINESS_TIMEZONE} · {method === "MF" ? preview : "FBA shipment reference entered below"}</span></label>
+      <label className="grid gap-1 text-sm">InventoryLab batch date/time<input className={input} type="text" value={localText} placeholder="MM/DD/YYYY h:mm AM/PM" aria-invalid={!parseInventoryLabInput(localText)} onChange={e => { setLocalText(e.target.value); const parsed = parseInventoryLabInput(e.target.value); if (parsed) setLocal(parsed); }} disabled={busy || (frozen && !canComplete)} required/><span className="text-xs text-slate-500">Paste date/time or batch reference · {BUSINESS_TIMEZONE} · {method === "MF" ? preview : "FBA shipment reference entered below"}</span></label>
       {!frozen && <button className={button} disabled={busy || !id || !parseInventoryLabInput(localText)} onClick={() => save("draft")}>Save draft</button>}
       {(!frozen || batch?.export_csv) && <button className={button} disabled={busy || !id || (!frozen && !parseInventoryLabInput(localText))} onClick={() => save("export")}>{frozen ? "Download saved export" : "Export selected CSV"}</button>}
-      {frozen && batch.status !== "completed" && <button className={button} disabled={busy || !parseInventoryLabInput(localText)} onClick={() => save("reference")}>Correct IL reference</button>}
-      {method === "MF" && frozen && batch.status !== "completed" && <button className={button} disabled={busy} onClick={startConfirmation}>Mark listed</button>}
+      {canComplete && <button className={button} disabled={busy || !parseInventoryLabInput(localText)} onClick={() => save("reference")}>Correct IL reference</button>}
+      {method === "MF" && canComplete && <button className={button} disabled={busy} onClick={startConfirmation}>Mark listed</button>}
       <button className={button} disabled={busy} onClick={() => { onBatch(null); setId(crypto.randomUUID()); const now = businessLocalNow(); setLocal(now); setLocalText(formatInventoryLabInput(now)); setConfirming(false); attempt.current = null; void onCompleted(true); }}>New selection</button>
     </div>
     {batch && <p className="mt-2 text-sm">{batch.external_reference} · {batch.fulfillment_method} · {batch.status.replaceAll("_", " ")} <span className="text-xs text-slate-500">Internal ID {batch.id}</span></p>}
-    {method === "MF" && <p className="mt-2 text-xs text-slate-600">Export leaves inventory in Received. Mark listed confirms merchant-held stock manually; Amazon acceptance and availability are unverified. MSKU is not required here. MBOP will reconcile it from a later Amazon synchronization; unresolved stock remains visible as pending reconciliation.</p>}
+    {moved > 0 && <p className="mt-2 text-sm text-amber-800">{moved} units moved to a recovery batch and excluded from this batch active quantities and cost. The saved original export is historical; use the recovery batch to resubmit those units.</p>}
+    {batch?.recovery_evidence && <p className="mt-2 text-sm">Recovery batch: these units already exist in merchant inventory. Mark listed confirms the new submission using the same stock. <a className="underline" href={batch.recovery_evidence.source_url} target="_blank" rel="noreferrer">Source reconciliation</a></p>}
+    {method === "MF" && !batch?.recovery_evidence && <p className="mt-2 text-xs text-slate-600">Export leaves inventory in Received. Mark listed confirms merchant-held stock manually; Amazon acceptance and availability are unverified. MSKU is not required here. MBOP will reconcile it from a later Amazon synchronization; unresolved stock remains visible as pending reconciliation.</p>}
     {error && <p role="alert" className="mt-2 text-sm text-red-700">{error}</p>}
     {confirming && <div className="mt-3 border-t pt-3"><div className="flex justify-between"><strong>Confirm exported allocations actually listed</strong><button className={button} onClick={() => setConfirming(false)}>Close without saving</button></div>
-      <table className="my-3 w-full text-left text-sm"><thead><tr><th>Listed</th><th>ASIN / source order / condition</th><th>Cost / unit</th><th>Pending</th><th>Listed quantity</th></tr></thead><tbody>{batch?.allocations?.map(a => { const p = pending[a.id]; const remaining = a.quantity - a.listed_quantity; return <tr key={a.id} className="border-t"><td><input type="checkbox" aria-label={`List allocation ${a.source_key}`} disabled={!remaining || busy} checked={Number(p?.quantity) > 0} onChange={e => setPending(v => ({ ...v, [a.id]: { ...v[a.id], quantity: e.target.checked ? String(remaining) : "0" } }))}/></td><td>{a.snapshot.asin} / {a.snapshot.supplier_order_id} / {a.snapshot.condition || "unspecified"}<div className="text-xs text-slate-500">Purchase item {a.source_key} · received {a.snapshot.received_date || "—"}</div></td><td>{a.snapshot.unit_cost}</td><td>{remaining}</td><td><input className={input} aria-label={`Listed quantity ${a.source_key}`} type="number" min="0" max={remaining} value={p?.quantity || "0"} disabled={!remaining || busy} onChange={e => setPending(v => ({ ...v, [a.id]: { ...v[a.id], quantity: e.target.value } }))}/></td></tr>; })}</tbody></table><button className={button} disabled={busy} onClick={complete}>Confirm Mark listed</button></div>}
+      <table className="my-3 w-full text-left text-sm"><thead><tr><th>Listed</th><th>ASIN / source order / condition</th><th>Cost / unit</th><th>Pending</th><th>Listed quantity</th></tr></thead><tbody>{batch?.allocations?.map(a => { const p = pending[a.id]; const remaining = a.quantity - a.listed_quantity - (a.transferred_quantity || 0); return <tr key={a.id} className="border-t"><td><input type="checkbox" aria-label={`List allocation ${a.source_key}`} disabled={!remaining || busy} checked={Number(p?.quantity) > 0} onChange={e => setPending(v => ({ ...v, [a.id]: { ...v[a.id], quantity: e.target.checked ? String(remaining) : "0" } }))}/></td><td>{a.snapshot.asin} / {a.snapshot.supplier_order_id} / {a.snapshot.condition || "unspecified"}<div className="text-xs text-slate-500">Purchase item {a.source_key} · received {a.snapshot.received_date || "—"}</div></td><td>{a.snapshot.unit_cost}</td><td>{remaining}</td><td><input className={input} aria-label={`Listed quantity ${a.source_key}`} type="number" min="0" max={remaining} value={p?.quantity || "0"} disabled={!remaining || busy || !!a.recovery_source_allocation_id} onChange={e => setPending(v => ({ ...v, [a.id]: { ...v[a.id], quantity: e.target.value } }))}/></td></tr>; })}</tbody></table><button className={button} disabled={busy} onClick={complete}>Confirm Mark listed</button></div>}
     {!!batch?.lots?.length && <div className="mt-3 text-sm">{batch.lots.map(c => <div key={c.completed_at}>{c.external_reference} · manually listed {new Date(c.completed_at).toLocaleString()} · {c.lots.map(l => `${l.quantity} × ${l.seller_sku || "MSKU pending Amazon reconciliation"} @ ${l.unit_cost}`).join("; ")}</div>)}</div>}
-    <details className="mt-3"><summary className="cursor-pointer text-sm font-medium" onClick={() => void loadHistory()}>Listing batch history (latest 100; historical FBA shipments remain in Shipments)</summary><table className="mt-2 w-full text-left text-sm"><thead><tr><th>Method / reference</th><th>Status</th><th>Selected / exported / listed units</th><th>Exported</th><th>Last listing completion</th><th /></tr></thead><tbody>{history.map(b => <tr key={b.id} className="border-t"><td>{b.fulfillment_method} · {b.external_reference}</td><td>{b.status}</td><td>{Object.values(b.selection).reduce((n, v) => n + Number(v || 0), 0)} / {b.allocations?.reduce((n, a) => n + a.quantity, 0) || 0} / {b.allocations?.reduce((n, a) => n + a.listed_quantity, 0) || 0}</td><td>{b.exported_at ? new Date(b.exported_at).toLocaleString() : "—"}</td><td>{b.completed_at ? new Date(b.completed_at).toLocaleString() : "—"}</td><td><button className={button} disabled={busy} onClick={() => open(b.id)}>Open</button></td></tr>)}</tbody></table></details>
+    <details className="mt-3"><summary className="cursor-pointer text-sm font-medium" onClick={() => void loadHistory()}>Listing batch history (latest 100; historical FBA shipments remain in Shipments)</summary><table className="mt-2 w-full text-left text-sm"><thead><tr><th>Method / reference</th><th>Status</th><th>Selected / exported / listed units</th><th>Exported</th><th>Last listing completion</th><th /></tr></thead><tbody>{history.map(b => <tr key={b.id} className="border-t"><td>{b.fulfillment_method} · {b.external_reference}</td><td>{b.status}</td><td>{b.allocations?.length ? b.allocations.reduce((n, a) => n + a.quantity - (a.transferred_quantity || 0), 0) : Object.values(b.selection).reduce((n, v) => n + Number(v || 0), 0)} / {b.allocations?.reduce((n, a) => n + a.quantity - (a.transferred_quantity || 0), 0) || 0} / {b.allocations?.reduce((n, a) => n + a.listed_quantity, 0) || 0}</td><td>{b.exported_at ? new Date(b.exported_at).toLocaleString() : "—"}</td><td>{b.completed_at ? new Date(b.completed_at).toLocaleString() : "—"}</td><td><button className={button} disabled={busy} onClick={() => open(b.id)}>Open</button></td></tr>)}</tbody></table></details>
   </section>;
 }

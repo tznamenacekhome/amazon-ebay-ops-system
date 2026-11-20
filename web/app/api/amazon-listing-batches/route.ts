@@ -10,7 +10,7 @@ export async function GET(request: NextRequest) {
     try {
         const id = request.nextUrl.searchParams.get("id");
         if (id) {
-            const { data, error } = await db.from("amazon_listing_batches").select("*,allocations:amazon_listing_allocations(*),lots:amazon_listing_completions(*,lots:amazon_merchant_inventory_lots(*))").eq("id", id).single();
+            const { data, error } = await db.from("amazon_listing_batches").select("*,allocations:amazon_listing_allocations!amazon_listing_allocations_batch_id_fkey(*),lots:amazon_listing_completions(*,lots:amazon_merchant_inventory_lots(*))").eq("id", id).single();
             if (error)
                 throw error;
             if (data.fulfillment_method === "MF" && data.allocations.length) {
@@ -24,9 +24,12 @@ export async function GET(request: NextRequest) {
                     a.suggested_sku = resolveListingSku(skus, a.snapshot.asin, "MF", a.snapshot.condition);
                 }
             }
+            const allocationIds = new Set(data.allocations.map((a: { id: string }) => a.id));
+            for (const completion of data.lots) completion.lots = completion.lots.filter((lot: { allocation_id: string }) => allocationIds.has(lot.allocation_id));
+            data.lots = data.lots.filter((completion: { lots: unknown[] }) => completion.lots.length);
             return NextResponse.json(data);
         }
-        const { data, error } = await db.from("amazon_listing_batches").select("id,fulfillment_method,external_reference,status,selection,created_at,exported_at,completed_at,fba_shipment_code,allocations:amazon_listing_allocations(quantity,listed_quantity,snapshot)").order("created_at", { ascending: false }).limit(100);
+        const { data, error } = await db.from("amazon_listing_batches").select("id,fulfillment_method,external_reference,status,selection,created_at,exported_at,completed_at,fba_shipment_code,allocations:amazon_listing_allocations!amazon_listing_allocations_batch_id_fkey(quantity,listed_quantity,transferred_quantity,snapshot)").order("created_at", { ascending: false }).limit(100);
         if (error)
             throw error;
         const rows = (data || []).map(batch => {
@@ -38,9 +41,9 @@ export async function GET(request: NextRequest) {
                 if (unitCost === null || unitCost === undefined || unitCost === "" || !Number.isFinite(Number(unitCost))) {
                     completeCost = false;
                 } else {
-                    totalCents += Math.round(Number(unitCost) * allocation.quantity * 100);
+                    totalCents += Math.round(Number(unitCost) * (allocation.quantity - (allocation.transferred_quantity || 0)) * 100);
                 }
-                return { quantity: allocation.quantity, listed_quantity: allocation.listed_quantity };
+                return { quantity: allocation.quantity, listed_quantity: allocation.listed_quantity, transferred_quantity: allocation.transferred_quantity || 0 };
             });
             return { ...batch, allocations, total_cost: completeCost ? totalCents / 100 : null };
         });

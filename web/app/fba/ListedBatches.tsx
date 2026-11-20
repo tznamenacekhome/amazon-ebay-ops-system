@@ -57,18 +57,20 @@ export function ListedBatches({ onOpen, refreshKey }: {
       <thead className="bg-slate-50 text-xs uppercase text-slate-500"><tr>
         <th className="px-3 py-2">Method</th><th className="px-3 py-2">Batch</th><th className="px-3 py-2">Status</th>
         <th className="px-3 py-2 text-right">Selected units</th><th className="px-3 py-2 text-right">Exported units</th><th className="px-3 py-2 text-right">Listed units</th>
-        <th className="px-3 py-2 text-right" title="Total saved cost of all exported MF units, including units awaiting listing">Total Cost</th>
+        <th className="px-3 py-2 text-right">Moved to recovery</th>
+        <th className="px-3 py-2 text-right" title="Total saved cost of active exported MF units, including units awaiting listing">Total Cost</th>
         <th className="px-3 py-2">Exported</th><th className="px-3 py-2">Completed</th><th className="px-3 py-2" />
       </tr></thead>
-      <tbody>{loading ? <tr><td colSpan={10} className="px-3 py-6 text-center text-slate-500">Loading listing batches...</td></tr>
-        : rows.length === 0 ? <tr><td colSpan={10} className="px-3 py-6 text-center text-slate-500">No listing batches found.</td></tr>
+      <tbody>{loading ? <tr><td colSpan={11} className="px-3 py-6 text-center text-slate-500">Loading listing batches...</td></tr>
+        : rows.length === 0 ? <tr><td colSpan={11} className="px-3 py-6 text-center text-slate-500">No listing batches found.</td></tr>
         : rows.map(row => <tr key={row.id} className="border-t border-slate-100">
           <td className="px-3 py-2 font-medium">{row.fulfillment_method}</td>
           <td className="px-3 py-2">{row.external_reference}</td>
           <td className="px-3 py-2 capitalize">{row.status.replaceAll("_", " ")}</td>
           <td className="px-3 py-2 text-right">{Object.values(row.selection).reduce((sum, quantity) => sum + Number(quantity || 0), 0)}</td>
-          <td className="px-3 py-2 text-right">{row.allocations?.reduce((sum, allocation) => sum + allocation.quantity, 0) || 0}</td>
+          <td className="px-3 py-2 text-right">{row.allocations?.reduce((sum, allocation) => sum + allocation.quantity - (allocation.transferred_quantity || 0), 0) || 0}</td>
           <td className="px-3 py-2 text-right">{row.allocations?.reduce((sum, allocation) => sum + allocation.listed_quantity, 0) || 0}</td>
+          <td className="px-3 py-2 text-right">{row.allocations?.reduce((n, a) => n + (a.transferred_quantity || 0), 0) || 0}</td>
           <td className="px-3 py-2 text-right">{row.total_cost == null ? "—" : row.total_cost.toLocaleString("en-US", { style: "currency", currency: "USD" })}</td>
           <td className="px-3 py-2">{row.exported_at ? new Date(row.exported_at).toLocaleString() : "—"}</td>
           <td className="px-3 py-2">{row.completed_at ? new Date(row.completed_at).toLocaleString() : "—"}</td>
