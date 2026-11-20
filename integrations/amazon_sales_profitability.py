@@ -16,8 +16,10 @@ from dotenv import load_dotenv
 from supabase import create_client
 try:
     from .sales_shipping_costs import allocate_cost, order_label_cost
+    from .amazon_sku_identity import fulfillment_method
 except ImportError:
     from sales_shipping_costs import allocate_cost, order_label_cost
+    from amazon_sku_identity import fulfillment_method
 
 LOGGER = logging.getLogger("amazon_sales_profitability")
 BATCH_SIZE = 200
@@ -232,7 +234,7 @@ def build_order_profitability(
             cogs_source = "mbop_fifo"
             cogs_reference = None
         else:
-            cogs, cogs_source, cogs_reference = lookup_cogs(supabase, item, quantity)
+            cogs, cogs_source, cogs_reference = lookup_cogs(supabase, item, quantity, fulfillment_channel=order.get("fulfillment_channel"))
         amazon_fees = fee_totals["amazon_fees_excluding_fulfillment"]
 
         net_profit = None
@@ -553,7 +555,11 @@ def lookup_cogs(
     supabase,
     item: dict[str, Any],
     quantity: int,
+    *, fulfillment_channel: str | None = None,
 ) -> tuple[float | None, str, dict[str, str] | None]:
+    # These opening-balance sources contain historical FBA stock only.
+    if fulfillment_method(fulfillment_channel) != "FBA":
+        return None, "missing", None
     seller_sku = item.get("seller_sku")
     asin = item.get("asin")
 
@@ -610,8 +616,6 @@ def fetch_inventorylab_backfill(
     )
     if seller_sku:
         request = request.eq("seller_sku", seller_sku)
-    elif asin:
-        request = request.eq("asin", asin)
     else:
         return None
     result = request.execute()

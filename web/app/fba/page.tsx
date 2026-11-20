@@ -201,11 +201,11 @@ export default function FbaPage() {
 
   useEffect(() => {
     if (activeView === "prep") {
-      loadFba();
+      loadFba(false, data !== null);
     } else {
       loadShipments();
     }
-  }, [activeView]);
+  }, [activeView, method]);
 
   useEffect(() => {
     const stored = readPersistedRefresh(FBA_PRICING_REFRESH_KEY);
@@ -335,13 +335,13 @@ export default function FbaPage() {
     return "";
   }, [data, quantityDrafts, selectedTotals.units, shipmentId]);
 
-  async function loadFba(reset = false) {
+  async function loadFba(reset = false, preserveSelection = false) {
     setLoading(true);
     setError(null);
     setNotice(null);
 
     try {
-      const response = await fetch("/api/fba-shipments", { cache: "no-store" });
+      const response = await fetch(`/api/fba-shipments?method=${method}`, { cache: "no-store" });
 
       if (!response.ok) {
         throw new Error(`Failed to load FBA workflow: ${response.status}`);
@@ -349,7 +349,7 @@ export default function FbaPage() {
 
       const payload = (await response.json()) as FbaData;
       setData(payload);
-      if (!batch || reset) setQuantityDrafts(quantityDraftsForData(payload));
+      if (reset || (!batch && !preserveSelection)) setQuantityDrafts(quantityDraftsForData(payload));
       setSellPriceDrafts(sellPriceDraftsForData(payload));
       setAsinDrafts(asinDraftsForData(payload));
     } catch (err) {

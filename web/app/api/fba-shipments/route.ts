@@ -3,6 +3,7 @@ import { createServerSupabaseClient, requireAdminApiToken } from "../_server";
 import { normalizeAsin as normalizeCatalogAsin, resolveAsinMetadata } from "../_asinMetadata";
 import { returnPurchaseBasis, resolveReturnPurchaseBases } from "./returnPurchaseBasis";
 import { inventoryLabExportRows } from "./inventoryLabExport";
+import { fetchListingSkuMappings, resolveListingSku, FBA_CHANNELS, type FulfillmentMethod } from "../amazonSkuIdentity";
 
 const supabase = createServerSupabaseClient();
 
@@ -286,10 +287,12 @@ export async function GET(request: NextRequest) {
   if (mode === "shipments") {
     return getShipments();
   }
-  return getPrepResponse();
+  const method = request.nextUrl.searchParams.get("method") ?? "FBA";
+  if (method !== "FBA" && method !== "MF") return NextResponse.json({ error: "Choose FBA or MF." }, { status: 400 });
+  return getPrepResponse(undefined, method);
 }
 
-async function getPrepResponse(selection?: Record<string, string>) {
+async function getPrepResponse(selection?: Record<string, string>, method: FulfillmentMethod = "FBA") {
   try {
     const selectedIds = selection ? Object.keys(selection) : undefined;
     const rows = await fetchReceivedRows(selectedIds?.filter(id => !id.startsWith("amazon-return:")));
@@ -353,7 +356,7 @@ async function getPrepResponse(selection?: Record<string, string>) {
     ] = await Promise.all([
       fetchAmazonTitleFallbacks(asins),
       fetchSystemFallbacks(asins),
-      fetchPreferredFbaMskus(asins),
+      fetchListingSkuMappings(supabase, asins, method),
       fetchKeepaPrices(asins),
       fetchMyListings(asins),
       fetchLastSoldPrices(asins),
@@ -368,17 +371,25 @@ async function getPrepResponse(selection?: Record<string, string>) {
     const grouped = groupCandidates(
         candidatesWithFallbacks,
         titleFallbacks,
-        preferredMskus,
+        new Map(asins.map(asin => [asin, resolveListingSku(preferredMskus, asin, method)]).filter((entry): entry is [string, string] => entry[1] !== null)),
         keepaPrices,
         myListings,
         skuPrices,
         lastSoldPrices,
         feeEstimates
       );
+    for (const group of grouped.rows) {
+      Object.assign(group, { fulfillment_method: method });
+      for (const detail of group.details) {
+        Object.assign(detail, { fulfillment_method: method, seller_sku: resolveListingSku(preferredMskus, detail.asin, method, detail.condition) });
+      }
+      const selectedSkus = [...new Set(group.details.map(detail => detail.seller_sku))];
+      group.msku = selectedSkus.length === 1 ? selectedSkus[0] : null;
+    }
     if (selection) {
       const available = new Set(grouped.rows.flatMap(row => row.details.map(detail => detail.item_id)));
       if (Object.keys(selection).some(id => !available.has(id))) throw new Error("A selected item is no longer eligible for List on Amazon. Refresh and review the selection.");
-      return NextResponse.json({ rows: inventoryLabExportRows(grouped.rows, selection) });
+      return NextResponse.json({ rows: inventoryLabExportRows(grouped.rows, selection, method) });
     }
     return NextResponse.json(grouped);
   } catch (error) {
@@ -914,7 +925,12 @@ export async function POST(request: Request) {
       }
       selection[id] = String(value);
     }
-    return getPrepResponse(selection);
+    const method = body.method ?? "FBA";
+    if (method !== "FBA" && method !== "MF") return NextResponse.json({ error: "Choose FBA or MF." }, { status: 400 });
+    if (method === "MF" && Object.keys(selection).some(id => id.startsWith("amazon-return:"))) {
+      return NextResponse.json({ error: "Return recovery requires FBA fulfillment." }, { status: 400 });
+    }
+    return getPrepResponse(selection, method);
   }
   const shipmentCode =
     typeof body.shipment_id === "string" ? body.shipment_id.trim() : "";
@@ -1626,42 +1642,6 @@ async function fetchSystemFallbacks(asins: string[]) {
   return systemByAsin;
 }
 
-async function fetchPreferredFbaMskus(asins: string[]) {
-  const mskuByAsin = new Map<string, string>();
-  const chunkSize = 500;
-
-  for (let index = 0; index < asins.length; index += chunkSize) {
-    const chunk = asins.slice(index, index + chunkSize);
-    const { data, error } = await supabase
-      .from("amazon_skus")
-      .select(
-        "asin,seller_sku,last_listing_sync_at,last_pricing_sync_at,updated_at,created_at"
-      )
-      .in("asin", chunk)
-      .in("fulfillment_channel", ["Amazon", "AMAZON_NA"])
-      .not("seller_sku", "is", null)
-      .order("last_listing_sync_at", { ascending: false, nullsFirst: false })
-      .order("last_pricing_sync_at", { ascending: false, nullsFirst: false })
-      .order("updated_at", { ascending: false, nullsFirst: false })
-      .order("created_at", { ascending: false, nullsFirst: false });
-
-    if (error) {
-      console.warn("FBA preferred MSKU lookup failed", error.message);
-      continue;
-    }
-
-    for (const item of data ?? []) {
-      const asin = normalizeAsin(item.asin);
-      const sellerSku = cleanString(item.seller_sku);
-      if (asin && sellerSku && !mskuByAsin.has(asin)) {
-        mskuByAsin.set(asin, sellerSku);
-      }
-    }
-  }
-
-  return mskuByAsin;
-}
-
 function groupCandidates(
   candidates: FbaPrepCandidate[],
   titleFallbacks: Map<string, string>,
@@ -2049,6 +2029,8 @@ async function fetchSkuPrices(asins: string[]) {
     const { data, error } = await supabase
       .from("amazon_skus")
       .select("asin,listing_price,landed_price,updated_at")
+      .eq("marketplace_id", process.env.AMAZON_SP_API_MARKETPLACE_ID || process.env.AMAZON_MARKETPLACE_ID || "ATVPDKIKX0DER")
+      .in("fulfillment_channel", FBA_CHANNELS)
       .in("asin", chunk);
 
     if (error) {
@@ -2277,7 +2259,7 @@ function lastValue(values: unknown[] | undefined) {
 function fulfillmentKind(value: string | null) {
   const normalized = cleanString(value)?.toLowerCase() ?? "";
   if (["amazon", "amazon_na", "afn", "fba"].includes(normalized)) return "fba" as const;
-  if (["merchant", "merchant_na", "mfn", "mf"].includes(normalized)) return "mf" as const;
+  if (["default", "merchant", "merchant_na", "mfn", "mf", "fbm"].includes(normalized)) return "mf" as const;
   return null;
 }
 

@@ -19,6 +19,7 @@ from typing import Any
 
 from dotenv import load_dotenv
 from supabase import create_client
+from amazon_sku_identity import fulfillment_method
 
 LOGGER = logging.getLogger("inventory_reconcile")
 BATCH_SIZE = 500
@@ -397,12 +398,12 @@ def fetch_amazon_skus(supabase) -> dict[tuple[str, str], dict[str, Any]]:
     rows = fetch_all(
         supabase,
         "amazon_skus",
-        "amazon_sku_id,seller_sku,marketplace_id,asin,fnsku,product_name,condition",
+        "amazon_sku_id,seller_sku,marketplace_id,asin,fnsku,product_name,condition,fulfillment_channel",
     )
     return {
         (str(row.get("seller_sku") or ""), str(row.get("marketplace_id") or "")): row
         for row in rows
-        if row.get("seller_sku") and row.get("marketplace_id")
+        if row.get("seller_sku") and row.get("marketplace_id") and fulfillment_method(row.get("fulfillment_channel")) == "FBA"
     }
 
 

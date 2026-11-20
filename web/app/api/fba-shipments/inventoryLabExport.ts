@@ -12,14 +12,16 @@ type ExportDetail = {
   item_id: string; asin: string; amazon_title: string | null; seller_sku?: string | null;
   quantity: number; unit_cost: number | null; order_date: string | null; supplier: string | null;
   source_type?: string; source_status?: string | null;
+  fulfillment_method?: "FBA" | "MF"; condition?: string | null;
 };
 type ExportGroup = {
   asin: string; msku: string | null; title: string | null; system: string | null;
   sell_price: number | null; details: ExportDetail[];
+  fulfillment_method?: "FBA" | "MF";
 };
 
 /** Server only: validate sources first, then merge selected units by ASIN. */
-export function inventoryLabExportRows(groups: ExportGroup[], quantities: Record<string, string>): string[][] {
+export function inventoryLabExportRows(groups: ExportGroup[], quantities: Record<string, string>, method: "FBA" | "MF" = "FBA"): string[][] {
   const merged = new Map<string, { row: string[]; quantity: number; totalCost: number; date: string; suppliers: Set<string> }>();
   const issues: string[] = [];
   for (const group of groups) for (const detail of group.details) {
@@ -28,7 +30,9 @@ export function inventoryLabExportRows(groups: ExportGroup[], quantities: Record
     const quantity = Number(draft);
     const missing: string[] = [];
     const asin = detail.asin?.trim();
-    const sku = (detail.seller_sku || group.msku)?.trim();
+    const groupSku = (group.fulfillment_method ?? "FBA") === method ? group.msku : null;
+    const detailSku = detail.fulfillment_method === method ? detail.seller_sku : null;
+    const sku = (detailSku || groupSku)?.trim() || "";
     const title = (detail.amazon_title || group.title)?.trim();
     const supplier = detail.supplier?.trim();
     const date = inventoryLabPurchaseDate(detail.order_date);
@@ -44,14 +48,15 @@ export function inventoryLabExportRows(groups: ExportGroup[], quantities: Record
       issues.push(`${asin || detail.item_id}: ${missing.join(", ")}`);
       continue;
     }
-    const existing = merged.get(asin);
+    const key = JSON.stringify([asin, sku, detail.condition || "unknown"]);
+    const existing = merged.get(key);
     if (existing) {
       existing.quantity += quantity;
       existing.totalCost += detail.unit_cost! * quantity;
       if (detail.order_date! < existing.date) existing.date = detail.order_date!;
       existing.suppliers.add(supplier!);
     } else {
-      merged.set(asin, { row: [asin, group.msku || sku || "", title!, group.system || "", "",
+      merged.set(key, { row: [asin, sku, title!, group.system || "", "",
         group.sell_price!.toFixed(2), "", "", ""], quantity, totalCost: detail.unit_cost! * quantity,
         date: detail.order_date!, suppliers: new Set([supplier!]) });
     }

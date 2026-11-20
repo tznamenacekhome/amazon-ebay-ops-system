@@ -21,6 +21,7 @@ from dotenv import load_dotenv
 from supabase import create_client
 
 from amazon_spapi_client import AmazonSPAPIClient, AmazonSPAPIError
+from amazon_sku_identity import fulfillment_method
 
 LOGGER = logging.getLogger("amazon_listing_status_sync")
 BATCH_SIZE = 500
@@ -399,7 +400,7 @@ def build_sku_update(snapshot: dict[str, Any], sku: dict[str, Any]) -> dict[str,
         "seller_sku": sku.get("seller_sku"),
         "marketplace_id": sku.get("marketplace_id"),
         "asin": snapshot.get("asin") or sku.get("asin"),
-        "fnsku": sku.get("fnsku"),
+        "fnsku": sku.get("fnsku") if fulfillment_method(snapshot.get("fulfillment_channel")) == "FBA" else None,
         "product_name": snapshot.get("product_name") or sku.get("product_name"),
         "condition": snapshot.get("condition") or sku.get("condition"),
         "listing_status": snapshot.get("listing_status"),

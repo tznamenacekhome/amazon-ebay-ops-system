@@ -18,6 +18,7 @@ from uuid import uuid4
 
 from dotenv import load_dotenv
 from supabase import create_client
+from amazon_sku_identity import fulfillment_method
 
 LOGGER = logging.getLogger("apply_non_ebay_fifo_cogs")
 BATCH_SIZE = 250
@@ -405,8 +406,9 @@ def build_inventory_plan(
         for row in fetch_all(
             supabase,
             "amazon_skus",
-            "amazon_sku_id,seller_sku,marketplace_id,asin,fnsku,product_name",
+            "amazon_sku_id,seller_sku,marketplace_id,asin,fnsku,product_name,fulfillment_channel",
         )
+        if fulfillment_method(row.get("fulfillment_channel")) == "FBA"
     }
 
     layers: list[dict[str, Any]] = []

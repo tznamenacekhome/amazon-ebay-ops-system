@@ -3,6 +3,7 @@ import { createServerSupabaseClient, requireAdminApiToken } from "../_server";
 import { GET as getPreparation } from "../fba-shipments/route";
 import { inventoryLabExportRows } from "../fba-shipments/inventoryLabExport";
 import { BUSINESS_TIMEZONE, listingCsv, mfReference, selectedQuantities } from "../../fba/listingBatch";
+import { fetchListingSkuMappings, resolveListingSku } from "../amazonSkuIdentity";
 export const dynamic = "force-dynamic";
 const db = createServerSupabaseClient();
 export async function GET(request: NextRequest) {
@@ -18,14 +19,9 @@ export async function GET(request: NextRequest) {
                             asin: string;
                         };
                     }) => a.snapshot.asin))];
-                const { data: skus, error: skuError } = await db.from("amazon_skus").select("asin,seller_sku,condition,fulfillment_channel").in("asin", asins);
-                if (skuError)
-                    throw skuError;
-                const condition = (v: string | null) => (v || "").toLowerCase().replace(/^new_new$/, "new");
+                const skus = await fetchListingSkuMappings(db, asins as string[], "MF");
                 for (const a of data.allocations) {
-                    const matches = (skus || []).filter(s => s.asin === a.snapshot.asin && ["MFN", "MF", "MERCHANT", "MERCHANT_NA"].includes((s.fulfillment_channel || "").toUpperCase()) && condition(s.condition) && condition(s.condition) === condition(a.snapshot.condition));
-                    const unique = [...new Set(matches.map(s => s.seller_sku))];
-                    a.suggested_sku = unique.length === 1 ? unique[0] : null;
+                    a.suggested_sku = resolveListingSku(skus, a.snapshot.asin, "MF", a.snapshot.condition);
                 }
             }
             return NextResponse.json(data);
@@ -84,6 +80,8 @@ export async function POST(request: NextRequest) {
         const { data: existing, error: lookupError } = await db.from("amazon_listing_batches").select("*").eq("id", body.id).maybeSingle();
         if (lookupError)
             throw lookupError;
+        if (existing && existing.fulfillment_method !== body.method)
+            throw new Error("This batch belongs to a different fulfillment method. Start a new selection for that method.");
         if (existing?.export_csv && body.action === "export")
             return NextResponse.json(existing);
         const quantities = selectedQuantities(body.quantities);
@@ -92,22 +90,21 @@ export async function POST(request: NextRequest) {
         if (body.action === "export") {
             if (!Object.keys(quantities).length)
                 throw new Error("Select at least one allocation.");
-            const response = await getPreparation(new NextRequest(new URL("/api/fba-shipments", request.url)));
+            const preparationUrl = new URL("/api/fba-shipments", request.url);
+            preparationUrl.searchParams.set("method", body.method);
+            const response = await getPreparation(new NextRequest(preparationUrl));
             const preparation = await response.json();
             if (!response.ok)
                 throw new Error(preparation.error);
             // All prices/costs and purchase identities come from the existing backend prep query.
             const groups = preparation.rows as Parameters<typeof inventoryLabExportRows>[0];
-            if (body.method === "MF")
-                for (const group of groups)
-                    group.msku = null; // FBA SKUs are not MF mappings.
             const available = new Set(groups.flatMap(g => g.details.map(d => d.item_id)));
             if (Object.keys(quantities).some(id => !available.has(id)))
                 throw new Error("Selected allocation is no longer eligible. Refresh and review.");
             allocations = groups.flatMap(g => g.details.filter(d => quantities[d.item_id]).map(d => ({ ...d, quantity: Number(quantities[d.item_id]), sell_price: g.sell_price })));
             if (body.method === "MF" && allocations.some(a => a.source_type !== "purchase_item"))
                 throw new Error("Return recovery remains an FBA-only workflow in this phase.");
-            csv = listingCsv(inventoryLabExportRows(groups, quantities));
+            csv = listingCsv(inventoryLabExportRows(groups, quantities, body.method));
         }
         const { data, error } = await db.rpc("mbop_save_listing_batch", { p_id: body.id, p_method: body.method, p_local: body.local, p_reference: reference, p_selection: body.quantities, p_csv: csv, p_allocations: allocations });
         if (error)

@@ -20,6 +20,7 @@ from dotenv import load_dotenv
 from supabase import create_client
 
 from amazon_spapi_client import AmazonSPAPIClient, AmazonSPAPIError
+from amazon_sku_identity import fulfillment_method
 
 LOGGER = logging.getLogger("amazon_fba_inventory_sync")
 BATCH_SIZE = 500
@@ -267,6 +268,18 @@ def build_snapshot_row(
 def upsert_amazon_skus(supabase, rows: list[dict[str, Any]]) -> int:
     count = 0
     for chunk in chunks(rows, BATCH_SIZE):
+        existing = {}
+        for marketplace in {row["marketplace_id"] for row in chunk}:
+            prior = supabase.table("amazon_skus").select("seller_sku,marketplace_id,fulfillment_channel,last_listing_sync_at") \
+                .eq("marketplace_id", marketplace).in_("seller_sku", [row["seller_sku"] for row in chunk if row["marketplace_id"] == marketplace]).execute().data or []
+            existing.update({(row["marketplace_id"], row["seller_sku"]): row for row in prior})
+        for row in chunk:
+            prior = existing.get((row["marketplace_id"], row["seller_sku"]), {})
+            # Listing observations own current fulfillment. FBA inventory can retain converted historical SKUs.
+            if prior.get("last_listing_sync_at") and fulfillment_method(prior.get("fulfillment_channel")):
+                row["fulfillment_channel"] = prior["fulfillment_channel"]
+                if fulfillment_method(row["fulfillment_channel"]) == "MF":
+                    row["fnsku"] = None
         supabase.table("amazon_skus").upsert(
             chunk,
             on_conflict="seller_sku,marketplace_id",

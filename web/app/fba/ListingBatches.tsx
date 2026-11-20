@@ -184,7 +184,11 @@ export function ListingBatches({ quantities, method, setMethod, onRestore, onBat
     const frozen = !!batch && batch.status !== "draft";
     return <section className="mb-4 rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
     <div className="flex flex-wrap items-end gap-3">
-      <label className="grid gap-1 text-sm">Fulfillment method<select className={input} value={method} disabled={frozen || busy} onChange={e => setMethod(e.target.value as "FBA" | "MF")} required><option>FBA</option><option>MF</option></select></label>
+      <label className="grid gap-1 text-sm">Fulfillment method<select className={input} value={method} disabled={frozen || busy} onChange={e => {
+        const nextMethod = e.target.value as "FBA" | "MF";
+        setMethod(nextMethod);
+        if (batch) onBatch({ ...batch, id: crypto.randomUUID(), fulfillment_method: nextMethod, status: "draft", export_csv: undefined, exported_at: undefined, completed_at: undefined, allocations: [], lots: [] });
+      }} required><option>FBA</option><option>MF</option></select></label>
       <label className="grid gap-1 text-sm">InventoryLab batch date/time<input className={input} type="text" value={localText} placeholder="MM/DD/YYYY h:mm AM/PM" aria-invalid={!parseInventoryLabInput(localText)} onChange={e => { setLocalText(e.target.value); const parsed = parseInventoryLabInput(e.target.value); if (parsed) setLocal(parsed); }} disabled={busy || batch?.status === "completed"} required/><span className="text-xs text-slate-500">Paste date/time or batch reference · {BUSINESS_TIMEZONE} · {method === "MF" ? preview : "FBA shipment reference entered below"}</span></label>
       {!frozen && <button className={button} disabled={busy || !id || !parseInventoryLabInput(localText)} onClick={() => save("draft")}>Save draft</button>}
       {(!frozen || batch?.export_csv) && <button className={button} disabled={busy || !id || (!frozen && !parseInventoryLabInput(localText))} onClick={() => save("export")}>{frozen ? "Download saved export" : "Export selected CSV"}</button>}

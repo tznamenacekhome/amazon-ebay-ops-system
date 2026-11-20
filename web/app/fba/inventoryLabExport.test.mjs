@@ -39,6 +39,17 @@ for (const [field, value, label] of [["unit_cost", null, "purchase cost"], ["ord
   assert.equal(mod.inventoryLabExportRows([{ ...group, details: [changed, { ...detail, item_id: "b" }] }], { a: "0", b: "1" }).length, 1);
 }
 assert.equal(mod.inventoryLabExportRows([{ ...group, msku: null }], { a: "1" })[0][1], "");
+// Unscoped detail SKUs cannot leak from an FBA source into an MF export.
+const legacyFba = { ...group, msku: "FBA-SKU", details: [{ ...detail, seller_sku: "FBA-DETAIL" }] };
+assert.equal(mod.inventoryLabExportRows([legacyFba], { a: "1" }, "MF")[0][1], "");
+const mfGroup = { ...legacyFba, fulfillment_method: "MF", msku: "MF-SKU" };
+assert.equal(mod.inventoryLabExportRows([mfGroup], { a: "1" }, "MF")[0][1], "MF-SKU");
+assert.equal(mod.inventoryLabExportRows([mfGroup], { a: "1" }, "FBA")[0][1], "");
+const splitSkus = { ...mfGroup, details: [
+  { ...detail, item_id: "a", fulfillment_method: "MF", seller_sku: "MF-NEW", condition: "new" },
+  { ...detail, item_id: "b", fulfillment_method: "MF", seller_sku: "MF-USED", condition: "used_good" },
+] };
+assert.deepEqual(mod.inventoryLabExportRows([splitSkus], { a: "1", b: "1" }, "MF").map(row => row[1]), ["MF-NEW", "MF-USED"]);
 assert.throws(() => mod.inventoryLabExportRows([{ ...group, sell_price: null }], { a: "1" }), /list price/);
 for (const value of ["-1", "1.5", "3", "bad"]) assert.throws(() => mod.inventoryLabExportRows([group], { a: value }), /quantity/);
 assert.throws(() => mod.inventoryLabExportRows([group], {}), /at least one/);

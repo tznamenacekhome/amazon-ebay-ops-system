@@ -242,6 +242,11 @@ Current Aged Amazon Inventory repricing advisor entry points:
 - web/app/api/amazon/repricing-advisor/route.ts
 
 Amazon SP-API integrations:
+- MSKU identity always includes marketplace and fulfillment method (FBA or MF). Never select an MSKU from ASIN alone or fall back across fulfillment methods.
+- Amazon fulfillment code DEFAULT means MF. AMAZON_NA/Amazon means FBA. Unknown or ambiguous mappings remain unresolved.
+- Listing observations own current SKU fulfillment. FBA inventory snapshots must preserve an explicitly observed MF listing method.
+- New listing allocation snapshots record fulfillment_method and the method-specific seller_sku. Historical snapshots inherit their batch method.
+- FBA-only and MF-only tables retain their workflow fulfillment scope. Legacy InventoryLab FBA opening balances cannot supply MF SKU/cost mappings.
 - must remain read-only until a specific write workflow is designed
 - may use inventory, listings, and pricing read endpoints
 - must not request restricted PII data or Amazon seller order/customer data

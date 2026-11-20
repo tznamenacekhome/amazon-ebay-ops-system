@@ -23,6 +23,7 @@ from dotenv import load_dotenv
 from supabase import create_client
 
 from amazon_spapi_client import AmazonSPAPIClient, AmazonSPAPIError
+from amazon_sku_identity import sku_identity, FBA_CHANNELS
 
 LOGGER = logging.getLogger("amazon_fba_shipment_sync")
 BATCH_SIZE = 500
@@ -63,7 +64,7 @@ def main() -> int:
 
         shipment_items = fetch_shipment_items(supabase, shipments)
         shipment_source_items = fetch_shipment_source_items(supabase, shipments)
-        sku_index = fetch_amazon_sku_index(supabase)
+        sku_index = fetch_amazon_sku_index(supabase, client.config.marketplace_id)
 
         LOGGER.info("Selected MBOP FBA shipments: %s", len(shipments))
         synced = 0
@@ -800,12 +801,13 @@ def should_fetch_v0_shipment_items(
     return not has_v2024_bridge_payload(shipment)
 
 
-def fetch_amazon_sku_index(supabase) -> dict[str, dict[str, Any]]:
-    rows = fetch_all(supabase, "amazon_skus", "seller_sku,asin,fnsku,product_name")
+def fetch_amazon_sku_index(supabase, marketplace_id: str) -> dict[str, dict[str, Any]]:
+    rows = fetch_all(supabase, "amazon_skus", "seller_sku,asin,fnsku,product_name,marketplace_id,fulfillment_channel", marketplace_id=marketplace_id)
     return {
         clean_text(row.get("seller_sku")) or "": row
         for row in rows
-        if clean_text(row.get("seller_sku"))
+        if sku_identity(row.get("marketplace_id"), row.get("fulfillment_channel"), row.get("seller_sku")) ==
+           (marketplace_id, "FBA", clean_text(row.get("seller_sku")))
     }
 
 
@@ -821,14 +823,8 @@ def seller_skus_for_amazon_items(
             value = seller_sku
         else:
             asin = clean_asin(item.get("ASIN"))
-            value = next(
-                (
-                    sku
-                    for sku, row in sku_index.items()
-                    if clean_asin(row.get("asin")) == asin
-                ),
-                None,
-            )
+            matches = [sku for sku, row in sku_index.items() if clean_asin(row.get("asin")) == asin]
+            value = matches[0] if len(matches) == 1 else None
         if value and value not in seen:
             seen.add(value)
             seller_skus.append(value)
@@ -877,16 +873,14 @@ def fetch_latest_inventory(
     return inventory
 
 
-def fetch_all(supabase, table: str, columns: str) -> list[dict[str, Any]]:
+def fetch_all(supabase, table: str, columns: str, *, marketplace_id: str | None = None) -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
     offset = 0
     while True:
-        response = (
-            supabase.table(table)
-            .select(columns)
-            .range(offset, offset + BATCH_SIZE - 1)
-            .execute()
-        )
+        query = supabase.table(table).select(columns)
+        if marketplace_id:
+            query = query.eq("marketplace_id", marketplace_id).in_("fulfillment_channel", sorted(FBA_CHANNELS | {"Amazon"}))
+        response = query.range(offset, offset + BATCH_SIZE - 1).execute()
         data = response.data or []
         rows.extend(data)
         if len(data) < BATCH_SIZE:

@@ -27,6 +27,7 @@ from dotenv import load_dotenv
 from supabase import create_client
 
 from amazon_spapi_client import AmazonSPAPIClient, AmazonSPAPIError
+from amazon_sku_identity import fulfillment_method
 
 LOGGER = logging.getLogger("amazon_merchant_listings_sync")
 BATCH_SIZE = 500
@@ -349,7 +350,7 @@ def build_sku_row(
         "seller_sku": seller_sku,
         "marketplace_id": marketplace_id,
         "asin": asin or clean_text(existing.get("asin")),
-        "fnsku": clean_text(existing.get("fnsku")),
+        "fnsku": clean_text(existing.get("fnsku")) if fulfillment_method(fulfillment_channel or existing.get("fulfillment_channel")) == "FBA" else None,
         "product_name": first_value(row, "item-name", "product-name", "title") or clean_text(existing.get("product_name")),
         "condition": first_value(row, "item-condition", "condition") or clean_text(existing.get("condition")),
         "fulfillment_channel": fulfillment_channel or clean_text(existing.get("fulfillment_channel")),
@@ -455,14 +456,16 @@ def normalize_fulfillment_channel(value: Any) -> str | None:
     if not text:
         return None
     normalized = text.upper()
-    if normalized in {"AMAZON_NA", "DEFAULT"} or "AMAZON" in normalized:
-        return "AMAZON_NA" if normalized == "AMAZON_NA" else "Amazon"
+    if normalized in {"DEFAULT", "MFN", "MF", "FBM", "MERCHANT", "MERCHANT_NA"}:
+        return "DEFAULT"
+    if normalized in {"AMAZON", "AMAZON_NA", "AFN", "FBA"}:
+        return "AMAZON_NA"
     return text
 
 
 def is_fba_fulfillment(value: Any) -> bool:
     text = (clean_text(value) or "").upper()
-    return text in {"AMAZON", "AMAZON_NA"} or "AMAZON" in text
+    return text in {"AMAZON", "AMAZON_NA", "AFN", "FBA"}
 
 
 def clean_asin(value: Any) -> str | None:

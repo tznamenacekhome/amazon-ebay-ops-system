@@ -19,6 +19,7 @@ from typing import Any
 
 from dotenv import load_dotenv
 from supabase import create_client
+from amazon_sku_identity import fulfillment_method
 
 LOGGER = logging.getLogger("inventorylab_active_inventory_backfill")
 DEFAULT_INPUT = Path("data/imports/inventorylab_fba_active_inventory_2026-0.csv")
@@ -160,7 +161,7 @@ def fetch_amazon_skus(supabase) -> list[dict[str, Any]]:
     while True:
         response = (
             supabase.table("amazon_skus")
-            .select("amazon_sku_id,seller_sku,marketplace_id,asin,fnsku,product_name,condition")
+            .select("amazon_sku_id,seller_sku,marketplace_id,asin,fnsku,product_name,condition,fulfillment_channel")
             .range(offset, offset + BATCH_SIZE - 1)
             .execute()
         )
@@ -203,6 +204,8 @@ def analyze_rows(
     skus_by_asin: dict[str, list[dict[str, Any]]] = defaultdict(list)
 
     for sku in amazon_skus:
+        if fulfillment_method(sku.get("fulfillment_channel")) != "FBA":
+            continue
         seller_sku = clean_text(sku.get("seller_sku"))
         asin = clean_asin(sku.get("asin"))
         if seller_sku:
