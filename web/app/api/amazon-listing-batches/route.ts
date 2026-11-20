@@ -30,10 +30,25 @@ export async function GET(request: NextRequest) {
             }
             return NextResponse.json(data);
         }
-        const { data, error } = await db.from("amazon_listing_batches").select("id,fulfillment_method,external_reference,status,selection,created_at,exported_at,completed_at,fba_shipment_code,allocations:amazon_listing_allocations(quantity,listed_quantity)").order("created_at", { ascending: false }).limit(100);
+        const { data, error } = await db.from("amazon_listing_batches").select("id,fulfillment_method,external_reference,status,selection,created_at,exported_at,completed_at,fba_shipment_code,allocations:amazon_listing_allocations(quantity,listed_quantity,snapshot)").order("created_at", { ascending: false }).limit(100);
         if (error)
             throw error;
-        return NextResponse.json({ rows: data, time_zone: BUSINESS_TIMEZONE });
+        const rows = (data || []).map(batch => {
+            let totalCents = 0;
+            let completeCost = batch.fulfillment_method === "MF" && batch.allocations.length > 0;
+            const allocations = batch.allocations.map(allocation => {
+                const snapshot = allocation.snapshot as { unit_cost?: number | string | null } | null;
+                const unitCost = snapshot?.unit_cost;
+                if (unitCost === null || unitCost === undefined || unitCost === "" || !Number.isFinite(Number(unitCost))) {
+                    completeCost = false;
+                } else {
+                    totalCents += Math.round(Number(unitCost) * allocation.quantity * 100);
+                }
+                return { quantity: allocation.quantity, listed_quantity: allocation.listed_quantity };
+            });
+            return { ...batch, allocations, total_cost: completeCost ? totalCents / 100 : null };
+        });
+        return NextResponse.json({ rows, time_zone: BUSINESS_TIMEZONE });
     }
     catch (e) {
         return fail(e);

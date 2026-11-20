@@ -8,6 +8,7 @@ export type ListingBatch = {
     external_reference: string;
     il_batch_local: string;
     status: string;
+    total_cost?: number | null;
     selection: Record<string, string>;
     export_csv?: string;
     exported_at?: string;

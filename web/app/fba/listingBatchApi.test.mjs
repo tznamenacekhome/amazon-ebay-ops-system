@@ -5,8 +5,8 @@ function module(file,require=()=>{throw Error("Unexpected import");}){const out=
 const helpers=module("./listingBatch.ts"),exporter=module("../api/fba-shipments/inventoryLabExport.ts");
 const id="00000000-0000-0000-0000-000000000001",item="00000000-0000-0000-0000-000000000002",other="00000000-0000-0000-0000-000000000003";
 const detail={item_id:item,purchase_id:other,source_type:"purchase_item",asin:"B07RCCHQLD",amazon_title:"Game",quantity:3,unit_cost:12.34,order_date:"2026-01-01",received_date:"2026-01-05",condition:"new",supplier:"eBay"};
-let existing=null,calls=[],preparations=0;
-const db={from:()=>({select(){return this;},eq(){return this;},async maybeSingle(){return {data:existing};}}),async rpc(name,args){calls.push({name,args});return {data:{id,export_csv:args.p_csv}};}};
+let existing=null,calls=[],preparations=0,history=[];
+const db={from:()=>({select(){return this;},eq(){return this;},order(){return this;},async limit(){return {data:history};},async maybeSingle(){return {data:existing};}}),async rpc(name,args){calls.push({name,args});return {data:{id,export_csv:args.p_csv}};}};
 const route=module("../api/amazon-listing-batches/route.ts",name=>{
  if(name==="next/server")return {NextRequest:class{constructor(url){this.url=String(url);}},NextResponse:{json:(body,options)=>({status:options?.status||200,json:async()=>body})}};
  if(name==="../_server")return {createServerSupabaseClient:()=>db,requireAdminApiToken:()=>null};
@@ -22,4 +22,16 @@ const csv=call.args.p_csv;calls=[];existing={id,export_csv:csv};const before=pre
 existing=null;response=await request({action:"draft",quantities:{[item]:"0",[other]:"1"}});assert.equal(response.status,200);assert.deepEqual(calls.at(-1).args.p_selection,{[item]:"0",[other]:"1"});
 response=await request({action:"export",quantities:{[item]:"1.5"}});assert.equal(response.status,400);
 response=await request({action:"export",quantities:{"00000000-0000-0000-0000-000000000099":"1"}});assert.equal(response.status,400);
+history = [
+ {fulfillment_method:"MF",allocations:[{quantity:3,listed_quantity:1,snapshot:{unit_cost:"12.34"}},{quantity:2,listed_quantity:2,snapshot:{unit_cost:20}}]},
+ {fulfillment_method:"MF",allocations:[{quantity:1,listed_quantity:1,snapshot:{unit_cost:0}}]},
+ {fulfillment_method:"MF",allocations:[{quantity:1,listed_quantity:0,snapshot:{unit_cost:null}}]},
+ {fulfillment_method:"MF",allocations:[]},
+ {fulfillment_method:"FBA",allocations:[{quantity:1,listed_quantity:1,snapshot:{unit_cost:20}}]},
+];
+const listed = await route.GET({nextUrl:new URL("https://mbop.example/api/amazon-listing-batches")});
+assert.equal(listed.status,200);
+const listedRows = (await listed.json()).rows;
+assert.deepEqual(listedRows.map(row=>row.total_cost),[77.02,0,null,null,null]);
+assert.deepEqual(listedRows[0].allocations[0],{quantity:3,listed_quantity:1});
 console.log("Listing API checks passed: selected allocation snapshots, exact CSV, MF reference, FBA SKU exclusion, draft zeroes, stale/invalid selections, immutable retry.");
