@@ -18,7 +18,7 @@ import {
   runOnDemandRefresh,
   type RefreshNotice,
 } from "../syncRefresh";
-import { DataFreshness } from "../DataFreshness";
+import { formatPacificDateTime } from "../DataFreshness";
 import { TrackingLink } from "../components/TrackingLink";
 import { mutationHeaders } from "../mutationHeaders";
 import { KeepaPriceIndicator } from "../components/KeepaPriceIndicator";
@@ -560,7 +560,22 @@ export default function FbaPage() {
         </div>
 
         <div className="flex max-w-[calc(100vw-14rem)] flex-wrap items-center justify-end gap-3">
-          <DataFreshness screen="fba" refreshKey={freshnessKey} />
+          {activeView === "prep" ? (
+            <div className="text-right text-xs leading-5 text-slate-500">
+              <div>
+                Pricing last updated: {loading
+                  ? "Checking..."
+                  : !data ? "Unknown"
+                  : data.rows.length === 0 ? "No items in queue"
+                  : data.totals.pricing_cache_oldest_at
+                    ? formatPacificDateTime(data.totals.pricing_cache_oldest_at)
+                    : "Unknown"}
+              </div>
+              {data && data.rows.length > 0 ? (
+                <div className="text-slate-400">Oldest pricing / fee cache for queued items</div>
+              ) : null}
+            </div>
+          ) : null}
           <button
             onClick={activeView === "prep" ? updatePricing : refreshFba}
             disabled={refreshing}
@@ -576,11 +591,6 @@ export default function FbaPage() {
                 ? "Update Pricing"
                 : "Refresh"}
           </button>
-          {activeView === "prep" ? (
-            <div className="text-xs text-slate-500">
-              Oldest pricing cache: {formatDateTime(data?.totals.pricing_cache_oldest_at)}
-            </div>
-          ) : null}
 
         </div>
       </div>

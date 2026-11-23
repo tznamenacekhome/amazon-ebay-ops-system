@@ -109,6 +109,22 @@ def identifier(rows, name, *, item=False):
     return next((text(r.get(prefix+'Value')) for r in rows or [] if r.get(prefix+'Name') == name), None)
 
 
+def explicitly_fba_transaction(transaction):
+    """Exclude only transactions whose every item is explicitly Amazon fulfilled.
+
+    The US account-wide finance feed includes FBA refunds. Missing, unknown or
+    mixed contexts still require order verification; they are not empty MF data.
+    """
+    items = transaction.get('items') or []
+    if not items:
+        return False
+    for item in items:
+        contexts = [c for c in item.get('contexts') or [] if c.get('contextType') == 'ProductContext']
+        if not contexts or any(c.get('fulfillmentNetwork') != 'AFN' for c in contexts):
+            return False
+    return True
+
+
 def financial_transaction(transaction):
     """One canonical Transactions source. Report refund totals/legacy events never add to it."""
     tid = text(transaction.get('transactionId'))

@@ -3,7 +3,7 @@ import { createServerSupabaseClient, requireAdminApiToken } from "../_server";
 import { GET as getPreparation } from "../fba-shipments/route";
 import { inventoryLabExportRows } from "../fba-shipments/inventoryLabExport";
 import { BUSINESS_TIMEZONE, listingCsv, mfReference, selectedQuantities } from "../../fba/listingBatch";
-import { fetchListingSkuMappings, resolveListingSku } from "../amazonSkuIdentity";
+import { fetchListingSkuMappings, resolveListingSku, resolveMfExportSku } from "../amazonSkuIdentity";
 export const dynamic = "force-dynamic";
 const db = createServerSupabaseClient();
 export async function GET(request: NextRequest) {
@@ -104,6 +104,27 @@ export async function POST(request: NextRequest) {
             const available = new Set(groups.flatMap(g => g.details.map(d => d.item_id)));
             if (Object.keys(quantities).some(id => !available.has(id)))
                 throw new Error("Selected allocation is no longer eligible. Refresh and review.");
+            if (body.method === "MF") {
+                const missing = groups.flatMap(g => g.details.filter(d => quantities[d.item_id] &&
+                    !(d.fulfillment_method === "MF" && d.seller_sku) && !(g.fulfillment_method === "MF" && g.msku)));
+                const asins = [...new Set(missing.map(d => d.asin))];
+                if (asins.length) {
+                    const mappings = (await Promise.all([
+                        fetchListingSkuMappings(db, asins, "MF"),
+                        fetchListingSkuMappings(db, asins, "FBA"),
+                    ])).flat();
+                    for (const detail of missing) {
+                        detail.seller_sku = resolveMfExportSku(mappings, detail.asin, detail.condition);
+                        detail.fulfillment_method = "MF";
+                    }
+                }
+                for (const group of groups) for (const detail of group.details) {
+                    if (quantities[detail.item_id] && !detail.seller_sku && group.fulfillment_method === "MF") {
+                        detail.seller_sku = group.msku;
+                        detail.fulfillment_method = "MF";
+                    }
+                }
+            }
             allocations = groups.flatMap(g => g.details.filter(d => quantities[d.item_id]).map(d => ({ ...d, quantity: Number(quantities[d.item_id]), sell_price: g.sell_price })));
             if (body.method === "MF" && allocations.some(a => a.source_type !== "purchase_item"))
                 throw new Error("Return recovery remains an FBA-only workflow in this phase.");

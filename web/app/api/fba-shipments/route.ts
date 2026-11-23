@@ -3,7 +3,7 @@ import { createServerSupabaseClient, requireAdminApiToken } from "../_server";
 import { normalizeAsin as normalizeCatalogAsin, resolveAsinMetadata } from "../_asinMetadata";
 import { returnPurchaseBasis, resolveReturnPurchaseBases } from "./returnPurchaseBasis";
 import { inventoryLabExportRows } from "./inventoryLabExport";
-import { fetchListingSkuMappings, resolveListingSku, FBA_CHANNELS, type FulfillmentMethod } from "../amazonSkuIdentity";
+import { fetchListingSkuMappings, resolveListingSku, resolveMfExportSku, FBA_CHANNELS, type FulfillmentMethod } from "../amazonSkuIdentity";
 
 const supabase = createServerSupabaseClient();
 
@@ -378,10 +378,16 @@ async function getPrepResponse(selection?: Record<string, string>, method: Fulfi
         lastSoldPrices,
         feeEstimates
       );
+    const exportMappings = selection && method === "MF"
+      ? [...preferredMskus, ...await fetchListingSkuMappings(supabase, asins, "FBA")]
+      : preferredMskus;
     for (const group of grouped.rows) {
       Object.assign(group, { fulfillment_method: method });
       for (const detail of group.details) {
-        Object.assign(detail, { fulfillment_method: method, seller_sku: resolveListingSku(preferredMskus, detail.asin, method, detail.condition) });
+        Object.assign(detail, { fulfillment_method: method, seller_sku:
+          selection && method === "MF" && Number(selection[detail.item_id]) > 0
+            ? resolveMfExportSku(exportMappings, detail.asin, detail.condition)
+            : resolveListingSku(preferredMskus, detail.asin, method, detail.condition) });
       }
       const selectedSkus = [...new Set(group.details.map(detail => detail.seller_sku))];
       group.msku = selectedSkus.length === 1 ? selectedSkus[0] : null;

@@ -17,3 +17,15 @@ assert.equal(api.resolveListingSku(mappings, "ASIN", "MF", "unknown"), "MF-SKU")
 assert.equal(api.resolveListingSku(mappings.slice(0, 1), "ASIN", "MF", "new"), null);
 assert.equal(api.resolveListingSku([...mappings, { ...mappings[1], seller_sku: "MF-OTHER" }], "ASIN", "MF", "new"), null);
 console.log("Fulfillment-scoped MSKU selection, DEFAULT normalization, conditions, missing and ambiguous mappings passed.");
+assert.equal(api.resolveMfExportSku(mappings, "ASIN", "new"), "MF-SKU");
+assert.equal(api.resolveMfExportSku(mappings.slice(0, 1), "ASIN", "new"), "MF-FBA-SKU");
+const generated = api.resolveMfExportSku([], "B07FYN3JDL", "new");
+assert.match(generated, /^MF-\d+$/);
+assert.ok(generated.length <= 40);
+assert.equal(api.resolveMfExportSku([], "B07FYN3JDL", "11"), generated);
+assert.notEqual(api.resolveMfExportSku([], "B07FYN3JDL", "used_good"), generated);
+assert.notEqual(api.resolveMfExportSku([], "B07FYN3JDM", "new"), generated);
+assert.throws(() => api.resolveMfExportSku([...mappings, { ...mappings[1], seller_sku: "OTHER" }], "ASIN", "new"), /Multiple MF/);
+assert.throws(() => api.resolveMfExportSku([{ ...mappings[0], seller_sku: "X".repeat(38) }], "ASIN", "new"), /40-character/);
+assert.throws(() => api.resolveMfExportSku([{ ...mappings[0], asin: "OTHER", seller_sku: generated }], "B07FYN3JDL", "new"), /conflicts/);
+console.log("MF export fallback, stable numeric SKUs, condition separation, ambiguity and collision checks passed.");

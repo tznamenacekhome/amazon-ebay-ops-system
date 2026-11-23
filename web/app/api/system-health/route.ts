@@ -223,7 +223,7 @@ const SCHEDULER_GROUPS: SchedulerGroupConfig[] = [
     label: "Recent Amazon Sales",
     domain: "Sales",
     cadence: "Every 2 hours daytime + 4:30 AM catch-up",
-    schedule: "Every 2 hours from 7 AM-9 PM PT; catch-up 4:30 AM PT",
+    schedule: "Every 2 hours at :50 from 7 AM-9 PM PT; catch-up 4:30 AM PT",
     scheduleNames: ["mbop-amazon-sales-recent-day", "mbop-amazon-sales-recent-catchup"],
     expectedEveryHours: 4,
     criticalAfterHours: 12,
@@ -1264,7 +1264,7 @@ function scheduledPacificTimesForGroup(groupKey: string): PacificRunTime[] {
     case "purchase-enrichment":
       return hourlyTimes(8, 22, 35, 2);
     case "amazon-sales-recent":
-      return [{ hour: 4, minute: 30 }, ...hourlyTimes(7, 21, 0, 2)];
+      return [{ hour: 4, minute: 30 }, ...hourlyTimes(7, 21, 50, 2)];
     case "finance-refresh":
       return [
         { hour: 6, minute: 30 },

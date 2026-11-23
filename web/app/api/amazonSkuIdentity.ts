@@ -29,6 +29,35 @@ export function resolveListingSku(mappings: SkuMapping[], asin: string, method: 
   return skus.length === 1 ? skus[0] : null;
 }
 
+/** Export-only creation; never reinterpret an FBA listing as an existing MF listing. */
+export function resolveMfExportSku(mappings: SkuMapping[], asin: string, condition?: string | null) {
+  const wantedCondition = skuCondition(condition);
+  const matches = mappings.filter(row => row.asin === asin &&
+    (!wantedCondition || skuCondition(row.condition) === wantedCondition));
+  const mf = matches.filter(row => row.fulfillment_method === "MF");
+  if (mf.length) {
+    const sku = resolveListingSku(mf, asin, "MF", condition);
+    if (!sku) throw new Error(`Multiple MF MSKUs match ${asin}; review the listing mapping before export.`);
+    return sku;
+  }
+  const fba = resolveListingSku(matches, asin, "FBA", condition);
+  if (!fba && matches.some(row => row.fulfillment_method === "FBA")) {
+    throw new Error(`Multiple FBA MSKUs match ${asin}; review the listing mapping before export.`);
+  }
+  // Stable numeric identity keeps repeated exports and separate purchase rows consistent.
+  let number = BigInt("144066263297769815596495629667");
+  for (const character of `${asin}:${wantedCondition || "unknown"}`) {
+    number = BigInt.asUintN(96, (number ^ BigInt(character.charCodeAt(0))) * BigInt("1099511628211"));
+  }
+  const sku = fba ? `MF-${fba}` : `MF-${number}`;
+  if (sku.length > 40) throw new Error(`Generated MF MSKU for ${asin} exceeds Amazon's 40-character limit.`);
+  if (mappings.some(row => row.seller_sku === sku &&
+    (row.asin !== asin || row.fulfillment_method !== "MF" || skuCondition(row.condition) !== wantedCondition))) {
+    throw new Error(`Generated MF MSKU ${sku} conflicts with another listing; review before export.`);
+  }
+  return sku;
+}
+
 export async function fetchListingSkuMappings(db: ReturnType<typeof createServerSupabaseClient>, asins: string[], method: FulfillmentMethod) {
   const mappings: SkuMapping[] = [];
   const marketplace = process.env.AMAZON_SP_API_MARKETPLACE_ID || process.env.AMAZON_MARKETPLACE_ID || "ATVPDKIKX0DER";

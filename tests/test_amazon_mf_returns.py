@@ -4,15 +4,15 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'integrations'))
 from amazon_mf_returns import parse_report, financial_transaction, windows, amount, date, is_customer_order_id
-from amazon_sync_mf_returns import transactions, verify_order
+from amazon_sync_mf_returns import transactions, verify_order, OrderVerification
+from test_amazon_mf_returns_sync import MemoryDB
 
 
 class ReturnSources(unittest.TestCase):
     def test_order_failures_allow_following_transactions_and_carrier_sync(self):
         from unittest.mock import Mock, patch
         from amazon_sync_mf_returns import synchronize
-        db, client = Mock(), Mock()
-        db.table.return_value.select.return_value.eq.return_value.neq.return_value.order.return_value.limit.return_value.execute.return_value.data = []
+        db, client = MemoryDB(), Mock()
         account = {'id': 'ACCOUNT', 'marketplace_id': 'US'}
         missing = '114-8866055-7493009'
         broken = '123-1234567-1234567'
@@ -22,24 +22,30 @@ class ReturnSources(unittest.TestCase):
              'relatedIdentifiers': [{'relatedIdentifierName': 'ORDER_ID', 'relatedIdentifierValue': oid}]}
             for index, oid in enumerate([missing, missing, broken, valid])
         ]
+        def apply_work(db_arg, name, **args):
+            if name == 'mbop_mf_return_finance_complete_work' and args['p_transaction_id'] == '2':
+                raise RuntimeError('Import rejected')
+            return db.apply(db_arg, name, **args)
         with patch('amazon_sync_mf_returns.report', return_value=0), \
              patch('amazon_sync_mf_returns.transactions', return_value=iter(feed)), \
-             patch('amazon_sync_mf_returns.verify_order', side_effect=[RuntimeError('HTTP 404'), True, True]) as verify, \
-             patch('amazon_sync_mf_returns.rpc', side_effect=[RuntimeError('Import rejected'), None]) as apply, \
+             patch('amazon_sync_mf_returns.verify_order', side_effect=[RuntimeError('HTTP 404'), OrderVerification.MF, OrderVerification.MF]) as verify, \
+             patch('amazon_sync_mf_returns.rpc', side_effect=apply_work) as apply, \
              patch('amazon_sync_mf_returns.sync_carriers', return_value=2) as carriers, \
              patch('amazon_sync_mf_returns.time.sleep'):
             with self.assertRaisesRegex(ValueError, 'HTTP 404.*Import rejected'):
                 synchronize(db, client, account)
         self.assertEqual(verify.call_count, 3)
-        self.assertEqual(apply.call_count, 2)
-        self.assertEqual(apply.call_args.kwargs['p_transaction']['amazon_order_id'], valid)
+        self.assertEqual(len([c for c in apply.call_args_list if c.args[1] == 'mbop_mf_return_finance_complete_work']), 2)
+        self.assertEqual(db.finances[('ACCOUNT', '3')]['amazon_order_id'], valid)
+        self.assertEqual(len([r for r in db.tables['amazon_mf_return_finance_work'] if r['status'] == 'pending']), 3)
         carriers.assert_called_once_with(db, account)
 
     def test_shipment_finance_reference_never_calls_customer_orders_or_database(self):
         from unittest.mock import Mock
         db, client = Mock(), Mock()
+        db.table.return_value.select.return_value.eq.return_value.eq.return_value.order.return_value.order.return_value.limit.return_value.execute.return_value.data = []
         for invalid in ('FBA19W1MLF5L', 'FBA123456789', '', None, 'ORDER', '123-1234567-1234567/other'):
-            self.assertFalse(verify_order(db, client, {'id':'ACCOUNT'}, invalid))
+            self.assertEqual(verify_order(db, client, {'id':'ACCOUNT'}, invalid), OrderVerification.UNVERIFIED)
         db.table.assert_not_called()
         client.get_order.assert_not_called()
         self.assertTrue(is_customer_order_id('123-1234567-1234567'))
@@ -47,6 +53,7 @@ class ReturnSources(unittest.TestCase):
     def test_real_customer_order_lookup_errors_remain_visible(self):
         from unittest.mock import Mock
         db, client = Mock(), Mock()
+        db.table.return_value.select.return_value.eq.return_value.eq.return_value.order.return_value.order.return_value.limit.return_value.execute.return_value.data = []
         db.table.return_value.select.return_value.eq.return_value.eq.return_value.limit.return_value.execute.return_value.data=[]
         db.table.return_value.select.return_value.eq.return_value.limit.return_value.execute.return_value.data=[]
         client.get_order.side_effect=RuntimeError('Real customer order read failed')
@@ -62,20 +69,19 @@ class ReturnSources(unittest.TestCase):
     def test_shipment_adjustment_does_not_stop_following_mf_refund(self):
         from unittest.mock import Mock, patch
         from amazon_sync_mf_returns import synchronize
-        db, client = Mock(), Mock()
-        db.table.return_value.select.return_value.eq.return_value.neq.return_value.order.return_value.limit.return_value.execute.return_value.data=[]
+        db, client = MemoryDB(), Mock()
         account={'id':'ACCOUNT','marketplace_id':'US'}
         def source(oid,kind,tid):
             return {'transactionId':tid,'transactionType':kind,'transactionStatus':'RELEASED','postedDate':'2026-11-08T10:00:00Z',
                     'relatedIdentifiers':[{'relatedIdentifierName':'ORDER_ID','relatedIdentifierValue':oid}],
                     'totalAmount':{'currencyAmount':-5,'currencyCode':'USD'}}
         feed=[source('FBA19W1MLF5L','Adjustment','POSTAGE'),source('123-1234567-1234567','Refund','REFUND')]
-        with patch('amazon_sync_mf_returns.report',return_value=0),patch('amazon_sync_mf_returns.transactions',return_value=iter(feed)),patch('amazon_sync_mf_returns.verify_order',return_value=True) as verify,patch('amazon_sync_mf_returns.rpc') as apply,patch('amazon_sync_mf_returns.sync_carriers',return_value=0),patch('amazon_sync_mf_returns.time.sleep'):
+        with patch('amazon_sync_mf_returns.report',return_value=0),patch('amazon_sync_mf_returns.transactions',return_value=iter(feed)),patch('amazon_sync_mf_returns.verify_order',return_value=OrderVerification.MF) as verify,patch('amazon_sync_mf_returns.rpc', side_effect=db.apply),patch('amazon_sync_mf_returns.sync_carriers',return_value=0),patch('amazon_sync_mf_returns.time.sleep'):
             stats=synchronize(db,client,account)
         self.assertEqual(stats['non_customer_financial_references'],1)
         self.assertEqual(stats['financial_transactions'],1)
         verify.assert_called_once_with(db,client,account,'123-1234567-1234567')
-        self.assertEqual(apply.call_args.kwargs['p_transaction']['transaction_id'],'REFUND')
+        self.assertEqual(db.finances[('ACCOUNT', 'REFUND')]['transaction_id'], 'REFUND')
 
     def test_zero_is_known_and_unavailable_dates_are_unknown(self):
         self.assertEqual(amount(0),'0')

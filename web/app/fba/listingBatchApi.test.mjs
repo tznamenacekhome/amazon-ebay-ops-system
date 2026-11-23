@@ -1,4 +1,4 @@
-﻿import assert from "node:assert/strict";
+import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import ts from "typescript";
 function module(file,require=()=>{throw Error("Unexpected import");}){const out={};new Function("exports","require",ts.transpileModule(readFileSync(new URL(file,import.meta.url),"utf8"),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText)(out,require);return out;}
@@ -6,13 +6,13 @@ const helpers=module("./listingBatch.ts"),exporter=module("../api/fba-shipments/
 const skuIdentity=module("../api/amazonSkuIdentity.ts");
 const id="00000000-0000-0000-0000-000000000001",item="00000000-0000-0000-0000-000000000002",other="00000000-0000-0000-0000-000000000003";
 const detail={item_id:item,purchase_id:other,source_type:"purchase_item",asin:"B07RCCHQLD",amazon_title:"Game",quantity:3,unit_cost:12.34,order_date:"2026-01-01",received_date:"2026-01-05",condition:"new",supplier:"eBay"};
-let existing=null,calls=[],preparations=0,history=[];
+let existing=null,calls=[],preparations=0,history=[],missingSku=false,lookupMappings=[];
 const db={from:()=>({select(){return this;},eq(){return this;},order(){return this;},async limit(){return {data:history};},async maybeSingle(){return {data:existing};}}),async rpc(name,args){calls.push({name,args});return {data:{id,export_csv:args.p_csv}};}};
 const route=module("../api/amazon-listing-batches/route.ts",name=>{
  if(name==="next/server")return {NextRequest:class{constructor(url){this.url=String(url);}},NextResponse:{json:(body,options)=>({status:options?.status||200,json:async()=>body})}};
  if(name==="../_server")return {createServerSupabaseClient:()=>db,requireAdminApiToken:()=>null};
- if(name==="../fba-shipments/route")return {GET:async request=>{preparations++;const method=new URL(request.url).searchParams.get("method");return {ok:true,json:async()=>({rows:[{asin:detail.asin,fulfillment_method:method,msku:method==="MF"?"MF-ONLY-SKU":"FBA-ONLY-SKU",title:"Game",system:"PS 4",sell_price:47.99,details:[{...detail,fulfillment_method:method},{...detail,fulfillment_method:method,item_id:other,unit_cost:20}]}]})};}};
- if(name.endsWith("amazonSkuIdentity"))return skuIdentity;
+ if(name==="../fba-shipments/route")return {GET:async request=>{preparations++;const method=new URL(request.url).searchParams.get("method");return {ok:true,json:async()=>({rows:[{asin:detail.asin,fulfillment_method:method,msku:missingSku?null:method==="MF"?"MF-ONLY-SKU":"FBA-ONLY-SKU",title:"Game",system:"PS 4",sell_price:47.99,details:[{...detail,fulfillment_method:method},{...detail,fulfillment_method:method,item_id:other,unit_cost:20}]}]})};}};
+ if(name.endsWith("amazonSkuIdentity"))return {...skuIdentity,fetchListingSkuMappings:async(_db,_asins,method)=>lookupMappings.filter(row=>row.fulfillment_method===method)};
  if(name.endsWith("inventoryLabExport"))return exporter;
  if(name.endsWith("listingBatch"))return helpers;
  throw Error(name);
@@ -41,3 +41,17 @@ const listedRows = (await listed.json()).rows;
 assert.deepEqual(listedRows.map(row=>row.total_cost),[77.02,0,null,null,12.34,null]);
 assert.deepEqual(listedRows[0].allocations[0],{quantity:3,listed_quantity:1,transferred_quantity:0});
 console.log("Listing API checks passed: selected allocation snapshots, exact CSV, MF reference, FBA SKU exclusion, draft zeroes, stale/invalid selections, immutable retry.");
+existing=null;missingSku=true;
+lookupMappings=[{asin:detail.asin,seller_sku:"123456",condition:"new",fulfillment_method:"FBA"}];
+response=await request({action:"export",quantities:{[item]:"1"}});
+assert.equal(response.status,200);
+assert.ok(calls.at(-1).args.p_csv.includes('"MF-123456"'));
+assert.equal(calls.at(-1).args.p_allocations[0].seller_sku,"MF-123456");
+lookupMappings=[];
+response=await request({action:"export",quantities:{[item]:"1",[other]:"1"}});
+assert.equal(response.status,200);
+const generatedSku=calls.at(-1).args.p_allocations[0].seller_sku;
+assert.match(generatedSku,/^MF-\d+$/);
+assert.equal(calls.at(-1).args.p_allocations[1].seller_sku,generatedSku);
+assert.ok(calls.at(-1).args.p_csv.includes(`"${generatedSku}"`));
+console.log("Missing MF MSKUs use prefixed FBA or generated numeric identities in both CSV and saved allocations.");
