@@ -76,6 +76,43 @@ ledger or discard unresolved work. The checkpoint guard remains intentionally ac
 
 ## Deployment evidence
 
-Task revisions, image digests, migration confirmation, service health and browser
-observations will be recorded after rollout. Verification uses read-only page/API
-checks and normal scheduler evidence; no test returns or listing exports are created.
+Application commit `13401a63fccb` was pushed to `origin/main` and deployed.
+
+- Migration `20261123213947` applied through the linked CLI push after complete
+  ledger reconciliation. The subsequent linked list showed 49 matching entries
+  and zero mismatches. Remote reads confirmed the work table, enqueue/completion
+  RPCs and RLS. The CLI emitted a post-apply pg-delta catalog-cache certificate-path
+  warning; application and ledger recording succeeded. No ledger repair was used.
+- Web: `mbop-web-task:226`, digest
+  `sha256:8aa76106d0851131889bc220ad22669e223604a9d85c2046a89f4362890433a2`.
+  The ECS stability wait completed; rollout is COMPLETED, desired/running 1,
+  pending 0, and the new ALB target is healthy. Build SHA is `13401a63fccb`.
+- Scheduler: `mbop-scheduler-task:168`, digest
+  `sha256:7260dc422fee051af3692dd03465a3ae2d27d515fd87d28671fef498924c1eb0`.
+  Both Recent Amazon Sales schedules point to 168. Read-back comparison confirmed
+  cadence, timezone, launch settings, roles, secret references and environment
+  were preserved. Both tasks retain CLOUD_DEPLOYMENT=true and LOCAL_SYNC_ENABLED=false.
+- ECS `mf-returns --list` task `1feb7ce1c70549249e90199db08102aa` exited 0 on
+  the deployed scheduler digest and selected only the intended returns worker.
+- One bounded live `mf-returns` verification was explicitly approved after
+  automatic approval review initially withheld it under the earlier production
+  restriction. Task `032e5c3ad44e4175882455dfb7be6459` started on revision 168.
+  Database guard passed: PostgreSQL up, about 1.44 GiB available RAM, 13.62 GiB
+  disk free and 48% swap free. It exited 0. Returns run
+  `0ea01c26-2526-4757-aae4-3558584ae539` completed at
+  `2026-11-23T22:03:20Z` (2:03 p.m. Pacific), with no error: one imported report,
+  zero MF returns/financial transactions/packages, 21 explicit FBA transactions
+  skipped, 11 non-customer financial references excluded and no unresolved work.
+  Logs explicitly excluded the recurring order `114-8866055-7493009` as FBA.
+  Remote reads confirmed completed status, zero pending finance work and zero
+  normalized MF returns. This advances the last-success timestamp without
+  inventing a return or disguising a failed sync as an empty success.
+- Authenticated browser verification could not complete because the browser host
+  was unavailable. Automatic review rejected inspecting an unrelated private
+  Chrome page; it was left untouched. AWS/worker checks do not substitute for
+  production browser verification of the pricing/MSKU UI.
+- Docker's Windows credential helper initially failed ECR login. Deployment used
+  an ignored task-scoped Docker auth configuration instead of changing the
+  existing credential-store settings. The temporary ECR auth file was removed
+  after both deployments. No persistent credential/role changes, production test
+  returns or listing exports were made.

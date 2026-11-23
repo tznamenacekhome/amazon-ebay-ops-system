@@ -104,14 +104,16 @@ FBA order. Its 404 is not generalized into success or an empty MF result.
   from `MF returns synchronized`. Failed runs retain partial progress stats and
   explicitly log that progress is not a successful checkpoint.
 
-## Required schema prerequisite (not applied to production)
+## Required schema prerequisite
 
 Before deploying this worker, apply
 `supabase/migrations/20261123213947_mbop_mf_return_finance_work.sql` through MBOP's
 documented shared-project migration workflow: verify the target, run migration
 list, reconcile the complete shared ledger, then apply the reviewed migration.
-No remote migration/list/push/repair was executed as part of this patch.
-Existing applied migrations and the unrelated web diff were left unchanged.
+Development/testing used disposable databases only. The subsequently authorized
+release applied this migration through the linked CLI workflow; see the release
+notes for ledger confirmation and rollout evidence. Existing applied migration
+files and the unrelated web implementation were left unchanged during the fix.
 
 The migration adds the service-role-only work table (RLS enabled), enqueue and
 atomic completion RPCs, and replaces the sync-finish function to reject successful
@@ -150,7 +152,9 @@ Results: 28 returns regression/source tests, 14 Orders v2026 contract tests,
 10 existing PostgreSQL returns acceptance tests and 4 PostgreSQL worker
 acceptance tests passed (56 total). `git diff --check` passed. Docker was started
 for the requested tests; the disposable containers were removed by their harness.
-No hosted worker was run for testing.
+No hosted worker was run during fixture testing. The separately approved
+post-deployment production verification and its completed result are recorded
+in the release notes.
 
 ## Verification after an operator-approved deployment
 
