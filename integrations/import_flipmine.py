@@ -237,11 +237,14 @@ class FlipmineImporter:
         except Exception as error:
             self.db.table('sourcing_flipmine_tabs').update({'status': 'partial', 'error_summary': safe_error(error)}).eq('tab_id', tab_id).eq('run_id', self.run_id).execute()
             raise
+        finally:
+            try:
+                rpc(self.db,'flipmine_refresh_progress',p_run=self.run_id,p_tab=tab_id)
+            except Exception as error:
+                LOG.warning('Persisted progress refresh failed: %s',safe_error(error))
 
     def progress(self,tab_id,rows):
-        counts={key:sum(r['status']==key for r in rows) for key in ('evaluated','duplicate','invalid','excluded','failed','pending')}
-        counts['duplicates']=counts.pop('duplicate');counts['rows']=len(rows)
-        self.db.table('sourcing_flipmine_tabs').update({'summary':counts}).eq('tab_id',tab_id).eq('run_id',self.run_id).eq('status','running').execute()
+        rpc(self.db,'flipmine_refresh_progress',p_run=self.run_id,p_tab=tab_id)
         self.db.table('sourcing_flipmine_runs').update({'summary':{'phase':'processing'}}).eq('run_id',self.run_id).eq('status','running').execute()
 
     def run(self):

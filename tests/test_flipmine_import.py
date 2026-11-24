@@ -43,6 +43,17 @@ class ImportTests(unittest.TestCase):
         self.calls.append((name, copy.deepcopy(args)))
         if name == 'flipmine_bind_candidate': return dict(duplicate=bool(self.db.ops), candidate=args['p_candidate'])
     def result(self): return next((args['p_scored'] for name,args in self.calls if name=='flipmine_write_opportunity'),None)
+    def test_checkpoint_deadline_flushes_persisted_progress_before_pause(self):
+        tab={**self.tab,'source_hash':'saved'}
+        self.worker.deadline=1
+        def checkpoint_rpc(db,name,**args):
+            self.calls.append((name,args))
+            if name=='flipmine_claim_tab':return tab
+        with patch.object(fm,'rpc',side_effect=checkpoint_rpc),patch.object(fm,'read_rows',return_value=[{**self.row,'status':'pending'}]),patch.object(self.worker,'evaluation_context'),patch.object(self.worker,'heartbeat'),patch.object(fm,'production_budget',return_value=None),patch.object(fm.time,'monotonic',return_value=2),patch.dict(os.environ,{'MBOP_EBAY_TRADING_ENRICHMENT':'false'}):
+            with self.assertRaises(fm.EbayQuotaPaused):self.worker.process_tab({'sheet_id':0,'tab_name':'Saved'})
+        self.assertEqual(self.calls[-1][0],'flipmine_refresh_progress')
+        self.assertEqual(sum(name=='flipmine_refresh_progress' for name,_ in self.calls),2)
+        self.fetch.assert_not_called()
     def test_normal_match_uses_current_data_and_shared_scorer(self):
         self.worker.process_row(self.tab,self.row)
         result=self.result(); self.assertIsNotNone(result)

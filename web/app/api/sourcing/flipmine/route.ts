@@ -60,6 +60,15 @@ export async function GET(request: NextRequest) {
     const tabResult = await supabase.from('sourcing_flipmine_tabs').select(TAB_FIELDS).eq('run_id', run.run_id).order('sheet_id').limit(1000);
     if (tabResult.error) throw tabResult.error;
     const tabs = tabResult.data ?? [];
+    if (tabs.length) {
+      const live = await supabase.rpc('flipmine_progress_counts', { p_tabs: tabs.map(t => t.tab_id) });
+      if (live.error) throw live.error;
+      for (const tab of tabs) {
+        const counts = live.data?.find((r: { tab_id: string }) => r.tab_id === tab.tab_id)?.counts;
+        if (!counts || counts.rows !== tab.rows_found) throw new Error('Persisted candidate totals do not reconcile');
+        tab.summary = { ...tab.summary, ...counts };
+      }
+    }
     if (run.status !== 'running') {
       for (const tab of tabs.filter(t => t.status === 'evaluated')) {
         try {

@@ -6,7 +6,7 @@ export function flipmineStatus(run:Run|null,tabs:Tab[]) {
   const remaining=Math.max(total-completed,0);
   const phase=run?.summary?.phase;
   const label=!run?'':run.status==='paused'?(run.paused_resource==='checkpoint'?'Paused — saved checkpoint':'Paused — eBay API limit reached'):
-    run.status==='completed'?'Complete':run.status==='running'?(phase==='resuming'?'Resuming':'Processing'):
+    run.status==='completed'?(remaining===0?'Complete':'Failed — unresolved work retained'):run.status==='running'?(phase==='resuming'?'Resuming':'Processing'):
     run.status==='evaluated'?'Processing — checking Buy List and Closest Excluded':'Failed — unresolved work retained';
   return {label,total,completed,remaining,nextRetry:run?.next_retry_at??null};
 }

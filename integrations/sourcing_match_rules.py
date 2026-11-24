@@ -729,6 +729,7 @@ def normalize_candidate_evidence(candidate: dict[str, Any]) -> dict[str, Any]:
     searchable_text = " ".join(str(part or "") for part in searchable_parts).casefold()
     return {
         "aspects": aspects,
+        "seller_username": candidate.get('seller_username') or (raw_json.get('seller') or {}).get('username'),
         "platform_values": aspects.get("platform") or [],
         "game_name_values": aspects.get("game_name") or [],
         "region_code_values": aspects.get("region_code") or [],

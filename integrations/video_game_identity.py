@@ -724,23 +724,41 @@ def split_game_names(value):
     return [part for part in parts if part]
 
 
+AUDITED_SELLER_STOCK_PREFIXES = {'junk-b-gone': frozenset({'724b','835'})}
+
+
+def reconcile_seller_stock_prefix(title, evidence):
+    """Only audited seller/code pairs; never a general numeric-prefix heuristic."""
+    raw=str(title or '')
+    match=re.match(r'^\s*([A-Za-z0-9]+):\s+(.+)$',raw)
+    if not match or match[1].casefold() not in AUDITED_SELLER_STOCK_PREFIXES.get(str(evidence.get('seller_username') or '').casefold(),()):return raw,[]
+    names=usable_game_names(evidence)
+    platforms=[normalize_system(p) for p in evidence.get('platform_values',[]) if normalize_system(p)]
+    title_platform=detect_system_from_title(match[2])
+    if len(names)!=1 or not platforms or not title_platform or any(p!=title_platform for p in platforms):return raw,[]
+    tail,structured=general_product_fields(match[2]),general_product_fields(names[0])
+    if not tail.get('coreGame') or tail['coreGame']!=structured.get('coreGame') or tail.get('installment')!=structured.get('installment'):return raw,[]
+    if re.search(r'(?<!\w)'+re.escape(match[1])+r'(?!\w)',names[0],re.I):return raw,[]
+    return match[2],[{'text':match[1]+':','reason':'audited seller inventory prefix corroborated by Game Name and platform','seller':evidence['seller_username']}]
+
+
 def reconcile_listing_title(title, evidence):
     """Assign corroborated post-platform metadata without shortening a product.
 
-    Only the suffix after an explicit platform is considered. Product words in
-    Game Name and everything before the platform remain protected. Contents of
+    Except for audited seller codes corroborated above, only the suffix after
+    an explicit platform is considered. Product words in Game Name remain protected. Contents of
     an explicitly named inclusive edition are separated only when a structured
     name agrees with the prefix and the description calls them expansions.
     """
-    raw = str(title or "")
+    raw,stock_assignment = reconcile_seller_stock_prefix(title,evidence)
     platforms = list(PHASE3_PLATFORM.finditer(raw))
-    if not platforms: return raw, []
+    if not platforms: return raw, stock_assignment
     boundary = platforms[-1].end()
     prefix, suffix = raw[:boundary], raw[boundary:]
     aspects = evidence.get("aspects") or {}
     names = usable_game_names(evidence)
     protected = " ".join(normalize_text(n) for n in names)
-    assigned = []
+    assigned = list(stock_assignment)
     metadata = []
     for key in ("release_year", "genre", "sub-genre"):
         metadata.extend((str(v), key) for v in aspects.get(key, []))
@@ -982,8 +1000,14 @@ def evaluated_identity(amazon_title, ebay_title, seed, evidence):
     result = phase3_comparison(amazon, ebay)
     result["reference"] = {"asin": asin or None, "catalogAccepted": bool(verified_catalog),
                            "catalogRejected": bool(catalog and not verified_catalog), "version": PHASE3_VERSION}
+    # Seller attribution is material only for an audited stock-prefix correction.
+    # Preserve existing review hashes for all unaffected listings.
+    hash_evidence = dict(evidence)
+    hash_evidence.pop("seller_username", None)
+    if reconcile_seller_stock_prefix(ebay_title, evidence)[1]:
+        hash_evidence["seller_username"] = evidence.get("seller_username")
     result["materialEvidenceHash"] = evidence_hash({"asin": asin, "amazonTitle": amazon_title,
-        "catalog": verified_catalog, "referenceMetadata": metadata, "ebayTitle": ebay_title, "evidence": evidence})
+        "catalog": verified_catalog, "referenceMetadata": metadata, "ebayTitle": ebay_title, "evidence": hash_evidence})
     return result
 
 
