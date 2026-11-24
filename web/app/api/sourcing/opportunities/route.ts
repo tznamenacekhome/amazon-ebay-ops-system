@@ -8,6 +8,7 @@ import { fetchLatestReviews } from "../reviewActions";
 import { excludeBlockedOpportunities, fetchBlockedAsins } from "../blockedAsins";
 import { excludeDeclinedOffers } from "../declinedOffers";
 import { excludeActionedListings } from "../actionedListings";
+import { flipmineOpportunityIds } from "../flipmineSource";
 
 type OpportunityRow = {
   business_checks?: unknown;
@@ -48,6 +49,7 @@ type OpportunityRow = {
     raw_context_json?: unknown;
   } | null;
   sourcing_ebay_candidates?: {
+    source_tags?: string[];
     ebay_item_id: string | null;
     ebay_legacy_item_id: string | null;
     ebay_item_web_url: string | null;
@@ -310,6 +312,7 @@ async function getOpportunities(request: NextRequest) {
   const status = searchParams.get("status") ?? "open";
   const type = searchParams.get("type") ?? "all";
   const runId = searchParams.get("runId");
+  const flipmineTabId = searchParams.get("flipmineTabId");
   const scope = parseScope(searchParams.get("scope"), runId);
   const requestedCoverageCycleId = scope === "closest_excluded" ? searchParams.get("coverageCycleId") : null;
   const sourceMode = searchParams.get("sourceMode") ?? "all";
@@ -352,6 +355,7 @@ async function getOpportunities(request: NextRequest) {
 
   const businessMode = status === "business_excluded" || status === "sales_velocity_suppressed";
   const requestedStatus = businessMode ? "all" : status;
+  const tabOpportunityIds = flipmineTabId ? await flipmineOpportunityIds(flipmineTabId) : null;
   const { data, error } = scope === "new_this_run" && latestBatchOpportunityIds
     ? await fetchBatchOpportunities(latestBatchOpportunityIds, requestedStatus, type, opportunitySelect)
     : await fetchRunOpportunities({
@@ -365,8 +369,17 @@ async function getOpportunities(request: NextRequest) {
       });
   if (error) return jsonNoStore({ error: error.message }, { status: 500 });
 
+  let sourceRows = (data ?? []) as OpportunityRow[];
+  if (!runId && !selectedCoverageCycle && !businessMode &&
+      ["all_open", "closest_excluded"].includes(scope) && ["all", "flipmine"].includes(sourceMode)) {
+    const sourceIds = await flipmineOpportunityIds();
+    const supplemental = await fetchBatchOpportunities(sourceIds, scope === "closest_excluded" ? "all" : requestedStatus, type, opportunitySelect);
+    if (supplemental.error) return jsonNoStore({ error: supplemental.error.message }, { status: 500 });
+    sourceRows = [...new Map([...sourceRows, ...(supplemental.data ?? [])].map(row => [row.opportunity_id, row])).values()];
+  }
+
   const activeSuppressionByAsin = await fetchActiveSalesVelocitySuppressions();
-  let rows: OpportunityRow[] = ((data ?? []) as OpportunityRow[]).map(row => ({
+  let rows: OpportunityRow[] = sourceRows.map(row => ({
     ...row,
     sourcing_ebay_candidates: row.sourcing_ebay_candidates ? {
       ...row.sourcing_ebay_candidates,
@@ -479,6 +492,7 @@ async function getOpportunities(request: NextRequest) {
         amazonImageUrl: (asinKey === seedAsin ? row.sourcing_seed_asins?.amazon_image_url : null) ?? amazonImageByAsin.get(row.asin.toUpperCase()) ?? null,
         sellerSku: row.sourcing_seed_asins?.seller_sku ?? null,
         sourceMode: row.sourcing_seed_asins?.source_mode ?? null,
+        sourceTags: row.sourcing_ebay_candidates?.source_tags ?? [],
         amazonUrl: `https://www.amazon.com/dp/${row.asin}`,
         ebayItemId: row.sourcing_ebay_candidates?.ebay_item_id ?? null,
         ebayLegacyItemId:
@@ -576,7 +590,7 @@ async function getOpportunities(request: NextRequest) {
     .filter((row) => {
       if (scope === "prior_unreviewed" && row.isNewThisRun) return false;
       if (!businessMode && row.status === "open" && row.listingStatus === "ended") return false;
-      if (sourceMode !== "all" && row.sourceMode !== sourceMode) return false;
+      if (sourceMode === "flipmine" ? !row.sourceTags.includes("flipmine") : sourceMode !== "all" && row.sourceMode !== sourceMode) return false;
       if (inventoryFilter === "exclude_in_stock" && row.myQuantity > 0) return false;
       if (inventoryFilter === "only_in_stock" && row.myQuantity <= 0) return false;
       if (!queryText) return true;
@@ -584,9 +598,12 @@ async function getOpportunities(request: NextRequest) {
       return haystack.includes(queryText.toLowerCase());
     });
 
-  const allSortedRows = scope === "closest_excluded"
+  const globallySortedRows = scope === "closest_excluded"
     ? dedupeExactEbayListings(mappedRows).sort((left, right) => (right.nearMissRank ?? 0) - (left.nearMissRank ?? 0))
     : groupByAsinPriority(dedupeExactEbayListings(mappedRows));
+  // Source counts describe what survives normal global ranking/deduplication.
+  const tabIds = tabOpportunityIds ? new Set(tabOpportunityIds) : null;
+  const allSortedRows = tabIds ? globallySortedRows.filter(row => tabIds.has(row.opportunityId)) : globallySortedRows;
   const excluded = scope === "closest_excluded" ? filterExclusions(allSortedRows, searchParams.get("exclusionReason") ?? "all") : null;
   const sortedRows = excluded?.rows ?? allSortedRows;
   const opportunities = sortedRows.slice(0, limit);
@@ -668,6 +685,7 @@ const OPPORTUNITY_SELECT = `
     units_sold_90d
   ),
   sourcing_ebay_candidates (
+    source_tags,
     ebay_item_id,
     ebay_legacy_item_id,
     ebay_item_web_url,

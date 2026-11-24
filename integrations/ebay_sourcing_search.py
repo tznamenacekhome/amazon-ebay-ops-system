@@ -227,7 +227,7 @@ def main() -> int:
         return 0
 
     for batch in chunked(rows, 250):
-        supabase.table("sourcing_ebay_candidates").upsert(batch, on_conflict="ebay_item_id").execute()
+        supabase.table("sourcing_ebay_candidates").upsert(batch, on_conflict="ebay_item_id,asin").execute()
     supabase.table("sourcing_runs").update(
         {
             "status": "running",

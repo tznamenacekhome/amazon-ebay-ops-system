@@ -9,6 +9,7 @@ const rows=Array.from({length:53},(_,i)=>({opportunity_id:`opp-${i}`,candidate_i
 let reviews=[];
 let priorRows=[];
 let listingActions=[];
+let flipmineRows=[];
 const cycles=[{coverage_cycle_id:'cycle-2',cycle_number:2,status:'completed',started_at:'2026-10-15T00:00:00Z'}];
 const db={rpc:async()=>({data:reviews,error:null}),from(table){
  let selection='',filters=[];
@@ -16,7 +17,11 @@ const db={rpc:async()=>({data:reviews,error:null}),from(table){
   if(method==='then')return done=>{
    let data=table==='sourcing_opportunities'?(selection.includes('sourcing_runs!inner')?priorRows:rows):
      table==='sourcing_coverage_cycles'?cycles:table==='sourcing_runs'?[{sourcing_run_id:'run-2',coverage_cycle_id:'cycle-2'}]:
-     table==='sourcing_actions'?(listingActions.length?listingActions:reviews.length?[{opportunity_id:'opp-0',action_type:'matching_feedback'}]:[]):[];
+     table==='sourcing_actions'?(listingActions.length?listingActions:reviews.length?[{opportunity_id:'opp-0',action_type:'matching_feedback'}]:[]):table==='sourcing_flipmine_rows'?flipmineRows:[];
+   if(table==='sourcing_opportunities') for(const [method,column,value] of filters) {
+    if(method==='eq'&&column==='status')data=data.filter(row=>row.status===value);
+    if(method==='in'&&column==='opportunity_id')data=data.filter(row=>value.includes(row.opportunity_id));
+   }
    if(selection.includes('sourcing_runs!inner')) {
     assert(filters.some(([method,column])=>method==='lt'&&column==='sourcing_runs.started_at'));
     assert(filters.some(([method,column])=>method==='neq'&&column==='sourcing_runs.coverage_cycle_id'));
@@ -102,3 +107,17 @@ assert.equal(actioned.body.summary.total,51,'Actioned listings are removed befor
 assert(!actioned.body.opportunities.some(row=>['opp-0','opp-1'].includes(row.opportunityId)),'A purchase hides duplicate ASIN candidates without relabeling either record');
 assert.equal(rows[1].status,'rejected','Presentation suppression must not alter stored lifecycle status');
 console.log('Actual GET suppresses purchased duplicate listings before counts/limits without mutating lifecycle status.');
+
+listingActions=[];reviews=[];
+rows[4].status='open';rows[4].matching_diagnostics_json={hard_rule_pass:true,recommendation:'Strong Match'};
+rows[4].sourcing_ebay_candidates.source_tags=['normal-source','flipmine'];
+rows[5].sourcing_ebay_candidates.source_tags=['flipmine'];
+flipmineRows=[{opportunity_id:'opp-4'},{opportunity_id:'opp-5'}];
+const buyFM=await route.GET({url:'https://example.test/api/sourcing/opportunities?scope=all_open&status=open&sourceMode=flipmine&limit=250'});
+assert.equal(buyFM.status,200,JSON.stringify(buyFM.body));assert.equal(buyFM.body.summary.total,1);
+assert.equal(buyFM.body.opportunities[0].opportunityId,'opp-4');
+assert.deepEqual(buyFM.body.opportunities[0].sourceTags,['normal-source','flipmine']);
+const closestFM=await route.GET({url:'https://example.test/api/sourcing/opportunities?scope=closest_excluded&status=all&sourceMode=flipmine&limit=250'});
+assert.equal(closestFM.status,200,JSON.stringify(closestFM.body));assert.equal(closestFM.body.summary.total,1);
+assert.equal(closestFM.body.opportunities[0].opportunityId,'opp-5');
+console.log('Flipmine uses normal Buy List / Closest Excluded gates and retains existing provenance.');

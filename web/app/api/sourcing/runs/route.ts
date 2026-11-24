@@ -112,7 +112,7 @@ export async function POST(request: NextRequest) {
   }
 }
 
-export async function runAwsSourcingTask(runId: string, runType: "recent_sales" | "full_listings" | "daily_catalog_sourcing", continueRun = false) {
+export async function runAwsSourcingTask(runId: string, runType: "recent_sales" | "full_listings" | "daily_catalog_sourcing" | "flipmine", continueRun = false) {
   const client = new ECSClient({ region: process.env.AWS_REGION || process.env.AWS_DEFAULT_REGION || "us-west-2" });
   const cluster = process.env.MBOP_SCHEDULER_CLUSTER || "mbop-cluster1";
   const taskDefinition = process.env.MBOP_SCHEDULER_TASK_DEFINITION || "mbop-scheduler-task";
@@ -169,7 +169,8 @@ export async function runAwsSourcingTask(runId: string, runType: "recent_sales" 
   return task;
 }
 
-function sourcingTaskCommand(runId: string, runType: "recent_sales" | "full_listings" | "daily_catalog_sourcing", continueRun: boolean) {
+function sourcingTaskCommand(runId: string, runType: "recent_sales" | "full_listings" | "daily_catalog_sourcing" | "flipmine", continueRun: boolean) {
+  if (runType === "flipmine") return ["python", "integrations/import_flipmine.py", "--run-id", runId];
   if (runType === "daily_catalog_sourcing" && !continueRun) {
     return ["python", "integrations/run_daily_catalog_sourcing.py", "--run-id", runId];
   }

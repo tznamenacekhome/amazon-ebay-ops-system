@@ -13,6 +13,7 @@ param(
   [string]$RoyalGraphClientSecretId = "/mbop/prod/royal-graph-client-id",
   [string]$RoyalGraphCredentialSecretId = "/mbop/prod/royal-graph-client-secret",
   [switch]$EnablePhase3,
+  [string]$FlipmineGoogleSheetId = "",
   [switch]$AllowDirty
 )
 
@@ -115,6 +116,11 @@ if (-not $container) {
 }
 
 $container.image = $pinnedImage
+if ($FlipmineGoogleSheetId) {
+  $container.environment = @($container.environment | Where-Object { $_.name -ne "FLIPMINE_GOOGLE_SHEET_ID" }) + @(
+    [pscustomobject]@{ name = "FLIPMINE_GOOGLE_SHEET_ID"; value = $FlipmineGoogleSheetId }
+  )
+}
 if ($EnablePhase3) {
   $container.environment = @($container.environment | Where-Object { $_.name -ne "MBOP_SOURCING_PHASE3" }) + @(
     [pscustomobject]@{ name = "MBOP_SOURCING_PHASE3"; value = "1" }

@@ -11,6 +11,7 @@ export type SourcingOpportunity = {
   amazonImageUrl: string | null;
   sellerSku: string | null;
   sourceMode: string | null;
+  sourceTags?: string[];
   amazonUrl: string;
   ebayItemId: string | null;
   ebayLegacyItemId: string | null;

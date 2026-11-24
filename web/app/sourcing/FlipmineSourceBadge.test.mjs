@@ -1,0 +1,14 @@
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import {createRequire} from 'node:module';
+import ts from 'typescript';
+import React from 'react';
+import {renderToStaticMarkup} from 'react-dom/server';
+const out={},require=createRequire(import.meta.url);
+new Function('require','exports',ts.transpileModule(readFileSync(new URL('./FlipmineSourceBadge.tsx',import.meta.url),'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,jsx:ts.JsxEmit.ReactJSX}}).outputText)(require,out);
+const html=renderToStaticMarkup(React.createElement(out.FlipmineSourceBadge,{sources:['regular','flipmine']}));
+assert(html.includes('>FM</span>'));assert(!html.includes('<td'));assert(!html.includes('<th'));
+assert.equal(renderToStaticMarkup(React.createElement(out.FlipmineSourceBadge,{sources:['regular']})),'');
+const page=readFileSync(new URL('./page.tsx',import.meta.url),'utf8');
+assert(page.includes('{row.ebayTitle}<FlipmineSourceBadge sources={row.sourceTags} />'));
+console.log('FM badge renders inside the shared Opportunity cell without a column.');

@@ -18,6 +18,8 @@ import { useSourcingOpportunities } from "./useSourcingOpportunities";
 import { incorrectMatchReason, reviewFieldKeys } from "./reviewFields";
 import { dismissReasons } from "./matchingTaxonomy";
 import { mutationHeaders } from "../mutationHeaders";
+import { FlipmineImport } from './FlipmineImport';
+import { FlipmineSourceBadge } from './FlipmineSourceBadge';
 import { KeepaPriceIndicator } from "../components/KeepaPriceIndicator";
 
 import { MatchingReviewControls, ReviewEvidence } from "./MatchingReviewControls";
@@ -239,6 +241,7 @@ export default function SourcingPage() {
         </div>
       </div>
 
+      <FlipmineImport onComplete={() => { sourcingResources.invalidate(); void refreshInBackground(); }} />
       <div className="mb-4 flex flex-wrap gap-2 border-b border-slate-300">
         {tabs.map((tab) => (
           <button
@@ -348,6 +351,7 @@ export default function SourcingPage() {
               <option value="3_catalog_remaining">Coverage: Catalog Remaining</option>
               <option value="recent_sales">Recently Sold</option>
               <option value="full_listings">All Listings</option>
+              <option value="flipmine">Flipmine</option>
             </select>
             </> : null}
             <select
@@ -607,7 +611,7 @@ function ReplenishmentTable({
                     )}
                   </td>
                   <td className="px-2 py-2">
-                    <div className="font-medium text-slate-950">{row.ebayTitle}</div>
+                    <div className="font-medium text-slate-950">{row.ebayTitle}<FlipmineSourceBadge sources={row.sourceTags} /></div>
                     {!closestExcludedMode ? (
                       <div className="mt-1 flex flex-wrap gap-1">
                         <PresentationBadge row={row} />
