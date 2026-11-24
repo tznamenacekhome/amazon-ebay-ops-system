@@ -33,6 +33,17 @@ def now(): return dt.datetime.now(dt.UTC).isoformat()
 def rpc(db, name, **args): return db.rpc(name, args).execute().data
 
 
+def row_capacity_wait(row):
+    wait=(row.get('evaluation') or {}).get('api_wait') or {}
+    try:
+        retry=dt.datetime.fromisoformat(wait['retry_at'].replace('Z','+00:00'))
+    except (KeyError,ValueError,TypeError):
+        return None
+    if retry>dt.datetime.now(dt.UTC):
+        return EbayRateLimitedError('Saved listing verification awaits API capacity',retry_at=wait['retry_at'],resource=wait.get('resource','buy.browse'))
+    return None
+
+
 def safe_error(error):
     message = f'{type(error).__name__}: {error}'
     message = re.sub(r'(?i)(key|token|secret|password|authorization)=([^&\s]+)', r'\1=[redacted]', message)
@@ -171,7 +182,7 @@ class FlipmineImporter:
             rows = read_rows(self.db, tab_id)
             deferred=[]
             self.progress(tab_id,rows)
-            if any(row['status'] not in TERMINAL for row in rows):
+            if any(row['status'] not in TERMINAL and row_capacity_wait(row) is None for row in rows):
                 if os.getenv('MBOP_EBAY_TRADING_ENRICHMENT','false').lower() in ('1','true'):
                     router_for(None,self.settings).check()
                 else:
@@ -180,6 +191,10 @@ class FlipmineImporter:
                 self.evaluation_context()
             for index, row in enumerate(rows):
                 if row['status'] in TERMINAL: continue
+                saved_wait=row_capacity_wait(row)
+                if saved_wait:
+                    deferred.append(saved_wait)
+                    continue
                 self.heartbeat()
                 if self.deadline and time.monotonic()>=self.deadline:
                     raise EbayQuotaPaused('checkpoint continuation',(dt.datetime.now(dt.UTC)+dt.timedelta(seconds=5)).isoformat(),'checkpoint')
@@ -192,7 +207,8 @@ class FlipmineImporter:
                         budget=production_budget()
                         try:
                             if budget:budget.reserve('trading',peek=True)
-                            self.row_update(tab_id,row,status='pending',error=safe_error(error))
+                            self.row_update(tab_id,row,status='pending',error=safe_error(error),
+                                evaluation={'api_wait':{'resource':error.resource,'retry_at':error.retry_at}})
                             deferred.append(error)
                             continue  # A Browse-only variation must not block other Trading rows.
                         except EbayQuotaPaused:

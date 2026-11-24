@@ -36,6 +36,9 @@ retry/reset checkpoint. Provider/identity failures remain visible as unresolved
 failures, not product exclusions. Completed import rows are not reprocessed.
 Browse-only deferred rows do not stop other eligible Trading rows in the saved
 tab; valid outcomes are persisted before the import pauses for outstanding work.
+Each deferred row stores its provider/reset wait in evaluation metadata. Later
+checkpoints skip that row until due, including when no normalized candidate or
+opportunity was produced; the immutable source snapshot is unchanged.
 
 ## Shipping
 

@@ -158,6 +158,12 @@ class BusinessParityTests(unittest.TestCase):
             with self.assertRaises(EbayRateLimitedError):fm.FlipmineImporter.process_tab(worker,{'sheet_id':0,'tab_name':'saved'})
         self.assertEqual(worker.process_row.call_count,2);self.assertEqual(rows[0]['status'],'pending');self.assertEqual(rows[1]['status'],'evaluated')
         snapshot.assert_called_once()
+        # A later checkpoint must not spend Trading or catalog resources again
+        # on the saved Browse-only row before its known reset.
+        worker.process_row.reset_mock();worker.evaluation_context.reset_mock()
+        with patch.object(fm,'rpc',return_value={'tab_id':'tab','source_hash':'saved','sourcing_run_id':'sourcing'}),patch.object(fm,'read_rows',return_value=rows),patch.object(fm,'router_for') as router,patch.object(fm,'enforce_one_open_opportunity_per_asin'),patch.object(fm,'snapshot_new_opportunities'):
+            with self.assertRaises(EbayRateLimitedError):fm.FlipmineImporter.process_tab(worker,{'sheet_id':0,'tab_name':'saved'})
+        worker.process_row.assert_not_called();worker.evaluation_context.assert_not_called();router.assert_not_called()
     def test_equivalent_evidence_preserves_existing_match_and_economics(self):
         from test_ebay_sourcing_search import seed,settings
         from ebay_sourcing_search import candidate_decision
