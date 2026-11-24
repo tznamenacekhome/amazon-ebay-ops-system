@@ -8,6 +8,7 @@ import sys
 from pathlib import Path
 
 from ebay_api_limits import browse_call_budget, fetch_browse_quota
+from ebay_browse_budget import pending_import_reserve
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -31,7 +32,7 @@ def main() -> int:
     for pass_number in range(1, args.max_daily_passes + 1):
         print(f"Daily sourcing discovery pass {pass_number}: daily_catalog_sourcing", flush=True)
         subprocess.run([sys.executable, *step], cwd=ROOT, check=True)
-        remaining = browse_call_budget(fetch_browse_quota(), args.browse_quota_reserve)
+        remaining = browse_call_budget(fetch_browse_quota(), args.browse_quota_reserve + pending_import_reserve())
         if remaining is None or remaining <= 0:
             return 0
         if args.max_api_calls is not None:

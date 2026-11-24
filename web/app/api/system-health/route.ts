@@ -1,6 +1,7 @@
 import { promises as fs } from "fs";
 import path from "path";
 import { NextResponse } from "next/server";
+import { ebayQuotaOverview } from '../sourcing/ebayQuota';
 import {
   createServerSupabaseClient,
   isCloudDeployment,
@@ -904,6 +905,7 @@ export async function GET() {
 
     return NextResponse.json({
       generatedAt: new Date().toISOString(),
+      ebayApiQuota: await ebayQuotaOverview(),
       jobs,
       schedulerGroups,
       recentRuns,

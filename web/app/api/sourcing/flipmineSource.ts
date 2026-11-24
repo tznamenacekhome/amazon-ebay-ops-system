@@ -8,7 +8,7 @@ export async function flipmineOpportunityIds(tabId?: string | null): Promise<str
     let query = supabase.from('sourcing_flipmine_rows')
       .select(tabId ? 'opportunity_id' : 'opportunity_id,sourcing_flipmine_tabs!inner(status)')
       .not('opportunity_id', 'is', null).order('tab_id').order('row_number').range(start, start + 499);
-    query = tabId ? query.eq('tab_id', tabId) : query.in('sourcing_flipmine_tabs.status', ['running', 'partial', 'evaluated', 'completed']);
+    query = tabId ? query.eq('tab_id', tabId) : query.in('sourcing_flipmine_tabs.status', ['running', 'paused', 'partial', 'evaluated', 'completed']);
     const { data, error } = await query;
     if (error) throw new Error(`Flipmine source membership unavailable: ${error.message}`);
     if (start === 10000 && data?.length) throw new Error('Flipmine presentation bound reached; narrow the source tab.');

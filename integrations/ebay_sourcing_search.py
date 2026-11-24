@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import base64
 import datetime as dt
+from email.utils import parsedate_to_datetime
 import random
 import time
 from typing import Any
@@ -771,9 +772,10 @@ def enrich_item_with_detail(
 
 
 class EbayRateLimitedError(RuntimeError):
-    def __init__(self, message: str, metrics: dict[str, int] | None = None):
+    def __init__(self, message: str, metrics: dict[str, int] | None = None, *, retry_at=None, resource='buy.browse'):
         super().__init__(message)
         self.metrics = metrics or empty_call_metrics()
+        self.retry_at,self.resource=retry_at,resource
 
 
 class EbayTransientError(RuntimeError):
@@ -783,10 +785,21 @@ class EbayTransientError(RuntimeError):
 
 
 def get_with_retries(url: str, *, call_type: str, **kwargs) -> tuple[requests.Response, dict[str, int]]:
+    from ebay_browse_budget import production_budget, EbayQuotaPaused
+    budget=production_budget()
+    cache_key=budget.cache_key(url,kwargs) if budget and call_type=='detail' else None
+    cached=budget.cached(cache_key) if budget else None
+    if cached is not None:
+        metrics=empty_call_metrics();metrics['duplicate_detail_calls_prevented_count']=1
+        return cached,metrics
     last_response: requests.Response | None = None
     last_error: requests.RequestException | None = None
     metrics = empty_call_metrics()
     for attempt in range(1, MAX_HTTP_RETRIES + 1):
+        if budget:
+            try: budget.reserve()
+            except EbayQuotaPaused as error:
+                raise EbayRateLimitedError(str(error),metrics,retry_at=error.retry_at,resource=error.resource) from error
         metrics[f"{call_type}_call_count"] += 1
         try:
             response = requests.get(url, **kwargs)
@@ -794,9 +807,15 @@ def get_with_retries(url: str, *, call_type: str, **kwargs) -> tuple[requests.Re
             if response.status_code != 429 and response.status_code < 500:
                 if not response.ok:
                     metrics[f"failed_{call_type}_call_count"] += 1
+                if budget: budget.save(cache_key,response)
                 return response, metrics
             if response.status_code == 429:
                 metrics["rate_limited_http_attempt_count"] += 1
+                if budget:
+                    paused=budget.after_429(response,retry_after_seconds(response,attempt))
+                    until=dt.datetime.fromisoformat(paused.retry_at.replace('Z','+00:00'))
+                    if until>dt.datetime.now(dt.UTC)+dt.timedelta(seconds=60):
+                        raise EbayRateLimitedError(str(paused),metrics,retry_at=paused.retry_at,resource=paused.resource)
             else:
                 metrics[f"failed_{call_type}_call_count"] += 1
         except requests.RequestException as error:
@@ -825,9 +844,10 @@ def retry_after_seconds(response: requests.Response | None, attempt: int) -> flo
     retry_after = response.headers.get("Retry-After") if response is not None else None
     if retry_after:
         try:
-            return min(max(float(retry_after), 1.0), 90.0)
+            return max(float(retry_after), 1.0)
         except ValueError:
-            pass
+            try: return max((parsedate_to_datetime(retry_after)-dt.datetime.now(dt.UTC)).total_seconds(),1.0)
+            except (TypeError,ValueError): pass
     return min(2 ** attempt + random.uniform(0, 1.5), 90.0)
 
 

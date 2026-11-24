@@ -1,0 +1,13 @@
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import ts from 'typescript';
+const m={};new Function('exports',ts.transpileModule(readFileSync(new URL('./flipmineStatus.ts',import.meta.url),'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS}}).outputText)(m);
+const tabs=[{rows_found:558,summary:{evaluated:20,duplicates:3,excluded:7,invalid:0,pending:528}}];
+const paused=m.flipmineStatus({status:'paused',paused_resource:'buy.browse',next_retry_at:'2026-11-24T08:00:00Z'},tabs);
+assert.equal(paused.label,'Paused — eBay API limit reached');assert.equal(paused.completed,30);assert.equal(paused.remaining,528);
+assert.equal(m.flipmineStatus({status:'running',summary:{phase:'resuming'}},tabs).label,'Resuming');
+assert.equal(m.flipmineStatus({status:'running'},tabs).label,'Processing');
+assert.equal(m.flipmineStatus({status:'completed'},tabs).label,'Complete');
+assert(m.flipmineStatus({status:'partial'},tabs).label.startsWith('Failed'));
+assert(m.pacificTime('2026-11-24T08:00:00Z').includes('12:00:00 AM'));
+console.log('Flipmine paused/resuming/processing/complete/failed states, counts and Pacific reset passed.');

@@ -30,9 +30,10 @@ class FlipmineTransactions(unittest.TestCase):
         cls.sql((ROOT / 'tests/fixtures/sourcing_review_schema.sql').read_text())
         cls.sql("create table sourcing_runs(sourcing_run_id uuid primary key,run_type text constraint sourcing_runs_run_type_check check(run_type in ('recent_sales','full_listings','daily_catalog_sourcing')),status text,completed_at timestamptz);")
         cls.sql((ROOT / 'supabase/migrations/20261124022809_mbop_flipmine_sourcing_import.sql').read_text())
+        cls.sql((ROOT / 'supabase/migrations/20261124033839_mbop_ebay_quota_and_flipmine_recovery.sql').read_text())
 
     def setUp(self):
-        self.sql('truncate sourcing_flipmine_rows,sourcing_flipmine_tabs,sourcing_flipmine_runs,sourcing_opportunities,sourcing_ebay_candidates,sourcing_seed_asins,sourcing_runs cascade;')
+        self.sql('truncate ebay_api_resource_limits,ebay_api_usage,ebay_listing_detail_cache,sourcing_flipmine_rows,sourcing_flipmine_tabs,sourcing_flipmine_runs,sourcing_opportunities,sourcing_ebay_candidates,sourcing_seed_asins,sourcing_runs cascade;')
         self.run = str(uuid.uuid4())
         self.begin(self.run)
         self.tab = self.claim(self.run)
@@ -118,5 +119,52 @@ class FlipmineTransactions(unittest.TestCase):
         self.assertEqual(self.sql("select has_table_privilege('anon','sourcing_flipmine_rows','SELECT')"), 'f')
         self.assertEqual(self.sql("select has_function_privilege('authenticated','flipmine_begin(uuid)','EXECUTE')"), 'f')
         self.assertEqual(self.sql("select has_function_privilege('service_role','flipmine_begin(uuid)','EXECUTE')"), 't')
+        self.assertEqual(self.sql("select has_table_privilege('anon','ebay_listing_detail_cache','SELECT')"),'f')
+        self.assertEqual(self.sql("select has_function_privilege('authenticated','ebay_quota_reserve(text,text,text,boolean)','EXECUTE')"),'f')
+
+    def test_daily_quota_atomic_reservation_and_same_window_observation(self):
+        rate=dict(limit=5000,count=4999,remaining=1,reset='2099-01-01T08:00:00Z',timeWindow=86400)
+        self.sql(f"select ebay_quota_observe('app','buy.browse',{js(rate)});")
+        self.assertTrue(json.loads(self.sql("select ebay_quota_reserve('app','buy.browse','import_flipmine.py',true);"))['allowed'])
+        self.assertEqual(self.sql('select remaining from ebay_api_resource_limits'),'1','Preflight must not spend a listing call')
+        self.assertTrue(json.loads(self.sql("select ebay_quota_reserve('app','buy.browse','import_flipmine.py');"))['allowed'])
+        self.assertFalse(json.loads(self.sql("select ebay_quota_reserve('app','buy.browse','job-b');"))['allowed'])
+        self.sql(f"select ebay_quota_observe('app','buy.browse',{js(rate)});")
+        self.assertEqual(self.sql('select remaining from ebay_api_resource_limits'),'0','Lagging analytics must not refill spent reservations')
+        self.assertEqual(self.sql('select sum(attempts) from ebay_api_usage'),'1')
+
+    def test_paused_checkpoint_no_new_job_and_due_claim_once(self):
+        self.write(self.bind()['candidate'])
+        self.sql(f"select flipmine_pause({lit(self.run)},now()+interval '1 hour','buy.browse','daily quota');")
+        self.assertFalse(self.begin(str(uuid.uuid4()))['launch'])
+        self.assertEqual(self.sql('select flipmine_claim_resume();'),'')
+        self.sql("update sourcing_flipmine_runs set next_retry_at=now()-interval '1 second';")
+        self.assertEqual(self.sql('select flipmine_claim_resume();'),self.run)
+        self.assertEqual(self.sql('select flipmine_claim_resume();'),'')
+        self.assertEqual(self.claim(self.run)['tab_id'],self.tab['tab_id'])
+        self.assertTrue(self.bind(3)['duplicate'])
+        self.assertEqual(self.sql('select count(*) from sourcing_opportunities'),'1')
+        self.assertEqual(self.sql('select count(*) from sourcing_flipmine_rows'),'2')
+
+    def test_expired_daily_window_requires_refresh_before_new_call(self):
+        self.sql("insert into ebay_api_resource_limits(app_key,resource,remaining,reset_at,observed_at) values('app','buy.browse',0,now()-interval '1 second',now());")
+        self.assertTrue(json.loads(self.sql("select ebay_quota_reserve('app','buy.browse','test');"))['refresh'])
+        self.assertFalse(json.loads(self.sql("select ebay_quota_reserve('app','buy.browse','other');"))['allowed'])
+
+    def test_normal_jobs_cannot_starve_saved_import_at_reset(self):
+        rate=dict(limit=5000,count=4999,remaining=1,reset='2099-01-01T08:00:00Z',timeWindow=86400)
+        self.sql(f"select ebay_quota_observe('app','buy.browse',{js(rate)});")
+        state=json.loads(self.sql("select ebay_quota_reserve('app','buy.browse','ebay_sourcing_search.py');"))
+        self.assertFalse(state['allowed']);self.assertEqual(state['reason'],'capacity_reserved_for_saved_import')
+        self.assertTrue(json.loads(self.sql("select ebay_quota_reserve('app','buy.browse','import_flipmine.py');"))['allowed'])
+
+    def test_two_jobs_cannot_spend_the_same_remaining_call(self):
+        from concurrent.futures import ThreadPoolExecutor
+        self.sql("update sourcing_flipmine_runs set status='completed';")
+        rate=dict(limit=5000,count=4999,remaining=1,reset='2099-01-01T08:00:00Z',timeWindow=86400)
+        self.sql(f"select ebay_quota_observe('app','buy.browse',{js(rate)});")
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            results=list(pool.map(lambda name:json.loads(self.sql(f"select ebay_quota_reserve('app','buy.browse',{lit(name)});")),['job-a','job-b']))
+        self.assertEqual(sum(bool(r.get('allowed')) for r in results),1)
 
 if __name__ == '__main__': unittest.main()

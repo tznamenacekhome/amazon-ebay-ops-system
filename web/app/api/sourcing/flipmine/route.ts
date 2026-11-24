@@ -7,10 +7,11 @@ import { requireAdminApiToken, isCloudDeployment, isLocalJobExecutionEnabled } f
 import { runAwsSourcingTask } from '../runs/route';
 import { GET as opportunities } from '../opportunities/route';
 import { presentationCounts } from './presentation';
+import { ebayQuotaOverview } from '../ebayQuota';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
-const RUN_FIELDS = 'run_id,status,started_at,completed_at,heartbeat_at,error_summary,summary';
+const RUN_FIELDS = 'run_id,status,started_at,completed_at,heartbeat_at,error_summary,summary,next_retry_at,paused_resource';
 const TAB_FIELDS = 'tab_id,run_id,sheet_id,tab_name,status,rows_found,summary,error_summary,completed_at';
 
 export async function POST(request: NextRequest) {
@@ -37,7 +38,7 @@ export async function POST(request: NextRequest) {
         });
       }
     }
-    return NextResponse.json({ runId, status: 'running', started: begun.data.launch });
+    return NextResponse.json({ runId, status: begun.data.status ?? 'running', started: begun.data.launch });
   } catch {
     if (runId) await supabase.from('sourcing_flipmine_runs').update({ status: 'failed', completed_at: new Date().toISOString(), error_summary: 'Could not start import worker; retry the manual import.' }).eq('run_id', runId).eq('status', 'running');
     return NextResponse.json({ error: 'Could not start Flipmine import. Check the worker configuration and migration.' }, { status: 503 });
@@ -47,10 +48,11 @@ export async function POST(request: NextRequest) {
 export async function GET(request: NextRequest) {
   try {
     const result = await supabase.from('sourcing_flipmine_runs').select(RUN_FIELDS).order('started_at', { ascending: false }).limit(10);
+    const quota = await ebayQuotaOverview();
     if (result.error) throw result.error;
     const runs = result.data ?? [];
     const run = runs[0];
-    if (!run) return NextResponse.json({ run: null, tabs: [], history: [] });
+    if (!run) return NextResponse.json({ run: null, tabs: [], history: [], quota });
     if (run.status === 'running' && Date.parse(run.heartbeat_at) < Date.now() - 90 * 60_000) {
       await supabase.from('sourcing_flipmine_runs').update({ status: 'failed', error_summary: 'Worker interrupted; Import Flipmine resumes retained rows.' }).eq('run_id', run.run_id).eq('status', 'running').eq('heartbeat_at', run.heartbeat_at);
       run.status = 'failed'; run.error_summary = 'Worker interrupted; Import Flipmine resumes retained rows.';
@@ -74,7 +76,7 @@ export async function GET(request: NextRequest) {
         run.status = 'completed'; run.summary = summary;
       }
     }
-    return NextResponse.json({ run, tabs, history: runs.slice(1) }, { headers: { 'Cache-Control': 'no-store' } });
+    return NextResponse.json({ run, tabs, history: runs.slice(1), quota }, { headers: { 'Cache-Control': 'no-store' } });
   } catch {
     return NextResponse.json({ error: 'Flipmine status unavailable. Check database connectivity and the Flipmine migration.' }, { status: 503 });
   }

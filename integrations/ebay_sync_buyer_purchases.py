@@ -194,7 +194,12 @@ def get_access_token():
     return response.json()["access_token"]
 
 
+BROWSE_QUOTA_PAUSED = False
+
 def get_browse_item_details(access_token, legacy_item_id):
+    global BROWSE_QUOTA_PAUSED
+    if BROWSE_QUOTA_PAUSED: return {}
+    from ebay_sourcing_search import get_with_retries, EbayRateLimitedError, EbayTransientError
     item_id = str(legacy_item_id or "").strip()
     if not item_id:
         return {}
@@ -203,8 +208,9 @@ def get_browse_item_details(access_token, legacy_item_id):
         return ITEM_ASPECT_CACHE[item_id]
 
     try:
-        response = requests.get(
+        response, _metrics = get_with_retries(
             BUY_BROWSE_LEGACY_ITEM_ENDPOINT,
+            call_type='detail',
             headers={
                 "Authorization": f"Bearer {access_token}",
                 "X-EBAY-C-MARKETPLACE-ID": "EBAY_US",
@@ -217,7 +223,11 @@ def get_browse_item_details(access_token, legacy_item_id):
             ITEM_ASPECT_CACHE[item_id] = {}
             return {}
         detail = response.json()
-    except requests.RequestException as exc:
+    except EbayRateLimitedError as exc:
+        BROWSE_QUOTA_PAUSED=True
+        print(f'eBay Browse enrichment paused; buyer purchase ingestion continues: {exc}',flush=True)
+        detail={}
+    except (requests.RequestException,EbayTransientError) as exc:
         print(f"eBay Browse item detail skipped for {item_id}: {exc}")
         detail = {}
 

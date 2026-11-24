@@ -82,6 +82,12 @@ class ImportTests(unittest.TestCase):
         self.fetch.side_effect=RuntimeError('HTTP 503')
         with self.assertRaisesRegex(RuntimeError,'503'): self.worker.process_row(self.tab,self.row)
         self.assertIsNone(self.result())
+    def test_same_unavailable_listing_is_not_requested_twice_for_competing_asins(self):
+        self.fetch.side_effect=fm.ListingUnavailable('ended')
+        for asin in ('B000000001','B000000002'):
+            self.context.seed.return_value={**self.seed,'asin':asin}
+            with self.assertRaises(fm.ListingUnavailable):self.worker.process_row(self.tab,{**self.row,'asin':asin})
+        self.assertEqual(self.fetch.call_count,1)
     def test_same_listing_different_asins_get_different_identity(self):
         self.worker.process_row(self.tab,self.row)
         other={**self.row,'row_number':3,'asin':'B000000002'}
@@ -117,6 +123,23 @@ class ListingTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError,'Variation'): self.fetch(self.response(payload=item(itemGroupHref='https://example.test/group')))
 
 class RunTests(unittest.TestCase):
+    def test_rate_limit_pauses_entire_run_without_advancing_other_rows(self):
+        worker=self.worker([{'sheet_id':0},{'sheet_id':42}])
+        worker.process_tab.side_effect=fm.EbayRateLimitedError('exhausted',retry_at='2099-01-01T08:00:00Z')
+        with patch.object(fm,'rpc') as rpc:self.assertEqual(worker.run(),0)
+        self.assertEqual(worker.process_tab.call_count,1)
+        self.assertEqual(rpc.call_args.args[1],'flipmine_pause')
+        self.assertEqual(rpc.call_args.kwargs['p_until'],'2099-01-01T08:00:00Z')
+    def test_due_resume_never_opens_google_or_discovers_tabs(self):
+        db=Mock();q=db.table.return_value
+        for key in ('select','eq','neq'):getattr(q,key).return_value=q
+        tabs=[{'sheet_id':0,'tab_name':'Saved','spreadsheet_id':'fixture','source_hash':'immutable'}]
+        q.execute.return_value=SimpleNamespace(data=tabs)
+        worker=Mock();worker.run.return_value=0
+        with patch.object(sys,'argv',['import_flipmine.py','--resume-due']),patch('sourcing_common.load_environment'),patch.object(fm,'get_supabase_client',return_value=db),patch.object(fm,'rpc',return_value=str(uuid.uuid4())),patch.object(fm,'wait_for_database'),patch.object(fm,'FlipmineSheet') as google,patch.object(fm,'refresh_buyer_offer_history'),patch.object(fm,'FlipmineImporter',return_value=worker) as construct:
+            self.assertEqual(fm.main(),0)
+        google.assert_not_called();self.assertEqual(construct.call_args.args[2].tabs(),tabs)
+        self.assertTrue(worker.resume_only)
     def test_source_auth_failure_marks_launched_run_failed_immediately(self):
         db=Mock();query=db.table.return_value;query.update.return_value=query;query.eq.return_value=query
         with patch.object(sys,'argv',['import_flipmine.py','--run-id',str(uuid.uuid4())]),patch('sourcing_common.load_environment'),patch.object(fm,'get_supabase_client',return_value=db),patch.object(fm,'wait_for_database'),patch.object(fm,'FlipmineSheet',side_effect=PermissionError('Viewer access required')):

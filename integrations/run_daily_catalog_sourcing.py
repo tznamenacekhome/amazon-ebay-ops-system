@@ -15,6 +15,7 @@ from typing import Any
 
 from sourcing_database_guard import wait_for_database, DatabasePressureError
 from ebay_api_limits import browse_call_budget, fetch_browse_quota, quota_summary
+from ebay_browse_budget import pending_import_reserve
 from run_sourcing_workflow import (
     refresh_buyer_offer_history,
     clean_ebay_key,
@@ -48,6 +49,7 @@ def main() -> int:
     args = parse_args()
     supabase = get_supabase_client()
     settings = fetch_settings(supabase)
+    args.browse_quota_reserve += pending_import_reserve()
     quota = fetch_browse_quota()
     quota_snapshot = quota_summary(quota)
     budget = browse_call_budget(quota, args.browse_quota_reserve)

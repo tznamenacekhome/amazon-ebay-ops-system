@@ -454,6 +454,13 @@ JOBS: tuple[SyncJob, ...] = (
         timeout_seconds=20 * 60,
     ),
     SyncJob(
+        name="Flipmine saved checkpoint recovery",
+        command=static_command("integrations/import_flipmine.py", "--resume-due", "--max-seconds", "900"),
+        groups=("sourcing-catalog", "keepa-catalog-priority"),
+        blocking=False,
+        timeout_seconds=20 * 60,
+    ),
+    SyncJob(
         name="Daily catalog sourcing",
         command=static_command(
             "integrations/run_daily_sourcing_discovery.py",

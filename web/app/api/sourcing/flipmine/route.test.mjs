@@ -31,6 +31,7 @@ new Function('require','exports',ts.transpileModule(readFileSync(new URL('./rout
  if(name==='../runs/route')return {runAwsSourcingTask:async(id,type)=>{assert.equal(type,'flipmine');launches++;return {taskArn:'fixture-task'};}};
  if(name==='../opportunities/route')return {GET:async()=>presentationOk?Response.json({summary:{total:0}}):Response.json({error:'offline'},{status:503})};
  if(name==='./presentation')return presentation;
+ if(name==='../ebayQuota')return {ebayQuotaOverview:async()=>({available:true,resources:[],jobs:[]})};
  return require(name);
 },route);
 const request=new Request('https://mbop.test/api/sourcing/flipmine');

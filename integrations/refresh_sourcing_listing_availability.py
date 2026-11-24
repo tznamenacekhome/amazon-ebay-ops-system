@@ -10,6 +10,7 @@ from typing import Any
 from urllib.parse import quote
 
 import requests
+from ebay_sourcing_search import get_with_retries, EbayRateLimitedError
 
 from sourcing_common import fetch_settings, get_supabase_client, required_env, to_float
 
@@ -30,6 +31,7 @@ def main() -> int:
     unavailable = 0
     still_active = 0
     errors = 0
+    quota_paused = False
     results_by_item_id: dict[str, dict[str, Any]] = {}
 
     for opportunity in opportunities:
@@ -41,7 +43,13 @@ def main() -> int:
         checked += 1
         ebay_item_id = str(ebay_item_id)
         if ebay_item_id not in results_by_item_id:
-            results_by_item_id[ebay_item_id] = fetch_listing(token, ebay_item_id, settings)
+            try:
+                results_by_item_id[ebay_item_id] = fetch_listing(token, ebay_item_id, settings)
+            except EbayRateLimitedError as error:
+                print(f'Availability paused: {error}',flush=True)
+                errors += 1
+                quota_paused = True
+                break
             time.sleep(args.pause_seconds)
         result = results_by_item_id[ebay_item_id]
         now = dt.datetime.now(dt.UTC).isoformat()
@@ -69,7 +77,7 @@ def main() -> int:
     print(f"Still active: {still_active}")
     print(f"No longer available: {unavailable}")
     print(f"Errors: {errors}")
-    return 0
+    return 1 if quota_paused else 0
 
 
 def parse_args() -> argparse.Namespace:
@@ -124,8 +132,9 @@ def fetch_active_opportunities(supabase, limit: int) -> list[dict[str, Any]]:
 
 
 def fetch_listing(token: str, ebay_item_id: str, settings) -> dict[str, Any]:
-    response = requests.get(
+    response, _metrics = get_with_retries(
         f"{EBAY_BROWSE_ITEM_URL}/{ebay_item_id}",
+        call_type='detail',
         headers={
             "Authorization": f"Bearer {token}",
             "X-EBAY-C-MARKETPLACE-ID": "EBAY_US",

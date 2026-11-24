@@ -84,7 +84,7 @@ def find_resource_quota(payload: dict[str, Any], resource_name: str) -> EbayBrow
             if str(resource.get("name") or "").casefold() != resource_name.casefold():
                 continue
             rates = resource.get("rates") or []
-            rate = rates[0] if rates else {}
+            rate = min(rates,key=lambda r:(to_int(r.get('remaining')),-to_int(r.get('timeWindow')))) if rates else {}
             return EbayBrowseQuota(
                 resource=str(resource.get("name") or resource_name),
                 limit=to_int(rate.get("limit")),
