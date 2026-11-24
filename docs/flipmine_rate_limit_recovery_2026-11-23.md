@@ -151,7 +151,7 @@ the run to Complete. Do not treat local compile checks as production browser pro
 
 ## Validation checkpoint
 
-314 targeted Python tests passed: 31 Flipmine fixtures, 13 disposable PostgreSQL
+316 targeted Python tests passed: 33 Flipmine fixtures, 13 disposable PostgreSQL
 transaction/concurrency tests, 57 eBay tests, 188 sourcing tests, 3 daily discovery
 tests, 2 scheduler-capacity tests, 5 scheduler-diagnostics tests and 15 wholesale
 seed tests. The disposable databases had no published ports and were removed.

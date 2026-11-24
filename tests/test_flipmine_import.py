@@ -32,7 +32,7 @@ class ImportTests(unittest.TestCase):
         self.row = dict(row_number=2, asin='B000000001', ebay_legacy_item_id='123456789012', source_evidence={'amazon title':'FALSE', 'ebay price':.01})
         self.seed = seed('Mario Kart 8 Deluxe Nintendo Switch', 'Switch'); self.seed['asin'] = self.row['asin']
         self.context = Mock(); self.context.seed.return_value = self.seed
-        patches = [patch.object(fm,'fetch_settings',return_value=settings()), patch.object(fm,'fetch_matching_context',return_value={}),
+        patches = [patch.object(fm,'refresh_buyer_offer_history'),patch.object(fm,'fetch_settings',return_value=settings()), patch.object(fm,'fetch_matching_context',return_value={}),
                    patch.object(fm,'fetch_historical_status_by_key',return_value={}), patch.object(fm,'get_access_token',return_value='test-token'),
                    patch.object(fm,'fetch_keepa_price_context_by_asin',return_value={}),patch.object(fm,'fetch_owned_units_by_asin',return_value={}),
                    patch.object(fm,'rpc',side_effect=self.rpc),patch('score_sourcing_opportunities.fetch_declines',return_value=[])]
@@ -123,6 +123,22 @@ class ListingTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError,'Variation'): self.fetch(self.response(payload=item(itemGroupHref='https://example.test/group')))
 
 class RunTests(unittest.TestCase):
+    def test_exhausted_preflight_does_not_load_offer_or_matching_context(self):
+        worker=self.worker([]);worker.progress=Mock();worker.evaluation_context=Mock();worker.process_row=Mock()
+        tab={'tab_id':'saved-tab','source_hash':'immutable'}
+        gate=Mock();gate.check.side_effect=fm.EbayQuotaPaused('daily_quota_exhausted','2099-01-01T08:00:00Z')
+        with patch.object(fm,'rpc',return_value=tab),patch.object(fm,'read_rows',return_value=[{'status':'pending'}]),patch.object(fm,'production_budget',return_value=gate):
+            with self.assertRaises(fm.EbayQuotaPaused):fm.FlipmineImporter.process_tab(worker,{'sheet_id':0,'tab_name':'Saved'})
+        worker.evaluation_context.assert_not_called();worker.process_row.assert_not_called()
+    def test_resume_records_current_worker_identity(self):
+        db=Mock();q=db.table.return_value
+        for key in ('select','eq','neq','update'):getattr(q,key).return_value=q
+        q.execute.return_value=SimpleNamespace(data=[{'sheet_id':0,'tab_name':'Saved','spreadsheet_id':'fixture','source_hash':'immutable'}])
+        worker=Mock();worker.run.return_value=0
+        reply=Mock();reply.json.return_value={'TaskARN':'current-task'}
+        with patch.object(sys,'argv',['import_flipmine.py','--resume-due']),patch.dict(os.environ,{'ECS_CONTAINER_METADATA_URI_V4':'http://169.254.170.2/v4/test'}),patch('sourcing_common.load_environment'),patch.object(fm,'get_supabase_client',return_value=db),patch.object(fm,'rpc',return_value=str(uuid.uuid4())),patch.object(fm,'wait_for_database'),patch.object(fm.requests,'get',return_value=reply),patch.object(fm,'FlipmineImporter',return_value=worker):
+            self.assertEqual(fm.main(),0)
+        self.assertEqual(q.update.call_args.args[0],{'task_arn':'current-task'})
     def test_rate_limit_pauses_entire_run_without_advancing_other_rows(self):
         worker=self.worker([{'sheet_id':0},{'sheet_id':42}])
         worker.process_tab.side_effect=fm.EbayRateLimitedError('exhausted',retry_at='2099-01-01T08:00:00Z')

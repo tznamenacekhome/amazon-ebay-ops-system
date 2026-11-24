@@ -8,6 +8,7 @@ import os
 import re
 import uuid
 import time
+import requests
 from types import SimpleNamespace
 
 from flipmine_sheet import FlipmineSheet, parse_tab, tab_fingerprint
@@ -81,8 +82,13 @@ class FlipmineImporter:
         self.listing_errors = {}
         self.deadline = None
         self.resume_only = False
-        self.matching = fetch_matching_context(db)
-        self.history = fetch_historical_status_by_key(db)
+        self.matching = self.history = None
+
+    def evaluation_context(self):
+        if self.matching is None:
+            refresh_buyer_offer_history(None)
+            self.matching=fetch_matching_context(self.db)
+            self.history=fetch_historical_status_by_key(self.db)
 
     def heartbeat(self):
         updated = self.db.table('sourcing_flipmine_runs').update({'heartbeat_at': now()}).eq('run_id', self.run_id).eq('status', 'running').execute().data
@@ -129,6 +135,7 @@ class FlipmineImporter:
         candidate['candidate_id'] = bound['candidate']['candidate_id']
         prices = fetch_keepa_price_context_by_asin(self.db, [asin])
         owned = fetch_owned_units_by_asin(self.db, [seed])
+        self.evaluation_context()
         # This is the production matcher, seller/history/offer/hold/economic evaluator.
         scored = list(score_candidate_batches(self.db, [candidate], {seed['seed_id']: seed}, self.settings,
                       prices, self.history, self.matching, owned))[0]
@@ -153,8 +160,10 @@ class FlipmineImporter:
                     p_hash=tab_fingerprint(values), p_rows=parse_tab(values))
             rows = read_rows(self.db, tab_id)
             self.progress(tab_id,rows)
-            budget=production_budget()
-            if budget: budget.check()  # Before spending Amazon/Keepa resources on an exhausted feed.
+            if any(row['status'] not in TERMINAL for row in rows):
+                budget=production_budget()
+                if budget: budget.check()  # Before spending Amazon/Keepa resources on an exhausted feed.
+                self.evaluation_context()
             for index, row in enumerate(rows):
                 if row['status'] in TERMINAL: continue
                 self.heartbeat()
@@ -242,6 +251,16 @@ def main():
             if not args.run_id:
                 LOG.info('No due Flipmine checkpoint; no discovery or provider calls')
                 return 0
+            task_arn=os.getenv('ECS_TASK_ARN')
+            metadata=os.getenv('ECS_CONTAINER_METADATA_URI_V4')
+            if metadata:
+                try:
+                    task_response=requests.get(metadata+'/task',timeout=3)
+                    task_response.raise_for_status()
+                    task_arn=task_response.json().get('TaskARN')
+                except (requests.RequestException,ValueError):
+                    LOG.warning('Current ECS task metadata unavailable; clearing stale worker reference')
+            db.table('sourcing_flipmine_runs').update({'task_arn':task_arn}).eq('run_id',args.run_id).eq('status','running').execute()
             tabs=db.table('sourcing_flipmine_tabs').select('sheet_id,tab_name,spreadsheet_id,source_hash').eq('run_id',args.run_id).neq('status','completed').execute().data or []
             if not tabs or any(not t.get('source_hash') for t in tabs): raise ValueError('Saved tab snapshot incomplete; manual review required')
             sheet=SimpleNamespace(spreadsheet_id=tabs[0]['spreadsheet_id'],tabs=lambda:tabs)
@@ -258,7 +277,6 @@ def main():
                 print(json.dumps({'tab_name': source['tab_name'], 'sheet_id': source['sheet_id'],
                                   'rows': len(rows), 'valid': sum(r['status'] == 'pending' for r in rows)}))
             return 0
-        refresh_buyer_offer_history(None)
         worker=FlipmineImporter(db,args.run_id,sheet)
         worker.resume_only=bool(args.resume_run_id or args.resume_due)
         worker.deadline=time.monotonic()+args.max_seconds if args.max_seconds else None
