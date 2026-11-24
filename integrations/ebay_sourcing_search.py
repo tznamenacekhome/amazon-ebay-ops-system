@@ -918,7 +918,7 @@ def item_price(item: dict[str, Any]) -> float:
 
 def is_allowed_candidate(row: dict[str, Any], item: dict[str, Any], settings, seed: dict[str, Any]) -> bool:
     from ebay_listing_evidence import ListingRouter
-    if item.get('mbopEvidence') and ListingRouter.terminal(item):return False
+    if (item.get('mbopEvidence') or item.get('estimatedAvailabilities') or item.get('itemEndDate')) and ListingRouter.terminal(item):return False
     if row.get("item_location_country") not in settings.item_location_countries:
         return False
     if is_pickup_only(item):

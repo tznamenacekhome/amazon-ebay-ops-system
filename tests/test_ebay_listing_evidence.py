@@ -165,6 +165,15 @@ class TransportTests(unittest.TestCase):
         post.assert_not_called()
 
 class BusinessParityTests(unittest.TestCase):
+    def test_browse_and_trading_sold_listings_cannot_enter_catalog_candidates(self):
+        from ebay_sourcing_search import is_allowed_candidate
+        from test_ebay_sourcing_search import seed,settings
+        product=seed('Dead or Alive 5 PS3','PS 3')
+        for provider in ('trading','browse'):
+            p=payload();p['estimatedAvailabilities']=[{'estimatedAvailabilityStatus':'OUT_OF_STOCK','estimatedAvailableQuantity':0}]
+            if provider=='browse':p.pop('mbopEvidence')
+            else:p['mbopEvidence']['ended']=True
+            self.assertFalse(is_allowed_candidate(map_item(product,p),p,settings(),product))
     def test_legacy_availability_fallback_does_not_duplicate_shared_refresh(self):
         import refresh_sourcing_listing_availability_trading_fallback as fallback
         with patch.dict(os.environ,{'MBOP_EBAY_TRADING_ENRICHMENT':'true'}),patch.object(fallback,'parse_args'),patch.object(fallback,'load_environment'),patch.object(fallback,'get_supabase_client') as db,patch.object(fallback,'get_getitem_quota') as quota:
