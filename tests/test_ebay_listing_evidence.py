@@ -19,7 +19,7 @@ def xml(extra='', shipping='<ShippingType>Flat</ShippingType><ShippingServiceOpt
     return ET.fromstring(f'''<GetItemResponse xmlns="urn:ebay:apis:eBLBaseComponents"><Ack>Success</Ack><Item>
     <ItemID>123456789012</ItemID><Title>Dead or Alive 5 PS3 New</Title><Description>Factory sealed physical game</Description>
     <ConditionID>1000</ConditionID><ConditionDisplayName>New</ConditionDisplayName><Country>US</Country>
-    <Quantity>3</Quantity><Seller><UserID>fixture-seller</UserID><FeedbackScore>500</FeedbackScore></Seller>
+    <Quantity>3</Quantity><ShipToLocations>US</ShipToLocations><Seller><UserID>fixture-seller</UserID><FeedbackScore>500</FeedbackScore></Seller>
     <SellingStatus><ListingStatus>Active</ListingStatus><QuantitySold>1</QuantitySold><CurrentPrice currencyID="USD">20</CurrentPrice><BidCount>2</BidCount></SellingStatus>
     <ListingType>FixedPriceItem</ListingType><PrimaryCategory><CategoryID>139973</CategoryID><CategoryName>Video Games</CategoryName></PrimaryCategory>
     <ItemSpecifics><NameValueList><Name>Platform</Name><Value>Sony PlayStation 3</Value></NameValueList><NameValueList><Name>Game Name</Name><Value>Dead or Alive 5</Value></NameValueList></ItemSpecifics>
@@ -67,6 +67,17 @@ class NormalizeTests(unittest.TestCase):
     def test_quantity_shipping_requires_additional_cost(self):
         settings=SimpleNamespace(buyer_country='US',buyer_zip='93022',quantity_for_shipping_estimate=2)
         self.assertEqual(evidence.normalize_item(xml(),settings)['shippingOptions'],[])
+    def test_flat_quote_requires_destination_inclusion_and_no_unknown_surcharge(self):
+        root=xml();root.find('e:Item/e:ShipToLocations',trading.NS).text='CA'
+        self.assertEqual(evidence.normalize_item(root,SETTINGS)['shippingOptions'],[])
+        root=xml();root.find('e:Item/e:ShipToLocations',trading.NS).text='Worldwide'
+        self.assertTrue(evidence.normalize_item(root,SETTINGS)['shippingOptions'])
+        service=root.find('e:Item/e:ShippingDetails/e:ShippingServiceOptions',trading.NS)
+        ET.SubElement(service,'{'+trading.NS['e']+'}ShippingSurcharge').text='2.00'
+        self.assertEqual(evidence.normalize_item(root,SETTINGS)['shippingOptions'],[])
+    def test_ended_date_and_listing_hold_are_terminal(self):
+        for extra in ('<ListingDetails><EndTime>2000-01-01T00:00:00Z</EndTime></ListingDetails>','<ListingOnHold>true</ListingOnHold>'):
+            self.assertTrue(evidence.ListingRouter.terminal(evidence.normalize_item(xml(extra),SETTINGS)))
 
 class RouterTests(unittest.TestCase):
     def setUp(self):
@@ -84,6 +95,10 @@ class RouterTests(unittest.TestCase):
     def test_conflicting_search_invalidates_cache(self):
         self.router.get('123456789012');self.router.get('123456789012',summary={'title':'Revised title'})
         self.assertEqual(self.router.trading.call_count,2)
+    def test_old_adapter_cache_is_refreshed_before_evaluation(self):
+        old=payload();old['mbopEvidence'].pop('schemaVersion')
+        response=Mock();response.json.return_value=old;self.gate.cached.return_value=response
+        self.router.get('123456789012');self.router.trading.assert_called_once()
     def test_browse_fallback_for_missing_condition(self):
         bad=payload();bad['conditionId']=None;self.router.trading.return_value=bad
         self.router.get('123456789012');self.router.browse.assert_called_once()

@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import copy
+import datetime as dt
 import json
 import os
 import re
@@ -59,7 +60,8 @@ def shipping_options(root, settings, *, quoted=False):
         return []
     exclusions = [e.text for e in elements(detail,'ExcludeShipToLocation')]
     # Flat domestic rates are reusable only when applicability is established.
-    if not quoted and (country != 'US' or text(root,'Country') != 'US' or exclusions):
+    included={str(e.text or '').casefold() for e in elements(root,'ShipToLocations')}
+    if not quoted and (country != 'US' or text(root,'Country') != 'US' or exclusions or not included.intersection({'us','worldwide'})):
         return []
     shipping_type = text(detail,'ShippingType','')
     if not quoted and shipping_type not in ('Flat','FlatDomesticCalculatedInternational'):
@@ -69,6 +71,8 @@ def shipping_options(root, settings, *, quoted=False):
         name=text(service,'ShippingService','')
         if 'pickup' in name.lower():
             continue
+        surcharge=number(text(service,'ShippingSurcharge'))
+        if not quoted and surcharge is not None and surcharge>0:continue
         cost=money(child(service,'ShippingServiceCost'))
         if cost is None or cost['currency']!='USD':
             continue
@@ -96,7 +100,12 @@ def normalize_item(root, settings):
     quantity,sold=integer(text(item,'Quantity')),integer(text(item,'SellingStatus/QuantitySold'))
     available=max(quantity-sold,0) if quantity is not None and sold is not None else None
     status=text(item,'SellingStatus/ListingStatus')
-    ended=status in ('Completed','Ended') or available==0 or text(item,'ListingOnHold')=='true'
+    ended=status in ('Completed','Ended') or available==0 or text(item,'ListingOnHold')=='true' or text(item,'SellingStatus/ListingOnHold')=='true'
+    try:
+        end=dt.datetime.fromisoformat(text(item,'ListingDetails/EndTime','').replace('Z','+00:00'))
+        if end.tzinfo and end<=dt.datetime.now(dt.UTC):ended=True
+    except ValueError:
+        pass
     listing_type=text(item,'ListingType')
     options=[]
     auction=listing_type in ('Chinese','Dutch')
@@ -126,7 +135,7 @@ def normalize_item(root, settings):
                                  'estimatedAvailableQuantity':available}],
       'shippingOptions':shipping_options(item,settings), 'shipToLocations':{'regionIncluded':[{'regionName':e.text} for e in elements(item,'ShipToLocations')],
          'regionExcluded':[{'regionName':e.text} for e in elements(item,'ShippingDetails/ExcludeShipToLocation')]},
-      'mbopEvidence':{'provider':'trading','listingStatus':status,'ended':ended,'shippingType':text(item,'ShippingDetails/ShippingType'),
+      'mbopEvidence':{'provider':'trading','schemaVersion':1,'listingStatus':status,'ended':ended,'shippingType':text(item,'ShippingDetails/ShippingType'),
                       'revision':text(item,'ReviseStatus/ItemRevised'),'variationUnverified':child(item,'Variations') is not None}}
     if auction:
         payload['currentBidPrice']=price
@@ -231,6 +240,7 @@ class ListingRouter:
         if cached is None and self.gate:
             response=self.gate.cached(key)
             if response is not None:cached=response.json()
+        if cached and (cached.get('mbopEvidence') or {}).get('provider')=='trading' and cached['mbopEvidence'].get('schemaVersion')!=1:cached=None
         # Fresh contradictory search evidence invalidates the full cached observation.
         if cached and summary and any(summary.get(k) is not None and summary.get(k)!=cached.get(k) for k in ('title','conditionId','price')):cached=None
         if cached and not cached.get('itemGroupHref') and not self.missing(cached,required) and (not shipping or has_shipping_to_buyer(cached) or self.terminal(cached)):

@@ -126,6 +126,7 @@ class BrowseBudget:
         rows=query.limit(1).execute().data or []
         if not rows or parsed(rows[0]['expires_at'])<=utcnow(): return None
         payload=rows[0]['payload']
+        if (payload.get('mbopEvidence') or {}).get('provider')=='trading' and payload['mbopEvidence'].get('schemaVersion')!=1:return None
         if payload.get('itemId')!=key['item_id'] or not payload.get('title'): return None
         response=requests.Response();response.status_code=200;response._content=json.dumps(payload).encode();response.headers['X-MBOP-Detail-Cache']='hit'
         return response
