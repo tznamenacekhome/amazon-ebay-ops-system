@@ -78,6 +78,9 @@ class ListingCheck:
 def main() -> int:
     args = parse_args()
     load_environment()
+    if os.getenv('MBOP_EBAY_TRADING_ENRICHMENT','false').lower() in ('true','1'):
+        print('Shared listing router enabled; legacy Trading availability fallback is superseded.')
+        return 0
     supabase = get_supabase_client()
     quota_before = get_getitem_quota()
     opportunities = fetch_eligible_opportunities(supabase, args.limit)

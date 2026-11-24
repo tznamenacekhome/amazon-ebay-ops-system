@@ -25,6 +25,8 @@ single-SKU IDs; discovery remains Browse. A selected nonzero variation ID goes
 directly to Browse. Any Trading variation container or ambiguous parent requires
 Browse and remains unresolved if exact variation identity cannot be established.
 Trading variation enrichment is deliberately not enabled without live validation.
+The old separate Trading availability fallback is skipped when this router is
+enabled, avoiding a second refresh of the same listings in sourcing orchestration.
 
 Each request tries each authorized provider at most once, with bounded transport
 retries inside providers. Terminal sold/ended results do not trigger fallback.

@@ -142,6 +142,11 @@ class TransportTests(unittest.TestCase):
         post.assert_not_called()
 
 class BusinessParityTests(unittest.TestCase):
+    def test_legacy_availability_fallback_does_not_duplicate_shared_refresh(self):
+        import refresh_sourcing_listing_availability_trading_fallback as fallback
+        with patch.dict(os.environ,{'MBOP_EBAY_TRADING_ENRICHMENT':'true'}),patch.object(fallback,'parse_args'),patch.object(fallback,'load_environment'),patch.object(fallback,'get_supabase_client') as db,patch.object(fallback,'get_getitem_quota') as quota:
+            self.assertEqual(fallback.main(),0)
+        db.assert_not_called();quota.assert_not_called()
     def test_browse_only_pending_row_does_not_block_other_trading_rows(self):
         import import_flipmine as fm
         worker=Mock();worker.settings=SETTINGS;worker.sheet.spreadsheet_id='fixture';worker.run_id='run';worker.deadline=None
