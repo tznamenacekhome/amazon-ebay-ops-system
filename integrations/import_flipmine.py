@@ -18,6 +18,7 @@ from sourcing_database_guard import wait_for_database
 from run_sourcing_workflow import refresh_buyer_offer_history
 from ebay_sourcing_search import get_access_token, get_with_retries, end_user_context_header, map_item, is_allowed_candidate, EBAY_BROWSE_ITEM_URL, EbayRateLimitedError
 from ebay_browse_budget import production_budget, EbayQuotaPaused
+from ebay_listing_evidence import router_for, ListingUnavailable
 from score_sourcing_opportunities import (fetch_matching_context, fetch_historical_status_by_key,
     fetch_keepa_price_context_by_asin, fetch_owned_units_by_asin, score_candidate_batches, snapshot_new_opportunities)
 from cleanup_sourcing_duplicate_asin_opportunities import enforce_one_open_opportunity_per_asin
@@ -50,10 +51,12 @@ def read_rows(db, tab_id):
     raise ValueError('Flipmine persisted row bound exceeded')
 
 
-class ListingUnavailable(ValueError): pass
-
-
-def fetch_listing(token, legacy_id, settings):
+def fetch_listing(token, legacy_id, settings, *, viable=None):
+    router=router_for(token,settings)
+    if router.enabled():
+        item,_=router.get(legacy_id,required=('localizedAspects.Platform','localizedAspects.Game Name'),viable=viable)
+        if router.terminal(item):raise ListingUnavailable('Listing ended or sold')
+        return item
     response, _metrics = get_with_retries(f'{EBAY_BROWSE_ITEM_URL}/get_item_by_legacy_id', call_type='detail',
         headers={'Authorization': f'Bearer {token}', 'X-EBAY-C-MARKETPLACE-ID': 'EBAY_US',
                  'X-EBAY-C-ENDUSERCTX': end_user_context_header(settings)},
@@ -117,9 +120,16 @@ class FlipmineImporter:
         self.db.table('sourcing_seed_asins').upsert(seed, on_conflict='seed_id').execute()
         legacy_id = row['ebay_legacy_item_id']
         if legacy_id in self.listing_errors: raise self.listing_errors[legacy_id]
-        if legacy_id not in self.listings:
+        if legacy_id not in self.listings or (self.listing_fetch is fetch_listing and router_for(self.token,self.settings).enabled()):
             if self.token is None: self.token = get_access_token()
-            try: self.listings[legacy_id] = self.listing_fetch(self.token, legacy_id, self.settings)
+            try:
+                if self.listing_fetch is fetch_listing:
+                    from ebay_sourcing_search import candidate_decision,should_reject_summary
+                    self.evaluation_context()
+                    prices=fetch_keepa_price_context_by_asin(self.db,[asin])
+                    self.listings[legacy_id]=self.listing_fetch(self.token,legacy_id,self.settings,
+                        viable=lambda payload:not should_reject_summary(candidate_decision(map_item(seed,payload),seed,self.settings,prices,self.matching)))
+                else:self.listings[legacy_id] = self.listing_fetch(self.token, legacy_id, self.settings)
             except Exception as error:
                 self.listing_errors[legacy_id]=error
                 raise
@@ -159,10 +169,14 @@ class FlipmineImporter:
                 rpc(self.db, 'flipmine_snapshot_tab', p_run=self.run_id, p_tab=tab_id,
                     p_hash=tab_fingerprint(values), p_rows=parse_tab(values))
             rows = read_rows(self.db, tab_id)
+            deferred=[]
             self.progress(tab_id,rows)
             if any(row['status'] not in TERMINAL for row in rows):
-                budget=production_budget()
-                if budget: budget.check()  # Before spending Amazon/Keepa resources on an exhausted feed.
+                if os.getenv('MBOP_EBAY_TRADING_ENRICHMENT','false').lower() in ('1','true'):
+                    router_for(None,self.settings).check()
+                else:
+                    budget=production_budget()
+                    if budget:budget.check()
                 self.evaluation_context()
             for index, row in enumerate(rows):
                 if row['status'] in TERMINAL: continue
@@ -172,8 +186,17 @@ class FlipmineImporter:
                 if index % 20 == 0: wait_for_database(self.db)
                 try:
                     row['status'] = self.process_row(tab, row)
-                except (EbayRateLimitedError,EbayQuotaPaused):
+                except (EbayRateLimitedError,EbayQuotaPaused) as error:
                     # This is unprocessed work, not a rejected product or failed row.
+                    if getattr(error,'resource',None)=='buy.browse' and os.getenv('MBOP_EBAY_TRADING_ENRICHMENT','false').lower() in ('1','true'):
+                        budget=production_budget()
+                        try:
+                            if budget:budget.reserve('trading',peek=True)
+                            self.row_update(tab_id,row,status='pending',error=safe_error(error))
+                            deferred.append(error)
+                            continue  # A Browse-only variation must not block other Trading rows.
+                        except EbayQuotaPaused:
+                            pass
                     self.progress(tab_id,rows)
                     raise
                 except ListingUnavailable as error:
@@ -188,6 +211,9 @@ class FlipmineImporter:
             # Reuse normal persistence-side duplicate-ASIN and initial audit-snapshot policies.
             enforce_one_open_opportunity_per_asin(self.db)
             snapshot_new_opportunities(self.db, tab['sourcing_run_id'])
+            if deferred:
+                self.progress(tab_id,rows)
+                raise min(deferred,key=lambda e:getattr(e,'retry_at',None) or '9999')
             summary = rpc(self.db, 'flipmine_tab_evaluated', p_run=self.run_id, p_tab=tab_id)
             LOG.info('flipmine_tab_evaluated %s', json.dumps({'run': self.run_id, 'tab': tab_id, **summary}))
             return summary

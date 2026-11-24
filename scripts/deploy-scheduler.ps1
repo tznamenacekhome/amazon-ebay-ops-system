@@ -13,6 +13,7 @@ param(
   [string]$RoyalGraphClientSecretId = "/mbop/prod/royal-graph-client-id",
   [string]$RoyalGraphCredentialSecretId = "/mbop/prod/royal-graph-client-secret",
   [switch]$EnablePhase3,
+  [switch]$EnableTradingEnrichment,
   [string]$FlipmineGoogleSheetId = "",
   [switch]$AllowDirty
 )
@@ -116,6 +117,11 @@ if (-not $container) {
 }
 
 $container.image = $pinnedImage
+if ($EnableTradingEnrichment) {
+  $container.environment = @($container.environment | Where-Object { $_.name -ne 'MBOP_EBAY_TRADING_ENRICHMENT' }) + @(
+    [pscustomobject]@{ name = 'MBOP_EBAY_TRADING_ENRICHMENT'; value = 'true' }
+  )
+}
 if ($FlipmineGoogleSheetId) {
   $container.environment = @($container.environment | Where-Object { $_.name -ne "FLIPMINE_GOOGLE_SHEET_ID" }) + @(
     [pscustomobject]@{ name = "FLIPMINE_GOOGLE_SHEET_ID"; value = $FlipmineGoogleSheetId }

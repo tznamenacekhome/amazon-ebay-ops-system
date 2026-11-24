@@ -1,6 +1,7 @@
 import os
 import base64
 import requests
+from ebay_trading import post as trading_post
 import xml.etree.ElementTree as ET
 from datetime import datetime, timezone, timedelta
 from dotenv import load_dotenv
@@ -107,7 +108,7 @@ def get_buyer_orders(access_token, days_back=30):
         "X-EBAY-API-IAF-TOKEN": access_token,
     }
 
-    response = requests.post(TRADING_ENDPOINT, headers=headers, data=xml_body)
+    response = trading_post(TRADING_ENDPOINT, headers=headers, data=xml_body)
     response.raise_for_status()
 
     root = ET.fromstring(response.text)

@@ -17,6 +17,7 @@ from dataclasses import dataclass
 from typing import Any
 
 import requests
+from ebay_trading import post as trading_post
 
 from ebay_api_limits import fetch_rate_limits, find_resource_quota
 from sourcing_common import get_supabase_client, load_environment, required_env, to_float
@@ -271,7 +272,7 @@ def get_item_availability(token: str, item_id: str) -> ListingCheck:
   {selector_xml}
 </GetItemRequest>"""
     try:
-        response = requests.post(
+        response = trading_post(
             TRADING_ENDPOINT,
             headers={
                 "Content-Type": "text/xml",
@@ -282,6 +283,7 @@ def get_item_availability(token: str, item_id: str) -> ListingCheck:
             },
             data=body,
             timeout=60,
+            priority='background',
         )
     except requests.RequestException as exc:
         return ListingCheck(item_id=item_id, status="UNKNOWN", reason="request_failed", error=str(exc))

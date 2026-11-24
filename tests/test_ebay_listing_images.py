@@ -11,12 +11,12 @@ class ListingImageTests(unittest.TestCase):
         sync.ITEM_PICTURE_CACHE.clear()
 
     def test_original_item_identity_is_required(self):
-        response = Mock(content=b'<GetItemResponse xmlns="urn:ebay:apis:eBLBaseComponents"><Ack>Success</Ack><Item><ItemID>999999999999</ItemID><PictureDetails><PictureURL>https://i.ebayimg.com/cover.jpg</PictureURL></PictureDetails></Item></GetItemResponse>')
+        response = Mock(status_code=200, content=b'<GetItemResponse xmlns="urn:ebay:apis:eBLBaseComponents"><Ack>Success</Ack><Item><ItemID>999999999999</ItemID><PictureDetails><PictureURL>https://i.ebayimg.com/cover.jpg</PictureURL></PictureDetails></Item></GetItemResponse>')
         with patch.object(images.requests, "post", return_value=response):
             self.assertEqual(images.listing_picture_urls("token", "123456789012"), [])
 
     def test_only_picture_details_are_saved(self):
-        response = Mock(content=b'<GetItemResponse xmlns="urn:ebay:apis:eBLBaseComponents"><Ack>Success</Ack><Item><ItemID>123456789012</ItemID><PictureDetails><PictureURL>https://i.ebayimg.com/cover.jpg</PictureURL><PictureURL>http://unsafe.example/picture</PictureURL></PictureDetails></Item></GetItemResponse>')
+        response = Mock(status_code=200, content=b'<GetItemResponse xmlns="urn:ebay:apis:eBLBaseComponents"><Ack>Success</Ack><Item><ItemID>123456789012</ItemID><PictureDetails><PictureURL>https://i.ebayimg.com/cover.jpg</PictureURL><PictureURL>http://unsafe.example/picture</PictureURL></PictureDetails></Item></GetItemResponse>')
         with patch.object(images.requests, "post", return_value=response):
             self.assertEqual(images.listing_picture_urls("token", "123456789012"), ["https://i.ebayimg.com/cover.jpg"])
 

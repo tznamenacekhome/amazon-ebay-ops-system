@@ -14,6 +14,7 @@ import {
   XCircle,
 } from "lucide-react";
 import { DataFreshness } from "../DataFreshness";
+import { EbayApiQuota, type EbayQuotaOverview } from './EbayApiQuota';
 
 type HealthStatus = "ok" | "delayed" | "failed" | "unknown" | "skipped" | "running" | "blocked";
 
@@ -129,6 +130,7 @@ type SchedulerGroup = {
 
 type HealthData = {
   generatedAt: string;
+  ebayApiQuota?: EbayQuotaOverview;
   summary: {
     total: number;
     ok: number;
@@ -254,7 +256,8 @@ export default function SystemHealthPage() {
         </div>
       )}
 
-      <section className="mb-4 grid gap-3 md:grid-cols-8">
+      <EbayApiQuota data={data?.ebayApiQuota} />
+      <section className="mb-4 mt-4 grid gap-3 md:grid-cols-8">
         <Summary label="Jobs" value={formatNumber(data?.summary.total)} tone="neutral" />
         <Summary label="Healthy" value={formatNumber(data?.summary.ok)} tone="ok" />
         <Summary label="Running" value={formatNumber(data?.summary.running)} tone="running" />

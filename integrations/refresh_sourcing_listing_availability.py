@@ -132,6 +132,17 @@ def fetch_active_opportunities(supabase, limit: int) -> list[dict[str, Any]]:
 
 
 def fetch_listing(token: str, ebay_item_id: str, settings) -> dict[str, Any]:
+    from ebay_listing_evidence import router_for, ListingUnavailable, EvidenceUnavailable
+    router=router_for(token,settings)
+    if router.enabled():
+        try:
+            payload,_=router.get(ebay_item_id,shipping=False)
+            available,reason=listing_is_available(payload)
+            return {'available':available,'reason':reason,'payload':payload,'error':None}
+        except ListingUnavailable as error:
+            return {'available':False,'reason':str(error),'payload':None,'error':None}
+        except EvidenceUnavailable as error:
+            return {'available':True,'reason':None,'payload':None,'error':str(error)}
     response, _metrics = get_with_retries(
         f"{EBAY_BROWSE_ITEM_URL}/{ebay_item_id}",
         call_type='detail',

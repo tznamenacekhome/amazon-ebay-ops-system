@@ -17,6 +17,7 @@ import xml.etree.ElementTree as ET
 from typing import Any
 
 import requests
+from ebay_trading import post as trading_post
 from dotenv import load_dotenv
 from supabase import create_client
 
@@ -274,7 +275,7 @@ def search_trading_buyer_order_refunds(
     <PageNumber>{page_number}</PageNumber>
   </Pagination>
 </GetOrdersRequest>"""
-        response = requests.post(
+        response = trading_post(
             EBAY_TRADING_ENDPOINT,
             headers=headers,
             data=xml_body,

@@ -49,7 +49,8 @@ def main() -> int:
     args = parse_args()
     supabase = get_supabase_client()
     settings = fetch_settings(supabase)
-    args.browse_quota_reserve += pending_import_reserve()
+    # Shared admission now balances saved imports across Browse and Trading;
+    # reserving every pending import row exclusively in Browse would starve search.
     quota = fetch_browse_quota()
     quota_snapshot = quota_summary(quota)
     budget = browse_call_budget(quota, args.browse_quota_reserve)

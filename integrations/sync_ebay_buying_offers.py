@@ -14,6 +14,7 @@ import xml.etree.ElementTree as ET
 from xml.sax.saxutils import escape
 
 import requests
+from ebay_trading import post as trading_post
 
 from refresh_sourcing_listing_availability_trading_fallback import get_access_token
 from sourcing_common import get_supabase_client, load_environment, chunked
@@ -59,7 +60,7 @@ def parse_page(xml: str) -> tuple[list[dict], int]:
     return rows, pages
 
 
-def fetch_offers(token: str, max_pages: int = 20, post=requests.post) -> list[dict]:
+def fetch_offers(token: str, max_pages: int = 20, post=trading_post) -> list[dict]:
     rows = []
     for page in range(1, max_pages + 1):
         if page > 1:

@@ -1,6 +1,7 @@
 import os
 import base64
 import requests
+from ebay_trading import post as trading_post
 import xml.etree.ElementTree as ET
 import argparse
 from decimal import Decimal, ROUND_HALF_UP
@@ -304,7 +305,7 @@ def get_buyer_orders(access_token, days_back=DEFAULT_DAYS_BACK):
   </Pagination>
 </GetOrdersRequest>"""
 
-        response = requests.post(
+        response = trading_post(
             TRADING_ENDPOINT,
             headers=headers,
             data=xml_body,
@@ -385,7 +386,7 @@ def get_buyer_orders_by_order_ids(access_token, order_ids):
   <DetailLevel>ReturnAll</DetailLevel>
 </GetOrdersRequest>"""
 
-        response = requests.post(
+        response = trading_post(
             TRADING_ENDPOINT,
             headers=headers,
             data=xml_body,

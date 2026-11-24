@@ -7,6 +7,7 @@ import base64
 import datetime as dt
 from email.utils import parsedate_to_datetime
 import random
+import os
 import time
 from typing import Any
 from urllib.parse import quote
@@ -125,7 +126,7 @@ def main() -> int:
                 summary_item = tag_search_context(item, query)
                 summary_row = map_item(seed, summary_item)
                 ebay_item_id = str(summary_row.get("ebay_item_id") or "")
-                if ebay_item_id and ebay_item_id in rows_by_item_id:
+                if ebay_item_id and (ebay_item_id,seed["asin"]) in rows_by_item_id:
                     metrics["duplicate_item_count"] += 1
                     continue
                 summary_decision = candidate_decision(
@@ -156,6 +157,8 @@ def main() -> int:
                             settings,
                             detail_plan,
                             detail_cache,
+                            viable=lambda payload: not should_reject_summary(candidate_decision(
+                                map_item(seed,payload),seed,settings,keepa_prices_by_asin,matching_context)),
                         )
                         add_metrics(metrics, detail_metrics)
                     except EbayRateLimitedError as error:
@@ -201,7 +204,7 @@ def main() -> int:
                     continue
                 ebay_item_id = str(final_row.get("ebay_item_id") or "")
                 if ebay_item_id:
-                    rows_by_item_id[ebay_item_id] = final_row
+                    rows_by_item_id[(ebay_item_id,seed["asin"])] = final_row
             if rate_limited or transient_error:
                 break
             time.sleep(args.pause_seconds)
@@ -722,6 +725,7 @@ def enrich_item_with_detail(
     settings,
     detail_plan: dict[str, Any],
     detail_cache: dict[tuple[str, str], dict[str, Any] | None],
+    *, viable=None,
 ) -> tuple[dict[str, Any], dict[str, Any], dict[str, int]]:
     metrics = empty_call_metrics()
     item_id = item.get("itemId")
@@ -732,7 +736,7 @@ def enrich_item_with_detail(
         record["outcome"] = "missing_item_id"
         return item, record, metrics
     cache_key = (str(item_id), end_user_context_header(settings))
-    if cache_key in detail_cache:
+    if cache_key in detail_cache and os.getenv('MBOP_EBAY_TRADING_ENRICHMENT','false').lower() not in ('true','1'):
         metrics["duplicate_detail_calls_prevented_count"] += 1
         cached = detail_cache[cache_key]
         record["success"] = cached is not None
@@ -740,6 +744,24 @@ def enrich_item_with_detail(
         if cached:
             return {**item, **cached, "rawSearchSummary": item}, record, metrics
         return item, record, metrics
+
+    from ebay_listing_evidence import router_for, EvidenceUnavailable, ListingUnavailable
+    router=router_for(token,settings)
+    if router.enabled():
+        try:
+            detail, calls=router.get(str(item_id),summary=item,required=detail_plan.get('fields_missing_before') or [],viable=viable)
+        except ListingUnavailable:
+            detail={**item,'estimatedAvailabilities':[{'estimatedAvailabilityStatus':'OUT_OF_STOCK','estimatedAvailableQuantity':0}]}
+            calls={}
+        except EvidenceUnavailable as error:
+            raise EbayTransientError(str(error)) from error
+        add_metrics(metrics,calls)
+        detail_cache[cache_key]=detail
+        record.update(success=True,outcome='success',provider=(detail.get('mbopEvidence') or {}).get('provider','browse'),fields_returned=returned_fields(detail))
+        merged={**detail,'rawSearchSummary':item}
+        record['fields_populated']=populated_missing_fields(detail_plan.get('fields_missing_before') or [],item,merged)
+        record['fields_remaining_missing']=missing_fields(merged,detail_plan.get('fields_missing_before') or [])
+        return merged,record,metrics
 
     response, call_metrics = get_with_retries(
         f"{EBAY_BROWSE_ITEM_URL}/{item_id}",
@@ -797,7 +819,7 @@ def get_with_retries(url: str, *, call_type: str, **kwargs) -> tuple[requests.Re
     metrics = empty_call_metrics()
     for attempt in range(1, MAX_HTTP_RETRIES + 1):
         if budget:
-            try: budget.reserve()
+            try: budget.reserve(operation=call_type)
             except EbayQuotaPaused as error:
                 raise EbayRateLimitedError(str(error),metrics,retry_at=error.retry_at,resource=error.resource) from error
         metrics[f"{call_type}_call_count"] += 1
@@ -895,6 +917,8 @@ def item_price(item: dict[str, Any]) -> float:
 
 
 def is_allowed_candidate(row: dict[str, Any], item: dict[str, Any], settings, seed: dict[str, Any]) -> bool:
+    from ebay_listing_evidence import ListingRouter
+    if item.get('mbopEvidence') and ListingRouter.terminal(item):return False
     if row.get("item_location_country") not in settings.item_location_countries:
         return False
     if is_pickup_only(item):

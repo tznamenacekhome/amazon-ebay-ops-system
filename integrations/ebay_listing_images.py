@@ -3,6 +3,7 @@ import re
 import xml.etree.ElementTree as ET
 
 import requests
+from ebay_trading import post as trading_post
 
 IMAGE_METADATA_KEY = "mbop_listing_images"
 
@@ -14,7 +15,7 @@ def listing_picture_urls(access_token, item_id):
     ET.SubElement(root, "ItemID").text = str(item_id)
     ET.SubElement(root, "OutputSelector").text = "Item.ItemID"
     ET.SubElement(root, "OutputSelector").text = "Item.PictureDetails"
-    response = requests.post(
+    response = trading_post(
         "https://api.ebay.com/ws/api.dll",
         headers={
             "Content-Type": "text/xml",
@@ -25,6 +26,7 @@ def listing_picture_urls(access_token, item_id):
         },
         data=ET.tostring(root, encoding="utf-8", xml_declaration=True),
         timeout=30,
+        priority='background',
     )
     response.raise_for_status()
     result = ET.fromstring(response.content)
