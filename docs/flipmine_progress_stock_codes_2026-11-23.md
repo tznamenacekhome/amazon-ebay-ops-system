@@ -67,4 +67,40 @@ All changes preserve allocations, provider priorities, cache TTLs and schedule
 cadences/commands. Existing workers are allowed to finish; only subsequent
 sourcing/recovery launches receive the corrected worker image.
 
-Deployment receipt and final production readback will be appended after rollout.
+## Deployment receipt
+
+Code `bf7214469982` was committed and pushed. Migration 20261124055201 was
+dry-run and applied through the linked CLI to verified MBOP project
+froeucjkcepuhgwisped; the complete local/remote ledger reconciles. CLI emitted a
+nonfatal pg-delta certificate/catalog-cache warning after applying; direct RPC
+readback and the remote migration ledger confirm success.
+
+- Worker: mbop-scheduler-task:177,
+  digest `sha256:e276748ecc175835cac25b43d9160745573163446d338debad2e68395b455d1b`.
+- Web: mbop-web-task:231,
+  digest `sha256:9354348a3cd7256d2f7c19641a407ad850a08b6b676ff152d3c4ed4350a5070a`.
+- Catalog and Keepa-priority/Flipmine recovery launchers read back on 177 with
+  their original commands and cadence (catalog Nov 24 00:10 Pacific; recovery
+  every 30 minutes). Purchase, tracking and returns launcher revisions were not
+  changed. The active Flipmine task on 176 was not stopped.
+- Final ECS stability waiter succeeded. Revision 231 rollout is COMPLETED,
+  one running / zero pending; its ALB target is healthy (old target draining).
+- Production aggregate RPC read at **10:03 p.m. PST Nov 23**: 558 original rows,
+  58 evaluated, 6 duplicate, 250 excluded, 244 pending, zero failed/invalid.
+  Thus 314 terminal + 244 pending = 558. Run is still running, not Complete.
+  Original source snapshot hash is unchanged. Later worker progress may increase
+  these counts. The old worker's summary was demonstrably stale while the new
+  aggregate remained accurate; its next new-revision launch gains finally flushes.
+
+Final read at **10:05 p.m. PST Nov 23**: still running; 60 evaluated, 6 duplicate,
+261 excluded, 231 pending, zero failed/invalid. **327 terminal + 231 pending = 558**.
+
+Authenticated browser verification remains incomplete: the Windows Computer Use
+policy stopped navigation because it could not confidently determine Chrome's
+current URL. No further browser input was attempted. ECS/ALB and database checks
+are production evidence, not proof of authenticated rendering. Verify the
+Sourcing indicator at https://mbop.midnightblueenterprises.com/sourcing against
+the RPC totals; do not click Import Flipmine to verify. A running count snapshot
+may naturally differ moments later. Check paused/resuming labels at the next
+normal recovery transition and Complete only after all outcomes and opportunity/
+presentation persistence finish. No import was reinitiated for verification.
