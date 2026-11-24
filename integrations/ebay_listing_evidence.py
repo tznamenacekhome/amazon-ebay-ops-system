@@ -255,6 +255,21 @@ class ListingRouter:
                     for k,v in calls.items():metrics[k]=metrics.get(k,0)+v
                 if payload.get('itemId')!=item_id or not payload.get('title'):
                     raise EvidenceUnavailable('Provider returned mismatched or missing listing identity')
+                # Never apply identity/economic screening to an unverified parent
+                # variation or treat a foreign currency as US dollars.
+                if payload.get('itemGroupHref') and match[2]=='0' and not (
+                    (payload.get('mbopEvidence') or {}).get('listingStatus') in ('Completed','Ended')):
+                    if provider==TRADING_RESOURCE:
+                        self.event('fallback_missing_exact_variation',provider)
+                        failures.append('Trading variation requires Browse verification')
+                        continue
+                    raise EvidenceUnavailable('Exact purchasable variation requires review')
+                if (payload.get('price') or {}).get('currency')!='USD' and not self.terminal(payload):
+                    if provider==TRADING_RESOURCE:
+                        self.event('fallback_missing_currency',provider)
+                        failures.append('Trading currency requires Browse verification')
+                        continue
+                    raise EvidenceUnavailable('US pricing currency remains unverified')
                 if self.terminal(payload):
                     self.cache[memory_key]=(time.monotonic(),payload)
                     return payload,metrics

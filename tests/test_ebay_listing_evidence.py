@@ -111,6 +111,14 @@ class RouterTests(unittest.TestCase):
         item=payload();item['itemGroupHref']='group';self.router.trading.return_value=item;self.router.browse.return_value=(item,{})
         with self.assertRaises(evidence.EvidenceUnavailable):self.router.get('123456789012')
         self.assertEqual(self.router.browse.call_count,1)
+    def test_parent_variation_and_foreign_currency_are_not_preexcluded(self):
+        for change in ({'itemGroupHref':'group'}, {'price':{'value':'1000','currency':'JPY'}}):
+            with self.subTest(change=change):
+                item=payload();item.update(change);self.router.trading.return_value=item
+                self.router.browse.return_value=(item,{})
+                viable=Mock(return_value=False)
+                with self.assertRaises(evidence.EvidenceUnavailable):self.router.get('123456789012',viable=viable)
+                viable.assert_not_called()
     def test_calculated_shipping_only_for_viable_candidates(self):
         item=payload();item['shippingOptions']=[];item['mbopEvidence']['shippingType']='Calculated'
         self.router.trading.return_value=item;self.router.user_token='user'
