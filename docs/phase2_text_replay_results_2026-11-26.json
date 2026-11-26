@@ -1,0 +1,1631 @@
+{
+  "gate": "PASS",
+  "scope": "Text and structured evidence only; operator is responsible for photographs and final purchase review",
+  "deployedCommit": "974664d0bced",
+  "worker": 182,
+  "web": 237,
+  "replayRunId": "676e1386-3e22-57a8-a2fe-873d256df934",
+  "archivesVerified": 34,
+  "preservedSourcePairs": 558,
+  "unchangedUnselectedSourceRows": 524,
+  "progress": {
+    "preservedSourcePairs": 558,
+    "unchangedUnselectedRows": 524,
+    "selectedRows": 34,
+    "progress": {
+      "rows": 558,
+      "failed": 0,
+      "invalid": 0,
+      "pending": 0,
+      "excluded": 409,
+      "evaluated": 144,
+      "duplicates": 5
+    },
+    "newOpportunityIds": [],
+    "initialSnapshotsCreated": 7,
+    "duplicates": 0,
+    "originalRunStatus": "completed"
+  },
+  "completion": {
+    "runId": "676e1386-3e22-57a8-a2fe-873d256df934",
+    "status": "completed",
+    "summary": {
+      "rows": 558,
+      "failed": 0,
+      "invalid": 0,
+      "pending": 0,
+      "excluded": 409,
+      "evaluated": 144,
+      "duplicates": 5,
+      "buyList": 31,
+      "closestExcluded": 69,
+      "targetedReplay": {
+        "rows": 34,
+        "unselectedPreserved": 524,
+        "duplicates": 0,
+        "originalRunId": "c7ba90ae-7cdd-4b87-a831-c2ff33682adf"
+      }
+    }
+  },
+  "countsBefore": {
+    "buyList": 24,
+    "closestExcluded": 62
+  },
+  "countsPolicyOnly": {
+    "buyList": 24,
+    "closestExcluded": 62
+  },
+  "countsAfter": {
+    "buyList": 31,
+    "closestExcluded": 69
+  },
+  "newActionable": [
+    {
+      "opportunityId": "56978324-0e0f-42e2-92df-fa85db7b75ed",
+      "asin": "B002JMZSTA",
+      "ebayLegacyItemId": "327457073816",
+      "amazonTitle": "RHEM 2",
+      "landedCost": 14.95,
+      "estimatedProfit": 18.47,
+      "estimatedRoiPercent": 123.5,
+      "opportunityType": "best_offer",
+      "shippingQuoteStatus": "known_free",
+      "quantityAvailable": 1,
+      "sourceTags": [
+        "flipmine"
+      ],
+      "suggestedOfferPrice": 14.2
+    },
+    {
+      "opportunityId": "e4491b91-9639-461d-95dc-2924e20a30bf",
+      "asin": "B000ZKDOV2",
+      "ebayLegacyItemId": "336911334552",
+      "amazonTitle": "Saints Row 2",
+      "landedCost": 20.73,
+      "estimatedProfit": 57.47,
+      "estimatedRoiPercent": 277.2,
+      "opportunityType": "buy_now",
+      "shippingQuoteStatus": "known_paid",
+      "quantityAvailable": 1,
+      "sourceTags": [
+        "flipmine"
+      ],
+      "suggestedOfferPrice": null
+    },
+    {
+      "opportunityId": "89bbe585-ab86-46d0-ad38-dce716906ef1",
+      "asin": "B002I7A81E",
+      "ebayLegacyItemId": "307290899285",
+      "amazonTitle": "Monster 4x4 Stunt Racer with Wheel - Nintendo Wii",
+      "landedCost": 21.39,
+      "estimatedProfit": 19.84,
+      "estimatedRoiPercent": 92.8,
+      "opportunityType": "best_offer",
+      "shippingQuoteStatus": "known_paid",
+      "quantityAvailable": 1,
+      "sourceTags": [
+        "flipmine"
+      ],
+      "suggestedOfferPrice": 14.24
+    },
+    {
+      "opportunityId": "1e613929-aea1-4d74-b774-e008106d9477",
+      "asin": "B0069EB9DI",
+      "ebayLegacyItemId": "880124306447",
+      "amazonTitle": "Junior Classic Games 3D - Nintendo 3DS",
+      "landedCost": 33,
+      "estimatedProfit": 33.18,
+      "estimatedRoiPercent": 100.5,
+      "opportunityType": "best_offer",
+      "shippingQuoteStatus": "known_free",
+      "quantityAvailable": 1,
+      "sourceTags": [
+        "flipmine"
+      ],
+      "suggestedOfferPrice": 31.35
+    },
+    {
+      "opportunityId": "d4402a14-9f0a-4c68-bb70-5f34d3515125",
+      "asin": "B002TDIEDQ",
+      "ebayLegacyItemId": "257833297409",
+      "amazonTitle": "MotoGP 09/10 - Xbox 360",
+      "landedCost": 17.99,
+      "estimatedProfit": 10.74,
+      "estimatedRoiPercent": 59.7,
+      "opportunityType": "buy_now",
+      "shippingQuoteStatus": "known_free",
+      "quantityAvailable": 1,
+      "sourceTags": [
+        "flipmine"
+      ],
+      "suggestedOfferPrice": null
+    },
+    {
+      "opportunityId": "8827092e-6b12-43c7-9cd0-5f63eab28e37",
+      "asin": "B0012GOECQ",
+      "ebayLegacyItemId": "366822169641",
+      "amazonTitle": "Tony Hawk's Project 8 - PlayStation 2",
+      "landedCost": 33.98,
+      "estimatedProfit": 14.29,
+      "estimatedRoiPercent": 42.1,
+      "opportunityType": "buy_now",
+      "shippingQuoteStatus": "known_paid",
+      "quantityAvailable": 1,
+      "sourceTags": [
+        "flipmine"
+      ],
+      "suggestedOfferPrice": null
+    },
+    {
+      "opportunityId": "d5341e4e-e31c-402a-af2c-c733a997fc9a",
+      "asin": "B0734W6LYT",
+      "ebayLegacyItemId": "327435892919",
+      "amazonTitle": "Unbox: Newbies Adventure (Nintendo Switch)",
+      "landedCost": 31.47,
+      "estimatedProfit": 10.74,
+      "estimatedRoiPercent": 34.1,
+      "opportunityType": "best_offer",
+      "shippingQuoteStatus": "known_paid",
+      "quantityAvailable": 1,
+      "sourceTags": [
+        "flipmine"
+      ],
+      "suggestedOfferPrice": 23.68
+    }
+  ],
+  "apiCallsMainProcessAllAttempts": {
+    "Amazon:OAuth": 4,
+    "Amazon:read": 35,
+    "eBay:OAuth": 6,
+    "eBay:Analytics": 2,
+    "eBay:Browse": 31
+  },
+  "apiUsageLedgerDeltas": [
+    {
+      "resource": "buy.browse",
+      "job": "import_flipmine.py",
+      "day": "2026-11-26",
+      "attempts": 31
+    },
+    {
+      "resource": "trading",
+      "job": "essential:import_flipmine.py",
+      "day": "2026-11-26",
+      "attempts": 21
+    }
+  ],
+  "rows": [
+    {
+      "row": 6,
+      "asin": "B006NYWLTU",
+      "item": "840159942505",
+      "platforms": [
+        "PS Vita"
+      ],
+      "sourceStatusBefore": "evaluated",
+      "sourceStatus": "evaluated",
+      "opportunityStatusBefore": "rejected",
+      "opportunityStatus": "rejected",
+      "opportunityId": "a96eb327-46ca-44a6-ac5a-12efad1efce8",
+      "identity": "needs_review",
+      "identityReason": "Unresolved identity detail on one side: edition",
+      "condition": {
+        "hits": [],
+        "result": "pass",
+        "evidenceState": "affirmatively_new"
+      },
+      "purchaseUnit": {
+        "kind": "ordinary_listing",
+        "reason": "No seller lot or selection ambiguity observed.",
+        "result": "pass",
+        "version": "purchase_unit_v1"
+      },
+      "contents": {
+        "reason": "",
+        "result": "pass"
+      },
+      "normalPipelineLifecycleStatus": null,
+      "remainingReason": "Amazon and eBay platform/system evidence does not match.",
+      "protectedAtPlan": null,
+      "landedCost": 56.67,
+      "profit": 59.38,
+      "roi": 104.8,
+      "scenario": "no_profitable_source_found",
+      "maxOffer": null,
+      "priceSource": "keepa_new_90d_avg",
+      "sourceTags": [
+        "flipmine"
+      ]
+    },
+    {
+      "row": 43,
+      "asin": "B000ZKDOV2",
+      "item": "336911334552",
+      "platforms": [
+        "Xbox 360"
+      ],
+      "sourceStatusBefore": "excluded",
+      "sourceStatus": "evaluated",
+      "opportunityStatusBefore": "rejected",
+      "opportunityStatus": "open",
+      "opportunityId": "e4491b91-9639-461d-95dc-2924e20a30bf",
+      "identity": "match",
+      "identityReason": "Identity matched or unknown; unknown fields are not positive evidence.",
+      "condition": {
+        "hits": [],
+        "result": "pass",
+        "evidenceState": "affirmatively_new"
+      },
+      "purchaseUnit": {
+        "kind": "individual_with_seller_inventory_description",
+        "price": "14.0",
+        "reason": "Complete game identity, explicitly individually priced name and current fixed price agree; an individual unit is available.",
+        "result": "pass",
+        "signals": [
+          "Video Game Lot",
+          "BUNDLE DEALS",
+          "Individually Priced"
+        ],
+        "version": "purchase_unit_v1",
+        "namedPrices": [
+          "14"
+        ],
+        "pricingBasis": "provider individual item price; no lot allocation",
+        "conditionBasis": "Independent specific-item condition safeguards; generic testing is not a condition signal.",
+        "quantityAvailable": "1"
+      },
+      "contents": {
+        "reason": "",
+        "result": "pass"
+      },
+      "normalPipelineLifecycleStatus": null,
+      "remainingReason": null,
+      "protectedAtPlan": null,
+      "landedCost": 20.73,
+      "profit": 57.47,
+      "roi": 277.2,
+      "scenario": "buy_now",
+      "maxOffer": null,
+      "priceSource": "keepa_new_90d_avg",
+      "sourceTags": [
+        "flipmine"
+      ]
+    },
+    {
+      "row": 68,
+      "asin": "B012TRQKZA",
+      "item": "287748544230",
+      "platforms": [
+        "3DS"
+      ],
+      "sourceStatusBefore": "duplicate",
+      "sourceStatus": "evaluated",
+      "opportunityStatusBefore": "open",
+      "opportunityStatus": "rejected",
+      "opportunityId": "618d94be-9c95-4f67-a15a-e4ef7fc7beb6",
+      "identity": "match",
+      "identityReason": "Identity matched or unknown; unknown fields are not positive evidence.",
+      "condition": {
+        "hits": [],
+        "result": "pass",
+        "evidenceState": "affirmatively_new"
+      },
+      "purchaseUnit": {
+        "kind": "ordinary_listing",
+        "reason": "No seller lot or selection ambiguity observed.",
+        "result": "pass",
+        "version": "purchase_unit_v1"
+      },
+      "contents": {
+        "reason": "",
+        "result": "pass"
+      },
+      "normalPipelineLifecycleStatus": "dismissed",
+      "remainingReason": "Status is rejected, but stored diagnostics do not include a mapped rule.",
+      "protectedAtPlan": null,
+      "landedCost": 46.99,
+      "profit": 20.98,
+      "roi": 44.6,
+      "scenario": "best_offer",
+      "maxOffer": 44.64,
+      "priceSource": "keepa_new_90d_avg",
+      "sourceTags": [
+        "flipmine"
+      ]
+    },
+    {
+      "row": 93,
+      "asin": "B08MG7QWN7",
+      "item": "147691479318",
+      "platforms": [
+        "PS 4"
+      ],
+      "sourceStatusBefore": "excluded",
+      "sourceStatus": "evaluated",
+      "opportunityStatusBefore": "rejected",
+      "opportunityStatus": "rejected",
+      "opportunityId": "b40dc911-da46-4cd7-bb12-31ab50662af9",
+      "identity": "match",
+      "identityReason": "Identity matched or unknown; unknown fields are not positive evidence.",
+      "condition": {
+        "hits": [],
+        "result": "pass",
+        "evidenceState": "affirmatively_new"
+      },
+      "purchaseUnit": {
+        "kind": "ordinary_listing",
+        "reason": "No seller lot or selection ambiguity observed.",
+        "result": "pass",
+        "version": "purchase_unit_v1"
+      },
+      "contents": {
+        "reason": "",
+        "result": "pass"
+      },
+      "normalPipelineLifecycleStatus": null,
+      "remainingReason": "Profit or ROI did not meet the configured sourcing threshold.",
+      "protectedAtPlan": null,
+      "landedCost": 48.24,
+      "profit": 13.2,
+      "roi": 27.4,
+      "scenario": "watch",
+      "maxOffer": null,
+      "priceSource": "keepa_new_90d_avg",
+      "sourceTags": [
+        "flipmine"
+      ]
+    },
+    {
+      "row": 96,
+      "asin": "B00002R28Q",
+      "item": "800945744867",
+      "platforms": [
+        "PS"
+      ],
+      "sourceStatusBefore": "excluded",
+      "sourceStatus": "excluded",
+      "opportunityStatusBefore": "rejected",
+      "opportunityStatus": "rejected",
+      "opportunityId": "bf21853b-c4d9-4098-9cc7-208cedc4200c",
+      "identity": "non-match",
+      "identityReason": "coreProduct conflict: Amazon xena warrior princess, eBay xena warrior princess sony security label us; coreGame conflict: Amazon xena warrior princess, eBay xena warrior princess sony security label us",
+      "condition": {
+        "hits": [],
+        "result": "pass",
+        "evidenceState": "affirmatively_new"
+      },
+      "purchaseUnit": null,
+      "contents": {
+        "reason": "",
+        "result": "pass"
+      },
+      "normalPipelineLifecycleStatus": null,
+      "remainingReason": "ListingUnavailable: Listing ended or sold",
+      "protectedAtPlan": null,
+      "landedCost": 95.0,
+      "profit": 49.15,
+      "roi": 51.7,
+      "scenario": "no_profitable_source_found",
+      "maxOffer": null,
+      "priceSource": "keepa_new_90d_avg",
+      "sourceTags": [
+        "flipmine"
+      ]
+    },
+    {
+      "row": 109,
+      "asin": "B01M32FMUL",
+      "item": "860162864711",
+      "platforms": [
+        "PS 4"
+      ],
+      "sourceStatusBefore": "excluded",
+      "sourceStatus": "evaluated",
+      "opportunityStatusBefore": "rejected",
+      "opportunityStatus": "rejected",
+      "opportunityId": "91c88d3d-4b5d-48be-8e43-169dc6de4fbc",
+      "identity": "needs_review",
+      "identityReason": "Unresolved identity detail on one side: edition",
+      "condition": {
+        "hits": [
+          "pre-owned"
+        ],
+        "result": "blocked",
+        "evidenceState": "confirmed_unacceptable"
+      },
+      "purchaseUnit": {
+        "kind": "ordinary_listing",
+        "reason": "No seller lot or selection ambiguity observed.",
+        "result": "pass",
+        "version": "purchase_unit_v1"
+      },
+      "contents": {
+        "reason": "",
+        "result": "pass"
+      },
+      "normalPipelineLifecycleStatus": null,
+      "remainingReason": "Status is rejected, but stored diagnostics do not include a mapped rule.",
+      "protectedAtPlan": null,
+      "landedCost": 27.99,
+      "profit": 13.53,
+      "roi": 48.3,
+      "scenario": "no_profitable_source_found",
+      "maxOffer": null,
+      "priceSource": "keepa_new_90d_avg",
+      "sourceTags": [
+        "flipmine"
+      ]
+    },
+    {
+      "row": 110,
+      "asin": "B01LYEQNHP",
+      "item": "860162861797",
+      "platforms": [
+        "PS 4"
+      ],
+      "sourceStatusBefore": "excluded",
+      "sourceStatus": "excluded",
+      "opportunityStatusBefore": "rejected",
+      "opportunityStatus": "rejected",
+      "opportunityId": "41e17d7a-7771-47c9-b92e-ab89b7e1d300",
+      "identity": "non-match",
+      "identityReason": "coreProduct conflict: Amazon kingdom hearts hd final chapter prologue, eBay new kingdom hearts hd final chapter prologue; coreGame conflict: Amazon kingdom hearts hd 2.8 final chapter prologue, eBay new kingdom hearts hd 2.8 final chapter prologue",
+      "condition": {
+        "hits": [
+          "pre-owned",
+          "tested"
+        ],
+        "result": "blocked",
+        "evidenceState": "confirmed_unacceptable"
+      },
+      "purchaseUnit": null,
+      "contents": {
+        "reason": "",
+        "result": "pass"
+      },
+      "normalPipelineLifecycleStatus": null,
+      "remainingReason": "ListingUnavailable: Listing ended or sold",
+      "protectedAtPlan": null,
+      "landedCost": null,
+      "profit": null,
+      "roi": null,
+      "scenario": "no_profitable_source_found",
+      "maxOffer": null,
+      "priceSource": "keepa_new_90d_avg",
+      "sourceTags": [
+        "flipmine"
+      ]
+    },
+    {
+      "row": 121,
+      "asin": "B000H11F9M",
+      "item": "920164926760",
+      "platforms": [
+        "PC"
+      ],
+      "sourceStatusBefore": "excluded",
+      "sourceStatus": "evaluated",
+      "opportunityStatusBefore": "rejected",
+      "opportunityStatus": "rejected",
+      "opportunityId": "91a9d742-a19a-4ac3-8355-eb3d11336d4d",
+      "identity": "match",
+      "identityReason": "Identity matched or unknown; unknown fields are not positive evidence.",
+      "condition": {
+        "hits": [
+          "pre-owned"
+        ],
+        "result": "blocked",
+        "evidenceState": "confirmed_unacceptable"
+      },
+      "purchaseUnit": {
+        "kind": "ordinary_listing",
+        "reason": "No seller lot or selection ambiguity observed.",
+        "result": "pass",
+        "version": "purchase_unit_v1"
+      },
+      "contents": {
+        "reason": "",
+        "result": "pass"
+      },
+      "normalPipelineLifecycleStatus": null,
+      "remainingReason": "Status is rejected, but stored diagnostics do not include a mapped rule.",
+      "protectedAtPlan": null,
+      "landedCost": 29.99,
+      "profit": 19.31,
+      "roi": 64.4,
+      "scenario": "no_profitable_source_found",
+      "maxOffer": null,
+      "priceSource": "keepa_new_90d_avg",
+      "sourceTags": [
+        "flipmine"
+      ]
+    },
+    {
+      "row": 136,
+      "asin": "B002I7A81E",
+      "item": "307290899285",
+      "platforms": [
+        "Wii"
+      ],
+      "sourceStatusBefore": "excluded",
+      "sourceStatus": "evaluated",
+      "opportunityStatusBefore": "rejected",
+      "opportunityStatus": "open",
+      "opportunityId": "89bbe585-ab86-46d0-ad38-dce716906ef1",
+      "identity": "match",
+      "identityReason": "Identity matched or unknown; unknown fields are not positive evidence.",
+      "condition": {
+        "hits": [],
+        "result": "pass",
+        "evidenceState": "affirmatively_new"
+      },
+      "purchaseUnit": {
+        "kind": "ordinary_listing",
+        "reason": "No seller lot or selection ambiguity observed.",
+        "result": "pass",
+        "version": "purchase_unit_v1"
+      },
+      "contents": {
+        "reason": "",
+        "result": "pass"
+      },
+      "normalPipelineLifecycleStatus": null,
+      "remainingReason": null,
+      "protectedAtPlan": null,
+      "landedCost": 21.39,
+      "profit": 19.84,
+      "roi": 92.8,
+      "scenario": "best_offer",
+      "maxOffer": 14.24,
+      "priceSource": "keepa_new_90d_avg",
+      "sourceTags": [
+        "flipmine"
+      ]
+    },
+    {
+      "row": 141,
+      "asin": "B01LDUYU60",
+      "item": "880133103293",
+      "platforms": [
+        "3DS"
+      ],
+      "sourceStatusBefore": "evaluated",
+      "sourceStatus": "evaluated",
+      "opportunityStatusBefore": "inventory_snoozed",
+      "opportunityStatus": "inventory_snoozed",
+      "opportunityId": "800c3ab0-9a3e-4f3a-b6d4-811a38da60b6",
+      "identity": "needs_review",
+      "identityReason": "Unresolved identity detail on one side: edition",
+      "condition": {
+        "hits": [],
+        "result": "pass"
+      },
+      "purchaseUnit": null,
+      "contents": null,
+      "normalPipelineLifecycleStatus": null,
+      "remainingReason": "Profit or ROI did not meet the configured sourcing threshold.",
+      "protectedAtPlan": "protected_lifecycle",
+      "landedCost": null,
+      "profit": null,
+      "roi": null,
+      "scenario": "no_profitable_source_found",
+      "maxOffer": null,
+      "priceSource": "most_recent_sale",
+      "sourceTags": [
+        "flipmine"
+      ]
+    },
+    {
+      "row": 151,
+      "asin": "B0012GOECQ",
+      "item": "366822169641",
+      "platforms": [
+        "PS 2"
+      ],
+      "sourceStatusBefore": "excluded",
+      "sourceStatus": "evaluated",
+      "opportunityStatusBefore": "rejected",
+      "opportunityStatus": "open",
+      "opportunityId": "8827092e-6b12-43c7-9cd0-5f63eab28e37",
+      "identity": "match",
+      "identityReason": "Identity matched or unknown; unknown fields are not positive evidence.",
+      "condition": {
+        "hits": [],
+        "result": "pass",
+        "evidenceState": "affirmatively_new"
+      },
+      "purchaseUnit": {
+        "kind": "ordinary_listing",
+        "reason": "No seller lot or selection ambiguity observed.",
+        "result": "pass",
+        "version": "purchase_unit_v1"
+      },
+      "contents": {
+        "reason": "",
+        "result": "pass"
+      },
+      "normalPipelineLifecycleStatus": null,
+      "remainingReason": null,
+      "protectedAtPlan": null,
+      "landedCost": 33.98,
+      "profit": 14.29,
+      "roi": 42.1,
+      "scenario": "buy_now",
+      "maxOffer": null,
+      "priceSource": "keepa_new_90d_avg",
+      "sourceTags": [
+        "flipmine"
+      ]
+    },
+    {
+      "row": 225,
+      "asin": "B003O6ECW4",
+      "item": "820366755235",
+      "platforms": [
+        "PS 3"
+      ],
+      "sourceStatusBefore": "excluded",
+      "sourceStatus": "evaluated",
+      "opportunityStatusBefore": "rejected",
+      "opportunityStatus": "rejected",
+      "opportunityId": "3bc193a0-7db7-48bf-b9a8-623b9f260608",
+      "identity": "non-match",
+      "identityReason": "coreProduct conflict: Amazon batman arkham city, eBay new batman arkham city pal; coreGame conflict: Amazon batman arkham city, eBay new batman arkham city pal",
+      "condition": {
+        "hits": [
+          "pre-owned"
+        ],
+        "result": "blocked",
+        "evidenceState": "confirmed_unacceptable"
+      },
+      "purchaseUnit": {
+        "kind": "ordinary_listing",
+        "reason": "No seller lot or selection ambiguity observed.",
+        "result": "pass",
+        "version": "purchase_unit_v1"
+      },
+      "contents": {
+        "reason": "",
+        "result": "pass"
+      },
+      "normalPipelineLifecycleStatus": null,
+      "remainingReason": "eBay evidence identifies a different game name from the Amazon product.",
+      "protectedAtPlan": null,
+      "landedCost": 98.99,
+      "profit": 68.16,
+      "roi": 68.9,
+      "scenario": "no_profitable_source_found",
+      "maxOffer": null,
+      "priceSource": "keepa_new_90d_avg",
+      "sourceTags": [
+        "flipmine"
+      ]
+    },
+    {
+      "row": 230,
+      "asin": "B00B59L9VO",
+      "item": "128201231351",
+      "platforms": [
+        "Xbox 360"
+      ],
+      "sourceStatusBefore": "excluded",
+      "sourceStatus": "excluded",
+      "opportunityStatusBefore": "rejected",
+      "opportunityStatus": "rejected",
+      "opportunityId": "09f9f30c-9e57-4e12-a440-3d5ba04e3942",
+      "identity": "non-match",
+      "identityReason": "coreProduct conflict: Amazon resident evil revelations, eBay resident evil revelations fast ship cracked case see pics; coreGame conflict: Amazon resident evil revelations, eBay resident evil revelations fast ship cracked case see pics",
+      "condition": {
+        "hits": [
+          "cracked case"
+        ],
+        "result": "blocked",
+        "evidenceState": "confirmed_unacceptable"
+      },
+      "purchaseUnit": null,
+      "contents": {
+        "reason": "",
+        "result": "pass"
+      },
+      "normalPipelineLifecycleStatus": null,
+      "remainingReason": "ListingUnavailable: Listing ended or sold",
+      "protectedAtPlan": null,
+      "landedCost": null,
+      "profit": null,
+      "roi": null,
+      "scenario": "no_profitable_source_found",
+      "maxOffer": null,
+      "priceSource": "keepa_new_90d_avg",
+      "sourceTags": [
+        "flipmine"
+      ]
+    },
+    {
+      "row": 236,
+      "asin": "B08MG5FYS6",
+      "item": "366817233237",
+      "platforms": [
+        "PS 5"
+      ],
+      "sourceStatusBefore": "excluded",
+      "sourceStatus": "evaluated",
+      "opportunityStatusBefore": "rejected",
+      "opportunityStatus": "rejected",
+      "opportunityId": "7ba3bee0-986a-4e3d-bfa3-899b41f50e18",
+      "identity": "match",
+      "identityReason": "Identity matched or unknown; unknown fields are not positive evidence.",
+      "condition": {
+        "hits": [
+          "pre-owned"
+        ],
+        "result": "blocked",
+        "evidenceState": "confirmed_unacceptable"
+      },
+      "purchaseUnit": {
+        "kind": "ordinary_listing",
+        "reason": "No seller lot or selection ambiguity observed.",
+        "result": "pass",
+        "version": "purchase_unit_v1"
+      },
+      "contents": {
+        "reason": "",
+        "result": "pass"
+      },
+      "normalPipelineLifecycleStatus": null,
+      "remainingReason": "Status is rejected, but stored diagnostics do not include a mapped rule.",
+      "protectedAtPlan": null,
+      "landedCost": 29.99,
+      "profit": 8.36,
+      "roi": 27.9,
+      "scenario": "no_profitable_source_found",
+      "maxOffer": null,
+      "priceSource": "most_recent_sale",
+      "sourceTags": [
+        "flipmine"
+      ]
+    },
+    {
+      "row": 251,
+      "asin": "B000PMGN2M",
+      "item": "147683990138",
+      "platforms": [
+        "Wii"
+      ],
+      "sourceStatusBefore": "excluded",
+      "sourceStatus": "excluded",
+      "opportunityStatusBefore": "rejected",
+      "opportunityStatus": "rejected",
+      "opportunityId": "625e8c4c-b141-46db-8020-c6dca703df5a",
+      "identity": "non-match",
+      "identityReason": "coreProduct conflict: Amazon dance dance revolution hottest party bundle, eBay new dance dance revolution hottest party bundle; coreGame conflict: Amazon dance dance revolution hottest party bundle, eBay new dance dance revolution hottest party bundle",
+      "condition": {
+        "hits": [
+          "pre-owned",
+          "tested"
+        ],
+        "result": "blocked",
+        "evidenceState": "confirmed_unacceptable"
+      },
+      "purchaseUnit": null,
+      "contents": {
+        "reason": "Required bundle contents not corroborated; exact-ASIN manifest unresolved.",
+        "result": "review"
+      },
+      "normalPipelineLifecycleStatus": null,
+      "remainingReason": "ListingUnavailable: Listing ended or sold",
+      "protectedAtPlan": null,
+      "landedCost": null,
+      "profit": null,
+      "roi": null,
+      "scenario": "no_profitable_source_found",
+      "maxOffer": null,
+      "priceSource": "keepa_new_90d_avg",
+      "sourceTags": [
+        "flipmine"
+      ]
+    },
+    {
+      "row": 257,
+      "asin": "B0069EB9DI",
+      "item": "880124306447",
+      "platforms": [
+        "3DS"
+      ],
+      "sourceStatusBefore": "evaluated",
+      "sourceStatus": "evaluated",
+      "opportunityStatusBefore": "rejected",
+      "opportunityStatus": "open",
+      "opportunityId": "1e613929-aea1-4d74-b774-e008106d9477",
+      "identity": "match",
+      "identityReason": "Identity matched or unknown; unknown fields are not positive evidence.",
+      "condition": {
+        "hits": [],
+        "result": "pass",
+        "evidenceState": "affirmatively_new"
+      },
+      "purchaseUnit": {
+        "kind": "ordinary_listing",
+        "reason": "No seller lot or selection ambiguity observed.",
+        "result": "pass",
+        "version": "purchase_unit_v1"
+      },
+      "contents": {
+        "reason": "",
+        "result": "pass"
+      },
+      "normalPipelineLifecycleStatus": null,
+      "remainingReason": null,
+      "protectedAtPlan": null,
+      "landedCost": 33.0,
+      "profit": 33.18,
+      "roi": 100.5,
+      "scenario": "best_offer",
+      "maxOffer": 31.35,
+      "priceSource": "keepa_new_90d_avg",
+      "sourceTags": [
+        "flipmine"
+      ]
+    },
+    {
+      "row": 275,
+      "asin": "B00009WAUY",
+      "item": "307284831338",
+      "platforms": [
+        "PS 2"
+      ],
+      "sourceStatusBefore": "excluded",
+      "sourceStatus": "evaluated",
+      "opportunityStatusBefore": "rejected",
+      "opportunityStatus": "rejected",
+      "opportunityId": "ff15b8fb-4c68-4cf9-9c91-2f8c70de5325",
+      "identity": "match",
+      "identityReason": "Identity matched or unknown; unknown fields are not positive evidence.",
+      "condition": {
+        "hits": [
+          "pre-owned"
+        ],
+        "result": "blocked",
+        "evidenceState": "confirmed_unacceptable"
+      },
+      "purchaseUnit": {
+        "kind": "ordinary_listing",
+        "reason": "No seller lot or selection ambiguity observed.",
+        "result": "pass",
+        "version": "purchase_unit_v1"
+      },
+      "contents": {
+        "reason": "",
+        "result": "pass"
+      },
+      "normalPipelineLifecycleStatus": null,
+      "remainingReason": "Status is rejected, but stored diagnostics do not include a mapped rule.",
+      "protectedAtPlan": null,
+      "landedCost": 22.99,
+      "profit": 7.38,
+      "roi": 32.1,
+      "scenario": "no_profitable_source_found",
+      "maxOffer": null,
+      "priceSource": "keepa_new_90d_avg",
+      "sourceTags": [
+        "flipmine"
+      ]
+    },
+    {
+      "row": 276,
+      "asin": "B00386VMWI",
+      "item": "147682618925",
+      "platforms": [
+        "PS 3"
+      ],
+      "sourceStatusBefore": "excluded",
+      "sourceStatus": "evaluated",
+      "opportunityStatusBefore": "rejected",
+      "opportunityStatus": "rejected",
+      "opportunityId": "52a0f8e3-06b3-4af3-8fbf-551a62ff0a7d",
+      "identity": "match",
+      "identityReason": "Identity matched or unknown; unknown fields are not positive evidence.",
+      "condition": {
+        "hits": [],
+        "result": "pass",
+        "evidenceState": "affirmatively_new"
+      },
+      "purchaseUnit": {
+        "kind": "ordinary_listing",
+        "reason": "No seller lot or selection ambiguity observed.",
+        "result": "pass",
+        "version": "purchase_unit_v1"
+      },
+      "contents": {
+        "reason": "",
+        "result": "pass"
+      },
+      "normalPipelineLifecycleStatus": null,
+      "remainingReason": "Profit or ROI did not meet the configured sourcing threshold.",
+      "protectedAtPlan": null,
+      "landedCost": 25.99,
+      "profit": 7.24,
+      "roi": 27.9,
+      "scenario": "no_profitable_source_found",
+      "maxOffer": null,
+      "priceSource": "keepa_new_90d_avg",
+      "sourceTags": [
+        "flipmine"
+      ]
+    },
+    {
+      "row": 286,
+      "asin": "B09KW6KKSY",
+      "item": "137933943568",
+      "platforms": [
+        "PS 5"
+      ],
+      "sourceStatusBefore": "excluded",
+      "sourceStatus": "evaluated",
+      "opportunityStatusBefore": "rejected",
+      "opportunityStatus": "rejected",
+      "opportunityId": "05f1d444-9454-4a80-9553-99e6ea4677ca",
+      "identity": "needs_review",
+      "identityReason": "edition review: Amazon Collector's Edition, eBay Collector's Edition",
+      "condition": {
+        "hits": [],
+        "result": "pass",
+        "evidenceState": "affirmatively_new"
+      },
+      "purchaseUnit": {
+        "kind": "ordinary_listing",
+        "reason": "No seller lot or selection ambiguity observed.",
+        "result": "pass",
+        "version": "purchase_unit_v1"
+      },
+      "contents": {
+        "reason": "",
+        "result": "pass"
+      },
+      "normalPipelineLifecycleStatus": null,
+      "remainingReason": "The listing appears incomplete, disc-only, case-only, or missing expected contents.",
+      "protectedAtPlan": null,
+      "landedCost": 349.86,
+      "profit": 270.06,
+      "roi": 77.2,
+      "scenario": "no_profitable_source_found",
+      "maxOffer": 308.74,
+      "priceSource": "keepa_new_90d_avg",
+      "sourceTags": [
+        "flipmine"
+      ]
+    },
+    {
+      "row": 293,
+      "asin": "B006MO221S",
+      "item": "900093607911",
+      "platforms": [
+        "PS Vita"
+      ],
+      "sourceStatusBefore": "evaluated",
+      "sourceStatus": "evaluated",
+      "opportunityStatusBefore": "rejected",
+      "opportunityStatus": "rejected",
+      "opportunityId": "ff40f0af-6518-4035-b1e7-459e56e775b4",
+      "identity": "needs_review",
+      "identityReason": "Unresolved identity detail on one side: edition",
+      "condition": {
+        "hits": [],
+        "result": "pass",
+        "evidenceState": "affirmatively_new"
+      },
+      "purchaseUnit": {
+        "kind": "ordinary_listing",
+        "reason": "No seller lot or selection ambiguity observed.",
+        "result": "pass",
+        "version": "purchase_unit_v1"
+      },
+      "contents": {
+        "reason": "",
+        "result": "pass"
+      },
+      "normalPipelineLifecycleStatus": null,
+      "remainingReason": "Amazon and eBay platform/system evidence does not match.",
+      "protectedAtPlan": null,
+      "landedCost": 41.55,
+      "profit": 13.73,
+      "roi": 33.0,
+      "scenario": "no_profitable_source_found",
+      "maxOffer": 32.93,
+      "priceSource": "keepa_new_90d_avg",
+      "sourceTags": [
+        "flipmine"
+      ]
+    },
+    {
+      "row": 302,
+      "asin": "B002JMZSTA",
+      "item": "327457073816",
+      "platforms": [
+        "PC"
+      ],
+      "sourceStatusBefore": "excluded",
+      "sourceStatus": "evaluated",
+      "opportunityStatusBefore": "rejected",
+      "opportunityStatus": "open",
+      "opportunityId": "56978324-0e0f-42e2-92df-fa85db7b75ed",
+      "identity": "match",
+      "identityReason": "Identity matched or unknown; unknown fields are not positive evidence.",
+      "condition": {
+        "hits": [],
+        "result": "pass",
+        "evidenceState": "affirmatively_new"
+      },
+      "purchaseUnit": {
+        "kind": "ordinary_listing",
+        "reason": "No seller lot or selection ambiguity observed.",
+        "result": "pass",
+        "version": "purchase_unit_v1"
+      },
+      "contents": {
+        "reason": "",
+        "result": "pass"
+      },
+      "normalPipelineLifecycleStatus": null,
+      "remainingReason": null,
+      "protectedAtPlan": null,
+      "landedCost": 14.95,
+      "profit": 18.47,
+      "roi": 123.5,
+      "scenario": "best_offer",
+      "maxOffer": 14.2,
+      "priceSource": "keepa_new_90d_avg",
+      "sourceTags": [
+        "flipmine"
+      ]
+    },
+    {
+      "row": 326,
+      "asin": "B0081AWTZA",
+      "item": "920140129422",
+      "platforms": [
+        "Xbox 360"
+      ],
+      "sourceStatusBefore": "excluded",
+      "sourceStatus": "evaluated",
+      "opportunityStatusBefore": "rejected",
+      "opportunityStatus": "rejected",
+      "opportunityId": "de9334dc-fc4d-4233-8eb0-dff41441b928",
+      "identity": "needs_review",
+      "identityReason": "edition review: Amazon Greatest Hits, eBay Greatest Hits",
+      "condition": {
+        "hits": [
+          "pre-owned"
+        ],
+        "result": "blocked",
+        "evidenceState": "confirmed_unacceptable"
+      },
+      "purchaseUnit": {
+        "kind": "ordinary_listing",
+        "reason": "No seller lot or selection ambiguity observed.",
+        "result": "pass",
+        "version": "purchase_unit_v1"
+      },
+      "contents": {
+        "reason": "",
+        "result": "pass"
+      },
+      "normalPipelineLifecycleStatus": null,
+      "remainingReason": "Status is rejected, but stored diagnostics do not include a mapped rule.",
+      "protectedAtPlan": null,
+      "landedCost": 24.99,
+      "profit": 7.43,
+      "roi": 29.7,
+      "scenario": "no_profitable_source_found",
+      "maxOffer": null,
+      "priceSource": "keepa_new_90d_avg",
+      "sourceTags": [
+        "flipmine"
+      ]
+    },
+    {
+      "row": 346,
+      "asin": "B0000E3D8T",
+      "item": "920136106354",
+      "platforms": [
+        "PS 2"
+      ],
+      "sourceStatusBefore": "excluded",
+      "sourceStatus": "evaluated",
+      "opportunityStatusBefore": "rejected",
+      "opportunityStatus": "rejected",
+      "opportunityId": "93a75d0f-87bd-4399-8eea-2874224bf139",
+      "identity": "match",
+      "identityReason": "Identity matched or unknown; unknown fields are not positive evidence.",
+      "condition": {
+        "hits": [
+          "pre-owned"
+        ],
+        "result": "blocked",
+        "evidenceState": "confirmed_unacceptable"
+      },
+      "purchaseUnit": {
+        "kind": "ordinary_listing",
+        "reason": "No seller lot or selection ambiguity observed.",
+        "result": "pass",
+        "version": "purchase_unit_v1"
+      },
+      "contents": {
+        "reason": "",
+        "result": "pass"
+      },
+      "normalPipelineLifecycleStatus": null,
+      "remainingReason": "Status is rejected, but stored diagnostics do not include a mapped rule.",
+      "protectedAtPlan": null,
+      "landedCost": 39.99,
+      "profit": 76.31,
+      "roi": 190.8,
+      "scenario": "no_profitable_source_found",
+      "maxOffer": null,
+      "priceSource": "keepa_new_90d_avg",
+      "sourceTags": [
+        "flipmine"
+      ]
+    },
+    {
+      "row": 378,
+      "asin": "B00KWG4HG0",
+      "item": "880104167202",
+      "platforms": [
+        "Wii U"
+      ],
+      "sourceStatusBefore": "excluded",
+      "sourceStatus": "evaluated",
+      "opportunityStatusBefore": "rejected",
+      "opportunityStatus": "rejected",
+      "opportunityId": "9f141fe2-1caf-4260-b7dc-a38b88cbfd73",
+      "identity": "match",
+      "identityReason": "Identity matched or unknown; unknown fields are not positive evidence.",
+      "condition": {
+        "hits": [],
+        "result": "pass",
+        "evidenceState": "affirmatively_new"
+      },
+      "purchaseUnit": {
+        "kind": "ordinary_listing",
+        "reason": "No seller lot or selection ambiguity observed.",
+        "result": "pass",
+        "version": "purchase_unit_v1"
+      },
+      "contents": {
+        "reason": "",
+        "result": "pass"
+      },
+      "normalPipelineLifecycleStatus": null,
+      "remainingReason": "Profit or ROI did not meet the configured sourcing threshold.",
+      "protectedAtPlan": null,
+      "landedCost": 34.15,
+      "profit": 11.43,
+      "roi": 33.5,
+      "scenario": "no_profitable_source_found",
+      "maxOffer": null,
+      "priceSource": "keepa_new_90d_avg",
+      "sourceTags": [
+        "flipmine"
+      ]
+    },
+    {
+      "row": 388,
+      "asin": "B006VB2W08",
+      "item": "960180062795",
+      "platforms": [
+        "PS Vita"
+      ],
+      "sourceStatusBefore": "evaluated",
+      "sourceStatus": "evaluated",
+      "opportunityStatusBefore": "rejected",
+      "opportunityStatus": "rejected",
+      "opportunityId": "cc5ecc5b-5f85-4748-9eea-2f518bedf38d",
+      "identity": "needs_review",
+      "identityReason": "Unresolved identity detail on one side: edition",
+      "condition": {
+        "hits": [],
+        "result": "pass",
+        "evidenceState": "affirmatively_new"
+      },
+      "purchaseUnit": {
+        "kind": "ordinary_listing",
+        "reason": "No seller lot or selection ambiguity observed.",
+        "result": "pass",
+        "version": "purchase_unit_v1"
+      },
+      "contents": {
+        "reason": "",
+        "result": "pass"
+      },
+      "normalPipelineLifecycleStatus": null,
+      "remainingReason": "Amazon and eBay platform/system evidence does not match.",
+      "protectedAtPlan": null,
+      "landedCost": 40.73,
+      "profit": 20.77,
+      "roi": 51.0,
+      "scenario": "no_profitable_source_found",
+      "maxOffer": 33.25,
+      "priceSource": "keepa_new_90d_avg",
+      "sourceTags": [
+        "flipmine"
+      ]
+    },
+    {
+      "row": 392,
+      "asin": "B006Y76HY6",
+      "item": "307276397847",
+      "platforms": [
+        "3DS"
+      ],
+      "sourceStatusBefore": "evaluated",
+      "sourceStatus": "evaluated",
+      "opportunityStatusBefore": "rejected",
+      "opportunityStatus": "rejected",
+      "opportunityId": "6dfa5564-a19e-4cc2-9cbd-254c844297da",
+      "identity": "needs_review",
+      "identityReason": "Unresolved identity detail on one side: edition",
+      "condition": {
+        "hits": [],
+        "result": "pass",
+        "evidenceState": "affirmatively_new"
+      },
+      "purchaseUnit": {
+        "kind": "ordinary_listing",
+        "reason": "No seller lot or selection ambiguity observed.",
+        "result": "pass",
+        "version": "purchase_unit_v1"
+      },
+      "contents": {
+        "reason": "Required AR book not corroborated.",
+        "result": "review"
+      },
+      "normalPipelineLifecycleStatus": null,
+      "remainingReason": "Required AR book not corroborated.",
+      "protectedAtPlan": null,
+      "landedCost": 46.85,
+      "profit": 38.2,
+      "roi": 81.5,
+      "scenario": "no_profitable_source_found",
+      "maxOffer": 38.0,
+      "priceSource": "keepa_new_90d_avg",
+      "sourceTags": [
+        "flipmine"
+      ]
+    },
+    {
+      "row": 421,
+      "asin": "B000001LXM",
+      "item": "366796616088",
+      "platforms": [
+        "PC"
+      ],
+      "sourceStatusBefore": "excluded",
+      "sourceStatus": "evaluated",
+      "opportunityStatusBefore": "rejected",
+      "opportunityStatus": "rejected",
+      "opportunityId": "f1279309-65e6-44b8-9e88-56312f2c762b",
+      "identity": "non-match",
+      "identityReason": "coreProduct conflict: Amazon shadows of cairn cd rom, eBay mesque shadows of cairn sw; coreGame conflict: Amazon shadows of cairn cd rom, eBay mesque shadows of cairn sw",
+      "condition": {
+        "hits": [
+          "acceptable",
+          "like new",
+          "pre-owned",
+          "used",
+          "crack in case"
+        ],
+        "result": "blocked",
+        "evidenceState": "confirmed_unacceptable"
+      },
+      "purchaseUnit": {
+        "kind": "ordinary_listing",
+        "reason": "No seller lot or selection ambiguity observed.",
+        "result": "pass",
+        "version": "purchase_unit_v1"
+      },
+      "contents": {
+        "reason": "",
+        "result": "pass"
+      },
+      "normalPipelineLifecycleStatus": null,
+      "remainingReason": "eBay evidence identifies a different game name from the Amazon product.",
+      "protectedAtPlan": null,
+      "landedCost": 11.82,
+      "profit": 16.66,
+      "roi": 140.9,
+      "scenario": "no_profitable_source_found",
+      "maxOffer": null,
+      "priceSource": "keepa_new_90d_avg",
+      "sourceTags": [
+        "flipmine"
+      ]
+    },
+    {
+      "row": 449,
+      "asin": "B004HVKA9O",
+      "item": "267836776844",
+      "platforms": [
+        "PS 3"
+      ],
+      "sourceStatusBefore": "excluded",
+      "sourceStatus": "evaluated",
+      "opportunityStatusBefore": "rejected",
+      "opportunityStatus": "rejected",
+      "opportunityId": "f8ad3b95-7984-4d51-89c3-67dc90da8f33",
+      "identity": "non-match",
+      "identityReason": "coreProduct conflict: Amazon dynasty warriors, eBay dynasty warriors for the no manual tested and working; coreGame conflict: Amazon dynasty warriors 7, eBay dynasty warriors 7 for the no manual tested and working",
+      "condition": {
+        "hits": [
+          "pre-owned"
+        ],
+        "result": "blocked",
+        "evidenceState": "confirmed_unacceptable"
+      },
+      "purchaseUnit": {
+        "kind": "ordinary_listing",
+        "reason": "No seller lot or selection ambiguity observed.",
+        "result": "pass",
+        "version": "purchase_unit_v1"
+      },
+      "contents": {
+        "reason": "",
+        "result": "pass"
+      },
+      "normalPipelineLifecycleStatus": null,
+      "remainingReason": "eBay evidence identifies a different game name from the Amazon product.",
+      "protectedAtPlan": null,
+      "landedCost": 14.95,
+      "profit": 11.09,
+      "roi": 74.2,
+      "scenario": "no_profitable_source_found",
+      "maxOffer": 7.59,
+      "priceSource": "keepa_new_90d_avg",
+      "sourceTags": [
+        "flipmine"
+      ]
+    },
+    {
+      "row": 477,
+      "asin": "B0028ZH7GU",
+      "item": "407342909778",
+      "platforms": [
+        "Wii"
+      ],
+      "sourceStatusBefore": "excluded",
+      "sourceStatus": "excluded",
+      "opportunityStatusBefore": "rejected",
+      "opportunityStatus": "rejected",
+      "opportunityId": "dd46b966-ce62-4616-bcc9-0506bebf261c",
+      "identity": "non-match",
+      "identityReason": "coreProduct conflict: Amazon guitar hero, eBay new guitar hero; coreGame conflict: Amazon guitar hero 5, eBay new guitar hero 5",
+      "condition": {
+        "hits": [
+          "pre-owned",
+          "tested"
+        ],
+        "result": "blocked",
+        "evidenceState": "confirmed_unacceptable"
+      },
+      "purchaseUnit": null,
+      "contents": {
+        "reason": "",
+        "result": "pass"
+      },
+      "normalPipelineLifecycleStatus": null,
+      "remainingReason": "ListingUnavailable: Listing ended or sold",
+      "protectedAtPlan": null,
+      "landedCost": null,
+      "profit": null,
+      "roi": null,
+      "scenario": "no_profitable_source_found",
+      "maxOffer": null,
+      "priceSource": "keepa_new_90d_avg",
+      "sourceTags": [
+        "flipmine"
+      ]
+    },
+    {
+      "row": 491,
+      "asin": "B01K63R7EW",
+      "item": "800878247719",
+      "platforms": [
+        "Xbox One"
+      ],
+      "sourceStatusBefore": "excluded",
+      "sourceStatus": "excluded",
+      "opportunityStatusBefore": "rejected",
+      "opportunityStatus": "rejected",
+      "opportunityId": "0d48a1c1-9c86-49ed-a8b0-8a707a97d25a",
+      "identity": "non-match",
+      "identityReason": "coreProduct conflict: Amazon destiny the collection, eBay new destiny the collection free shipn; coreGame conflict: Amazon destiny the collection, eBay new destiny the collection free shipn",
+      "condition": {
+        "hits": [],
+        "result": "pass",
+        "evidenceState": "affirmatively_new"
+      },
+      "purchaseUnit": null,
+      "contents": {
+        "reason": "",
+        "result": "pass"
+      },
+      "normalPipelineLifecycleStatus": null,
+      "remainingReason": "Excluded by normal catalog eligibility/inventory/demand checks",
+      "protectedAtPlan": null,
+      "landedCost": 27.88,
+      "profit": 3.07,
+      "roi": 11.0,
+      "scenario": "no_profitable_source_found",
+      "maxOffer": null,
+      "priceSource": "most_recent_sale",
+      "sourceTags": [
+        "flipmine"
+      ]
+    },
+    {
+      "row": 504,
+      "asin": "B000UQSRMC",
+      "item": "840093208333",
+      "platforms": [
+        "PC"
+      ],
+      "sourceStatusBefore": "excluded",
+      "sourceStatus": "evaluated",
+      "opportunityStatusBefore": "rejected",
+      "opportunityStatus": "rejected",
+      "opportunityId": "01853fb4-c757-4e24-9d30-7a8efa7b69da",
+      "identity": "match",
+      "identityReason": "Identity matched or unknown; unknown fields are not positive evidence.",
+      "condition": {
+        "hits": [
+          "visible cracks on case"
+        ],
+        "result": "blocked",
+        "evidenceState": "confirmed_unacceptable"
+      },
+      "purchaseUnit": {
+        "kind": "ordinary_listing",
+        "reason": "No seller lot or selection ambiguity observed.",
+        "result": "pass",
+        "version": "purchase_unit_v1"
+      },
+      "contents": {
+        "reason": "",
+        "result": "pass"
+      },
+      "normalPipelineLifecycleStatus": null,
+      "remainingReason": "Status is rejected, but stored diagnostics do not include a mapped rule.",
+      "protectedAtPlan": null,
+      "landedCost": 13.6,
+      "profit": 17.84,
+      "roi": 131.2,
+      "scenario": "no_profitable_source_found",
+      "maxOffer": null,
+      "priceSource": "keepa_new_90d_avg",
+      "sourceTags": [
+        "flipmine"
+      ]
+    },
+    {
+      "row": 513,
+      "asin": "B002TDIEDQ",
+      "item": "257833297409",
+      "platforms": [
+        "Xbox 360"
+      ],
+      "sourceStatusBefore": "excluded",
+      "sourceStatus": "evaluated",
+      "opportunityStatusBefore": "rejected",
+      "opportunityStatus": "open",
+      "opportunityId": "d4402a14-9f0a-4c68-bb70-5f34d3515125",
+      "identity": "match",
+      "identityReason": "Identity matched or unknown; unknown fields are not positive evidence.",
+      "condition": {
+        "hits": [],
+        "result": "pass",
+        "evidenceState": "affirmatively_new"
+      },
+      "purchaseUnit": {
+        "kind": "ordinary_listing",
+        "reason": "No seller lot or selection ambiguity observed.",
+        "result": "pass",
+        "version": "purchase_unit_v1"
+      },
+      "contents": {
+        "reason": "",
+        "result": "pass"
+      },
+      "normalPipelineLifecycleStatus": null,
+      "remainingReason": null,
+      "protectedAtPlan": null,
+      "landedCost": 17.99,
+      "profit": 10.74,
+      "roi": 59.7,
+      "scenario": "buy_now",
+      "maxOffer": null,
+      "priceSource": "keepa_new_90d_avg",
+      "sourceTags": [
+        "flipmine"
+      ]
+    },
+    {
+      "row": 521,
+      "asin": "B00GQT1LNO",
+      "item": "920101885357",
+      "platforms": [
+        "3DS"
+      ],
+      "sourceStatusBefore": "evaluated",
+      "sourceStatus": "evaluated",
+      "opportunityStatusBefore": "dismissed",
+      "opportunityStatus": "dismissed",
+      "opportunityId": "50b8ed37-e7e3-405b-a5d7-b1ad01142983",
+      "identity": "match",
+      "identityReason": "Identity matched or unknown; unknown fields are not positive evidence.",
+      "condition": {
+        "hits": [],
+        "result": "pass"
+      },
+      "purchaseUnit": null,
+      "contents": null,
+      "normalPipelineLifecycleStatus": null,
+      "remainingReason": null,
+      "protectedAtPlan": "asin_business_hold",
+      "landedCost": 39.84,
+      "profit": 51.3,
+      "roi": 128.8,
+      "scenario": "best_offer",
+      "maxOffer": 31.34,
+      "priceSource": "keepa_new_90d_avg",
+      "sourceTags": [
+        "flipmine"
+      ]
+    },
+    {
+      "row": 544,
+      "asin": "B0734W6LYT",
+      "item": "327435892919",
+      "platforms": [
+        "Switch"
+      ],
+      "sourceStatusBefore": "excluded",
+      "sourceStatus": "evaluated",
+      "opportunityStatusBefore": "rejected",
+      "opportunityStatus": "open",
+      "opportunityId": "d5341e4e-e31c-402a-af2c-c733a997fc9a",
+      "identity": "match",
+      "identityReason": "Identity matched or unknown; unknown fields are not positive evidence.",
+      "condition": {
+        "hits": [],
+        "result": "pass",
+        "evidenceState": "affirmatively_new"
+      },
+      "purchaseUnit": {
+        "kind": "ordinary_listing",
+        "reason": "No seller lot or selection ambiguity observed.",
+        "result": "pass",
+        "version": "purchase_unit_v1"
+      },
+      "contents": {
+        "reason": "",
+        "result": "pass"
+      },
+      "normalPipelineLifecycleStatus": null,
+      "remainingReason": null,
+      "protectedAtPlan": null,
+      "landedCost": 31.47,
+      "profit": 10.74,
+      "roi": 34.1,
+      "scenario": "best_offer",
+      "maxOffer": 23.68,
+      "priceSource": "keepa_new_90d_avg",
+      "sourceTags": [
+        "flipmine"
+      ]
+    }
+  ],
+  "notes": [
+    "Two legacy refresh-writer status validation stops and one Windows Unicode checkpoint stop were recovered using saved work; no SQL guard or permission changes.",
+    "Prior image-only concerns are outside automated scope; no photo requests or analysis during this task.",
+    "Browser verification unavailable because computer-use kernel failed to start; AWS health/worker smoke and normal production data builders verified."
+  ]
+}
