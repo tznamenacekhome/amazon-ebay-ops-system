@@ -545,6 +545,11 @@ def evaluate_static_match_rules(
         candidate.get("condition_id") or raw_json.get("conditionId"),
     ) + used_condition_hits(title_text, description_text)
     condition_mismatch = list(dict.fromkeys(condition_mismatch))
+    condition_concerns = condition_review_hits(title_text, description_text)
+    if condition_concerns:
+        warnings.append('Condition review — ' + '; '.join(condition_concerns))
+        flags.append(warnings[-1])
+        recommendation = lower_recommendation(recommendation, 'Review')
     if condition_mismatch:
         hard_blocks.append(f"not new condition signal: {', '.join(condition_mismatch[:3])}")
         flags.append(f"Blocked: not new condition signal: {', '.join(condition_mismatch[:3])}")
@@ -553,6 +558,14 @@ def evaluate_static_match_rules(
 
     incomplete = effective_hits("completeness", incomplete_hits(title_text, description_text),
                                 {"complete"}, {"incomplete"})
+    package_policy = (((((canonical or {}).get('comparisons') or {}).get('edition') or {}).get('policy') or {}).get('packagePolicy') or {})
+    contents_review = package_policy.get('result')=='review'
+    if contents_review:
+        warnings.append(str(package_policy['reason']))
+        flags.append(warnings[-1])
+        recommendation = lower_recommendation(recommendation, 'Review')
+    if package_policy.get('configuration')=='software_only' and package_policy.get('result')=='match':
+        incomplete = [hit for hit in incomplete if hit not in {'game only','software only'}]
     not_game = keyword_hits(title_text, sorted(NOT_GAME_BLOCK_TERMS))
     structured_not_game = structured_not_game_hits(evidence)
     for hit in structured_not_game:
@@ -692,7 +705,13 @@ def evaluate_static_match_rules(
         "title_overlap": title_overlap,
         "excluded_keywords": {"hits": excluded, "result": "blocked" if excluded else "pass"},
         "digital_download": effective_checks.get("digitalPhysical", {"hits": digital, "result": "blocked" if digital else "pass"}),
-        "condition_mismatch": {"hits": condition_mismatch, "result": "blocked" if condition_mismatch else "pass"},
+        "condition_mismatch": {"hits": condition_mismatch, "result": "blocked" if condition_mismatch else "pass",
+            "evidenceState": "confirmed_unacceptable" if condition_mismatch else "requires_review" if condition_concerns else
+                "affirmatively_new" if str(candidate.get("condition_id") or raw_json.get("conditionId") or "") in NEW_CONDITION_IDS
+                or str(candidate.get("condition") or "").casefold() in NEW_CONDITION_VALUES
+                or re.search(r'\b(?:brand new|factory sealed|new and sealed|new sealed)\b', combined_text, re.I) else "missing"},
+        "condition_review": {"hits": condition_concerns, "result": "review" if condition_concerns else "pass", "reason": 'Condition review — ' + '; '.join(condition_concerns) if condition_concerns else ''},
+        "contents_review": {"result":"review" if contents_review else "pass", "reason":package_policy.get('reason','') if contents_review else ''},
         "incomplete_listing": effective_checks.get("completeness", {"hits": incomplete, "result": "blocked" if incomplete else "pass"}),
         "not_game": {"hits": not_game, "result": "blocked" if not_game else "pass"},
         "region": effective_checks.get("region", {"hits": region, "result": "blocked" if region else "pass"}),
@@ -1202,11 +1221,32 @@ def non_new_structured_condition_hits(condition: Any, condition_id: Any) -> list
 
 
 def used_condition_hits(title_text: str, description_text: str) -> list[str]:
-    text = f"{title_text} {description_text}".casefold()
+    text = re.sub(r'<[^>]+>', ' ', f"{title_text}. {description_text}").casefold()
     hits = keyword_hits(text, sorted(USED_CONDITION_SIGNALS))
+    damage = re.compile(r'\b(?:(?:plastic\s+)?seal\s+(?:(?:is|has been)\s+)?(?:torn|tore|broken|damaged|missing)|(?:torn|broken|damaged|missing)\s+(?:the\s+|a\s+)?(?:plastic\s+)?seal|seal\s+damage|case\s+(?:is\s+)?(?:also\s+)?cracked|cracked\s+case|upc\s+(?:is\s+)?punched|punched\s+upc|hole\s+punch\s+in\s+(?:the\s+)?upc)\b')
+    for match in damage.finditer(text):
+        if not condition_negated(text, match):
+            hits.append(match[0])
     if "tested" in hits and not any(term in hits for term in {"used", "pre-owned", "preowned", "like new"}):
         hits.remove("tested")
     return hits
+
+
+def condition_negated(text, match):
+    before = text[max(0, match.start()-65):match.start()]
+    after = text[match.end():match.end()+35]
+    return bool(re.search(r'\b(?:no|not|without|never)\s+(?:(?:a|the|any|visible|signs?\s+of|evidence\s+of)\s+)*$', before)
+                or re.match(r'\s+(?:is|are)\s+not\b', after)
+                or re.search(r'\b(?:if|should|may|might|could)\b[^.!?]{0,45}$', before))
+
+
+def condition_review_hits(title_text, description_text):
+    text = re.sub(r'<[^>]+>', ' ', f'{title_text}. {description_text}').casefold()
+    patterns = [
+        (r'\b(?:small\s+)?tear\s+(?:in|of)\s+(?:the\s+)?(?:plastic|shrink\s*wrap|wrap)\b', 'shrink-wrap damage'),
+        (r'\b(?:(?:shrink\s*)?wrap\s+(?:is\s+)?stretched|stretched\s+(?:shrink\s*)?wrap)\b', 'disclosed packaging flaws'),
+    ]
+    return list(dict.fromkeys(label for pattern,label in patterns for match in re.finditer(pattern,text) if not condition_negated(text,match)))
 
 
 def incomplete_hits(title_text: str, description_text: str) -> list[str]:

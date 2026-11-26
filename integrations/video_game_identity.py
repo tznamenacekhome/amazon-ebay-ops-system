@@ -691,6 +691,8 @@ def normalize_text(value: Any) -> str:
 # deployed scorer stays on legacy until the complete visibility gate passes.
 PHASE3_VERSION = "video_game_identity_phase3_shadow_v3"
 PHASE3_EDITIONS = [
+    ('Enhanced Edition', r'\benhanced(?:\s+edition)?\b'),
+    ("Director's Cut", r'\bdirector\s*s?\s+cut\b'),
     ("Complete Edition", r"\bcomplete\s+edition\b"),
     ("GOTY", r"\b(?:goty|game\s+of\s+the\s+year)(?:\s+edition)?\b"),
     ("Anniversary", r"\b\d+(?:st|nd|rd|th)\s+anniversary(?:\s+edition)?\b"),
@@ -698,7 +700,10 @@ PHASE3_EDITIONS = [
       ("standard", "ultimate", "deluxe", "gold", "definitive", "limited", "special", "premium")],
     ("Collector's Edition", r"\bcollector\s*s?\s+edition\b"),
     *[(label, re.escape(label.casefold())) for label in
-      ("Greatest Hits", "Nintendo Selects", "PlayStation Hits", "Platinum Hits")],
+      ("Greatest Hits", "Nintendo Selects", "Platinum Hits")],
+    ('PlayStation Hits', r'\bplay\s*station\s+hits\b'),
+    ('PlayStation Essentials', r'\bplay\s*station\s+essentials\b'),
+    ("Player's Choice", r'\bplayer\s*s?\s+choice\b'),
 ]
 PHASE3_PLATFORM = re.compile(
     r"\b(?:(?:sony\s+)?play\s*station\s*[1-5]?|ps\s*[1-5]|"
@@ -805,6 +810,8 @@ def general_product_fields(value, publishers=()):
     it cannot replace raw identity evidence here.
     """
     raw = re.sub(r"(?<=[a-z])(?=[A-Z][a-z])", " ", str(value))
+    software_only = bool(re.search(r'\b(?:game|software)\s+only\b', raw, re.I))
+    raw = re.sub(r'\b(?:game|software)\s+only\b', ' ', raw, flags=re.I)
     # Only remove generic Game when it follows a platform label, not from
     # product names such as Untitled Goose Game or Family Game Night.
     raw = re.sub("(" + PHASE3_PLATFORM.pattern + r")\s+game\b", r"\1", raw, flags=re.I)
@@ -815,7 +822,6 @@ def general_product_fields(value, publishers=()):
     # parentheses (FIFA 2011 etc.) retain their numbers.
     text = re.sub(r"\([^)]*\)", lambda m: re.sub(r"\b(?:19|20)\d{2}\b", " ", m[0]), raw.casefold())
     text = normalize_text(text)
-    text = PHASE3_PLATFORM.sub(" ", text)
     for publisher in publishers:
         publisher = normalize_text(publisher)
         if not publisher: continue
@@ -834,8 +840,11 @@ def general_product_fields(value, publishers=()):
     for label, pattern in PHASE3_EDITIONS:
         found = re.search(pattern, text)
         if found:
-            edition_values.append(found[0] if label == "Anniversary" else label)
+            edition_values.append(found[0] if label == "Anniversary" else 'Standard' if label == 'Standard Edition' else label)
             text = re.sub(pattern, " ", text)
+    text = PHASE3_PLATFORM.sub(" ", text)
+    software_only = software_only or bool(re.search(r'\b(?:game|software)\s+only\b', text))
+    text = re.sub(r'\b(?:game|software)\s+only\b', ' ', text)
     text = re.sub(r"\bcomplete\s+(?:with\s+)?(?:case|manual)\b|\b(?:with\s+)?case\s+and\s+manual\b", " ", text)
     text = re.sub(r"\bnew\s*$", "", text.strip())
     text = re.sub(r"\b(?:for|on)\s*$", "", text.strip())
@@ -855,6 +864,8 @@ def general_product_fields(value, publishers=()):
     numbers = re.findall(r"(?<![\w-])(?:2k)?(\d+(?:\.\d+)?)\b", text)
     product = text if text not in IGNORED_GAME_NAMES and re.search(r"[a-z]", text) else None
     packages = [label for label in ("starter pack", "track pack", "expansion pack", "bundle", "game only", "steelbook only") if label in text]
+    if software_only:
+        packages.append('game only')
     fields = {"coreGame": product, "coreProduct": product,
               "installment": numbers[0] if len(numbers) == 1 else None,
               "edition": " + ".join(sorted(set(edition_values))) or None,
@@ -898,6 +909,7 @@ def source_name_relation(title, supporting):
 
 
 def phase3_side(title, side, evidence=None, catalog=None, platform=None, platform_source="seed.system"):
+    from sourcing_edition_policy import canonical_catalog_edition
     evidence, catalog = evidence or {}, catalog or {}
     cleaned_title, assigned = reconcile_listing_title(title, evidence) if side == "ebay" else (title, [])
     rows = [{"source": "title", "text": str(cleaned_title), "originalText":str(title)}] if title else []
@@ -910,11 +922,45 @@ def phase3_side(title, side, evidence=None, catalog=None, platform=None, platfor
     publishers = [p for p in publishers if names and not any(
         normalize_text(name).startswith(normalize_text(p) + " ") for name in names)]
     parsed = [(row, general_product_fields(row["text"], publishers)) for row in rows]
+    edition_sources = []
+    negative_edition = False
+    excluded_editions = []
+    ambiguous_feature_editions = []
+    if side == 'ebay':
+        aspects = evidence.get('aspects') or {}
+        for source, texts in [('edition', aspects.get('edition',[])), ('features', evidence.get('features_values',[])), ('description', [evidence.get('description') or ''])]:
+            for value in texts:
+                plain = re.sub(r'<[^>]+>', ' ', str(value))
+                # Anaphoric prose describes the already named SKU, rather than
+                # establishing a second retail edition. Preserve all other prose.
+                if source == 'description' and any(
+                        fields.get('edition') and fields['edition'] not in {'Standard', 'Special Edition'}
+                        for _, fields in parsed):
+                    plain = re.sub(r'\b(?:this|the above|that)\s+special\s+edition\b', 'this release', plain, flags=re.I)
+                edition = general_product_fields(plain)['edition']
+                # Bare Enhanced remains meaningful in product names/typed
+                # Edition fields, but an adjective in prose is not a named SKU.
+                if source in {'features', 'description'} and edition == 'Enhanced Edition' and not re.search(r'\benhanced\s+edition\b', plain, re.I):
+                    edition = None
+                if source == 'features' and edition == 'Complete Edition':
+                    ambiguous_feature_editions.append({'source': source, 'text': plain})
+                    edition = None
+                if source == 'edition' and plain.strip().casefold() not in {'','n/a','not specified','unspecified'}:
+                    edition = edition or canonical_catalog_edition(plain.strip())
+                if edition:
+                    negative = bool(re.search(r'\b(?:not|without|missing|no)\b[^.!?]{0,50}\b(?:edition|hits|selects|choice|essentials)\b', plain, re.I))
+                    negative_edition |= negative
+                    if negative and re.search(r'\bnot\b[^.!?]{0,50}\bedition\b',plain,re.I):
+                        excluded_editions.append(edition)
+                    if not negative:
+                        edition_sources.append((edition, {'source':source, 'text':plain}))
     output = {}
     for key in IDENTITY_FIELDS:
         values = [(values.get(key), row) for row, values in parsed if values.get(key) is not None]
+        if key == 'edition':
+            values += edition_sources
         if key == "platform":
-            platform_text = lambda text: re.sub(r"\bplaystation\s+ps\s*([1-5])\b", r"PlayStation \1", text, flags=re.I)
+            platform_text = lambda text: re.sub(r"\bplaystation\s+ps\s*([1-5])\b", r"PlayStation \1", re.sub(r'\bplay\s*station\s+(?:hits|essentials)\b',' ',text,flags=re.I), flags=re.I)
             values = [(platform_display(detect_system_from_title(platform_text(row["text"]))), row) for row in rows if detect_system_from_title(platform_text(row["text"]))]
             values += [(platform_display(normalize_system(v)), {"source": "platform_values", "text": v}) for v in evidence.get("platform_values", []) if normalize_system(v)]
             if not values and platform:
@@ -925,9 +971,21 @@ def phase3_side(title, side, evidence=None, catalog=None, platform=None, platfor
         catalog_key = "normalized_" + key
         if key in {"edition", "platform", "region"} and catalog.get(catalog_key):
             val = catalog[catalog_key]
-            if key == "edition": val = general_product_fields(val)["edition"] or val
+            if key == "edition":
+                package_label = str(val).casefold() in {'game only','software only','guitar bundle','bundle','starter kit'}
+                if (PHASE3_PLATFORM.fullmatch(str(val).strip()) and catalog.get('normalized_platform')
+                        and normalize_system(val) == normalize_system(catalog['normalized_platform'])
+                        and any(detect_system_from_title(row['text']) for row in rows)
+                        and all(not detect_system_from_title(row['text']) or normalize_system(detect_system_from_title(row['text'])) == normalize_system(val) for row in rows)):
+                    assigned.append({'text':val,'reason':'catalog edition is a corroborated platform value; no edition inferred'})
+                    continue_catalog = True
+                else:
+                    continue_catalog = package_label
+                val = canonical_catalog_edition(val)
+                val = general_product_fields(val)["edition"] or val
             if key == "platform": val = platform_display(normalize_system(val))
-            values.append((val, {"source": "exact_asin_catalog." + catalog_key, "text": str(catalog[catalog_key])}))
+            if key != 'edition' or not continue_catalog:
+                values.append((val, {"source": "exact_asin_catalog." + catalog_key, "text": str(catalog[catalog_key])}))
         reconciliation = []
         if key in {"coreGame", "coreProduct"} and values:
             primary = next(((v,r) for v,r in values if r["source"] == "title"), values[0])
@@ -967,6 +1025,14 @@ def phase3_side(title, side, evidence=None, catalog=None, platform=None, platfor
     result.update(fields=output, installmentNormalized=result["installment"], confidenceKind="uncalibrated_parser_heuristic",
                   tokenHandling=[{"source":r["source"],**v["tokenHandling"]} for r,v in parsed],
                   assignedMetadata=assigned, includedContents=[c for item in assigned for c in item.get("contents",[])])
+    if side == 'ebay':
+        result['editionContext'] = {'title':str(title or ''), 'text':'. '.join([str(title or ''), str(evidence.get('description') or ''), *map(str,evidence.get('features_values',[]))]),
+            'sources':[{'field':row['source'],'span':row['text'][:240]} for _,row in edition_sources],
+            'negativeEditionEvidence':negative_edition, 'corroboratingName':bool(usable_game_names(evidence)),
+            'explicitlyExcludedEditions':excluded_editions,
+            'ambiguousFeatureEditions':ambiguous_feature_editions,
+            'ambiguousEditions':any(';' in name for name in usable_game_names(evidence)),
+            'gtins':[value for name in ('upc','ean','gtin') for value in (evidence.get('aspects') or {}).get(name,[])]}
     return result
 
 
@@ -992,6 +1058,8 @@ def evaluated_identity(amazon_title, ebay_title, seed, evidence):
     asin = str(seed.get("asin") or "").upper()
     catalog = catalog_identity(seed)
     verified_catalog = catalog if asin and str(catalog.get("asin") or "").upper() == asin else {}
+    from sourcing_package_contents import attach_verified_package
+    verified_catalog = attach_verified_package(verified_catalog, asin)
     metadata = {"system": seed.get("system"), "raw_context_json": deepcopy(seed.get("raw_context_json") or {}),
                 "catalog": verified_catalog}
     # Rejected cross-ASIN catalog data remains provenance only, never parser input.
@@ -1027,9 +1095,19 @@ def phase3_comparison(amazon, ebay):
         relation = "explicit_conflict" if outcome == "conflict" else "same" if outcome == "match" else "compatible_omission" if outcome == "unknown" and bool(left["value"]) != bool(right["value"]) else "unknown"
         comparisons[key] = {"field": key, "result": outcome, "relation": relation, "amazon": left["value"], "ebay": right["value"], "reason": reason,
                             "amazonEvidenceRef": "amazon.fields." + key, "ebayEvidenceRef": "ebay.fields." + key}
+    from sourcing_edition_policy import edition_decision
+    from sourcing_package_contents import package_decision
+    package_policy = package_decision(amazon, ebay, comparisons)
+    if (package_policy['configuration'] == 'software_only' and package_policy['result'] == 'match'
+            and amazon.get('packageType') in {None,'game only'} and ebay.get('packageType') in {None,'game only'}):
+        comparisons['packageType'].update(result='match',relation='compatible_omission',
+            reason='Exact-ASIN software-only configuration agrees.',policy=package_policy)
+    edition_policy = edition_decision(amazon, ebay, comparisons)
+    comparisons['edition'].update(result=edition_policy['result'], reason=edition_policy['reason'], policy=edition_policy,
+        relation='compatible_omission' if edition_policy['compatibleOmission'] else 'compatible_packaging' if edition_policy['result'] == 'match' and amazon['edition'] != ebay['edition'] else comparisons['edition']['relation'])
     outcomes = {c["result"] for c in comparisons.values()}
     verdict = "non-match" if "conflict" in outcomes else "needs_review" if "review" in outcomes else "match" if comparisons["coreGame"]["result"] == "match" else "unknown"
-    unresolved_required = [k for k in ("edition", "packageType", "generation", "installment") if bool(amazon[k]) != bool(ebay[k])]
+    unresolved_required = [k for k in ("edition", "packageType", "generation", "installment") if bool(amazon[k]) != bool(ebay[k]) and not (k == 'edition' and edition_policy['result'] == 'match') and not (k == 'packageType' and comparisons[k]['result']=='match')]
     if verdict == "match" and unresolved_required:
         verdict = "needs_review"
     result = {"match": "match", "non-match": "conflict", "needs_review": "review", "unknown": "unknown"}[verdict]

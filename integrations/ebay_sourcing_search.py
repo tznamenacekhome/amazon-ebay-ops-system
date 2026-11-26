@@ -962,11 +962,8 @@ def end_user_context_header(settings) -> str:
 
 
 def first_quantity(item: dict[str, Any]) -> int | None:
-    for availability in item.get("estimatedAvailabilities") or []:
-        quantity = availability.get("estimatedAvailableQuantity")
-        if quantity is not None:
-            return int(to_float(quantity, 0))
-    return None
+    from ebay_availability import quantity_evidence
+    return quantity_evidence(item)[0]
 
 
 if __name__ == "__main__":

@@ -121,3 +121,26 @@ const closestFM=await route.GET({url:'https://example.test/api/sourcing/opportun
 assert.equal(closestFM.status,200,JSON.stringify(closestFM.body));assert.equal(closestFM.body.summary.total,1);
 assert.equal(closestFM.body.opportunities[0].opportunityId,'opp-5');
 console.log('Flipmine uses normal Buy List / Closest Excluded gates and retains existing provenance.');
+
+const editionDiagnostics=code=>({recommendation:'Review',static_rules:{identity_comparison:{comparisons:{edition:{result:'review',amazon:'Deluxe Edition',ebay:null,policy:{version:'sourcing_edition_policy_v1',code}}}}},businessEligibilityChecks:['shipping','minimum_profit','minimum_roi'].map(code=>({code,result:'pass',blocking:false})),presentationDecision:{eligible:false,finalRecommendation:'Review',finalStatus:'rejected',primaryReason:{code,label:code==='contents_not_corroborated'?'Required contents not corroborated':'Edition not corroborated',summary:code==='contents_not_corroborated'?"Collector's Edition or required contents not corroborated.":'Deluxe Edition not corroborated.',source:'matching_diagnostics',severity:'review_threshold',category:'review_threshold',diagnosticKeys:['edition_version']},secondaryReasons:[]}});
+const fmEdition=()=>route.GET({url:'https://example.test/api/sourcing/opportunities?scope=closest_excluded&status=all&sourceMode=flipmine&format=list&limit=250'});
+for(const code of ['edition_not_corroborated','contents_not_corroborated']){
+ rows[5].matching_diagnostics_json=editionDiagnostics(code);
+ let response=await fmEdition();assert.equal(response.body.summary.total,1);assert(response.body.opportunities[0].exclusionReason.summary.includes('not corroborated'));
+ assert(response.body.opportunities[0].sourceTags.includes('flipmine'));
+ rows[5].matching_diagnostics_json.businessEligibilityChecks[2].result='fail';response=await fmEdition();assert.equal(response.body.summary.total,0,'Unattractive unresolved editions are not automatic near misses');
+ rows[5].matching_diagnostics_json=editionDiagnostics(code);rows[5].matching_diagnostics_json.static_rules.identity_comparison.comparisons.edition.result='conflict';response=await fmEdition();assert.equal(response.body.summary.total,0,'Confirmed edition conflicts are not ordinary near misses');
+ rows[5].matching_diagnostics_json=editionDiagnostics(code);rows[5].matching_diagnostics_json.businessEligibilityChecks.push({code:'inventory_hold',result:'fail',blocking:true});response=await fmEdition();assert.equal(response.body.summary.total,0,'Inventory holds remain excluded');
+}
+console.log('Actual GET: unresolved Deluxe/Collector editions retain actionable reasons and FM provenance, while bad economics, material conflicts and holds stay out.');
+rows[5].matching_diagnostics_json=editionDiagnostics('condition_review');
+const conditionDiag=rows[5].matching_diagnostics_json;
+conditionDiag.static_rules.identity_comparison.comparisons.edition={result:'match',policy:{version:'sourcing_edition_policy_v1',code:null}};
+conditionDiag.static_rules.condition_review={result:'review',reason:'Condition review — shrink-wrap damage'};
+conditionDiag.presentationDecision.primaryReason.summary='Condition review — shrink-wrap damage';
+let conditionResponse=await fmEdition();
+assert.equal(conditionResponse.body.summary.total,1);
+assert(conditionResponse.body.opportunities[0].exclusionReason.summary.includes('shrink-wrap damage'));
+conditionDiag.static_rules.condition_mismatch={result:'blocked',hits:['missing the plastic seal']};
+conditionResponse=await fmEdition();
+assert.equal(conditionResponse.body.summary.total,0,'Confirmed unacceptable new condition cannot become a near miss');

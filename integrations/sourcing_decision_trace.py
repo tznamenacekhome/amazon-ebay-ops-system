@@ -17,6 +17,7 @@ REASON_PRIORITY = [
     ("wrong_platform", "Wrong Platform", "matching_diagnostics", "hard_block"),
     ("edition_version_conflict", "Edition/version conflict", "matching_diagnostics", "hard_block"),
     ("digital_or_service_listing", "Digital or service listing", "matching_diagnostics", "hard_block"),
+    ("condition_unacceptable", "Unacceptable new condition", "matching_diagnostics", "hard_block"),
     ("accessory_not_game", "Accessory / not a game", "matching_diagnostics", "hard_block"),
     ("incomplete_product", "Incomplete product", "matching_diagnostics", "hard_block"),
     ("region_or_location", "Region or location conflict", "matching_diagnostics", "item_location"),
@@ -25,6 +26,9 @@ REASON_PRIORITY = [
     ("seller_policy", "Seller avoid/watch policy", "seller_intelligence", "seller_rule"),
     ("profitability", "Rejected by profitability", "profitability", "profitability"),
     ("duplicate_history", "Historical operator status", "operator_history", "duplicate_history"),
+    ("edition_not_corroborated", "Edition not corroborated", "matching_diagnostics", "review_threshold"),
+    ("contents_not_corroborated", "Required contents not corroborated", "matching_diagnostics", "review_threshold"),
+    ("condition_review", "Condition review", "matching_diagnostics", "review_threshold"),
     ("review_threshold", "Review threshold", "presentation_gate", "review_threshold"),
     ("current_rules_would_present", "Now appears presentation-eligible", "reprocess_current_rules", "other_eligibility_gate"),
     ("unknown_rejection", "Rejected before presentation", "opportunity_status", "other_eligibility_gate"),
@@ -34,6 +38,7 @@ REASON_META = {
     code: {"code": code, "label": label, "source": source, "severity": severity}
     for code, label, source, severity in REASON_PRIORITY
 }
+EDITION_REVIEW_CODES = {'edition_not_corroborated','contents_not_corroborated','condition_review'}
 
 REASON_SUMMARIES = {
     "historical_exact_negative": "Stored matching intelligence blocks this listing from prior negative feedback.",
@@ -164,6 +169,9 @@ def build_decision_trace(
         ("game_name", "Game name", "game_name"),
         ("numeric_identity", "Numeric identity", "installment_number"),
         ("edition_version", "Edition/version", "edition_version"),
+        ("condition_review", "Condition review", "condition_review"),
+        ("contents_review", "Required contents", "contents_review"),
+        ("condition_mismatch", "Condition", "condition_mismatch"),
         ("category", "Category", "category"),
         ("digital_download", "Digital/physical", "digital_physical"),
         ("incomplete_listing", "Completeness", "completeness"),
@@ -178,7 +186,7 @@ def build_decision_trace(
             continue
         result = result_name(value)
         code = reason_code_for_check(key, value)
-        if phase3 and result == "warning" and key in {"identity_comparison", "game_name", "title_overlap", "numeric_identity", "edition_version"}:
+        if phase3 and result == "warning" and key in {"identity_comparison", "game_name", "title_overlap", "numeric_identity", "edition_version"} and code not in EDITION_REVIEW_CODES:
             code = "review_threshold"
         trace.append(trace_row(label, diagnostic_key, result, summary_for_check(key, value), code))
 
@@ -233,7 +241,10 @@ def reasons_from_trace(trace: list[dict[str, Any]], *, status: str | None, oppor
         code = row.get("reasonCode")
         if not code:
             continue
-        found.setdefault(str(code), reason(str(code)))
+        detail = reason(str(code))
+        if code in EDITION_REVIEW_CODES:
+            detail.update(summary=row['summary'], diagnosticKeys=['condition_review' if code == 'condition_review' else 'edition_version'])
+        found.setdefault(str(code), detail)
     if infer_profitability and status == "rejected" and opportunity_type == "no_profitable_source_found":
         found.setdefault("profitability", reason("profitability"))
     priority = {code: index for index, (code, *_rest) in enumerate(REASON_PRIORITY)}
@@ -294,6 +305,14 @@ def summary_for_check(key: str, value: dict[str, Any]) -> str:
 
 
 def reason_code_for_check(key: str, value: dict[str, Any]) -> str | None:
+    if key == 'contents_review' and result_name(value) != 'pass':
+        return 'contents_not_corroborated'
+    if key == 'condition_mismatch' and result_name(value) != 'pass':
+        return 'condition_unacceptable'
+    if key == 'condition_review' and result_name(value) != 'pass':
+        return 'condition_review'
+    if key == 'edition_version' and record(value.get('policy')).get('code') in EDITION_REVIEW_CODES:
+        return value['policy']['code']
     if result_name(value) == "pass":
         return None
     text = " ".join([key, str(value.get("reason") or ""), " ".join(str(item) for item in value.get("hits") or [])]).lower()

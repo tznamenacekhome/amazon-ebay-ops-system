@@ -1,0 +1,255 @@
+{
+  "item": "307276397847",
+  "asin": "B006Y76HY6",
+  "seed": {
+    "asin": "B006Y76HY6",
+    "seed_id": "33f3d325-bfcf-5cc2-837b-31cfae9c069e",
+    "created_at": "2026-11-24T06:07:01.234652+00:00",
+    "seller_sku": null,
+    "source_mode": "flipmine",
+    "amazon_title": "Spirit Camera: The Cursed Memoir",
+    "last_sold_at": null,
+    "is_restricted": false,
+    "is_suppressed": false,
+    "warning_flags": [],
+    "queue_position": null,
+    "units_sold_60d": 0,
+    "units_sold_90d": 0,
+    "is_return_heavy": false,
+    "priority_bucket": null,
+    "sourcing_run_id": "5f77ab0e-1e7f-4518-8aa3-1cf0ec748ebd",
+    "amazon_image_url": "https://images-na.ssl-images-amazon.com/images/I/71ds0E-gFIL.jpg",
+    "monthly_velocity": 0.0,
+    "months_of_supply": null,
+    "raw_context_json": {
+      "source_modes": [
+        "flipmine"
+      ],
+      "listing_source": {
+        "captured_at": "2026-11-24T06:06:58.468928+00:00",
+        "source_table": "vw_latest_keepa_product_snapshot"
+      },
+      "inferred_system": "3DS",
+      "listing_warnings": {
+        "item_status": null,
+        "listing_status": "known_catalog_keepa_only",
+        "fulfillment_channel": null
+      },
+      "estimated_fee_cost": null,
+      "inventory_planning": {
+        "asin": "B006Y76HY6",
+        "skip": false,
+        "snapshot_date": null,
+        "aged_units_over_30_days": 0,
+        "current_inventory_units": 0,
+        "sales_shipped_last_30_days": 0
+      },
+      "keepa_category_tree": "Video Games 468642 Legacy Systems 294940 Nintendo Systems 23563593011 Nintendo 3DS & 2DS 2622269011 Games 4924892011",
+      "keepa_product_group": null,
+      "inferred_system_source": "amazon_catalog_item",
+      "amazon_catalog_identity": {
+        "asin": "B006Y76HY6",
+        "fetched_at": "2026-11-24T06:06:57.137468+00:00",
+        "product_type": "PHYSICAL_VIDEO_GAME_SOFTWARE",
+        "source_version": "spapi_catalog_items_2022_04_01",
+        "variation_theme": null,
+        "package_quantity": 1,
+        "normalized_format": "cd_rom",
+        "normalized_region": null,
+        "normalized_edition": "Standard",
+        "normalized_platform": "3DS",
+        "variation_child_asins": [],
+        "variation_parent_asins": [],
+        "normalized_release_date": "2012-04-13",
+        "normalized_release_year": 2012,
+        "relevant_attributes_json": {
+          "title": "Spirit Camera: The Cursed Memoir",
+          "format": "cd_rom",
+          "region": null,
+          "edition": "Standard",
+          "platform": "nintendo_3ds",
+          "release_date": "2012-04-13T00:00:01Z",
+          "package_quantity": 1,
+          "observed_attribute_keys": [
+            "access_method",
+            "batteries_included",
+            "batteries_required",
+            "brand",
+            "bullet_point",
+            "compatible_video_game_console_models",
+            "computer_platform",
+            "edition",
+            "esrb_rating",
+            "externally_assigned_product_identifier",
+            "format",
+            "genre",
+            "hardware_platform",
+            "item_dimensions",
+            "item_name",
+            "item_package_dimensions",
+            "item_package_quantity",
+            "item_package_weight",
+            "item_type_keyword",
+            "item_weight",
+            "language",
+            "list_price",
+            "manufacturer",
+            "model_number",
+            "number_of_players",
+            "operating_system",
+            "part_number",
+            "product_site_launch_date",
+            "publication_date",
+            "skip_offer",
+            "street_date",
+            "subject_keyword",
+            "supplier_declared_dg_hz_regulation",
+            "unspsc_code"
+          ]
+        }
+      }
+    },
+    "coverage_cycle_id": null,
+    "target_sale_price": 114.18,
+    "inventory_need_level": "critical",
+    "coverage_cycle_item_id": null,
+    "current_inventory_units": 0,
+    "target_sale_price_source": "keepa_new_90d_avg"
+  },
+  "candidate": {
+    "asin": "B006Y76HY6",
+    "price": 40.0,
+    "seed_id": "33f3d325-bfcf-5cc2-837b-31cfae9c069e",
+    "bid_count": null,
+    "condition": "Brand New",
+    "ebay_title": "Spirit Camera the Cursed Memoir Sealed - Nintendo 3DS",
+    "current_bid": null,
+    "landed_cost": 46.85,
+    "source_tags": [
+      "flipmine"
+    ],
+    "candidate_id": "1406a188-6c72-58c1-ac8c-c4a8bf053c10",
+    "condition_id": "1000",
+    "ebay_item_id": "v1|307276397847|0",
+    "last_seen_at": "2026-11-24T06:07:02.663762+00:00",
+    "first_seen_at": "2026-11-24T06:07:02.66375+00:00",
+    "raw_ebay_json": {
+      "image": {
+        "imageUrl": "https://i.ebayimg.com/00/s/MTYwMFgxNjAw/z/uC0AAeSwX3Fq84Hf/$_1.JPG?set_id=8800005007"
+      },
+      "price": {
+        "value": "40.0",
+        "currency": "USD"
+      },
+      "title": "Spirit Camera the Cursed Memoir Sealed - Nintendo 3DS",
+      "itemId": "v1|307276397847|0",
+      "seller": {
+        "username": "vinyl_land64",
+        "feedbackScore": 458,
+        "feedbackPercentage": "100.0"
+      },
+      "condition": "Brand New",
+      "categories": [
+        {
+          "categoryId": "139973",
+          "categoryName": "Video Games & Consoles:Video Games"
+        }
+      ],
+      "categoryId": "139973",
+      "itemWebUrl": "https://www.ebay.com/itm/Spirit-Camera-Cursed-Memoir-Sealed-Nintendo-3DS-/307276397847",
+      "conditionId": "1000",
+      "description": "",
+      "itemEndDate": "2026-12-10T20:43:20.000Z",
+      "categoryPath": "Video Games & Consoles:Video Games",
+      "itemLocation": {
+        "city": "New Canaan, Connecticut",
+        "country": "US",
+        "postalCode": "068**"
+      },
+      "legacyItemId": "307276397847",
+      "mbopEvidence": {
+        "ended": false,
+        "provider": "trading",
+        "revision": "true",
+        "shippingType": "Calculated",
+        "listingStatus": "Active",
+        "schemaVersion": 1,
+        "variationUnverified": false
+      },
+      "buyingOptions": [
+        "FIXED_PRICE",
+        "BEST_OFFER"
+      ],
+      "shipToLocations": {
+        "regionExcluded": [],
+        "regionIncluded": [
+          {
+            "regionName": "US"
+          }
+        ]
+      },
+      "shippingOptions": [
+        {
+          "shippingCost": {
+            "value": "6.85",
+            "currency": "USD"
+          },
+          "mbopBuyerContext": {
+            "country": "US",
+            "quantity": 1,
+            "postalCode": "93022"
+          },
+          "shippingCostType": "FIXED",
+          "shippingServiceCode": "USPSParcel"
+        }
+      ],
+      "additionalImages": [
+        {
+          "imageUrl": "https://i.ebayimg.com/00/s/MTYwMFgxNjAw/z/I0oAAeSwjd9q84Hf/$_1.JPG?set_id=8800005007"
+        }
+      ],
+      "localizedAspects": [
+        {
+          "name": "Publisher",
+          "value": "Nintendo Games"
+        },
+        {
+          "name": "Rating",
+          "value": "T-Teen"
+        },
+        {
+          "name": "Platform",
+          "value": "Nintendo 3DS"
+        },
+        {
+          "name": "Game Name",
+          "value": "Spirit Camera: The Cursed Memoir"
+        }
+      ],
+      "conditionDescription": null,
+      "estimatedAvailabilities": [
+        {
+          "estimatedAvailableQuantity": 1,
+          "estimatedAvailabilityStatus": "IN_STOCK"
+        }
+      ]
+    },
+    "shipping_cost": 6.85,
+    "buying_options": [
+      "FIXED_PRICE",
+      "BEST_OFFER"
+    ],
+    "ebay_image_url": "https://i.ebayimg.com/00/s/MTYwMFgxNjAw/z/uC0AAeSwX3Fq84Hf/$_1.JPG?set_id=8800005007",
+    "listing_status": "active",
+    "seller_username": "vinyl_land64",
+    "sourcing_run_id": "5f77ab0e-1e7f-4518-8aa3-1cf0ec748ebd",
+    "auction_end_time": "2026-12-10T20:43:20+00:00",
+    "ebay_item_web_url": "https://www.ebay.com/itm/Spirit-Camera-Cursed-Memoir-Sealed-Nintendo-3DS-/307276397847",
+    "is_multi_quantity": false,
+    "available_quantity": 1,
+    "best_offer_enabled": true,
+    "ebay_legacy_item_id": "307276397847",
+    "shipping_is_separate": true,
+    "item_location_country": "US"
+  }
+}

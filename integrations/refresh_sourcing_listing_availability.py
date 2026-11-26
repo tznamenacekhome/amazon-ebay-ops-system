@@ -167,6 +167,10 @@ def fetch_listing(token: str, ebay_item_id: str, settings) -> dict[str, Any]:
 
 
 def listing_is_available(payload: dict[str, Any]) -> tuple[bool, str | None]:
+    from ebay_availability import quantity_evidence
+    quantity, quantity_state = quantity_evidence(payload)
+    if quantity_state == 'unavailable':
+        return False, 'available quantity is 0 or unavailable'
     end_date = parse_ebay_datetime(payload.get("itemEndDate"))
     if end_date and end_date <= dt.datetime.now(dt.UTC):
         return False, f"itemEndDate passed: {payload.get('itemEndDate')}"
@@ -179,8 +183,8 @@ def listing_is_available(payload: dict[str, Any]) -> tuple[bool, str | None]:
         status = str(availability.get("estimatedAvailabilityStatus") or "").upper()
         if status:
             availability_statuses.append(status)
-        if availability.get("estimatedAvailableQuantity") is not None:
-            quantities.append(int(to_float(availability.get("estimatedAvailableQuantity"), 0)))
+        if quantity is not None:
+            quantities.append(quantity)
 
     if any(status in {"SOLD_OUT", "OUT_OF_STOCK", "UNAVAILABLE"} for status in availability_statuses):
         return False, f"availability status: {', '.join(availability_statuses)}"
@@ -255,13 +259,8 @@ def mark_unavailable(supabase, opportunity: dict[str, Any], result: dict[str, An
 
 
 def first_quantity(payload: dict[str, Any]) -> int | None:
-    for availability in payload.get("estimatedAvailabilities") or []:
-        if not isinstance(availability, dict):
-            continue
-        quantity = availability.get("estimatedAvailableQuantity")
-        if quantity is not None:
-            return int(to_float(quantity, 0))
-    return None
+    from ebay_availability import quantity_evidence
+    return quantity_evidence(payload)[0]
 
 
 def first_shipping_cost(payload: dict[str, Any]) -> float | None:

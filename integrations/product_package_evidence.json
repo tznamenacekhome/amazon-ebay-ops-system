@@ -1,0 +1,34 @@
+{
+  "version": "exact_asin_package_evidence_v1",
+  "records": [
+    {
+      "asin": "B006Y76HY6",
+      "marketplace_id": "ATVPDKIKX0DER",
+      "platform": "3DS",
+      "catalog_title": "Spirit Camera: The Cursed Memoir",
+      "configuration": "required_components",
+      "verification_status": "verified",
+      "required_contents": [{"name": "AR book", "quantity": 1, "original": true}],
+      "sources": [
+        {"kind": "manufacturer", "url": "https://csassets.nintendo.com/noaext/image/private/t_KA_PDF/manual-3DS-spirit-camera-the-cursed-memoir-en?_a=DATAg1AAZAA0", "finding": "Original retail game uses its included AR Book."},
+        {"kind": "exact_asin_catalog", "reference": "November 24 captured B006Y76HY6 catalog identity", "finding": "Nintendo 3DS Spirit Camera: The Cursed Memoir, released April 13, 2012."}
+      ],
+      "verified_at": "2026-11-25",
+      "known_alternates": []
+    },
+    {
+      "asin": "B000VJRU44",
+      "marketplace_id": "ATVPDKIKX0DER",
+      "platform": "Wii",
+      "catalog_title": "Wii Fit",
+      "configuration": "unresolved",
+      "verification_status": "unresolved",
+      "required_contents": [],
+      "sources": [
+        {"kind": "exact_asin_catalog", "reference": "November 24 captured B000VJRU44 identity", "finding": "Title Wii Fit and Standard edition do not establish game-only versus board bundle."}
+      ],
+      "known_alternates": [],
+      "verified_at": null
+    }
+  ]
+}

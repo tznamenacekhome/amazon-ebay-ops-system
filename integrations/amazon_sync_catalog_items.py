@@ -92,7 +92,7 @@ def normalize_catalog_item(asin: str, payload: dict[str, Any], marketplace_id: s
     region = first_attribute(attributes, "region_code", "country_of_origin")
     item_format = first_attribute(attributes, "format", "binding")
     package_quantity = integer_value(first_attribute(attributes, "item_package_quantity", "number_of_items"))
-    return {
+    row = {
         "asin": asin,
         "marketplace_id": marketplace_id,
         "product_type": first_product_type(product_types),
@@ -107,6 +107,7 @@ def normalize_catalog_item(asin: str, payload: dict[str, Any], marketplace_id: s
         "variation_child_asins": variation_asins(relationships, "CHILD"),
         "variation_theme": variation_theme(relationships),
         "relevant_attributes_json": {
+            **edition_catalog_evidence(attributes, marketplace_id),
             "title": title,
             "platform": platform,
             "edition": edition,
@@ -121,6 +122,28 @@ def normalize_catalog_item(asin: str, payload: dict[str, Any], marketplace_id: s
         "fetched_at": dt.datetime.now(dt.UTC).isoformat(),
         "updated_at": dt.datetime.now(dt.UTC).isoformat(),
     }
+    from sourcing_package_contents import attach_verified_package
+    return attach_verified_package(row, asin)
+
+
+def edition_catalog_evidence(attributes, marketplace_id):
+    """Retain explicitly supplied identifiers/components; never invent edition contents."""
+    result = {}
+    identifiers = [{'type':row.get('type'), 'value':row.get('value')}
+                   for row in attributes.get('externally_assigned_product_identifier') or []
+                   if isinstance(row,dict) and row.get('marketplace_id',marketplace_id) == marketplace_id
+                   and str(row.get('type','')).lower() in {'upc','ean','gtin'} and row.get('value')]
+    components = [row['value'] for row in attributes.get('included_components') or []
+                  if isinstance(row,dict) and row.get('marketplace_id',marketplace_id) == marketplace_id
+                  and isinstance(row.get('value'),str) and row['value'].strip()]
+    if identifiers: result['product_identifiers'] = identifiers
+    if components: result['required_contents'] = components
+    for source,target in [('product_description','product_description'),('bullet_point','bullet_points')]:
+        values=[r['value'] for r in attributes.get(source) or [] if isinstance(r,dict)
+                and r.get('marketplace_id',marketplace_id)==marketplace_id and isinstance(r.get('value'),str)]
+        if values:
+            result[target]=values[:12]
+    return result
 
 
 def first_attribute(attributes: dict[str, Any], *names: str) -> Any:

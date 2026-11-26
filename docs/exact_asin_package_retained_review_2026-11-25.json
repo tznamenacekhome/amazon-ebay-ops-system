@@ -1,0 +1,1000 @@
+[
+  {
+    "asin": "B0002IQOOQ",
+    "title": "Dance Dance Revolution Extreme",
+    "catalog": {
+      "asin": "B0002IQOOQ",
+      "marketplace_id": "ATVPDKIKX0DER",
+      "normalized_platform": "PS 2",
+      "normalized_edition": "Standard",
+      "relevant_attributes_json": {
+        "title": "Dance Dance Revolution Extreme",
+        "format": null,
+        "region": null,
+        "edition": "Standard",
+        "platform": "PlayStation 2",
+        "release_date": "2004-09-21T00:00:00.000-07:00",
+        "package_quantity": 1,
+        "observed_attribute_keys": [
+          "batteries_included",
+          "batteries_required",
+          "brand",
+          "bullet_point",
+          "compatible_video_game_console_models",
+          "computer_platform",
+          "customer_package_type",
+          "edition",
+          "esrb_rating",
+          "externally_assigned_product_identifier",
+          "genre",
+          "hardware_platform",
+          "item_dimensions",
+          "item_name",
+          "item_package_dimensions",
+          "item_package_quantity",
+          "item_package_weight",
+          "item_type_keyword",
+          "item_weight",
+          "language",
+          "list_price",
+          "manufacturer",
+          "model_number",
+          "number_of_items",
+          "operating_system",
+          "part_number",
+          "pegi_rating",
+          "platform_for_display",
+          "product_site_launch_date",
+          "publication_date",
+          "ships_globally",
+          "skip_offer",
+          "street_date",
+          "subject_keyword",
+          "supplier_declared_dg_hz_regulation",
+          "unspsc_code"
+        ]
+      }
+    },
+    "candidates": [
+      {
+        "item": "127873745765",
+        "ebayTitle": "DDR Dance Dance Revolution Extreme Ps2 NEW CIB",
+        "identity": "conflict",
+        "packagePolicy": {
+          "version": "exact_asin_package_evidence_v1",
+          "configuration": "ordinary_software",
+          "requiredContents": [],
+          "evidence": {
+            "source": "exact_asin_catalog"
+          },
+          "result": "match",
+          "reason": "",
+          "code": null
+        }
+      },
+      {
+        "item": "168729518297",
+        "ebayTitle": "Dance Dance Revolution Extreme Greatest (Sony PlayStation 2, 2008) New Sealed",
+        "identity": "conflict",
+        "packagePolicy": {
+          "version": "exact_asin_package_evidence_v1",
+          "configuration": "ordinary_software",
+          "requiredContents": [],
+          "evidence": {
+            "source": "exact_asin_catalog"
+          },
+          "result": "match",
+          "reason": "",
+          "code": null
+        }
+      }
+    ]
+  },
+  {
+    "asin": "B000PMGN2M",
+    "title": "Dance Dance Revolution Hottest Party Bundle",
+    "catalog": {
+      "asin": "B000PMGN2M",
+      "marketplace_id": "ATVPDKIKX0DER",
+      "normalized_platform": "Wii",
+      "normalized_edition": "Bundle",
+      "relevant_attributes_json": {
+        "title": "Dance Dance Revolution Hottest Party Bundle",
+        "format": null,
+        "region": null,
+        "edition": "Bundle",
+        "platform": "Nintendo Wii",
+        "release_date": null,
+        "package_quantity": 1,
+        "observed_attribute_keys": [
+          "batteries_included",
+          "batteries_required",
+          "brand",
+          "bullet_point",
+          "compatible_video_game_console_models",
+          "computer_platform",
+          "customer_package_type",
+          "edition",
+          "esrb_rating",
+          "externally_assigned_product_identifier",
+          "genre",
+          "hardware_platform",
+          "item_dimensions",
+          "item_name",
+          "item_package_dimensions",
+          "item_package_quantity",
+          "item_package_weight",
+          "item_type_keyword",
+          "item_weight",
+          "language",
+          "list_price",
+          "manufacturer",
+          "model_number",
+          "operating_system",
+          "part_number",
+          "pegi_rating",
+          "platform_for_display",
+          "product_site_launch_date",
+          "skip_offer",
+          "street_date",
+          "subject_keyword",
+          "supplier_declared_dg_hz_regulation",
+          "unspsc_code"
+        ]
+      }
+    },
+    "candidates": [
+      {
+        "item": "147683990138",
+        "ebayTitle": "New Dance Dance Revolution Hottest Party [Bundle] (Nintendo Wii, 2007)",
+        "identity": "conflict",
+        "packagePolicy": {
+          "version": "exact_asin_package_evidence_v1",
+          "configuration": "bundle",
+          "requiredContents": [],
+          "evidence": {
+            "source": "exact_asin_catalog"
+          },
+          "result": "review",
+          "reason": "Required bundle contents not corroborated; exact-ASIN manifest unresolved.",
+          "code": "contents_not_corroborated"
+        }
+      }
+    ]
+  },
+  {
+    "asin": "B000VJRU44",
+    "title": "Wii Fit",
+    "catalog": {
+      "asin": "B000VJRU44",
+      "marketplace_id": "ATVPDKIKX0DER",
+      "normalized_platform": "Wii",
+      "normalized_edition": "Standard",
+      "relevant_attributes_json": {
+        "title": "Wii Fit",
+        "format": "cd_rom",
+        "region": null,
+        "edition": "Standard",
+        "platform": "Nintendo Wii",
+        "release_date": null,
+        "package_quantity": 1,
+        "observed_attribute_keys": [
+          "batteries_included",
+          "batteries_required",
+          "battery",
+          "brand",
+          "bullet_point",
+          "computer_platform",
+          "customer_package_type",
+          "edition",
+          "esrb_rating",
+          "externally_assigned_product_identifier",
+          "format",
+          "genre",
+          "gpsr_safety_attestation",
+          "hardware_platform",
+          "item_dimensions",
+          "item_name",
+          "item_package_dimensions",
+          "item_package_quantity",
+          "item_package_weight",
+          "item_type_keyword",
+          "language",
+          "list_price",
+          "lithium_battery",
+          "manufacturer",
+          "model_number",
+          "mpaa_rating",
+          "num_batteries",
+          "number_of_items",
+          "number_of_players",
+          "operating_system",
+          "part_number",
+          "pegi_rating",
+          "platform_for_display",
+          "product_description",
+          "product_site_launch_date",
+          "ships_globally",
+          "skip_offer",
+          "street_date",
+          "subject_keyword",
+          "supplier_declared_dg_hz_regulation",
+          "unspsc_code",
+          "usk_rating"
+        ]
+      }
+    },
+    "candidates": [
+      {
+        "item": "237200342646",
+        "ebayTitle": "Wii Fit (Nintendo Wii, 2008) GAME ONLY - New Sealed - Wii Fitness Classic Game",
+        "identity": "conflict",
+        "packagePolicy": {
+          "version": "exact_asin_package_evidence_v1",
+          "configuration": "unresolved",
+          "requiredContents": [],
+          "evidence": {
+            "asin": "B000VJRU44",
+            "catalog_title": "Wii Fit",
+            "configuration": "unresolved",
+            "known_alternates": [],
+            "marketplace_id": "ATVPDKIKX0DER",
+            "platform": "Wii",
+            "required_contents": [],
+            "sources": [
+              {
+                "finding": "Title Wii Fit and Standard edition do not establish game-only versus board bundle.",
+                "kind": "exact_asin_catalog",
+                "reference": "November 24 captured B000VJRU44 identity"
+              }
+            ],
+            "verification_status": "unresolved",
+            "verified_at": null
+          },
+          "result": "review",
+          "reason": "Amazon package configuration unresolved.",
+          "code": "contents_not_corroborated"
+        }
+      },
+      {
+        "item": "147693336106",
+        "ebayTitle": "Wii Fit (Nintendo Wii, 2008)New sealed.",
+        "identity": "review",
+        "packagePolicy": {
+          "version": "exact_asin_package_evidence_v1",
+          "configuration": "unresolved",
+          "requiredContents": [],
+          "evidence": {
+            "asin": "B000VJRU44",
+            "catalog_title": "Wii Fit",
+            "configuration": "unresolved",
+            "known_alternates": [],
+            "marketplace_id": "ATVPDKIKX0DER",
+            "platform": "Wii",
+            "required_contents": [],
+            "sources": [
+              {
+                "finding": "Title Wii Fit and Standard edition do not establish game-only versus board bundle.",
+                "kind": "exact_asin_catalog",
+                "reference": "November 24 captured B000VJRU44 identity"
+              }
+            ],
+            "verification_status": "unresolved",
+            "verified_at": null
+          },
+          "result": "review",
+          "reason": "Amazon package configuration unresolved.",
+          "code": "contents_not_corroborated"
+        }
+      }
+    ]
+  },
+  {
+    "asin": "B0018BEG8W",
+    "title": "Dance Dance Revolution Hottest Party 2 with Dance Mat",
+    "catalog": {
+      "asin": "B0018BEG8W",
+      "marketplace_id": "ATVPDKIKX0DER",
+      "normalized_platform": "Wii",
+      "normalized_edition": "Standard",
+      "relevant_attributes_json": {
+        "title": "Dance Dance Revolution Hottest Party 2 with Dance Mat",
+        "format": null,
+        "region": null,
+        "edition": "Standard",
+        "platform": "Wii",
+        "release_date": null,
+        "package_quantity": 1,
+        "observed_attribute_keys": [
+          "batteries_included",
+          "batteries_required",
+          "brand",
+          "bullet_point",
+          "compatible_video_game_console_models",
+          "computer_platform",
+          "edition",
+          "esrb_rating",
+          "externally_assigned_product_identifier",
+          "genre",
+          "hardware_platform",
+          "item_dimensions",
+          "item_name",
+          "item_package_dimensions",
+          "item_package_quantity",
+          "item_package_weight",
+          "item_type_keyword",
+          "item_weight",
+          "language",
+          "list_price",
+          "lithium_battery",
+          "manufacturer",
+          "model_number",
+          "mpaa_rating",
+          "num_batteries",
+          "number_of_items",
+          "number_of_lithium_ion_cells",
+          "number_of_lithium_metal_cells",
+          "number_of_players",
+          "operating_system",
+          "part_number",
+          "pegi_rating",
+          "product_site_launch_date",
+          "skip_offer",
+          "street_date",
+          "subject_keyword",
+          "supplier_declared_dg_hz_regulation",
+          "unspsc_code",
+          "usk_rating"
+        ]
+      }
+    },
+    "candidates": [
+      {
+        "item": "135405206901",
+        "ebayTitle": "NIB Konami Dance Revolution: Hottest Party 2 WITH MAT (Nintendo Wii) Sealed",
+        "identity": "conflict",
+        "packagePolicy": {
+          "version": "exact_asin_package_evidence_v1",
+          "configuration": "bundle",
+          "requiredContents": [
+            {
+              "name": "dance mat",
+              "quantity": 1
+            }
+          ],
+          "evidence": {
+            "source": "exact_asin_catalog"
+          },
+          "result": "review",
+          "reason": "Required dance mat not corroborated.",
+          "code": "contents_not_corroborated"
+        }
+      },
+      {
+        "item": "377201127755",
+        "ebayTitle": "Nintendo Wii Dance Dance Revolution Hottest Party 2 with Mat - Free Shipping",
+        "identity": "conflict",
+        "packagePolicy": {
+          "version": "exact_asin_package_evidence_v1",
+          "configuration": "bundle",
+          "requiredContents": [
+            {
+              "name": "dance mat",
+              "quantity": 1
+            }
+          ],
+          "evidence": {
+            "source": "exact_asin_catalog"
+          },
+          "result": "review",
+          "reason": "Required dance mat not corroborated.",
+          "code": "contents_not_corroborated"
+        }
+      }
+    ]
+  },
+  {
+    "asin": "B0028ZH7GU",
+    "title": "Guitar Hero 5 - Nintendo Wii (Game only)",
+    "catalog": {
+      "asin": "B0028ZH7GU",
+      "marketplace_id": "ATVPDKIKX0DER",
+      "normalized_platform": "Wii",
+      "normalized_edition": "Game only",
+      "relevant_attributes_json": {
+        "title": "Guitar Hero 5 - Nintendo Wii (Game only)",
+        "format": "dvd_rom",
+        "region": null,
+        "edition": "Game only",
+        "platform": "nintendo_wii",
+        "release_date": null,
+        "package_quantity": 1,
+        "observed_attribute_keys": [
+          "access_method",
+          "batteries_included",
+          "batteries_required",
+          "brand",
+          "bullet_point",
+          "compatible_video_game_console_models",
+          "computer_platform",
+          "customer_package_type",
+          "edition",
+          "esrb_rating",
+          "externally_assigned_product_identifier",
+          "format",
+          "genre",
+          "hardware_platform",
+          "item_dimensions",
+          "item_name",
+          "item_package_dimensions",
+          "item_package_quantity",
+          "item_package_weight",
+          "item_type_keyword",
+          "item_weight",
+          "language",
+          "list_price",
+          "manufacturer",
+          "model_number",
+          "number_of_items",
+          "number_of_players",
+          "operating_system",
+          "part_number",
+          "pegi_rating",
+          "platform_for_display",
+          "product_site_launch_date",
+          "ships_globally",
+          "skip_offer",
+          "street_date",
+          "subject_keyword",
+          "supplier_declared_dg_hz_regulation",
+          "unspsc_code",
+          "usk_rating"
+        ]
+      }
+    },
+    "candidates": [
+      {
+        "item": "407342909778",
+        "ebayTitle": "New Guitar Hero 5 (Nintendo Wii, 2009)",
+        "identity": "conflict",
+        "packagePolicy": {
+          "version": "exact_asin_package_evidence_v1",
+          "configuration": "software_only",
+          "requiredContents": [],
+          "evidence": {
+            "source": "exact_asin_catalog"
+          },
+          "result": "match",
+          "reason": "",
+          "code": null
+        }
+      }
+    ]
+  },
+  {
+    "asin": "B006Y76HY6",
+    "title": "Spirit Camera: The Cursed Memoir",
+    "catalog": {
+      "asin": "B006Y76HY6",
+      "marketplace_id": "ATVPDKIKX0DER",
+      "normalized_platform": "3DS",
+      "normalized_edition": "Standard",
+      "relevant_attributes_json": {
+        "title": "Spirit Camera: The Cursed Memoir",
+        "format": "cd_rom",
+        "region": null,
+        "edition": "Standard",
+        "platform": "nintendo_3ds",
+        "release_date": "2012-04-13T00:00:01Z",
+        "package_quantity": 1,
+        "observed_attribute_keys": [
+          "access_method",
+          "batteries_included",
+          "batteries_required",
+          "brand",
+          "bullet_point",
+          "compatible_video_game_console_models",
+          "computer_platform",
+          "edition",
+          "esrb_rating",
+          "externally_assigned_product_identifier",
+          "format",
+          "genre",
+          "hardware_platform",
+          "item_dimensions",
+          "item_name",
+          "item_package_dimensions",
+          "item_package_quantity",
+          "item_package_weight",
+          "item_type_keyword",
+          "item_weight",
+          "language",
+          "list_price",
+          "manufacturer",
+          "model_number",
+          "number_of_players",
+          "operating_system",
+          "part_number",
+          "product_site_launch_date",
+          "publication_date",
+          "skip_offer",
+          "street_date",
+          "subject_keyword",
+          "supplier_declared_dg_hz_regulation",
+          "unspsc_code"
+        ]
+      }
+    },
+    "candidates": [
+      {
+        "item": "307276397847",
+        "ebayTitle": "Spirit Camera the Cursed Memoir Sealed - Nintendo 3DS",
+        "identity": "review",
+        "packagePolicy": {
+          "version": "exact_asin_package_evidence_v1",
+          "configuration": "required_components",
+          "requiredContents": [
+            {
+              "name": "AR book",
+              "original": true,
+              "quantity": 1
+            }
+          ],
+          "evidence": {
+            "asin": "B006Y76HY6",
+            "catalog_title": "Spirit Camera: The Cursed Memoir",
+            "configuration": "required_components",
+            "known_alternates": [],
+            "marketplace_id": "ATVPDKIKX0DER",
+            "platform": "3DS",
+            "required_contents": [
+              {
+                "name": "AR book",
+                "original": true,
+                "quantity": 1
+              }
+            ],
+            "sources": [
+              {
+                "finding": "Original retail game uses its included AR Book.",
+                "kind": "manufacturer",
+                "url": "https://csassets.nintendo.com/noaext/image/private/t_KA_PDF/manual-3DS-spirit-camera-the-cursed-memoir-en?_a=DATAg1AAZAA0"
+              },
+              {
+                "finding": "Nintendo 3DS Spirit Camera: The Cursed Memoir, released April 13, 2012.",
+                "kind": "exact_asin_catalog",
+                "reference": "November 24 captured B006Y76HY6 catalog identity"
+              }
+            ],
+            "verification_status": "verified",
+            "verified_at": "2026-11-25"
+          },
+          "result": "review",
+          "reason": "Required AR book not corroborated.",
+          "code": "contents_not_corroborated"
+        }
+      }
+    ]
+  },
+  {
+    "asin": "B0088MVPSI",
+    "title": "Skylanders Giants Starter Pack - Nintendo Wii U",
+    "catalog": {
+      "asin": "B0088MVPSI",
+      "marketplace_id": "ATVPDKIKX0DER",
+      "normalized_platform": "Wii U",
+      "normalized_edition": "Starter Kit",
+      "relevant_attributes_json": {
+        "title": "Skylanders Giants Starter Pack - Nintendo Wii U",
+        "format": "cd_rom",
+        "region": null,
+        "edition": "Starter Kit",
+        "platform": "Nintendo Wii U",
+        "release_date": null,
+        "package_quantity": 1,
+        "observed_attribute_keys": [
+          "access_method",
+          "batteries_included",
+          "batteries_required",
+          "brand",
+          "bullet_point",
+          "compatible_video_game_console_models",
+          "computer_platform",
+          "customer_package_type",
+          "edition",
+          "esrb_rating",
+          "externally_assigned_product_identifier",
+          "format",
+          "genre",
+          "gpsr_safety_attestation",
+          "hardware_platform",
+          "item_dimensions",
+          "item_name",
+          "item_package_dimensions",
+          "item_package_quantity",
+          "item_package_weight",
+          "item_type_keyword",
+          "item_weight",
+          "language",
+          "list_price",
+          "manufacturer",
+          "model_number",
+          "operating_system",
+          "part_number",
+          "pegi_rating",
+          "platform_for_display",
+          "product_site_launch_date",
+          "ships_globally",
+          "skip_offer",
+          "street_date",
+          "subject_keyword",
+          "supplier_declared_dg_hz_regulation",
+          "unit_count",
+          "unspsc_code",
+          "usk_rating"
+        ]
+      }
+    },
+    "candidates": [
+      {
+        "item": "287750919699",
+        "ebayTitle": "Nintendo Wii U Skylanders Giants Starter Pack Brand New Sealed Box Wear",
+        "identity": "conflict",
+        "packagePolicy": {
+          "version": "exact_asin_package_evidence_v1",
+          "configuration": "bundle",
+          "requiredContents": [],
+          "evidence": {
+            "source": "exact_asin_catalog"
+          },
+          "result": "review",
+          "reason": "Required bundle contents not corroborated; exact-ASIN manifest unresolved.",
+          "code": "contents_not_corroborated"
+        }
+      }
+    ]
+  },
+  {
+    "asin": "B00D6NPFDK",
+    "title": "Skylanders SWAP Force Starter Pack - Nintendo Wii",
+    "catalog": {
+      "asin": "B00D6NPFDK",
+      "marketplace_id": "ATVPDKIKX0DER",
+      "normalized_platform": "Wii",
+      "normalized_edition": "Standard",
+      "relevant_attributes_json": {
+        "title": "Skylanders SWAP Force Starter Pack - Nintendo Wii",
+        "format": "cd_rom",
+        "region": null,
+        "edition": "Standard",
+        "platform": "Nintendo Wii",
+        "release_date": "2013-10-13T00:00:01Z",
+        "package_quantity": 1,
+        "observed_attribute_keys": [
+          "access_method",
+          "batteries_included",
+          "batteries_required",
+          "brand",
+          "bullet_point",
+          "compatible_video_game_console_models",
+          "computer_platform",
+          "customer_package_type",
+          "edition",
+          "esrb_rating",
+          "externally_assigned_product_identifier",
+          "fcc_radio_frequency_emission_compliance",
+          "format",
+          "genre",
+          "gpsr_safety_attestation",
+          "hardware_platform",
+          "item_dimensions",
+          "item_name",
+          "item_package_dimensions",
+          "item_package_quantity",
+          "item_package_weight",
+          "item_type_keyword",
+          "item_weight",
+          "language",
+          "list_price",
+          "manufacturer",
+          "model_number",
+          "operating_system",
+          "part_number",
+          "pegi_rating",
+          "platform_for_display",
+          "product_site_launch_date",
+          "publication_date",
+          "skip_offer",
+          "street_date",
+          "style",
+          "subject_keyword",
+          "supplier_declared_dg_hz_regulation",
+          "unit_count",
+          "unspsc_code",
+          "usk_rating"
+        ]
+      }
+    },
+    "candidates": [
+      {
+        "item": "137267947670",
+        "ebayTitle": "Skylanders Swap Force Starter Pack Nintendo Wii Brand New  SEALED",
+        "identity": "review",
+        "packagePolicy": {
+          "version": "exact_asin_package_evidence_v1",
+          "configuration": "bundle",
+          "requiredContents": [],
+          "evidence": {
+            "source": "exact_asin_catalog"
+          },
+          "result": "review",
+          "reason": "Required bundle contents not corroborated; exact-ASIN manifest unresolved.",
+          "code": "contents_not_corroborated"
+        }
+      },
+      {
+        "item": "168550754992",
+        "ebayTitle": "Skylanders Swap Force Wii Starter Pack Brand New",
+        "identity": "review",
+        "packagePolicy": {
+          "version": "exact_asin_package_evidence_v1",
+          "configuration": "bundle",
+          "requiredContents": [],
+          "evidence": {
+            "source": "exact_asin_catalog"
+          },
+          "result": "review",
+          "reason": "Required bundle contents not corroborated; exact-ASIN manifest unresolved.",
+          "code": "contents_not_corroborated"
+        }
+      }
+    ]
+  },
+  {
+    "asin": "B00DCDZM2I",
+    "title": "Skylanders Swap Force Starter Pack - Xbox One",
+    "catalog": {
+      "asin": "B00DCDZM2I",
+      "marketplace_id": "ATVPDKIKX0DER",
+      "normalized_platform": "Xbox One",
+      "normalized_edition": "Standard",
+      "relevant_attributes_json": {
+        "title": "Skylanders Swap Force Starter Pack - Xbox One",
+        "format": "cd_rom",
+        "region": null,
+        "edition": "Standard",
+        "platform": "xbox_one",
+        "release_date": "2013-11-13T00:00:01Z",
+        "package_quantity": 1,
+        "observed_attribute_keys": [
+          "access_method",
+          "batteries_included",
+          "batteries_required",
+          "brand",
+          "bullet_point",
+          "computer_platform",
+          "customer_package_type",
+          "edition",
+          "esrb_rating",
+          "externally_assigned_product_identifier",
+          "format",
+          "genre",
+          "hardware_platform",
+          "item_dimensions",
+          "item_name",
+          "item_package_dimensions",
+          "item_package_quantity",
+          "item_package_weight",
+          "item_type_keyword",
+          "item_weight",
+          "language",
+          "list_price",
+          "lithium_battery",
+          "manufacturer",
+          "model_number",
+          "num_batteries",
+          "number_of_lithium_ion_cells",
+          "number_of_lithium_metal_cells",
+          "operating_system",
+          "part_number",
+          "pegi_rating",
+          "platform_for_display",
+          "product_site_launch_date",
+          "publication_date",
+          "skip_offer",
+          "street_date",
+          "style",
+          "subject_keyword",
+          "supplier_declared_dg_hz_regulation",
+          "unit_count",
+          "unspsc_code"
+        ]
+      }
+    },
+    "candidates": [
+      {
+        "item": "840139521854",
+        "ebayTitle": "Skylanders Swap Force (Microsoft Xbox One, 2013) New Sealed - Game Only",
+        "identity": "conflict",
+        "packagePolicy": {
+          "version": "exact_asin_package_evidence_v1",
+          "configuration": "bundle",
+          "requiredContents": [],
+          "evidence": {
+            "source": "exact_asin_catalog"
+          },
+          "result": "review",
+          "reason": "Required bundle contents not corroborated; exact-ASIN manifest unresolved.",
+          "code": "contents_not_corroborated"
+        }
+      },
+      {
+        "item": "920153070592",
+        "ebayTitle": "Skylanders Swap Force Xbox One Starter Pack Blast Zone Ninja Elf New/Sealed RARE",
+        "identity": "conflict",
+        "packagePolicy": {
+          "version": "exact_asin_package_evidence_v1",
+          "configuration": "bundle",
+          "requiredContents": [],
+          "evidence": {
+            "source": "exact_asin_catalog"
+          },
+          "result": "review",
+          "reason": "Required bundle contents not corroborated; exact-ASIN manifest unresolved.",
+          "code": "contents_not_corroborated"
+        }
+      }
+    ]
+  },
+  {
+    "asin": "B00VEPK9U6",
+    "title": "Guitar Hero Live - Xbox 360",
+    "catalog": {
+      "asin": "B00VEPK9U6",
+      "marketplace_id": "ATVPDKIKX0DER",
+      "normalized_platform": "Xbox 360",
+      "normalized_edition": "Guitar Bundle",
+      "relevant_attributes_json": {
+        "title": "Guitar Hero Live - Xbox 360",
+        "format": null,
+        "region": null,
+        "edition": "Guitar Bundle",
+        "platform": "Xbox 360",
+        "release_date": "2015-10-20T00:00:01Z",
+        "package_quantity": 1,
+        "observed_attribute_keys": [
+          "access_method",
+          "batteries_included",
+          "batteries_required",
+          "battery",
+          "brand",
+          "bullet_point",
+          "compatible_video_game_console_models",
+          "computer_platform",
+          "edition",
+          "esrb_rating",
+          "externally_assigned_product_identifier",
+          "genre",
+          "hardware_platform",
+          "item_dimensions",
+          "item_name",
+          "item_package_dimensions",
+          "item_package_quantity",
+          "item_package_weight",
+          "item_type_keyword",
+          "item_weight",
+          "language",
+          "list_price",
+          "lithium_battery",
+          "manufacturer",
+          "model_number",
+          "num_batteries",
+          "number_of_items",
+          "operating_system",
+          "part_number",
+          "pegi_rating",
+          "platform_for_display",
+          "product_site_launch_date",
+          "publication_date",
+          "size",
+          "skip_offer",
+          "street_date",
+          "style",
+          "subject_keyword",
+          "supplier_declared_dg_hz_regulation",
+          "unspsc_code",
+          "usk_rating",
+          "variation_theme"
+        ]
+      }
+    },
+    "candidates": [
+      {
+        "item": "227602520943",
+        "ebayTitle": "Guitar Hero Live Microsoft Xbox 360 2015 Sealed Brand New Unused Game",
+        "identity": "conflict",
+        "packagePolicy": {
+          "version": "exact_asin_package_evidence_v1",
+          "configuration": "bundle",
+          "requiredContents": [
+            {
+              "name": "guitar controller",
+              "quantity": 1
+            }
+          ],
+          "evidence": {
+            "source": "exact_asin_catalog"
+          },
+          "result": "conflict",
+          "reason": "Required guitar controller is explicitly missing.",
+          "code": "contents_confirmed_missing"
+        }
+      }
+    ]
+  },
+  {
+    "asin": "B015M4X7HG",
+    "title": "Skylanders SuperChargers Dark Edition with Exclusive Dark Bowser Amiibo for Nintendo Wii",
+    "catalog": {
+      "asin": "B015M4X7HG",
+      "marketplace_id": "ATVPDKIKX0DER",
+      "normalized_platform": "Wii",
+      "normalized_edition": null,
+      "relevant_attributes_json": {
+        "title": "Skylanders SuperChargers Dark Edition with Exclusive Dark Bowser Amiibo for Nintendo Wii",
+        "format": null,
+        "region": null,
+        "edition": null,
+        "platform": "43224-7010",
+        "release_date": null,
+        "package_quantity": 1,
+        "observed_attribute_keys": [
+          "batteries_included",
+          "batteries_required",
+          "brand",
+          "bullet_point",
+          "compatible_video_game_console_models",
+          "customer_package_type",
+          "externally_assigned_product_identifier",
+          "genre",
+          "item_dimensions",
+          "item_name",
+          "item_package_dimensions",
+          "item_package_quantity",
+          "item_package_weight",
+          "item_type_keyword",
+          "item_weight",
+          "list_price",
+          "manufacturer",
+          "model_number",
+          "part_number",
+          "pegi_rating",
+          "product_description",
+          "product_site_launch_date",
+          "skip_offer",
+          "supplier_declared_dg_hz_regulation",
+          "unspsc_code",
+          "usk_rating"
+        ]
+      }
+    },
+    "candidates": [
+      {
+        "item": "900072992574",
+        "ebayTitle": "Skylanders Superchargers Racing Dark Edition Starter Pack amiibo Wii SEALED NEW",
+        "identity": "review",
+        "packagePolicy": {
+          "version": "exact_asin_package_evidence_v1",
+          "configuration": "ordinary_software",
+          "requiredContents": [],
+          "evidence": {
+            "source": "exact_asin_catalog"
+          },
+          "result": "review",
+          "reason": "Purchasing unit package configuration unresolved: additional physical components disclosed.",
+          "code": "contents_not_corroborated"
+        }
+      }
+    ]
+  }
+]

@@ -9,6 +9,7 @@ import { excludeBlockedOpportunities, fetchBlockedAsins } from "../blockedAsins"
 import { excludeDeclinedOffers } from "../declinedOffers";
 import { excludeActionedListings } from "../actionedListings";
 import { flipmineOpportunityIds } from "../flipmineSource";
+import { editionNearMissAllowed } from '../editionPresentation';
 
 type OpportunityRow = {
   business_checks?: unknown;
@@ -980,6 +981,7 @@ function isPresentationEligibleOpportunity(row: OpportunityRow) {
 }
 
 function isClosestExcludedCandidate(row: OpportunityRow, context: ClosestExcludedContext | null, keepReviewed = false) {
+  if (!editionNearMissAllowed(row.matching_diagnostics_json, row.sourcing_ebay_candidates?.listing_status)) return false;
   if (isActionedOrPresentedStatus(row.status)) {
     return false;
   }

@@ -71,7 +71,7 @@ class Phase3IdentityTests(unittest.TestCase):
 
     def test_omission_and_explicit_edition_contradiction(self):
         omitted=compare('Some Game Deluxe Edition PS3','Some Game PS3')
-        self.assertEqual('unknown',omitted['comparisons']['edition']['result'])
+        self.assertEqual('review',omitted['comparisons']['edition']['result'])
         resolved=compare('Some Game Deluxe Edition PS3','Some Game PS3',game_name='Some Game Deluxe Edition')
         self.assertEqual('match',resolved['comparisons']['edition']['result'])
         conflict=compare('Some Game GOTY PS3','Some Game Complete Edition PS3')

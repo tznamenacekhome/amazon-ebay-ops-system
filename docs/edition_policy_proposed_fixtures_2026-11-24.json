@@ -1,0 +1,203 @@
+{
+  "status": "Approved revised business policy; executable regressions in tests/test_sourcing_edition_policy.py, tests/test_ebay_remaining_availability.py and editionPresentation.test.mjs. No production replay.",
+  "fixtures": [
+    {
+      "name": "standard_omission_corroborated",
+      "evidence": {
+        "amazonEdition": "Standard",
+        "ebayEdition": null,
+        "titleGameNamePlatform": "agree",
+        "competingVariantEvidence": false
+      },
+      "proposed_expectation": "compatible omission; do not require literal Standard",
+      "regression_test": "test_omission_is_not_an_observation"
+    },
+    {
+      "name": "standard_synonyms",
+      "evidence": {
+        "amazonTitleEdition": "Standard Edition",
+        "amazonCatalogEdition": "Standard"
+      },
+      "proposed_expectation": "same canonical edition; no internal source conflict",
+      "regression_test": "test_standard_synonyms"
+    },
+    {
+      "name": "special_omitted",
+      "evidence": {
+        "amazonEdition": "Deluxe",
+        "ebayEdition": null
+      },
+      "proposed_expectation": "review; require positive special-edition evidence",
+      "regression_test": "test_unresolved_special_is_explained_not_a_hard_mismatch"
+    },
+    {
+      "name": "explicit_conflict",
+      "evidence": {
+        "amazonEdition": "Standard",
+        "ebayEdition": "Collector Edition"
+      },
+      "proposed_expectation": "conflict",
+      "regression_test": "test_explicit_special_conflicts"
+    },
+    {
+      "name": "greatest_hits",
+      "evidence": {
+        "amazonEdition": "Standard",
+        "ebayFeatures": "Greatest Hits"
+      },
+      "proposed_expectation": "Compatible packaging when remaining evidence agrees and no substantive catalog/contents restriction exists; not an automatic review or mismatch.",
+      "regression_test": "test_all_rerelease_labels_and_sources"
+    },
+    {
+      "name": "limited_omitted",
+      "evidence": {
+        "amazonEdition": "Limited",
+        "ebayEdition": null
+      },
+      "proposed_expectation": "review",
+      "regression_test": "test_unresolved_special_is_explained_not_a_hard_mismatch"
+    },
+    {
+      "name": "multiple_plausible_editions",
+      "evidence": {
+        "amazonEdition": "Standard",
+        "sameGamePlatformVariants": [
+          "Standard",
+          "Deluxe"
+        ],
+        "ebayIdentifier": null
+      },
+      "proposed_expectation": "review when material variant cannot be resolved",
+      "regression_test": "test_negative_or_multiple_editions"
+    },
+    {
+      "name": "mat_missing",
+      "evidence": {
+        "amazonTitle": "Active Life Extreme Challenge Bundle with Mat",
+        "ebayTitle": "Active Life Extreme Challenge Game Only"
+      },
+      "proposed_expectation": "review or reject contents mismatch",
+      "regression_test": "test_required_accessory_is_not_satisfied_by_edition_compatibility"
+    },
+    {
+      "name": "wrong_platform",
+      "evidence": {
+        "amazonPlatform": "PS 2",
+        "ebayTitlePlatform": "PS 2",
+        "ebayDescriptionPlatform": "Xbox"
+      },
+      "proposed_expectation": "review/conflict; no Standard fallback",
+      "regression_test": "test_independent_safeguards"
+    },
+    {
+      "name": "region_conflict",
+      "evidence": {
+        "amazonRegion": "NTSC-U/C",
+        "ebayRegion": "PAL"
+      },
+      "proposed_expectation": "blocked/review under existing region policy",
+      "regression_test": "test_independent_safeguards"
+    },
+    {
+      "name": "matching_upc_wrong_title",
+      "evidence": {
+        "upcAgreement": true,
+        "amazonTitle": "Dead or Alive 5",
+        "ebayTitle": "Dead or Alive 4"
+      },
+      "proposed_expectation": "conflict; identifier alone never overrides contradictory identity",
+      "regression_test": "test_exact_gtin_not_mpn_corroborates_without_overriding_identity"
+    },
+    {
+      "name": "platform_in_edition",
+      "evidence": {
+        "amazonEdition": "Xbox One",
+        "amazonPlatform": "Xbox One",
+        "ebayPlatform": "Xbox One"
+      },
+      "proposed_expectation": "retype only corroborated platform metadata; do not infer Standard",
+      "regression_test": "test_typed_platform_and_jewel_case"
+    },
+    {
+      "name": "jewel_case",
+      "evidence": {
+        "amazonEdition": "Jewel Case",
+        "ebayPackaging": null
+      },
+      "proposed_expectation": "packaging review until exact retail package resolved",
+      "regression_test": "test_typed_platform_and_jewel_case"
+    },
+    {
+      "name": "enhanced_edition",
+      "evidence": {
+        "amazonTitle": "The Witcher Enhanced",
+        "ebayGameName": "Witcher Enhanced Edition; The Witcher"
+      },
+      "proposed_expectation": "resolve complete enhanced SKU; never silently choose base product",
+      "regression_test": "test_named_enhanced_edition_is_not_base_game"
+    },
+    {
+      "name": "punched_upc",
+      "evidence": {
+        "identity": "match",
+        "description": "Hole punch in UPC"
+      },
+      "proposed_expectation": "identity can agree; condition gate remains independent",
+      "regression_test": "test_affirmed_condition_defects_stay_blocked"
+    },
+    {
+      "name": "features_complete",
+      "evidence": {
+        "amazonEdition": "Standard",
+        "ebayFeatures": "Complete Edition",
+        "upcAgreement": false
+      },
+      "proposed_expectation": "Explicit Complete Edition against explicit Standard remains a substantive conflict unless reliable evidence resolves the designation.",
+      "regression_test": "test_complete_features_are_not_assumed_standard"
+    },
+    {
+      "name": "numeric_identities",
+      "evidence": {
+        "titles": [
+          "007 Legends",
+          "50 Cent: Blood on the Sand",
+          "13 Sentinels: Aegis Rim",
+          "7 Days to Die",
+          "1942",
+          "NBA 2K26"
+        ]
+      },
+      "proposed_expectation": "preserve named product, installment and year",
+      "regression_test": "test_numeric_game_identities_remain_intact"
+    },
+    {
+      "name": "browse_remaining_quantity",
+      "evidence": {
+        "estimatedAvailabilityStatus": "IN_STOCK",
+        "estimatedRemainingQuantity": 20,
+        "shippingCost": 0,
+        "configuredBuyerQuote": true
+      },
+      "proposed_expectation": "Accept documented positive remaining quantity with IN_STOCK and exact-item/buyer-shipping checks; preserve original quantity evidence.",
+      "regression_test": "test_remaining_stock_is_not_fabricated"
+    },
+    {
+      "name": "unknown_availability",
+      "evidence": {
+        "estimatedAvailabilityStatus": "UNKNOWN",
+        "shippingCost": 0
+      },
+      "proposed_expectation": "remain retryable; no availability bypass",
+      "regression_test": "test_unknown_invalid_and_conflicting_quantities_stay_unknown"
+    },
+    {
+      "name": "sold_out",
+      "evidence": {
+        "estimatedAvailabilityStatus": "OUT_OF_STOCK",
+        "estimatedRemainingQuantity": 0
+      },
+      "proposed_expectation": "unavailable regardless of Standard omission",
+      "regression_test": "test_zero_sold_out_and_ended_remain_unavailable"
+    }
+  ]
+}

@@ -205,19 +205,18 @@ class ListingRouter:
 
     @staticmethod
     def terminal(payload):
-        if (payload.get('mbopEvidence') or {}).get('provider')=='trading':
-            return bool(payload['mbopEvidence'].get('ended'))
         from refresh_sourcing_listing_availability import listing_is_available
-        return not listing_is_available(payload)[0]
+        return bool((payload.get('mbopEvidence') or {}).get('ended')) or not listing_is_available(payload)[0]
 
     @staticmethod
     def missing(payload,required):
+        from ebay_availability import quantity_evidence
         if payload.get('itemGroupHref') and (str(payload.get('itemId','')).endswith('|0') or (payload.get('mbopEvidence') or {}).get('variationUnverified')):
             return ['exact_variation']
         missing=[]
         paths={'conditionId':payload.get('conditionId'),'seller':(payload.get('seller') or {}).get('username'),
                'country':(payload.get('itemLocation') or {}).get('country'),'price':(payload.get('price') or {}).get('value'),
-               'availability':next(iter(payload.get('estimatedAvailabilities') or [{}])).get('estimatedAvailableQuantity')}
+               'availability':quantity_evidence(payload)[0]}
         for key,value in paths.items():
             if value is None or value=='':missing.append(key)
         if (payload.get('price') or {}).get('currency')!='USD':missing.append('currency')
@@ -229,8 +228,25 @@ class ListingRouter:
             if key.startswith('localizedAspects.') and not aspects.get(key.split('.',1)[1].lower()):missing.append(key)
         return missing
 
+    def shipping_verified(self, payload):
+        from decimal import Decimal, InvalidOperation
+        country,zipcode,_ = buyer(self.settings)
+        for option in payload.get('shippingOptions') or []:
+            cost = option.get('shippingCost') or {}
+            if cost.get('value') is None:
+                continue
+            try:
+                amount = Decimal(str(cost['value']))
+            except (InvalidOperation,ValueError):
+                return False
+            destination = option.get('shipToLocationUsedForEstimate') or {}
+            return (cost.get('currency') == 'USD' and amount.is_finite() and amount >= 0
+                    and (not destination.get('country') or destination['country'] == country)
+                    and (not destination.get('postalCode') or str(destination['postalCode']) == str(zipcode)))
+        return False
+
     def get(self,item_id,*,summary=None,required=(),viable=None,shipping=True):
-        from ebay_sourcing_search import EbayRateLimitedError, EbayTransientError, has_shipping_to_buyer
+        from ebay_sourcing_search import EbayRateLimitedError, EbayTransientError
         if str(item_id).isdigit():item_id=f'v1|{item_id}|0'
         match=re.fullmatch(r'v1\|(\d+)\|(\d+)',str(item_id))
         if not match:raise EvidenceUnavailable('Invalid eBay listing ID')
@@ -243,7 +259,7 @@ class ListingRouter:
         if cached and (cached.get('mbopEvidence') or {}).get('provider')=='trading' and cached['mbopEvidence'].get('schemaVersion')!=1:cached=None
         # Fresh contradictory search evidence invalidates the full cached observation.
         if cached and summary and any(summary.get(k) is not None and summary.get(k)!=cached.get(k) for k in ('title','conditionId','price')):cached=None
-        if cached and not cached.get('itemGroupHref') and not self.missing(cached,required) and (not shipping or has_shipping_to_buyer(cached) or self.terminal(cached)):
+        if cached and not cached.get('itemGroupHref') and not self.missing(cached,required) and (not shipping or self.shipping_verified(cached) or self.terminal(cached)):
             self.event('cache_hit');metrics['duplicate_detail_calls_prevented_count']=1
             return copy.deepcopy(cached),metrics
         preferred=[TRADING_RESOURCE,RESOURCE] if self.enabled() and match[2]=='0' else [RESOURCE]
@@ -290,7 +306,7 @@ class ListingRouter:
                     self.event('preliminary_exclusion',provider)
                     return payload,metrics
                 missing=self.missing(payload,required)
-                if provider==TRADING_RESOURCE and not missing and shipping and not has_shipping_to_buyer(payload):
+                if provider==TRADING_RESOURCE and not missing and shipping and not self.shipping_verified(payload):
                     if 'Calculated' in (payload.get('mbopEvidence') or {}).get('shippingType',''):
                         country,zipcode,quantity=buyer(self.settings)
                         if zipcode:
@@ -298,11 +314,13 @@ class ListingRouter:
                             quote=call(self.user_token,'GetItemShipping',fields)
                             metrics['trading_get_shipping_count']=metrics.get('trading_get_shipping_count',0)+1
                             payload['shippingOptions']=shipping_options(quote,self.settings,quoted=True)
-                    if not has_shipping_to_buyer(payload):missing.append('buyer_shipping')
+                    if not self.shipping_verified(payload):missing.append('buyer_shipping')
                 if missing and provider==TRADING_RESOURCE:
                     self.event('fallback_missing_'+missing[0],provider)
                     failures.append('Trading incomplete: '+','.join(missing))
                     continue
+                if shipping and not self.shipping_verified(payload):
+                    missing.append('buyer_shipping')
                 if payload.get('itemGroupHref') and match[2]=='0':
                     raise EvidenceUnavailable('Exact purchasable variation requires review')
                 if missing:raise EvidenceUnavailable('Required evidence remains unknown: '+','.join(missing))
