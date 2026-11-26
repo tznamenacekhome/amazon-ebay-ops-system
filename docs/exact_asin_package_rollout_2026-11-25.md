@@ -122,3 +122,16 @@ retains known exact-ASIN package evidence as unresolved contradiction instead of
 silently dropping it. A properly verified software-only observation may still
 supersede an older unresolved record. The expanded 344-test Python suite passes;
 all 97 captured identity/lifecycle results remain identical to the final gate.
+
+Final presentation verification exposed a compact-projection defect: the
+database's existing sourcing_list_diagnostics helper deliberately drops detailed
+identity comparisons and condition checks. The first API mocks retained full
+diagnostics and missed this path. Closest Excluded therefore lacked the policy
+marker even though stored purchasing decisions correctly blocked the defects.
+The list query now requests only a scalar policy-version projection; qualification
+uses retained compact hard blocks, identity verdict, review reasons and business
+checks. No schema change or full identity-payload expansion is needed. Tests now
+emulate the production projection. All 15 API/frontend files, lint and build pass.
+Read-only backend verification yields Buy List 24 / Closest Excluded 87, with
+the four confirmed condition failures absent. Worker matching decisions are
+unchanged; this follow-up is web-only.

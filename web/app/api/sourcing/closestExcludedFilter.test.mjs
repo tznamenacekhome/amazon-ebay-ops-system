@@ -10,6 +10,7 @@ let reviews=[];
 let priorRows=[];
 let listingActions=[];
 let flipmineRows=[];
+let compactDiagnostics=false;
 const cycles=[{coverage_cycle_id:'cycle-2',cycle_number:2,status:'completed',started_at:'2026-10-15T00:00:00Z'}];
 const db={rpc:async()=>({data:reviews,error:null}),from(table){
  let selection='',filters=[];
@@ -25,6 +26,16 @@ const db={rpc:async()=>({data:reviews,error:null}),from(table){
    if(selection.includes('sourcing_runs!inner')) {
     assert(filters.some(([method,column])=>method==='lt'&&column==='sourcing_runs.started_at'));
     assert(filters.some(([method,column])=>method==='neq'&&column==='sourcing_runs.coverage_cycle_id'));
+   }
+   if(compactDiagnostics&&table==='sourcing_opportunities'&&selection.includes('matching_diagnostics_json:sourcing_list_diagnostics')) {
+    assert(selection.includes('edition_policy_version:'),'Compact qualification must request the narrow policy marker');
+    data=data.map(row=>{
+     const d=row.matching_diagnostics_json??{},identity=d.static_rules?.identity_comparison??{};
+     return {...row,edition_policy_version:identity.comparisons?.edition?.policy?.version??null,
+      matching_diagnostics_json:{recommendation:d.recommendation,businessEligibilityChecks:d.businessEligibilityChecks,
+       presentationDecision:d.presentationDecision,decisionTrace:d.decisionTrace,
+       static_rules:{hard_blocks:d.static_rules?.hard_blocks,identity_comparison:{evidenceDecision:identity.evidenceDecision}}}};
+    });
    }
    return Promise.resolve(done({data,error:null}));
   };
@@ -144,3 +155,12 @@ assert(conditionResponse.body.opportunities[0].exclusionReason.summary.includes(
 conditionDiag.static_rules.condition_mismatch={result:'blocked',hits:['missing the plastic seal']};
 conditionResponse=await fmEdition();
 assert.equal(conditionResponse.body.summary.total,0,'Confirmed unacceptable new condition cannot become a near miss');
+compactDiagnostics=true;
+rows[5].matching_diagnostics_json=editionDiagnostics('contents_not_corroborated');
+let compactResponse=await fmEdition();
+assert.equal(compactResponse.body.summary.total,1,'Unresolved contents survive the actual compact projection');
+rows[5].matching_diagnostics_json.businessEligibilityChecks[0].result='fail';
+compactResponse=await fmEdition();assert.equal(compactResponse.body.summary.total,0);
+rows[5].matching_diagnostics_json=editionDiagnostics('condition_unacceptable');
+rows[5].matching_diagnostics_json.static_rules.hard_blocks=['not new condition signal: missing the plastic seal'];
+compactResponse=await fmEdition();assert.equal(compactResponse.body.summary.total,0,'Compact projection must exclude confirmed defects before counts and limits');

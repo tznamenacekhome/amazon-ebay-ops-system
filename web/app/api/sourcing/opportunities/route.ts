@@ -33,6 +33,7 @@ type OpportunityRow = {
   score: number | null;
   ai_flags: string[] | null;
   matching_diagnostics_json: unknown;
+  edition_policy_version?: string | null;
   created_at: string | null;
   sourcing_seed_asins?: {
     asin: string | null;
@@ -719,7 +720,7 @@ type OpportunityQueryResult = {
 // or catalog payloads. Hydrate full evidence only for qualifying exact IDs.
 // All admission/rank inputs are preserved by the database computed field.
 // Full identity evidence is fetched separately when a review opens.
-const LIST_OPPORTUNITY_SELECT = OPPORTUNITY_SELECT.replace("*", "opportunity_id,candidate_id,ebay_item_id,sourcing_run_id,seed_id,asin,opportunity_type,status,target_sale_price,profit,roi_percent,max_profitable_landed_cost,max_offer_price,required_offer_percent_of_ask,max_bid,total_profit_opportunity,score,ai_flags,created_at,matching_diagnostics_json:sourcing_list_diagnostics");
+const LIST_OPPORTUNITY_SELECT = OPPORTUNITY_SELECT.replace("*", "opportunity_id,candidate_id,ebay_item_id,sourcing_run_id,seed_id,asin,opportunity_type,status,target_sale_price,profit,roi_percent,max_profitable_landed_cost,max_offer_price,required_offer_percent_of_ask,max_bid,total_profit_opportunity,score,ai_flags,created_at,matching_diagnostics_json:sourcing_list_diagnostics,edition_policy_version:matching_diagnostics_json->static_rules->identity_comparison->comparisons->edition->policy->>version");
 
 const BUSINESS_OPPORTUNITY_SELECT = `opportunity_id,candidate_id,sourcing_run_id,asin,ebay_item_id,status,opportunity_type,created_at,score,
   business_checks:matching_diagnostics_json->businessEligibilityChecks,
@@ -981,7 +982,7 @@ function isPresentationEligibleOpportunity(row: OpportunityRow) {
 }
 
 function isClosestExcludedCandidate(row: OpportunityRow, context: ClosestExcludedContext | null, keepReviewed = false) {
-  if (!editionNearMissAllowed(row.matching_diagnostics_json, row.sourcing_ebay_candidates?.listing_status)) return false;
+  if (!editionNearMissAllowed(row.matching_diagnostics_json, row.sourcing_ebay_candidates?.listing_status, row.edition_policy_version)) return false;
   if (isActionedOrPresentedStatus(row.status)) {
     return false;
   }

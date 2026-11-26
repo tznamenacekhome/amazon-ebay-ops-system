@@ -23,6 +23,18 @@ assert(editionNearMissAllowed(condition,'active'));
 assert(!editionNearMissAllowed(condition,'ended'));
 condition.businessEligibilityChecks[0].result='fail';
 assert(!editionNearMissAllowed(condition,'active'));
+const compact={
+ static_rules:{hard_blocks:['not new condition signal: missing the plastic seal'],identity_comparison:{evidenceDecision:{productIdentityVerdict:'match'}}},
+ presentationDecision:{primaryReason:{code:'condition_unacceptable'}},
+ businessEligibilityChecks:['shipping','minimum_profit','minimum_roi'].map(code=>({code,result:'pass',blocking:false}))
+};
+assert(!editionNearMissAllowed(compact,'active','sourcing_edition_policy_v1'),'Compact production projection retains condition rejection');
+const compactReview=structuredClone(compact);
+compactReview.static_rules.hard_blocks=[];
+compactReview.presentationDecision.primaryReason.code='contents_not_corroborated';
+assert(editionNearMissAllowed(compactReview,'active','sourcing_edition_policy_v1'));
+compactReview.businessEligibilityChecks[0].result='fail';
+assert(!editionNearMissAllowed(compactReview,'active','sourcing_edition_policy_v1'));
 condition.businessEligibilityChecks[0].result='pass';
 condition.static_rules.condition_mismatch={result:'blocked'};
 assert(!editionNearMissAllowed(condition,'active'));
