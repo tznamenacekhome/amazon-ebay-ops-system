@@ -21,7 +21,7 @@
     "integrations/sourcing_identity_metadata.py": "549042cc8fae1d0f8bd0e12851eb62adcb4b9622e4193369e4967f9a012aa12b",
     "integrations/sourcing_platform_policy.py": "276d3e65536f70d9ba44e6e8227a2082195f5ca7d5616dc60a0a651c55ffaf94",
     "web/lib/canonicalSystems.json": "730e29c9e6f079f1d6bbd8b1b5bf90a34c9449b88c4ba3b93e046bda6e55ae59",
-    "web/lib/sourcingPlatformPolicy.json": "7751f69bc103f8cc132fbb91eb1cc58a7e185d052af1d1663dd829af82f1b8e9",
+    "web/lib/sourcingPlatformPolicy.json": "71abb20463325adaa308f1000f47c2a10528e8d756e39a4499eeceda70497642",
     "web/app/api/sourcing/platformPolicy.ts": "9b2beb16546f84e9695f1555567b199a85f1f6776de01a92ca433eca3e9d8f6e",
     "web/app/api/wholesale/_platformPolicy.ts": "3da2a6b138fcb9675936b0cf9fb13298291d61e5e6e47bfc0342ef131122a75d",
     "scripts/replay_flipmine_phase1.py": "272f0b49a9fa4c540a78026404c5697e514319c4557b370b75e94876740b11d1"

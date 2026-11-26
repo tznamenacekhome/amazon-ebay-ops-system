@@ -24,7 +24,8 @@
     "Intellivision",
     "ColecoVision",
     "Pokemon Mini",
-    "N-Gage"
+    "N-Gage",
+    "PS Vita"
   ],
   "mixedFormatPlatforms": [
     "Atari Jaguar",
@@ -42,7 +43,6 @@
     "PS 4",
     "PS 5",
     "PSP",
-    "PS Vita",
     "Xbox",
     "Xbox 360",
     "Xbox One",

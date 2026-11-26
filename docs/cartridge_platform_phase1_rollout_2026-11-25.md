@@ -4,7 +4,7 @@
 
 The existing DS unsupported-platform rule now reads a shared configurable policy (`web/lib/sourcingPlatformPolicy.json`). Python and server routes use the same canonical alias taxonomy. Identity and purchasing eligibility remain independent. Catalog, replenishment, Flipmine and wholesale paths reject known ineligible products before unnecessary enrichment; existing Buy List/Closest Excluded rows and stale purchasing actions are filtered by the same policy. Historical records, manual decisions, purchases and inventory are not rewritten.
 
-Excluded platforms: DS, 3DS, Game Boy, Game Boy Color, Game Boy Advance, Nintendo 64, NES, Super Nintendo, Sega Genesis/Mega Drive, Game Gear, Master System, Atari 2600/5200/7800/Lynx, Neo Geo Pocket/Color, Virtual Boy, WonderSwan/Color, Intellivision, ColecoVision, Pokemon Mini and N-Gage. Switch/Switch 2 remain eligible under existing guards. Disc/PC/PSP UMD behavior is preserved. Atari Jaguar, Neo Geo and TurboGrafx need reliable product-specific disc evidence; unknown/conflicting media is not affirmative eligibility. A generic normalized DVD label cannot override known cartridge evidence.
+Excluded platforms: DS, 3DS, Game Boy, Game Boy Color, Game Boy Advance, Nintendo 64, NES, Super Nintendo, Sega Genesis/Mega Drive, Game Gear, Master System, Atari 2600/5200/7800/Lynx, Neo Geo Pocket/Color, Virtual Boy, WonderSwan/Color, Intellivision, ColecoVision, Pokemon Mini, N-Gage and PS Vita. Switch/Switch 2 remain eligible under existing guards. Disc/PC/PSP UMD behavior is preserved. Atari Jaguar, Neo Geo and TurboGrafx need reliable product-specific disc evidence; unknown/conflicting media is not affirmative eligibility. A generic normalized DVD label cannot override known cartridge evidence.
 
 ## Frozen shadow
 
