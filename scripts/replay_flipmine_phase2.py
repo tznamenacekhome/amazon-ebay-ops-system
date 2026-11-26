@@ -105,7 +105,7 @@ def main():
  def flush_pending():
   item=json.loads(pending.read_text());result=rpc('sourcing_closeout_write_batch',item['request'])[0]
   if result['result']in ['written','already_written','already_applied']:
-   save_source(item['summary']['row'],'evaluated',item['diagnostics'])
+   save_source(item['summary']['row'],item.get('sourceStatus','evaluated'),item['diagnostics'],item.get('sourceError'))
   else:
    old=original_rows[item['summary']['row']];save_source(old['row_number'],old['status'],old['evaluation'],old['error'])
   record({**item['summary'],'guardResult':result['result']});pending.unlink()
@@ -169,9 +169,8 @@ def main():
      diagnostics['businessEligibilityChecks']=[*(diagnostics.get('businessEligibilityChecks')or[]),{'code':'catalog_seed_eligibility','label':'Current catalog eligibility / inventory / demand','result':'fail','blocking':True,'explanation':reason}]
      from sourcing_decision_trace import enrich_sourcing_diagnostics
      diagnostics=enrich_sourcing_diagnostics(diagnostics,status='rejected',opportunity_type=op.get('opportunity_type'),profit=op.get('profit'),roi_percent=op.get('roi_percent'))
-     result=rpc('sourcing_closeout_write_batch',{'p_allowed_ids':[op['opportunity_id']],'p_rows':[{'requestId':str(uuid.uuid5(NS,tag+':catalog-excluded:'+str(number))),'opportunityId':op['opportunity_id'],'state':capture['state'],'hash':capture['hash'],'patch':{'status':'rejected','matching_diagnostics_json':diagnostics}}]})[0]
-     if result['result']!='written':raise RuntimeError('Catalog exclusion guard did not write; retained for retry')
-     save_source(number,'excluded',diagnostics,reason);record({'row':number,'item':item['ebayItemId'],'asin':item['asin'],'result':'catalog_excluded','reason':reason,'opportunityId':op['opportunity_id']});continue
+     request={'p_allowed_ids':[op['opportunity_id']],'p_rows':[{'requestId':str(uuid.uuid5(NS,tag+':catalog-excluded:'+str(number))),'opportunityId':op['opportunity_id'],'state':capture['state'],'hash':capture['hash'],'patch':{'status':'rejected','matching_diagnostics_json':diagnostics}}]}
+     pending.write_text(exact_json({'request':request,'diagnostics':diagnostics,'sourceStatus':'excluded','sourceError':reason,'summary':{'row':number,'item':item['ebayItemId'],'asin':item['asin'],'result':'catalog_excluded','reason':reason,'opportunityId':op['opportunity_id']}}));flush_pending();continue
     fresh={**fresh,'seed_id':s['seed_id'],'sourcing_run_id':s['sourcing_run_id'],'source_mode':s.get('source_mode') or fresh.get('source_mode')}
     if worker.token is None:worker.token=fm.get_access_token()
     payload=fm.fetch_listing(worker.token,item['ebayItemId'],worker.settings)
