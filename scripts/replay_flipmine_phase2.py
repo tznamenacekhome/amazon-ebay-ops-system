@@ -31,6 +31,13 @@ def mutable_decision_patch(scored):
   patch['matching_diagnostics_json']=enrich_sourcing_diagnostics(diagnostics,status='rejected',opportunity_type=patch.get('opportunity_type'),profit=patch.get('profit'),roi_percent=patch.get('roi_percent'))
  return patch
 
+def unavailable_decision_patch(op, reason):
+ diagnostics=deepcopy(op.get('matching_diagnostics_json')or{})
+ diagnostics['businessEligibilityChecks']=[*(diagnostics.get('businessEligibilityChecks')or[]),{'code':'listing_availability','label':'Current listing availability','result':'fail','blocking':True,'explanation':reason}]
+ from sourcing_decision_trace import enrich_sourcing_diagnostics
+ diagnostics=enrich_sourcing_diagnostics(diagnostics,status='rejected',opportunity_type=op.get('opportunity_type'),profit=op.get('profit'),roi_percent=op.get('roi_percent'),listing_status='ended')
+ return {'status':'rejected','matching_diagnostics_json':diagnostics}
+
 def main():
  p=argparse.ArgumentParser(description=__doc__);p.add_argument('--execute',action='store_true');p.add_argument('--max-seconds',type=int,default=600)
  args=p.parse_args();os.chdir(ROOT)
@@ -200,9 +207,13 @@ def main():
     db.table('sourcing_ebay_candidates').update({'listing_status':'ended','available_quantity':0,'last_seen_at':fm.now()}).eq('candidate_id',c['candidate_id']).execute()
     if op:
      capture=rpc('sourcing_closeout_capture',{'p_ids':[op['opportunity_id']]})[0]
-     if not capture['protected']:
-      rpc('sourcing_closeout_write_batch',{'p_allowed_ids':[op['opportunity_id']],'p_rows':[{'requestId':str(uuid.uuid5(NS,tag+':ended:'+str(number))),'opportunityId':op['opportunity_id'],'state':capture['state'],'hash':capture['hash'],'patch':{'status':'dismissed'}}]})
-    save_source(number,'excluded',{'availability':{'result':'blocked','reason':fm.safe_error(error)}},fm.safe_error(error));record({'row':number,'item':item['ebayItemId'],'asin':item['asin'],'result':'confirmed_unavailable'})
+     if capture['protected']:
+      save_source(number,old['status'],old['evaluation'],old['error']);record({'row':number,'result':'protected_skip','reason':capture['protected']});continue
+     patch=unavailable_decision_patch(op,fm.safe_error(error))
+     request={'p_allowed_ids':[op['opportunity_id']],'p_rows':[{'requestId':str(uuid.uuid5(NS,tag+':ended:'+str(number))),'opportunityId':op['opportunity_id'],'state':capture['state'],'hash':capture['hash'],'patch':patch}]}
+     pending.write_text(exact_json({'request':request,'diagnostics':patch['matching_diagnostics_json'],'sourceStatus':'excluded','sourceError':fm.safe_error(error),'summary':{'row':number,'item':item['ebayItemId'],'asin':item['asin'],'result':'confirmed_unavailable','opportunityId':op['opportunity_id']}}));flush_pending()
+    else:
+     save_source(number,'excluded',{'availability':{'result':'blocked','reason':fm.safe_error(error)}},fm.safe_error(error));record({'row':number,'item':item['ebayItemId'],'asin':item['asin'],'result':'confirmed_unavailable'})
    if index%20==0:worker.progress(tab['tab_id'],[])
   assert len(done)==target_total
   worker.progress(tab['tab_id'],[])

@@ -3,7 +3,7 @@ import unittest
 from copy import deepcopy
 from pathlib import Path
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'scripts'))
-from replay_flipmine_phase2 import mutable_decision_patch
+from replay_flipmine_phase2 import mutable_decision_patch, unavailable_decision_patch
 
 
 class ReplayLifecycleTests(unittest.TestCase):
@@ -22,6 +22,14 @@ class ReplayLifecycleTests(unittest.TestCase):
         for status in ['open','rejected']:
             scored={'status':status,'matching_diagnostics_json':{}}
             self.assertEqual(scored,mutable_decision_patch(scored))
+
+    def test_unavailable_listing_uses_guarded_rejection_and_keeps_history(self):
+        op={'status':'open','opportunity_type':'buy_now','profit':10,'roi_percent':100,'matching_diagnostics_json':{'recommendation':'Probable Match'}}
+        before=deepcopy(op);patch=unavailable_decision_patch(op,'Confirmed unavailable')
+        self.assertEqual(before,op)
+        self.assertEqual('rejected',patch['status'])
+        self.assertFalse(patch['matching_diagnostics_json']['presentationDecision']['eligible'])
+        self.assertTrue(any(c['code']=='listing_availability'and c['blocking']for c in patch['matching_diagnostics_json']['businessEligibilityChecks']))
 
 
 if __name__=='__main__':unittest.main()
