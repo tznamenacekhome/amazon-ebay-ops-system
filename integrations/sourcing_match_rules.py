@@ -272,7 +272,8 @@ NON_GAME_CATEGORY_IDS = {
 
 GAME_SOFTWARE_CATEGORY_IDS = {"139973"}
 
-UNSUPPORTED_CANDIDATE_SYSTEMS = {"DS"}
+from sourcing_platform_policy import CARTRIDGE_PLATFORMS, platform_eligibility
+UNSUPPORTED_CANDIDATE_SYSTEMS = set(CARTRIDGE_PLATFORMS)
 
 NON_GAME_CATEGORY_TERMS = {
     "accessories",
@@ -466,6 +467,11 @@ def evaluate_static_match_rules(
     warnings: list[str] = []
     score_adjustment = 0
     recommendation = "Review"
+    sourcing_platform = platform_eligibility(seed, candidate)
+    if sourcing_platform['result'] != 'pass':
+        hard_blocks.append(sourcing_platform['reason'])
+        flags.append('Blocked: ' + sourcing_platform['reason'])
+        recommendation = 'Blocked'
 
     platform = platform_rule(amazon_title, ebay_title, seed, evidence)
     if canonical:
@@ -702,6 +708,7 @@ def evaluate_static_match_rules(
         "score_adjustment": score_adjustment,
         "flags": flags,
         "platform_rule": platform,
+        "sourcing_platform_policy": sourcing_platform,
         "title_overlap": title_overlap,
         "excluded_keywords": {"hits": excluded, "result": "blocked" if excluded else "pass"},
         "digital_download": effective_checks.get("digitalPhysical", {"hits": digital, "result": "blocked" if digital else "pass"}),
@@ -1130,6 +1137,8 @@ def suppress_generic_platforms(systems: list[str]) -> list[str]:
         "PS": {"PS 2", "PS 3", "PS 4", "PS 5", "PSP", "PS Vita"},
         "Wii": {"Wii U"},
         "Switch": {"Switch 2"},
+        "Game Boy": {"Game Boy Advance", "Game Boy Color"},
+        "NES": {"Super Nintendo"},
     }
     present = set(systems)
     suppressed = set()

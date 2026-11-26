@@ -112,6 +112,12 @@ def enrich_sourcing_diagnostics(
         roi_percent=roi_percent,
     )
     primary = None if eligible else reasons[0] if reasons else None
+    sourcing_policy = record(record(enriched.get('static_rules')).get('sourcing_platform_policy'))
+    if sourcing_policy and sourcing_policy.get('result') != 'pass':
+        detail = {**reason('unsupported_platform'), 'summary': sourcing_policy['reason'],
+                  'source': 'sourcing_platform_policy', 'diagnosticKeys': ['sourcing_platform_policy']}
+        reasons = [detail, *[r for r in reasons if r.get('code') != 'unsupported_platform']]
+        primary = detail
     if eligible:
         reasons = []
     elif primary is None and status == "rejected":
@@ -131,7 +137,7 @@ def enrich_sourcing_diagnostics(
     identity = record(record(enriched.get("static_rules")).get("identity_comparison")) or record(enriched.get("identity_comparison"))
     identity_view = record(identity.get("evidenceDecision"))
     business_failures = [row for row in trace if row.get("result") == "fail"
-                         and row.get("reasonCode") in {"seller_policy", "unavailable_listing", "profitability"}]
+                         and row.get("reasonCode") in {"seller_policy", "unavailable_listing", "profitability", "unsupported_platform"}]
     enriched["canonicalDecision"] = {
         "version": "sourcing_evidence_decision_v2",
         "evaluationId": str(uuid.uuid4()),
@@ -163,6 +169,7 @@ def build_decision_trace(
                  if row.get("code") in {"shipping", "minimum_profit", "minimum_roi", "offer_floor"}]
     economics_pass = phase3 and bool(economics) and all(row.get("result") == "pass" and not row.get("blocking") for row in economics)
     checks = [
+        ("sourcing_platform_policy", "Sourcing platform eligibility", "sourcing_platform_policy"),
         ("title_overlap", "Title overlap", "title_overlap"),
         ("identity_comparison", "Video game identity", "core_game_identity"),
         ("platform_rule", "Platform/system", "platform_system"),
@@ -184,7 +191,7 @@ def build_decision_trace(
         value = record(diagnostics.get(key)) or record(static_rules.get(key))
         if not value:
             continue
-        result = result_name(value)
+        result = 'fail' if key == 'sourcing_platform_policy' and value.get('result') != 'pass' else result_name(value)
         code = reason_code_for_check(key, value)
         if phase3 and result == "warning" and key in {"identity_comparison", "game_name", "title_overlap", "numeric_identity", "edition_version"} and code not in EDITION_REVIEW_CODES:
             code = "review_threshold"
@@ -305,6 +312,8 @@ def summary_for_check(key: str, value: dict[str, Any]) -> str:
 
 
 def reason_code_for_check(key: str, value: dict[str, Any]) -> str | None:
+    if key == 'sourcing_platform_policy' and result_name(value) != 'pass':
+        return 'unsupported_platform'
     if key == 'contents_review' and result_name(value) != 'pass':
         return 'contents_not_corroborated'
     if key == 'condition_mismatch' and result_name(value) != 'pass':

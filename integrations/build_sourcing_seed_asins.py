@@ -888,6 +888,9 @@ def finalize_seeds(
         }
         if not is_video_game_seed(seed):
             continue
+        from sourcing_platform_policy import platform_eligibility
+        if platform_eligibility(seed)['result'] != 'pass':
+            continue
         seeds.append(seed)
     seeds = sorted(seeds, key=lambda item: need_sort(item["inventory_need_level"], item["monthly_velocity"]), reverse=True)[:limit]
     image_by_asin = amazon_images_for_asins(supabase, [seed["asin"] for seed in seeds])

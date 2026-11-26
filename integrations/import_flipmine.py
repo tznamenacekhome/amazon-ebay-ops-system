@@ -124,7 +124,8 @@ class FlipmineImporter:
                 return 'duplicate'
         seed = self.context.seed(asin)
         if not seed:
-            self.row_update(tab_id, row, status='excluded', error='Excluded by existing catalog eligibility, inventory/velocity or blocked-ASIN rules')
+            self.row_update(tab_id, row, status='excluded', error=getattr(self.context,'exclusions',{}).get(asin)
+                            or 'Excluded by existing catalog eligibility, inventory/velocity or blocked-ASIN rules')
             return 'excluded'
         seed = {**seed, 'sourcing_run_id': tab['sourcing_run_id'],
                 'seed_id': str(uuid.uuid5(NAMESPACE, f"{tab_id}:{asin}"))}

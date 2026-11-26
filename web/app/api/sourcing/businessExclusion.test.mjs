@@ -19,6 +19,7 @@ const db={rpc:async()=>({data:[],error:null}),from(table){let select='',held=fal
 const cache=new Map();function load(file){file=resolve(file);if(cache.has(file))return cache.get(file);const out={};cache.set(file,out);new Function('require','exports',ts.transpileModule(readFileSync(file,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText)(name=>{
  if(name==='next/server')return {NextResponse:{json:(body,init)=>({body,status:init?.status??200,headers:new Headers()})}};
  if(name.endsWith('/_supabase')||name==='./_supabase')return {supabase:db,toNumber:(v,d=0)=>Number.isFinite(Number(v))?Number(v):d};
+ if(name.endsWith('.json')){const value=JSON.parse(readFileSync(resolve(dirname(file),name),'utf8'));return {default:value,...value};}
  if(name.startsWith('.'))return load(resolve(dirname(file),name+'.ts'));return require(name);
 },out);return out;}
 const route=load(resolve(root,'opportunities/route.ts'));

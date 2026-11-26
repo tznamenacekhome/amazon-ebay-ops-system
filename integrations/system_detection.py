@@ -2,31 +2,10 @@ import re
 from typing import Any
 
 
-SYSTEM_ALIASES = {
-    "Switch 2": ["nintendo switch 2", "switch 2"],
-    "Switch": ["nintendo switch", "switch"],
-    "3DS": ["nintendo 3ds", "3ds"],
-    "DS": ["nintendo ds", "ds"],
-    "Wii U": ["nintendo wii u", "wii u", "wiiu"],
-    "Wii": ["nintendo wii", "wii"],
-    "Gamecube": ["gamecube", "game cube", "nintendo gamecube"],
-    "Nintendo 64": ["nintendo 64", "n64"],
-    "Super Nintendo": ["super nintendo", "snes"],
-    "NES": ["nes", "nintendo entertainment system"],
-    "PS 5": ["playstation 5", "ps5", "ps 5"],
-    "PS 4": ["playstation 4", "ps4", "ps 4"],
-    "PS 3": ["playstation 3", "ps3", "ps 3"],
-    "PS 2": ["playstation 2", "ps2", "ps 2"],
-    "PS": ["playstation", "ps1", "psx"],
-    "PSP": ["psp", "playstation portable"],
-    "PS Vita": ["playstation vita", "ps vita", "vita"],
-    "Xbox Series X": ["xbox series x", "series x"],
-    "Xbox Series S": ["xbox series s", "series s"],
-    "Xbox One": ["xbox one", "xbone", "xb1"],
-    "Xbox 360": ["xbox 360", "360"],
-    "Xbox": ["original xbox", "xbox"],
-    "PC": ["pc", "windows pc", "windows", "mac"],
-}
+# Single canonical alias source shared with the sourcing server APIs.
+import json
+from pathlib import Path
+SYSTEM_ALIASES = json.loads((Path(__file__).resolve().parents[1] / 'web/lib/canonicalSystems.json').read_text())
 
 
 def normalize_spaces(value: str) -> str:
@@ -40,6 +19,9 @@ def normalize_system(value: str | None) -> str | None:
     text = normalize_spaces(value.lower())
     text = re.sub(r"[^a-z0-9]+", " ", text)
     text = normalize_spaces(text)
+    for canonical in SYSTEM_ALIASES:
+        if text == normalize_spaces(re.sub(r'[^a-z0-9]+', ' ', canonical.lower())):
+            return canonical
 
     for canonical, aliases in SYSTEM_ALIASES.items():
         for alias in aliases:
@@ -54,6 +36,27 @@ def normalize_system(value: str | None) -> str | None:
                 return canonical
 
     return None
+
+
+def canonical_systems(value):
+    """All explicit systems, longest overlapping aliases win; shared with API."""
+    text = ' ' + re.sub(r'\s+', ' ', re.sub(r'[^a-z0-9]+', ' ', str(value or '').lower())).strip() + ' '
+    exact = [key for key in SYSTEM_ALIASES if text.strip() == re.sub(r'[^a-z0-9]+', ' ', key.lower()).strip()]
+    if exact:
+        return exact
+    found = []
+    for system, aliases in SYSTEM_ALIASES.items():
+        for alias in aliases:
+            needle = ' ' + re.sub(r'[^a-z0-9]+', ' ', alias.lower()).strip() + ' '
+            start = text.find(needle)
+            while start >= 0:
+                found.append((start, start + len(needle) - 1, system))
+                start = text.find(needle, start + 1)
+    kept = []
+    for row in sorted(found, key=lambda item: -(item[1]-item[0])):
+        if not any(row[0] < other[1] and row[1] > other[0] for other in kept):
+            kept.append(row)
+    return list(dict.fromkeys(row[2] for row in kept))
 
 
 def detect_system_from_title(title: str | None) -> str | None:

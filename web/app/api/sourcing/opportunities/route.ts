@@ -10,6 +10,7 @@ import { excludeDeclinedOffers } from "../declinedOffers";
 import { excludeActionedListings } from "../actionedListings";
 import { flipmineOpportunityIds } from "../flipmineSource";
 import { editionNearMissAllowed } from '../editionPresentation';
+import { platformOpportunityAllowed } from '../platformPolicy';
 
 type OpportunityRow = {
   business_checks?: unknown;
@@ -434,8 +435,9 @@ async function getOpportunities(request: NextRequest) {
   const qualifyingClosestExcludedRows = scope === "closest_excluded"
     ? rows.filter((row) => { const keep = reviewFor(row)?.feedback?.queueChoice === "keep_closest"; return (keep || !reviewFor(row)?.actionId) && isClosestExcludedCandidate(row, closestExcludedContext, keep); })
     : [];
+  if (!businessMode) rows = rows.filter(platformOpportunityAllowed);
   let eligibleRows = scope === "closest_excluded"
-    ? qualifyingClosestExcludedRows
+    ? qualifyingClosestExcludedRows.filter(platformOpportunityAllowed)
     : businessMode ? rows.filter(row=>businessReasonFor(row)!==null) : rows.filter(isPresentationEligibleOpportunity);
   if (businessMode && eligibleRows.length) {
     const eligibleById=new Map(eligibleRows.map(row=>[row.opportunity_id,row]));

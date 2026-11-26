@@ -43,12 +43,14 @@ const actionJs = ts.transpileModule(actionSource, {
   compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
 }).outputText;
 const actionExports = {};
+let currentOpportunity={asin:"B001C0L7QI"};
 const opportunityDb = { from() { return { select() { return { eq() { return {
-  async single() { return { data: { asin: "B001C0L7QI" }, error: null }; },
+  async single() { return { data: currentOpportunity, error: null }; },
 }; } }; } }; } };
 new Function("require", "exports", actionJs)((name) => {
   if (name === "next/server") return { NextResponse: { json: (body, options) => ({ body, status: options?.status ?? 200 }) } };
   if (name.endsWith("/blockedAsins")) return exports;
+  if (name.endsWith("/platformPolicy")) return platformExports;
   if (name.endsWith("/_supabase")) return { supabase: opportunityDb };
   if (name.endsWith("/_server")) return { requireAdminApiToken: () => null };
   if (name.endsWith("/_asinMetadata")) return { normalizeAsin: (value) => String(value ?? "").toUpperCase() };
@@ -65,3 +67,15 @@ assert.equal((await actionExports.POST({json:async()=>({actionType:"mark_valid_m
 failure = true;
 assert.equal((await actionExports.POST({ json: async () => ({ actionType: "watch" }) }, { params: Promise.resolve({ id: "existing" }) })).status, 503);
 console.log("Stale blocked-ASIN action tests passed: five buying actions rejected; review allowed; lookup failure returns 503.");
+
+const platformExports={};
+const policySource=readFileSync(new URL('./platformPolicy.ts',import.meta.url),'utf8');
+new Function('require','exports',ts.transpileModule(policySource,{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText)(name=>({default:JSON.parse(readFileSync(new URL(name,new URL('./platformPolicy.ts',import.meta.url)),'utf8'))}),platformExports);
+failure=false;
+currentOpportunity={asin:'ELIGIBLE01',status:'open',sourcing_seed_asins:{asin:'ELIGIBLE01',raw_context_json:{inferred_system:'Game Boy Advance'}},matching_diagnostics_json:{recommendation:'Match'}};
+for(const actionType of ['watch','purchased','snooze_roi','inventory_snooze']) {
+ const response=await actionExports.POST({json:async()=>({actionType})},{params:Promise.resolve({id:'old-cartridge-row'})});
+ assert.equal(response.status,409);assert(response.body.error.includes('Cartridge-based platform excluded'));
+}
+assert.equal((await actionExports.POST({json:async()=>({actionType:'mark_valid_match'})},{params:Promise.resolve({id:'old-cartridge-row'})})).status,200);
+console.log('Stale cartridge buying actions fail closed; matching reviews remain available and prior decisions are untouched.');

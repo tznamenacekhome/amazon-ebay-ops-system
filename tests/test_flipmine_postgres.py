@@ -47,6 +47,8 @@ class FlipmineTransactions(unittest.TestCase):
         seed = str(uuid.uuid4())
         self.sql(f"insert into sourcing_seed_asins(seed_id,source_mode,asin,sourcing_run_id) values({lit(seed)},'flipmine',{lit(asin)},{lit(self.tab['sourcing_run_id'])});")
         candidate = dict(candidate_id=str(uuid.uuid4()), asin=asin, ebay_item_id='v1|123456789012|0', ebay_legacy_item_id='123456789012', ebay_title='Fresh title', seed_id=seed, sourcing_run_id=self.tab['sourcing_run_id'])
+        candidate.update(buying_options=['FIXED_PRICE'],shipping_is_separate=False,is_multi_quantity=False,
+                         best_offer_enabled=False,raw_ebay_json={},listing_status='active')
         result = json.loads(self.sql(f"select flipmine_bind_candidate({lit(self.run)},{lit(self.tab['tab_id'])},{number},{js(candidate)});"))
         return result
     def write(self, candidate, number=2):
@@ -91,6 +93,25 @@ class FlipmineTransactions(unittest.TestCase):
         self.assertEqual(self.finish()['failed'], 2)
         self.sql(f"select flipmine_complete_tab({lit(self.tab['tab_id'])},'{{}}');")
         self.assertEqual(self.sql('select status from sourcing_flipmine_tabs'), 'partial')
+
+    def test_bounded_completed_snapshot_replay_uses_existing_writer_without_duplicates(self):
+        self.bind()
+        payload=js({'status':'excluded','evaluation':{'original':True}})
+        for number in (2,3):
+            self.sql(f"select flipmine_update_row({lit(self.run)},{lit(self.tab['tab_id'])},{number},{payload});")
+        old=self.sql('select row_to_json(r)::text from sourcing_flipmine_rows r where row_number=3')
+        self.sql("insert into sourcing_listing_snapshots(snapshot_event,snapshot_source,asin,candidate_id,raw_context_json) select 'backfill','targeted-test',asin,candidate_id,jsonb_build_object('original_source_row',to_jsonb(r)) from sourcing_flipmine_rows r where row_number=2;")
+        self.finish()
+        self.sql(f"select flipmine_complete_tab({lit(self.tab['tab_id'])},'{{}}');update sourcing_flipmine_runs set status='completed' where run_id={lit(self.run)};")
+        original_run=self.run
+        self.run=str(uuid.uuid4());self.begin(self.run)
+        self.sql(f"update sourcing_flipmine_tabs set run_id={lit(self.run)},status='running' where tab_id={lit(self.tab['tab_id'])} and run_id={lit(original_run)} and status='completed' and source_hash='hash';")
+        fresh=self.bind()['candidate'];self.write(fresh);self.write(fresh)
+        self.assertEqual(self.sql('select count(*) from sourcing_opportunities'),'1')
+        self.assertEqual(self.sql('select count(*) from sourcing_flipmine_rows'),'2')
+        self.assertEqual(old,self.sql('select row_to_json(r)::text from sourcing_flipmine_rows r where row_number=3'))
+        self.assertEqual(self.sql("select raw_context_json->'original_source_row'->'evaluation'->>'original' from sourcing_listing_snapshots"),'true')
+        self.assertEqual(self.sql(f"select status from sourcing_flipmine_runs where run_id={lit(original_run)}"),'completed')
 
     def test_failed_opportunity_write_does_not_acknowledge_row(self):
         candidate=self.bind()['candidate']

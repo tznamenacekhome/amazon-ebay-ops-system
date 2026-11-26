@@ -16,6 +16,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY run_all_syncs.py ./
 COPY integrations ./integrations
+COPY web/lib/canonicalSystems.json web/lib/sourcingPlatformPolicy.json ./web/lib/
 COPY docker/scheduler-entrypoint.sh /usr/local/bin/mbop-scheduler-entrypoint
 
 RUN sed -i 's/\r$//' /usr/local/bin/mbop-scheduler-entrypoint \

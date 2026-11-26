@@ -505,7 +505,9 @@ def reason_for_result(comparisons: dict[str, dict[str, Any]]) -> str:
 
 
 def usable_game_names(evidence: dict[str, Any]) -> list[str]:
-    return [value for value in evidence.get("game_name_values") or [] if normalize_text(value) not in IGNORED_GAME_NAMES]
+    from sourcing_identity_metadata import missing_game_name
+    return [value for value in evidence.get("game_name_values") or []
+            if normalize_text(value) not in IGNORED_GAME_NAMES and not missing_game_name(value)]
 
 
 def amazon_platform(seed: dict[str, Any], amazon_title: Any) -> str | None:
@@ -921,7 +923,25 @@ def phase3_side(title, side, evidence=None, catalog=None, platform=None, platfor
     names = usable_game_names(evidence)
     publishers = [p for p in publishers if names and not any(
         normalize_text(name).startswith(normalize_text(p) + " ") for name in names)]
-    parsed = [(row, general_product_fields(row["text"], publishers)) for row in rows]
+    from sourcing_identity_metadata import typed_product_text, missing_game_name
+    if side == 'ebay':
+        assigned.extend({'text': str(v), 'field': 'game_name', 'source': 'game_name',
+                         'reason': 'explicit structured missing-value placeholder; not product evidence'}
+                        for v in evidence.get('game_name_values', []) if missing_game_name(v))
+    parsed = []
+    for row in rows:
+        product_text, metadata_spans, masks = typed_product_text(
+            row['text'], source=row['source'], side=side, evidence=evidence, catalog=catalog)
+        if masks:
+            row['_platform_text'] = product_text
+        assigned.extend(metadata_spans)
+        row['_typed_legacy_platform'] = any(v.get('field') == 'platform' for v in metadata_spans)
+        fields = general_product_fields(product_text, publishers)
+        for key in ('coreGame', 'coreProduct'):
+            if fields.get(key):
+                for token, word in masks.items():
+                    fields[key] = fields[key].replace(token, word.casefold())
+        parsed.append((row, fields))
     edition_sources = []
     negative_edition = False
     excluded_editions = []
@@ -961,10 +981,24 @@ def phase3_side(title, side, evidence=None, catalog=None, platform=None, platfor
             values += edition_sources
         if key == "platform":
             platform_text = lambda text: re.sub(r"\bplaystation\s+ps\s*([1-5])\b", r"PlayStation \1", re.sub(r'\bplay\s*station\s+(?:hits|essentials)\b',' ',text,flags=re.I), flags=re.I)
-            values = [(platform_display(detect_system_from_title(platform_text(row["text"]))), row) for row in rows if detect_system_from_title(platform_text(row["text"]))]
+            values = []
+            for row in rows:
+                text = platform_text(row.get('_platform_text', row['text']))
+                if row.get('_typed_legacy_platform'):
+                    # A newly extracted legacy span must not hide another
+                    # explicit system in the same title (e.g. PC plus SNES).
+                    from sourcing_match_rules import detect_all_systems
+                    systems = detect_all_systems(text)
+                else:
+                    systems = [detect_system_from_title(text)]
+                values.extend((platform_display(system), row) for system in systems if system)
             values += [(platform_display(normalize_system(v)), {"source": "platform_values", "text": v}) for v in evidence.get("platform_values", []) if normalize_system(v)]
             if not values and platform:
                 values = [(platform_display(normalize_system(platform)), {"source": platform_source, "text": platform})]
+            raw_catalog_platform = (catalog.get('relevant_attributes_json') or {}).get('platform')
+            if normalize_system(raw_catalog_platform) and normalize_system(raw_catalog_platform) != normalize_system(catalog.get('normalized_platform')):
+                values.append((platform_display(normalize_system(raw_catalog_platform)),
+                               {'source': 'exact_asin_catalog.relevant_attributes.platform', 'text': str(raw_catalog_platform)}))
         if key == "region":
             allowed = rows + [{"source": "region_code_values", "text": v} for v in evidence.get("region_code_values", [])]
             values = [(first_region([row]), row) for row in allowed if first_region([row])]
@@ -1002,6 +1036,10 @@ def phase3_side(title, side, evidence=None, catalog=None, platform=None, platfor
                     source_name_relation(primary[0], v[0]) == "same_typed_installment"), primary)
             if all(r["relation"] in {"same", "compatible_omission", "same_typed_installment"} for r in reconciliation):
                 values = [(primary[0], source) for _, source in values]
+        if key == 'platform':
+            # An unrecognized catalog label is missing, not a second literal
+            # platform conflicting with a recognized exact catalog observation.
+            values = [(v, row) for v, row in values if v is not None]
         distinct = {str(v).casefold() for v, _ in values}
         state = "conflicting_sources" if len(distinct) > 1 else "supported" if values else "unknown"
         sources = [{"field": row["source"], "span": row.get("originalText",row["text"])[:240], "normalizedSpan":row["text"][:240], "sourceHash": evidence_hash(row.get("originalText",row["text"])),
@@ -1095,6 +1133,23 @@ def phase3_comparison(amazon, ebay):
         relation = "explicit_conflict" if outcome == "conflict" else "same" if outcome == "match" else "compatible_omission" if outcome == "unknown" and bool(left["value"]) != bool(right["value"]) else "unknown"
         comparisons[key] = {"field": key, "result": outcome, "relation": relation, "amazon": left["value"], "ebay": right["value"], "reason": reason,
                             "amazonEvidenceRef": "amazon.fields." + key, "ebayEvidenceRef": "ebay.fields." + key}
+    # Removed media wording remains an independent, conservative SKU concern.
+    # Catalog format labels can be wrong; a contradiction requires review rather
+    # than allowing a cleaner name to clear it or treating catalog as infallible.
+    media_spans = [v for side in (amazon, ebay) for v in side.get('assignedMetadata', [])
+                   if v.get('field') == 'mediaFormat']
+    if media_spans:
+        media_key = lambda v: re.sub(r'[^a-z]', '', str(v).casefold())
+        values = {media_key(v['text']) for v in media_spans}
+        values.update(media_key(c) for v in media_spans for c in v.get('corroboration', []))
+        catalog = ((amazon.get('referenceMetadata') or {}).get('catalog') or {})
+        catalog_format = catalog.get('normalized_format')
+        if media_key(catalog_format) in {'cdrom', 'dvdrom', 'cartridge'}:
+            values.add(media_key(catalog_format))
+        comparisons['mediaFormat'] = {'field': 'mediaFormat',
+            'result': 'review' if len(values) > 1 else 'match',
+            'reason': 'Contradictory physical media evidence requires review' if len(values) > 1 else 'Typed physical media metadata retained',
+            'amazon': catalog_format, 'ebay': media_spans, 'relation': 'unknown'}
     from sourcing_edition_policy import edition_decision
     from sourcing_package_contents import package_decision
     package_policy = package_decision(amazon, ebay, comparisons)

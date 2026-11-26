@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createServerSupabaseClient } from "../../_server";
 import { fetchBuyBoxFulfillmentByAsin, fulfillmentForAsin } from "../_keepa";
+import { filterWholesalePlatforms } from '../_platformPolicy';
 
 export const dynamic = "force-dynamic";
 const STATUS_GROUPS: Record<string, string[]> = {
@@ -39,7 +40,7 @@ export async function GET(request: Request) {
     if (selectedImport) {
       try {
         const importProductIds = await fetchImportProductIds(supabase, selectedImport.import_id);
-        const filtered = await fetchOpportunitiesForProducts(supabase, importProductIds, statuses);
+        const filtered = await filterWholesalePlatforms(supabase, await fetchOpportunitiesForProducts(supabase, importProductIds, statuses));
         count = filtered.length;
         rows = filtered.slice(start, start + pageSize);
       } catch (error) {
@@ -49,10 +50,12 @@ export async function GET(request: Request) {
   } else {
     const result = await supabase.from("wholesale_opportunities")
       .select("*", { count: "exact" }).in("opportunity_status", statuses)
-      .order("updated_at", { ascending: false }).range(start, start + pageSize - 1);
+      .order("updated_at", { ascending: false }).limit(1000);
     if (result.error) return json({ error: result.error.message }, 500);
-    rows = result.data ?? [];
-    count = result.count ?? 0;
+    if((result.data??[]).length===1000)return json({error:'Wholesale platform qualification reached its bounded active-row limit.'},503);
+    const filtered=await filterWholesalePlatforms(supabase,result.data??[]);
+    count=filtered.length;
+    rows=filtered.slice(start,start+pageSize);
   }
   const productIds = unique(rows.map(row => row.supplier_product_id));
   const evaluationIds = unique(rows.map(row => row.current_evaluation_id));
@@ -175,8 +178,10 @@ function dto(opportunity: any, product: any, evaluation: any, draft: any, candid
 
 async function groupCounts(supabase: ReturnType<typeof createServerSupabaseClient>) {
   const entries = await Promise.all(Object.entries(STATUS_GROUPS).map(async ([key, statuses]) => {
-    const { count } = await supabase.from("wholesale_opportunities").select("opportunity_id", { count: "exact", head: true }).in("opportunity_status", statuses);
-    return [key, count ?? 0] as const;
+    const {data,error}=await supabase.from("wholesale_opportunities").select("opportunity_id,current_evaluation_id").in("opportunity_status",statuses).limit(1000);
+    if(error)throw new Error(error.message);
+    if((data??[]).length===1000)throw new Error('Wholesale platform count reached its bounded active-row limit.');
+    return [key,(await filterWholesalePlatforms(supabase,data??[])).length] as const;
   }));
   return Object.fromEntries(entries);
 }

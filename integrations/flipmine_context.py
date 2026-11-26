@@ -51,6 +51,7 @@ class ScopedSeedDB:
 class SourcingContext:
     def __init__(self, db, settings):
         self.db, self.settings, self.cache = db, settings, {}
+        self.exclusions = {}
         self._amazon = self._keepa = None
 
     @property
@@ -61,6 +62,14 @@ class SourcingContext:
         return self._amazon
 
     def ensure_sources(self, asin):
+        from sourcing_platform_policy import platform_eligibility
+        retained = self.db.table('amazon_catalog_item_identity_snapshots').select('*').eq('asin', asin).limit(1).execute().data
+        if retained:
+            platform = platform_eligibility({'asin': asin, 'amazon_title': (retained[0].get('relevant_attributes_json') or {}).get('title'),
+                'raw_context_json': {'amazon_catalog_identity': retained[0]}})
+            if platform['result'] == 'blocked':
+                self.exclusions[asin] = platform['reason']
+                return False
         if self.db.table('sourcing_blocked_asins').select('asin').eq('asin', asin).limit(1).execute().data:
             return False
         eligibility = seeds.fetch_fresh_new_eligibility_by_asin(self.db, [asin]).get(asin)
@@ -78,6 +87,10 @@ class SourcingContext:
             from amazon_sync_catalog_items import normalize_catalog_item, INCLUDED_DATA
             row = normalize_catalog_item(asin, self.amazon.get_catalog_item(asin, included_data=INCLUDED_DATA), self.amazon.config.marketplace_id)
             self.db.table('amazon_catalog_item_identity_snapshots').upsert(row, on_conflict='asin').execute()
+            if platform_eligibility({'asin': asin, 'amazon_title': (row.get('relevant_attributes_json') or {}).get('title'),
+                    'raw_context_json': {'amazon_catalog_identity': row}})['result'] == 'blocked':
+                self.exclusions[asin] = platform_eligibility({'asin': asin, 'raw_context_json': {'amazon_catalog_identity': row}})['reason']
+                return False
             time.sleep(.5)
         keepa = self.db.table('vw_latest_keepa_product_snapshot').select('asin,captured_at').eq('asin', asin).limit(1).execute().data
         if not keepa or not recent(keepa[0].get('captured_at')):

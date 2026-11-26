@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createServerSupabaseClient, requireAdminApiToken } from "../../../../_server";
+import { wholesalePlatformEligibility } from '../../../_platformPolicy';
 
 type Context = { params: Promise<{ opportunityId: string }> };
 type Body = { action?: string; evaluationId?: string; reason?: string; notes?: string; quantity?: number; requestId?: string; orderCandidateId?: string };
@@ -22,6 +23,11 @@ export async function POST(request: Request, context: Context) {
     if (!body.evaluationId || !Number.isInteger(body.quantity) || Number(body.quantity) <= 0 || !body.requestId) {
       return json({ error: "Current evaluation, positive integer quantity, and requestId are required." }, 400);
     }
+    const {data:evaluation,error:eligibilityError}=await supabase.from('wholesale_evaluations').select('asin,source_evidence_json')
+      .eq('evaluation_id',body.evaluationId).eq('opportunity_id',opportunityId).single();
+    if(eligibilityError)return json({error:'Could not verify sourcing platform eligibility.'},503);
+    const platform=wholesalePlatformEligibility(evaluation);
+    if(platform.result!=='pass')return json({error:platform.reason},409);
     result = await supabase.rpc("wholesale_upsert_draft_commitment", {
       p_opportunity_id: opportunityId, p_evaluation_id: body.evaluationId,
       p_quantity: body.quantity, p_idempotency_key: body.requestId, p_actor: "wholesale-ui",

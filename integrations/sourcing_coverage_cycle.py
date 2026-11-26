@@ -144,6 +144,9 @@ def build_purchased_not_sent_seeds(supabase, settings, limit: int) -> list[dict[
         }
         if not is_video_game_seed(seed):
             continue
+        from sourcing_platform_policy import platform_eligibility
+        if platform_eligibility(seed)['result'] != 'pass':
+            continue
         seeds.append(seed)
         if len(seeds) >= limit:
             break

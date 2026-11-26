@@ -13,6 +13,7 @@ let reads=0;const db=createClient('https://froeucjkcepuhgwisped.supabase.co','of
 const cache=new Map();function load(file){file=resolve(file);if(cache.has(file))return cache.get(file);const out={};cache.set(file,out);new Function('require','exports',ts.transpileModule(readFileSync(file,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText)(name=>{
  if(name.endsWith('/_supabase')||name==='./_supabase')return {supabase:db,toNumber:(v,d=0)=>Number.isFinite(Number(v))?Number(v):d};
  if(name.endsWith('/reviewActions'))return {fetchLatestReviews:async()=>new Map()}; // capture explicitly contains zero v3 reviews
+ if(name.endsWith('.json')){const value=JSON.parse(readFileSync(resolve(dirname(file),name),'utf8'));return {default:value,...value};}
  if(name.startsWith('.')){const next=resolve(dirname(file),name+'.ts');assert(existsSync(next));return load(next);}return require(name);
 },out);return out;}
 const baseline=JSON.parse(readFileSync('tmp/sourcing-phase3/current.json','utf8'));assert.equal(baseline.reviews.length,0);

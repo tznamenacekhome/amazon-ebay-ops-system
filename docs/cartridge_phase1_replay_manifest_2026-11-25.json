@@ -1,0 +1,291 @@
+{
+  "version": "cartridge_phase1_replay_v1",
+  "tabId": "97fc964e-a4f2-43bb-a5ca-90381d1352b8",
+  "sourceHash": "f60131aafdf2ccd6908fc2239f3942f0972166502f870ea26ba142eae4c1c13c",
+  "originalRunId": "c7ba90ae-7cdd-4b87-a831-c2ff33682adf",
+  "originalSourcingRunId": "5f77ab0e-1e7f-4518-8aa3-1cf0ec748ebd",
+  "originalTotal": 558,
+  "frozenInputSha256": "184dce8ac1f591e310b8c6b57b07ab0be266ee673f8ecc94bb31a3911398f2db",
+  "rows": [
+    {
+      "rowNumber": 28,
+      "asin": "B00002STZS",
+      "ebayItemId": "920173933038",
+      "candidateId": "5ceb35a5-d6f8-5839-8c97-a8f55098638f",
+      "opportunityId": null,
+      "reason": "approved Phase1 platform/region/media investigation group"
+    },
+    {
+      "rowNumber": 47,
+      "asin": "B0000E3D8T",
+      "ebayItemId": "800953016239",
+      "candidateId": "d2bf7e3d-f7fe-545c-bfee-f666e8c2bc34",
+      "opportunityId": "8f181c94-29d2-4681-a629-35c9ffdd37e0",
+      "reason": "corrected actual missing-value Game Name capture"
+    },
+    {
+      "rowNumber": 85,
+      "asin": "B003KPZWNM",
+      "ebayItemId": "147691464775",
+      "candidateId": "30339f76-d1cf-59e6-865f-ea18fb0a2dae",
+      "opportunityId": null,
+      "reason": "approved Phase1 platform/region/media investigation group"
+    },
+    {
+      "rowNumber": 92,
+      "asin": "B0009WPT8W",
+      "ebayItemId": "307294162327",
+      "candidateId": "430870b7-f728-560f-8a3e-e48f969e86b4",
+      "opportunityId": null,
+      "reason": "direct typed product-word/platform conflict correction"
+    },
+    {
+      "rowNumber": 149,
+      "asin": "B005GM7J4M",
+      "ebayItemId": "327464903578",
+      "candidateId": "0d7d7a58-cdcd-5812-b7c7-eb24c3258cda",
+      "opportunityId": null,
+      "reason": "approved Phase1 platform/region/media investigation group"
+    },
+    {
+      "rowNumber": 178,
+      "asin": "B000MRQKH8",
+      "ebayItemId": "377656806862",
+      "candidateId": "6143b26f-3aa6-5e27-96e6-d02c91029f65",
+      "opportunityId": null,
+      "reason": "approved Phase1 platform/region/media investigation group"
+    },
+    {
+      "rowNumber": 180,
+      "asin": "B005GM7J4M",
+      "ebayItemId": "377656806812",
+      "candidateId": "bbdc1514-2dee-51f1-9adb-a52c86495c7a",
+      "opportunityId": null,
+      "reason": "approved Phase1 platform/region/media investigation group"
+    },
+    {
+      "rowNumber": 184,
+      "asin": "B00002SVFQ",
+      "ebayItemId": "257859129518",
+      "candidateId": "cfe4bdd2-7bc2-5516-8039-227b6623f74e",
+      "opportunityId": null,
+      "reason": "approved Phase1 platform/region/media investigation group"
+    },
+    {
+      "rowNumber": 189,
+      "asin": "B00004R9HA",
+      "ebayItemId": "287739462136",
+      "candidateId": "74993168-6d22-5b5a-8760-4c0732f19b28",
+      "opportunityId": null,
+      "reason": "approved Phase1 platform/region/media investigation group"
+    },
+    {
+      "rowNumber": 202,
+      "asin": "B000A3OP62",
+      "ebayItemId": "287739040254",
+      "candidateId": "a77d9eb7-4b0e-56d2-af00-271b45b31781",
+      "opportunityId": null,
+      "reason": "approved Phase1 platform/region/media investigation group"
+    },
+    {
+      "rowNumber": 231,
+      "asin": "B001US2N3S",
+      "ebayItemId": "128201231357",
+      "candidateId": "d4949a0c-a079-55f7-a41f-70581d9cf3ad",
+      "opportunityId": null,
+      "reason": "approved Phase1 platform/region/media investigation group"
+    },
+    {
+      "rowNumber": 238,
+      "asin": "B00005B8FZ",
+      "ebayItemId": "920153081093",
+      "candidateId": "9474f535-d483-5ae9-ae9a-b88741eaed12",
+      "opportunityId": null,
+      "reason": "approved Super Mario Advance; cartridge policy exclusion"
+    },
+    {
+      "rowNumber": 261,
+      "asin": "B00005Q8LV",
+      "ebayItemId": "900097135752",
+      "candidateId": "81338753-366c-5a70-8ff9-58545e488001",
+      "opportunityId": null,
+      "reason": "approved Phase1 platform/region/media investigation group"
+    },
+    {
+      "rowNumber": 266,
+      "asin": "B0002T7ZHA",
+      "ebayItemId": "920149541277",
+      "candidateId": "4c480aa9-7982-526f-80a7-a091186524a8",
+      "opportunityId": null,
+      "reason": "approved Phase1 platform/region/media investigation group"
+    },
+    {
+      "rowNumber": 279,
+      "asin": "B0000E3D8T",
+      "ebayItemId": "920147066337",
+      "candidateId": "b9c7fe8f-1e50-5c54-8ddc-f6b52b0c3f0a",
+      "opportunityId": "3fb0348d-5329-4298-94d3-32e0407d0a5f",
+      "reason": "corrected actual missing-value Game Name capture"
+    },
+    {
+      "rowNumber": 310,
+      "asin": "B07HN559YB",
+      "ebayItemId": "920143097903",
+      "candidateId": "d9b326f1-74ee-56d8-9d00-9d0df799abc8",
+      "opportunityId": null,
+      "reason": "approved Phase1 platform/region/media investigation group"
+    },
+    {
+      "rowNumber": 317,
+      "asin": "B00004SVUU",
+      "ebayItemId": "117520175631",
+      "candidateId": "84c96c37-d337-5e3b-95ef-845855fba38e",
+      "opportunityId": null,
+      "reason": "approved Phase1 platform/region/media investigation group"
+    },
+    {
+      "rowNumber": 324,
+      "asin": "B000XJD33E",
+      "ebayItemId": "900089003697",
+      "candidateId": "b27a6efa-20d3-5b78-b9d7-578d0f720f50",
+      "opportunityId": null,
+      "reason": "approved Phase1 platform/region/media investigation group"
+    },
+    {
+      "rowNumber": 337,
+      "asin": "B001US2N3S",
+      "ebayItemId": "128191809473",
+      "candidateId": "7b2708bb-038f-5e90-9e55-f3a86d145126",
+      "opportunityId": null,
+      "reason": "approved Phase1 platform/region/media investigation group"
+    },
+    {
+      "rowNumber": 342,
+      "asin": "B0B356GS5K",
+      "ebayItemId": "800909766023",
+      "candidateId": "02aa1177-5ec0-50ab-b70c-802ba9fd1d7a",
+      "opportunityId": null,
+      "reason": "approved Phase1 platform/region/media investigation group"
+    },
+    {
+      "rowNumber": 344,
+      "asin": "B00002SVFQ",
+      "ebayItemId": "940087170614",
+      "candidateId": "4275df19-856a-580e-9caf-e2c9f5bd60a2",
+      "opportunityId": null,
+      "reason": "direct SNES metadata correction"
+    },
+    {
+      "rowNumber": 347,
+      "asin": "B00009YEJK",
+      "ebayItemId": "820347516961",
+      "candidateId": "282aca4e-7c90-58e5-a312-fc4e3e117c33",
+      "opportunityId": null,
+      "reason": "approved Phase1 platform/region/media investigation group"
+    },
+    {
+      "rowNumber": 348,
+      "asin": "B00009YEJK",
+      "ebayItemId": "820347454564",
+      "candidateId": "a90846e6-09de-52a1-b695-1ca8c8e519fc",
+      "opportunityId": null,
+      "reason": "approved Phase1 platform/region/media investigation group"
+    },
+    {
+      "rowNumber": 361,
+      "asin": "B07SNQNDDS",
+      "ebayItemId": "267841177402",
+      "candidateId": "37f67b84-ca57-518b-bac2-d68c42020ef2",
+      "opportunityId": null,
+      "reason": "approved Phase1 platform/region/media investigation group"
+    },
+    {
+      "rowNumber": 382,
+      "asin": "B000CC58VM",
+      "ebayItemId": "900081321133",
+      "candidateId": "e9c15ea8-9e7d-5157-a9f6-d2f209c6bbd1",
+      "opportunityId": null,
+      "reason": "approved Phase1 platform/region/media investigation group"
+    },
+    {
+      "rowNumber": 390,
+      "asin": "B00002SVFQ",
+      "ebayItemId": "147675007690",
+      "candidateId": "abcd4e31-a101-5891-ba2a-4f781b862ec4",
+      "opportunityId": null,
+      "reason": "approved Phase1 platform/region/media investigation group"
+    },
+    {
+      "rowNumber": 412,
+      "asin": "B0000631W0",
+      "ebayItemId": "407351786347",
+      "candidateId": "f48f1e0b-2e59-5891-9d18-39586336e2db",
+      "opportunityId": null,
+      "reason": "approved Phase1 platform/region/media investigation group"
+    },
+    {
+      "rowNumber": 445,
+      "asin": "B07FYS9TQC",
+      "ebayItemId": "168847018534",
+      "candidateId": "2875c073-f8f6-5916-bcec-f80f263f114f",
+      "opportunityId": "dee8857d-b4b6-466d-af3a-44cdf9fb5d72",
+      "reason": "direct exact-catalog platform observation correction identified in same-input shadow"
+    },
+    {
+      "rowNumber": 446,
+      "asin": "B0000E3D8T",
+      "ebayItemId": "940074372452",
+      "candidateId": "5053c59c-91d4-5d62-b197-2424803947e2",
+      "opportunityId": "7fc6f443-663e-4a5f-b78c-38e0fb9c72b7",
+      "reason": "corrected actual missing-value Game Name capture"
+    },
+    {
+      "rowNumber": 458,
+      "asin": "B00004S99R",
+      "ebayItemId": "880090923440",
+      "candidateId": "25ae8212-d246-592f-8e10-573805a395e5",
+      "opportunityId": null,
+      "reason": "approved Phase1 platform/region/media investigation group"
+    },
+    {
+      "rowNumber": 487,
+      "asin": "B00004S99S",
+      "ebayItemId": "960155605284",
+      "candidateId": "362cfca7-1568-58ea-a23a-aeb05715e2c2",
+      "opportunityId": null,
+      "reason": "approved Phase1 platform/region/media investigation group"
+    },
+    {
+      "rowNumber": 508,
+      "asin": "B000BFIASS",
+      "ebayItemId": "137901603905",
+      "candidateId": "df71a40c-1d1a-5379-b783-d6bc24299135",
+      "opportunityId": null,
+      "reason": "approved Phase1 platform/region/media investigation group"
+    },
+    {
+      "rowNumber": 511,
+      "asin": "B000VXBQ6S",
+      "ebayItemId": "128173737594",
+      "candidateId": "ebadd052-414d-502c-9f0c-1dff3d53745d",
+      "opportunityId": null,
+      "reason": "approved Phase1 platform/region/media investigation group"
+    },
+    {
+      "rowNumber": 549,
+      "asin": "B00005BYKH",
+      "ebayItemId": "366779226537",
+      "candidateId": "bb0ad331-474d-5aea-b4c7-547290341382",
+      "opportunityId": null,
+      "reason": "approved Phase1 platform/region/media investigation group"
+    },
+    {
+      "rowNumber": 555,
+      "asin": "B00002SVFQ",
+      "ebayItemId": "840084485358",
+      "candidateId": "a92af244-10b8-5b1f-b57c-90ee8b6b820b",
+      "opportunityId": null,
+      "reason": "approved Phase1 platform/region/media investigation group"
+    }
+  ]
+}

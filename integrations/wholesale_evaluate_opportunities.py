@@ -57,6 +57,21 @@ def evaluate_product(repository: WholesaleRepository, supplier_product_id: str,
         row["input_fingerprint"] = input_fingerprint(row)
         return repository.save_evaluation(opportunity, row)
 
+    from sourcing_platform_policy import platform_eligibility
+    policy_catalog = repository.catalog_snapshots([selected['asin']]).get(selected['asin']) or {}
+    sourcing_policy = platform_eligibility({'asin': selected['asin'],
+        'amazon_title': (policy_catalog.get('relevant_attributes_json') or {}).get('title'),
+        'raw_context_json': {'amazon_catalog_identity': policy_catalog}})
+    if sourcing_policy['result'] != 'pass':
+        row = {**base, 'evaluation_status': 'incomplete', 'incomplete_reasons': [sourcing_policy['reason']],
+               'allowance_status': 'complete', 'qualification_basis': 'incomplete',
+               'is_financially_qualified': False, 'risk_signals_json': {},
+               'source_evidence_json': {'sourcing_platform_policy': sourcing_policy,
+                   'amazon_catalog_identity': policy_catalog,
+                   'amazon_platform': policy_catalog.get('normalized_platform'),
+                   'amazon_title': (policy_catalog.get('relevant_attributes_json') or {}).get('title')}}
+        row['input_fingerprint'] = input_fingerprint(row)
+        return repository.save_evaluation(opportunity, row)
     if selected.get("eligibility_status") != "eligible" or not eligibility_fresh(selected):
         row = {**base, "evaluation_status": "pending_eligibility",
                "incomplete_reasons": ["eligibility_not_fresh_and_eligible"],
@@ -99,9 +114,11 @@ def evaluate_product(repository: WholesaleRepository, supplier_product_id: str,
         supplier_change_30d=supplier_history["change_30d"],
         offer_count_current=offer_count, fba_seller_count=fba_count,
     )
-    catalog = repository.catalog_snapshots([asin]).get(asin) or {}
+    catalog = policy_catalog
     relevant = catalog.get("relevant_attributes_json") if isinstance(catalog.get("relevant_attributes_json"), dict) else {}
     source_evidence = {
+        "sourcing_platform_policy": sourcing_policy,
+        "amazon_catalog_identity": {key: catalog.get(key) for key in ('asin','normalized_platform','normalized_format','relevant_attributes_json')},
         "amazon_title": relevant.get("title"),
         "amazon_platform": catalog.get("normalized_platform"),
         "amazon_product_type": catalog.get("product_type"),

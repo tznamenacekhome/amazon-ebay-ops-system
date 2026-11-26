@@ -80,6 +80,7 @@ def main() -> int:
         ).eq("sourcing_run_id", args.run_id).execute()
         return 0
     seeds = fetch_seeds(supabase, args.run_id, args.limit, args.offset)
+    from sourcing_platform_policy import platform_eligibility
     keepa_prices_by_asin = fetch_keepa_price_context_by_asin(supabase, [row.get("asin") for row in seeds])
     matching_context = fetch_matching_context(supabase)
     rows_by_item_id: dict[str, dict[str, Any]] = {}
@@ -92,6 +93,12 @@ def main() -> int:
     transient_error_message = None
 
     for index, seed in enumerate(seeds, start=1):
+        if platform_eligibility(seed)['result'] != 'pass':
+            # Count the original queued position as processed, without an API
+            # search. Removing it from this list would misalign cycle checkpoints.
+            searched_seed_count += 1
+            metrics['platform_policy_skipped_seed_count'] = metrics.get('platform_policy_skipped_seed_count', 0) + 1
+            continue
         queries = search_queries_for_seed(seed)
         metrics["query_variant_count"] += len(queries)
         for query_index, query in enumerate(queries, start=1):

@@ -30,7 +30,8 @@ function load(file){
     if(name==='next/server')return {NextResponse:{json:(body,opts)=>({body,status:opts?.status??200})}};
     if(name.endsWith('/_supabase')||name==='./_supabase')return {supabase:db};
     if(name.endsWith('/_server'))return {requireAdminApiToken:()=>authFail?{status:401}:null};
-    if(name.startsWith('.')){let next=resolve(dirname(file),name+'.ts');if(!existsSync(next))next=resolve(dirname(file),name+'.tsx');return load(next);}
+    if(name.endsWith('.json')){const value=JSON.parse(readFileSync(resolve(dirname(file),name),'utf8'));return {default:value,...value};}
+ if(name.startsWith('.')){let next=resolve(dirname(file),name+'.ts');if(!existsSync(next))next=resolve(dirname(file),name+'.tsx');return load(next);}
     return require(name);
   },out);return out;
 }

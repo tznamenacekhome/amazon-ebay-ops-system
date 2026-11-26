@@ -83,6 +83,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
   if (reviewActions.has(actionType)) return saveMatchingReview(request, opportunity, body);
 
+
   // Recheck stale browser rows before allowing a buying action or ASIN change.
   if (["watch", "purchased", "snooze_roi", "inventory_snooze", "update_asin"].includes(actionType)) {
     try {
@@ -93,6 +94,12 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     } catch (error) {
       return NextResponse.json({ error: error instanceof Error ? error.message : "Could not verify ASIN eligibility." }, { status: 503 });
     }
+  }
+
+  if (["watch", "purchased", "snooze_roi", "inventory_snooze"].includes(actionType)) {
+    const { sourcingPlatformEligibility } = await import('../../../platformPolicy');
+    const eligibility=sourcingPlatformEligibility(opportunity.sourcing_seed_asins,opportunity.sourcing_ebay_candidates);
+    if(eligibility.result!=='pass')return NextResponse.json({error:eligibility.reason},{status:409});
   }
 
   if (actionType === "update_asin") {

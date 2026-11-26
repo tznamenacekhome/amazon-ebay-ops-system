@@ -5,7 +5,7 @@ import {fileURLToPath} from 'node:url';
 import {createRequire} from 'node:module';
 import ts from 'typescript';
 const require=createRequire(import.meta.url),root=dirname(fileURLToPath(import.meta.url));
-const rows=Array.from({length:53},(_,i)=>({opportunity_id:`opp-${i}`,candidate_id:`candidate-${i}`,asin:`ASIN${i}`,ebay_item_id:`listing-${i}`,status:'rejected',opportunity_type:'review',score:100-i,profit:i===51?-1:10,matching_diagnostics_json:i===52?{hard_blocks:['wrong platform']}:{recommendation:'Review'},sourcing_seed_asins:{asin:`ASIN${i}`,amazon_title:'Game',source_mode:'recent_sales'},sourcing_ebay_candidates:{ebay_item_id:`listing-${i}`,ebay_title:'Game listing',listing_status:'active',display_price:{currency:'USD'},display_shipping:[]}}));
+const rows=Array.from({length:53},(_,i)=>({opportunity_id:`opp-${i}`,candidate_id:`candidate-${i}`,asin:`ASIN${i}`,ebay_item_id:`listing-${i}`,status:'rejected',opportunity_type:'review',score:100-i,profit:i===51?-1:10,matching_diagnostics_json:i===52?{hard_blocks:['wrong platform']}:{recommendation:'Review'},sourcing_seed_asins:{asin:`ASIN${i}`,amazon_title:'Game',source_mode:'recent_sales',raw_context_json:{inferred_system:'PS 3'}},sourcing_ebay_candidates:{ebay_item_id:`listing-${i}`,ebay_title:'Game listing',listing_status:'active',display_price:{currency:'USD'},display_shipping:[]}}));
 let reviews=[];
 let priorRows=[];
 let listingActions=[];
@@ -47,6 +47,7 @@ const modules=new Map();function load(file){file=resolve(file);if(modules.has(fi
  if(name.endsWith('/_supabase')||name==='./_supabase')return {supabase:db,toNumber:(v,d=0)=>Number.isFinite(Number(v))?Number(v):d};
  // Exercise actual list building without the independent server-cache layer.
  if(name==='../readCache')return {cachedSourcingList:async(_key,_fresh,build)=>({body:await build(),hit:false})};
+ if(name.endsWith('.json')){const value=JSON.parse(readFileSync(resolve(dirname(file),name),'utf8'));return {default:value,...value};}
  if(name.startsWith('.'))return load(resolve(dirname(file),name+'.ts'));return require(name);
 },out);return out;}
 const route=load(resolve(root,'opportunities/route.ts'));
@@ -167,3 +168,17 @@ compactResponse=await fmEdition();assert.equal(compactResponse.body.summary.tota
 rows[5].matching_diagnostics_json=editionDiagnostics('contents_not_corroborated');
 rows[5].matching_diagnostics_json.decisionTrace=[{stage:'Seller policy',reasonCode:'seller_policy',result:'fail'}];
 compactResponse=await fmEdition();assert.equal(compactResponse.body.summary.total,0,'Compact seller-avoid trace cannot be discarded');
+
+rows[5].matching_diagnostics_json=editionDiagnostics('contents_not_corroborated');
+rows[5].sourcing_seed_asins.raw_context_json={inferred_system:'Game Boy Advance'};
+assert.equal((await fmEdition()).body.summary.total,0,'Persisted cartridge near misses are suppressed before counts');
+rows[4].sourcing_seed_asins.raw_context_json={inferred_system:'Game Boy Advance'};
+let policyBuy=await route.GET({url:'https://example.test/api/sourcing/opportunities?scope=all_open&status=open&sourceMode=flipmine&limit=250'});
+assert.equal(policyBuy.body.summary.total,0,'Previously Open cartridge opportunities cannot remain actionable');
+assert.equal(rows[4].status,'open','Policy presentation must not rewrite history or manual status');
+rows[4].sourcing_seed_asins.raw_context_json={inferred_system:'Switch'};
+policyBuy=await route.GET({url:'https://example.test/api/sourcing/opportunities?scope=all_open&status=open&sourceMode=flipmine&limit=250'});
+assert.equal(policyBuy.body.summary.total,1,'Switch remains eligible under normal existing gates');
+rows[5].sourcing_seed_asins.raw_context_json={inferred_system:'PSP'};
+assert.equal((await fmEdition()).body.summary.total,1,'PSP near misses retain existing eligibility');
+console.log('Actual GET platform policy suppresses existing cartridge Buy List and Closest Excluded rows without changing persisted status; Switch and PSP remain.');
