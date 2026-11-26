@@ -164,3 +164,6 @@ compactResponse=await fmEdition();assert.equal(compactResponse.body.summary.tota
 rows[5].matching_diagnostics_json=editionDiagnostics('condition_unacceptable');
 rows[5].matching_diagnostics_json.static_rules.hard_blocks=['not new condition signal: missing the plastic seal'];
 compactResponse=await fmEdition();assert.equal(compactResponse.body.summary.total,0,'Compact projection must exclude confirmed defects before counts and limits');
+rows[5].matching_diagnostics_json=editionDiagnostics('contents_not_corroborated');
+rows[5].matching_diagnostics_json.decisionTrace=[{stage:'Seller policy',reasonCode:'seller_policy',result:'fail'}];
+compactResponse=await fmEdition();assert.equal(compactResponse.body.summary.total,0,'Compact seller-avoid trace cannot be discarded');

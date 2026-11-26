@@ -35,6 +35,11 @@ compactReview.presentationDecision.primaryReason.code='contents_not_corroborated
 assert(editionNearMissAllowed(compactReview,'active','sourcing_edition_policy_v1'));
 compactReview.businessEligibilityChecks[0].result='fail';
 assert(!editionNearMissAllowed(compactReview,'active','sourcing_edition_policy_v1'));
+compactReview.businessEligibilityChecks[0].result='pass';
+compactReview.decisionTrace=[{reasonCode:'seller_policy',result:'fail'}];
+assert(!editionNearMissAllowed(compactReview,'active','sourcing_edition_policy_v1'),'Retained compact seller-avoid trace remains authoritative');
+compactReview.decisionTrace[0].result='warning';
+assert(editionNearMissAllowed(compactReview,'active','sourcing_edition_policy_v1'),'Seller watch remains reviewable');
 condition.businessEligibilityChecks[0].result='pass';
 condition.static_rules.condition_mismatch={result:'blocked'};
 assert(!editionNearMissAllowed(condition,'active'));

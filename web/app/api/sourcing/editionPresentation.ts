@@ -6,6 +6,8 @@ export function editionNearMissAllowed(value: unknown, listingStatus: string | n
   const comparisons=record(identity.comparisons), edition=record(comparisons.edition), policy=record(edition.policy);
   const conditionReview=record(record(diagnostics.static_rules).condition_review).result==='review';
   if((policy.version??projectedVersion)!=='sourcing_edition_policy_v1') return true;
+  const trace=Array.isArray(diagnostics.decisionTrace)?diagnostics.decisionTrace.map(record):[];
+  if(diagnostics.seller_status==='avoid'||trace.some(row=>row.reasonCode==='seller_policy'&&row.result==='fail')) return false;
   const rules=record(diagnostics.static_rules);
   if(Array.isArray(rules.hard_blocks)&&rules.hard_blocks.length) return false;
   if(record(identity.evidenceDecision).productIdentityVerdict==='non-match') return false;
@@ -18,7 +20,6 @@ export function editionNearMissAllowed(value: unknown, listingStatus: string | n
   if(!conditionReview&&!reviewCodes.includes(String(policy.code))&&!reasons.some(reason=>reviewCodes.includes(String(reason.code)))) return true;
   if(Object.values(comparisons).some(value=>record(value).result==='conflict')) return false;
   if(!['active','live'].includes(String(listingStatus))) return false;
-  if(diagnostics.seller_status==='avoid') return false;
   const checks=Array.isArray(diagnostics.businessEligibilityChecks)?diagnostics.businessEligibilityChecks.map(record):[];
   if(checks.some(check=>check.blocking===true&&check.result!=='pass')) return false;
   return ['shipping','minimum_profit','minimum_roi'].every(code=>checks.some(check=>check.code===code&&check.result==='pass'));
