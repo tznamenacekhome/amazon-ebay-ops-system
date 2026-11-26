@@ -1,0 +1,3026 @@
+{
+  "generatedAt": "2026-11-26T03:00:54.386070+00:00",
+  "gate": "PASS",
+  "deployment": {
+    "webRevision": 235,
+    "workerRevision": 179,
+    "webCommit": "b5aa9cd545cf",
+    "workerCommit": "f82933aad115",
+    "webImage": "297464765814.dkr.ecr.us-west-2.amazonaws.com/mbop-web@sha256:446e2c5cd96199c6b5a28a5a6a70651810cc3366d8f89d8e00cc7b54bac4382c",
+    "schedules": [
+      {
+        "name": "mbop-keepa-catalog-priority",
+        "before": "arn:aws:ecs:us-west-2:297464765814:task-definition/mbop-scheduler-task:177",
+        "after": "arn:aws:ecs:us-west-2:297464765814:task-definition/mbop-scheduler-task:179"
+      },
+      {
+        "name": "mbop-sourcing-catalog",
+        "before": "arn:aws:ecs:us-west-2:297464765814:task-definition/mbop-scheduler-task:177",
+        "after": "arn:aws:ecs:us-west-2:297464765814:task-definition/mbop-scheduler-task:179"
+      }
+    ],
+    "service": "COMPLETED, 1 running, 0 pending",
+    "targetHealth": [
+      "healthy",
+      "draining"
+    ],
+    "workerSmokeExit": 0,
+    "scheduleCountVerified": 21
+  },
+  "import": {
+    "status": "completed",
+    "sourceHash": "f60131aafdf2ccd6908fc2239f3942f0972166502f870ea26ba142eae4c1c13c",
+    "progress": {
+      "rows": 558,
+      "failed": 0,
+      "invalid": 0,
+      "pending": 0,
+      "excluded": 434,
+      "evaluated": 118,
+      "duplicates": 6
+    },
+    "presentation": {
+      "buyList": 24,
+      "closestExcluded": 86
+    },
+    "historyArchives": 58,
+    "guardedLogRecords": 57
+  },
+  "countsBefore": {
+    "buyList": 0,
+    "closestExcluded": 115
+  },
+  "countsAfter": {
+    "buyList": 24,
+    "closestExcluded": 86
+  },
+  "targetedCohort": {
+    "initial": 32,
+    "additional": 26,
+    "total": 58
+  },
+  "replayResults": [
+    {
+      "opportunityId": "0079c51b-4f95-4717-af23-ad17c1a43e72",
+      "item": "940104211749",
+      "asin": "B00VMB5VFK",
+      "beforeStatus": "rejected",
+      "afterStatus": "rejected",
+      "profit": 21.45,
+      "roi": 143.1,
+      "cost": 14.99,
+      "reason": {
+        "code": "edition_not_corroborated",
+        "label": "Edition not corroborated",
+        "source": "matching_diagnostics",
+        "severity": "review_threshold",
+        "summary": "Starter Pack not corroborated.",
+        "category": "review_threshold",
+        "diagnosticKeys": [
+          "edition_version"
+        ]
+      },
+      "result": "written",
+      "requestId": "4e04c691-8870-53f7-b4cb-d05347c68aac",
+      "title": "LEGO Dimensions Starter Pack - Nintendo Wii U",
+      "finalStatus": "rejected"
+    },
+    {
+      "opportunityId": "0419da74-196f-4f22-b287-ce7ed9f85a33",
+      "item": "137895810464",
+      "asin": "B000784XF8",
+      "beforeStatus": "rejected",
+      "afterStatus": "open",
+      "profit": 43.41,
+      "roi": 75.1,
+      "cost": 57.8,
+      "reason": null,
+      "result": "written",
+      "requestId": "7ac7d89f-73b5-591a-8a5b-336e47addec6",
+      "title": "Constantine - PlayStation 2",
+      "finalStatus": "open"
+    },
+    {
+      "opportunityId": "1117d410-a333-4c42-8e94-95c8a6fe87ab",
+      "item": "940098783744",
+      "asin": "B000196EN2",
+      "beforeStatus": "rejected",
+      "afterStatus": "open",
+      "profit": 38.65,
+      "roi": 246.8,
+      "cost": 15.66,
+      "reason": null,
+      "result": "written",
+      "requestId": "37192f8b-a739-5018-9d8a-af9854ae224f",
+      "title": "COSMI Pool Shark ( Windows )",
+      "finalStatus": "open"
+    },
+    {
+      "opportunityId": "12fbb490-866a-4d5a-8969-fe1f7a47f445",
+      "item": "840120275430",
+      "asin": "B000MAFXTQ",
+      "beforeStatus": "rejected",
+      "afterStatus": "rejected",
+      "profit": 20.18,
+      "roi": 72.1,
+      "cost": 27.99,
+      "reason": {
+        "code": "condition_review",
+        "label": "Condition review",
+        "source": "matching_diagnostics",
+        "severity": "review_threshold",
+        "summary": "Condition review \u2014 disclosed packaging flaws",
+        "category": "review_threshold",
+        "diagnosticKeys": [
+          "condition_review"
+        ]
+      },
+      "result": "written",
+      "requestId": "af80680d-b386-5b6d-8722-f5eedb0add68",
+      "title": "Samurai Warriors 2: Empires - Xbox 360",
+      "finalStatus": "rejected"
+    },
+    {
+      "opportunityId": "13bc8ada-e629-410e-b936-eb1bd1a3b440",
+      "item": "377657120015",
+      "asin": "B013C6OU04",
+      "beforeStatus": "rejected",
+      "afterStatus": "rejected",
+      "profit": 48.78,
+      "roi": 101.8,
+      "cost": 47.94,
+      "reason": {
+        "code": "edition_not_corroborated",
+        "label": "Edition not corroborated",
+        "source": "matching_diagnostics",
+        "severity": "review_threshold",
+        "summary": "Ordinary edition compatibility lacks sufficient corroboration.",
+        "category": "review_threshold",
+        "diagnosticKeys": [
+          "edition_version"
+        ]
+      },
+      "result": "written",
+      "requestId": "4e869471-0f82-597c-b173-42df52086ad8",
+      "title": "Game of Thrones - A Telltale Games Series - Xbox 360",
+      "finalStatus": "rejected"
+    },
+    {
+      "opportunityId": "1ce910d6-0dba-4365-ba78-6869fe443896",
+      "item": "860135189241",
+      "asin": "B001RTCOWA",
+      "beforeStatus": "rejected",
+      "afterStatus": "open",
+      "profit": 10.37,
+      "roi": 43.5,
+      "cost": 23.84,
+      "reason": null,
+      "result": "written",
+      "requestId": "fd54bc78-5278-5a75-8307-6e45d52a9fa9",
+      "title": "Call of Juarez: Bound In Blood - Playstation 3",
+      "finalStatus": "open"
+    },
+    {
+      "opportunityId": "1e613929-aea1-4d74-b774-e008106d9477",
+      "item": "880124306447",
+      "asin": "B0069EB9DI",
+      "beforeStatus": "rejected",
+      "afterStatus": "open",
+      "profit": 33.18,
+      "roi": 100.5,
+      "cost": 33.0,
+      "reason": null,
+      "result": "written",
+      "requestId": "013a7c48-1235-5996-a3a9-040dc78ce957",
+      "title": "Junior Classic Games 3D - Nintendo 3DS",
+      "finalStatus": "open"
+    },
+    {
+      "opportunityId": "1f56ba84-727d-4e04-aed3-c1b34c681507",
+      "item": "117516906660",
+      "asin": "B00008KTV7",
+      "beforeStatus": "rejected",
+      "afterStatus": "rejected",
+      "profit": 177.16,
+      "roi": 335.3,
+      "cost": 52.84,
+      "reason": {
+        "code": "edition_not_corroborated",
+        "label": "Edition not corroborated",
+        "source": "matching_diagnostics",
+        "severity": "review_threshold",
+        "summary": "Ordinary edition compatibility lacks sufficient corroboration.",
+        "category": "review_threshold",
+        "diagnosticKeys": [
+          "edition_version"
+        ]
+      },
+      "result": "written",
+      "requestId": "fc090876-e357-5592-8f5b-aced878cf6e9",
+      "title": "MTX: Mototrax - PlayStation 2",
+      "finalStatus": "rejected"
+    },
+    {
+      "opportunityId": "23aca048-27db-4000-96a6-70afadf7a37f",
+      "item": "366801881758",
+      "asin": "B0000AUFQ3",
+      "beforeStatus": "rejected",
+      "afterStatus": "open",
+      "profit": 27.94,
+      "roi": 60.7,
+      "cost": 46.06,
+      "reason": null,
+      "result": "written",
+      "requestId": "7ef0b273-6af6-5a9b-8498-35b64b3b065c",
+      "title": "Phix: The Adventure",
+      "finalStatus": "open"
+    },
+    {
+      "opportunityId": "263c7925-efab-4aaf-be46-f92d8ca9a0a6",
+      "item": "920160850722",
+      "asin": "B0009Z3KAI",
+      "beforeStatus": "rejected",
+      "afterStatus": "open",
+      "profit": 99.56,
+      "roi": 76.3,
+      "cost": 130.44,
+      "reason": null,
+      "result": "written",
+      "requestId": "852ef37c-1a42-5732-a6f3-4f5c5a41bbbf",
+      "title": "Castlevania Curse of Darkness - Xbox",
+      "finalStatus": "open"
+    },
+    {
+      "opportunityId": "3fb0348d-5329-4298-94d3-32e0407d0a5f",
+      "item": "920147066337",
+      "asin": "B0000E3D8T",
+      "beforeStatus": "rejected",
+      "afterStatus": "rejected",
+      "profit": 37.3,
+      "roi": 47.2,
+      "cost": 79.0,
+      "reason": {
+        "code": "edition_not_corroborated",
+        "label": "Edition not corroborated",
+        "source": "matching_diagnostics",
+        "severity": "review_threshold",
+        "summary": "Ordinary edition compatibility lacks sufficient corroboration.",
+        "category": "review_threshold",
+        "diagnosticKeys": [
+          "edition_version"
+        ]
+      },
+      "result": "written",
+      "requestId": "4cc79f4f-d129-51ae-abbf-2656f5c112d7",
+      "title": "Tokyo Xtreme Racer 3 - PlayStation 2",
+      "finalStatus": "rejected"
+    },
+    {
+      "opportunityId": "47197c11-88c5-43c9-9ca4-9a0b4ec3b818",
+      "item": "198790647550",
+      "asin": "B000WQWPUK",
+      "beforeStatus": "rejected",
+      "afterStatus": "rejected",
+      "profit": 93.4,
+      "roi": 164.6,
+      "cost": 56.73,
+      "reason": {
+        "code": "edition_not_corroborated",
+        "label": "Edition not corroborated",
+        "source": "matching_diagnostics",
+        "severity": "review_threshold",
+        "summary": "Ordinary edition compatibility lacks sufficient corroboration.",
+        "category": "review_threshold",
+        "diagnosticKeys": [
+          "edition_version"
+        ]
+      },
+      "result": "written",
+      "requestId": "e98884af-918e-5353-8ea5-51951edb1a30",
+      "title": "Final Fantasy XI: The Vana'diel Collection 2008 - PlayStation 2",
+      "finalStatus": "rejected"
+    },
+    {
+      "opportunityId": "4fefa101-2312-4baa-92cf-daba95330712",
+      "item": "407380529548",
+      "asin": "B000LZKR3O",
+      "beforeStatus": "rejected",
+      "afterStatus": "rejected",
+      "profit": 13.22,
+      "roi": 78.5,
+      "cost": 16.84,
+      "reason": {
+        "code": "edition_not_corroborated",
+        "label": "Edition not corroborated",
+        "source": "matching_diagnostics",
+        "severity": "review_threshold",
+        "summary": "Ordinary edition compatibility lacks sufficient corroboration.",
+        "category": "review_threshold",
+        "diagnosticKeys": [
+          "edition_version"
+        ]
+      },
+      "result": "written",
+      "requestId": "b3575615-b616-5f8f-9ffa-b1fc82aa367d",
+      "title": "Sid Meier's Civilization III",
+      "finalStatus": "rejected"
+    },
+    {
+      "opportunityId": "5697368e-4af6-488d-b21c-52b158a01c6d",
+      "item": "377659302368",
+      "asin": "B00008KTMX",
+      "beforeStatus": "rejected",
+      "afterStatus": "open",
+      "profit": 22.66,
+      "roi": 41.6,
+      "cost": 54.44,
+      "reason": null,
+      "result": "written",
+      "requestId": "3739d5ab-8e33-5768-8227-3928a8f15c13",
+      "title": "Battlestar Galactica - Xbox",
+      "finalStatus": "open"
+    },
+    {
+      "opportunityId": "575a77b7-bc36-49d7-a402-d26df3bedc4e",
+      "item": "920172650408",
+      "asin": "B000M46V20",
+      "beforeStatus": "rejected",
+      "afterStatus": "open",
+      "profit": 251.29,
+      "roi": 125.7,
+      "cost": 199.94,
+      "reason": null,
+      "result": "written",
+      "requestId": "5d3feb21-df2f-5103-a037-de87ae1522eb",
+      "title": "Shining Force EXA - PlayStation 2",
+      "finalStatus": "open"
+    },
+    {
+      "opportunityId": "65ac4a0e-34e8-42bc-bdd9-0d2bdc584c06",
+      "item": "940100677219",
+      "asin": "B09CLX4G35",
+      "beforeStatus": "rejected",
+      "afterStatus": "rejected",
+      "profit": 18.79,
+      "roi": 86.4,
+      "cost": 21.74,
+      "reason": {
+        "code": "edition_not_corroborated",
+        "label": "Edition not corroborated",
+        "source": "matching_diagnostics",
+        "severity": "review_threshold",
+        "summary": "Smurftastic not corroborated.",
+        "category": "review_threshold",
+        "diagnosticKeys": [
+          "edition_version"
+        ]
+      },
+      "result": "written",
+      "requestId": "16f64cf1-4b64-5efc-b4b2-30838939ed60",
+      "title": "The Smurfs: Mission Vileaf - Smurftastic Edition (NSW) - Nintendo Switch",
+      "finalStatus": "rejected"
+    },
+    {
+      "opportunityId": "677e2245-6ce2-4564-b882-0a26d325d25e",
+      "item": "407348790546",
+      "asin": "B00B2QL2Y4",
+      "beforeStatus": "rejected",
+      "afterStatus": "rejected",
+      "profit": 91.07,
+      "roi": 53.3,
+      "cost": 171.0,
+      "reason": {
+        "code": "edition_not_corroborated",
+        "label": "Edition not corroborated",
+        "source": "matching_diagnostics",
+        "severity": "review_threshold",
+        "summary": "Complete Edition appears only in Features; named retail edition versus generic completeness is unresolved.",
+        "category": "review_threshold",
+        "diagnosticKeys": [
+          "edition_version"
+        ]
+      },
+      "result": "written",
+      "requestId": "1d5445ba-1c0f-54c0-94e4-660ed4b5859a",
+      "title": "Pandora's Tower - Nintendo Wii",
+      "finalStatus": "rejected"
+    },
+    {
+      "opportunityId": "67a8ca17-0f19-467d-beaf-81b700946362",
+      "item": "840131195824",
+      "asin": "B00002STIC",
+      "beforeStatus": "rejected",
+      "afterStatus": "open",
+      "profit": 67.54,
+      "roi": 118.8,
+      "cost": 56.84,
+      "reason": null,
+      "result": "written",
+      "requestId": "e03e066b-3cdb-5e08-909a-1ea4ac28d5a7",
+      "title": "Bogey: Dead 6",
+      "finalStatus": "open"
+    },
+    {
+      "opportunityId": "680f76de-7b9d-44b9-86de-931236d96624",
+      "item": "227623577813",
+      "asin": "B0028556EU",
+      "beforeStatus": "rejected",
+      "afterStatus": "rejected",
+      "profit": 23.71,
+      "roi": 226.0,
+      "cost": 10.49,
+      "reason": {
+        "code": "edition_not_corroborated",
+        "label": "Edition not corroborated",
+        "source": "matching_diagnostics",
+        "severity": "review_threshold",
+        "summary": "Ordinary edition compatibility lacks sufficient corroboration.",
+        "category": "review_threshold",
+        "diagnosticKeys": [
+          "edition_version"
+        ]
+      },
+      "result": "written",
+      "requestId": "e6d2a88b-57ec-5183-9180-c0fe1d08d562",
+      "title": "Amazing Adventures: Around The World - PC",
+      "finalStatus": "rejected"
+    },
+    {
+      "opportunityId": "6bfdb1d2-fd07-45ae-aaf9-0d76fcc6f988",
+      "item": "257841605061",
+      "result": "confirmed_unavailable",
+      "reason": "ListingUnavailable: Listing ended or sold",
+      "title": "Pandora's Tower - Nintendo Wii",
+      "finalStatus": "dismissed"
+    },
+    {
+      "opportunityId": "6dfa5564-a19e-4cc2-9cbd-254c844297da",
+      "item": "307276397847",
+      "asin": "B006Y76HY6",
+      "beforeStatus": "rejected",
+      "afterStatus": "rejected",
+      "profit": 38.2,
+      "roi": 81.5,
+      "cost": 46.85,
+      "reason": {
+        "code": "contents_not_corroborated",
+        "label": "Required contents not corroborated",
+        "source": "matching_diagnostics",
+        "severity": "review_threshold",
+        "summary": "Required AR book not corroborated.",
+        "category": "review_threshold",
+        "diagnosticKeys": [
+          "edition_version"
+        ]
+      },
+      "result": "written",
+      "requestId": "33feb8df-beac-536c-b64a-8996dd5351ae",
+      "title": "Spirit Camera: The Cursed Memoir",
+      "finalStatus": "rejected"
+    },
+    {
+      "opportunityId": "6eb769a0-5d03-49a3-b095-57fc6037b4c9",
+      "item": "840156143661",
+      "asin": "B00079W8OU",
+      "beforeStatus": "rejected",
+      "afterStatus": "rejected",
+      "profit": 180.0,
+      "roi": 202.2,
+      "cost": 89.0,
+      "reason": {
+        "code": "condition_unacceptable",
+        "label": "Unacceptable new condition",
+        "source": "matching_diagnostics",
+        "severity": "hard_block",
+        "summary": "Status is rejected, but stored diagnostics do not include a mapped rule.",
+        "category": "hard_block",
+        "diagnosticKeys": [
+          "final_recommendation",
+          "confidence_summary",
+          "opportunity_context"
+        ]
+      },
+      "result": "written",
+      "requestId": "56c94ca6-bce1-5456-8b56-286a678aad17",
+      "title": "Shining Tears - PlayStation 2",
+      "finalStatus": "rejected"
+    },
+    {
+      "opportunityId": "71f1c71d-66b3-48b8-b337-e4b85fbda60c",
+      "item": "336902274107",
+      "asin": "B00006AMZX",
+      "beforeStatus": "rejected",
+      "afterStatus": "rejected",
+      "profit": 158.14,
+      "roi": 220.1,
+      "cost": 71.85,
+      "reason": {
+        "code": "edition_not_corroborated",
+        "label": "Edition not corroborated",
+        "source": "matching_diagnostics",
+        "severity": "review_threshold",
+        "summary": "Ordinary edition compatibility lacks sufficient corroboration.",
+        "category": "review_threshold",
+        "diagnosticKeys": [
+          "edition_version"
+        ]
+      },
+      "result": "written",
+      "requestId": "9d034e87-5684-58b8-97c9-6b20fe20fdbd",
+      "title": "NHL Hitz 2003 - PlayStation 2",
+      "finalStatus": "rejected"
+    },
+    {
+      "opportunityId": "740ae07e-62b7-44ab-8149-e5bb0e437b59",
+      "item": "880076629347",
+      "asin": "B075QQMSCL",
+      "beforeStatus": "rejected",
+      "afterStatus": "rejected",
+      "profit": 24.6,
+      "roi": 94.6,
+      "cost": 26.0,
+      "reason": {
+        "code": "condition_unacceptable",
+        "label": "Unacceptable new condition",
+        "source": "matching_diagnostics",
+        "severity": "hard_block",
+        "summary": "Status is rejected, but stored diagnostics do not include a mapped rule.",
+        "category": "hard_block",
+        "diagnosticKeys": [
+          "final_recommendation",
+          "confidence_summary",
+          "opportunity_context"
+        ]
+      },
+      "result": "written",
+      "requestId": "db7fc129-5826-5d42-a570-c55b4a3fcd45",
+      "title": "Railway Empire PlayStation 4 - PlayStation 4",
+      "finalStatus": "rejected"
+    },
+    {
+      "opportunityId": "75706223-6e56-4b10-91d9-6ba7a250e09e",
+      "item": "287741926297",
+      "asin": "B00DNGQTFI",
+      "beforeStatus": "rejected",
+      "afterStatus": "rejected",
+      "profit": 74.54,
+      "roi": 97.5,
+      "cost": 76.47,
+      "reason": {
+        "code": "condition_review",
+        "label": "Condition review",
+        "source": "matching_diagnostics",
+        "severity": "review_threshold",
+        "summary": "Condition review \u2014 shrink-wrap damage",
+        "category": "review_threshold",
+        "diagnosticKeys": [
+          "condition_review"
+        ]
+      },
+      "result": "written",
+      "requestId": "56acd2e0-8b83-5691-899f-f129e470f4a6",
+      "title": "Dragon Ball Z: Battle of Z - Playstation 3",
+      "finalStatus": "rejected"
+    },
+    {
+      "opportunityId": "7612c284-cec1-455c-a46b-ab5d76eb2d3a",
+      "item": "820316741656",
+      "asin": "B0000A1HVX",
+      "beforeStatus": "rejected",
+      "afterStatus": "open",
+      "profit": 18.36,
+      "roi": 70.6,
+      "cost": 25.99,
+      "reason": null,
+      "result": "written",
+      "requestId": "433de65d-65e5-508f-be7e-e5b82b3c7ef6",
+      "title": "Qix Neo",
+      "finalStatus": "open"
+    },
+    {
+      "opportunityId": "7d14626b-703b-47f1-a38e-32df571368e3",
+      "item": "336896346476",
+      "asin": "B003O6C0V4",
+      "beforeStatus": "rejected",
+      "afterStatus": "rejected",
+      "profit": 26.26,
+      "roi": 115.0,
+      "cost": 22.84,
+      "reason": {
+        "code": "edition_not_corroborated",
+        "label": "Edition not corroborated",
+        "source": "matching_diagnostics",
+        "severity": "review_threshold",
+        "summary": "Ordinary edition compatibility lacks sufficient corroboration.",
+        "category": "review_threshold",
+        "diagnosticKeys": [
+          "edition_version"
+        ]
+      },
+      "result": "written",
+      "requestId": "b6afdb30-c3cf-5b05-9d08-fb9c2a2dfcb5",
+      "title": "EA Sports Active 2",
+      "finalStatus": "rejected"
+    },
+    {
+      "opportunityId": "7dcce02c-c120-4419-808a-4504f0c31e94",
+      "item": "168860841661",
+      "asin": "B00002SFL4",
+      "beforeStatus": "rejected",
+      "afterStatus": "open",
+      "profit": 83.7,
+      "roi": 123.0,
+      "cost": 68.04,
+      "reason": null,
+      "result": "written",
+      "requestId": "706fae83-a3e0-5555-866e-d82515f460e2",
+      "title": "Turok 2: Seeds of Evil - PC",
+      "finalStatus": "open"
+    },
+    {
+      "opportunityId": "7fc6f443-663e-4a5f-b78c-38e0fb9c72b7",
+      "item": "940074372452",
+      "asin": "B0000E3D8T",
+      "beforeStatus": "rejected",
+      "afterStatus": "rejected",
+      "profit": 49.46,
+      "roi": 74.0,
+      "cost": 66.84,
+      "reason": {
+        "code": "edition_not_corroborated",
+        "label": "Edition not corroborated",
+        "source": "matching_diagnostics",
+        "severity": "review_threshold",
+        "summary": "Ordinary edition compatibility lacks sufficient corroboration.",
+        "category": "review_threshold",
+        "diagnosticKeys": [
+          "edition_version"
+        ]
+      },
+      "result": "written",
+      "requestId": "187a685d-3884-5e9b-a3a1-5648d2fb2877",
+      "title": "Tokyo Xtreme Racer 3 - PlayStation 2",
+      "finalStatus": "rejected"
+    },
+    {
+      "opportunityId": "865ce3b3-e9d2-43c0-9b7e-3283b4000752",
+      "item": "227623586139",
+      "asin": "B000OZIAMG",
+      "beforeStatus": "rejected",
+      "afterStatus": "open",
+      "profit": 19.19,
+      "roi": 133.4,
+      "cost": 14.39,
+      "reason": null,
+      "result": "written",
+      "requestId": "094177a4-ecd3-560b-849d-921a35c29ccd",
+      "title": "Ratatouille - PC/Mac",
+      "finalStatus": "open"
+    },
+    {
+      "opportunityId": "88471699-da02-416b-b7fb-e72810be5607",
+      "item": "377666013189",
+      "asin": "B0028A8PDY",
+      "beforeStatus": "rejected",
+      "afterStatus": "rejected",
+      "profit": 48.76,
+      "roi": 223.3,
+      "cost": 21.84,
+      "reason": {
+        "code": "contents_not_corroborated",
+        "label": "Required contents not corroborated",
+        "source": "matching_diagnostics",
+        "severity": "review_threshold",
+        "summary": "Required bundle contents not corroborated; exact-ASIN manifest unresolved.",
+        "category": "review_threshold",
+        "diagnosticKeys": [
+          "edition_version"
+        ]
+      },
+      "result": "written",
+      "requestId": "2adb6d70-36aa-5fa1-946a-7d07f7064dcc",
+      "title": "Active Life: Extreme Challenge Bundle with Mat - Nintendo Wii",
+      "finalStatus": "rejected"
+    },
+    {
+      "opportunityId": "8ad77425-d625-4d64-b313-456e9b3ed330",
+      "item": "117520198668",
+      "asin": "B0032JCKYU",
+      "beforeStatus": "rejected",
+      "afterStatus": "open",
+      "profit": 26.09,
+      "roi": 217.8,
+      "cost": 11.98,
+      "reason": null,
+      "result": "written",
+      "requestId": "e541d7e5-2771-58f2-9f99-c40a93833362",
+      "title": "Hidden Object Adventure MEGA Collection - PC",
+      "finalStatus": "open"
+    },
+    {
+      "opportunityId": "8f181c94-29d2-4681-a629-35c9ffdd37e0",
+      "item": "800953016239",
+      "asin": "B0000E3D8T",
+      "beforeStatus": "rejected",
+      "afterStatus": "rejected",
+      "profit": 60.45,
+      "roi": 108.2,
+      "cost": 55.85,
+      "reason": {
+        "code": "edition_not_corroborated",
+        "label": "Edition not corroborated",
+        "source": "matching_diagnostics",
+        "severity": "review_threshold",
+        "summary": "Ordinary edition compatibility lacks sufficient corroboration.",
+        "category": "review_threshold",
+        "diagnosticKeys": [
+          "edition_version"
+        ]
+      },
+      "result": "written",
+      "requestId": "7f16e1ae-8ace-5d41-996a-54415c9c41f4",
+      "title": "Tokyo Xtreme Racer 3 - PlayStation 2",
+      "finalStatus": "rejected"
+    },
+    {
+      "opportunityId": "945ead4d-eafb-4620-a2c4-4d300a3bdc6b",
+      "item": "198803864168",
+      "asin": "B001AH8YSW",
+      "beforeStatus": "rejected",
+      "afterStatus": "rejected",
+      "profit": 19.65,
+      "roi": 46.7,
+      "cost": 42.07,
+      "reason": {
+        "code": "review_threshold",
+        "label": "Review threshold",
+        "source": "presentation_gate",
+        "severity": "review_threshold",
+        "summary": "Final matching recommendation required review and did not enter presentation.",
+        "category": "review_threshold",
+        "diagnosticKeys": [
+          "final_recommendation",
+          "confidence_summary"
+        ]
+      },
+      "result": "written",
+      "requestId": "47131eb8-ab91-5c98-ad4c-b3656a3c45b8",
+      "title": "The Witcher Enhanced - PC",
+      "finalStatus": "rejected"
+    },
+    {
+      "opportunityId": "a0da9e96-b22f-47e8-a521-a5811ee3fe4c",
+      "item": "820382941556",
+      "asin": "B00005YJPF",
+      "beforeStatus": "rejected",
+      "afterStatus": "open",
+      "profit": 12.37,
+      "roi": 56.6,
+      "cost": 21.84,
+      "reason": null,
+      "result": "written",
+      "requestId": "ad7f956f-910b-5af0-95c0-f2105f698fbf",
+      "title": "Pac Man Fever - PlayStation 2",
+      "finalStatus": "open"
+    },
+    {
+      "opportunityId": "a978a008-4f6c-429f-91dd-39f921b98745",
+      "item": "336887154067",
+      "asin": "B00006ZCCV",
+      "beforeStatus": "rejected",
+      "afterStatus": "open",
+      "profit": 39.94,
+      "roi": 201.1,
+      "cost": 19.86,
+      "reason": null,
+      "result": "written",
+      "requestId": "82ca94bf-da93-57a6-9a11-0539387e0b57",
+      "title": "NASCAR Dirt to Daytona - PlayStation 2",
+      "finalStatus": "open"
+    },
+    {
+      "opportunityId": "aa4fa20d-3d70-4b68-af7b-745b9edc94e1",
+      "item": "128191788877",
+      "asin": "B0009Z3K9O",
+      "beforeStatus": "rejected",
+      "afterStatus": "rejected",
+      "profit": 138.62,
+      "roi": 92.4,
+      "cost": 149.99,
+      "reason": {
+        "code": "contents_not_corroborated",
+        "label": "Required contents not corroborated",
+        "source": "matching_diagnostics",
+        "severity": "review_threshold",
+        "summary": "Jewel Case packaging not corroborated.",
+        "category": "review_threshold",
+        "diagnosticKeys": [
+          "edition_version"
+        ]
+      },
+      "result": "written",
+      "requestId": "e36152f1-ffef-5f42-9a10-0b746c2a2d26",
+      "title": "Castlevania: Curse of Darkness",
+      "finalStatus": "rejected"
+    },
+    {
+      "opportunityId": "b18c57ed-a49b-41c3-8688-da15f8bfafb5",
+      "item": "147693336106",
+      "asin": "B000VJRU44",
+      "beforeStatus": "rejected",
+      "afterStatus": "rejected",
+      "profit": 57.35,
+      "roi": 312.4,
+      "cost": 18.36,
+      "reason": {
+        "code": "contents_not_corroborated",
+        "label": "Required contents not corroborated",
+        "source": "matching_diagnostics",
+        "severity": "review_threshold",
+        "summary": "Amazon package configuration unresolved.",
+        "category": "review_threshold",
+        "diagnosticKeys": [
+          "edition_version"
+        ]
+      },
+      "result": "written",
+      "requestId": "c95cc7f0-1fed-5f29-8626-47e5fe0a5268",
+      "title": "Wii Fit",
+      "finalStatus": "rejected"
+    },
+    {
+      "opportunityId": "b370ffb6-9e51-42d3-bd9c-5688493270d2",
+      "item": "840094365516",
+      "asin": "B06XTT5CKM",
+      "beforeStatus": "rejected",
+      "afterStatus": "open",
+      "profit": 25.66,
+      "roi": 42.8,
+      "cost": 59.99,
+      "reason": null,
+      "result": "written",
+      "requestId": "b231b353-9ad5-58f0-af77-522b643d9a6d",
+      "title": "The Town of Light - Xbox One",
+      "finalStatus": "open"
+    },
+    {
+      "opportunityId": "ba0e84e9-b983-4572-8c17-24a2e5b8aebb",
+      "item": "377668366261",
+      "asin": "B000R30FJQ",
+      "beforeStatus": "rejected",
+      "afterStatus": "open",
+      "profit": 96.55,
+      "roi": 72.4,
+      "cost": 133.44,
+      "reason": null,
+      "result": "written",
+      "requestId": "dd0af49a-91da-5365-93db-cd4ecea5695e",
+      "title": "Digimon World Data Squad - PlayStation 2",
+      "finalStatus": "open"
+    },
+    {
+      "opportunityId": "be570e47-fb5c-409a-9cc7-50bbae85174b",
+      "item": "227625724314",
+      "asin": "B0BQ7P2D1X",
+      "beforeStatus": "rejected",
+      "afterStatus": "rejected",
+      "profit": 9.93,
+      "roi": 53.2,
+      "cost": 18.66,
+      "reason": {
+        "code": "review_threshold",
+        "label": "Review threshold",
+        "source": "presentation_gate",
+        "severity": "review_threshold",
+        "summary": "Final matching recommendation required review and did not enter presentation.",
+        "category": "review_threshold",
+        "diagnosticKeys": [
+          "final_recommendation",
+          "confidence_summary"
+        ]
+      },
+      "result": "written",
+      "requestId": "cc78cb54-7f9b-535c-8d72-8d3c91cbebc7",
+      "title": "Peppa Pig World Adventures - Nintendo Switch",
+      "finalStatus": "rejected"
+    },
+    {
+      "opportunityId": "c2a92e7d-bd6d-4c8e-858d-a00427712ea4",
+      "item": "900099910655",
+      "asin": "B00VZAQ2X8",
+      "beforeStatus": "rejected",
+      "afterStatus": "open",
+      "profit": 6.61,
+      "roi": 41.3,
+      "cost": 16.0,
+      "reason": null,
+      "result": "written",
+      "requestId": "7a0fe982-faf8-5306-8253-3f77a04f00d9",
+      "title": "Mighty No. 9 - PlayStation 4",
+      "finalStatus": "open"
+    },
+    {
+      "opportunityId": "c392d900-47ac-46af-9089-f8563db5feb8",
+      "item": "880128084759",
+      "asin": "B003O6N2NY",
+      "beforeStatus": "rejected",
+      "afterStatus": "rejected",
+      "profit": 9.27,
+      "roi": 66.3,
+      "cost": 13.99,
+      "reason": {
+        "code": "condition_unacceptable",
+        "label": "Unacceptable new condition",
+        "source": "matching_diagnostics",
+        "severity": "hard_block",
+        "summary": "Status is rejected, but stored diagnostics do not include a mapped rule.",
+        "category": "hard_block",
+        "diagnosticKeys": [
+          "final_recommendation",
+          "confidence_summary",
+          "opportunity_context"
+        ]
+      },
+      "result": "written",
+      "requestId": "0b7ae00f-c0ef-58df-b327-ecf5c1a9233b",
+      "title": "Tiger Woods PGA TOUR 12: The Masters - Xbox 360",
+      "finalStatus": "rejected"
+    },
+    {
+      "opportunityId": "c57170d7-836e-480c-831f-c91e021be08e",
+      "item": "820338071733",
+      "asin": "B000092P4A",
+      "beforeStatus": "rejected",
+      "afterStatus": "rejected",
+      "profit": 102.75,
+      "roi": 230.6,
+      "cost": 44.55,
+      "reason": {
+        "code": "contents_not_corroborated",
+        "label": "Required contents not corroborated",
+        "source": "matching_diagnostics",
+        "severity": "review_threshold",
+        "summary": "Collector's Edition or required contents not corroborated.",
+        "category": "review_threshold",
+        "diagnosticKeys": [
+          "edition_version"
+        ]
+      },
+      "result": "written",
+      "requestId": "32468cb3-5c59-57a9-b0cb-3be28b9f58e5",
+      "title": "Star Wars Galaxies: An Empire Divided Collectors Edition - PC",
+      "finalStatus": "rejected"
+    },
+    {
+      "opportunityId": "c71d9e8a-bf7d-4ea7-ba56-84d6f0d05342",
+      "item": "377668366221",
+      "asin": "B0019R4VF8",
+      "beforeStatus": "rejected",
+      "afterStatus": "open",
+      "profit": 22.95,
+      "roi": 64.8,
+      "cost": 35.44,
+      "reason": null,
+      "result": "written",
+      "requestId": "ff5c414b-4467-504a-8e8b-6993db1c8ddc",
+      "title": "Hasbro Family Game Night - PlayStation 2",
+      "finalStatus": "open"
+    },
+    {
+      "opportunityId": "c9c3fb83-9689-4989-beea-d3fc9531c5b2",
+      "item": "327437457493",
+      "asin": "B078YN79KH",
+      "beforeStatus": "rejected",
+      "afterStatus": "open",
+      "profit": 12.7,
+      "roi": 42.3,
+      "cost": 30.0,
+      "reason": null,
+      "result": "written",
+      "requestId": "69c26a9e-7d85-5923-99da-4edf18540e5c",
+      "title": "Snk Heroines: Tag Team Frenzy - Nintendo Switch",
+      "finalStatus": "open"
+    },
+    {
+      "opportunityId": "cfc7755d-016a-4a5b-9b26-e9f29765d8cc",
+      "item": "960200585507",
+      "asin": "B0018BEG8W",
+      "beforeStatus": "rejected",
+      "afterStatus": "rejected",
+      "profit": 32.07,
+      "roi": 146.8,
+      "cost": 21.84,
+      "reason": {
+        "code": "contents_not_corroborated",
+        "label": "Required contents not corroborated",
+        "source": "matching_diagnostics",
+        "severity": "review_threshold",
+        "summary": "Required bundle contents not corroborated; exact-ASIN manifest is incomplete.",
+        "category": "review_threshold",
+        "diagnosticKeys": [
+          "edition_version"
+        ]
+      },
+      "result": "written",
+      "requestId": "4b22c25e-e43d-5c7c-a691-4e6742bfd01f",
+      "title": "Dance Dance Revolution Hottest Party 2 with Dance Mat",
+      "finalStatus": "rejected"
+    },
+    {
+      "opportunityId": "d8aa31f0-8cac-41cb-818d-c7495f948791",
+      "item": "377640141530",
+      "asin": "B00G9DFMDW",
+      "beforeStatus": "rejected",
+      "afterStatus": "open",
+      "profit": 13.54,
+      "roi": 48.4,
+      "cost": 27.99,
+      "reason": null,
+      "result": "written",
+      "requestId": "8eea9f56-aafd-59e6-a080-466771ced8c9",
+      "title": "Air Conflicts: Vietnam - PlayStation 3",
+      "finalStatus": "open"
+    },
+    {
+      "opportunityId": "d9d91a8d-f01a-4077-9e4e-e6c78c550189",
+      "item": "940086702727",
+      "asin": "B000HAWCFE",
+      "beforeStatus": "rejected",
+      "afterStatus": "rejected",
+      "profit": 10.73,
+      "roi": 44.4,
+      "cost": 24.17,
+      "reason": {
+        "code": "edition_not_corroborated",
+        "label": "Edition not corroborated",
+        "source": "matching_diagnostics",
+        "severity": "review_threshold",
+        "summary": "Ordinary edition compatibility lacks sufficient corroboration.",
+        "category": "review_threshold",
+        "diagnosticKeys": [
+          "edition_version"
+        ]
+      },
+      "result": "written",
+      "requestId": "f11016a9-cc88-5a9a-8de5-8302259d9ea4",
+      "title": "The Sims 2 Happy Holiday Stuff - PC",
+      "finalStatus": "rejected"
+    },
+    {
+      "opportunityId": "dc18274e-d719-46df-a702-db9eec16d618",
+      "item": "820316157054",
+      "asin": "B001IUU9KW",
+      "beforeStatus": "rejected",
+      "afterStatus": "rejected",
+      "profit": 13.41,
+      "roi": 46.3,
+      "cost": 28.98,
+      "reason": {
+        "code": "edition_not_corroborated",
+        "label": "Edition not corroborated",
+        "source": "matching_diagnostics",
+        "severity": "review_threshold",
+        "summary": "Ordinary edition compatibility lacks sufficient corroboration.",
+        "category": "review_threshold",
+        "diagnosticKeys": [
+          "edition_version"
+        ]
+      },
+      "result": "written",
+      "requestId": "7c883073-de61-54a3-8b7b-bafc6a54f8d5",
+      "title": "SWAT: Global Strike Team",
+      "finalStatus": "rejected"
+    },
+    {
+      "opportunityId": "e4cad512-452b-49da-9563-f82e56bd51fe",
+      "item": "880090644974",
+      "asin": "B0014BDUEC",
+      "beforeStatus": "rejected",
+      "afterStatus": "rejected",
+      "profit": 26.81,
+      "roi": 77.3,
+      "cost": 34.69,
+      "reason": {
+        "code": "edition_not_corroborated",
+        "label": "Edition not corroborated",
+        "source": "matching_diagnostics",
+        "severity": "review_threshold",
+        "summary": "Ordinary edition compatibility lacks sufficient corroboration.",
+        "category": "review_threshold",
+        "diagnosticKeys": [
+          "edition_version"
+        ]
+      },
+      "result": "written",
+      "requestId": "61fd40c9-c826-5da7-bcef-592a948e104f",
+      "title": "PDC World Championship Darts - Nintendo Wii",
+      "finalStatus": "rejected"
+    },
+    {
+      "opportunityId": "ea85ab32-29bb-4679-a17c-252aeb57194b",
+      "item": "327454372887",
+      "asin": "B00DJ42EC6",
+      "beforeStatus": "rejected",
+      "afterStatus": "rejected",
+      "profit": 162.7,
+      "roi": 208.8,
+      "cost": 77.92,
+      "reason": {
+        "code": "review_threshold",
+        "label": "Review threshold",
+        "source": "presentation_gate",
+        "severity": "review_threshold",
+        "summary": "Final matching recommendation required review and did not enter presentation.",
+        "category": "review_threshold",
+        "diagnosticKeys": [
+          "final_recommendation",
+          "confidence_summary"
+        ]
+      },
+      "result": "written",
+      "requestId": "486b64bc-0920-5ca3-958f-5e62cb122577",
+      "title": "Deus Ex Human Revolution: Director's Cut - Xbox 360",
+      "finalStatus": "rejected"
+    },
+    {
+      "opportunityId": "efd6df5f-ae30-4da5-bf0d-9c531d5ea8af",
+      "item": "257859060301",
+      "asin": "B00079W8OU",
+      "beforeStatus": "rejected",
+      "afterStatus": "open",
+      "profit": 171.01,
+      "roi": 174.5,
+      "cost": 97.99,
+      "reason": null,
+      "result": "written",
+      "requestId": "66bcf093-c11a-57f4-a92e-4a6c9f043570",
+      "title": "Shining Tears - PlayStation 2",
+      "finalStatus": "open"
+    },
+    {
+      "opportunityId": "f1fd7501-d062-456d-bd9a-a1749a5327e9",
+      "item": "336887119682",
+      "asin": "B00006JBS4",
+      "beforeStatus": "rejected",
+      "afterStatus": "rejected",
+      "profit": 46.62,
+      "roi": 93.2,
+      "cost": 50.0,
+      "reason": {
+        "code": "condition_unacceptable",
+        "label": "Unacceptable new condition",
+        "source": "matching_diagnostics",
+        "severity": "hard_block",
+        "summary": "Status is rejected, but stored diagnostics do not include a mapped rule.",
+        "category": "hard_block",
+        "diagnosticKeys": [
+          "final_recommendation",
+          "confidence_summary",
+          "opportunity_context"
+        ]
+      },
+      "result": "written",
+      "requestId": "fa3fe4ca-f28a-58e0-a468-2a3dab2220b2",
+      "title": "Legends of Wrestling II - PlayStation 2",
+      "finalStatus": "rejected"
+    },
+    {
+      "opportunityId": "f3eec7bd-35a3-4506-899a-7fbea9cad813",
+      "item": "407372956949",
+      "asin": "B003O6C0V4",
+      "beforeStatus": "rejected",
+      "afterStatus": "rejected",
+      "profit": 40.14,
+      "roi": 448.0,
+      "cost": 8.96,
+      "reason": {
+        "code": "edition_not_corroborated",
+        "label": "Edition not corroborated",
+        "source": "matching_diagnostics",
+        "severity": "review_threshold",
+        "summary": "Ordinary edition compatibility lacks sufficient corroboration.",
+        "category": "review_threshold",
+        "diagnosticKeys": [
+          "edition_version"
+        ]
+      },
+      "result": "written",
+      "requestId": "dfb20606-415b-5461-b2c9-44be220705d3",
+      "title": "EA Sports Active 2",
+      "finalStatus": "rejected"
+    },
+    {
+      "opportunityId": "f7392a4b-610b-4be9-b3bf-1610cdc97713",
+      "item": "227617534846",
+      "asin": "B00029QR7O",
+      "beforeStatus": "rejected",
+      "afterStatus": "rejected",
+      "profit": 15.09,
+      "roi": 54.8,
+      "cost": 27.55,
+      "reason": {
+        "code": "edition_not_corroborated",
+        "label": "Edition not corroborated",
+        "source": "matching_diagnostics",
+        "severity": "review_threshold",
+        "summary": "Ordinary edition compatibility lacks sufficient corroboration.",
+        "category": "review_threshold",
+        "diagnosticKeys": [
+          "edition_version"
+        ]
+      },
+      "result": "written",
+      "requestId": "636eae74-6b1b-542f-ae88-8655d45152ab",
+      "title": "Sid Meier's Civilization III Complete",
+      "finalStatus": "rejected"
+    },
+    {
+      "opportunityId": "f8a3d865-2017-49f1-876f-6c774a2476e0",
+      "item": "377668366312",
+      "asin": "B00082ZQWW",
+      "beforeStatus": "rejected",
+      "afterStatus": "open",
+      "profit": 92.32,
+      "roi": 46.9,
+      "cost": 196.94,
+      "reason": null,
+      "result": "written",
+      "requestId": "816680c3-d817-5002-b9c5-3010a2f714cf",
+      "title": "Romance of the Three Kingdoms X - PlayStation 2",
+      "finalStatus": "open"
+    },
+    {
+      "opportunityId": "ffd8390d-746b-4bd2-8550-0b43ab2e4680",
+      "item": "840112509185",
+      "asin": "B01J6FPZZY",
+      "beforeStatus": "rejected",
+      "afterStatus": "open",
+      "profit": 17.26,
+      "roi": 82.8,
+      "cost": 20.85,
+      "reason": null,
+      "result": "written",
+      "requestId": "4d1b1257-c66f-5304-9a83-9a9b561c2f54",
+      "title": "Just Sing - PlayStation 4 Standard Edition",
+      "finalStatus": "open"
+    }
+  ],
+  "buyList": [
+    {
+      "opportunityId": "263c7925-efab-4aaf-be46-f92d8ca9a0a6",
+      "asin": "B0009Z3KAI",
+      "amazonTitle": "Castlevania Curse of Darkness - Xbox",
+      "ebayLegacyItemId": "920160850722",
+      "opportunityType": "buy_now",
+      "landedCost": 130.44,
+      "estimatedProfit": 99.56,
+      "estimatedRoiPercent": 76.3,
+      "suggestedOfferPrice": null,
+      "sourceTags": [
+        "flipmine"
+      ]
+    },
+    {
+      "opportunityId": "575a77b7-bc36-49d7-a402-d26df3bedc4e",
+      "asin": "B000M46V20",
+      "amazonTitle": "Shining Force EXA - PlayStation 2",
+      "ebayLegacyItemId": "920172650408",
+      "opportunityType": "buy_now",
+      "landedCost": 199.94,
+      "estimatedProfit": 251.29,
+      "estimatedRoiPercent": 125.7,
+      "suggestedOfferPrice": null,
+      "sourceTags": [
+        "flipmine"
+      ]
+    },
+    {
+      "opportunityId": "ba0e84e9-b983-4572-8c17-24a2e5b8aebb",
+      "asin": "B000R30FJQ",
+      "amazonTitle": "Digimon World Data Squad - PlayStation 2",
+      "ebayLegacyItemId": "377668366261",
+      "opportunityType": "buy_now",
+      "landedCost": 133.44,
+      "estimatedProfit": 96.55,
+      "estimatedRoiPercent": 72.4,
+      "suggestedOfferPrice": null,
+      "sourceTags": [
+        "flipmine"
+      ]
+    },
+    {
+      "opportunityId": "c71d9e8a-bf7d-4ea7-ba56-84d6f0d05342",
+      "asin": "B0019R4VF8",
+      "amazonTitle": "Hasbro Family Game Night - PlayStation 2",
+      "ebayLegacyItemId": "377668366221",
+      "opportunityType": "buy_now",
+      "landedCost": 35.44,
+      "estimatedProfit": 22.95,
+      "estimatedRoiPercent": 64.8,
+      "suggestedOfferPrice": null,
+      "sourceTags": [
+        "flipmine"
+      ]
+    },
+    {
+      "opportunityId": "7612c284-cec1-455c-a46b-ab5d76eb2d3a",
+      "asin": "B0000A1HVX",
+      "amazonTitle": "Qix Neo",
+      "ebayLegacyItemId": "820316741656",
+      "opportunityType": "buy_now",
+      "landedCost": 25.99,
+      "estimatedProfit": 18.36,
+      "estimatedRoiPercent": 70.6,
+      "suggestedOfferPrice": null,
+      "sourceTags": [
+        "flipmine"
+      ]
+    },
+    {
+      "opportunityId": "a978a008-4f6c-429f-91dd-39f921b98745",
+      "asin": "B00006ZCCV",
+      "amazonTitle": "NASCAR Dirt to Daytona - PlayStation 2",
+      "ebayLegacyItemId": "336887154067",
+      "opportunityType": "buy_now",
+      "landedCost": 19.86,
+      "estimatedProfit": 39.94,
+      "estimatedRoiPercent": 201.1,
+      "suggestedOfferPrice": null,
+      "sourceTags": [
+        "flipmine"
+      ]
+    },
+    {
+      "opportunityId": "ffd8390d-746b-4bd2-8550-0b43ab2e4680",
+      "asin": "B01J6FPZZY",
+      "amazonTitle": "Just Sing - PlayStation 4 Standard Edition",
+      "ebayLegacyItemId": "840112509185",
+      "opportunityType": "buy_now",
+      "landedCost": 20.85,
+      "estimatedProfit": 17.26,
+      "estimatedRoiPercent": 82.8,
+      "suggestedOfferPrice": null,
+      "sourceTags": [
+        "flipmine"
+      ]
+    },
+    {
+      "opportunityId": "7dcce02c-c120-4419-808a-4504f0c31e94",
+      "asin": "B00002SFL4",
+      "amazonTitle": "Turok 2: Seeds of Evil - PC",
+      "ebayLegacyItemId": "168860841661",
+      "opportunityType": "best_offer",
+      "landedCost": 68.04,
+      "estimatedProfit": 83.7,
+      "estimatedRoiPercent": 123,
+      "suggestedOfferPrice": 58.9,
+      "sourceTags": [
+        "flipmine"
+      ]
+    },
+    {
+      "opportunityId": "8ad77425-d625-4d64-b313-456e9b3ed330",
+      "asin": "B0032JCKYU",
+      "amazonTitle": "Hidden Object Adventure MEGA Collection - PC",
+      "ebayLegacyItemId": "117520198668",
+      "opportunityType": "best_offer",
+      "landedCost": 11.98,
+      "estimatedProfit": 26.09,
+      "estimatedRoiPercent": 217.8,
+      "suggestedOfferPrice": 4.74,
+      "sourceTags": [
+        "flipmine"
+      ]
+    },
+    {
+      "opportunityId": "67a8ca17-0f19-467d-beaf-81b700946362",
+      "asin": "B00002STIC",
+      "amazonTitle": "Bogey: Dead 6",
+      "ebayLegacyItemId": "840131195824",
+      "opportunityType": "best_offer",
+      "landedCost": 56.84,
+      "estimatedProfit": 67.54,
+      "estimatedRoiPercent": 118.8,
+      "suggestedOfferPrice": 47.49,
+      "sourceTags": [
+        "flipmine"
+      ]
+    },
+    {
+      "opportunityId": "1e613929-aea1-4d74-b774-e008106d9477",
+      "asin": "B0069EB9DI",
+      "amazonTitle": "Junior Classic Games 3D - Nintendo 3DS",
+      "ebayLegacyItemId": "880124306447",
+      "opportunityType": "best_offer",
+      "landedCost": 33,
+      "estimatedProfit": 33.18,
+      "estimatedRoiPercent": 100.5,
+      "suggestedOfferPrice": 31.35,
+      "sourceTags": [
+        "flipmine"
+      ]
+    },
+    {
+      "opportunityId": "1117d410-a333-4c42-8e94-95c8a6fe87ab",
+      "asin": "B000196EN2",
+      "amazonTitle": "COSMI Pool Shark ( Windows )",
+      "ebayLegacyItemId": "940098783744",
+      "opportunityType": "best_offer",
+      "landedCost": 15.66,
+      "estimatedProfit": 38.65,
+      "estimatedRoiPercent": 246.8,
+      "suggestedOfferPrice": 8.54,
+      "sourceTags": [
+        "flipmine"
+      ]
+    },
+    {
+      "opportunityId": "efd6df5f-ae30-4da5-bf0d-9c531d5ea8af",
+      "asin": "B00079W8OU",
+      "amazonTitle": "Shining Tears - PlayStation 2",
+      "ebayLegacyItemId": "257859060301",
+      "opportunityType": "buy_now",
+      "landedCost": 97.99,
+      "estimatedProfit": 171.01,
+      "estimatedRoiPercent": 174.5,
+      "suggestedOfferPrice": null,
+      "sourceTags": [
+        "flipmine"
+      ]
+    },
+    {
+      "opportunityId": "865ce3b3-e9d2-43c0-9b7e-3283b4000752",
+      "asin": "B000OZIAMG",
+      "amazonTitle": "Ratatouille - PC/Mac",
+      "ebayLegacyItemId": "227623586139",
+      "opportunityType": "buy_now",
+      "landedCost": 14.39,
+      "estimatedProfit": 19.19,
+      "estimatedRoiPercent": 133.4,
+      "suggestedOfferPrice": null,
+      "sourceTags": [
+        "flipmine"
+      ]
+    },
+    {
+      "opportunityId": "a0da9e96-b22f-47e8-a521-a5811ee3fe4c",
+      "asin": "B00005YJPF",
+      "amazonTitle": "Pac Man Fever - PlayStation 2",
+      "ebayLegacyItemId": "820382941556",
+      "opportunityType": "buy_now",
+      "landedCost": 21.84,
+      "estimatedProfit": 12.37,
+      "estimatedRoiPercent": 56.6,
+      "suggestedOfferPrice": null,
+      "sourceTags": [
+        "flipmine"
+      ]
+    },
+    {
+      "opportunityId": "0419da74-196f-4f22-b287-ce7ed9f85a33",
+      "asin": "B000784XF8",
+      "amazonTitle": "Constantine - PlayStation 2",
+      "ebayLegacyItemId": "137895810464",
+      "opportunityType": "best_offer",
+      "landedCost": 57.8,
+      "estimatedProfit": 43.41,
+      "estimatedRoiPercent": 75.1,
+      "suggestedOfferPrice": 47.45,
+      "sourceTags": [
+        "flipmine"
+      ]
+    },
+    {
+      "opportunityId": "d8aa31f0-8cac-41cb-818d-c7495f948791",
+      "asin": "B00G9DFMDW",
+      "amazonTitle": "Air Conflicts: Vietnam - PlayStation 3",
+      "ebayLegacyItemId": "377640141530",
+      "opportunityType": "buy_now",
+      "landedCost": 27.99,
+      "estimatedProfit": 13.54,
+      "estimatedRoiPercent": 48.4,
+      "suggestedOfferPrice": null,
+      "sourceTags": [
+        "flipmine"
+      ]
+    },
+    {
+      "opportunityId": "f8a3d865-2017-49f1-876f-6c774a2476e0",
+      "asin": "B00082ZQWW",
+      "amazonTitle": "Romance of the Three Kingdoms X - PlayStation 2",
+      "ebayLegacyItemId": "377668366312",
+      "opportunityType": "buy_now",
+      "landedCost": 196.94,
+      "estimatedProfit": 92.32,
+      "estimatedRoiPercent": 46.9,
+      "suggestedOfferPrice": null,
+      "sourceTags": [
+        "flipmine"
+      ]
+    },
+    {
+      "opportunityId": "5697368e-4af6-488d-b21c-52b158a01c6d",
+      "asin": "B00008KTMX",
+      "amazonTitle": "Battlestar Galactica - Xbox",
+      "ebayLegacyItemId": "377659302368",
+      "opportunityType": "buy_now",
+      "landedCost": 54.44,
+      "estimatedProfit": 22.66,
+      "estimatedRoiPercent": 41.6,
+      "suggestedOfferPrice": null,
+      "sourceTags": [
+        "flipmine"
+      ]
+    },
+    {
+      "opportunityId": "c9c3fb83-9689-4989-beea-d3fc9531c5b2",
+      "asin": "B078YN79KH",
+      "amazonTitle": "Snk Heroines: Tag Team Frenzy - Nintendo Switch",
+      "ebayLegacyItemId": "327437457493",
+      "opportunityType": "buy_now",
+      "landedCost": 30,
+      "estimatedProfit": 12.7,
+      "estimatedRoiPercent": 42.3,
+      "suggestedOfferPrice": null,
+      "sourceTags": [
+        "flipmine"
+      ]
+    },
+    {
+      "opportunityId": "b370ffb6-9e51-42d3-bd9c-5688493270d2",
+      "asin": "B06XTT5CKM",
+      "amazonTitle": "The Town of Light - Xbox One",
+      "ebayLegacyItemId": "840094365516",
+      "opportunityType": "buy_now",
+      "landedCost": 59.99,
+      "estimatedProfit": 25.66,
+      "estimatedRoiPercent": 42.8,
+      "suggestedOfferPrice": null,
+      "sourceTags": [
+        "flipmine"
+      ]
+    },
+    {
+      "opportunityId": "23aca048-27db-4000-96a6-70afadf7a37f",
+      "asin": "B0000AUFQ3",
+      "amazonTitle": "Phix: The Adventure",
+      "ebayLegacyItemId": "366801881758",
+      "opportunityType": "best_offer",
+      "landedCost": 46.06,
+      "estimatedProfit": 27.94,
+      "estimatedRoiPercent": 60.7,
+      "suggestedOfferPrice": 38,
+      "sourceTags": [
+        "flipmine"
+      ]
+    },
+    {
+      "opportunityId": "1ce910d6-0dba-4365-ba78-6869fe443896",
+      "asin": "B001RTCOWA",
+      "amazonTitle": "Call of Juarez: Bound In Blood - Playstation 3",
+      "ebayLegacyItemId": "860135189241",
+      "opportunityType": "buy_now",
+      "landedCost": 23.84,
+      "estimatedProfit": 10.37,
+      "estimatedRoiPercent": 43.5,
+      "suggestedOfferPrice": null,
+      "sourceTags": [
+        "flipmine"
+      ]
+    },
+    {
+      "opportunityId": "c2a92e7d-bd6d-4c8e-858d-a00427712ea4",
+      "asin": "B00VZAQ2X8",
+      "amazonTitle": "Mighty No. 9 - PlayStation 4",
+      "ebayLegacyItemId": "900099910655",
+      "opportunityType": "best_offer",
+      "landedCost": 16,
+      "estimatedProfit": 6.61,
+      "estimatedRoiPercent": 41.3,
+      "suggestedOfferPrice": 9.5,
+      "sourceTags": [
+        "flipmine"
+      ]
+    }
+  ],
+  "replayedClosestExcluded": [
+    {
+      "opportunityId": "75706223-6e56-4b10-91d9-6ba7a250e09e",
+      "asin": "B00DNGQTFI",
+      "amazonTitle": "Dragon Ball Z: Battle of Z - Playstation 3",
+      "ebayLegacyItemId": "287741926297",
+      "opportunityType": "no_profitable_source_found",
+      "landedCost": 76.47,
+      "estimatedProfit": 74.54,
+      "estimatedRoiPercent": 97.5,
+      "suggestedOfferPrice": 66.5,
+      "sourceTags": [
+        "flipmine"
+      ],
+      "exclusionReason": {
+        "code": "condition_review",
+        "label": "Condition review",
+        "summary": "Condition review \u00e2\u20ac\u201d shrink-wrap damage",
+        "source": "matching_diagnostics",
+        "severity": "review_threshold",
+        "category": "review_threshold",
+        "diagnosticKeys": [
+          "condition_review"
+        ],
+        "eligible": false,
+        "finalRecommendation": "Review",
+        "finalStatus": "rejected",
+        "secondaryReasons": [
+          {
+            "code": "review_threshold",
+            "label": "Review threshold",
+            "summary": "Final matching recommendation required review and did not enter presentation.",
+            "source": "presentation_gate",
+            "severity": "review_threshold",
+            "category": "review_threshold",
+            "diagnosticKeys": [
+              "final_recommendation",
+              "confidence_summary"
+            ]
+          }
+        ],
+        "supportingSignals": [
+          "Condition review \u00e2\u20ac\u201d shrink-wrap damage",
+          "Final recommendation is Review.",
+          "Opportunity type is no_profitable_source_found."
+        ]
+      }
+    },
+    {
+      "opportunityId": "12fbb490-866a-4d5a-8969-fe1f7a47f445",
+      "asin": "B000MAFXTQ",
+      "amazonTitle": "Samurai Warriors 2: Empires - Xbox 360",
+      "ebayLegacyItemId": "840120275430",
+      "opportunityType": "no_profitable_source_found",
+      "landedCost": 27.99,
+      "estimatedProfit": 20.18,
+      "estimatedRoiPercent": 72.1,
+      "suggestedOfferPrice": null,
+      "sourceTags": [
+        "flipmine"
+      ],
+      "exclusionReason": {
+        "code": "condition_review",
+        "label": "Condition review",
+        "summary": "Condition review \u00e2\u20ac\u201d disclosed packaging flaws",
+        "source": "matching_diagnostics",
+        "severity": "review_threshold",
+        "category": "review_threshold",
+        "diagnosticKeys": [
+          "condition_review"
+        ],
+        "eligible": false,
+        "finalRecommendation": "Review",
+        "finalStatus": "rejected",
+        "secondaryReasons": [
+          {
+            "code": "review_threshold",
+            "label": "Review threshold",
+            "summary": "Final matching recommendation required review and did not enter presentation.",
+            "source": "presentation_gate",
+            "severity": "review_threshold",
+            "category": "review_threshold",
+            "diagnosticKeys": [
+              "final_recommendation",
+              "confidence_summary"
+            ]
+          }
+        ],
+        "supportingSignals": [
+          "Condition review \u00e2\u20ac\u201d disclosed packaging flaws",
+          "Final recommendation is Review.",
+          "Opportunity type is no_profitable_source_found."
+        ]
+      }
+    },
+    {
+      "opportunityId": "ea85ab32-29bb-4679-a17c-252aeb57194b",
+      "asin": "B00DJ42EC6",
+      "amazonTitle": "Deus Ex Human Revolution: Director's Cut - Xbox 360",
+      "ebayLegacyItemId": "327454372887",
+      "opportunityType": "no_profitable_source_found",
+      "landedCost": 77.92,
+      "estimatedProfit": 162.7,
+      "estimatedRoiPercent": 208.8,
+      "suggestedOfferPrice": 67.69,
+      "sourceTags": [
+        "flipmine"
+      ],
+      "exclusionReason": {
+        "code": "review_threshold",
+        "label": "Match needs review",
+        "summary": "Edition / Version: Amazon Director's Cut; eBay Director's Cut (Strong sources disagree within a side).",
+        "source": "decision_trace",
+        "severity": "review_threshold",
+        "category": "review_threshold",
+        "diagnosticKeys": [
+          "core_game_identity",
+          "edition_version"
+        ],
+        "eligible": false,
+        "finalRecommendation": "Probable Non-Match",
+        "finalStatus": "rejected",
+        "secondaryReasons": [],
+        "supportingSignals": [
+          "edition review: Amazon Director's Cut, eBay Director's Cut",
+          "Strong sources disagree within a side",
+          "Final recommendation is Probable Non-Match.",
+          "Opportunity type is no_profitable_source_found."
+        ]
+      }
+    },
+    {
+      "opportunityId": "b18c57ed-a49b-41c3-8688-da15f8bfafb5",
+      "asin": "B000VJRU44",
+      "amazonTitle": "Wii Fit",
+      "ebayLegacyItemId": "147693336106",
+      "opportunityType": "no_profitable_source_found",
+      "landedCost": 18.36,
+      "estimatedProfit": 57.35,
+      "estimatedRoiPercent": 312.4,
+      "suggestedOfferPrice": 10.54,
+      "sourceTags": [
+        "flipmine"
+      ],
+      "exclusionReason": {
+        "code": "contents_not_corroborated",
+        "label": "Required contents not corroborated",
+        "summary": "Amazon package configuration unresolved.",
+        "source": "matching_diagnostics",
+        "severity": "review_threshold",
+        "category": "review_threshold",
+        "diagnosticKeys": [
+          "edition_version"
+        ],
+        "eligible": false,
+        "finalRecommendation": "Probable Non-Match",
+        "finalStatus": "rejected",
+        "secondaryReasons": [
+          {
+            "code": "review_threshold",
+            "label": "Review threshold",
+            "summary": "Final matching recommendation required review and did not enter presentation.",
+            "source": "presentation_gate",
+            "severity": "review_threshold",
+            "category": "review_threshold",
+            "diagnosticKeys": [
+              "final_recommendation",
+              "confidence_summary"
+            ]
+          }
+        ],
+        "supportingSignals": [
+          "Unresolved identity detail on one side: edition",
+          "Amazon package configuration unresolved.",
+          "Final recommendation is Probable Non-Match.",
+          "Opportunity type is no_profitable_source_found."
+        ]
+      }
+    },
+    {
+      "opportunityId": "aa4fa20d-3d70-4b68-af7b-745b9edc94e1",
+      "asin": "B0009Z3K9O",
+      "amazonTitle": "Castlevania: Curse of Darkness",
+      "ebayLegacyItemId": "128191788877",
+      "opportunityType": "no_profitable_source_found",
+      "landedCost": 149.99,
+      "estimatedProfit": 138.62,
+      "estimatedRoiPercent": 92.4,
+      "suggestedOfferPrice": null,
+      "sourceTags": [
+        "flipmine"
+      ],
+      "exclusionReason": {
+        "code": "contents_not_corroborated",
+        "label": "Required contents not corroborated",
+        "summary": "Jewel Case packaging not corroborated.",
+        "source": "matching_diagnostics",
+        "severity": "review_threshold",
+        "category": "review_threshold",
+        "diagnosticKeys": [
+          "edition_version"
+        ],
+        "eligible": false,
+        "finalRecommendation": "Probable Non-Match",
+        "finalStatus": "rejected",
+        "secondaryReasons": [
+          {
+            "code": "review_threshold",
+            "label": "Review threshold",
+            "summary": "Final matching recommendation required review and did not enter presentation.",
+            "source": "presentation_gate",
+            "severity": "review_threshold",
+            "category": "review_threshold",
+            "diagnosticKeys": [
+              "final_recommendation",
+              "confidence_summary"
+            ]
+          }
+        ],
+        "supportingSignals": [
+          "Unresolved identity detail on one side: edition",
+          "Jewel Case packaging not corroborated.",
+          "Final recommendation is Probable Non-Match.",
+          "Opportunity type is no_profitable_source_found."
+        ]
+      }
+    },
+    {
+      "opportunityId": "6dfa5564-a19e-4cc2-9cbd-254c844297da",
+      "asin": "B006Y76HY6",
+      "amazonTitle": "Spirit Camera: The Cursed Memoir",
+      "ebayLegacyItemId": "307276397847",
+      "opportunityType": "no_profitable_source_found",
+      "landedCost": 46.85,
+      "estimatedProfit": 38.2,
+      "estimatedRoiPercent": 81.5,
+      "suggestedOfferPrice": 38,
+      "sourceTags": [
+        "flipmine"
+      ],
+      "exclusionReason": {
+        "code": "contents_not_corroborated",
+        "label": "Required contents not corroborated",
+        "summary": "Required AR book not corroborated.",
+        "source": "matching_diagnostics",
+        "severity": "review_threshold",
+        "category": "review_threshold",
+        "diagnosticKeys": [
+          "edition_version"
+        ],
+        "eligible": false,
+        "finalRecommendation": "Probable Non-Match",
+        "finalStatus": "rejected",
+        "secondaryReasons": [
+          {
+            "code": "review_threshold",
+            "label": "Review threshold",
+            "summary": "Final matching recommendation required review and did not enter presentation.",
+            "source": "presentation_gate",
+            "severity": "review_threshold",
+            "category": "review_threshold",
+            "diagnosticKeys": [
+              "final_recommendation",
+              "confidence_summary"
+            ]
+          }
+        ],
+        "supportingSignals": [
+          "Unresolved identity detail on one side: edition",
+          "Required AR book not corroborated.",
+          "Final recommendation is Probable Non-Match.",
+          "Opportunity type is no_profitable_source_found."
+        ]
+      }
+    },
+    {
+      "opportunityId": "677e2245-6ce2-4564-b882-0a26d325d25e",
+      "asin": "B00B2QL2Y4",
+      "amazonTitle": "Pandora's Tower - Nintendo Wii",
+      "ebayLegacyItemId": "407348790546",
+      "opportunityType": "no_profitable_source_found",
+      "landedCost": 171,
+      "estimatedProfit": 91.07,
+      "estimatedRoiPercent": 53.3,
+      "suggestedOfferPrice": 162.45,
+      "sourceTags": [
+        "flipmine"
+      ],
+      "exclusionReason": {
+        "code": "edition_not_corroborated",
+        "label": "Edition not corroborated",
+        "summary": "Complete Edition appears only in Features; named retail edition versus generic completeness is unresolved.",
+        "source": "matching_diagnostics",
+        "severity": "review_threshold",
+        "category": "review_threshold",
+        "diagnosticKeys": [
+          "edition_version"
+        ],
+        "eligible": false,
+        "finalRecommendation": "Probable Non-Match",
+        "finalStatus": "rejected",
+        "secondaryReasons": [
+          {
+            "code": "review_threshold",
+            "label": "Review threshold",
+            "summary": "Final matching recommendation required review and did not enter presentation.",
+            "source": "presentation_gate",
+            "severity": "review_threshold",
+            "category": "review_threshold",
+            "diagnosticKeys": [
+              "final_recommendation",
+              "confidence_summary"
+            ]
+          }
+        ],
+        "supportingSignals": [
+          "Unresolved identity detail on one side: edition",
+          "Complete Edition appears only in Features; named retail edition versus generic completeness is unresolved.",
+          "Final recommendation is Probable Non-Match.",
+          "Opportunity type is no_profitable_source_found."
+        ]
+      }
+    },
+    {
+      "opportunityId": "47197c11-88c5-43c9-9ca4-9a0b4ec3b818",
+      "asin": "B000WQWPUK",
+      "amazonTitle": "Final Fantasy XI: The Vana'diel Collection 2008 - PlayStation 2",
+      "ebayLegacyItemId": "198790647550",
+      "opportunityType": "no_profitable_source_found",
+      "landedCost": 56.73,
+      "estimatedProfit": 93.4,
+      "estimatedRoiPercent": 164.6,
+      "suggestedOfferPrice": null,
+      "sourceTags": [
+        "flipmine"
+      ],
+      "exclusionReason": {
+        "code": "edition_not_corroborated",
+        "label": "Edition not corroborated",
+        "summary": "Ordinary edition compatibility lacks sufficient corroboration.",
+        "source": "matching_diagnostics",
+        "severity": "review_threshold",
+        "category": "review_threshold",
+        "diagnosticKeys": [
+          "edition_version"
+        ],
+        "eligible": false,
+        "finalRecommendation": "Probable Non-Match",
+        "finalStatus": "rejected",
+        "secondaryReasons": [
+          {
+            "code": "review_threshold",
+            "label": "Review threshold",
+            "summary": "Final matching recommendation required review and did not enter presentation.",
+            "source": "presentation_gate",
+            "severity": "review_threshold",
+            "category": "review_threshold",
+            "diagnosticKeys": [
+              "final_recommendation",
+              "confidence_summary"
+            ]
+          }
+        ],
+        "supportingSignals": [
+          "Strong sources disagree within a side",
+          "Unresolved identity detail on one side: edition, packageType, installment",
+          "Ordinary edition compatibility lacks sufficient corroboration.",
+          "Final recommendation is Probable Non-Match.",
+          "Opportunity type is no_profitable_source_found."
+        ]
+      }
+    },
+    {
+      "opportunityId": "7d14626b-703b-47f1-a38e-32df571368e3",
+      "asin": "B003O6C0V4",
+      "amazonTitle": "EA Sports Active 2",
+      "ebayLegacyItemId": "336896346476",
+      "opportunityType": "no_profitable_source_found",
+      "landedCost": 22.84,
+      "estimatedProfit": 26.26,
+      "estimatedRoiPercent": 115,
+      "suggestedOfferPrice": 12.34,
+      "sourceTags": [
+        "flipmine"
+      ],
+      "exclusionReason": {
+        "code": "edition_not_corroborated",
+        "label": "Edition not corroborated",
+        "summary": "Ordinary edition compatibility lacks sufficient corroboration.",
+        "source": "matching_diagnostics",
+        "severity": "review_threshold",
+        "category": "review_threshold",
+        "diagnosticKeys": [
+          "edition_version"
+        ],
+        "eligible": false,
+        "finalRecommendation": "Probable Non-Match",
+        "finalStatus": "rejected",
+        "secondaryReasons": [
+          {
+            "code": "review_threshold",
+            "label": "Review threshold",
+            "summary": "Final matching recommendation required review and did not enter presentation.",
+            "source": "presentation_gate",
+            "severity": "review_threshold",
+            "category": "review_threshold",
+            "diagnosticKeys": [
+              "final_recommendation",
+              "confidence_summary"
+            ]
+          }
+        ],
+        "supportingSignals": [
+          "Strong sources disagree within a side",
+          "Unresolved identity detail on one side: edition",
+          "Ordinary edition compatibility lacks sufficient corroboration.",
+          "Final recommendation is Probable Non-Match.",
+          "Opportunity type is no_profitable_source_found."
+        ]
+      }
+    },
+    {
+      "opportunityId": "13bc8ada-e629-410e-b936-eb1bd1a3b440",
+      "asin": "B013C6OU04",
+      "amazonTitle": "Game of Thrones - A Telltale Games Series - Xbox 360",
+      "ebayLegacyItemId": "377657120015",
+      "opportunityType": "no_profitable_source_found",
+      "landedCost": 47.94,
+      "estimatedProfit": 48.78,
+      "estimatedRoiPercent": 101.8,
+      "suggestedOfferPrice": null,
+      "sourceTags": [
+        "flipmine"
+      ],
+      "exclusionReason": {
+        "code": "edition_not_corroborated",
+        "label": "Edition not corroborated",
+        "summary": "Ordinary edition compatibility lacks sufficient corroboration.",
+        "source": "matching_diagnostics",
+        "severity": "review_threshold",
+        "category": "review_threshold",
+        "diagnosticKeys": [
+          "edition_version"
+        ],
+        "eligible": false,
+        "finalRecommendation": "Probable Non-Match",
+        "finalStatus": "rejected",
+        "secondaryReasons": [
+          {
+            "code": "review_threshold",
+            "label": "Review threshold",
+            "summary": "Final matching recommendation required review and did not enter presentation.",
+            "source": "presentation_gate",
+            "severity": "review_threshold",
+            "category": "review_threshold",
+            "diagnosticKeys": [
+              "final_recommendation",
+              "confidence_summary"
+            ]
+          }
+        ],
+        "supportingSignals": [
+          "Strong sources disagree within a side",
+          "Unresolved identity detail on one side: edition",
+          "Ordinary edition compatibility lacks sufficient corroboration.",
+          "Final recommendation is Probable Non-Match.",
+          "Opportunity type is no_profitable_source_found."
+        ]
+      }
+    },
+    {
+      "opportunityId": "f3eec7bd-35a3-4506-899a-7fbea9cad813",
+      "asin": "B003O6C0V4",
+      "amazonTitle": "EA Sports Active 2",
+      "ebayLegacyItemId": "407372956949",
+      "opportunityType": "no_profitable_source_found",
+      "landedCost": 8.96,
+      "estimatedProfit": 40.14,
+      "estimatedRoiPercent": 448,
+      "suggestedOfferPrice": null,
+      "sourceTags": [
+        "flipmine"
+      ],
+      "exclusionReason": {
+        "code": "edition_not_corroborated",
+        "label": "Edition not corroborated",
+        "summary": "Ordinary edition compatibility lacks sufficient corroboration.",
+        "source": "matching_diagnostics",
+        "severity": "review_threshold",
+        "category": "review_threshold",
+        "diagnosticKeys": [
+          "edition_version"
+        ],
+        "eligible": false,
+        "finalRecommendation": "Probable Non-Match",
+        "finalStatus": "rejected",
+        "secondaryReasons": [
+          {
+            "code": "review_threshold",
+            "label": "Review threshold",
+            "summary": "Final matching recommendation required review and did not enter presentation.",
+            "source": "presentation_gate",
+            "severity": "review_threshold",
+            "category": "review_threshold",
+            "diagnosticKeys": [
+              "final_recommendation",
+              "confidence_summary"
+            ]
+          }
+        ],
+        "supportingSignals": [
+          "Strong sources disagree within a side",
+          "Unresolved identity detail on one side: edition, packageType",
+          "Ordinary edition compatibility lacks sufficient corroboration.",
+          "Final recommendation is Probable Non-Match.",
+          "Opportunity type is no_profitable_source_found."
+        ]
+      }
+    },
+    {
+      "opportunityId": "680f76de-7b9d-44b9-86de-931236d96624",
+      "asin": "B0028556EU",
+      "amazonTitle": "Amazing Adventures: Around The World - PC",
+      "ebayLegacyItemId": "227623577813",
+      "opportunityType": "no_profitable_source_found",
+      "landedCost": 10.49,
+      "estimatedProfit": 23.71,
+      "estimatedRoiPercent": 226,
+      "suggestedOfferPrice": 9.97,
+      "sourceTags": [
+        "flipmine"
+      ],
+      "exclusionReason": {
+        "code": "edition_not_corroborated",
+        "label": "Edition not corroborated",
+        "summary": "Ordinary edition compatibility lacks sufficient corroboration.",
+        "source": "matching_diagnostics",
+        "severity": "review_threshold",
+        "category": "review_threshold",
+        "diagnosticKeys": [
+          "edition_version"
+        ],
+        "eligible": false,
+        "finalRecommendation": "Probable Non-Match",
+        "finalStatus": "rejected",
+        "secondaryReasons": [
+          {
+            "code": "review_threshold",
+            "label": "Review threshold",
+            "summary": "Final matching recommendation required review and did not enter presentation.",
+            "source": "presentation_gate",
+            "severity": "review_threshold",
+            "category": "review_threshold",
+            "diagnosticKeys": [
+              "final_recommendation",
+              "confidence_summary"
+            ]
+          }
+        ],
+        "supportingSignals": [
+          "Strong sources disagree within a side",
+          "Unresolved identity detail on one side: edition",
+          "Ordinary edition compatibility lacks sufficient corroboration.",
+          "Final recommendation is Probable Non-Match.",
+          "Opportunity type is no_profitable_source_found."
+        ]
+      }
+    },
+    {
+      "opportunityId": "c57170d7-836e-480c-831f-c91e021be08e",
+      "asin": "B000092P4A",
+      "amazonTitle": "Star Wars Galaxies: An Empire Divided Collectors Edition - PC",
+      "ebayLegacyItemId": "820338071733",
+      "opportunityType": "no_profitable_source_found",
+      "landedCost": 44.55,
+      "estimatedProfit": 102.75,
+      "estimatedRoiPercent": 230.6,
+      "suggestedOfferPrice": null,
+      "sourceTags": [
+        "flipmine"
+      ],
+      "exclusionReason": {
+        "code": "contents_not_corroborated",
+        "label": "Required contents not corroborated",
+        "summary": "Edition / Version: Amazon Collector's Edition; eBay Collector's Edition (Collector's Edition or required contents not corroborated.).",
+        "source": "matching_diagnostics",
+        "severity": "review_threshold",
+        "category": "review_threshold",
+        "diagnosticKeys": [
+          "edition_version"
+        ],
+        "eligible": false,
+        "finalRecommendation": "Probable Non-Match",
+        "finalStatus": "rejected",
+        "secondaryReasons": [
+          {
+            "code": "review_threshold",
+            "label": "Review threshold",
+            "summary": "Final matching recommendation required review and did not enter presentation.",
+            "source": "presentation_gate",
+            "severity": "review_threshold",
+            "category": "review_threshold",
+            "diagnosticKeys": [
+              "final_recommendation",
+              "confidence_summary"
+            ]
+          }
+        ],
+        "supportingSignals": [
+          "Strong sources disagree within a side",
+          "coreProduct review: Amazon star wars galaxies an empire divided, eBay star wars galaxies an empire divided computer game; coreGame review: Amazon star wars galaxies an empire divided, eBay star wars galaxies an empire divided computer game; edition review: Amazon Collector's Edition, eBay Collector's Edition",
+          "Collector's Edition or required contents not corroborated.",
+          "Final recommendation is Probable Non-Match.",
+          "Opportunity type is no_profitable_source_found."
+        ]
+      }
+    },
+    {
+      "opportunityId": "1f56ba84-727d-4e04-aed3-c1b34c681507",
+      "asin": "B00008KTV7",
+      "amazonTitle": "MTX: Mototrax - PlayStation 2",
+      "ebayLegacyItemId": "117516906660",
+      "opportunityType": "no_profitable_source_found",
+      "landedCost": 52.84,
+      "estimatedProfit": 177.16,
+      "estimatedRoiPercent": 335.3,
+      "suggestedOfferPrice": null,
+      "sourceTags": [
+        "flipmine"
+      ],
+      "exclusionReason": {
+        "code": "edition_not_corroborated",
+        "label": "Edition not corroborated",
+        "summary": "Ordinary edition compatibility lacks sufficient corroboration.",
+        "source": "matching_diagnostics",
+        "severity": "review_threshold",
+        "category": "review_threshold",
+        "diagnosticKeys": [
+          "edition_version"
+        ],
+        "eligible": false,
+        "finalRecommendation": "Probable Non-Match",
+        "finalStatus": "rejected",
+        "secondaryReasons": [
+          {
+            "code": "review_threshold",
+            "label": "Review threshold",
+            "summary": "Final matching recommendation required review and did not enter presentation.",
+            "source": "presentation_gate",
+            "severity": "review_threshold",
+            "category": "review_threshold",
+            "diagnosticKeys": [
+              "final_recommendation",
+              "confidence_summary"
+            ]
+          }
+        ],
+        "supportingSignals": [
+          "Strong sources disagree within a side",
+          "Unresolved identity detail on one side: edition",
+          "Ordinary edition compatibility lacks sufficient corroboration.",
+          "Final recommendation is Probable Non-Match.",
+          "Opportunity type is no_profitable_source_found."
+        ]
+      }
+    },
+    {
+      "opportunityId": "cfc7755d-016a-4a5b-9b26-e9f29765d8cc",
+      "asin": "B0018BEG8W",
+      "amazonTitle": "Dance Dance Revolution Hottest Party 2 with Dance Mat",
+      "ebayLegacyItemId": "960200585507",
+      "opportunityType": "no_profitable_source_found",
+      "landedCost": 21.84,
+      "estimatedProfit": 32.07,
+      "estimatedRoiPercent": 146.8,
+      "suggestedOfferPrice": null,
+      "sourceTags": [
+        "flipmine"
+      ],
+      "exclusionReason": {
+        "code": "contents_not_corroborated",
+        "label": "Required contents not corroborated",
+        "summary": "Required bundle contents not corroborated; exact-ASIN manifest is incomplete.",
+        "source": "matching_diagnostics",
+        "severity": "review_threshold",
+        "category": "review_threshold",
+        "diagnosticKeys": [
+          "edition_version"
+        ],
+        "eligible": false,
+        "finalRecommendation": "Probable Non-Match",
+        "finalStatus": "rejected",
+        "secondaryReasons": [
+          {
+            "code": "review_threshold",
+            "label": "Review threshold",
+            "summary": "Final matching recommendation required review and did not enter presentation.",
+            "source": "presentation_gate",
+            "severity": "review_threshold",
+            "category": "review_threshold",
+            "diagnosticKeys": [
+              "final_recommendation",
+              "confidence_summary"
+            ]
+          }
+        ],
+        "supportingSignals": [
+          "Strong sources disagree within a side",
+          "Unresolved identity detail on one side: edition, packageType",
+          "Required bundle contents not corroborated; exact-ASIN manifest is incomplete.",
+          "Final recommendation is Probable Non-Match.",
+          "Opportunity type is no_profitable_source_found."
+        ]
+      }
+    },
+    {
+      "opportunityId": "71f1c71d-66b3-48b8-b337-e4b85fbda60c",
+      "asin": "B00006AMZX",
+      "amazonTitle": "NHL Hitz 2003 - PlayStation 2",
+      "ebayLegacyItemId": "336902274107",
+      "opportunityType": "no_profitable_source_found",
+      "landedCost": 71.85,
+      "estimatedProfit": 158.14,
+      "estimatedRoiPercent": 220.1,
+      "suggestedOfferPrice": null,
+      "sourceTags": [
+        "flipmine"
+      ],
+      "exclusionReason": {
+        "code": "edition_not_corroborated",
+        "label": "Edition not corroborated",
+        "summary": "Ordinary edition compatibility lacks sufficient corroboration.",
+        "source": "matching_diagnostics",
+        "severity": "review_threshold",
+        "category": "review_threshold",
+        "diagnosticKeys": [
+          "edition_version"
+        ],
+        "eligible": false,
+        "finalRecommendation": "Probable Non-Match",
+        "finalStatus": "rejected",
+        "secondaryReasons": [
+          {
+            "code": "review_threshold",
+            "label": "Review threshold",
+            "summary": "Final matching recommendation required review and did not enter presentation.",
+            "source": "presentation_gate",
+            "severity": "review_threshold",
+            "category": "review_threshold",
+            "diagnosticKeys": [
+              "final_recommendation",
+              "confidence_summary"
+            ]
+          }
+        ],
+        "supportingSignals": [
+          "Strong sources disagree within a side",
+          "Unresolved identity detail on one side: edition",
+          "Ordinary edition compatibility lacks sufficient corroboration.",
+          "Final recommendation is Probable Non-Match.",
+          "Opportunity type is no_profitable_source_found."
+        ]
+      }
+    },
+    {
+      "opportunityId": "0079c51b-4f95-4717-af23-ad17c1a43e72",
+      "asin": "B00VMB5VFK",
+      "amazonTitle": "LEGO Dimensions Starter Pack - Nintendo Wii U",
+      "ebayLegacyItemId": "940104211749",
+      "opportunityType": "no_profitable_source_found",
+      "landedCost": 14.99,
+      "estimatedProfit": 21.45,
+      "estimatedRoiPercent": 143.1,
+      "suggestedOfferPrice": null,
+      "sourceTags": [
+        "flipmine"
+      ],
+      "exclusionReason": {
+        "code": "edition_not_corroborated",
+        "label": "Edition not corroborated",
+        "summary": "Starter Pack not corroborated.",
+        "source": "matching_diagnostics",
+        "severity": "review_threshold",
+        "category": "review_threshold",
+        "diagnosticKeys": [
+          "edition_version"
+        ],
+        "eligible": false,
+        "finalRecommendation": "Probable Non-Match",
+        "finalStatus": "rejected",
+        "secondaryReasons": [
+          {
+            "code": "contents_not_corroborated",
+            "label": "Required contents not corroborated",
+            "summary": "Required bundle contents not corroborated; exact-ASIN manifest unresolved.",
+            "source": "matching_diagnostics",
+            "severity": "review_threshold",
+            "category": "review_threshold",
+            "diagnosticKeys": [
+              "edition_version"
+            ]
+          },
+          {
+            "code": "review_threshold",
+            "label": "Review threshold",
+            "summary": "Final matching recommendation required review and did not enter presentation.",
+            "source": "presentation_gate",
+            "severity": "review_threshold",
+            "category": "review_threshold",
+            "diagnosticKeys": [
+              "final_recommendation",
+              "confidence_summary"
+            ]
+          }
+        ],
+        "supportingSignals": [
+          "Strong sources disagree within a side",
+          "Unresolved identity detail on one side: edition",
+          "Starter Pack not corroborated.",
+          "Required bundle contents not corroborated; exact-ASIN manifest unresolved.",
+          "Final recommendation is Probable Non-Match.",
+          "Opportunity type is no_profitable_source_found."
+        ]
+      }
+    },
+    {
+      "opportunityId": "88471699-da02-416b-b7fb-e72810be5607",
+      "asin": "B0028A8PDY",
+      "amazonTitle": "Active Life: Extreme Challenge Bundle with Mat - Nintendo Wii",
+      "ebayLegacyItemId": "377666013189",
+      "opportunityType": "no_profitable_source_found",
+      "landedCost": 21.84,
+      "estimatedProfit": 48.76,
+      "estimatedRoiPercent": 223.3,
+      "suggestedOfferPrice": null,
+      "sourceTags": [
+        "flipmine"
+      ],
+      "exclusionReason": {
+        "code": "contents_not_corroborated",
+        "label": "Required contents not corroborated",
+        "summary": "Required bundle contents not corroborated; exact-ASIN manifest unresolved.",
+        "source": "matching_diagnostics",
+        "severity": "review_threshold",
+        "category": "review_threshold",
+        "diagnosticKeys": [
+          "edition_version"
+        ],
+        "eligible": false,
+        "finalRecommendation": "Probable Non-Match",
+        "finalStatus": "rejected",
+        "secondaryReasons": [
+          {
+            "code": "review_threshold",
+            "label": "Review threshold",
+            "summary": "Final matching recommendation required review and did not enter presentation.",
+            "source": "presentation_gate",
+            "severity": "review_threshold",
+            "category": "review_threshold",
+            "diagnosticKeys": [
+              "final_recommendation",
+              "confidence_summary"
+            ]
+          }
+        ],
+        "supportingSignals": [
+          "Strong sources disagree within a side",
+          "Unresolved identity detail on one side: edition, packageType",
+          "Required bundle contents not corroborated; exact-ASIN manifest unresolved.",
+          "Final recommendation is Probable Non-Match.",
+          "Opportunity type is no_profitable_source_found."
+        ]
+      }
+    },
+    {
+      "opportunityId": "8f181c94-29d2-4681-a629-35c9ffdd37e0",
+      "asin": "B0000E3D8T",
+      "amazonTitle": "Tokyo Xtreme Racer 3 - PlayStation 2",
+      "ebayLegacyItemId": "800953016239",
+      "opportunityType": "no_profitable_source_found",
+      "landedCost": 55.85,
+      "estimatedProfit": 60.45,
+      "estimatedRoiPercent": 108.2,
+      "suggestedOfferPrice": null,
+      "sourceTags": [
+        "flipmine"
+      ],
+      "exclusionReason": {
+        "code": "edition_not_corroborated",
+        "label": "Edition not corroborated",
+        "summary": "Ordinary edition compatibility lacks sufficient corroboration.",
+        "source": "matching_diagnostics",
+        "severity": "review_threshold",
+        "category": "review_threshold",
+        "diagnosticKeys": [
+          "edition_version"
+        ],
+        "eligible": false,
+        "finalRecommendation": "Probable Non-Match",
+        "finalStatus": "rejected",
+        "secondaryReasons": [
+          {
+            "code": "review_threshold",
+            "label": "Review threshold",
+            "summary": "Final matching recommendation required review and did not enter presentation.",
+            "source": "presentation_gate",
+            "severity": "review_threshold",
+            "category": "review_threshold",
+            "diagnosticKeys": [
+              "final_recommendation",
+              "confidence_summary"
+            ]
+          }
+        ],
+        "supportingSignals": [
+          "Strong sources disagree within a side",
+          "Unresolved identity detail on one side: edition",
+          "Ordinary edition compatibility lacks sufficient corroboration.",
+          "Final recommendation is Probable Non-Match.",
+          "Opportunity type is no_profitable_source_found."
+        ]
+      }
+    },
+    {
+      "opportunityId": "be570e47-fb5c-409a-9cc7-50bbae85174b",
+      "asin": "B0BQ7P2D1X",
+      "amazonTitle": "Peppa Pig World Adventures - Nintendo Switch",
+      "ebayLegacyItemId": "227625724314",
+      "opportunityType": "no_profitable_source_found",
+      "landedCost": 18.66,
+      "estimatedProfit": 9.93,
+      "estimatedRoiPercent": 53.2,
+      "suggestedOfferPrice": 11.39,
+      "sourceTags": [
+        "flipmine"
+      ],
+      "exclusionReason": {
+        "code": "review_threshold",
+        "label": "Match needs review",
+        "summary": "Core Game: Amazon peppa pig world adventures; eBay peppa pig world adventures (Strong sources disagree within a side).",
+        "source": "decision_trace",
+        "severity": "review_threshold",
+        "category": "review_threshold",
+        "diagnosticKeys": [
+          "title_overlap",
+          "core_game_identity",
+          "game_name"
+        ],
+        "eligible": false,
+        "finalRecommendation": "Probable Non-Match",
+        "finalStatus": "rejected",
+        "secondaryReasons": [],
+        "supportingSignals": [
+          "Strong sources disagree within a side",
+          "Unresolved identity detail on one side: edition",
+          "Final recommendation is Probable Non-Match.",
+          "Opportunity type is no_profitable_source_found."
+        ]
+      }
+    },
+    {
+      "opportunityId": "65ac4a0e-34e8-42bc-bdd9-0d2bdc584c06",
+      "asin": "B09CLX4G35",
+      "amazonTitle": "The Smurfs: Mission Vileaf - Smurftastic Edition (NSW) - Nintendo Switch",
+      "ebayLegacyItemId": "940100677219",
+      "opportunityType": "no_profitable_source_found",
+      "landedCost": 21.74,
+      "estimatedProfit": 18.79,
+      "estimatedRoiPercent": 86.4,
+      "suggestedOfferPrice": null,
+      "sourceTags": [
+        "flipmine"
+      ],
+      "exclusionReason": {
+        "code": "edition_not_corroborated",
+        "label": "Edition not corroborated",
+        "summary": "Smurftastic not corroborated.",
+        "source": "matching_diagnostics",
+        "severity": "review_threshold",
+        "category": "review_threshold",
+        "diagnosticKeys": [
+          "edition_version"
+        ],
+        "eligible": false,
+        "finalRecommendation": "Probable Non-Match",
+        "finalStatus": "rejected",
+        "secondaryReasons": [
+          {
+            "code": "review_threshold",
+            "label": "Review threshold",
+            "summary": "Final matching recommendation required review and did not enter presentation.",
+            "source": "presentation_gate",
+            "severity": "review_threshold",
+            "category": "review_threshold",
+            "diagnosticKeys": [
+              "final_recommendation",
+              "confidence_summary"
+            ]
+          }
+        ],
+        "supportingSignals": [
+          "Strong sources disagree within a side",
+          "Unresolved identity detail on one side: edition",
+          "Smurftastic not corroborated.",
+          "Final recommendation is Probable Non-Match.",
+          "Opportunity type is no_profitable_source_found."
+        ]
+      }
+    },
+    {
+      "opportunityId": "e4cad512-452b-49da-9563-f82e56bd51fe",
+      "asin": "B0014BDUEC",
+      "amazonTitle": "PDC World Championship Darts - Nintendo Wii",
+      "ebayLegacyItemId": "880090644974",
+      "opportunityType": "no_profitable_source_found",
+      "landedCost": 34.69,
+      "estimatedProfit": 26.81,
+      "estimatedRoiPercent": 77.3,
+      "suggestedOfferPrice": 23.74,
+      "sourceTags": [
+        "flipmine"
+      ],
+      "exclusionReason": {
+        "code": "edition_not_corroborated",
+        "label": "Edition not corroborated",
+        "summary": "Ordinary edition compatibility lacks sufficient corroboration.",
+        "source": "matching_diagnostics",
+        "severity": "review_threshold",
+        "category": "review_threshold",
+        "diagnosticKeys": [
+          "edition_version"
+        ],
+        "eligible": false,
+        "finalRecommendation": "Probable Non-Match",
+        "finalStatus": "rejected",
+        "secondaryReasons": [
+          {
+            "code": "review_threshold",
+            "label": "Review threshold",
+            "summary": "Final matching recommendation required review and did not enter presentation.",
+            "source": "presentation_gate",
+            "severity": "review_threshold",
+            "category": "review_threshold",
+            "diagnosticKeys": [
+              "final_recommendation",
+              "confidence_summary"
+            ]
+          }
+        ],
+        "supportingSignals": [
+          "Strong sources disagree within a side",
+          "Unresolved identity detail on one side: edition",
+          "Ordinary edition compatibility lacks sufficient corroboration.",
+          "Final recommendation is Probable Non-Match.",
+          "Opportunity type is no_profitable_source_found."
+        ]
+      }
+    },
+    {
+      "opportunityId": "4fefa101-2312-4baa-92cf-daba95330712",
+      "asin": "B000LZKR3O",
+      "amazonTitle": "Sid Meier's Civilization III",
+      "ebayLegacyItemId": "407380529548",
+      "opportunityType": "no_profitable_source_found",
+      "landedCost": 16.84,
+      "estimatedProfit": 13.22,
+      "estimatedRoiPercent": 78.5,
+      "suggestedOfferPrice": null,
+      "sourceTags": [
+        "flipmine"
+      ],
+      "exclusionReason": {
+        "code": "edition_not_corroborated",
+        "label": "Edition not corroborated",
+        "summary": "Ordinary edition compatibility lacks sufficient corroboration.",
+        "source": "matching_diagnostics",
+        "severity": "review_threshold",
+        "category": "review_threshold",
+        "diagnosticKeys": [
+          "edition_version"
+        ],
+        "eligible": false,
+        "finalRecommendation": "Probable Non-Match",
+        "finalStatus": "rejected",
+        "secondaryReasons": [
+          {
+            "code": "review_threshold",
+            "label": "Review threshold",
+            "summary": "Final matching recommendation required review and did not enter presentation.",
+            "source": "presentation_gate",
+            "severity": "review_threshold",
+            "category": "review_threshold",
+            "diagnosticKeys": [
+              "final_recommendation",
+              "confidence_summary"
+            ]
+          }
+        ],
+        "supportingSignals": [
+          "Strong sources disagree within a side",
+          "Unresolved identity detail on one side: edition",
+          "Ordinary edition compatibility lacks sufficient corroboration.",
+          "Final recommendation is Probable Non-Match.",
+          "Opportunity type is no_profitable_source_found."
+        ]
+      }
+    },
+    {
+      "opportunityId": "7fc6f443-663e-4a5f-b78c-38e0fb9c72b7",
+      "asin": "B0000E3D8T",
+      "amazonTitle": "Tokyo Xtreme Racer 3 - PlayStation 2",
+      "ebayLegacyItemId": "940074372452",
+      "opportunityType": "no_profitable_source_found",
+      "landedCost": 66.84,
+      "estimatedProfit": 49.46,
+      "estimatedRoiPercent": 74,
+      "suggestedOfferPrice": null,
+      "sourceTags": [
+        "flipmine"
+      ],
+      "exclusionReason": {
+        "code": "edition_not_corroborated",
+        "label": "Edition not corroborated",
+        "summary": "Ordinary edition compatibility lacks sufficient corroboration.",
+        "source": "matching_diagnostics",
+        "severity": "review_threshold",
+        "category": "review_threshold",
+        "diagnosticKeys": [
+          "edition_version"
+        ],
+        "eligible": false,
+        "finalRecommendation": "Probable Non-Match",
+        "finalStatus": "rejected",
+        "secondaryReasons": [
+          {
+            "code": "review_threshold",
+            "label": "Review threshold",
+            "summary": "Final matching recommendation required review and did not enter presentation.",
+            "source": "presentation_gate",
+            "severity": "review_threshold",
+            "category": "review_threshold",
+            "diagnosticKeys": [
+              "final_recommendation",
+              "confidence_summary"
+            ]
+          }
+        ],
+        "supportingSignals": [
+          "Strong sources disagree within a side",
+          "Unresolved identity detail on one side: edition",
+          "Ordinary edition compatibility lacks sufficient corroboration.",
+          "Final recommendation is Probable Non-Match.",
+          "Opportunity type is no_profitable_source_found."
+        ]
+      }
+    },
+    {
+      "opportunityId": "f7392a4b-610b-4be9-b3bf-1610cdc97713",
+      "asin": "B00029QR7O",
+      "amazonTitle": "Sid Meier's Civilization III Complete",
+      "ebayLegacyItemId": "227617534846",
+      "opportunityType": "no_profitable_source_found",
+      "landedCost": 27.55,
+      "estimatedProfit": 15.09,
+      "estimatedRoiPercent": 54.8,
+      "suggestedOfferPrice": null,
+      "sourceTags": [
+        "flipmine"
+      ],
+      "exclusionReason": {
+        "code": "edition_not_corroborated",
+        "label": "Edition not corroborated",
+        "summary": "Ordinary edition compatibility lacks sufficient corroboration.",
+        "source": "matching_diagnostics",
+        "severity": "review_threshold",
+        "category": "review_threshold",
+        "diagnosticKeys": [
+          "edition_version"
+        ],
+        "eligible": false,
+        "finalRecommendation": "Probable Non-Match",
+        "finalStatus": "rejected",
+        "secondaryReasons": [
+          {
+            "code": "review_threshold",
+            "label": "Review threshold",
+            "summary": "Final matching recommendation required review and did not enter presentation.",
+            "source": "presentation_gate",
+            "severity": "review_threshold",
+            "category": "review_threshold",
+            "diagnosticKeys": [
+              "final_recommendation",
+              "confidence_summary"
+            ]
+          }
+        ],
+        "supportingSignals": [
+          "Strong sources disagree within a side",
+          "Unresolved identity detail on one side: edition",
+          "Ordinary edition compatibility lacks sufficient corroboration.",
+          "Final recommendation is Probable Non-Match.",
+          "Opportunity type is no_profitable_source_found."
+        ]
+      }
+    },
+    {
+      "opportunityId": "dc18274e-d719-46df-a702-db9eec16d618",
+      "asin": "B001IUU9KW",
+      "amazonTitle": "SWAT: Global Strike Team",
+      "ebayLegacyItemId": "820316157054",
+      "opportunityType": "no_profitable_source_found",
+      "landedCost": 28.98,
+      "estimatedProfit": 13.41,
+      "estimatedRoiPercent": 46.3,
+      "suggestedOfferPrice": 20.89,
+      "sourceTags": [
+        "flipmine"
+      ],
+      "exclusionReason": {
+        "code": "edition_not_corroborated",
+        "label": "Edition not corroborated",
+        "summary": "Ordinary edition compatibility lacks sufficient corroboration.",
+        "source": "matching_diagnostics",
+        "severity": "review_threshold",
+        "category": "review_threshold",
+        "diagnosticKeys": [
+          "edition_version"
+        ],
+        "eligible": false,
+        "finalRecommendation": "Probable Non-Match",
+        "finalStatus": "rejected",
+        "secondaryReasons": [
+          {
+            "code": "review_threshold",
+            "label": "Review threshold",
+            "summary": "Final matching recommendation required review and did not enter presentation.",
+            "source": "presentation_gate",
+            "severity": "review_threshold",
+            "category": "review_threshold",
+            "diagnosticKeys": [
+              "final_recommendation",
+              "confidence_summary"
+            ]
+          }
+        ],
+        "supportingSignals": [
+          "Strong sources disagree within a side",
+          "Unresolved identity detail on one side: edition",
+          "Ordinary edition compatibility lacks sufficient corroboration.",
+          "Final recommendation is Probable Non-Match.",
+          "Opportunity type is no_profitable_source_found."
+        ]
+      }
+    },
+    {
+      "opportunityId": "3fb0348d-5329-4298-94d3-32e0407d0a5f",
+      "asin": "B0000E3D8T",
+      "amazonTitle": "Tokyo Xtreme Racer 3 - PlayStation 2",
+      "ebayLegacyItemId": "920147066337",
+      "opportunityType": "no_profitable_source_found",
+      "landedCost": 79,
+      "estimatedProfit": 37.3,
+      "estimatedRoiPercent": 47.2,
+      "suggestedOfferPrice": 75.05,
+      "sourceTags": [
+        "flipmine"
+      ],
+      "exclusionReason": {
+        "code": "edition_not_corroborated",
+        "label": "Edition not corroborated",
+        "summary": "Ordinary edition compatibility lacks sufficient corroboration.",
+        "source": "matching_diagnostics",
+        "severity": "review_threshold",
+        "category": "review_threshold",
+        "diagnosticKeys": [
+          "edition_version"
+        ],
+        "eligible": false,
+        "finalRecommendation": "Probable Non-Match",
+        "finalStatus": "rejected",
+        "secondaryReasons": [
+          {
+            "code": "review_threshold",
+            "label": "Review threshold",
+            "summary": "Final matching recommendation required review and did not enter presentation.",
+            "source": "presentation_gate",
+            "severity": "review_threshold",
+            "category": "review_threshold",
+            "diagnosticKeys": [
+              "final_recommendation",
+              "confidence_summary"
+            ]
+          }
+        ],
+        "supportingSignals": [
+          "Strong sources disagree within a side",
+          "Unresolved identity detail on one side: edition",
+          "Ordinary edition compatibility lacks sufficient corroboration.",
+          "Final recommendation is Probable Non-Match.",
+          "Opportunity type is no_profitable_source_found."
+        ]
+      }
+    },
+    {
+      "opportunityId": "945ead4d-eafb-4620-a2c4-4d300a3bdc6b",
+      "asin": "B001AH8YSW",
+      "amazonTitle": "The Witcher Enhanced - PC",
+      "ebayLegacyItemId": "198803864168",
+      "opportunityType": "no_profitable_source_found",
+      "landedCost": 42.07,
+      "estimatedProfit": 19.65,
+      "estimatedRoiPercent": 46.7,
+      "suggestedOfferPrice": null,
+      "sourceTags": [
+        "flipmine"
+      ],
+      "exclusionReason": {
+        "code": "review_threshold",
+        "label": "Match needs review",
+        "summary": "Core Game: Amazon the witcher; eBay new the witcher dvd vista xp game (Strong sources disagree within a side). Edition / Version: Amazon Enhanced Edition; eBay Enhanced Edition (Strong sources disagree within a side).",
+        "source": "decision_trace",
+        "severity": "review_threshold",
+        "category": "review_threshold",
+        "diagnosticKeys": [
+          "title_overlap",
+          "core_game_identity",
+          "game_name",
+          "edition_version"
+        ],
+        "eligible": false,
+        "finalRecommendation": "Probable Non-Match",
+        "finalStatus": "rejected",
+        "secondaryReasons": [],
+        "supportingSignals": [
+          "Strong sources disagree within a side",
+          "coreProduct review: Amazon the witcher, eBay new the witcher dvd vista xp game; coreGame review: Amazon the witcher, eBay new the witcher dvd vista xp game; edition review: Amazon Enhanced Edition, eBay Enhanced Edition",
+          "Final recommendation is Probable Non-Match.",
+          "Opportunity type is no_profitable_source_found."
+        ]
+      }
+    },
+    {
+      "opportunityId": "d9d91a8d-f01a-4077-9e4e-e6c78c550189",
+      "asin": "B000HAWCFE",
+      "amazonTitle": "The Sims 2 Happy Holiday Stuff - PC",
+      "ebayLegacyItemId": "940086702727",
+      "opportunityType": "no_profitable_source_found",
+      "landedCost": 24.17,
+      "estimatedProfit": 10.73,
+      "estimatedRoiPercent": 44.4,
+      "suggestedOfferPrice": null,
+      "sourceTags": [
+        "flipmine"
+      ],
+      "exclusionReason": {
+        "code": "edition_not_corroborated",
+        "label": "Edition not corroborated",
+        "summary": "Ordinary edition compatibility lacks sufficient corroboration.",
+        "source": "matching_diagnostics",
+        "severity": "review_threshold",
+        "category": "review_threshold",
+        "diagnosticKeys": [
+          "edition_version"
+        ],
+        "eligible": false,
+        "finalRecommendation": "Probable Non-Match",
+        "finalStatus": "rejected",
+        "secondaryReasons": [
+          {
+            "code": "review_threshold",
+            "label": "Review threshold",
+            "summary": "Final matching recommendation required review and did not enter presentation.",
+            "source": "presentation_gate",
+            "severity": "review_threshold",
+            "category": "review_threshold",
+            "diagnosticKeys": [
+              "final_recommendation",
+              "confidence_summary"
+            ]
+          }
+        ],
+        "supportingSignals": [
+          "Strong sources disagree within a side",
+          "Unresolved identity detail on one side: edition",
+          "Ordinary edition compatibility lacks sufficient corroboration.",
+          "Final recommendation is Probable Non-Match.",
+          "Opportunity type is no_profitable_source_found."
+        ]
+      }
+    }
+  ],
+  "closestReasonsAll": {
+    "condition_review": 2,
+    "profitability": 29,
+    "review_threshold": 16,
+    "wrong_platform": 12,
+    "contents_not_corroborated": 6,
+    "edition_not_corroborated": 18,
+    "game_name_conflict": 3
+  },
+  "providerHttpCalls": {
+    "amazon:oauth:HTTP200": 2,
+    "amazon:listings:HTTP200": 54,
+    "ebay:oauth:HTTP200": 8,
+    "ebay:GetItem:HTTP200": 59,
+    "ebay:buy:HTTP200": 13,
+    "ebay:GetItemShipping:HTTP200": 27,
+    "ebay:developer:HTTP200": 4,
+    "ebay:GetMyeBayBuying:shared_quota_attempts": 6
+  },
+  "checkpointReplayProviderCalls": {},
+  "marketplaceWrites": 0,
+  "newOpportunityRecords": 0,
+  "duplicateActionableListings": 0,
+  "historyArchives": 58,
+  "guardedDecisionLogRecords": 57,
+  "verificationLimitations": [
+    "Authenticated browser verification stopped by Windows browser-URL confidence guard after operator approval.",
+    "Pre-existing frozen reviewRouting capture remains incomplete; separately executed current API tests passed."
+  ]
+}
