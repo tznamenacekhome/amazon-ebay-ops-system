@@ -106,13 +106,13 @@ class SourcingMatchRuleTests(unittest.TestCase):
         )
         self.assert_blocked(diagnostics, "unsupported sourcing platform")
 
-    def test_3ds_identity_does_not_waive_cartridge_sourcing_policy(self) -> None:
+    def test_3ds_identity_and_explicit_operator_eligibility(self) -> None:
         diagnostics = evaluate_static_match_rules(
             candidate("Super Mario 3D Land Nintendo 3DS Brand New", platform="Nintendo 3DS"),
             seed("Super Mario 3D Land", "3DS"),
         )
-        self.assertEqual("Blocked", diagnostics["recommendation"])
-        self.assertEqual('blocked', diagnostics['sourcing_platform_policy']['result'])
+        self.assertEqual("Probable Match", diagnostics["recommendation"])
+        self.assertEqual('pass', diagnostics['sourcing_platform_policy']['result'])
 
     def test_used_title_signal_blocks_new_sourcing_candidate(self) -> None:
         diagnostics = evaluate_static_match_rules(

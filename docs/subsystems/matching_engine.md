@@ -250,3 +250,18 @@ Examples:
 RevSeller enrichment uses the Python cleaner before normalized title matching.
 It also normalizes known catalog typos that affect platform/title matching, such
 as `Nintedo` -> `Nintendo`, before storing the matched Amazon title.
+# Automated evaluation boundary (operator policy, November 26, 2026)
+
+MBOP evaluates textual and structured marketplace/catalog evidence, including
+condition, required contents, purchase unit, price, shipping, availability and
+the existing economic, eligibility, history and hold safeguards. Generic testing
+language is neutral. Affirmative textual opening, use, damage, missing seals or
+contents remains material.
+
+Listing photographs are for the operator's final purchasing review. Do not
+download or analyze them for matching, require Codex visual authentication as a
+release gate, create photo-derived exceptions, or add visual adjudication
+infrastructure. Preserve image URLs and normal image display. Buy List indicates
+that the supported automated checks pass; it is not visual authentication or a
+guarantee that a purchase is appropriate. Preserve operator-entered decisions.
+

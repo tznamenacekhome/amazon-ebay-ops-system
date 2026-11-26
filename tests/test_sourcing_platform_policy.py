@@ -24,12 +24,18 @@ class PlatformPolicyTests(unittest.TestCase):
                 self.assertEqual('blocked',platform_eligibility(self.seed(system,'dvd_rom'))['result'])
 
     def test_switch_disc_pc_and_umd_keep_existing_eligibility(self):
-        for system in [*POLICY['exceptionPlatforms'],*POLICY['discOrComputerPlatforms']]:
+        for system in [*POLICY['explicitEligiblePlatforms'],*POLICY['discOrComputerPlatforms']]:
             with self.subTest(system=system):
                 self.assertEqual('pass',platform_eligibility(self.seed(system,'umd' if system=='PSP' else None))['result'])
 
+    def test_operator_overrides_and_alias_distinctions(self):
+        for alias in ['Nintendo 3DS','PlayStation Vita','Sony PSP','PC','Nintendo Switch','Nintendo Switch 2']:
+            self.assertEqual('pass',platform_eligibility(self.seed(alias))['result'],alias)
+        for alias in ['Game Cube','Nintendo GameCube','Nintendo DS']:
+            self.assertEqual('blocked',platform_eligibility(self.seed(alias))['result'],alias)
+
     def test_aliases_and_mixed_platforms(self):
-        for alias in ['Nintendo DS','Nintendo 3DS','Gameboy Advance','Nintendo Game Boy Color',
+        for alias in ['Nintendo DS','Gameboy Advance','Nintendo Game Boy Color',
                       'Super NES','SNES','Mega Drive','Sega Genesis','Sega Game Gear']:
             self.assertEqual('blocked',platform_eligibility(self.seed(alias))['result'],alias)
         for system in POLICY['mixedFormatPlatforms']:
@@ -43,7 +49,7 @@ class PlatformPolicyTests(unittest.TestCase):
 
     def test_unknown_platform_and_conflicting_systems_do_not_pass(self):
         self.assertEqual('unresolved',platform_eligibility(self.seed('Unknown'))['result'])
-        self.assertEqual('blocked',platform_eligibility(self.seed('Nintendo Switch / Nintendo 3DS'))['result'])
+        self.assertEqual('unresolved',platform_eligibility(self.seed('Nintendo Switch / Nintendo 3DS'))['result'])
         s=self.seed('PS 3');s['raw_context_json']['amazon_catalog_identity']['relevant_attributes_json']={'platform':'PS 4'}
         self.assertEqual('unresolved',platform_eligibility(s)['result'])
 
@@ -59,15 +65,16 @@ class PlatformPolicyTests(unittest.TestCase):
         self.assertIn(POLICY['cartridgeReason'],rules['hard_blocks'])
 
     def test_known_ineligible_catalog_skips_every_provider(self):
-        db=DB();db.rows['amazon_catalog_item_identity_snapshots'][0]['normalized_platform']='Game Boy Advance'
-        ctx=SourcingContext(db,SETTINGS)
-        with patch.object(SourcingContext,'amazon',new_callable=PropertyMock) as provider:
-            provider.side_effect=AssertionError('No Amazon or downstream Keepa calls for cartridge platform')
-            self.assertIsNone(ctx.seed('B000000001'))
-        self.assertIsNone(ctx._keepa)
+        for system in ['Game Boy Advance','Gamecube']:
+            db=DB();db.rows['amazon_catalog_item_identity_snapshots'][0]['normalized_platform']=system
+            ctx=SourcingContext(db,SETTINGS)
+            with patch.object(SourcingContext,'amazon',new_callable=PropertyMock) as provider:
+                provider.side_effect=AssertionError('No providers for an explicitly ineligible platform')
+                self.assertIsNone(ctx.seed('B000000001'))
+            self.assertIsNone(ctx._keepa)
 
     def test_manual_identity_confirmation_cannot_waive_business_policy(self):
-        s,c=inputs('Example Quest Nintendo 3DS','Example Quest Nintendo 3DS',game_name='Example Quest',system='3DS')
+        s,c=inputs('Example Quest Gamecube','Example Quest Gamecube',game_name='Example Quest',system='Gamecube')
         rule=evaluate_static_match_rules(c,s,identity_policy='phase3_shadow',scoped_reviews=[review(s,c)],review_cutoff='2026-11-26T05:00:00+00:00')
         self.assertEqual('match',rule['identity_comparison']['comparisons']['coreGame']['result'])
         self.assertEqual('blocked',rule['sourcing_platform_policy']['result'])

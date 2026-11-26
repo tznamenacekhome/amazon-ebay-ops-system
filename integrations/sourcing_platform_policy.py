@@ -29,11 +29,15 @@ def platform_eligibility(seed, candidate=None):
     def result(status, reason):
         return {'version': POLICY['version'], 'result': status, 'reason': reason,
                 'platforms': sorted(known), 'source': 'shared sourcing platform business policy'}
+    if known & set(POLICY.get('explicitExcludedPlatforms', [])):
+        return result('blocked', POLICY['operatorExcludedReason'])
     if known & CARTRIDGE_PLATFORMS:
         return result('blocked', POLICY['cartridgeReason'])
     if not systems or len(systems) != 1:
         return result('unresolved', POLICY['unresolvedReason'])
     system = next(iter(systems))
+    if system in POLICY.get('explicitEligiblePlatforms', []):
+        return result('pass', 'Explicit operator platform preference; normal sourcing safeguards still apply.')
     if system in POLICY['mixedFormatPlatforms']:
         # Only explicit product-specific physical format observations can resolve
         # mixed hardware. A generic cartridge console's bad DVD-ROM catalog label

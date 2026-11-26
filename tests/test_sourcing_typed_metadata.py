@@ -98,9 +98,9 @@ class TypedMetadataTests(unittest.TestCase):
         for a,b in [('1942','1943'),('Final Fantasy X','Final Fantasy X-2'),('FIFA 23','FIFA 24'),('Resident Evil 4','Resident Evil 5')]:
             self.assertNotEqual('match',self.compare(a+' PS3',b+' PS3',b)['result'])
 
-    def test_phase_two_remains_out_of_scope(self):
+    def test_uncorroborated_phase_two_wording_does_not_resolve_identity(self):
         for extra in ['NEW Example Quest','Example Quest READ DESCRIPTION','Example Quest Ubisoft']:
-            self.assertNotEqual('match',self.compare('Example Quest PS3',extra+' PS3','Example Quest')['result'])
+            self.assertNotEqual('match',self.compare('Example Quest PS3',extra+' PS3',None)['result'])
 
 
     def test_new_metadata_does_not_hide_multiple_title_platforms(self):

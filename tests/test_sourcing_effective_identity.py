@@ -153,14 +153,9 @@ class EffectiveIdentityTests(unittest.TestCase):
                 static, score = self.evaluate()
                 identity = static['identity_comparison']
                 self.assertEqual('match', identity['comparisons']['platform']['result'])
-                if row['asin'] == 'B0088MVPFQ':  # 3DS now intentionally excluded.
-                    self.assertEqual('blocked', static['platform_rule']['result'])
-                    self.assertEqual('rejected', score['status'])
-                    self.assertEqual('blocked', static['sourcing_platform_policy']['result'])
-                else:
-                    self.assertEqual('pass', static['platform_rule']['result'])
-                    self.assertEqual('Probable Match', static['recommendation'])
-                    self.assertEqual('open', score['status'])
+                self.assertEqual('pass', static['platform_rule']['result'])
+                self.assertEqual('Probable Match', static['recommendation'])
+                self.assertEqual('open', score['status'])
                 self.assertEqual('keepa_category_tree', identity['amazon']['platformResolution']['source'])
                 self.assertEqual(self.seed['raw_context_json'], identity['amazon']['referenceMetadata']['raw_context_json'])
                 self.assertEqual('inferred', identity['amazon']['fields']['platform']['state'])

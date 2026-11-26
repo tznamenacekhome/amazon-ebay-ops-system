@@ -910,7 +910,7 @@ def source_name_relation(title, supporting):
     return "explicit_conflict"
 
 
-def phase3_side(title, side, evidence=None, catalog=None, platform=None, platform_source="seed.system"):
+def phase3_side(title, side, evidence=None, catalog=None, platform=None, platform_source="seed.system", reference_core=None):
     from sourcing_edition_policy import canonical_catalog_edition
     evidence, catalog = evidence or {}, catalog or {}
     cleaned_title, assigned = reconcile_listing_title(title, evidence) if side == "ebay" else (title, [])
@@ -923,6 +923,11 @@ def phase3_side(title, side, evidence=None, catalog=None, platform=None, platfor
     names = usable_game_names(evidence)
     publishers = [p for p in publishers if names and not any(
         normalize_text(name).startswith(normalize_text(p) + " ") for name in names)]
+    known_franchise = parse_known_identity([{'source': 'title', 'text': str(cleaned_title)}]).get('franchise')
+    publishers = [p for p in publishers if not (known_franchise and
+        normalize_text(known_franchise).startswith(normalize_text(p) + ' '))]
+    if re.search(r'\b(?:new\s+super\s+mario\s+bros|new\s+carnival\s+games|ea\s+sports|tom\s+clancy)\b', str(cleaned_title), re.I):
+        publishers = []
     from sourcing_identity_metadata import typed_product_text, missing_game_name
     if side == 'ebay':
         assigned.extend({'text': str(v), 'field': 'game_name', 'source': 'game_name',
@@ -936,6 +941,10 @@ def phase3_side(title, side, evidence=None, catalog=None, platform=None, platfor
             row['_platform_text'] = product_text
         assigned.extend(metadata_spans)
         row['_typed_legacy_platform'] = any(v.get('field') == 'platform' for v in metadata_spans)
+        from sourcing_identity_wording import typed_identity_wording
+        product_text, wording_spans = typed_identity_wording(product_text, source=row['source'],
+            side=side, evidence=evidence, fields=general_product_fields, reference_core=reference_core)
+        assigned.extend(wording_spans)
         fields = general_product_fields(product_text, publishers)
         for key in ('coreGame', 'coreProduct'):
             if fields.get(key):
@@ -1102,7 +1111,7 @@ def evaluated_identity(amazon_title, ebay_title, seed, evidence):
                 "catalog": verified_catalog}
     # Rejected cross-ASIN catalog data remains provenance only, never parser input.
     amazon = deepcopy(_exact_reference(asin, str(amazon_title or ""), json.dumps(metadata, sort_keys=True)))
-    ebay = phase3_side(ebay_title, "ebay", evidence=evidence)
+    ebay = phase3_side(ebay_title, "ebay", evidence=evidence, reference_core=amazon.get('coreGame'))
     result = phase3_comparison(amazon, ebay)
     result["reference"] = {"asin": asin or None, "catalogAccepted": bool(verified_catalog),
                            "catalogRejected": bool(catalog and not verified_catalog), "version": PHASE3_VERSION}

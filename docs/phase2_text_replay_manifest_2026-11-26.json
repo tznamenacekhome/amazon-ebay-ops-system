@@ -1,0 +1,691 @@
+{
+  "version": "phase2_text_only_replay_v1",
+  "tabId": "97fc964e-a4f2-43bb-a5ca-90381d1352b8",
+  "sourceHash": "f60131aafdf2ccd6908fc2239f3942f0972166502f870ea26ba142eae4c1c13c",
+  "originalRunId": "abc862ae-d2f0-569a-ab98-6a6c09307820",
+  "initialImportRunId": "c7ba90ae-7cdd-4b87-a831-c2ff33682adf",
+  "originalSourcingRunId": "5f77ab0e-1e7f-4518-8aa3-1cf0ec748ebd",
+  "sourceTotal": 558,
+  "evaluationScope": "Text and structured evidence only; photographs are operator review and never an automated gate",
+  "frozenInputSha256": "184dce8ac1f591e310b8c6b57b07ab0be266ee673f8ecc94bb31a3911398f2db",
+  "rows": [
+    {
+      "rowNumber": 6,
+      "asin": "B006NYWLTU",
+      "ebayItemId": "840159942505",
+      "candidateId": "80952c8a-7e1a-5d52-97f8-9414c10cccff",
+      "opportunityId": "a96eb327-46ca-44a6-ac5a-12efad1efce8",
+      "reasons": [
+        "original source 3DS/Vita platform restoration"
+      ],
+      "policy": "pass",
+      "platforms": [
+        "PS Vita"
+      ],
+      "sourceOpportunityId": "a96eb327-46ca-44a6-ac5a-12efad1efce8",
+      "protectedAtPlan": null
+    },
+    {
+      "rowNumber": 43,
+      "asin": "B000ZKDOV2",
+      "ebayItemId": "336911334552",
+      "candidateId": "2b437b4b-4c42-5eee-863d-1dd7aadffaad",
+      "opportunityId": "e4491b91-9639-461d-95dc-2924e20a30bf",
+      "reasons": [
+        "direct implemented Phase2 textual identity/condition change in frozen comparison",
+        "refresh existing exact-pair decision; source link is preserved until normal bind"
+      ],
+      "policy": "pass",
+      "platforms": [
+        "Xbox 360"
+      ],
+      "sourceOpportunityId": null,
+      "protectedAtPlan": null
+    },
+    {
+      "rowNumber": 68,
+      "asin": "B012TRQKZA",
+      "ebayItemId": "287748544230",
+      "candidateId": "12155088-e940-4233-bd38-cdc62945e85f",
+      "opportunityId": "618d94be-9c95-4f67-a15a-e4ef7fc7beb6",
+      "reasons": [
+        "original source 3DS/Vita platform restoration"
+      ],
+      "policy": "pass",
+      "platforms": [
+        "3DS"
+      ],
+      "sourceOpportunityId": "618d94be-9c95-4f67-a15a-e4ef7fc7beb6",
+      "protectedAtPlan": null
+    },
+    {
+      "rowNumber": 93,
+      "asin": "B08MG7QWN7",
+      "ebayItemId": "147691479318",
+      "candidateId": "5060fcc6-d0f2-5a73-a5d8-5556afa7d1f9",
+      "opportunityId": "b40dc911-da46-4cd7-bb12-31ab50662af9",
+      "reasons": [
+        "direct implemented Phase2 textual identity/condition change in frozen comparison",
+        "refresh existing exact-pair decision; source link is preserved until normal bind"
+      ],
+      "policy": "pass",
+      "platforms": [
+        "PS 4"
+      ],
+      "sourceOpportunityId": null,
+      "protectedAtPlan": null
+    },
+    {
+      "rowNumber": 96,
+      "asin": "B00002R28Q",
+      "ebayItemId": "800945744867",
+      "candidateId": "03ff6e09-fea6-5819-b014-4243bfbfee0e",
+      "opportunityId": "bf21853b-c4d9-4098-9cc7-208cedc4200c",
+      "reasons": [
+        "direct implemented Phase2 textual identity/condition change in frozen comparison",
+        "refresh existing exact-pair decision; source link is preserved until normal bind"
+      ],
+      "policy": "pass",
+      "platforms": [
+        "PS"
+      ],
+      "sourceOpportunityId": null,
+      "protectedAtPlan": null
+    },
+    {
+      "rowNumber": 109,
+      "asin": "B01M32FMUL",
+      "ebayItemId": "860162864711",
+      "candidateId": "af88f808-2543-5b30-a38e-29ddcb3220b6",
+      "opportunityId": "91c88d3d-4b5d-48be-8e43-169dc6de4fbc",
+      "reasons": [
+        "direct implemented Phase2 textual identity/condition change in frozen comparison",
+        "refresh existing exact-pair decision; source link is preserved until normal bind"
+      ],
+      "policy": "pass",
+      "platforms": [
+        "PS 4"
+      ],
+      "sourceOpportunityId": null,
+      "protectedAtPlan": null
+    },
+    {
+      "rowNumber": 110,
+      "asin": "B01LYEQNHP",
+      "ebayItemId": "860162861797",
+      "candidateId": "24ac2349-ad80-590a-b902-2e5bc2005645",
+      "opportunityId": "41e17d7a-7771-47c9-b92e-ab89b7e1d300",
+      "reasons": [
+        "direct implemented Phase2 textual identity/condition change in frozen comparison",
+        "refresh existing exact-pair decision; source link is preserved until normal bind"
+      ],
+      "policy": "pass",
+      "platforms": [
+        "PS 4"
+      ],
+      "sourceOpportunityId": null,
+      "protectedAtPlan": null
+    },
+    {
+      "rowNumber": 121,
+      "asin": "B000H11F9M",
+      "ebayItemId": "920164926760",
+      "candidateId": "0a546271-5eb8-5d9b-9360-aeb103a71e51",
+      "opportunityId": "91a9d742-a19a-4ac3-8355-eb3d11336d4d",
+      "reasons": [
+        "direct implemented Phase2 textual identity/condition change in frozen comparison",
+        "refresh existing exact-pair decision; source link is preserved until normal bind"
+      ],
+      "policy": "pass",
+      "platforms": [
+        "PC"
+      ],
+      "sourceOpportunityId": null,
+      "protectedAtPlan": null
+    },
+    {
+      "rowNumber": 136,
+      "asin": "B002I7A81E",
+      "ebayItemId": "307290899285",
+      "candidateId": "025a4c6d-fc69-5ae7-bd19-fa237525e38d",
+      "opportunityId": "89bbe585-ab86-46d0-ad38-dce716906ef1",
+      "reasons": [
+        "direct implemented Phase2 textual identity/condition change in frozen comparison",
+        "refresh existing exact-pair decision; source link is preserved until normal bind"
+      ],
+      "policy": "pass",
+      "platforms": [
+        "Wii"
+      ],
+      "sourceOpportunityId": null,
+      "protectedAtPlan": null
+    },
+    {
+      "rowNumber": 141,
+      "asin": "B01LDUYU60",
+      "ebayItemId": "880133103293",
+      "candidateId": "9c18c528-bf66-585d-9c8f-764409fa581b",
+      "opportunityId": "800c3ab0-9a3e-4f3a-b6d4-811a38da60b6",
+      "reasons": [
+        "original source 3DS/Vita platform restoration"
+      ],
+      "policy": "pass",
+      "platforms": [
+        "3DS"
+      ],
+      "sourceOpportunityId": "800c3ab0-9a3e-4f3a-b6d4-811a38da60b6",
+      "protectedAtPlan": "protected_lifecycle"
+    },
+    {
+      "rowNumber": 151,
+      "asin": "B0012GOECQ",
+      "ebayItemId": "366822169641",
+      "candidateId": "c50387e9-02e8-5a4d-b8b2-8ed8ad837523",
+      "opportunityId": "8827092e-6b12-43c7-9cd0-5f63eab28e37",
+      "reasons": [
+        "direct implemented Phase2 textual identity/condition change in frozen comparison",
+        "refresh existing exact-pair decision; source link is preserved until normal bind"
+      ],
+      "policy": "pass",
+      "platforms": [
+        "PS 2"
+      ],
+      "sourceOpportunityId": null,
+      "protectedAtPlan": null
+    },
+    {
+      "rowNumber": 225,
+      "asin": "B003O6ECW4",
+      "ebayItemId": "820366755235",
+      "candidateId": "182c01f1-8301-5366-9e77-c8d0162dc277",
+      "opportunityId": "3bc193a0-7db7-48bf-b9a8-623b9f260608",
+      "reasons": [
+        "direct implemented Phase2 textual identity/condition change in frozen comparison",
+        "refresh existing exact-pair decision; source link is preserved until normal bind"
+      ],
+      "policy": "pass",
+      "platforms": [
+        "PS 3"
+      ],
+      "sourceOpportunityId": null,
+      "protectedAtPlan": null
+    },
+    {
+      "rowNumber": 230,
+      "asin": "B00B59L9VO",
+      "ebayItemId": "128201231351",
+      "candidateId": "23298321-e660-5f20-aae5-91cb4ea9a625",
+      "opportunityId": "09f9f30c-9e57-4e12-a440-3d5ba04e3942",
+      "reasons": [
+        "direct implemented Phase2 textual identity/condition change in frozen comparison",
+        "refresh existing exact-pair decision; source link is preserved until normal bind"
+      ],
+      "policy": "pass",
+      "platforms": [
+        "Xbox 360"
+      ],
+      "sourceOpportunityId": null,
+      "protectedAtPlan": null
+    },
+    {
+      "rowNumber": 236,
+      "asin": "B08MG5FYS6",
+      "ebayItemId": "366817233237",
+      "candidateId": "70493ad2-b0a6-5336-b9c0-7f4efd549611",
+      "opportunityId": "7ba3bee0-986a-4e3d-bfa3-899b41f50e18",
+      "reasons": [
+        "direct implemented Phase2 textual identity/condition change in frozen comparison",
+        "refresh existing exact-pair decision; source link is preserved until normal bind"
+      ],
+      "policy": "pass",
+      "platforms": [
+        "PS 5"
+      ],
+      "sourceOpportunityId": null,
+      "protectedAtPlan": null
+    },
+    {
+      "rowNumber": 251,
+      "asin": "B000PMGN2M",
+      "ebayItemId": "147683990138",
+      "candidateId": "e9761388-fcdb-50fb-ae00-3824d0a6d5ce",
+      "opportunityId": "625e8c4c-b141-46db-8020-c6dca703df5a",
+      "reasons": [
+        "direct implemented Phase2 textual identity/condition change in frozen comparison",
+        "refresh existing exact-pair decision; source link is preserved until normal bind"
+      ],
+      "policy": "pass",
+      "platforms": [
+        "Wii"
+      ],
+      "sourceOpportunityId": null,
+      "protectedAtPlan": null
+    },
+    {
+      "rowNumber": 257,
+      "asin": "B0069EB9DI",
+      "ebayItemId": "880124306447",
+      "candidateId": "268714e7-1ee1-580b-93b1-6b5fc30be343",
+      "opportunityId": "1e613929-aea1-4d74-b774-e008106d9477",
+      "reasons": [
+        "original source 3DS/Vita platform restoration"
+      ],
+      "policy": "pass",
+      "platforms": [
+        "3DS"
+      ],
+      "sourceOpportunityId": "1e613929-aea1-4d74-b774-e008106d9477",
+      "protectedAtPlan": null
+    },
+    {
+      "rowNumber": 275,
+      "asin": "B00009WAUY",
+      "ebayItemId": "307284831338",
+      "candidateId": "4ee080c4-27cf-55de-b7b9-99ab8111ea8b",
+      "opportunityId": "ff15b8fb-4c68-4cf9-9c91-2f8c70de5325",
+      "reasons": [
+        "direct implemented Phase2 textual identity/condition change in frozen comparison",
+        "refresh existing exact-pair decision; source link is preserved until normal bind"
+      ],
+      "policy": "pass",
+      "platforms": [
+        "PS 2"
+      ],
+      "sourceOpportunityId": null,
+      "protectedAtPlan": null
+    },
+    {
+      "rowNumber": 276,
+      "asin": "B00386VMWI",
+      "ebayItemId": "147682618925",
+      "candidateId": "151899f6-6e1c-5732-8941-ea071f8146c8",
+      "opportunityId": "52a0f8e3-06b3-4af3-8fbf-551a62ff0a7d",
+      "reasons": [
+        "direct implemented Phase2 textual identity/condition change in frozen comparison",
+        "refresh existing exact-pair decision; source link is preserved until normal bind"
+      ],
+      "policy": "pass",
+      "platforms": [
+        "PS 3"
+      ],
+      "sourceOpportunityId": null,
+      "protectedAtPlan": null
+    },
+    {
+      "rowNumber": 286,
+      "asin": "B09KW6KKSY",
+      "ebayItemId": "137933943568",
+      "candidateId": "9203c25e-f440-5961-989c-3b3253b30279",
+      "opportunityId": "05f1d444-9454-4a80-9553-99e6ea4677ca",
+      "reasons": [
+        "direct implemented Phase2 textual identity/condition change in frozen comparison",
+        "refresh existing exact-pair decision; source link is preserved until normal bind"
+      ],
+      "policy": "pass",
+      "platforms": [
+        "PS 5"
+      ],
+      "sourceOpportunityId": null,
+      "protectedAtPlan": null
+    },
+    {
+      "rowNumber": 293,
+      "asin": "B006MO221S",
+      "ebayItemId": "900093607911",
+      "candidateId": "21426819-5a3c-56d6-b0e2-fb7b3f007bc8",
+      "opportunityId": "ff40f0af-6518-4035-b1e7-459e56e775b4",
+      "reasons": [
+        "original source 3DS/Vita platform restoration"
+      ],
+      "policy": "pass",
+      "platforms": [
+        "PS Vita"
+      ],
+      "sourceOpportunityId": "ff40f0af-6518-4035-b1e7-459e56e775b4",
+      "protectedAtPlan": null
+    },
+    {
+      "rowNumber": 302,
+      "asin": "B002JMZSTA",
+      "ebayItemId": "327457073816",
+      "candidateId": "db7cb04a-9377-516c-a896-aaadbd09f7ed",
+      "opportunityId": "56978324-0e0f-42e2-92df-fa85db7b75ed",
+      "reasons": [
+        "direct implemented Phase2 textual identity/condition change in frozen comparison",
+        "refresh existing exact-pair decision; source link is preserved until normal bind"
+      ],
+      "policy": "pass",
+      "platforms": [
+        "PC"
+      ],
+      "sourceOpportunityId": null,
+      "protectedAtPlan": null
+    },
+    {
+      "rowNumber": 326,
+      "asin": "B0081AWTZA",
+      "ebayItemId": "920140129422",
+      "candidateId": "34fb304f-e4af-52ce-8636-2985ce6e9ce8",
+      "opportunityId": "de9334dc-fc4d-4233-8eb0-dff41441b928",
+      "reasons": [
+        "direct implemented Phase2 textual identity/condition change in frozen comparison",
+        "refresh existing exact-pair decision; source link is preserved until normal bind"
+      ],
+      "policy": "pass",
+      "platforms": [
+        "Xbox 360"
+      ],
+      "sourceOpportunityId": null,
+      "protectedAtPlan": null
+    },
+    {
+      "rowNumber": 346,
+      "asin": "B0000E3D8T",
+      "ebayItemId": "920136106354",
+      "candidateId": "4883fc99-39be-5027-a040-4661d0c84766",
+      "opportunityId": "93a75d0f-87bd-4399-8eea-2874224bf139",
+      "reasons": [
+        "direct implemented Phase2 textual identity/condition change in frozen comparison",
+        "refresh existing exact-pair decision; source link is preserved until normal bind"
+      ],
+      "policy": "pass",
+      "platforms": [
+        "PS 2"
+      ],
+      "sourceOpportunityId": null,
+      "protectedAtPlan": null
+    },
+    {
+      "rowNumber": 378,
+      "asin": "B00KWG4HG0",
+      "ebayItemId": "880104167202",
+      "candidateId": "731b5f75-ca4f-5996-a3ce-abb9d19d91df",
+      "opportunityId": "9f141fe2-1caf-4260-b7dc-a38b88cbfd73",
+      "reasons": [
+        "direct implemented Phase2 textual identity/condition change in frozen comparison",
+        "refresh existing exact-pair decision; source link is preserved until normal bind"
+      ],
+      "policy": "pass",
+      "platforms": [
+        "Wii U"
+      ],
+      "sourceOpportunityId": null,
+      "protectedAtPlan": null
+    },
+    {
+      "rowNumber": 388,
+      "asin": "B006VB2W08",
+      "ebayItemId": "960180062795",
+      "candidateId": "c1e7f785-5e8c-542d-ad1e-f0875a27e20f",
+      "opportunityId": "cc5ecc5b-5f85-4748-9eea-2f518bedf38d",
+      "reasons": [
+        "original source 3DS/Vita platform restoration"
+      ],
+      "policy": "pass",
+      "platforms": [
+        "PS Vita"
+      ],
+      "sourceOpportunityId": "cc5ecc5b-5f85-4748-9eea-2f518bedf38d",
+      "protectedAtPlan": null
+    },
+    {
+      "rowNumber": 392,
+      "asin": "B006Y76HY6",
+      "ebayItemId": "307276397847",
+      "candidateId": "1406a188-6c72-58c1-ac8c-c4a8bf053c10",
+      "opportunityId": "6dfa5564-a19e-4cc2-9cbd-254c844297da",
+      "reasons": [
+        "original source 3DS/Vita platform restoration"
+      ],
+      "policy": "pass",
+      "platforms": [
+        "3DS"
+      ],
+      "sourceOpportunityId": "6dfa5564-a19e-4cc2-9cbd-254c844297da",
+      "protectedAtPlan": null
+    },
+    {
+      "rowNumber": 421,
+      "asin": "B000001LXM",
+      "ebayItemId": "366796616088",
+      "candidateId": "63b9f850-67c6-5d22-8dcb-ea8e873941a5",
+      "opportunityId": "f1279309-65e6-44b8-9e88-56312f2c762b",
+      "reasons": [
+        "direct implemented Phase2 textual identity/condition change in frozen comparison",
+        "refresh existing exact-pair decision; source link is preserved until normal bind"
+      ],
+      "policy": "pass",
+      "platforms": [
+        "PC"
+      ],
+      "sourceOpportunityId": null,
+      "protectedAtPlan": null
+    },
+    {
+      "rowNumber": 449,
+      "asin": "B004HVKA9O",
+      "ebayItemId": "267836776844",
+      "candidateId": "93e77fc4-27a3-5ba0-a590-5b85365e73c4",
+      "opportunityId": "f8ad3b95-7984-4d51-89c3-67dc90da8f33",
+      "reasons": [
+        "direct implemented Phase2 textual identity/condition change in frozen comparison",
+        "refresh existing exact-pair decision; source link is preserved until normal bind"
+      ],
+      "policy": "pass",
+      "platforms": [
+        "PS 3"
+      ],
+      "sourceOpportunityId": null,
+      "protectedAtPlan": null
+    },
+    {
+      "rowNumber": 477,
+      "asin": "B0028ZH7GU",
+      "ebayItemId": "407342909778",
+      "candidateId": "c86e4f8d-2abe-5e86-944c-8f6c37d380ce",
+      "opportunityId": "dd46b966-ce62-4616-bcc9-0506bebf261c",
+      "reasons": [
+        "direct implemented Phase2 textual identity/condition change in frozen comparison",
+        "refresh existing exact-pair decision; source link is preserved until normal bind"
+      ],
+      "policy": "pass",
+      "platforms": [
+        "Wii"
+      ],
+      "sourceOpportunityId": null,
+      "protectedAtPlan": null
+    },
+    {
+      "rowNumber": 491,
+      "asin": "B01K63R7EW",
+      "ebayItemId": "800878247719",
+      "candidateId": "6f00d8eb-131b-517b-898b-420fc788197b",
+      "opportunityId": "0d48a1c1-9c86-49ed-a8b0-8a707a97d25a",
+      "reasons": [
+        "direct implemented Phase2 textual identity/condition change in frozen comparison",
+        "refresh existing exact-pair decision; source link is preserved until normal bind"
+      ],
+      "policy": "pass",
+      "platforms": [
+        "Xbox One"
+      ],
+      "sourceOpportunityId": null,
+      "protectedAtPlan": null
+    },
+    {
+      "rowNumber": 504,
+      "asin": "B000UQSRMC",
+      "ebayItemId": "840093208333",
+      "candidateId": "76b01bdc-e864-5ee1-8e21-402c28378a54",
+      "opportunityId": "01853fb4-c757-4e24-9d30-7a8efa7b69da",
+      "reasons": [
+        "direct implemented Phase2 textual identity/condition change in frozen comparison",
+        "refresh existing exact-pair decision; source link is preserved until normal bind"
+      ],
+      "policy": "pass",
+      "platforms": [
+        "PC"
+      ],
+      "sourceOpportunityId": null,
+      "protectedAtPlan": null
+    },
+    {
+      "rowNumber": 513,
+      "asin": "B002TDIEDQ",
+      "ebayItemId": "257833297409",
+      "candidateId": "9befc85c-7b68-536e-b481-92886a19d42e",
+      "opportunityId": "d4402a14-9f0a-4c68-bb70-5f34d3515125",
+      "reasons": [
+        "direct implemented Phase2 textual identity/condition change in frozen comparison",
+        "refresh existing exact-pair decision; source link is preserved until normal bind"
+      ],
+      "policy": "pass",
+      "platforms": [
+        "Xbox 360"
+      ],
+      "sourceOpportunityId": null,
+      "protectedAtPlan": null
+    },
+    {
+      "rowNumber": 521,
+      "asin": "B00GQT1LNO",
+      "ebayItemId": "920101885357",
+      "candidateId": "2b9cb93a-37e7-54a6-aedf-e82c0a65e9d9",
+      "opportunityId": "50b8ed37-e7e3-405b-a5d7-b1ad01142983",
+      "reasons": [
+        "original source 3DS/Vita platform restoration"
+      ],
+      "policy": "pass",
+      "platforms": [
+        "3DS"
+      ],
+      "sourceOpportunityId": "50b8ed37-e7e3-405b-a5d7-b1ad01142983",
+      "protectedAtPlan": "asin_business_hold"
+    },
+    {
+      "rowNumber": 544,
+      "asin": "B0734W6LYT",
+      "ebayItemId": "327435892919",
+      "candidateId": "c6c91f97-5f0c-57e8-a6bf-2e2c06434eea",
+      "opportunityId": "d5341e4e-e31c-402a-af2c-c733a997fc9a",
+      "reasons": [
+        "direct implemented Phase2 textual identity/condition change in frozen comparison",
+        "refresh existing exact-pair decision; source link is preserved until normal bind"
+      ],
+      "policy": "pass",
+      "platforms": [
+        "Switch"
+      ],
+      "sourceOpportunityId": null,
+      "protectedAtPlan": null
+    }
+  ],
+  "excludedBeforeEnrichment": [
+    {
+      "rowNumber": 92,
+      "asin": "B0009WPT8W",
+      "ebayItemId": "307294162327",
+      "candidateId": "430870b7-f728-560f-8a3e-e48f969e86b4",
+      "opportunityId": null,
+      "reasons": [
+        "direct implemented Phase2 textual identity/condition change in frozen comparison"
+      ],
+      "policy": "unresolved",
+      "platforms": [
+        "Sega CD",
+        "Switch"
+      ],
+      "reason": "Sourcing platform or physical format is unresolved; eligibility is not established."
+    },
+    {
+      "rowNumber": 185,
+      "asin": "B002N5KV40",
+      "ebayItemId": "287739503314",
+      "candidateId": "84f103b8-77b4-5dc7-89ae-e13b57262f08",
+      "opportunityId": null,
+      "reasons": [
+        "direct implemented Phase2 textual identity/condition change in frozen comparison"
+      ],
+      "policy": "blocked",
+      "platforms": [
+        "DS"
+      ],
+      "reason": "Cartridge-based platform excluded by sourcing policy."
+    },
+    {
+      "rowNumber": 224,
+      "asin": "B0013RFTAA",
+      "ebayItemId": "267846349220",
+      "candidateId": "6c8caece-8515-5a18-b71d-465d9856d726",
+      "opportunityId": null,
+      "reasons": [
+        "direct implemented Phase2 textual identity/condition change in frozen comparison"
+      ],
+      "policy": "blocked",
+      "platforms": [
+        "DS"
+      ],
+      "reason": "Cartridge-based platform excluded by sourcing policy."
+    },
+    {
+      "rowNumber": 329,
+      "asin": "B000BT4ABA",
+      "ebayItemId": "327454566840",
+      "candidateId": "faf75faa-86ce-5ddf-937e-4f2ad32dfb28",
+      "opportunityId": null,
+      "reasons": [
+        "direct implemented Phase2 textual identity/condition change in frozen comparison"
+      ],
+      "policy": "blocked",
+      "platforms": [
+        "DS"
+      ],
+      "reason": "Cartridge-based platform excluded by sourcing policy."
+    },
+    {
+      "rowNumber": 347,
+      "asin": "B00009YEJK",
+      "ebayItemId": "820347516961",
+      "candidateId": "282aca4e-7c90-58e5-a312-fc4e3e117c33",
+      "opportunityId": null,
+      "reasons": [
+        "direct implemented Phase2 textual identity/condition change in frozen comparison"
+      ],
+      "policy": "blocked",
+      "platforms": [
+        "Game Boy Advance"
+      ],
+      "reason": "Cartridge-based platform excluded by sourcing policy."
+    },
+    {
+      "rowNumber": 348,
+      "asin": "B00009YEJK",
+      "ebayItemId": "820347454564",
+      "candidateId": "a90846e6-09de-52a1-b695-1ca8c8e519fc",
+      "opportunityId": null,
+      "reasons": [
+        "direct implemented Phase2 textual identity/condition change in frozen comparison"
+      ],
+      "policy": "blocked",
+      "platforms": [
+        "Game Boy Advance"
+      ],
+      "reason": "Cartridge-based platform excluded by sourcing policy."
+    },
+    {
+      "rowNumber": 412,
+      "asin": "B0000631W0",
+      "ebayItemId": "407351786347",
+      "candidateId": "f48f1e0b-2e59-5891-9d18-39586336e2db",
+      "opportunityId": null,
+      "reasons": [
+        "direct implemented Phase2 textual identity/condition change in frozen comparison"
+      ],
+      "policy": "blocked",
+      "platforms": [
+        "Game Boy Advance"
+      ],
+      "reason": "Cartridge-based platform excluded by sourcing policy."
+    }
+  ]
+}

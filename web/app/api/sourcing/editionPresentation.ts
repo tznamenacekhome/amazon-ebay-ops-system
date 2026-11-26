@@ -5,6 +5,7 @@ export function editionNearMissAllowed(value: unknown, listingStatus: string | n
   const diagnostics=record(value), identity=record(record(diagnostics.static_rules).identity_comparison);
   const comparisons=record(identity.comparisons), edition=record(comparisons.edition), policy=record(edition.policy);
   const conditionReview=record(record(diagnostics.static_rules).condition_review).result==='review';
+  const unitReview=record(record(diagnostics.static_rules).purchase_unit).result==='review';
   if((policy.version??projectedVersion)!=='sourcing_edition_policy_v1') return true;
   const trace=Array.isArray(diagnostics.decisionTrace)?diagnostics.decisionTrace.map(record):[];
   if(diagnostics.seller_status==='avoid'||trace.some(row=>row.reasonCode==='seller_policy'&&row.result==='fail')) return false;
@@ -16,8 +17,8 @@ export function editionNearMissAllowed(value: unknown, listingStatus: string | n
   const decision=record(diagnostics.presentationDecision);
   const reasons=[record(decision.primaryReason),...(Array.isArray(decision.secondaryReasons)?decision.secondaryReasons.map(record):[])];
   if(reasons.some(reason=>reason.code==='condition_unacceptable')) return false;
-  const reviewCodes=['edition_not_corroborated','contents_not_corroborated','condition_review'];
-  if(!conditionReview&&!reviewCodes.includes(String(policy.code))&&!reasons.some(reason=>reviewCodes.includes(String(reason.code)))) return true;
+  const reviewCodes=['edition_not_corroborated','contents_not_corroborated','condition_review','purchase_unit_review'];
+  if(!conditionReview&&!unitReview&&!reviewCodes.includes(String(policy.code))&&!reasons.some(reason=>reviewCodes.includes(String(reason.code)))) return true;
   if(Object.values(comparisons).some(value=>record(value).result==='conflict')) return false;
   if(!['active','live'].includes(String(listingStatus))) return false;
   const checks=Array.isArray(diagnostics.businessEligibilityChecks)?diagnostics.businessEligibilityChecks.map(record):[];

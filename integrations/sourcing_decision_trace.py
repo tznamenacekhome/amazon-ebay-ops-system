@@ -29,6 +29,7 @@ REASON_PRIORITY = [
     ("edition_not_corroborated", "Edition not corroborated", "matching_diagnostics", "review_threshold"),
     ("contents_not_corroborated", "Required contents not corroborated", "matching_diagnostics", "review_threshold"),
     ("condition_review", "Condition review", "matching_diagnostics", "review_threshold"),
+    ("purchase_unit_review", "Purchase unit review", "matching_diagnostics", "review_threshold"),
     ("review_threshold", "Review threshold", "presentation_gate", "review_threshold"),
     ("current_rules_would_present", "Now appears presentation-eligible", "reprocess_current_rules", "other_eligibility_gate"),
     ("unknown_rejection", "Rejected before presentation", "opportunity_status", "other_eligibility_gate"),
@@ -38,7 +39,7 @@ REASON_META = {
     code: {"code": code, "label": label, "source": source, "severity": severity}
     for code, label, source, severity in REASON_PRIORITY
 }
-EDITION_REVIEW_CODES = {'edition_not_corroborated','contents_not_corroborated','condition_review'}
+EDITION_REVIEW_CODES = {'edition_not_corroborated','contents_not_corroborated','condition_review','purchase_unit_review'}
 
 REASON_SUMMARIES = {
     "historical_exact_negative": "Stored matching intelligence blocks this listing from prior negative feedback.",
@@ -177,6 +178,7 @@ def build_decision_trace(
         ("numeric_identity", "Numeric identity", "installment_number"),
         ("edition_version", "Edition/version", "edition_version"),
         ("condition_review", "Condition review", "condition_review"),
+        ("purchase_unit", "Purchase unit / individual price", "purchase_unit"),
         ("contents_review", "Required contents", "contents_review"),
         ("condition_mismatch", "Condition", "condition_mismatch"),
         ("category", "Category", "category"),
@@ -250,7 +252,7 @@ def reasons_from_trace(trace: list[dict[str, Any]], *, status: str | None, oppor
             continue
         detail = reason(str(code))
         if code in EDITION_REVIEW_CODES:
-            detail.update(summary=row['summary'], diagnosticKeys=['condition_review' if code == 'condition_review' else 'edition_version'])
+            detail.update(summary=row['summary'], diagnosticKeys=['purchase_unit' if code == 'purchase_unit_review' else 'condition_review' if code == 'condition_review' else 'edition_version'])
         found.setdefault(str(code), detail)
     if infer_profitability and status == "rejected" and opportunity_type == "no_profitable_source_found":
         found.setdefault("profitability", reason("profitability"))
@@ -312,6 +314,8 @@ def summary_for_check(key: str, value: dict[str, Any]) -> str:
 
 
 def reason_code_for_check(key: str, value: dict[str, Any]) -> str | None:
+    if key == 'purchase_unit' and result_name(value) != 'pass':
+        return 'purchase_unit_review'
     if key == 'sourcing_platform_policy' and result_name(value) != 'pass':
         return 'unsupported_platform'
     if key == 'contents_review' and result_name(value) != 'pass':

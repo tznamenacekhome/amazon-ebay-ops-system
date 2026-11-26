@@ -182,3 +182,31 @@ assert.equal(policyBuy.body.summary.total,1,'Switch remains eligible under norma
 rows[5].sourcing_seed_asins.raw_context_json={inferred_system:'PSP'};
 assert.equal((await fmEdition()).body.summary.total,1,'PSP near misses retain existing eligibility');
 console.log('Actual GET platform policy suppresses existing cartridge Buy List and Closest Excluded rows without changing persisted status; Switch and PSP remain.');
+
+// Updated operator policy changes presentation only when all other gates pass.
+for(const [system,total]of [['Gamecube',0],['Nintendo 3DS',1],['PlayStation Vita',1],['PSP',1],['PC',1]]){
+ rows[4].sourcing_seed_asins.raw_context_json={inferred_system:system};
+ rows[5].matching_diagnostics_json=editionDiagnostics('contents_not_corroborated');
+ rows[5].sourcing_seed_asins.raw_context_json={inferred_system:system};
+ const open=await route.GET({url:'https://example.test/api/sourcing/opportunities?scope=all_open&status=open&sourceMode=flipmine&limit=250'});
+ assert.equal(open.body.summary.total,total,system+' Buy List');
+ assert.equal((await fmEdition()).body.summary.total,total,system+' Closest Excluded');
+ assert.equal(rows[4].status,'open','Historical lifecycle is preserved');
+}
+console.log('Updated operator preference: actual GET restores eligible 3DS/Vita, preserves PSP/PC, suppresses GameCube before counts without lifecycle writes.');
+
+rows[5].sourcing_seed_asins.raw_context_json={inferred_system:'PSP'};
+rows[5].matching_diagnostics_json=editionDiagnostics('purchase_unit_review');
+rows[5].matching_diagnostics_json.presentationDecision.primaryReason={code:'purchase_unit_review',label:'Purchase unit review',summary:'Named individual price is not verified.',source:'matching_diagnostics',severity:'review_threshold',diagnosticKeys:['purchase_unit']};
+rows[5].matching_diagnostics_json.static_rules.identity_comparison.comparisons.edition={result:'match',policy:{version:'sourcing_edition_policy_v1',code:null}};
+rows[5].matching_diagnostics_json.static_rules.purchase_unit={result:'review',reason:'Named individual price is not verified.'};
+let unitResponse=await fmEdition();assert.equal(unitResponse.body.summary.total,1);assert.equal(unitResponse.body.opportunities[0].exclusionReason.code,'purchase_unit_review');
+rows[5].matching_diagnostics_json.businessEligibilityChecks[0].result='fail';
+assert.equal((await fmEdition()).body.summary.total,0,'Unresolved unit cannot bypass shipping');
+console.log('Purchase-unit review survives compact CE presentation with a specific reason; independent shipping and economic gates remain required.');
+
+for(const index of [1,2]){
+ rows[5].matching_diagnostics_json.businessEligibilityChecks.forEach(check=>check.result='pass');
+ rows[5].matching_diagnostics_json.businessEligibilityChecks[index].result='fail';
+ assert.equal((await fmEdition()).body.summary.total,0,'Purchase-unit review cannot bypass profit/ROI');
+}

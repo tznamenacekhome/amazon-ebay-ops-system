@@ -1,8 +1,7 @@
 {
-  "version": "sourcing_platform_policy_v1",
+  "version": "sourcing_platform_policy_v2",
   "excludedCartridgePlatforms": [
     "DS",
-    "3DS",
     "Game Boy",
     "Game Boy Color",
     "Game Boy Advance",
@@ -24,8 +23,7 @@
     "Intellivision",
     "ColecoVision",
     "Pokemon Mini",
-    "N-Gage",
-    "PS Vita"
+    "N-Gage"
   ],
   "mixedFormatPlatforms": [
     "Atari Jaguar",
@@ -50,12 +48,23 @@
     "Xbox Series S",
     "Wii",
     "Wii U",
-    "Gamecube",
     "Dreamcast",
     "Sega CD",
     "Sega Saturn",
     "PC"
   ],
   "cartridgeReason": "Cartridge-based platform excluded by sourcing policy.",
-  "unresolvedReason": "Sourcing platform or physical format is unresolved; eligibility is not established."
+  "unresolvedReason": "Sourcing platform or physical format is unresolved; eligibility is not established.",
+  "explicitExcludedPlatforms": [
+    "Gamecube"
+  ],
+  "explicitEligiblePlatforms": [
+    "Switch",
+    "Switch 2",
+    "3DS",
+    "PS Vita",
+    "PSP",
+    "PC"
+  ],
+  "operatorExcludedReason": "Platform excluded by operator sourcing preference."
 }

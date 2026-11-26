@@ -1,0 +1,3570 @@
+{
+  "gate": "PASS",
+  "evaluationScope": "Text and structured evidence only. Image URLs retained for operator display; no photo analysis or visual-authentication gate.",
+  "supersedesPhotoOnlyGateConcerns": true,
+  "snapshots": 388,
+  "frozenOriginalSnapshots": 379,
+  "syntheticPlatformControls": 9,
+  "frozenInputSha256": "184dce8ac1f591e310b8c6b57b07ab0be266ee673f8ecc94bb31a3911398f2db",
+  "confirmedMismatchesRetained": 21,
+  "acceptedIdentityRegressions": 0,
+  "materialHashesUnchanged": true,
+  "summaries": {
+    "baseline": {
+      "identity": {
+        "non-match": 277,
+        "match": 73,
+        "needs_review": 38
+      },
+      "status": {
+        "rejected": 324,
+        "open": 36,
+        "inventory_snoozed": 4,
+        "dismissed": 23,
+        "watching": 1
+      }
+    },
+    "policyOnly": {
+      "identity": {
+        "non-match": 277,
+        "match": 73,
+        "needs_review": 38
+      },
+      "status": {
+        "rejected": 323,
+        "open": 37,
+        "inventory_snoozed": 4,
+        "dismissed": 23,
+        "watching": 1
+      }
+    },
+    "full": {
+      "identity": {
+        "non-match": 245,
+        "match": 102,
+        "needs_review": 41
+      },
+      "status": {
+        "rejected": 316,
+        "open": 44,
+        "inventory_snoozed": 4,
+        "dismissed": 23,
+        "watching": 1
+      }
+    }
+  },
+  "codeFileHashes": {
+    "integrations/sourcing_decision_trace.py": "3408cfa571d6a18167d923e373aed1d6f4a398d1129d550791eca9da50d6fa98",
+    "integrations/sourcing_match_rules.py": "e95b6e4534a3cd03ee3459da7c28e663cb9b3a5ab738ad915107fbfba5d7f3cf",
+    "integrations/sourcing_platform_policy.py": "f6667ee63dc9bae071ad3b3a87e25a277be1efcb68266acabdc976d38a7107e1",
+    "integrations/video_game_identity.py": "7bced2c628bb9e121814d130b7910eaa5f3b107791787b1c1c585b6251dd3ee5",
+    "web/app/api/sourcing/editionPresentation.ts": "6128a52508c517e219a20013fbbb8d058e120647340d5686103ffe5fe75ef6e2",
+    "web/app/api/sourcing/platformPolicy.ts": "d98ad61a3bbcc17378924a713f3f154c61d30cdf7116c8b3dadbce5ad0f73cce",
+    "web/lib/sourcingPlatformPolicy.json": "8d649d3abafd5257815351a3061029b927d53c23fafb01a1f7c7357b4b5305ac",
+    "integrations/sourcing_identity_wording.py": "fc28b4f7f285ebb51d3506f8cc73d577fe4f958dac8e0dbb590907be7b8d5888",
+    "integrations/sourcing_purchase_unit.py": "b838000250a99e8f6521faa10c20b13f1e90d0f722572442a78f9b8e1fc80e39",
+    "integrations/sourcing_case_condition.py": "dab5bfc2fb7b33505634b02ff4baf61a3fa35db8597c183a54ae40feeda774c9",
+    "scripts/replay_flipmine_phase2.py": "160d078dc4f98b702a2c892f01c11361b5e37f16269f5cbeb26d6cf8427531df",
+    "web/lib/canonicalSystems.json": "730e29c9e6f079f1d6bbd8b1b5bf90a34c9449b88c4ba3b93e046bda6e55ae59"
+  },
+  "tests": {
+    "python": 394,
+    "frontendFiles": 15,
+    "postgres": 39,
+    "build": "PASS"
+  },
+  "decisions": [
+    {
+      "label": "flipmine:4",
+      "item": "860171377780",
+      "asin": "B0031P6WXK",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon buckingham palace secrets of kings and queens, eBay hidden mysteries buckingham palace secrets of kings and queens; coreGame conflict: Amazon buckingham palace secrets of kings and queens, eBay hidden mysteries buckingham palace secrets of kings and queens",
+      "hash": "891be1873106cfca4d82012db08b03f889f556aaf0d951512260891bcd2be484"
+    },
+    {
+      "label": "flipmine:7",
+      "item": "267852262642",
+      "asin": "B00005NN7C",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon disney pixar monsters inc, eBay disney pixar monsters inc thq h seam; coreGame conflict: Amazon disney pixar monsters inc, eBay disney pixar monsters inc thq h seam",
+      "hash": "72b95e96f574099120df5e126faa05e4d60923783ac46469b8c5d079daa15a8d"
+    },
+    {
+      "label": "flipmine:8",
+      "item": "147694709601",
+      "asin": "B0CJ5XNP16",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon final fantasy rebirth, eBay final fantasy rebirth minor case shipping damage ntsc us; coreGame conflict: Amazon final fantasy 7 rebirth, eBay final fantasy 7 rebirth minor case shipping damage ntsc us",
+      "hash": "25a7afc7cb479b002bac49ad5a8884ee4794bf295493c54ba1179b44ee3aba1b"
+    },
+    {
+      "label": "flipmine:10",
+      "item": "336912888844",
+      "asin": "B00006599S",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon aggressive inline, eBay aggressive inline original ntsc acclaim; coreGame conflict: Amazon aggressive inline, eBay aggressive inline original ntsc acclaim",
+      "hash": "8f48beee292b59eee42eafde97538245391a50c7a8a64b23cfc1c43717956939"
+    },
+    {
+      "label": "flipmine:12",
+      "item": "940117563514",
+      "asin": "B07SL75QDP",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon immortals fenyx rising, eBay immortals fenyx rising includes bonus quest ubisoft; coreGame conflict: Amazon immortals fenyx rising, eBay immortals fenyx rising includes bonus quest ubisoft",
+      "hash": "6e1c9c7db62b29738610fa9aa6c6d59819480fcee6d24111fd07ed5931108a39"
+    },
+    {
+      "label": "flipmine:16",
+      "item": "900115741230",
+      "asin": "B008HHTFSQ",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon cabelas dangerous hunts with gun, eBay cabela s dangerous hunt bundle gun and game game; coreGame conflict: Amazon cabelas dangerous hunts 2013 with gun, eBay cabela s dangerous hunt 2013 bundle gun and game game",
+      "hash": "e856b29f1fa87c4fe0962e7f9e342f884917cb32b2757d894b8c058c0ac692fa"
+    },
+    {
+      "label": "flipmine:17",
+      "item": "900115665914",
+      "asin": "B01GW3LR8M",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon title, eBay dead rising xbone; coreGame conflict: Amazon title 8, eBay dead rising 4 xbone; installment conflict: Amazon 8, eBay 4",
+      "hash": "d7860d2d3057f09b5d13d79bb186bb2386a1d56a23d14698bc4939ae4ab10a41"
+    },
+    {
+      "label": "flipmine:19",
+      "item": "377670942318",
+      "asin": "B0006J1DKG",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon extreme assault, eBay extreme assault cd rom computer game blue byte; coreGame conflict: Amazon extreme assault, eBay extreme assault cd rom computer game blue byte",
+      "hash": "5d8191d8f5c1bee879a21c4f76606f9aedb3e5ea9e9deb3573f096d08fbe01f5"
+    },
+    {
+      "label": "flipmine:20",
+      "item": "880147323378",
+      "asin": "B008J16AG0",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon the hip hop dance experience, eBay the hip hop dance experience ubisoft dance music; coreGame conflict: Amazon the hip hop dance experience, eBay the hip hop dance experience ubisoft dance music",
+      "hash": "5db99e11770346e7dd1e28b5344fc91b3e0208bcd5c35d5dfd199456fb325f25"
+    },
+    {
+      "label": "flipmine:21",
+      "item": "117538275550",
+      "asin": "B0001Z49BK",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon astro boy, eBay astro boy complete w security strip read descr; coreGame conflict: Amazon astro boy, eBay astro boy complete w security strip read descr",
+      "hash": "53ddd76065d8a5749452b440b1947e7295273e49f35d86ee904ab1e35771cfa1"
+    },
+    {
+      "label": "flipmine:25",
+      "item": "147694402650",
+      "asin": "B004J6I0YO",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon prince of persia trilogy hd, eBay prince of persia trilogy; coreGame conflict: Amazon prince of persia trilogy hd, eBay prince of persia trilogy",
+      "hash": "646a5c3bee1a53ad0273c489192258a46331964d7289fc4c78036505c56a2f5f"
+    },
+    {
+      "label": "flipmine:26",
+      "item": "117538007124",
+      "asin": "B0029TQUW2",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon tony hawk ride skateboard bundle, eBay tony hawk ride no skateboard; coreGame conflict: Amazon tony hawk ride skateboard bundle, eBay tony hawk ride no skateboard; edition conflict: Amazon None, eBay None",
+      "hash": "659244b1d698451dcef63e2376ec753532099850b346830015aeee2f32531b45"
+    },
+    {
+      "label": "flipmine:27",
+      "item": "327471488782",
+      "asin": "B00MNSYNN2",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon the sims showtime expansion pack, eBay the sims showtime expansion pack dvd rom; coreGame conflict: Amazon the sims 3 showtime expansion pack, eBay the sims 3 showtime expansion pack dvd rom",
+      "hash": "2c35b42a9e4d2168128561bb1d57b288000e31ac6361ae7930b8f00bf3dc51ed"
+    },
+    {
+      "label": "flipmine:28",
+      "item": "920173933038",
+      "asin": "B00002STZS",
+      "identity": "match",
+      "status": "rejected",
+      "reason": "Identity matched or unknown; unknown fields are not positive evidence.",
+      "hash": "1606f13325da4327adf598729e2745737b38ec09f207b22f81bdf99af119a0c8"
+    },
+    {
+      "label": "flipmine:29",
+      "item": "137954367168",
+      "asin": "B0002ILS1U",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon metroid prime echoes pre played, eBay metroid prime echoes for cube; coreGame conflict: Amazon metroid prime 2 echoes pre played, eBay metroid prime 2 echoes for cube",
+      "hash": "d1b6d959964acc1c0505ed3bcfd305570af1794478112669b4b5fb02daa62261"
+    },
+    {
+      "label": "flipmine:30",
+      "item": "237200342646",
+      "asin": "B000VJRU44",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon fit, eBay fit fitness classic game; coreGame conflict: Amazon fit, eBay fit fitness classic game",
+      "hash": "b2fd39537088bff36c0f737918abe23facfd9a764d807b48953ee4f80d2ec9da"
+    },
+    {
+      "label": "flipmine:31",
+      "item": "227627079371",
+      "asin": "B00030DNB0",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon treasure quest, eBay new treasure quest the challenge cd rom adventure; coreGame conflict: Amazon treasure quest, eBay new treasure quest the challenge cd rom adventure",
+      "hash": "a89c2580ab879172a022e5d72f08d10f73d6ff19f5e8fac29a57e711033b405d"
+    },
+    {
+      "label": "flipmine:32",
+      "item": "137954347998",
+      "asin": "B07ZJNM9WD",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon river city girls limited foil cover release with music cd, eBay river city girls limited run games lrg; coreGame conflict: Amazon river city girls limited foil cover release with music cd, eBay river city girls limited run games 045 lrg",
+      "hash": "525ae12e1799d9fcd47e71d3dfd285e60c91733ed48804a4a4a97510682ecd0a"
+    },
+    {
+      "label": "flipmine:34",
+      "item": "206721360758",
+      "asin": "B000031KJW",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon myth the total codex, eBay myth the total codex bungie big box vintage; coreGame conflict: Amazon myth the total codex, eBay myth the total codex bungie 1999 big box vintage",
+      "hash": "c4a661b1a5e3b41b7f0c801e79cf3cda75dda54763a72f7b91f7996f43128114"
+    },
+    {
+      "label": "flipmine:35",
+      "item": "287750919699",
+      "asin": "B0088MVPSI",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon skylanders giants starter pack, eBay skylanders giants starter pack box wear; coreGame conflict: Amazon skylanders giants starter pack, eBay skylanders giants starter pack box wear",
+      "hash": "76195d8b9a0a4c65ddfb54a949aab3691e0b325e72191f914d8f902ddbadf360"
+    },
+    {
+      "label": "flipmine:37",
+      "item": "206721265689",
+      "asin": "B00009QGE1",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon haunted mansion, eBay disneys the haunted mansion; coreGame conflict: Amazon haunted mansion, eBay disneys the haunted mansion",
+      "hash": "baec5076a6ccd70513a351a5fd3696183127196e07bcf973c65282054fda8a22"
+    },
+    {
+      "label": "flipmine:43",
+      "item": "336911334552",
+      "asin": "B000ZKDOV2",
+      "identity": "match",
+      "status": "open",
+      "reason": "Identity matched or unknown; unknown fields are not positive evidence.",
+      "hash": "b395440c4cf51a5ca1b26746a6987da68a07a030ccdecadbb138783e70f05808"
+    },
+    {
+      "label": "flipmine:45",
+      "item": "137953793569",
+      "asin": "B071W6DSYQ",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon cartoon network battle crashers, eBay cartoon network battle; coreGame conflict: Amazon cartoon network battle crashers, eBay cartoon network battle",
+      "hash": "b9978fc09b30d1ce7435baf40602e531be46e78dcc61b2af97a3e0c33020925f"
+    },
+    {
+      "label": "flipmine:46",
+      "item": "940114946213",
+      "asin": "B00005V8T1",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon rugrats totally angelica jewel case, eBay new rugrats totally angelica boredom buster jewel case; coreGame conflict: Amazon rugrats totally angelica jewel case, eBay new rugrats totally angelica boredom buster jewel case",
+      "hash": "baaa269d42ae29bbb12f24a9aa89af090c72dcb1a72fcedb7458226da3b46d13"
+    },
+    {
+      "label": "flipmine:49",
+      "item": "377668418317",
+      "asin": "B00006RHM0",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon rocky, eBay rocky with manuel sylvester stallong; coreGame conflict: Amazon rocky, eBay rocky with manuel sylvester stallong",
+      "hash": "2a177f228f01134108af2bc53b970c35112b277ca07d0393be853a5587d395a7"
+    },
+    {
+      "label": "flipmine:50",
+      "item": "128210994247",
+      "asin": "B0008EZDDM",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon star wars galaxies the total experience, eBay star wars galaxies the total experience lucas arts; coreGame conflict: Amazon star wars galaxies the total experience, eBay star wars galaxies the total experience lucas arts",
+      "hash": "5ba4564a9e1fc8fb0b8a7d98c7e6d21b731460cc4ac48e47ffbddeb70b52ab02"
+    },
+    {
+      "label": "flipmine:57",
+      "item": "377668308191",
+      "asin": "B079NC8KXT",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon donkey kong country tropical freeze pal eu no ntsc non us version, eBay donkey kong country tropical freeze; coreGame conflict: Amazon donkey kong country tropical freeze pal eu no ntsc non us version, eBay donkey kong country tropical freeze",
+      "hash": "fcf5e6043e6e46f1ec099bc83a51707d70a4b69105351784a73afa270dbcb47b"
+    },
+    {
+      "label": "flipmine:62",
+      "item": "198800735580",
+      "asin": "B01B0RP49I",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon star wars battlefront with exclusive trading disc from walmart, eBay star wars battlefront deluxe; coreGame conflict: Amazon star wars battlefront with exclusive trading disc from walmart, eBay star wars battlefront deluxe",
+      "hash": "af5a874b66f0181013917a183491904e5a2ca1e033574564c384be543c3e730a"
+    },
+    {
+      "label": "flipmine:63",
+      "item": "880138368350",
+      "asin": "B00N3VNF32",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon assassins creed rogue, eBay assassins creed rogue game; coreGame conflict: Amazon assassins creed rogue, eBay assassins creed rogue game",
+      "hash": "5cca23a6ada1848e074402f427c572e61f24499080ed65c93da507585f6ec6db"
+    },
+    {
+      "label": "flipmine:64",
+      "item": "237199211486",
+      "asin": "B07FYN3JDL",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon labo toy con vehicle kit, eBay labo toy con vehicle kit new never used; coreGame conflict: Amazon labo toy con 03 vehicle kit, eBay labo toy con 03 vehicle kit new never used; edition conflict: Amazon Vehicle Kit, eBay Collector's Edition + Complete Edition + Special Edition + Ultimate Edition",
+      "hash": "672fa8a528ae634a6cdb5e2f97616f31775d3da81e4c8a1e61d7dd899d38fd5f"
+    },
+    {
+      "label": "flipmine:67",
+      "item": "257865308683",
+      "asin": "B000WDUGB8",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon cooking mama, eBay new cooking mama dinner with friends torn seal; coreGame conflict: Amazon cooking mama 2, eBay new cooking mama 2 dinner with friends torn seal",
+      "hash": "8f5ee2119a067dd1cca1d3e00ca8eafbfa531ccb338d63b7b5f8c2cb9652c55f"
+    },
+    {
+      "label": "flipmine:69",
+      "item": "377666706705",
+      "asin": "B00069ZIN4",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreGame conflict: Amazon tiger woods pga tour 2005, eBay tiger woods pga tour 2004; installment conflict: Amazon 2005, eBay 2004",
+      "hash": "fbb7bf42d4a8c4dbf27a441135a4b1e9b6e7cb7725e9306c97161f9581493c87"
+    },
+    {
+      "label": "flipmine:76",
+      "item": "237198105168",
+      "asin": "B0002ILS1U",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon metroid prime echoes pre played, eBay metroid prime echoes; coreGame conflict: Amazon metroid prime 2 echoes pre played, eBay metroid prime 2 echoes",
+      "hash": "54e17e8f855d0c812deeda7505a822538038dfefd30926651b1197f66a64c242"
+    },
+    {
+      "label": "flipmine:77",
+      "item": "237198102432",
+      "asin": "B000CC5J52",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon odama with microphone, eBay odama no microphone; coreGame conflict: Amazon odama with microphone, eBay odama no microphone",
+      "hash": "d86ed1017a555240e0949cbbf4cdcfd4b6a547390b2821c91739e0fa479d38af"
+    },
+    {
+      "label": "flipmine:78",
+      "item": "137951390420",
+      "asin": "B002I0EMUO",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon metal gear solid snake eater 3d, eBay metal gear solid 3d snake eater; coreGame conflict: Amazon metal gear solid snake eater 3d, eBay metal gear solid 3d snake eater",
+      "hash": "83bf8de0917c82e2071003a7e74d3a29e19b01f05bb933940898f7ebe220f748"
+    },
+    {
+      "label": "flipmine:81",
+      "item": "960227197859",
+      "asin": "B00L86B56I",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon the legend of korra a new era begins, eBay the legend of korra a new era begins nickelodeon; coreGame conflict: Amazon the legend of korra a new era begins, eBay the legend of korra a new era begins nickelodeon",
+      "hash": "6f2110f556e1fe01b429619fe245a273501776a168c8908f226a02b21841bf12"
+    },
+    {
+      "label": "flipmine:82",
+      "item": "168878687238",
+      "asin": "B07MTYNGXS",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon star fox 3d, eBay star fox 3d starfox; coreGame conflict: Amazon star fox 64 3d, eBay star fox 64 3d starfox",
+      "hash": "6ba6cbc89032c169d9639962ea1e056123d325b862c231624deafeab7b356d9b"
+    },
+    {
+      "label": "flipmine:85",
+      "item": "147691464775",
+      "asin": "B003KPZWNM",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon my reading tutor, eBay my reading tutor dsi xl k 2nd grade learn to read; coreGame conflict: Amazon my reading tutor, eBay my reading tutor dsi xl k 2nd grade learn to read",
+      "hash": "3a9c9ea70312f8352016a995c5573be8b0f96c471b227db74ed193ac4ecc8c08"
+    },
+    {
+      "label": "flipmine:88",
+      "item": "117534792163",
+      "asin": "B07DLTGW3X",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon fifa, eBay fifa ea sports; coreGame conflict: Amazon fifa 19, eBay fifa 19 ea sports",
+      "hash": "251bd514110f8e2a72197a9c44a8ddbc4b31100fb6ceddd542123e87c40599cb"
+    },
+    {
+      "label": "flipmine:91",
+      "item": "880140974785",
+      "asin": "B004393I0I",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon hot wheels track attack, eBay hot wheels track attack cib w manual game and case; coreGame conflict: Amazon hot wheels track attack, eBay hot wheels track attack cib w manual game and case",
+      "hash": "ccd21785faed1d5aeef7cba35e123b268ba321d2b89aab3e44871edc3c6daa3b"
+    },
+    {
+      "label": "flipmine:92",
+      "item": "307294162327",
+      "asin": "B0009WPT8W",
+      "identity": "needs_review",
+      "status": "rejected",
+      "reason": "Unresolved identity detail on one side: edition",
+      "hash": "1ac6d9eb44162e9962a25b01a3a9ad5da5d7593e506aae605f2dfc366e1a4ca8"
+    },
+    {
+      "label": "flipmine:93",
+      "item": "147691479318",
+      "asin": "B08MG7QWN7",
+      "identity": "match",
+      "status": "rejected",
+      "reason": "Identity matched or unknown; unknown fields are not positive evidence.",
+      "hash": "4a8abb2d9bf720f4488787fd688516c7eb7a40aba074f5f1b89d4da9c581ad6b"
+    },
+    {
+      "label": "flipmine:96",
+      "item": "800945744867",
+      "asin": "B00002R28Q",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon xena warrior princess, eBay xena warrior princess sony security label us; coreGame conflict: Amazon xena warrior princess, eBay xena warrior princess sony security label us",
+      "hash": "3954a44ffdc4a23fef473238a250d5753e6ac9ea4b7d0755d1dabb7c79e58212"
+    },
+    {
+      "label": "flipmine:99",
+      "item": "257863318499",
+      "asin": "B00F6YISIQ",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon frozen olafs quest, eBay disney frozen olafs quest; coreGame conflict: Amazon frozen olafs quest, eBay disney frozen olafs quest",
+      "hash": "f12643983fd1c6d12be41937fb7697ee9255782cfed0f9d78ed5c99b765e711e"
+    },
+    {
+      "label": "flipmine:100",
+      "item": "198811773214",
+      "asin": "B00008XKZI",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon roadkill used, eBay roadkill small rip; coreGame conflict: Amazon roadkill used, eBay roadkill small rip",
+      "hash": "9294bfde09ff4b52bea36cc47fdc683f1f1e2780c05da5341db767a93c8ea4b1"
+    },
+    {
+      "label": "flipmine:101",
+      "item": "198811763973",
+      "asin": "B001DYXGUI",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon wanted weapons of fate, eBay wanted weapons of fate original; coreGame conflict: Amazon wanted weapons of fate, eBay wanted weapons of fate original",
+      "hash": "33b921be2ad5b9ace868cc7251946037716ea4536152fc0fa5dd3f24c9e4a213"
+    },
+    {
+      "label": "flipmine:103",
+      "item": "206716358082",
+      "asin": "B00078V9WS",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon csi csi dark motives double pack, eBay csi crime scene investigation and dark motives 2 games in 1 box cd rom games; coreGame conflict: Amazon csi csi dark motives double pack, eBay csi crime scene investigation and dark motives 2 games in 1 box cd rom games",
+      "hash": "2af0b5805d4802cbeefb012d37feb46444626e602012b2e5cd214c76369afb0c"
+    },
+    {
+      "label": "flipmine:104",
+      "item": "900108256466",
+      "asin": "B07DF43L23",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon starlink battle for atlas starter, eBay starlink battle for atlas star fox starter pack toy; coreGame conflict: Amazon starlink battle for atlas starter, eBay starlink battle for atlas star fox starter pack toy",
+      "hash": "023e64afd6b9806418dcf2e0f29d7321d63dd090f964c848836c98dd1faae71b"
+    },
+    {
+      "label": "flipmine:105",
+      "item": "227623785632",
+      "asin": "B001CRO8U8",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon sim animals, eBay sim animals never opened nib ea games rated; coreGame conflict: Amazon sim animals, eBay sim animals never opened nib ea games rated",
+      "hash": "5ffcee3d85efb2d034b2803cc723c1ad6dcf63510681bdd66db8f1d81de74ec5"
+    },
+    {
+      "label": "flipmine:109",
+      "item": "860162864711",
+      "asin": "B01M32FMUL",
+      "identity": "needs_review",
+      "status": "rejected",
+      "reason": "Unresolved identity detail on one side: edition",
+      "hash": "8436f4281966b17278d77db1d109fd1970133a1e425e975906123f296d0cb0ff"
+    },
+    {
+      "label": "flipmine:110",
+      "item": "860162861797",
+      "asin": "B01LYEQNHP",
+      "identity": "match",
+      "status": "rejected",
+      "reason": "Identity matched or unknown; unknown fields are not positive evidence.",
+      "hash": "bb7a137f87bbc10026ac9808a5e59370f78bd0ecc63435170c14e7d78f8a113e"
+    },
+    {
+      "label": "flipmine:111",
+      "item": "960222655635",
+      "asin": "B081W4X9RW",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "edition conflict: Amazon Phantom Thieves Edition, eBay Collector's Edition + Premium Edition + Special Edition",
+      "hash": "cd26a67b2855c0b988a15e3053ebb9891b7e78901eb40f45bc9268d37b75c997"
+    },
+    {
+      "label": "flipmine:113",
+      "item": "128207257167",
+      "asin": "B003U9VI6S",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon nhl slapshot bundle, eBay ea sports nhl slapshot with hockey stick attachment mint; coreGame conflict: Amazon nhl slapshot bundle, eBay ea sports nhl slapshot with hockey stick attachment mint",
+      "hash": "e0db3864fff4a9d53b7607d02a6d9511e27ea3d45ce103515f87a94feabca41a"
+    },
+    {
+      "label": "flipmine:118",
+      "item": "227623493939",
+      "asin": "B0073WKJ9K",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon final fantasy xiii-2 with episode i hardcover novella book, eBay final fantasy xiii-2; coreGame conflict: Amazon final fantasy xiii-2 with episode i hardcover novella book, eBay final fantasy xiii-2",
+      "hash": "35ff687d8f55b23385085b66da0ff284a234ffcb09b8aa558b5c4b479cf30dfc"
+    },
+    {
+      "label": "flipmine:119",
+      "item": "237195116655",
+      "asin": "B00002STWL",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon nhl, eBay nhl 97 sega saturn 1996 ea sports; coreGame conflict: Amazon nhl 97, eBay nhl 97 sega saturn 1996 ea sports; edition conflict: Amazon Standard, eBay Complete Edition",
+      "hash": "859dbe5345521d8246926152f1396ff02346d0feec07d8f30e67afbe777d8e80"
+    },
+    {
+      "label": "flipmine:121",
+      "item": "920164926760",
+      "asin": "B000H11F9M",
+      "identity": "match",
+      "status": "rejected",
+      "reason": "Identity matched or unknown; unknown fields are not positive evidence.",
+      "hash": "20f5bbcf00ea92bb78ac2c179000428c67f2c9dcca9850ccd99979e29ec853c4"
+    },
+    {
+      "label": "flipmine:123",
+      "item": "117531474422",
+      "asin": "B0052J8FS8",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon the hidden an augmented reality ghost hunting adventure, eBay the hidden; coreGame conflict: Amazon the hidden an augmented reality ghost hunting adventure, eBay the hidden",
+      "hash": "90df467e041a918c53ad27d8b8dcdd7967f8e85723d19ae1e3b2e9db8386faec"
+    },
+    {
+      "label": "flipmine:127",
+      "item": "840146727525",
+      "asin": "B000CRSBLQ",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon fight night round, eBay skylanders trap team game in original case; coreGame conflict: Amazon fight night round 3, eBay skylanders trap team game in original case",
+      "hash": "61cada8fbea23a296beeaba82d66e7139d6af43bb1b6e7ae7de360f4db7f61ca"
+    },
+    {
+      "label": "flipmine:128",
+      "item": "168874684759",
+      "asin": "B000B8J7JQ",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon super mario strikers pre played, eBay super mario strikers 5ft flag banner poster ngc; coreGame conflict: Amazon super mario strikers pre played, eBay super mario strikers 5ft flag banner poster ngc",
+      "hash": "7358a48ff0bc24f954ae7e73a87ba6e7fec78ae045fa6c6f952dd1f97a51bc43"
+    },
+    {
+      "label": "flipmine:130",
+      "item": "940106841429",
+      "asin": "B00B98HHAI",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon lego marvel super heroes universe in peril, eBay lego marvel super heroes universe in peril only; coreGame conflict: Amazon lego marvel super heroes universe in peril, eBay lego marvel super heroes universe in peril only",
+      "hash": "4e62123351a07995b49bdc6d3689977ef90df4c02be09e23ec5f89b87a076b1a"
+    },
+    {
+      "label": "flipmine:134",
+      "item": "920161567589",
+      "asin": "B005TJKVLU",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon s and s worldwide sports game, eBay sports; coreGame conflict: Amazon s and s worldwide sports game, eBay sports",
+      "hash": "65b4f6d2acb1240f56235dccd3a18914e2f141ca57ddc56afac30ed6a0dd3ab5"
+    },
+    {
+      "label": "flipmine:136",
+      "item": "307290899285",
+      "asin": "B002I7A81E",
+      "identity": "match",
+      "status": "open",
+      "reason": "Identity matched or unknown; unknown fields are not positive evidence.",
+      "hash": "70ac55944d0547723a3631b3847ab2b9390eec37ad562175309dba2633657137"
+    },
+    {
+      "label": "flipmine:137",
+      "item": "880133424504",
+      "asin": "B00009P9IW",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon terminator rise of the machines, eBay terminator 3 rise of the machines 2003 atari ntsc; coreGame conflict: Amazon terminator 3 rise of the machines, eBay terminator 3 rise of the machines 2003 atari ntsc",
+      "hash": "fa155b5aa3b4171b987bd8c574f23fd0ad1dc1f6afb2178863b660e27931c0eb"
+    },
+    {
+      "label": "flipmine:139",
+      "item": "920161078052",
+      "asin": "B000038ABM",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon nuclear strike pre owned, eBay nuclear strike the sequel to soviet strike; coreGame conflict: Amazon nuclear strike pre owned, eBay nuclear strike the sequel to soviet strike",
+      "hash": "3dec8567fd4736a9c59c6670f34c271ffc7c85342b0d554696f39b909d639a58"
+    },
+    {
+      "label": "flipmine:143",
+      "item": "147688253288",
+      "asin": "B000VJRU44",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon fit, eBay fit cib manual disc; coreGame conflict: Amazon fit, eBay fit cib manual disc",
+      "hash": "49691c70be2657f1796a5356a597356758d67e40a797e21e22d0bef0fb707c73"
+    },
+    {
+      "label": "flipmine:149",
+      "item": "327464903578",
+      "asin": "B005GM7J4M",
+      "identity": "match",
+      "status": "rejected",
+      "reason": "Identity matched or unknown; unknown fields are not positive evidence.",
+      "hash": "7c5aab09432ef44af7c6be6a3973726143deda3781f7ac626e7794ba5da51d16"
+    },
+    {
+      "label": "flipmine:150",
+      "item": "366822185298",
+      "asin": "B000C4088I",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon sonic riders, eBay sonic riders sega game new oem; coreGame conflict: Amazon sonic riders, eBay sonic riders sega game new oem",
+      "hash": "dd0d8fdc95840bbedd343abd6a7305e77ffb22020c1f181b74956c5040c7c3ca"
+    },
+    {
+      "label": "flipmine:151",
+      "item": "366822169641",
+      "asin": "B0012GOECQ",
+      "identity": "match",
+      "status": "open",
+      "reason": "Identity matched or unknown; unknown fields are not positive evidence.",
+      "hash": "dcd76477a8e0e763dd51c2872b638d617fa9ffaa76c18d52bdfac88f0900615e"
+    },
+    {
+      "label": "flipmine:153",
+      "item": "137943952207",
+      "asin": "B000007NJC",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon wwf warzone, eBay wwf warzone usa retail release w hangtab; coreGame conflict: Amazon wwf warzone, eBay wwf warzone usa retail release w hangtab",
+      "hash": "880865074e476ac3f74eb924fab37c22aabc50d68404d14047d84e8193642cde"
+    },
+    {
+      "label": "flipmine:158",
+      "item": "128203764584",
+      "asin": "B08GR2SCLF",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon puyo puyo tetris launch, eBay new puyo puyo tetris launch; coreGame conflict: Amazon puyo puyo tetris 2 launch, eBay new puyo puyo tetris 2 launch",
+      "hash": "4aec25964880fcdb3b33078143899142b7ad5acd8629858d12acdc405baf2878"
+    },
+    {
+      "label": "flipmine:164",
+      "item": "840142944093",
+      "asin": "B005TJKVLU",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon s and s worldwide sports game, eBay sports new in sleeve w sticker seal intact; coreGame conflict: Amazon s and s worldwide sports game, eBay sports new in sleeve w sticker seal intact",
+      "hash": "6eb4bf0753bb8c7e25bb5a1d208e6415f531ac698ebdbce763ad00ef1968aea5"
+    },
+    {
+      "label": "flipmine:166",
+      "item": "960213096864",
+      "asin": "B0BDTTZX32",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon assassins creed mirage, eBay assassins creed mirage 1b; coreGame conflict: Amazon assassins creed mirage 10, eBay assassins creed mirage 1b",
+      "hash": "3e4f5491b6e02380bcf49f42ac7005b4fdcb4805c1681eff88b5cea8e6a5bdaa"
+    },
+    {
+      "label": "flipmine:171",
+      "item": "147686977614",
+      "asin": "B00025ETC8",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon front mission, eBay square enix sampler front mission demo disc; coreGame conflict: Amazon front mission 4, eBay square enix sampler front mission 4 demo disc",
+      "hash": "d6c48aa89b2f166a1d4092e435549f62ec54388f7d9e3969bff5f946871b1d34"
+    },
+    {
+      "label": "flipmine:173",
+      "item": "287739765470",
+      "asin": "B0019MRKNI",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon viva pi\u00f1ata trouble in paradise, eBay microsoft viva pi\u00f1ata trouble in paradise; coreGame conflict: Amazon viva pi\u00f1ata trouble in paradise, eBay microsoft viva pi\u00f1ata trouble in paradise",
+      "hash": "8c1881777d7ef4bf93e378a852ed62f8e1ea50890c6ab466de2fb39a432d6c58"
+    },
+    {
+      "label": "flipmine:174",
+      "item": "128203442446",
+      "asin": "B072QF7G4M",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon just dance xb1, eBay just dance; coreGame conflict: Amazon just dance 2018 xb1, eBay just dance 2018",
+      "hash": "f9c29b6ae40a6561cae4e1084fd86830413be0711902bbc3851494de34dbb19b"
+    },
+    {
+      "label": "flipmine:175",
+      "item": "287739694904",
+      "asin": "B00006JBS4",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon legends of wrestling, eBay accalim legends of wrestling; coreGame conflict: Amazon legends of wrestling 2, eBay accalim legends of wrestling 2",
+      "hash": "050f3088f6f4dd3b520610a1950709c7e7d4922b434587ae3551255d3206534b"
+    },
+    {
+      "label": "flipmine:176",
+      "item": "237190839216",
+      "asin": "B000ETRTWY",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon rise of nations rise of legends, eBay rise of nations rise of legends pre order promo demo disc; coreGame conflict: Amazon rise of nations rise of legends, eBay rise of nations rise of legends 2006 pre order promo demo disc",
+      "hash": "0a895498e59e2a084fdf1ca5b51220562fbe5845f1b92518f9bf7f61e2b70262"
+    },
+    {
+      "label": "flipmine:178",
+      "item": "377656806862",
+      "asin": "B000MRQKH8",
+      "identity": "match",
+      "status": "rejected",
+      "reason": "Identity matched or unknown; unknown fields are not positive evidence.",
+      "hash": "535ff163923fa21c9d7a97817ad8b1923a1935bf50bdfdbf63dac9b9324ccfcd"
+    },
+    {
+      "label": "flipmine:179",
+      "item": "377656806800",
+      "asin": "B000FDE062",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon world championship poker all in, eBay world championship poker featuring howard lederer all in; coreGame conflict: Amazon world championship poker all in, eBay world championship poker featuring howard lederer all in",
+      "hash": "7c1ba79c35408d986ee38a48053c0718b16be18054d472811bab663fad77de2d"
+    },
+    {
+      "label": "flipmine:180",
+      "item": "377656806812",
+      "asin": "B005GM7J4M",
+      "identity": "match",
+      "status": "open",
+      "reason": "Identity matched or unknown; unknown fields are not positive evidence.",
+      "hash": "068a7fd74e8e7fbb8e11f4a819dff77065ae8220272882fb87d27758e137c9e8"
+    },
+    {
+      "label": "flipmine:181",
+      "item": "336904241854",
+      "asin": "B003MP5JCO",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon animal planet vet collect, eBay animal planet vet collection; coreGame conflict: Amazon animal planet vet collect, eBay animal planet vet collection",
+      "hash": "5bbae8758c41d0327c412540b813579f6f4f1111bf457353b0b8a3e0b6344e47"
+    },
+    {
+      "label": "flipmine:184",
+      "item": "257859129518",
+      "asin": "B00002SVFQ",
+      "identity": "needs_review",
+      "status": "rejected",
+      "reason": "Unresolved identity detail on one side: edition",
+      "hash": "64a03ea82ec16853edbed8b8789fc068a78977a9091372f189dd8fb02907b4b4"
+    },
+    {
+      "label": "flipmine:185",
+      "item": "287739503314",
+      "asin": "B002N5KV40",
+      "identity": "match",
+      "status": "rejected",
+      "reason": "Identity matched or unknown; unknown fields are not positive evidence.",
+      "hash": "f21ff4ce1d9d9576f2827025600ec4fae6defda4fb3d8db6416246ee94ec70df"
+    },
+    {
+      "label": "flipmine:188",
+      "item": "820369895322",
+      "asin": "B00004TTTT",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon san francisco rush pre played, eBay san francisco rush gameboy; coreGame conflict: Amazon san francisco rush 2049 pre played, eBay san francisco rush 2049 gameboy",
+      "hash": "05f95b62fc5415eac1160c0c724e9ff875e53abedba04944c847f58b88821ee8"
+    },
+    {
+      "label": "flipmine:189",
+      "item": "287739462136",
+      "asin": "B00004R9HA",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon asterix and the great rescue, eBay asterix and the great rescue sega game gear; coreGame conflict: Amazon asterix and the great rescue, eBay asterix and the great rescue sega game gear",
+      "hash": "add74bbd803d821a442bdf3224627b982d63f6d3dde76b859bf19107bed43315"
+    },
+    {
+      "label": "flipmine:190",
+      "item": "287739462107",
+      "asin": "B000GBMDRG",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon sesame street nes pre played, eBay sesame street 123 nes wata 9.6 a new round seal; coreGame conflict: Amazon sesame street 123 nes pre played, eBay sesame street 123 nes wata 9.6 a new round seal",
+      "hash": "b396d7651d35e4bed2af09c17ebbfdefbd8fbb5b85cd6edf8988ece34e50ef33"
+    },
+    {
+      "label": "flipmine:194",
+      "item": "287739448894",
+      "asin": "B00009WAUB",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon kirby air ride pre played cib good, eBay kirby air ride; coreGame conflict: Amazon kirby air ride pre played cib good, eBay kirby air ride",
+      "hash": "be441d4c43ad5902710c8c73f1a46130402770389a433e5db9b8a4961e534521"
+    },
+    {
+      "label": "flipmine:197",
+      "item": "267847147397",
+      "asin": "B08NK89KJ7",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon legacy games match-3 games for magical matches vol. 3 10 game pack dvd with digital download codes, eBay amazing match 3 games magical matches 3 10 pack cd dream vacation; coreGame conflict: Amazon legacy games match-3 games for magical matches vol. 3 10 game pack dvd with digital download codes, eBay amazing match 3 games magical matches 3 10 pack cd dream vacation",
+      "hash": "d5a4c7c9e85dea065c800a92c9ec15f21118d7e090d170ccf1eda4b75915e17d"
+    },
+    {
+      "label": "flipmine:198",
+      "item": "128203118481",
+      "asin": "B07Y1X5KXT",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon dusk diver, eBay dusk driver cero version region free sale; coreGame conflict: Amazon dusk diver, eBay dusk driver cero version region free sale",
+      "hash": "882981a41fa43b2362137e592f42118a72c537f9366ad1008b33f5c3072aab2e"
+    },
+    {
+      "label": "flipmine:199",
+      "item": "800934631078",
+      "asin": "B000GE9YDY",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreGame conflict: Amazon catz, eBay catz 2007",
+      "hash": "5da06ede4863ffe1115052c8e29039252f4ce68ff060e1d15a652a34a4a8451d"
+    },
+    {
+      "label": "flipmine:201",
+      "item": "840141898812",
+      "asin": "B00005ME66",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon alien front online dc pre owned, eBay alien front online big box authentic read description; coreGame conflict: Amazon alien front online dc pre owned, eBay alien front online big box authentic read description",
+      "hash": "57f1ce8639f7d10f34b8700c8faa0ba26c50d9cba291d0c0ee7b7a4607156024"
+    },
+    {
+      "label": "flipmine:202",
+      "item": "287739040254",
+      "asin": "B000A3OP62",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon abc sports presents the palm springs open, eBay abc sports presents the palm springs open philips cd i cib; coreGame conflict: Amazon abc sports presents the palm springs open, eBay abc sports presents the palm springs open philips cd i cib",
+      "hash": "a13aad156f5e8b76ba23f9e164d7bbc9928760de22615c02b6a098c53e3c3a9d"
+    },
+    {
+      "label": "flipmine:203",
+      "item": "960211547190",
+      "asin": "B0BBWJV1DQ",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon hogwarts legacy, eBay hogwarts legacy full set new in box; coreGame conflict: Amazon hogwarts legacy, eBay hogwarts legacy full set new in box",
+      "hash": "20fd6a8c69a7f01aa9eede2b84519426a6e2e9e68f29a928273f52eb38b30ca6"
+    },
+    {
+      "label": "flipmine:204",
+      "item": "407371880783",
+      "asin": "B09K1QZK2C",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon monopoly plus monopoly madness, eBay monopoly molopoly madness; coreGame conflict: Amazon monopoly plus monopoly madness, eBay monopoly molopoly madness",
+      "hash": "0cb45ffd5542d1ac707d3fa82983e8fcb3169a86d7670fc3e48d97842ef132b9"
+    },
+    {
+      "label": "flipmine:205",
+      "item": "206710204693",
+      "asin": "B00IDMTYGI",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon final fantasy lightning returns with bonus steelbook packaging dlc, eBay new lightning returns final fantasy steelbook target exclusive; coreGame conflict: Amazon final fantasy 13 lightning returns with bonus steelbook packaging dlc, eBay new lightning returns final fantasy 13 steelbook target exclusive",
+      "hash": "943985ddcf42ad752224fab7e19f9910ca7551f46fe65aecab25841660c546c4"
+    },
+    {
+      "label": "flipmine:207",
+      "item": "327462342123",
+      "asin": "B0081716P2",
+      "identity": "needs_review",
+      "status": "rejected",
+      "reason": "Unresolved identity detail on one side: edition",
+      "hash": "15d2bbecd9703d88f4b10b32e9fc3cec40e56e4e59e7a72a58d7940273d87875"
+    },
+    {
+      "label": "flipmine:208",
+      "item": "168870024738",
+      "asin": "B000VJRU44",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon fit, eBay fit complete game mint condition; coreGame conflict: Amazon fit, eBay fit complete game mint condition",
+      "hash": "5b50fa20bb0ea101b0504ef78cd52047729820b264ff666c3013f918c737969b"
+    },
+    {
+      "label": "flipmine:213",
+      "item": "377654974045",
+      "asin": "B0C7LTPS41",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon payday, eBay pay day; coreGame conflict: Amazon payday 3, eBay pay day 3; platform conflict: Amazon PlayStation 5, eBay Xbox Series X",
+      "hash": "6238b36a94dbb4a9ed6a087fcee7f9e8e9c2973eb962cc2da7eaa9e64cd0b43a"
+    },
+    {
+      "label": "flipmine:215",
+      "item": "137940404174",
+      "asin": "B0050SVMCC",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon bejeweled, eBay bejeweled with slipcover copy; coreGame conflict: Amazon bejeweled 3, eBay bejeweled 3 with slipcover copy",
+      "hash": "dcd2f82e7fd007ea2fa1b67df6d05babe16db26e12acfe15d8ee0fdb2ebbce66"
+    },
+    {
+      "label": "flipmine:217",
+      "item": "840139521854",
+      "asin": "B00DCDZM2I",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon skylanders swap force starter pack, eBay skylanders swap force; coreGame conflict: Amazon skylanders swap force starter pack, eBay skylanders swap force; edition conflict: Amazon Standard, eBay None",
+      "hash": "c020bdf1665d1e6763c6aa396a61c30f801adf89ab49585551a38e93a2218672"
+    },
+    {
+      "label": "flipmine:220",
+      "item": "900096031756",
+      "asin": "B07G4J4Y9R",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon ark park, eBay ark park sony ps vr req; coreGame conflict: Amazon ark park, eBay ark park sony ps vr req",
+      "hash": "f5eda978bd668f7cc67dfc0ef7b974fa6bc9101b373ab9ded876e5bd45dccfc1"
+    },
+    {
+      "label": "flipmine:224",
+      "item": "267846349220",
+      "asin": "B0013RFTAA",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon paws and claws pet vet healing hands, eBay paws and claws pet vet healing hands cib tested and working; coreGame conflict: Amazon paws and claws pet vet healing hands, eBay paws and claws pet vet healing hands cib tested and working",
+      "hash": "8dad84b64ce2a84d763e57dbd425ade9d3d6b05696dd5726ee4d41e43dd348f2"
+    },
+    {
+      "label": "flipmine:225",
+      "item": "820366755235",
+      "asin": "B003O6ECW4",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon batman arkham city, eBay new batman arkham city pal; coreGame conflict: Amazon batman arkham city, eBay new batman arkham city pal",
+      "hash": "335a5504b618707ccd2f43df428018edb0ca8fa7ac065bd9b54363847357eb3f"
+    },
+    {
+      "label": "flipmine:227",
+      "item": "128201231844",
+      "asin": "B000WDUGB8",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon cooking mama, eBay cooking mama dinner with friends; coreGame conflict: Amazon cooking mama 2, eBay cooking mama 2 dinner with friends",
+      "hash": "a152b415d5e59a3e67d86715b6a8da2a1699edd9294c79bfaef9e725d732f272"
+    },
+    {
+      "label": "flipmine:229",
+      "item": "128201231435",
+      "asin": "B00QFRLKLU",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon the voice bundle with microphones, eBay the voice i want you bundle with microphones sing; coreGame conflict: Amazon the voice bundle with 2 microphones, eBay the voice i want you bundle with 2 microphones sing",
+      "hash": "3b519dabb95ef5cc21b75d65f01f60a0b87ec1ef2c0e695cea27087974750355"
+    },
+    {
+      "label": "flipmine:230",
+      "item": "128201231351",
+      "asin": "B00B59L9VO",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon resident evil revelations, eBay resident evil revelations fast ship cracked case see pics; coreGame conflict: Amazon resident evil revelations, eBay resident evil revelations fast ship cracked case see pics",
+      "hash": "d71e99034a205f8918df979b78a38959442da20a52058f3c1d9b3eb7f8269ce3"
+    },
+    {
+      "label": "flipmine:231",
+      "item": "128201231357",
+      "asin": "B001US2N3S",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon donkey konga, eBay gc game donkey konga; coreGame conflict: Amazon donkey konga, eBay gc game donkey konga",
+      "hash": "797e72503bbc02f4e906ad12257b0d9905af384a337db59cde105c48968926b4"
+    },
+    {
+      "label": "flipmine:232",
+      "item": "128201230927",
+      "asin": "B00KAEIS6O",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "platform conflict: Amazon Xbox 360, eBay Xbox One",
+      "hash": "c6f5149d193cd8065e3c70b5783f4b93803eb046aa35f2e2b4c1521c7d5118f3"
+    },
+    {
+      "label": "flipmine:233",
+      "item": "840138881415",
+      "asin": "B00004S99S",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon jet grind radio sega dreamcast, eBay jet grind radio original; coreGame conflict: Amazon jet grind radio sega dreamcast, eBay jet grind radio original",
+      "hash": "bc6f0105f4a9cbd1c1c95d7b76cb4817b61f3f5bc85c0923624cc0e6d4272484"
+    },
+    {
+      "label": "flipmine:234",
+      "item": "860152631365",
+      "asin": "B00K2O4O5G",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon one piece unlimited world red day, eBay one piece unlimited world red day one; coreGame conflict: Amazon one piece unlimited world red day 1, eBay one piece unlimited world red day one",
+      "hash": "f821373e9acb2cf0b93c0b5b13a1451b61c5873d83176116e824edb33b389120"
+    },
+    {
+      "label": "flipmine:236",
+      "item": "366817233237",
+      "asin": "B08MG5FYS6",
+      "identity": "match",
+      "status": "rejected",
+      "reason": "Identity matched or unknown; unknown fields are not positive evidence.",
+      "hash": "5d879c6e6bef69e921326915422231a5b6290f9ebbd1937f3f2fe9c2ce7913ff"
+    },
+    {
+      "label": "flipmine:237",
+      "item": "377654023806",
+      "asin": "B0073WKJ9K",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon final fantasy xiii-2 with episode i hardcover novella book, eBay final fantasy xiii-2; coreGame conflict: Amazon final fantasy xiii-2 with episode i hardcover novella book, eBay final fantasy xiii-2",
+      "hash": "d9cd231f1025f310240e84d52e3f0202e3f3d4a78c49e20af2741b3d3641af42"
+    },
+    {
+      "label": "flipmine:239",
+      "item": "920153070592",
+      "asin": "B00DCDZM2I",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon skylanders swap force starter pack, eBay skylanders swap force starter pack blast zone ninja elf; coreGame conflict: Amazon skylanders swap force starter pack, eBay skylanders swap force starter pack blast zone ninja elf",
+      "hash": "88d91c9ac92ffcb20d0fb57a37d335e3674eff9e2315b8bb0b47271482093439"
+    },
+    {
+      "label": "flipmine:240",
+      "item": "860152349717",
+      "asin": "B0000DJX7H",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon grand theft auto double pack grand theft auto grand theft auto vice city, eBay gta from grand theft auto double pack; coreGame conflict: Amazon grand theft auto double pack grand theft auto 3 grand theft auto vice city, eBay gta 3 from grand theft auto double pack",
+      "hash": "e899f2afaa521200d97c5eddf4df8b925d7b0673457dc38d246833157a0e988d"
+    },
+    {
+      "label": "flipmine:241",
+      "item": "377653338921",
+      "asin": "B000035XD1",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon tetris, eBay tetris cleaned authentic tested; coreGame conflict: Amazon tetris 2, eBay tetris 2 cleaned authentic tested",
+      "hash": "aaf4289f3e45e2491c51a0c1d4d2438dad9a817cdcd5a63095d6bcd4dfd381b6"
+    },
+    {
+      "label": "flipmine:242",
+      "item": "307286796087",
+      "asin": "B07PJWHHP3",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon mlb rbi baseball nsw, eBay rbi baseball walmart exclusive topps cards; coreGame conflict: Amazon mlb rbi 19 baseball nsw, eBay rbi 19 baseball walmart exclusive topps cards",
+      "hash": "75d5ef8c28c49aa9b3854ab32ef21b0b52dd295106dedec8fef551d208b20bca"
+    },
+    {
+      "label": "flipmine:248",
+      "item": "257844144942",
+      "asin": "B07DF43L23",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon starlink battle for atlas starter, eBay starlink battle for atlas; coreGame conflict: Amazon starlink battle for atlas starter, eBay starlink battle for atlas",
+      "hash": "b5f7b9712c18c995d3454d95a251e77a62ca1baee423de4dedd8d5b8bc842264"
+    },
+    {
+      "label": "flipmine:250",
+      "item": "198801161337",
+      "asin": "B00021KBKG",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon demon stone, eBay demon stone atari game; coreGame conflict: Amazon demon stone, eBay demon stone atari game",
+      "hash": "d2af7a97d3472e50da1e2446f9271068c8b659571dcaaf90bc5dbfd241aae8f4"
+    },
+    {
+      "label": "flipmine:251",
+      "item": "147683990138",
+      "asin": "B000PMGN2M",
+      "identity": "match",
+      "status": "rejected",
+      "reason": "Identity matched or unknown; unknown fields are not positive evidence.",
+      "hash": "d8e29d88c8bff965f0eb7c4107a65855538c1e9fc7f404936019036ba98becd3"
+    },
+    {
+      "label": "flipmine:255",
+      "item": "900097337802",
+      "asin": "B00002STZI",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon space invaders pre played, eBay space invaders read; coreGame conflict: Amazon space invaders pre played, eBay space invaders read",
+      "hash": "762a6e60ff98e498afaa82ab6862ec1c12cf3449ac6f7686b736e230f9657c8e"
+    },
+    {
+      "label": "flipmine:256",
+      "item": "227617749352",
+      "asin": "B08JDTJ9V5",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon fitness boxing rhythm and exercise, eBay fitness boxing rhythm and exercise new nip; coreGame conflict: Amazon fitness boxing 2 rhythm and exercise, eBay fitness boxing 2 rhythm and exercise new nip",
+      "hash": "0a025c5efc7bbfa334e2feb0f011b6f325b8306668b78256e2346baffc756eb2"
+    },
+    {
+      "label": "flipmine:259",
+      "item": "137937298074",
+      "asin": "B00503EAG2",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon call of duty modern warfare, eBay call of duty modern warfare game; coreGame conflict: Amazon call of duty modern warfare 3, eBay call of duty modern warfare 3 game",
+      "hash": "5616c45bb5a09ab1bd3d92ee7ea1faee2fc1a159e09b482f0dece206fe99e71e"
+    },
+    {
+      "label": "flipmine:261",
+      "item": "900097135752",
+      "asin": "B00005Q8LV",
+      "identity": "match",
+      "status": "rejected",
+      "reason": "Identity matched or unknown; unknown fields are not positive evidence.",
+      "hash": "2eee2b1fb771aad18222ead48fc7288c5c9a3673f148808465bfe1d2be7908c5"
+    },
+    {
+      "label": "flipmine:262",
+      "item": "137937182173",
+      "asin": "B002I0EMUO",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon metal gear solid snake eater 3d, eBay metal gear solid 3d snake eater; coreGame conflict: Amazon metal gear solid snake eater 3d, eBay metal gear solid 3d snake eater",
+      "hash": "99cc6ee27ee3ce64ebb42f4c9d5ab83737a493779c0a3cdefc4dc1ef30cbebb9"
+    },
+    {
+      "label": "flipmine:266",
+      "item": "920149541277",
+      "asin": "B0002T7ZHA",
+      "identity": "match",
+      "status": "rejected",
+      "reason": "Identity matched or unknown; unknown fields are not positive evidence.",
+      "hash": "53ba275adbb7c966f9b5d2e260e3d95b21ba17934851cec00c391867b738e2f9"
+    },
+    {
+      "label": "flipmine:267",
+      "item": "880123553460",
+      "asin": "B07G1YVGZG",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon rad rodgers radical, eBay rad rodgers radical edition pal pegi; coreGame conflict: Amazon rad rodgers radical, eBay rad rodgers radical edition pal pegi 16",
+      "hash": "5bb60daf26830680d6a9efd6a6ff301bf8531576f939f5157c2e1f2e2f8f82e1"
+    },
+    {
+      "label": "flipmine:268",
+      "item": "336900516962",
+      "asin": "B004073SPI",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon insider chronicles triple pack a new perspective on mystery, eBay insider chronicles triple pack a new perspective on mystery viva media cd rom",
+      "hash": "3db59516a243087d944a3ed172bf8823e65d8461c0d662b5b74f794f922a6c68"
+    },
+    {
+      "label": "flipmine:269",
+      "item": "257855352049",
+      "asin": "B014LNTVGK",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon xenoblade chronicles, eBay xenoblade chronicles damaged box; coreGame conflict: Amazon xenoblade chronicles 10, eBay xenoblade chronicles 10 damaged box",
+      "hash": "5693c06a6c7a46ec6b72a368d98f2b7655d98aabb0b8fbe1a2a8be2df4a35b14"
+    },
+    {
+      "label": "flipmine:271",
+      "item": "800925258192",
+      "asin": "B000OPOCFU",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon tiger woods pga tour dvd, eBay tiger woods pga tour dvd rom; coreGame conflict: Amazon tiger woods pga tour 08 dvd, eBay tiger woods pga tour 08 dvd rom",
+      "hash": "682cc96257c2bddfdf6031cf12ae8bd48189d3406def00f11f7f240b736112ac"
+    },
+    {
+      "label": "flipmine:273",
+      "item": "267845135855",
+      "asin": "B01N7FT0NW",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon danganronpa v3 killing harmony, eBay new danganronpa v3 killing harmony day one; coreGame conflict: Amazon danganronpa v3 killing harmony, eBay new danganronpa v3 killing harmony day one",
+      "hash": "fd16d96c9a7c712d48496ca0c3e83f31cea45833f905777d3a16752472fa0a3e"
+    },
+    {
+      "label": "flipmine:275",
+      "item": "307284831338",
+      "asin": "B00009WAUY",
+      "identity": "match",
+      "status": "rejected",
+      "reason": "Identity matched or unknown; unknown fields are not positive evidence.",
+      "hash": "a022ce6401f6af6d7f2b418fc99d0e41baaa4cb53d6c657ae404e88c10245073"
+    },
+    {
+      "label": "flipmine:276",
+      "item": "147682618925",
+      "asin": "B00386VMWI",
+      "identity": "match",
+      "status": "rejected",
+      "reason": "Identity matched or unknown; unknown fields are not positive evidence.",
+      "hash": "46aa14284641d817c9ac7e47fd5e50d1d0aedd447244e497a50e13e6169b1572"
+    },
+    {
+      "label": "flipmine:280",
+      "item": "267844681306",
+      "asin": "B000HKGD4A",
+      "identity": "non-match",
+      "status": "inventory_snoozed",
+      "reason": "coreProduct conflict: Amazon rollercoaster tycoon 3 platinum me xp 2000 98, eBay 2006 roller coaster tycoon 3 platinum cd rom cib; coreGame conflict: Amazon rollercoaster tycoon 3 platinum me xp 2000 98, eBay 2006 roller coaster tycoon 3 platinum cd rom cib",
+      "hash": "376a75da91bc8a7f11ea75d9fb0173566f3e288d27f44bb6f40a37fed2832c0e"
+    },
+    {
+      "label": "flipmine:281",
+      "item": "147682228412",
+      "asin": "B000WDUGB8",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon cooking mama, eBay cooking mama dinner with friends; coreGame conflict: Amazon cooking mama 2, eBay cooking mama 2 dinner with friends",
+      "hash": "0979927d230b32563107c76c1a3d7a83c53726e9be02173267ad058bce5789f6"
+    },
+    {
+      "label": "flipmine:283",
+      "item": "168865005128",
+      "asin": "B00008EO68",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon flight unlimited cd rom, eBay flight simulator airplane unlimited aerobatic; coreGame conflict: Amazon flight unlimited cd rom, eBay flight simulator airplane unlimited aerobatic",
+      "hash": "b844324f57c9c229a03b48b20fbfe744bd01e03426c988f24f211d3c25d7e873"
+    },
+    {
+      "label": "flipmine:286",
+      "item": "137933943568",
+      "asin": "B09KW6KKSY",
+      "identity": "needs_review",
+      "status": "rejected",
+      "reason": "edition review: Amazon Collector's Edition, eBay Collector's Edition",
+      "hash": "5ffcaf523df0bdfc24b922391cfe293897b705a73a7aec2bfa354a6762d8f7f8"
+    },
+    {
+      "label": "flipmine:287",
+      "item": "117523252167",
+      "asin": "B003VKLAAA",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreGame conflict: Amazon monster jam 3 path of destruction, eBay monster jam path of destruction",
+      "hash": "ec93d065c95c5ea78e71b7ffb09cb4a07bad0e910011cb9f562116d3293577e1"
+    },
+    {
+      "label": "flipmine:289",
+      "item": "227615783238",
+      "asin": "B00005NK1B",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon disney pixars monsters inc, eBay monsters inc cartridge vintage disney pixar; coreGame conflict: Amazon disney pixars monsters inc, eBay monsters inc cartridge vintage 2001 disney pixar",
+      "hash": "36205a08b31f17ce776f5abc26ab5b2823fb57a0cb025430f5b19824dce4046d"
+    },
+    {
+      "label": "flipmine:292",
+      "item": "366812094757",
+      "asin": "B00002STWL",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon nhl, eBay nhl all star hockey toys r us",
+      "hash": "6bc2e5845c3a7310e38f000856b3f75fd737a73089d3241419197efddf7f407e"
+    },
+    {
+      "label": "flipmine:294",
+      "item": "377647998558",
+      "asin": "B00NGJFIAO",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon original pac man arcade classics namco plug and play tv games, eBay myst; coreGame conflict: Amazon original pac man arcade classics namco plug and play tv games, eBay myst",
+      "hash": "2ed0f0ca91f8b68f2615455af8b8dfcc2d332ebb06d4650b603e6bd20e6db415"
+    },
+    {
+      "label": "flipmine:299",
+      "item": "840131334322",
+      "asin": "B000B88O7C",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon heroes of the pacific, eBay rare oop a heroes of the pacific cd rom game ubisoft pilot; coreGame conflict: Amazon heroes of the pacific, eBay rare oop a heroes of the pacific cd rom game ubisoft pilot",
+      "hash": "92023ce7d0c9d201c8fb6d7a77d3de59e8e3fd5c4860b86912b56c17592a8086"
+    },
+    {
+      "label": "flipmine:302",
+      "item": "327457073816",
+      "asin": "B002JMZSTA",
+      "identity": "match",
+      "status": "open",
+      "reason": "Identity matched or unknown; unknown fields are not positive evidence.",
+      "hash": "b0d2f518c41f02696eb3621ba2a994931b462b74bcf974f9fc3e2eae827adc41"
+    },
+    {
+      "label": "flipmine:303",
+      "item": "940092940834",
+      "asin": "B00004DITN",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon championship bass, eBay championship bass ea sports classic cd rom game; coreGame conflict: Amazon championship bass, eBay championship bass ea sports classic cd rom game 2000",
+      "hash": "c1879430d4d9318e409b6536797e93ee81fcced4d5b946ca0ef540103c0464d8"
+    },
+    {
+      "label": "flipmine:304",
+      "item": "147674885472",
+      "asin": "B09KVLJB8Q",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon ark ultimate survivor, eBay ark survival evolved ultimate survivor; coreGame conflict: Amazon ark ultimate survivor, eBay ark survival evolved ultimate survivor",
+      "hash": "c79d91201d4d6e8e1b16d71ee66a8f7298365450e315d25c1331425abdc06e43"
+    },
+    {
+      "label": "flipmine:307",
+      "item": "168862964410",
+      "asin": "B00YV5U456",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon nascar, eBay nascar new small tear in wrapper; coreGame conflict: Amazon nascar 15, eBay nascar 15 new small tear in wrapper",
+      "hash": "3000a2be2f2a48991fcaa701019a19ce264d8ebbdf8e25098832893c697dd618"
+    },
+    {
+      "label": "flipmine:308",
+      "item": "168862875438",
+      "asin": "B0002ILS1U",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon metroid prime echoes pre played, eBay metroid prime echoes 5ft flag banner gamecube poster ngc; coreGame conflict: Amazon metroid prime 2 echoes pre played, eBay metroid prime 2 echoes 5ft flag banner gamecube poster ngc",
+      "hash": "7a0190a120bf4e1113a0f296c5381e8bd28e7627058f9a5b1908117941feee54"
+    },
+    {
+      "label": "flipmine:310",
+      "item": "920143097903",
+      "asin": "B07HN559YB",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon warhammer chaosbane xb1, eBay warhammer chaosbane; coreGame conflict: Amazon warhammer chaosbane xb1, eBay warhammer chaosbane",
+      "hash": "e86dbb8b1f4e06b48fafea920342e7d118b0688b7083dd0b2da89b558a97615d"
+    },
+    {
+      "label": "flipmine:312",
+      "item": "880116519474",
+      "asin": "B003UCA4LK",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon cabelas north american adventures, eBay cabelas north american adventures no top shot gun; coreGame conflict: Amazon cabelas north american adventures 2011, eBay cabelas north american adventures no top shot gun; edition conflict: Amazon Standard, eBay Standard (game only)",
+      "hash": "4f2c26cb191d86d37f4f96f93efcbe0ca3cbd7c9d7b6bfff6ab178cb362d3a42"
+    },
+    {
+      "label": "flipmine:314",
+      "item": "960194925536",
+      "asin": "B000227VV2",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon the polar express, eBay the polar express small box; coreGame conflict: Amazon the polar express, eBay the polar express 2004 small box",
+      "hash": "a19264b5ba2501b5c2d120e4eba9f8443e13130be1deb04e88081f550c714d54"
+    },
+    {
+      "label": "flipmine:317",
+      "item": "117520175631",
+      "asin": "B00004SVUU",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon spider man return of the sinister six, eBay spider man return of the sinister six entertainment system; coreGame conflict: Amazon spider man return of the sinister six, eBay spider man return of the sinister six entertainment system",
+      "hash": "3e6123849f8ebbf4aa6cd6f601aaf9fa99f06c3c495c432d5f148dc35beb6216"
+    },
+    {
+      "label": "flipmine:318",
+      "item": "287728140102",
+      "asin": "B000930DP0",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon james bond from russia with love, eBay maximum chase; coreGame conflict: Amazon james bond 007 from russia with love, eBay maximum chase",
+      "hash": "b0073abc35fb71387d00e7d5ceb18f42b31f31f28c8f8d8de161d9e892f36ba3"
+    },
+    {
+      "label": "flipmine:319",
+      "item": "327454940694",
+      "asin": "B07QPQN379",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon accessory case rds game traveler deluxe system case black officially licensed, eBay traveler deluxe system case; coreGame conflict: Amazon accessory case rds game traveler deluxe system case black officially licensed, eBay traveler deluxe system case",
+      "hash": "d1ba72cf067116a4893d97d4c6bd54ad01ff7386eb60d430ebfea45a3d1f685c"
+    },
+    {
+      "label": "flipmine:320",
+      "item": "168861006260",
+      "asin": "B003O6C0V4",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon ea sports active, eBay ea sports active new please see that box has damage see pics; coreGame conflict: Amazon ea sports active 2, eBay ea sports active 2 new please see that box has damage see pics",
+      "hash": "e446dc2eb2a8cef389d65833ce25d6fe53d6dc17190b5de55a88d97119701476"
+    },
+    {
+      "label": "flipmine:322",
+      "item": "880114046055",
+      "asin": "B001C0L7KY",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon club penguin elite penguin force, eBay club penguin elite penguin force old stock; coreGame conflict: Amazon club penguin elite penguin force, eBay club penguin elite penguin force old stock",
+      "hash": "34aedceed4befbbb5e27312598bcfad910a1d22ef6a3e2930cde9106e0127d42"
+    },
+    {
+      "label": "flipmine:324",
+      "item": "900089003697",
+      "asin": "B000XJD33E",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon paws and claws pet resort, eBay paws and claws pet resort 2ds dsi dslite dsixl; coreGame conflict: Amazon paws and claws pet resort, eBay paws and claws pet resort 2ds dsi dslite dsixl",
+      "hash": "2b278a1d9b17c72a7dab2a6d3d852e621568288154e5450155479bc623246e04"
+    },
+    {
+      "label": "flipmine:325",
+      "item": "117519688170",
+      "asin": "B07JDSFNP4",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon overwatch legendary holiday bundle, eBay overwatch legendary edition holiday bundle; coreGame conflict: Amazon overwatch legendary holiday bundle, eBay overwatch legendary edition holiday bundle",
+      "hash": "ebc53e621e1009d9de9fce050aab0b5eb1aff30ec7874a11bafe8353c0d8cd93"
+    },
+    {
+      "label": "flipmine:326",
+      "item": "920140129422",
+      "asin": "B0081AWTZA",
+      "identity": "needs_review",
+      "status": "rejected",
+      "reason": "edition review: Amazon Greatest Hits, eBay Greatest Hits",
+      "hash": "f1b79af3ba8968b0f8dfb95bd7a9514623be95c638a3fa331cda376a73d94b3c"
+    },
+    {
+      "label": "flipmine:328",
+      "item": "920139922343",
+      "asin": "B002JQ43BU",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon touchmaster, eBay touch master; coreGame conflict: Amazon touchmaster 3, eBay touch master 3",
+      "hash": "5a0a0b477e9b6fe98d88245ce79a496096f2683f0b94403967bbf62f5d111f64"
+    },
+    {
+      "label": "flipmine:329",
+      "item": "327454566840",
+      "asin": "B000BT4ABA",
+      "identity": "match",
+      "status": "rejected",
+      "reason": "Identity matched or unknown; unknown fields are not positive evidence.",
+      "hash": "81574696cddd91c7712f5b83cd8469a5f5676741b27df3532e04d526b20970c8"
+    },
+    {
+      "label": "flipmine:330",
+      "item": "267842652899",
+      "asin": "B0000D12XH",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon railroad tycoon, eBay railroad tycoon 3 cd rom game complete 98 me 2000 xp; coreGame conflict: Amazon railroad tycoon 3, eBay railroad tycoon 3 cd rom game complete 98 me 2000 xp",
+      "hash": "6be23c314199b8a7584c758fe178991536ac6ec1ffe3eed7173f261de3c2b47b"
+    },
+    {
+      "label": "flipmine:332",
+      "item": "227612814505",
+      "asin": "B000OE3MG6",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon jakks hannah montana tv game, eBay hannah montana one in a million tv games plug and play tv game . bnip. look; coreGame conflict: Amazon jakks hannah montana tv game, eBay hannah montana one in a million tv games plug and play tv game 2007. bnip. look",
+      "hash": "657a0adcdfa706df570319b7abf220a9a4e3a2a8225a9a9275eee36d534b2eec"
+    },
+    {
+      "label": "flipmine:333",
+      "item": "206698331683",
+      "asin": "B000JX1KMA",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon aircraft power pack for ms flight simulator, eBay cd rom aircraft power pack for microsoft flight simulator; coreGame conflict: Amazon aircraft power pack for ms flight simulator, eBay cd rom aircraft power pack for microsoft flight simulator 10",
+      "hash": "1ce98123445936db98a267f401c496bdc5322eba0ec3788ba6f7114ceeb2a476"
+    },
+    {
+      "label": "flipmine:335",
+      "item": "287726096246",
+      "asin": "B08RMR6BBX",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon megadimension neptunia, eBay nsw megadimension neptunia; coreGame conflict: Amazon megadimension neptunia 7, eBay nsw megadimension neptunia 7; edition conflict: Amazon Megadimension Neptunia VII, eBay Collector's Edition",
+      "hash": "8d2c823437a317fc71edbf23e7121a91676a222143ee66402c019f8283bba8c6"
+    },
+    {
+      "label": "flipmine:337",
+      "item": "128191809473",
+      "asin": "B001US2N3S",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon donkey konga, eBay gc game donkey konga; coreGame conflict: Amazon donkey konga, eBay gc game donkey konga",
+      "hash": "2b590b98f1fd59ad314a4e6ad6b2da0d4299807b872976490c70b0b34d9bfbd8"
+    },
+    {
+      "label": "flipmine:340",
+      "item": "920136927214",
+      "asin": "B000B8K7RC",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon neverwinter nights diamond, eBay neverwinter nights diamond edition atari dvd rom d and d rpg; coreGame conflict: Amazon neverwinter nights diamond, eBay 2005 neverwinter nights diamond edition atari dvd rom d and d rpg",
+      "hash": "59ebba973da22747a299266939afa51b716e4b44756e83894b3eabb20bb9e5e6"
+    },
+    {
+      "label": "flipmine:342",
+      "item": "800909766023",
+      "asin": "B0B356GS5K",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon session skate sim, eBay session skate sim xsx; coreGame conflict: Amazon session skate sim, eBay session skate sim xsx",
+      "hash": "3ba598c1d004424d26dead3f38cc320d05ace4f464239367557943349425fe84"
+    },
+    {
+      "label": "flipmine:343",
+      "item": "960188454577",
+      "asin": "B000FICVGS",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon dr. sudoku, eBay dr. sudoku complete in box mastiff games; coreGame conflict: Amazon dr. sudoku, eBay dr. sudoku complete in box mastiff games",
+      "hash": "973fc48289873052e23a2b78fdb1e3de151a838074a5bfd8006b1d0ef9cd963c"
+    },
+    {
+      "label": "flipmine:344",
+      "item": "940087170614",
+      "asin": "B00002SVFQ",
+      "identity": "match",
+      "status": "rejected",
+      "reason": "Identity matched or unknown; unknown fields are not positive evidence.",
+      "hash": "25e0eef8a60711dcd4748cedd348eca894fac73e1817a4053cf2299b26e34831"
+    },
+    {
+      "label": "flipmine:345",
+      "item": "206696264834",
+      "asin": "B00ZGPISQ2",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon plants vs. zombies garden warfare no disc, eBay plants vs. zombies garden warfare game; coreGame conflict: Amazon plants vs. zombies garden warfare 2 no disc, eBay plants vs. zombies garden warfare 2 game",
+      "hash": "b47b3f7b89596876c4666c8e5327b94a93a73104b29f74d0143ccb9f60df490c"
+    },
+    {
+      "label": "flipmine:346",
+      "item": "920136106354",
+      "asin": "B0000E3D8T",
+      "identity": "match",
+      "status": "rejected",
+      "reason": "Identity matched or unknown; unknown fields are not positive evidence.",
+      "hash": "7920a7e309d50431a40c166c2f3d9dcf831fe1ebfc16a56d33e1f39117c9415f"
+    },
+    {
+      "label": "flipmine:347",
+      "item": "820347516961",
+      "asin": "B00009YEJK",
+      "identity": "match",
+      "status": "rejected",
+      "reason": "Identity matched or unknown; unknown fields are not positive evidence.",
+      "hash": "ee29f31abb0d329d875050ffadb7c169d94409c5bb08f90007421d9f36a90c5b"
+    },
+    {
+      "label": "flipmine:348",
+      "item": "820347454564",
+      "asin": "B00009YEJK",
+      "identity": "match",
+      "status": "rejected",
+      "reason": "Identity matched or unknown; unknown fields are not positive evidence.",
+      "hash": "db58c2d4847041b20eb9a7647b9aff7d5b5d1bb56386569779659c4b91288318"
+    },
+    {
+      "label": "flipmine:354",
+      "item": "198789975759",
+      "asin": "B000GM4JIQ",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon panzer commander, eBay panzer commander world war 2 tank simulator digital combat series new 1998; coreGame conflict: Amazon panzer commander, eBay panzer commander world war 2 tank simulator digital combat series new 1998",
+      "hash": "ce196020750bdd83d084784403e69419cdfb5a62bce6c32ed96671f3e4ca8a40"
+    },
+    {
+      "label": "flipmine:356",
+      "item": "257849050515",
+      "asin": "B00002SUV5",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon scrabble, eBay scrabble cd rom crossword game win hasbro interactive; coreGame conflict: Amazon scrabble, eBay scrabble cd rom crossword game win hasbro interactive",
+      "hash": "cc5c07eea35dc6b5bdfc33e74d6cd492dd0dfd988331cbbf256ebb97f35d7abc"
+    },
+    {
+      "label": "flipmine:360",
+      "item": "366803112668",
+      "asin": "B00002SW9V",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon olympic summer games atlanta, eBay olympic summer games; coreGame conflict: Amazon olympic summer games atlanta 1996, eBay olympic summer games",
+      "hash": "becf8528b33855e0b336c9a988482a03751cee9efeba5070778d4f8edb906c4c"
+    },
+    {
+      "label": "flipmine:361",
+      "item": "267841177402",
+      "asin": "B07SNQNDDS",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon roman rumble in las vegum asterix and obelix xxl nsw, eBay roman rumble in las vegum asterix and obelix xxl; coreGame conflict: Amazon roman rumble in las vegum asterix and obelix xxl 2 nsw, eBay roman rumble in las vegum asterix and obelix xxl 2",
+      "hash": "c47eaf8504d7a3f7c210e7dba3a284ebc80c464b7cb131e73cc07fed289ca49b"
+    },
+    {
+      "label": "flipmine:362",
+      "item": "307278156450",
+      "asin": "B008DQF8MI",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon i spy universe i spy fun house game pack, eBay new i spy game pack i spy universe i spy fun house; coreGame conflict: Amazon i spy universe i spy fun house game pack, eBay new i spy game pack i spy universe i spy fun house",
+      "hash": "beb4f06ab6d32409d6b756dc14a0439b3ed4e2867f14a13c738b49a0eb182c87"
+    },
+    {
+      "label": "flipmine:363",
+      "item": "407356454558",
+      "asin": "B009LWQ0H0",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon the witcher jc, eBay witcher jewel case; coreGame conflict: Amazon the witcher jc, eBay witcher jewel case",
+      "hash": "8ca9d99acbe891d55b565d9501fc5f9800dc610b168d14b6d867100f461be758"
+    },
+    {
+      "label": "flipmine:369",
+      "item": "307277912368",
+      "asin": "B0047UMO1C",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon mystery chasers collection nancy drew ghost dogs of moon lake and mysterious city vegas, eBay mystery chasers collection nancy drew ghost dogs moon lake; coreGame conflict: Amazon mystery chasers collection nancy drew ghost dogs of moon lake and mysterious city vegas, eBay mystery chasers collection nancy drew ghost dogs moon lake 7",
+      "hash": "b6f2211ccd9a551d565d6b45673bc57766fe331d385e0d76b6e202f6560d315a"
+    },
+    {
+      "label": "flipmine:373",
+      "item": "198769015346",
+      "asin": "B00KQXKUJ2",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon fifa, eBay fifa ultimate team; coreGame conflict: Amazon fifa 15, eBay fifa 15 ultimate team",
+      "hash": "005806f1863d4c5bfcf15d8fd68b08f512df5af65cdf7a34487ae11e618f3e56"
+    },
+    {
+      "label": "flipmine:374",
+      "item": "137922174983",
+      "asin": "B086Y24DDB",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon robotics notes elite and dash double pack, eBay robotics notes elite and dash double pack day one edition open box; coreGame conflict: Amazon robotics notes elite and dash double pack, eBay robotics notes elite and dash double pack day one edition open box",
+      "hash": "233f03afe1cacd2ba973f18e4d22695ba3f3120738c53dfab2739fc6b55494d9"
+    },
+    {
+      "label": "flipmine:377",
+      "item": "128187975317",
+      "asin": "B0000C6EB4",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon call of duty, eBay call of duty ghosts; coreGame conflict: Amazon call of duty, eBay call of duty ghosts",
+      "hash": "b5332bada1c988864536341d4bd4785c10cf7459b522c45fb287919e1302884b"
+    },
+    {
+      "label": "flipmine:378",
+      "item": "880104167202",
+      "asin": "B00KWG4HG0",
+      "identity": "match",
+      "status": "rejected",
+      "reason": "Identity matched or unknown; unknown fields are not positive evidence.",
+      "hash": "d100b10f7d80ce4e8a2bdbe29c04e15b2f9823a1e9a1b10612e00c3a58d4165a"
+    },
+    {
+      "label": "flipmine:382",
+      "item": "900081321133",
+      "asin": "B000CC58VM",
+      "identity": "match",
+      "status": "rejected",
+      "reason": "Identity matched or unknown; unknown fields are not positive evidence.",
+      "hash": "7d353349ca3e7808e6220a60f465497713ce840d0415bbb3946262bc87c92169"
+    },
+    {
+      "label": "flipmine:386",
+      "item": "168853212937",
+      "asin": "B00005AV8W",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon castlevania, eBay castlevania nes boxart simon belmont dracula flag banner poster; coreGame conflict: Amazon castlevania, eBay castlevania nes boxart 5 simon belmont dracula flag banner poster",
+      "hash": "6f0144daffdf2bd5c8914f345b90ff119dbeb0410441c713709741cd02392917"
+    },
+    {
+      "label": "flipmine:390",
+      "item": "147675007690",
+      "asin": "B00002SVFQ",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon f zero, eBay f zero for new hang tag; coreGame conflict: Amazon f zero, eBay f zero for new hang tag",
+      "hash": "a6b10c66b8d34a2dcad0618ba02b084ab72dc23ca904ff54c791ffd64d07b651"
+    },
+    {
+      "label": "flipmine:391",
+      "item": "860132019980",
+      "asin": "B00002ST78",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon pitfall the mayan adventure, eBay pitfall the mayan adventure genesis loose cartridge; coreGame conflict: Amazon pitfall the mayan adventure, eBay pitfall the mayan adventure genesis loose cartridge",
+      "hash": "e30f9e9de09ef8fb97676fbb0d194f67ae118d0f242bea8ddee7c587e752cb0a"
+    },
+    {
+      "label": "flipmine:396",
+      "item": "900080939896",
+      "asin": "B07MTYNGXS",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon star fox 3d, eBay star fox 3d starfox; coreGame conflict: Amazon star fox 64 3d, eBay star fox 64 3d starfox",
+      "hash": "05f7705af6e9e7fb8ae36ac2d0ac8416111a35369635883f0e2cdfde272bf3ee"
+    },
+    {
+      "label": "flipmine:398",
+      "item": "860131771114",
+      "asin": "B0792QY3C7",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon labo robot kit, eBay labo toy con robot kit game; coreGame conflict: Amazon labo robot kit, eBay labo toy con 02 robot kit game",
+      "hash": "ae3e1074d20397a2880b1649067a58ea1754b48ef19c0a21b6d75cc596e187c8"
+    },
+    {
+      "label": "flipmine:400",
+      "item": "147674711265",
+      "asin": "B07BHGDR4L",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon mario tennis aces, eBay mario tennis aces e16003773; coreGame conflict: Amazon mario tennis aces, eBay mario tennis aces e16003773",
+      "hash": "f3dab617b430de7c5c67a294a078cba5660813f0380daa4920527018c2bd9221"
+    },
+    {
+      "label": "flipmine:401",
+      "item": "327449651496",
+      "asin": "B003LDKLNO",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreGame conflict: Amazon puzzle time, eBay puzzle time 2010",
+      "hash": "dd92f08090555856f7d8c3b48cbb447347fd36f4d197a7b91449903d9e8f907e"
+    },
+    {
+      "label": "flipmine:403",
+      "item": "137918757807",
+      "asin": "B0019MRKNI",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon viva pi\u00f1ata trouble in paradise, eBay viva pinata; coreGame conflict: Amazon viva pi\u00f1ata trouble in paradise, eBay viva pinata 2",
+      "hash": "5947adddffb8b8421cfb42dc3996a397be70917397b18a3281d85915b71878d0"
+    },
+    {
+      "label": "flipmine:408",
+      "item": "407352057306",
+      "asin": "B08PTKJKLW",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon sniper ghost warrior contracts unlimited, eBay sniper ghost warrior unlimited; coreGame conflict: Amazon sniper ghost warrior contracts unlimited, eBay sniper ghost warrior unlimited",
+      "hash": "1dbc76854524793ee98e75c1c02e8003de49e524e496f0efa2592d8908e20fa4"
+    },
+    {
+      "label": "flipmine:411",
+      "item": "940079616512",
+      "asin": "B0BJL3Y3CL",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon far cry steelbook, eBay far cry steelbook with slipcover; coreGame conflict: Amazon far cry 6 steelbook, eBay far cry 6 steelbook with slipcover",
+      "hash": "b85d57dd3334ef0a22fa91cccb956d3a7f67f5f66f2cbb819624d23905185182"
+    },
+    {
+      "label": "flipmine:412",
+      "item": "407351786347",
+      "asin": "B0000631W0",
+      "identity": "match",
+      "status": "rejected",
+      "reason": "Identity matched or unknown; unknown fields are not positive evidence.",
+      "hash": "a1ea2ef65734185b86e92c612a2c81452e49ad057b5354a17e6ade102a4c1e4b"
+    },
+    {
+      "label": "flipmine:416",
+      "item": "960175240348",
+      "asin": "B000GM4JIQ",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon panzer commander, eBay ssi computer wargame panzer commander sw vg; coreGame conflict: Amazon panzer commander, eBay ssi computer wargame panzer commander sw vg",
+      "hash": "ef53a3675108dcda5cfa60d4fc28bfcb8df3a17e2c39d7ec213532b484454e8b"
+    },
+    {
+      "label": "flipmine:417",
+      "item": "237173359492",
+      "asin": "B0009AGDYS",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon pac man pinball advance, eBay vtg pac man pinball new vintage shelf wear; coreGame conflict: Amazon pac man pinball advance, eBay vtg pac man pinball new vintage shelf wear",
+      "hash": "33d89206bced70bdfcf4dba02b0e748c34489e17aa8620c87cda36496d1193eb"
+    },
+    {
+      "label": "flipmine:418",
+      "item": "920121580176",
+      "asin": "B0017HPSIO",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreGame conflict: Amazon princess on ice, eBay princess on ice 2008",
+      "hash": "1fbdc61165a008a4f71a3acb435b7202613e50ef9a807d42586dc71f3d0bfe3f"
+    },
+    {
+      "label": "flipmine:419",
+      "item": "168850219746",
+      "asin": "B0019MLWL4",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon banjo kazooie nuts and bolts, eBay banjo kazooie nuts and bolts viva pinata; coreGame conflict: Amazon banjo kazooie nuts and bolts, eBay banjo kazooie nuts and bolts viva pinata",
+      "hash": "757286c897bb3fc4648e0b9af894220e259997ec49ba5164bbbb4b6f6c9f7482"
+    },
+    {
+      "label": "flipmine:420",
+      "item": "128184903054",
+      "asin": "B005TJKVLU",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon s and s worldwide sports game, eBay new sports original cardboard sleeve; coreGame conflict: Amazon s and s worldwide sports game, eBay new sports original cardboard sleeve",
+      "hash": "e208e939f365f6aad4f5a4ca41862aa7e3f3a5834843b50aafe1c1f05a615947"
+    },
+    {
+      "label": "flipmine:421",
+      "item": "366796616088",
+      "asin": "B000001LXM",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon shadows of cairn cd rom, eBay mesque shadows of cairn sw; coreGame conflict: Amazon shadows of cairn cd rom, eBay mesque shadows of cairn sw",
+      "hash": "13ca520fa88cc3ae4f8262f2bcb3b812c66fe1a680a02a1dd02134e85ba42bce"
+    },
+    {
+      "label": "flipmine:423",
+      "item": "267838258341",
+      "asin": "B0012GUAII",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon the sims kitchen and bath interior design stuff, eBay the sims kitchen and bath interior design stuff a-3036; coreGame conflict: Amazon the sims 2 kitchen and bath interior design stuff, eBay the sims 2 kitchen and bath interior design stuff a-3036",
+      "hash": "77f42714fb075752c176b15195ac0ccd907a330ad7dbceeab09203e302112535"
+    },
+    {
+      "label": "flipmine:424",
+      "item": "267838245700",
+      "asin": "B000Q6ZLIO",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon world series of poker battle for the bracelets, eBay world series of poker portable a-3024; coreGame conflict: Amazon world series of poker 2008 battle for the bracelets, eBay world series of poker 2008 portable a-3024",
+      "hash": "b4ff4c3303f5d753efdf74661f8c02ff6e95d5f2c3d6a6264014254e9fea6054"
+    },
+    {
+      "label": "flipmine:425",
+      "item": "336887728055",
+      "asin": "B000196EN2",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon cosmi pool shark, eBay pool shark; coreGame conflict: Amazon cosmi pool shark, eBay pool shark",
+      "hash": "e58d122e048508001a13f2954c711a2ab29bd8b7e29b0458ec5f29eed327e942"
+    },
+    {
+      "label": "flipmine:426",
+      "item": "960172708321",
+      "asin": "B014LNTVGK",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon xenoblade chronicles, eBay new xenoblade chronicles; coreGame conflict: Amazon xenoblade chronicles 10, eBay new xenoblade chronicles 10",
+      "hash": "01d6e821ef48aa7d0d0d6d625d1e5c4b500f0e84420696a2e99ac98de45fe362"
+    },
+    {
+      "label": "flipmine:428",
+      "item": "920101890224",
+      "asin": "B0028A8PDY",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon active life extreme challenge bundle with mat, eBay active life extreme challenge with mat controller bundle namco bandai; coreGame conflict: Amazon active life extreme challenge bundle with mat, eBay active life extreme challenge with mat controller bundle namco bandai",
+      "hash": "29b8def6f833e035473d01a05e4a35d91e72d32983f34dbbe498d84f2d9d4e84"
+    },
+    {
+      "label": "flipmine:429",
+      "item": "117511699414",
+      "asin": "B002JTMNVO",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon chicken blaster with blaster hunting bundle, eBay chicken blaster bundle; coreGame conflict: Amazon chicken blaster with blaster hunting bundle, eBay 2007 chicken blaster bundle",
+      "hash": "fee0dd31ab14e4d24de23ca25a1b5112bf7802777d8324a9624c680a386b23d1"
+    },
+    {
+      "label": "flipmine:430",
+      "item": "800894349918",
+      "asin": "B001AZ7RH8",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon brain quest grades 3 and 4, eBay brain quest grades 3 and 4 trivia game ages 8 10; coreGame conflict: Amazon brain quest grades 3 and 4, eBay brain quest grades 3 and 4 trivia game ages 8 10",
+      "hash": "39f9871063a4758d941e23390d052c1ddf47a029027846cf0f8930dc1ae0b0b4"
+    },
+    {
+      "label": "flipmine:435",
+      "item": "327446722019",
+      "asin": "B000G67704",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon casino de luxe classic games, eBay casino de luxe classic games software new in box; coreGame conflict: Amazon casino de luxe 7 classic games, eBay casino de luxe 7 classic games software new in box",
+      "hash": "dbd8d3a5d8ff64f7c829c5d0d341a383c05403551d6b47557f0aab5efcffefb2"
+    },
+    {
+      "label": "flipmine:437",
+      "item": "920119274802",
+      "asin": "B001PA0FC2",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreGame conflict: Amazon history great empires rome, eBay history great empires rome 2009",
+      "hash": "b4000f7055bb3eaaf006b92b5c0d8e1e7169589f2ab2495ba846064c4c7bc692"
+    },
+    {
+      "label": "flipmine:438",
+      "item": "377631322507",
+      "asin": "B000UQSRMC",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon bejeweled, eBay a21 bejeweled from pop cap games please read dsc; coreGame conflict: Amazon bejeweled, eBay a21 bejeweled from pop cap games please read dsc",
+      "hash": "03c581594f2599fb54fb0d145b07d2ab11967197ec53fc639ef48c29a458b8db"
+    },
+    {
+      "label": "flipmine:449",
+      "item": "267836776844",
+      "asin": "B004HVKA9O",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon dynasty warriors, eBay dynasty warriors for the no manual tested and working; coreGame conflict: Amazon dynasty warriors 7, eBay dynasty warriors 7 for the no manual tested and working",
+      "hash": "bd92dbcd8d6e1b3f4fbbb694463928ad569aa2b00b6b69ccefc7381d43c287dc"
+    },
+    {
+      "label": "flipmine:451",
+      "item": "227603026587",
+      "asin": "B00002STWL",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon nhl, eBay nhl sega saturn excellent condition ntsc; coreGame conflict: Amazon nhl 97, eBay nhl 97 sega saturn excellent condition ntsc",
+      "hash": "d8dcfc4ff9a7ebe09b42eecdfda84c82dfef8954c17090a91ea7e217afd7afd7"
+    },
+    {
+      "label": "flipmine:454",
+      "item": "227602780052",
+      "asin": "B00MUTAU18",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon farming simulator, eBay farming simulator 15 dvd rom maximum games usa win 7 8 game; coreGame conflict: Amazon farming simulator 15, eBay farming simulator 15 dvd rom maximum games usa win 7 8 game",
+      "hash": "cba762897e019cd59abbe1966cf9b3270a3003761f3d5b169d9a37abadf7e7a6"
+    },
+    {
+      "label": "flipmine:456",
+      "item": "227602520943",
+      "asin": "B00VEPK9U6",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon guitar hero live, eBay guitar hero live unused game; coreGame conflict: Amazon guitar hero live, eBay guitar hero live unused game; edition conflict: Amazon None, eBay None",
+      "hash": "14f6228d04e0fd09001c5fd0e58a80338656701d2830c9cb9126e474c646bd0e"
+    },
+    {
+      "label": "flipmine:458",
+      "item": "880090923440",
+      "asin": "B00004S99R",
+      "identity": "match",
+      "status": "rejected",
+      "reason": "Identity matched or unknown; unknown fields are not positive evidence.",
+      "hash": "9631cae5ae630d1431ad2c5a1023e8c74cd1ba140f92b129fbec61118fb085e8"
+    },
+    {
+      "label": "flipmine:460",
+      "item": "377627515310",
+      "asin": "B00008G75X",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon crimson skies, eBay crimson skies high road to revenge; coreGame conflict: Amazon crimson skies, eBay crimson skies high road to revenge",
+      "hash": "fc5c4c5e4f4065df718964f03bf12095c37531cf0c0ad65a722dfd9800555c50"
+    },
+    {
+      "label": "flipmine:468",
+      "item": "336883948176",
+      "asin": "B001ENOVP2",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon world of goo, eBay world of goo 2d boy cd rom w slipcover read; coreGame conflict: Amazon world of goo, eBay world of goo 2d boy cd rom w slipcover read",
+      "hash": "487193391b2750d54ab1d7a9909f4ad71c9f241a96361a2fc978753851e9bb5d"
+    },
+    {
+      "label": "flipmine:469",
+      "item": "227601734749",
+      "asin": "B007ZQJN1Y",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon star trek, eBay star trek the game; coreGame conflict: Amazon star trek, eBay star trek the game",
+      "hash": "3328878e0cc5833201122de6b8b1917d44476c41804da8cb0b24e7f579341c4a"
+    },
+    {
+      "label": "flipmine:470",
+      "item": "880089117994",
+      "asin": "B000CC5CHW",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon suikoden, eBay suikoden and y fold; coreGame conflict: Amazon suikoden 5, eBay suikoden 5 and y fold",
+      "hash": "f939f41d2dca556685ebd044a28d593c654bac77d1e8c82ed795a5f3be41d1d6"
+    },
+    {
+      "label": "flipmine:472",
+      "item": "168842520571",
+      "asin": "B007C72F2U",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon sid meiers civilization gods and kings, eBay sid meiers civilization gods and kings expansion pack; coreGame conflict: Amazon sid meiers civilization 5 gods and kings, eBay sid meiers civilization 5 gods and kings expansion pack",
+      "hash": "3c73b01f75931fb37580d86017a30d4c272b5779810432fa6e78f09c00522091"
+    },
+    {
+      "label": "flipmine:474",
+      "item": "840098590880",
+      "asin": "B000OE3MG6",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon jakks hannah montana tv game, eBay hannah montana one in a million tv games plug and play tv game; coreGame conflict: Amazon jakks hannah montana tv game, eBay hannah montana one in a million tv games plug and play tv game 2007",
+      "hash": "d9aade6164e37e8863517299e849e8ce571d897ca2f3db63313d37d43acc84ea"
+    },
+    {
+      "label": "flipmine:475",
+      "item": "860116884689",
+      "asin": "B0009PQCSU",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon dungeon siege, eBay dungeon siege cd rom microsoft; coreGame conflict: Amazon dungeon siege 2, eBay dungeon siege 2 cd rom microsoft",
+      "hash": "29d40fde6c096d5ea61c3e1f55562ce5bb97a21974b89dff828a02a1c405dc03"
+    },
+    {
+      "label": "flipmine:476",
+      "item": "198775501957",
+      "asin": "B003UEREBQ",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon lock on platinum, eBay lock on platinum combat flight simulation game; coreGame conflict: Amazon lock on platinum, eBay lock on platinum combat flight simulation game",
+      "hash": "2e4c111c65a8cac4f9d96940c641d2089561e4f2b608001dfff9ca84b3e25384"
+    },
+    {
+      "label": "flipmine:477",
+      "item": "407342909778",
+      "asin": "B0028ZH7GU",
+      "identity": "match",
+      "status": "rejected",
+      "reason": "Identity matched or unknown; unknown fields are not positive evidence.",
+      "hash": "be3fc142bd5d6d4c0c4c633a47a998b2878265bf4257a08dde4eaa58d6b9954f"
+    },
+    {
+      "label": "flipmine:480",
+      "item": "287707217879",
+      "asin": "B000038IF8",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon championship bass, eBay championship bass for cib; coreGame conflict: Amazon championship bass, eBay championship bass for cib",
+      "hash": "9c438aef11865cb01619a7ba8193badf2c31858dbb811fac7c705e9c289f21fb"
+    },
+    {
+      "label": "flipmine:481",
+      "item": "307268149592",
+      "asin": "B07XLGKW39",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon rune factory, eBay rune factory special; coreGame conflict: Amazon rune factory 4, eBay rune factory 4 special",
+      "hash": "721c1f3ecd971d2dcc51f753ca8881715f0895b22f7c95bbd430095d6eb3fa3a"
+    },
+    {
+      "label": "flipmine:484",
+      "item": "137903669838",
+      "asin": "B0007TYP50",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon three dirty dwarves, eBay new three dirty dwarves game cdrom cd rom sega soft; coreGame conflict: Amazon three dirty dwarves, eBay new three dirty dwarves game cdrom 95 cd rom sega soft",
+      "hash": "1ea820e83e8d6de65ada0222f29c0703cd4180886e358e9a0018a546d0c3beaa"
+    },
+    {
+      "label": "flipmine:485",
+      "item": "287705794459",
+      "asin": "B0160YPHZM",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon mario and luigi rpg paper mario mix japanese ver. region locked not compatible with north american japan, eBay unopened mario and luigi rpg paper mario mix action rpg jp; coreGame conflict: Amazon mario and luigi rpg paper mario mix japanese ver. region locked not compatible with north american japan, eBay unopened mario and luigi rpg paper mario mix action rpg jp",
+      "hash": "147ceeb12222694102765f22fd19adcd6a31d49051f3b10c4bb43d5c2e04fbf1"
+    },
+    {
+      "label": "flipmine:486",
+      "item": "336880556050",
+      "asin": "B0002TKOO6",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon quantum gate, eBay quantum gate the saga begins big; coreGame conflict: Amazon quantum gate, eBay quantum gate the saga begins big",
+      "hash": "bb6a8fc9ad0e517b665457d4c195590fa3bf7512513505fbaf8c91ab12364c39"
+    },
+    {
+      "label": "flipmine:487",
+      "item": "960155605284",
+      "asin": "B00004S99S",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon jet grind radio sega dreamcast, eBay jet grind radio complete new mint; coreGame conflict: Amazon jet grind radio sega dreamcast, eBay jet grind radio complete new mint",
+      "hash": "969489f3ae6facc30783b1c83408b0ce749fd245dd7ec2fbc522961a1b87c867"
+    },
+    {
+      "label": "flipmine:488",
+      "item": "267833718842",
+      "asin": "B001RL8X2I",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon cradle of rome, eBay jewel master cradle of rome new a-2807; coreGame conflict: Amazon cradle of rome, eBay jewel master cradle of rome new a-2807",
+      "hash": "228c4f8bdecec0753e3fee5ed775fe7e46c9f2b4d1016d05912daf21d262da3b"
+    },
+    {
+      "label": "flipmine:489",
+      "item": "327440180342",
+      "asin": "B000RGIB08",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon nancy drew the deadly secret of olde world park, eBay nancy drew deadly secret of olde world park; coreGame conflict: Amazon nancy drew the deadly secret of olde world park, eBay nancy drew deadly secret of olde world park",
+      "hash": "85c771373fbc5386dfa94a11f8de89b82c72f116d181ed67fa74d9712810a4e9"
+    },
+    {
+      "label": "flipmine:491",
+      "item": "800878247719",
+      "asin": "B01K63R7EW",
+      "identity": "match",
+      "status": "rejected",
+      "reason": "Identity matched or unknown; unknown fields are not positive evidence.",
+      "hash": "8d73c626d2a1d57edc3151f2df94745611188ae3b3b101b8944177b98b6a8cf2"
+    },
+    {
+      "label": "flipmine:492",
+      "item": "128175644953",
+      "asin": "B0009Z3K76",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon frogger helmet chaos dvd rom, eBay frogger helmet chaos; coreGame conflict: Amazon frogger helmet chaos dvd rom, eBay frogger helmet chaos; edition conflict: Amazon DVD-Rom, eBay Complete Edition",
+      "hash": "3c67f1eac351feb9125d29890af25b8e029631f0aec998203d888384b42be125"
+    },
+    {
+      "label": "flipmine:495",
+      "item": "257835315697",
+      "asin": "B00B2QL2Y4",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon pandoras tower, eBay pandoras tower north american; coreGame conflict: Amazon pandoras tower, eBay pandoras tower north american",
+      "hash": "c3b9782eaf7fc617b69812f8d1503a34be23627e56bf426f3322cbcd931ef878"
+    },
+    {
+      "label": "flipmine:496",
+      "item": "257835263656",
+      "asin": "B00002STSW",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon ridge racer, eBay ridge racer gh; coreGame conflict: Amazon ridge racer, eBay ridge racer gh",
+      "hash": "f9444d8e9a6e5abf8941534d55047d64fd032b260ef9481863bb1fcccb052e04"
+    },
+    {
+      "label": "flipmine:500",
+      "item": "198772652578",
+      "asin": "B0847WDW8Y",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon guns of mercy rangers edition just limited, eBay guns of mercy rangers edition still complete; coreGame conflict: Amazon guns of mercy rangers edition just limited, eBay guns of mercy rangers edition still complete",
+      "hash": "c4bf0fec03b388c3f4ef5f575fc88692dc6d4979e35081604b461465231e0afb"
+    },
+    {
+      "label": "flipmine:501",
+      "item": "128175335738",
+      "asin": "B0009IN2J4",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon nightmare before christmas oogies revenge, eBay tim burtons the nightmare before christmas oogies revenge; coreGame conflict: Amazon nightmare before christmas oogies revenge, eBay tim burtons the nightmare before christmas oogies revenge",
+      "hash": "ae0cf7db3754a04c8a502cd9ca01dc99305932dc5af215270f3302ae5538139a"
+    },
+    {
+      "label": "flipmine:502",
+      "item": "307266641257",
+      "asin": "B0847WS6Q3",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon finding teddy just limited, eBay finding teddy eu version; coreGame conflict: Amazon finding teddy 2 just limited, eBay finding teddy 2 eu version",
+      "hash": "484e7a032f53d0a44125be5a49e7a0f713af436a9e3a7ebfc29909979b591817"
+    },
+    {
+      "label": "flipmine:504",
+      "item": "840093208333",
+      "asin": "B000UQSRMC",
+      "identity": "match",
+      "status": "rejected",
+      "reason": "Identity matched or unknown; unknown fields are not positive evidence.",
+      "hash": "38031d070f067cb54ea92c34ff7a56758c95e589b5385a488900d6b228c8e08e"
+    },
+    {
+      "label": "flipmine:505",
+      "item": "128175178548",
+      "asin": "B071WKK8GB",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon just dance, eBay just dance and biggest loser ultimate workout kinect",
+      "hash": "ccfcf46e85d173ae1b05f5fdcaf094569ded43c6971b8de6446b053a856aa390"
+    },
+    {
+      "label": "flipmine:508",
+      "item": "137901603905",
+      "asin": "B000BFIASS",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon mario kart, eBay mario kart 2ds dsi ndsi xl lite quickest shipping; coreGame conflict: Amazon mario kart, eBay mario kart 2ds dsi ndsi xl lite quickest shipping",
+      "hash": "bcd735f1206ba44d2e4e8c2a3fe1fc9c81abd6645f136e8a688747a9a55ed3aa"
+    },
+    {
+      "label": "flipmine:511",
+      "item": "128173737594",
+      "asin": "B000VXBQ6S",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon exile by turbo grafx, eBay exile u.s. turbo grafx cd turbo duo; coreGame conflict: Amazon exile by turbo grafx, eBay exile u.s. turbo grafx cd turbo duo",
+      "hash": "24a792fc74e1baf4e45d7c24fba51f25ab141d5be62c51e6ad4b813acf00aca8"
+    },
+    {
+      "label": "flipmine:513",
+      "item": "257833297409",
+      "asin": "B002TDIEDQ",
+      "identity": "match",
+      "status": "open",
+      "reason": "Identity matched or unknown; unknown fields are not positive evidence.",
+      "hash": "097476402b65b3a92a074700e0e2fa1407c8615223054e700759baf40574bd8a"
+    },
+    {
+      "label": "flipmine:516",
+      "item": "206673827728",
+      "asin": "B00000G16I",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon simcity, eBay simcity cd rom; coreGame conflict: Amazon simcity 3000, eBay simcity 3000 cd rom; edition conflict: Amazon Standard, eBay Complete Edition + Gold Edition",
+      "hash": "981af90b1425877df0a3dc1361c0094db3c7d8fa028856099204965319681bdf"
+    },
+    {
+      "label": "flipmine:517",
+      "item": "880080244331",
+      "asin": "B00006LEMA",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon superman man of steel, eBay shaun white snowboarding for and; coreGame conflict: Amazon superman man of steel, eBay shaun white snowboarding for and",
+      "hash": "9cdf031d46893625ae0b84612435dcdeaeadf03419dc5305c02a03cc1f174170"
+    },
+    {
+      "label": "flipmine:518",
+      "item": "227596546403",
+      "asin": "B09GZH3NP2",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon prinny presents nis classics volume makai kingdom reclaimed and rebound zhp unlosing ranger vs. darkdeath evilman, eBay prinny presents nis classics volume; coreGame conflict: Amazon prinny presents nis classics volume 2 makai kingdom reclaimed and rebound zhp unlosing ranger vs. darkdeath evilman, eBay prinny presents nis classics volume 2",
+      "hash": "4712e91731baf1b16240c9d3b2a653047f3adc1318bf575e0608ccd4464f74fb"
+    },
+    {
+      "label": "flipmine:519",
+      "item": "407337739013",
+      "asin": "B0002GTFJ4",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon conflict vietnam, eBay conflict vietnam survival action shooter; coreGame conflict: Amazon conflict vietnam, eBay conflict vietnam survival action shooter",
+      "hash": "83bcf0526391ee27c4249c9ce23c9918de89d9ad38579cc8fc76f776fafee6a1"
+    },
+    {
+      "label": "flipmine:520",
+      "item": "257833035632",
+      "asin": "B0007DGB4O",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon myst revelation, eBay myst 4 revelation 4; coreGame conflict: Amazon myst 4 revelation, eBay myst 4 revelation 4",
+      "hash": "387ce4b564b935921c93d061afb4ce95e8f2f5a48360818e85d460eff6907b5d"
+    },
+    {
+      "label": "flipmine:522",
+      "item": "206673542664",
+      "asin": "B003FBL86Q",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon mega man zero collection, eBay mega man zero collection rare rand; coreGame conflict: Amazon mega man zero collection, eBay mega man zero collection rare rand",
+      "hash": "3885c0b1cf650114bc4748eabb1ba878be2deb1b7cba2738fa378d5cc27e4628"
+    },
+    {
+      "label": "flipmine:525",
+      "item": "960150211823",
+      "asin": "B001E3ARJ6",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon neverwinter nights storm of zehir expansion, eBay neverwinter nights storm of zehir expansion pack dvd rom game obsidian; coreGame conflict: Amazon neverwinter nights 2 storm of zehir expansion, eBay neverwinter nights 2 storm of zehir expansion pack dvd rom game obsidian",
+      "hash": "438ea211db542097da872fb1181e554408bb14defa26941e315af053ffc398bc"
+    },
+    {
+      "label": "flipmine:526",
+      "item": "117502355975",
+      "asin": "B000069BC8",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon tony hawks pro skater pre owned, eBay tony hawks pro skater read; coreGame conflict: Amazon tony hawks pro skater 3 pre owned, eBay tony hawks pro skater 3 read",
+      "hash": "f9d5f00293a35cba3ce114246995e5efb08bd55acd388a9d38554d695a4d2a1c"
+    },
+    {
+      "label": "flipmine:528",
+      "item": "168835197137",
+      "asin": "B000035YBP",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon time stalkers, eBay time stalkers 5ft flag banner poster; coreGame conflict: Amazon time stalkers, eBay time stalkers 5ft flag 2000 banner poster",
+      "hash": "ac55fecbd668af5935d36f02eadf78391e8f70bf00b7f563d32c8718cee7cace"
+    },
+    {
+      "label": "flipmine:529",
+      "item": "920101007883",
+      "asin": "B001AIR1F8",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon the sims apartment life expansion pack, eBay the sims apartment life and nib; coreGame conflict: Amazon the sims 2 apartment life expansion pack, eBay the sims 2 apartment life and nib",
+      "hash": "3e4d259a45ce8ecc57382009c4b93e72906a74203ea0279fcc33d9e0238c158d"
+    },
+    {
+      "label": "flipmine:534",
+      "item": "137897380640",
+      "asin": "B07GWLLT3Z",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon capcom onimusha warlords sony japanese version, eBay onimusha warlords; coreGame conflict: Amazon capcom onimusha warlords sony japanese version, eBay onimusha warlords",
+      "hash": "9763df1dfff6e971e1773b228006ecb4ea5f202314e864bd81dca6e2ce1a72c4"
+    },
+    {
+      "label": "flipmine:535",
+      "item": "128171734910",
+      "asin": "B00002SW9V",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon olympic summer games atlanta, eBay olympic summer games; coreGame conflict: Amazon olympic summer games atlanta 1996, eBay olympic summer games",
+      "hash": "b207b5a87a315c817d3c4e35b6cb6efcd901fb1e28fec596dbeec7741ba763ff"
+    },
+    {
+      "label": "flipmine:536",
+      "item": "128171734326",
+      "asin": "B00002STWL",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon nhl, eBay nhl all star hockey toys r us; coreGame conflict: Amazon nhl 97, eBay nhl all star hockey 98 toys r us; installment conflict: Amazon 97, eBay 98",
+      "hash": "a59ef4eeeea5699cc43de8bee5510ad68f92707840a630e9cd50f385a7c77006"
+    },
+    {
+      "label": "flipmine:537",
+      "item": "377616657596",
+      "asin": "B00PTMIM8G",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon dragon age inquisition for and prima official game guide maps collectibles bonus digital access, eBay dragon age inquisition; coreGame conflict: Amazon dragon age inquisition for and prima official game guide maps collectibles bonus digital access, eBay dragon age inquisition; platform conflict: Amazon PlayStation 4, eBay PC",
+      "hash": "a6d0c1a0fa0f859ca2af65d476c145cfcb2380b6b70744c2cff2e877d335b0eb"
+    },
+    {
+      "label": "flipmine:538",
+      "item": "940060932041",
+      "asin": "B00009V3KM",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon the sims makin magic expansion pack, eBay sims makin magic expansion cd rom disc; coreGame conflict: Amazon the sims makin magic expansion pack, eBay sims makin magic expansion cd rom disc",
+      "hash": "1b8bf1857d9d991bb852c8f0ed58515c7320a8490331ecd06b6bd70ae8c5e135"
+    },
+    {
+      "label": "flipmine:544",
+      "item": "327435892919",
+      "asin": "B0734W6LYT",
+      "identity": "match",
+      "status": "open",
+      "reason": "Identity matched or unknown; unknown fields are not positive evidence.",
+      "hash": "62069a98373048501cbb936a58363858b971b9b3c2c037ceb90bb0f83207e95f"
+    },
+    {
+      "label": "flipmine:546",
+      "item": "327435872818",
+      "asin": "B079T6CHPV",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon labo toy con variety kit world, eBay labo toy con variety kit; coreGame conflict: Amazon labo toy con 01 variety kit world, eBay labo toy con 01 variety kit",
+      "hash": "ac7de8393fabce29cee65e2f7efaccfccdff8d878bf3bb4d08d2cc7a862dcde6"
+    },
+    {
+      "label": "flipmine:549",
+      "item": "366779226537",
+      "asin": "B00005BYKH",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon apex, eBay apex microsoft og; coreGame conflict: Amazon apex, eBay apex microsoft og",
+      "hash": "db43cd2c642a55c6e8c4b396e52effcf9fbe1529b293021c985e9cab948f6886"
+    },
+    {
+      "label": "flipmine:555",
+      "item": "840084485358",
+      "asin": "B00002SVFQ",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon f zero, eBay f zero game; coreGame conflict: Amazon f zero, eBay 1997 f zero game",
+      "hash": "b7f141c1bf757334bbcc0851b3af252f1d94c4891cd9b2c2dd2a0d396b77f4cd"
+    },
+    {
+      "label": "flipmine:558",
+      "item": "287698458544",
+      "asin": "B0000690ZY",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon romance of the three kingdoms, eBay romance of the three kingdoms complete cib; coreGame conflict: Amazon romance of the three kingdoms 7, eBay romance of the three kingdoms 7 complete cib",
+      "hash": "e7a67170ba4c1fe1affd192aab6d15071fd3a33a0d42be98163a73164c71b65c"
+    },
+    {
+      "label": "flipmine:238",
+      "item": "920153081093",
+      "asin": "B00005B8FZ",
+      "identity": "match",
+      "status": "rejected",
+      "reason": "Identity matched or unknown; unknown fields are not positive evidence.",
+      "hash": "a6cda4bc68d1e9930966ad64d894e6588c7690b704f292fe1397de38a55b453e"
+    },
+    {
+      "label": "prior97:0079c51b-4f95-4717-af23-ad17c1a43e72",
+      "item": "940104211749",
+      "asin": "B00VMB5VFK",
+      "identity": "needs_review",
+      "status": "rejected",
+      "reason": "Unresolved identity detail on one side: edition",
+      "hash": "a5386e5f40d20e72e694ce1d0675fbe63c80b1df10fccfeb6fd796a5b0c6121b"
+    },
+    {
+      "label": "prior97:0419da74-196f-4f22-b287-ce7ed9f85a33",
+      "item": "137895810464",
+      "asin": "B000784XF8",
+      "identity": "match",
+      "status": "open",
+      "reason": "Identity matched or unknown; unknown fields are not positive evidence.",
+      "hash": "fb6b6ced22e1358c0614dedf5d9ea0ac79846c5bfcef58eb0f44c5d9a1ff022a"
+    },
+    {
+      "label": "prior97:043fdbaa-3d02-4a6f-bd9c-89fb15970cfe",
+      "item": "358780240657",
+      "asin": "B00E20STC0",
+      "identity": "match",
+      "status": "open",
+      "reason": "Identity matched or unknown; unknown fields are not positive evidence.",
+      "hash": "261393d69885dab1320c80cc540ce1dc699d57996318c329bbceb6d8c36ae6d4"
+    },
+    {
+      "label": "prior97:09d4073e-3988-48c0-903b-67689fc54398",
+      "item": "407234664205",
+      "asin": "B07G8SYSDS",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon tom clancys the division gold steelbook, eBay ubisoft tom clancys the division gold steelbook; coreGame conflict: Amazon tom clancys the division 2 gold steelbook, eBay ubisoft tom clancys the division 2 gold steelbook; edition conflict: Amazon Gold Steelbook, eBay Gold Edition",
+      "hash": "f066d95b36f123cccc3c212002e6421e04ee956384999da3b19e597b11a128d1"
+    },
+    {
+      "label": "prior97:1117d410-a333-4c42-8e94-95c8a6fe87ab",
+      "item": "940098783744",
+      "asin": "B000196EN2",
+      "identity": "match",
+      "status": "open",
+      "reason": "Identity matched or unknown; unknown fields are not positive evidence.",
+      "hash": "b5697d0a0038cdcd36fe18afb065651ac7210b53f2700e7e5870948ae8666053"
+    },
+    {
+      "label": "prior97:12fbb490-866a-4d5a-8969-fe1f7a47f445",
+      "item": "840120275430",
+      "asin": "B000MAFXTQ",
+      "identity": "match",
+      "status": "rejected",
+      "reason": "Identity matched or unknown; unknown fields are not positive evidence.",
+      "hash": "4ae7311dfb3e278a97fea9544d24f792bcc3127746f1a0be89ec44172abb30e6"
+    },
+    {
+      "label": "prior97:1312ac93-e2c1-4516-ba8f-d35f1ed19f23",
+      "item": "168880221669",
+      "asin": "B000AQE79E",
+      "identity": "needs_review",
+      "status": "rejected",
+      "reason": "coreProduct review: Amazon quake special dvd, eBay quake special dvd; coreGame review: Amazon quake 4 special dvd, eBay quake 4 special dvd",
+      "hash": "7d750ecd0a7a8f4fe742b8e2e93c3356651a86ed2548c8b47e9593b23859f618"
+    },
+    {
+      "label": "prior97:13bc8ada-e629-410e-b936-eb1bd1a3b440",
+      "item": "377657120015",
+      "asin": "B013C6OU04",
+      "identity": "needs_review",
+      "status": "rejected",
+      "reason": "Unresolved identity detail on one side: edition",
+      "hash": "26e88e543a2177a66078bb96597ea3fe3260f8d4785cb5d4bc1e978fdf03ef70"
+    },
+    {
+      "label": "prior97:1bdc9575-14a6-4bda-8062-d74f48455b3c",
+      "item": "307276590990",
+      "asin": "B000HW17NU",
+      "identity": "needs_review",
+      "status": "rejected",
+      "reason": "coreProduct review: Amazon garfield in tv land, eBay new garfield in tv land sega entertainment cd rom; coreGame review: Amazon garfield in tv land, eBay new garfield in tv land sega entertainment cd rom",
+      "hash": "a516c6291b993f87a5faaa4d42b71c4d3c5800c7c40a7dc4a21d777e1ffabf79"
+    },
+    {
+      "label": "prior97:1ce910d6-0dba-4365-ba78-6869fe443896",
+      "item": "860135189241",
+      "asin": "B001RTCOWA",
+      "identity": "match",
+      "status": "open",
+      "reason": "Identity matched or unknown; unknown fields are not positive evidence.",
+      "hash": "271963cd3cdb9bca32a4f18e2669d3326a6180c35d360d06f4bb5542832cb83f"
+    },
+    {
+      "label": "prior97:1e613929-aea1-4d74-b774-e008106d9477",
+      "item": "880124306447",
+      "asin": "B0069EB9DI",
+      "identity": "match",
+      "status": "open",
+      "reason": "Identity matched or unknown; unknown fields are not positive evidence.",
+      "hash": "101436e54394feca7ffcfe27c4781a7c8aadb60cb40f0d001f60a3ae8090a683"
+    },
+    {
+      "label": "prior97:1f56ba84-727d-4e04-aed3-c1b34c681507",
+      "item": "117516906660",
+      "asin": "B00008KTV7",
+      "identity": "needs_review",
+      "status": "rejected",
+      "reason": "Unresolved identity detail on one side: edition",
+      "hash": "eb1845572b096302614be47e1afca828773f8cc541b6bbe77e444a7a63fff139"
+    },
+    {
+      "label": "prior97:23aca048-27db-4000-96a6-70afadf7a37f",
+      "item": "366801881758",
+      "asin": "B0000AUFQ3",
+      "identity": "match",
+      "status": "open",
+      "reason": "Identity matched or unknown; unknown fields are not positive evidence.",
+      "hash": "16849faaac477290f7f8ab4f5a88ebff6cf149f72004bc13c75a7b840ac2b2b6"
+    },
+    {
+      "label": "prior97:263c7925-efab-4aaf-be46-f92d8ca9a0a6",
+      "item": "920160850722",
+      "asin": "B0009Z3KAI",
+      "identity": "match",
+      "status": "open",
+      "reason": "Identity matched or unknown; unknown fields are not positive evidence.",
+      "hash": "dd0e0a7dad2778dee03c98a2f2350df714430395c3dae402b488981bece1e264"
+    },
+    {
+      "label": "prior97:30edae7b-25a2-4342-a5b6-f60609317af9",
+      "item": "127870817021",
+      "asin": "B0042GW7CC",
+      "identity": "match",
+      "status": "dismissed",
+      "reason": "Identity matched or unknown; unknown fields are not positive evidence.",
+      "hash": "12a38a30fd36b3d4db004b0f5e0cfa9d3c7e5377f4b0e6660248cd49e6155358"
+    },
+    {
+      "label": "prior97:3a766e5b-efa2-4df7-98e2-8371a4cf1201",
+      "item": "237134491039",
+      "asin": "B0081AWTZA",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon just dance, eBay just dance kinect game; coreGame conflict: Amazon just dance, eBay just dance kinect game",
+      "hash": "2a91bd1f10d6c1a74dc06f910adee601291febb6d14fb35d2c74ac7d806788fb"
+    },
+    {
+      "label": "prior97:3b17b394-71c7-4a9a-83a9-b23236217e12",
+      "item": "206708988724",
+      "asin": "B01GKHJPAC",
+      "identity": "needs_review",
+      "status": "rejected",
+      "reason": "coreProduct review: Amazon persona take your heart, eBay persona take your heart game; coreGame review: Amazon persona 5 take your heart, eBay persona 5 take your heart game; edition review: Amazon Premium Edition, eBay Premium Edition",
+      "hash": "b45a9936568aa029104c8ef87074ad33b27ca504c78bff4cc48f0239376af4b4"
+    },
+    {
+      "label": "prior97:3fb0348d-5329-4298-94d3-32e0407d0a5f",
+      "item": "920147066337",
+      "asin": "B0000E3D8T",
+      "identity": "needs_review",
+      "status": "rejected",
+      "reason": "Unresolved identity detail on one side: edition",
+      "hash": "06777532ceb10b5111244e8a6f146efdbc4657477314b9a6642265cbcf91810e"
+    },
+    {
+      "label": "prior97:47197c11-88c5-43c9-9ca4-9a0b4ec3b818",
+      "item": "198790647550",
+      "asin": "B000WQWPUK",
+      "identity": "needs_review",
+      "status": "rejected",
+      "reason": "Unresolved identity detail on one side: edition, packageType, installment",
+      "hash": "150f432f6c1ef786d5c7fb4a8704adfd43c3a0f669016efd31e77800edf90342"
+    },
+    {
+      "label": "prior97:4fefa101-2312-4baa-92cf-daba95330712",
+      "item": "407380529548",
+      "asin": "B000LZKR3O",
+      "identity": "needs_review",
+      "status": "rejected",
+      "reason": "Unresolved identity detail on one side: edition",
+      "hash": "8782f2bcd1452d1a8de4ffc88d39dae2b78a160d0ac3a7384dd2b5642e7ab128"
+    },
+    {
+      "label": "prior97:5697368e-4af6-488d-b21c-52b158a01c6d",
+      "item": "377659302368",
+      "asin": "B00008KTMX",
+      "identity": "match",
+      "status": "open",
+      "reason": "Identity matched or unknown; unknown fields are not positive evidence.",
+      "hash": "91d81ebbe909133821c09c7b7da69c6ec4d4c25855f5bfde098a4a3939f78b1c"
+    },
+    {
+      "label": "prior97:575a77b7-bc36-49d7-a402-d26df3bedc4e",
+      "item": "920172650408",
+      "asin": "B000M46V20",
+      "identity": "match",
+      "status": "open",
+      "reason": "Identity matched or unknown; unknown fields are not positive evidence.",
+      "hash": "144c6f65b263c2da11550b64a52ad13a6c6ced761a8e279034dcf3df26d165ab"
+    },
+    {
+      "label": "prior97:585f558f-21ad-44b6-ae2a-b96e9f6f0510",
+      "item": "278125324237",
+      "asin": "B003O6E5OE",
+      "identity": "match",
+      "status": "dismissed",
+      "reason": "Identity matched or unknown; unknown fields are not positive evidence.",
+      "hash": "626d615f0af11e4ec572f05d9833ae9213b4a93b91797ad2ca6ecbf6db9560ee"
+    },
+    {
+      "label": "prior97:5c2d8f2f-f90b-48e0-804d-0a5df7a4d4d5",
+      "item": "145733682432",
+      "asin": "B000SMKONI",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon petz horsez, eBay petz horsez old ship; coreGame conflict: Amazon petz horsez 2, eBay petz horsez 2 old ship",
+      "hash": "d86fad4e4b9ff030f72ea63a8b94483a2c94aaa7fbccd07afaae774893d592c1"
+    },
+    {
+      "label": "prior97:618d94be-9c95-4f67-a15a-e4ef7fc7beb6",
+      "item": "287748544230",
+      "asin": "B012TRQKZA",
+      "identity": "match",
+      "status": "dismissed",
+      "reason": "Identity matched or unknown; unknown fields are not positive evidence.",
+      "hash": "8aeb44a466031b386accaf78cc9c9e566be94fe8e2bc5b337eb4df13f9b5fcd8"
+    },
+    {
+      "label": "prior97:65ac4a0e-34e8-42bc-bdd9-0d2bdc584c06",
+      "item": "940100677219",
+      "asin": "B09CLX4G35",
+      "identity": "needs_review",
+      "status": "rejected",
+      "reason": "Unresolved identity detail on one side: edition",
+      "hash": "36249e90e259e94086adfb4159daa04772e1eccdc91c787a288f464cbb30ccb7"
+    },
+    {
+      "label": "prior97:65fca9ff-d37f-4d19-a117-39bd63238759",
+      "item": "197783643073",
+      "asin": "B003O6E1JS",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon mortal kombat, eBay mortal kombat vs. dc universe; coreGame conflict: Amazon mortal kombat, eBay mortal kombat vs. dc universe",
+      "hash": "88aba3d5c4d18c3373a30e01c762191bc4c977098b47acede0c2e4a27c9cc615"
+    },
+    {
+      "label": "prior97:677e2245-6ce2-4564-b882-0a26d325d25e",
+      "item": "407348790546",
+      "asin": "B00B2QL2Y4",
+      "identity": "needs_review",
+      "status": "rejected",
+      "reason": "Unresolved identity detail on one side: edition",
+      "hash": "83aebb5aeb3b1311f359c77a0b82161341908823d93d4c74e3e03d7244f12dad"
+    },
+    {
+      "label": "prior97:67a8ca17-0f19-467d-beaf-81b700946362",
+      "item": "840131195824",
+      "asin": "B00002STIC",
+      "identity": "match",
+      "status": "open",
+      "reason": "Identity matched or unknown; unknown fields are not positive evidence.",
+      "hash": "52ce9c5ed51633a62b1e831479c141c1d7b2b94a7a1380c219ea7a4d4727ae9d"
+    },
+    {
+      "label": "prior97:680f76de-7b9d-44b9-86de-931236d96624",
+      "item": "227623577813",
+      "asin": "B0028556EU",
+      "identity": "needs_review",
+      "status": "rejected",
+      "reason": "Unresolved identity detail on one side: edition",
+      "hash": "236cdbf3eeff46cb01d8c64838cd6d435c5cb360968e15d1261c4acddfe06740"
+    },
+    {
+      "label": "prior97:69988eaa-cc84-4d5c-bd7d-97cd6cf83db4",
+      "item": "267738252014",
+      "asin": "B00847PA74",
+      "identity": "match",
+      "status": "rejected",
+      "reason": "Identity matched or unknown; unknown fields are not positive evidence.",
+      "hash": "b42f84fb5b0abafa58b247108a0379b18615007a3ed6a42104c1752c57e6f798"
+    },
+    {
+      "label": "prior97:6bfdb1d2-fd07-45ae-aaf9-0d76fcc6f988",
+      "item": "257841605061",
+      "asin": "B00B2QL2Y4",
+      "identity": "needs_review",
+      "status": "rejected",
+      "reason": "Unresolved identity detail on one side: edition",
+      "hash": "f0d0a65bf01aa7ec0429e1f30bfa99c41314054000b830c011b3f201a2559d62"
+    },
+    {
+      "label": "prior97:6c8d5084-c14d-47c8-b619-0d90e9ef6028",
+      "item": "407194511634",
+      "asin": "B002K9VIAU",
+      "identity": "match",
+      "status": "dismissed",
+      "reason": "Identity matched or unknown; unknown fields are not positive evidence.",
+      "hash": "7e234b54cb65af06fa2c88d78d498c88d27472c178ae5393005d5037c7e313bf"
+    },
+    {
+      "label": "prior97:6dfa5564-a19e-4cc2-9cbd-254c844297da",
+      "item": "307276397847",
+      "asin": "B006Y76HY6",
+      "identity": "needs_review",
+      "status": "rejected",
+      "reason": "Unresolved identity detail on one side: edition",
+      "hash": "5dc08a2d5ad152e17700b117d2d18149e07712107592cf15066559b10a9af88c"
+    },
+    {
+      "label": "prior97:6eb769a0-5d03-49a3-b095-57fc6037b4c9",
+      "item": "840156143661",
+      "asin": "B00079W8OU",
+      "identity": "match",
+      "status": "rejected",
+      "reason": "Identity matched or unknown; unknown fields are not positive evidence.",
+      "hash": "b3eddcf20e3e1a49f645052b3a2aa6c8bc0f29975dc0c05538e5e10e3a40f22a"
+    },
+    {
+      "label": "prior97:71d7bdd6-8435-4360-9215-361d18c68290",
+      "item": "116573446315",
+      "asin": "B003VJJRK6",
+      "identity": "match",
+      "status": "dismissed",
+      "reason": "Identity matched or unknown; unknown fields are not positive evidence.",
+      "hash": "024585362751dcfcf66ed0162da09f4f7de9f46be71f53e08f3761d89cbd1aca"
+    },
+    {
+      "label": "prior97:71f1c71d-66b3-48b8-b337-e4b85fbda60c",
+      "item": "336902274107",
+      "asin": "B00006AMZX",
+      "identity": "needs_review",
+      "status": "rejected",
+      "reason": "Unresolved identity detail on one side: edition",
+      "hash": "fe23989015b952004f8a4dac705adeb6ec26b2b259a24eedb066d6e532e60cc6"
+    },
+    {
+      "label": "prior97:7328f6cb-0544-496d-a640-f835c496a891",
+      "item": "407364989449",
+      "asin": "B000B6ML0A",
+      "identity": "match",
+      "status": "dismissed",
+      "reason": "Identity matched or unknown; unknown fields are not positive evidence.",
+      "hash": "9c782b561c17861490c64d1608c34da3979c8415fb137917313ac0d2cdde0dce"
+    },
+    {
+      "label": "prior97:740ae07e-62b7-44ab-8149-e5bb0e437b59",
+      "item": "880076629347",
+      "asin": "B075QQMSCL",
+      "identity": "match",
+      "status": "rejected",
+      "reason": "Identity matched or unknown; unknown fields are not positive evidence.",
+      "hash": "163eefc3384d94c553a3a017069e7a904395a6266284ed33e6d8d00ac80ebc90"
+    },
+    {
+      "label": "prior97:75706223-6e56-4b10-91d9-6ba7a250e09e",
+      "item": "287741926297",
+      "asin": "B00DNGQTFI",
+      "identity": "match",
+      "status": "rejected",
+      "reason": "Identity matched or unknown; unknown fields are not positive evidence.",
+      "hash": "8c723b6ec25a60bba41c3bb52c0b77d6c224fc1a33ceb3203a54aedf9a5329fc"
+    },
+    {
+      "label": "prior97:7612c284-cec1-455c-a46b-ab5d76eb2d3a",
+      "item": "820316741656",
+      "asin": "B0000A1HVX",
+      "identity": "match",
+      "status": "open",
+      "reason": "Identity matched or unknown; unknown fields are not positive evidence.",
+      "hash": "c521057120d6aeed6682f76e1fa402bbe6122fe1802705fe9b813b4504b3efa5"
+    },
+    {
+      "label": "prior97:7a0afcf2-6426-4a8d-b56c-af2f987f497e",
+      "item": "940078933306",
+      "asin": "B00009NH6E",
+      "identity": "needs_review",
+      "status": "rejected",
+      "reason": "coreProduct review: Amazon barbie horse adventures wild horse rescue, eBay barbie horse adventures wild horse rescue new black label; coreGame review: Amazon barbie horse adventures wild horse rescue, eBay barbie horse adventures wild horse rescue new black label",
+      "hash": "53360b9c9cf2881ab183c2c7e243d798c4f3a06b88fbdebd54036e8d37911473"
+    },
+    {
+      "label": "prior97:7d14626b-703b-47f1-a38e-32df571368e3",
+      "item": "336896346476",
+      "asin": "B003O6C0V4",
+      "identity": "needs_review",
+      "status": "rejected",
+      "reason": "Unresolved identity detail on one side: edition",
+      "hash": "e11e93fd747623e5d519c219209f0e8d9671c9499c3a25b7893a4b6878bc7b2d"
+    },
+    {
+      "label": "prior97:7dcce02c-c120-4419-808a-4504f0c31e94",
+      "item": "168860841661",
+      "asin": "B00002SFL4",
+      "identity": "match",
+      "status": "open",
+      "reason": "Identity matched or unknown; unknown fields are not positive evidence.",
+      "hash": "012d91e058ba4dc3cc6dcc7a7df15c93e889277ce448520c1628bce5399a7823"
+    },
+    {
+      "label": "prior97:7fc6f443-663e-4a5f-b78c-38e0fb9c72b7",
+      "item": "940074372452",
+      "asin": "B0000E3D8T",
+      "identity": "needs_review",
+      "status": "rejected",
+      "reason": "Unresolved identity detail on one side: edition",
+      "hash": "1465795f032d8c193dd31e69f3123b1c76cba760a6996ce3e93a47c3a6907624"
+    },
+    {
+      "label": "prior97:865ce3b3-e9d2-43c0-9b7e-3283b4000752",
+      "item": "227623586139",
+      "asin": "B000OZIAMG",
+      "identity": "match",
+      "status": "open",
+      "reason": "Identity matched or unknown; unknown fields are not positive evidence.",
+      "hash": "c784aa7cc0e5d7f117d3373552be8d1dbbb333ba4a31b374500ce91f97db5520"
+    },
+    {
+      "label": "prior97:87f9c122-a64c-4076-a0aa-5623b44784cb",
+      "item": "314068158958",
+      "asin": "B000B69E9G",
+      "identity": "match",
+      "status": "dismissed",
+      "reason": "Identity matched or unknown; unknown fields are not positive evidence.",
+      "hash": "35bbd8be56fd7b957a023f837cb9361c55d38151f24b780d91075b0d65863729"
+    },
+    {
+      "label": "prior97:88471699-da02-416b-b7fb-e72810be5607",
+      "item": "377666013189",
+      "asin": "B0028A8PDY",
+      "identity": "needs_review",
+      "status": "rejected",
+      "reason": "Unresolved identity detail on one side: edition, packageType",
+      "hash": "6467b8981ab46387f75e252ea1226b86e00831750d3c7cf015b87b94b629f1b4"
+    },
+    {
+      "label": "prior97:886b587a-17a0-421a-94fa-c5eb12da4467",
+      "item": "860153529875",
+      "asin": "B000P297JS",
+      "identity": "needs_review",
+      "status": "rejected",
+      "reason": "edition review: Amazon Platinum Hits, eBay Platinum Hits",
+      "hash": "2239c7fdf46c6c6a7cfa55bd0be3ea701263955633022c7c97bfb5bfaf8dc1a0"
+    },
+    {
+      "label": "prior97:88edbb92-896e-44f3-bbda-39388c7cc66f",
+      "item": "405799242925",
+      "asin": "B01LDUYU60",
+      "identity": "non-match",
+      "status": "inventory_snoozed",
+      "reason": "coreProduct conflict: Amazon super mario maker, eBay super mario maker for edition new in box; coreGame conflict: Amazon super mario maker, eBay super mario maker for edition new in box",
+      "hash": "26e89db38410fca6b0141080050dcc605d02ba9e9098c7d98cbc1fbdceba60bd"
+    },
+    {
+      "label": "prior97:8ad77425-d625-4d64-b313-456e9b3ed330",
+      "item": "117520198668",
+      "asin": "B0032JCKYU",
+      "identity": "match",
+      "status": "open",
+      "reason": "Identity matched or unknown; unknown fields are not positive evidence.",
+      "hash": "99441697d432e8ee633dd40b71afabc4f146e98148c0df20fde235d4f3e1199c"
+    },
+    {
+      "label": "prior97:8f181c94-29d2-4681-a629-35c9ffdd37e0",
+      "item": "800953016239",
+      "asin": "B0000E3D8T",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon tokyo xtreme racer, eBay tokyo xtreme racer a; coreGame conflict: Amazon tokyo xtreme racer 3, eBay tokyo xtreme racer 3 a",
+      "hash": "a9edc39ffeecc43b34beac6c97c844743a38a6436ec6e90e5627059f108ca02b"
+    },
+    {
+      "label": "prior97:945ead4d-eafb-4620-a2c4-4d300a3bdc6b",
+      "item": "198803864168",
+      "asin": "B001AH8YSW",
+      "identity": "needs_review",
+      "status": "rejected",
+      "reason": "coreProduct review: Amazon the witcher, eBay new the witcher dvd vista xp game; coreGame review: Amazon the witcher, eBay new the witcher dvd vista xp game; edition review: Amazon Enhanced Edition, eBay Enhanced Edition",
+      "hash": "fd9c8f0b6326f4c5b4a99d93786d25efb009cb7cf3899715ed65a41e85541446"
+    },
+    {
+      "label": "prior97:97dea7a9-15b1-4066-ba9b-d79edfc48743",
+      "item": "206716194801",
+      "asin": "B00X87MH0I",
+      "identity": "match",
+      "status": "open",
+      "reason": "Identity matched or unknown; unknown fields are not positive evidence.",
+      "hash": "1a0aded58952f14d814358f23e440d7d4945c2ddc58bc0a3aa231cda6f5a8425"
+    },
+    {
+      "label": "prior97:a0da9e96-b22f-47e8-a521-a5811ee3fe4c",
+      "item": "820382941556",
+      "asin": "B00005YJPF",
+      "identity": "match",
+      "status": "open",
+      "reason": "Identity matched or unknown; unknown fields are not positive evidence.",
+      "hash": "f5a51c032ba24e8e7e05afa2be707da3f56c6c33d3c03800309d06a417f56fce"
+    },
+    {
+      "label": "prior97:a29c8455-bc2c-41de-a8aa-2a2e3a543d30",
+      "item": "306807220391",
+      "asin": "B001B1W3JS",
+      "identity": "match",
+      "status": "rejected",
+      "reason": "Identity matched or unknown; unknown fields are not positive evidence.",
+      "hash": "27a133559eae69b78d50ea7839ce0b264f98e7bde4ee75f576b318c0c9c9a8c8"
+    },
+    {
+      "label": "prior97:a3012aec-933f-4fc5-bec0-be6d3eb38478",
+      "item": "366621390859",
+      "asin": "B00MEXP34Y",
+      "identity": "match",
+      "status": "open",
+      "reason": "Identity matched or unknown; unknown fields are not positive evidence.",
+      "hash": "8244d93253241dc633d0f6435dd9db8c9dbbb61c27f345af253145424ce14eaa"
+    },
+    {
+      "label": "prior97:a7479bd3-a5d3-4099-9824-f24df64f5c54",
+      "item": "327466536264",
+      "asin": "B00CMQTTZ2",
+      "identity": "match",
+      "status": "dismissed",
+      "reason": "Identity matched or unknown; unknown fields are not positive evidence.",
+      "hash": "354ab45f9a854733161dfe69b4bef09cf53fa35f4d97b6742fcc1a56194c47d9"
+    },
+    {
+      "label": "prior97:a978a008-4f6c-429f-91dd-39f921b98745",
+      "item": "336887154067",
+      "asin": "B00006ZCCV",
+      "identity": "match",
+      "status": "open",
+      "reason": "Identity matched or unknown; unknown fields are not positive evidence.",
+      "hash": "aa8b9742f7e9db1153184a3d3f7732affe47bb4f02514c45bac753ec5fffcd3a"
+    },
+    {
+      "label": "prior97:aa4fa20d-3d70-4b68-af7b-745b9edc94e1",
+      "item": "128191788877",
+      "asin": "B0009Z3K9O",
+      "identity": "needs_review",
+      "status": "rejected",
+      "reason": "Unresolved identity detail on one side: edition",
+      "hash": "e438a3dd3765d5e7f9c02941f838f2ff5f98a5f4277c5129f1159bb05c34e2e7"
+    },
+    {
+      "label": "prior97:b18c57ed-a49b-41c3-8688-da15f8bfafb5",
+      "item": "147693336106",
+      "asin": "B000VJRU44",
+      "identity": "needs_review",
+      "status": "rejected",
+      "reason": "Unresolved identity detail on one side: edition",
+      "hash": "15dc4681d3b1634561db9241463cbf49946f651a4d779d15e4bf7793bc734a71"
+    },
+    {
+      "label": "prior97:b370ffb6-9e51-42d3-bd9c-5688493270d2",
+      "item": "840094365516",
+      "asin": "B06XTT5CKM",
+      "identity": "match",
+      "status": "open",
+      "reason": "Identity matched or unknown; unknown fields are not positive evidence.",
+      "hash": "9c9528420476ee1f1ea6bf3b05e629f3269bff0d185b268407d9adddd15fb35e"
+    },
+    {
+      "label": "prior97:b377a017-4d8d-4e5c-bb00-c91834c78ec2",
+      "item": "168877999113",
+      "asin": "B01KGR9QJC",
+      "identity": "match",
+      "status": "dismissed",
+      "reason": "Identity matched or unknown; unknown fields are not positive evidence.",
+      "hash": "c5a5da09e9ef74df5f51d0a209ac77275305752f90aba111b4b3d4d61943dc56"
+    },
+    {
+      "label": "prior97:ba0e84e9-b983-4572-8c17-24a2e5b8aebb",
+      "item": "377668366261",
+      "asin": "B000R30FJQ",
+      "identity": "match",
+      "status": "open",
+      "reason": "Identity matched or unknown; unknown fields are not positive evidence.",
+      "hash": "0a459504a3f3d704577a8a765062b93f29cca0db10c2e4f64a2d54c927907ea8"
+    },
+    {
+      "label": "prior97:be570e47-fb5c-409a-9cc7-50bbae85174b",
+      "item": "227625724314",
+      "asin": "B0BQ7P2D1X",
+      "identity": "needs_review",
+      "status": "rejected",
+      "reason": "Unresolved identity detail on one side: edition",
+      "hash": "2ec69b06384043c09c941189266fde83d1df642d1b2d0c84dd5657215d7389ca"
+    },
+    {
+      "label": "prior97:c0c6c6dd-dc0c-48d4-bb2f-1c609d18e24b",
+      "item": "128031725287",
+      "asin": "B011I7WJUM",
+      "identity": "match",
+      "status": "dismissed",
+      "reason": "Identity matched or unknown; unknown fields are not positive evidence.",
+      "hash": "0f6160a6a820b1dcd59a15a5b974a0d067434b3b6b31917bc05efc538f495482"
+    },
+    {
+      "label": "prior97:c2a92e7d-bd6d-4c8e-858d-a00427712ea4",
+      "item": "900099910655",
+      "asin": "B00VZAQ2X8",
+      "identity": "match",
+      "status": "open",
+      "reason": "Identity matched or unknown; unknown fields are not positive evidence.",
+      "hash": "464cfa580df40473abe71c5d0ca76ceaebe250eaea6a06b600d37e4a4789fa95"
+    },
+    {
+      "label": "prior97:c392d900-47ac-46af-9089-f8563db5feb8",
+      "item": "880128084759",
+      "asin": "B003O6N2NY",
+      "identity": "match",
+      "status": "rejected",
+      "reason": "Identity matched or unknown; unknown fields are not positive evidence.",
+      "hash": "cc1c34ec6580ef83bf1dc62b05496860ced3c1f60ebbb39425e17ee12d33cbd2"
+    },
+    {
+      "label": "prior97:c4e35252-9763-47a4-bd85-e47c492ccb2a",
+      "item": "128189547696",
+      "asin": "B01M6BQ7HE",
+      "identity": "match",
+      "status": "dismissed",
+      "reason": "Identity matched or unknown; unknown fields are not positive evidence.",
+      "hash": "b9e4dd3cd0436e03c6bac1a02f376dc867be33778604a8fd8dbfba33050e4ba5"
+    },
+    {
+      "label": "prior97:c57170d7-836e-480c-831f-c91e021be08e",
+      "item": "820338071733",
+      "asin": "B000092P4A",
+      "identity": "needs_review",
+      "status": "rejected",
+      "reason": "coreProduct review: Amazon star wars galaxies an empire divided, eBay star wars galaxies an empire divided computer game; coreGame review: Amazon star wars galaxies an empire divided, eBay star wars galaxies an empire divided computer game; edition review: Amazon Collector's Edition, eBay Collector's Edition",
+      "hash": "39d63c3756c8cbe37dab674e06b53746572c80768c2753952e07bd81020296e0"
+    },
+    {
+      "label": "prior97:c5d82e04-e50a-4f59-8d77-fbb72dab3302",
+      "item": "336897625267",
+      "asin": "B07G8SYY97",
+      "identity": "needs_review",
+      "status": "rejected",
+      "reason": "Unresolved identity detail on one side: edition",
+      "hash": "8657a261139480866b97c2e7bc4e587dbb338fe98d1bc317c7ababc12b62d510"
+    },
+    {
+      "label": "prior97:c71d9e8a-bf7d-4ea7-ba56-84d6f0d05342",
+      "item": "377668366221",
+      "asin": "B0019R4VF8",
+      "identity": "match",
+      "status": "open",
+      "reason": "Identity matched or unknown; unknown fields are not positive evidence.",
+      "hash": "b4dffbf07f363b6d5091caa0e064df94c6e2bf311051f3e332b27d0b610d52e3"
+    },
+    {
+      "label": "prior97:c9c3fb83-9689-4989-beea-d3fc9531c5b2",
+      "item": "327437457493",
+      "asin": "B078YN79KH",
+      "identity": "match",
+      "status": "open",
+      "reason": "Identity matched or unknown; unknown fields are not positive evidence.",
+      "hash": "8d744b6e5d0670d62927db528e9b617c345812f80d56e8cb082a470a3a5a9fe4"
+    },
+    {
+      "label": "prior97:cef6727c-819e-46cf-b21a-c0e2b2ec8d75",
+      "item": "366621390859",
+      "asin": "B00MEXP34Y",
+      "identity": "match",
+      "status": "open",
+      "reason": "Identity matched or unknown; unknown fields are not positive evidence.",
+      "hash": "e8f66729ffa9a99dc6b30d748876220184407ee89d861d404a51a7e19b07befc"
+    },
+    {
+      "label": "prior97:cfc7755d-016a-4a5b-9b26-e9f29765d8cc",
+      "item": "960200585507",
+      "asin": "B0018BEG8W",
+      "identity": "needs_review",
+      "status": "rejected",
+      "reason": "Unresolved identity detail on one side: edition, packageType",
+      "hash": "20929bffb6adcfdcb002b45cd5e1f777efa449517780ad040e3b368fe94c9c5e"
+    },
+    {
+      "label": "prior97:d11601ff-656c-4f58-8db3-009707885f11",
+      "item": "188344781716",
+      "asin": "B0056GJVQW",
+      "identity": "match",
+      "status": "dismissed",
+      "reason": "Identity matched or unknown; unknown fields are not positive evidence.",
+      "hash": "76971d883e984196382adb1313ff5e7df63d8c87f89469715d7014b8709f3cc7"
+    },
+    {
+      "label": "prior97:d22ade44-30c8-4469-8bcc-264405b3c309",
+      "item": "800884729106",
+      "asin": "B01LDUYU60",
+      "identity": "non-match",
+      "status": "inventory_snoozed",
+      "reason": "coreProduct conflict: Amazon super mario maker, eBay super mario maker for edition; coreGame conflict: Amazon super mario maker, eBay super mario maker for edition 190",
+      "hash": "e63cd887f1b67379ceb28bb9623705b620fcc95f65dcfebd17cf77886c9a054f"
+    },
+    {
+      "label": "prior97:d5d6a0da-f7d3-4951-afd8-78ed133d4c54",
+      "item": "168412243071",
+      "asin": "B00UA55LDQ",
+      "identity": "match",
+      "status": "dismissed",
+      "reason": "Identity matched or unknown; unknown fields are not positive evidence.",
+      "hash": "b0e0515152cbe747d6b4b95c67d2e7c4d6abf3d24f16459c00b719890dec8307"
+    },
+    {
+      "label": "prior97:d5db880a-d786-472c-9089-691849d414cd",
+      "item": "307279161870",
+      "asin": "B00D3RBZHY",
+      "identity": "match",
+      "status": "rejected",
+      "reason": "Identity matched or unknown; unknown fields are not positive evidence.",
+      "hash": "936ca7d622da7930081d5807f120ab690e430ebf8226cddf47e3890a8f66b40b"
+    },
+    {
+      "label": "prior97:d8aa31f0-8cac-41cb-818d-c7495f948791",
+      "item": "377640141530",
+      "asin": "B00G9DFMDW",
+      "identity": "match",
+      "status": "open",
+      "reason": "Identity matched or unknown; unknown fields are not positive evidence.",
+      "hash": "3cebdf20bf67b939f5a6eaac87d4f7a28ac47504c52e1bbfe1f2b9fcd7920f9c"
+    },
+    {
+      "label": "prior97:d9d91a8d-f01a-4077-9e4e-e6c78c550189",
+      "item": "940086702727",
+      "asin": "B000HAWCFE",
+      "identity": "needs_review",
+      "status": "rejected",
+      "reason": "Unresolved identity detail on one side: edition",
+      "hash": "ebbce2ce4d210a2c68141c8136730edd4ae73d6db29cdfabfcad630c8f6c4d5b"
+    },
+    {
+      "label": "prior97:db8a649d-78f5-41ac-a7cc-4588cea1c2c5",
+      "item": "265991502289",
+      "asin": "B000O3IS48",
+      "identity": "needs_review",
+      "status": "rejected",
+      "reason": "coreProduct review: Amazon ninja gaiden sigma, eBay cover ninja gaiden 2 sigma 2 disc; coreGame review: Amazon ninja gaiden sigma, eBay cover ninja gaiden 2 sigma 2 disc",
+      "hash": "8a3ffbfac33645bfb9cb9dd7fa335767d914d61af4098fc85998394fb5244daa"
+    },
+    {
+      "label": "prior97:dc18274e-d719-46df-a702-db9eec16d618",
+      "item": "820316157054",
+      "asin": "B001IUU9KW",
+      "identity": "needs_review",
+      "status": "rejected",
+      "reason": "Unresolved identity detail on one side: edition",
+      "hash": "19b6f518d61d32f134cbd5b22bd55206afc5ed61ff91f83039d9f8a9194cc65d"
+    },
+    {
+      "label": "prior97:dee8857d-b4b6-466d-af3a-44cdf9fb5d72",
+      "item": "168847018534",
+      "asin": "B07FYS9TQC",
+      "identity": "match",
+      "status": "open",
+      "reason": "Identity matched or unknown; unknown fields are not positive evidence.",
+      "hash": "9182f7e4ded0cf617a61e04221c712557a1dca7bd6e6b3ea588dcab4e2c08db6"
+    },
+    {
+      "label": "prior97:e1c1d7f8-8913-4b63-804d-fe482bd9a0d4",
+      "item": "267681822804",
+      "asin": "B001C0L7QI",
+      "identity": "non-match",
+      "status": "dismissed",
+      "reason": "coreProduct conflict: Amazon disney think fast, eBay disney think fast nib nes hq; coreGame conflict: Amazon disney think fast, eBay disney think fast nib nes hq",
+      "hash": "afd3f937148236f529fb755848831a60bb57eea4a0852737b96d3c65fd829931"
+    },
+    {
+      "label": "prior97:e4cad512-452b-49da-9563-f82e56bd51fe",
+      "item": "880090644974",
+      "asin": "B0014BDUEC",
+      "identity": "needs_review",
+      "status": "rejected",
+      "reason": "Unresolved identity detail on one side: edition",
+      "hash": "018295149cfe10a029e5e54383c24e35b925630717103395b4bc596ea45c89ef"
+    },
+    {
+      "label": "prior97:e6847656-047e-4972-bc1b-281a08919999",
+      "item": "185610619018",
+      "asin": "B00CZCA6RI",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon assassins creed brotherhood, eBay assassins creed brotherhood black label; coreGame conflict: Amazon assassins creed brotherhood, eBay assassins creed brotherhood black label",
+      "hash": "9a2a24e7fde22c12b12ff51888049f9912cc18f9b51722b276947b6326db293b"
+    },
+    {
+      "label": "prior97:ea85ab32-29bb-4679-a17c-252aeb57194b",
+      "item": "327454372887",
+      "asin": "B00DJ42EC6",
+      "identity": "needs_review",
+      "status": "rejected",
+      "reason": "edition review: Amazon Director's Cut, eBay Director's Cut",
+      "hash": "6a94817867e68913a6f6cd258c40d7084b6874d087db919e886c5d6ec077b71e"
+    },
+    {
+      "label": "prior97:efd6df5f-ae30-4da5-bf0d-9c531d5ea8af",
+      "item": "257859060301",
+      "asin": "B00079W8OU",
+      "identity": "match",
+      "status": "open",
+      "reason": "Identity matched or unknown; unknown fields are not positive evidence.",
+      "hash": "d6d9cfc9a3130c07aa809cdf348be4befda2926128cdbead43672f81e8df90e7"
+    },
+    {
+      "label": "prior97:f1fd7501-d062-456d-bd9a-a1749a5327e9",
+      "item": "336887119682",
+      "asin": "B00006JBS4",
+      "identity": "match",
+      "status": "rejected",
+      "reason": "Identity matched or unknown; unknown fields are not positive evidence.",
+      "hash": "76023870cbb61a3855aaa131d779f307c71003d386ad15e54bc347adf0958916"
+    },
+    {
+      "label": "prior97:f3eec7bd-35a3-4506-899a-7fbea9cad813",
+      "item": "407372956949",
+      "asin": "B003O6C0V4",
+      "identity": "needs_review",
+      "status": "rejected",
+      "reason": "Unresolved identity detail on one side: edition, packageType",
+      "hash": "989e6e012535351dcbfb0a17f4d53e3ff817099053a9009d44cdf9ec1c4fc1fc"
+    },
+    {
+      "label": "prior97:f4f47fbe-51b3-4b64-9df3-b2c0acd5c22c",
+      "item": "206716194801",
+      "asin": "B00X87MH0I",
+      "identity": "match",
+      "status": "open",
+      "reason": "Identity matched or unknown; unknown fields are not positive evidence.",
+      "hash": "3b9ee6942754d48ed9d215bf9db66130ab3033eb625b0a875c5c0b7ab4fdf538"
+    },
+    {
+      "label": "prior97:f683dca8-c322-4812-ad7b-5546adff55b5",
+      "item": "128201561289",
+      "asin": "B002I0K3M0",
+      "identity": "match",
+      "status": "dismissed",
+      "reason": "Identity matched or unknown; unknown fields are not positive evidence.",
+      "hash": "2cb2466ab42c88a3bff358a6708081b559d6864aa08f8d61208aa0ade5a1304e"
+    },
+    {
+      "label": "prior97:f7392a4b-610b-4be9-b3bf-1610cdc97713",
+      "item": "227617534846",
+      "asin": "B00029QR7O",
+      "identity": "needs_review",
+      "status": "rejected",
+      "reason": "Unresolved identity detail on one side: edition",
+      "hash": "27d8575c91aa5e8063428a1a1eee7db98d0fc3157e91263cd9b1e58e72b34704"
+    },
+    {
+      "label": "prior97:f76b0d91-6a4f-4475-9a40-224f53d22b8e",
+      "item": "307279161870",
+      "asin": "B00D3RBZHY",
+      "identity": "match",
+      "status": "rejected",
+      "reason": "Identity matched or unknown; unknown fields are not positive evidence.",
+      "hash": "4c0a8f2b40612d10d49c834e819b67e182dceb203da90ec7371bbdd5bf05ed78"
+    },
+    {
+      "label": "prior97:f8a3d865-2017-49f1-876f-6c774a2476e0",
+      "item": "377668366312",
+      "asin": "B00082ZQWW",
+      "identity": "match",
+      "status": "open",
+      "reason": "Identity matched or unknown; unknown fields are not positive evidence.",
+      "hash": "df4eb0ba65528b23bcaa7cbbf9b66764b7a4941a99498b417cbdbf2cc65fb56a"
+    },
+    {
+      "label": "prior97:ffd8390d-746b-4bd2-8550-0b43ab2e4680",
+      "item": "840112509185",
+      "asin": "B01J6FPZZY",
+      "identity": "match",
+      "status": "open",
+      "reason": "Identity matched or unknown; unknown fields are not positive evidence.",
+      "hash": "a22f6869dda50a9eff4066afce1b7f5d9d8caead1de32ae8f48d2d676ab7e5b6"
+    },
+    {
+      "label": "regular:b0eaede2-1f9a-4492-95a3-7b585db2ed79",
+      "item": "137024178569",
+      "asin": "B09FJ5PJF2",
+      "identity": "non-match",
+      "status": "dismissed",
+      "reason": "coreProduct conflict: Amazon nascar 21 ignition day 1, eBay nascar 21 ignition champions edition day 1; coreGame conflict: Amazon nascar 21 ignition day 1, eBay nascar 21 ignition champions edition day 1",
+      "hash": "c1ea6c7ca417fe962c16fa5b0caca338b29bd85ca0071933ea1bb81a1ae71ce2"
+    },
+    {
+      "label": "regular:ccf9217c-3d14-4748-b184-f0fe3da7bb72",
+      "item": "277071545598",
+      "asin": "B09FJ5PJF2",
+      "identity": "non-match",
+      "status": "dismissed",
+      "reason": "coreProduct conflict: Amazon nascar 21 ignition day 1, eBay nascar 21 ignition champions edition day 1; coreGame conflict: Amazon nascar 21 ignition day 1, eBay nascar 21 ignition champions edition day 1",
+      "hash": "4622800f0b78e7cdbfb32218207eabcc7ff5202d1f3e601560fc0db021b2e1c2"
+    },
+    {
+      "label": "regular:fc6c0c9c-cec5-4fa8-8ede-b75aa9bd998b",
+      "item": "147615382466",
+      "asin": "B07JMHZMX1",
+      "identity": "non-match",
+      "status": "inventory_snoozed",
+      "reason": "coreProduct conflict: Amazon minecraft, eBay minecraft starter pack collection minecoins new read desc; coreGame conflict: Amazon minecraft, eBay minecraft starter pack collection 700 minecoins new read desc",
+      "hash": "84666d9219248348b1fe0870741f0890de87a0b3bc7a792dc066859713ed0094"
+    },
+    {
+      "label": "regular:760873cb-203b-4c10-9da4-addd35ba4b61",
+      "item": "236770297609",
+      "asin": "B000SFK0L6",
+      "identity": "match",
+      "status": "dismissed",
+      "reason": "Identity matched or unknown; unknown fields are not positive evidence.",
+      "hash": "5f2617285ca75adc5ef5c339b2878936e70180b9a3fc1595de92503d91e21f42"
+    },
+    {
+      "label": "regular:37adf068-44b1-44eb-a43e-ae9926b21e75",
+      "item": "257626667356",
+      "asin": "B074ZQ9F4S",
+      "identity": "match",
+      "status": "dismissed",
+      "reason": "Identity matched or unknown; unknown fields are not positive evidence.",
+      "hash": "7a88b1a92c3025808710ffde04fed39463f78aa23c521a3f7bab1d8f15816e9d"
+    },
+    {
+      "label": "regular:38dca6ab-9fb0-4fe1-990d-e398a7f7f43a",
+      "item": "137519842106",
+      "asin": "B074ZQ9F4S",
+      "identity": "match",
+      "status": "dismissed",
+      "reason": "Identity matched or unknown; unknown fields are not positive evidence.",
+      "hash": "35fe82912f7331bb2d97f46ac22236976a8ee91cb22d7608f30d3e0d56d2c099"
+    },
+    {
+      "label": "regular:1f1a8ac7-e5b7-4b59-bd8f-210771fafd10",
+      "item": "147543540926",
+      "asin": "B0014ZL9VE",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon kung fu panda, eBay kung fu panda panda monium activity cd rom; coreGame conflict: Amazon kung fu panda, eBay kung fu panda panda monium activity cd rom",
+      "hash": "485ef0fa45e2b8e724d3ad268f0f4c8fbfc462659a7868a27ceceb842c865a3a"
+    },
+    {
+      "label": "regular:60c9a6ca-d12b-4a32-b4d5-42d592ae4be5",
+      "item": "196786788336",
+      "asin": "B0014ZL9VE",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon kung fu panda, eBay kung fu panda xp vista activision; coreGame conflict: Amazon kung fu panda, eBay kung fu panda xp vista activision",
+      "hash": "f1cb371ca7c4052b985af6557878c3a57ef075da54e38c759dac14898298731c"
+    },
+    {
+      "label": "regular:a30c5d5d-e582-4dc3-8453-97278e1cf9ef",
+      "item": "307007994616",
+      "asin": "B0014ZL9VE",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon kung fu panda, eBay kung fu panda for dvd game new activision dreamwo; coreGame conflict: Amazon kung fu panda, eBay kung fu panda for dvd game new activision dreamwo",
+      "hash": "f559a1658fd37404dd0e7dfa7c082f2140d22f76897af7d82de6509466073e71"
+    },
+    {
+      "label": "regular:cd896d66-2050-4035-9ee1-479f181254c6",
+      "item": "324065709442",
+      "asin": "B00YQ2KCWO",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon fallout, eBay fallout in original packaging; coreGame conflict: Amazon fallout 4, eBay fallout 76 in original packaging; installment conflict: Amazon 4, eBay 76",
+      "hash": "85b55a729e2bf3cba0d60dcde3e6bd35d2d0dcc7449cba988c3b91032887d53f"
+    },
+    {
+      "label": "regular:c74b45c9-2ab1-411e-9ea1-73886a119a24",
+      "item": "206136105028",
+      "asin": "B07DPKYRRL",
+      "identity": "match",
+      "status": "dismissed",
+      "reason": "Identity matched or unknown; unknown fields are not positive evidence.",
+      "hash": "6e383d77598661221f32397defcdabe8afbfe28699a7f7dcf80128b226ef8f3d"
+    },
+    {
+      "label": "regular:e158214b-0003-444d-aa44-2b185e35a7aa",
+      "item": "227614935286",
+      "asin": "B0BDT654XQ",
+      "identity": "match",
+      "status": "open",
+      "reason": "Identity matched or unknown; unknown fields are not positive evidence.",
+      "hash": "61a27d4c93633f445d5a743caaa9a1e8f13a2ed28b89d086c11007e3edef7f11"
+    },
+    {
+      "label": "regular:aab07e60-7a53-4906-8b57-6051ea049241",
+      "item": "158223650182",
+      "asin": "B00ZE360GG",
+      "identity": "match",
+      "status": "dismissed",
+      "reason": "Identity matched or unknown; unknown fields are not positive evidence.",
+      "hash": "e7ffb60276a87829551988b130fcfdf292874cef3bf5e63410d6e5c8a4998a1e"
+    },
+    {
+      "label": "regular:0210b61b-c284-492a-adf5-c32265bbe1de",
+      "item": "305635408341",
+      "asin": "B074ZQ9F4S",
+      "identity": "needs_review",
+      "status": "watching",
+      "reason": "coreProduct review: Amazon dissidia final fantasy nt steelbook brawler, eBay dissidia final fantasy nt steelbook brawler; coreGame review: Amazon dissidia final fantasy nt steelbook brawler, eBay dissidia final fantasy nt steelbook brawler",
+      "hash": "5a4a44356d5537402ab77a9b5fc4c852f7d993176728f312703db6017cb684d8"
+    },
+    {
+      "label": "regular:3ba7b651-d089-476e-b9c0-13994a96c65c",
+      "item": "157700920546",
+      "asin": "B00GUDHUDQ",
+      "identity": "non-match",
+      "status": "rejected",
+      "reason": "coreProduct conflict: Amazon plants vs zombies garden warfare, eBay plants vs. zombies garden warfare; coreGame conflict: Amazon plants vs zombies garden warfare, eBay plants vs. zombies garden warfare",
+      "hash": "821c4e17d07afd781d6d27b197c6bb57da0d93218726526ef199813a4aefe4a1"
+    },
+    {
+      "label": "regular:f8f8f017-a417-493e-81d8-62429663ce19",
+      "item": "236862579818",
+      "asin": "B00GUDHUDQ",
+      "identity": "non-match",
+      "status": "dismissed",
+      "reason": "coreProduct conflict: Amazon plants vs zombies garden warfare, eBay plants vs. zombies garden warfare; coreGame conflict: Amazon plants vs zombies garden warfare, eBay plants vs. zombies garden warfare",
+      "hash": "7af3228b15bee824c1052ef15a6af3be81c29776ded49f9fac22c696abc9605e"
+    },
+    {
+      "label": "platform-control:3DS",
+      "item": "990000000000",
+      "asin": "B0P2CTL000",
+      "identity": "match",
+      "status": "open",
+      "reason": "Identity matched or unknown; unknown fields are not positive evidence.",
+      "hash": "f1649367cc4a150b10c681d756d22567dcb416a01da96cf57beb5027cf5f1020"
+    },
+    {
+      "label": "platform-control:PS Vita",
+      "item": "990000000001",
+      "asin": "B0P2CTL001",
+      "identity": "match",
+      "status": "open",
+      "reason": "Identity matched or unknown; unknown fields are not positive evidence.",
+      "hash": "c7df7465d6d43be5b163dc259ab4dbdfe92cb5c33e33521da57fab57afd351e2"
+    },
+    {
+      "label": "platform-control:PSP",
+      "item": "990000000002",
+      "asin": "B0P2CTL002",
+      "identity": "match",
+      "status": "open",
+      "reason": "Identity matched or unknown; unknown fields are not positive evidence.",
+      "hash": "4161fa4b25222367a98a8ec82003e018c2513246d572b8dcb4a10d59f6a69041"
+    },
+    {
+      "label": "platform-control:PC",
+      "item": "990000000003",
+      "asin": "B0P2CTL003",
+      "identity": "match",
+      "status": "open",
+      "reason": "Identity matched or unknown; unknown fields are not positive evidence.",
+      "hash": "5064a68ed94e6aefdb2cab8656d808d7f470e02dc97adc391817ce89b843adca"
+    },
+    {
+      "label": "platform-control:Switch",
+      "item": "990000000004",
+      "asin": "B0P2CTL004",
+      "identity": "match",
+      "status": "open",
+      "reason": "Identity matched or unknown; unknown fields are not positive evidence.",
+      "hash": "9f6f8d2f8000cbc3dc7f70898e1a9a579bd67ca89f2f1408fd4bd925d0ae1dcb"
+    },
+    {
+      "label": "platform-control:Switch 2",
+      "item": "990000000005",
+      "asin": "B0P2CTL005",
+      "identity": "match",
+      "status": "open",
+      "reason": "Identity matched or unknown; unknown fields are not positive evidence.",
+      "hash": "a97f76580c27dca6ed5b6cd072628955cc92b4b3c3854400e3a8e1b095f3181b"
+    },
+    {
+      "label": "platform-control:Gamecube",
+      "item": "990000000006",
+      "asin": "B0P2CTL006",
+      "identity": "match",
+      "status": "rejected",
+      "reason": "Identity matched or unknown; unknown fields are not positive evidence.",
+      "hash": "6741919f174e57c550719d993e629f1b66688ddc126af755bec1881e73a7b96c"
+    },
+    {
+      "label": "platform-control:DS",
+      "item": "990000000007",
+      "asin": "B0P2CTL007",
+      "identity": "match",
+      "status": "rejected",
+      "reason": "Identity matched or unknown; unknown fields are not positive evidence.",
+      "hash": "8d448a6b12ce461af47ccf37a9ef40e2130d314010ea7477acd605d8cdfed1e2"
+    },
+    {
+      "label": "platform-control:Game Boy Advance",
+      "item": "990000000008",
+      "asin": "B0P2CTL008",
+      "identity": "match",
+      "status": "rejected",
+      "reason": "Identity matched or unknown; unknown fields are not positive evidence.",
+      "hash": "5ff6dabcb5fa12ac42b6c44312e443342a22690b0ffaa2186da145a334677af5"
+    }
+  ]
+}

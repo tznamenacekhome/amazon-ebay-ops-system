@@ -330,7 +330,6 @@ USED_CONDITION_SIGNALS = {
     "like new",
     "pre-owned",
     "preowned",
-    "tested",
     "used",
 }
 
@@ -552,6 +551,12 @@ def evaluate_static_match_rules(
     ) + used_condition_hits(title_text, description_text)
     condition_mismatch = list(dict.fromkeys(condition_mismatch))
     condition_concerns = condition_review_hits(title_text, description_text)
+    from sourcing_purchase_unit import purchase_unit_evidence
+    purchase_unit = purchase_unit_evidence(candidate, evidence, canonical)
+    if purchase_unit['result'] == 'review':
+        warnings.append(purchase_unit['reason'])
+        flags.append(purchase_unit['reason'])
+        recommendation = lower_recommendation(recommendation, 'Review')
     if condition_concerns:
         warnings.append('Condition review — ' + '; '.join(condition_concerns))
         flags.append(warnings[-1])
@@ -718,6 +723,7 @@ def evaluate_static_match_rules(
                 or str(candidate.get("condition") or "").casefold() in NEW_CONDITION_VALUES
                 or re.search(r'\b(?:brand new|factory sealed|new and sealed|new sealed)\b', combined_text, re.I) else "missing"},
         "condition_review": {"hits": condition_concerns, "result": "review" if condition_concerns else "pass", "reason": 'Condition review — ' + '; '.join(condition_concerns) if condition_concerns else ''},
+        "purchase_unit": purchase_unit,
         "contents_review": {"result":"review" if contents_review else "pass", "reason":package_policy.get('reason','') if contents_review else ''},
         "incomplete_listing": effective_checks.get("completeness", {"hits": incomplete, "result": "blocked" if incomplete else "pass"}),
         "not_game": {"hits": not_game, "result": "blocked" if not_game else "pass"},
@@ -1230,14 +1236,23 @@ def non_new_structured_condition_hits(condition: Any, condition_id: Any) -> list
 
 
 def used_condition_hits(title_text: str, description_text: str) -> list[str]:
+    # Narrow seller-policy boilerplate is not an assertion about this item.
+    # Keep the original evidence untouched; specific used/opened disclosures in
+    # every other sentence still participate in the normal condition checks.
+    description_text = re.sub(r'\bwe\s+(?:sell|stock|carry)\s+(?:both\s+)?new\s+(?:and|&)\s+used\s+(?:video\s+)?games\b', 'seller inventory policy', description_text, flags=re.I)
+    description_text = re.sub(r'\bmixed\s+new\s*(?:and|&|/)\s*used\s+(?:video\s+)?(?:games|inventory)\b', 'mixed inventory selection', description_text, flags=re.I)
     text = re.sub(r'<[^>]+>', ' ', f"{title_text}. {description_text}").casefold()
     hits = keyword_hits(text, sorted(USED_CONDITION_SIGNALS))
-    damage = re.compile(r'\b(?:(?:plastic\s+)?seal\s+(?:(?:is|has been)\s+)?(?:torn|tore|broken|damaged|missing)|(?:torn|broken|damaged|missing)\s+(?:the\s+|a\s+)?(?:plastic\s+)?seal|seal\s+damage|case\s+(?:is\s+)?(?:also\s+)?cracked|cracked\s+case|upc\s+(?:is\s+)?punched|punched\s+upc|hole\s+punch\s+in\s+(?:the\s+)?upc)\b')
+    damage = re.compile(r'\b(?:(?:plastic\s+)?seal\s+(?:(?:is|has been)\s+)?(?:torn|tore|broken|damaged|missing)|(?:torn|broken|damaged|missing)\s+(?:the\s+|a\s+)?(?:plastic\s+)?seal|seal\s+damage|upc\s+(?:is\s+)?punched|punched\s+upc|hole\s+punch\s+in\s+(?:the\s+)?upc)\b')
     for match in damage.finditer(text):
         if not condition_negated(text, match):
             hits.append(match[0])
-    if "tested" in hits and not any(term in hits for term in {"used", "pre-owned", "preowned", "like new"}):
-        hits.remove("tested")
+    from sourcing_case_condition import case_damage_hits
+    hits.extend(case_damage_hits(title_text, description_text, condition_negated))
+    opened = r'\b(?:(?:this|the|offered)\s+(?:game|item|copy|disc)\s+(?:was|is|has been)\s+(?:opened|played|used|unsealed)|(?:i|we)\s+(?:have\s+)?opened\s+(?:this|the)\s+(?:game|copy|item)|opened\s+(?:it\s+)?(?:only\s+)?(?:to|for)\s+test(?:ing)?|(?:played|opened)\s+(?:once|twice))\b'
+    for match in re.finditer(opened, text):
+        if not condition_negated(text, match):
+            hits.append(match[0])
     return hits
 
 

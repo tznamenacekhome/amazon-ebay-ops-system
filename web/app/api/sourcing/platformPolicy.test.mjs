@@ -12,8 +12,8 @@ const {sourcingPlatformEligibility:eligibility,platformOpportunityAllowed:allowe
 const policy=JSON.parse(readFileSync(new URL('../../../lib/sourcingPlatformPolicy.json',import.meta.url),'utf8'));
 const seed=(system,format)=>({asin:'B000TEST00',amazon_title:'Example Quest',system,raw_context_json:{amazon_catalog_identity:{asin:'B000TEST00',normalized_platform:system,normalized_format:format}}});
 const cases=[];
-for(const system of policy.excludedCartridgePlatforms){const s=seed(system,'dvd_rom');assert.equal(eligibility(s).result,'blocked');assert.equal(allowed({sourcing_seed_asins:s,status:'open',matching_diagnostics_json:{recommendation:'Match'}}),false);cases.push({seed:s});}
-for(const system of [...policy.exceptionPlatforms,...policy.discOrComputerPlatforms]){const s=seed(system,system==='PSP'?'UMD':null);assert.equal(eligibility(s).result,'pass',system);cases.push({seed:s});}
+for(const system of [...policy.excludedCartridgePlatforms,...policy.explicitExcludedPlatforms]){const s=seed(system,'dvd_rom');assert.equal(eligibility(s).result,'blocked');assert.equal(allowed({sourcing_seed_asins:s,status:'open',matching_diagnostics_json:{recommendation:'Match'}}),false);cases.push({seed:s});}
+for(const system of [...policy.explicitEligiblePlatforms,...policy.discOrComputerPlatforms]){const s=seed(system,system==='PSP'?'UMD':null);assert.equal(eligibility(s).result,'pass',system);cases.push({seed:s});}
 for(const system of policy.mixedFormatPlatforms)for(const [format,result]of [[null,'unresolved'],['cartridge','blocked'],['CD-ROM','unresolved']]){const s=seed(system,format);assert.equal(eligibility(s).result,result);cases.push({seed:s});}
 for(const system of policy.mixedFormatPlatforms){const s=seed(system,'CD-ROM');s.raw_context_json.amazon_catalog_identity.relevant_attributes_json={physical_format:'CD-ROM'};assert.equal(eligibility(s).result,'pass');cases.push({seed:s});}
 for(const system of ['Nintendo Game Boy Advance','Mega Drive','Nintendo 3DS / Nintendo Switch','SNES','Unknown'])cases.push({seed:seed(system)});
