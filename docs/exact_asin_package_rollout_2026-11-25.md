@@ -116,3 +116,9 @@ identity promotion. Original evaluations must be archived, holds/manual decision
 skipped, and source rows/provenance retained. No reimport or marketplace actions.
 
 Release and replay results will be recorded after production verification.
+
+Catalog-refresh regression follow-up: a changed catalog title/platform now
+retains known exact-ASIN package evidence as unresolved contradiction instead of
+silently dropping it. A properly verified software-only observation may still
+supersede an older unresolved record. The expanded 344-test Python suite passes;
+all 97 captured identity/lifecycle results remain identical to the final gate.

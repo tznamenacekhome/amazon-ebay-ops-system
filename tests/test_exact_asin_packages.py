@@ -154,6 +154,21 @@ class ExactPackageTests(unittest.TestCase):
         result=self.compare(s,c)
         self.assertEqual(result['comparisons']['edition']['policy']['packagePolicy']['result'],'review')
 
+    def test_catalog_refresh_cannot_silently_erase_known_requirement(self):
+        row=json.loads((Path(__file__).parent/'fixtures/spirit_camera_captured_20261124.json').read_text())
+        for field,value in [('title','Spirit Camera: The Cursed Memoir - Nintendo 3DS')]:
+            s,c=deepcopy(row['seed']),deepcopy(row['candidate'])
+            s['raw_context_json']['amazon_catalog_identity']['relevant_attributes_json'][field]=value
+            self.assertEqual(self.compare(s,c)['result'],'review')
+
+    def test_verified_exact_software_observation_supersedes_unresolved_record(self):
+        s,c=self.pair('Wii Fit',asin='B000VJRU44')
+        catalog=s['raw_context_json']['amazon_catalog_identity']
+        s['system']='Wii';catalog['normalized_platform']='Wii'
+        attrs=catalog['relevant_attributes_json']
+        attrs['verified_package_evidence'].update(platform='Wii',configuration='software_only')
+        self.assertEqual(self.compare(s,c)['result'],'match')
+
 
 if __name__=='__main__':
     unittest.main()

@@ -38,17 +38,23 @@ def attach_verified_package(catalog, asin):
     for row in curated_records():
         if row['asin'] != asin or result.get('marketplace_id', US) != row['marketplace_id']:
             continue
-        if normalize_system(result.get('normalized_platform')) != normalize_system(row['platform']):
+        existing = attrs.get('verified_package_evidence')
+        verified_existing = bool(existing and existing.get('asin')==asin
+            and existing.get('marketplace_id')==row['marketplace_id']
+            and existing.get('verification_status')=='verified' and existing.get('sources')
+            and (not existing.get('platform') or normalize_system(existing['platform'])==normalize_system(result.get('normalized_platform'))))
+        if verified_existing and row['verification_status']=='unresolved':
             continue
-        if str(attrs.get('title','')).casefold() != row['catalog_title'].casefold():
+        if (normalize_system(result.get('normalized_platform')) != normalize_system(row['platform'])
+                or str(attrs.get('title','')).casefold() != row['catalog_title'].casefold()):
+            # A catalog refresh cannot silently erase a known exact-ASIN
+            # requirement. Retain the source as unresolved contradictory evidence.
+            result['relevant_attributes_json']={**attrs,'package_evidence_conflict':True,
+                'additional_verified_package_evidence':deepcopy(row)}
             continue
         # An explicit, verified exact-ASIN observation can supersede an older
         # unresolved record. Conflicting verified observations remain visible.
-        existing = attrs.get('verified_package_evidence')
-        if (existing and existing.get('asin') == asin
-                and existing.get('marketplace_id') == row['marketplace_id']
-                and existing.get('verification_status')=='verified'
-                and existing.get('sources')):
+        if verified_existing:
             if row['verification_status']=='verified' and (
                     existing.get('configuration')!=row['configuration'] or
                     existing.get('required_contents')!=row['required_contents']):
