@@ -19,6 +19,18 @@ from score_sourcing_opportunities import score_candidate,score_candidate_batches
 from ebay_listing_evidence import ListingUnavailable
 NS=uuid.UUID('93d60c95-f371-4584-bbba-f285254193ac')
 
+def mutable_decision_patch(scored):
+ """Preserve authoritative lifecycle history; never ask refresh SQL to write it."""
+ patch=deepcopy({k:scored[k]for k in PATCH_FIELDS if k in scored})
+ if patch['status']not in ['open','rejected']:
+  lifecycle=patch['status'];patch['status']='rejected'
+  diagnostics=patch['matching_diagnostics_json']
+  diagnostics['normalPipelineLifecycleStatus']=lifecycle
+  diagnostics['businessEligibilityChecks']=[*(diagnostics.get('businessEligibilityChecks')or[]),{'code':'operator_history_status','label':'Normal pipeline historical lifecycle','result':'fail','blocking':True,'actual':lifecycle,'explanation':'Historical lifecycle remains authoritative; refresh record cannot become actionable.'}]
+  from sourcing_decision_trace import enrich_sourcing_diagnostics
+  patch['matching_diagnostics_json']=enrich_sourcing_diagnostics(diagnostics,status='rejected',opportunity_type=patch.get('opportunity_type'),profit=patch.get('profit'),roi_percent=patch.get('roi_percent'))
+ return patch
+
 def main():
  p=argparse.ArgumentParser(description=__doc__);p.add_argument('--execute',action='store_true');p.add_argument('--max-seconds',type=int,default=600)
  args=p.parse_args();os.chdir(ROOT)
@@ -181,9 +193,9 @@ def main():
      save_source(number,old['status'],old['evaluation'],old['error']);record({'row':number,'result':'protected_skip','reason':capture['protected']});continue
     worker.evaluation_context()
     scored=list(score_candidate_batches(db,[candidate],{fresh['seed_id']:fresh},worker.settings,fetch_keepa_price_context_by_asin(db,[item['asin']]),worker.history,worker.matching,fetch_owned_units_by_asin(db,[fresh])))[0];assert scored
-    patch={k:scored[k]for k in PATCH_FIELDS if k in scored};patch['matching_diagnostics_json']['targetedReplay']={'manifestHash':tag,'source':'authorized_fresh_phase2_text_pipeline'}
+    patch=mutable_decision_patch(scored);patch['matching_diagnostics_json']['targetedReplay']={'manifestHash':tag,'source':'authorized_fresh_phase2_text_pipeline'}
     request={'p_allowed_ids':[r['opportunityId']for r in manifest['rows']if r['opportunityId']],'p_rows':[{'requestId':str(uuid.uuid5(NS,tag+':decision:'+str(number))),'opportunityId':op['opportunity_id'],'state':capture['state'],'hash':capture['hash'],'patch':patch}]}
-    pending.write_text(exact_json({'request':request,'diagnostics':scored['matching_diagnostics_json'],'summary':{'row':number,'item':item['ebayItemId'],'asin':item['asin'],'result':'fresh_evaluation','opportunityId':op['opportunity_id'],'status':scored['status'],'profit':scored['profit'],'roi':scored['roi_percent']}}));flush_pending()
+    pending.write_text(exact_json({'request':request,'diagnostics':patch['matching_diagnostics_json'],'summary':{'row':number,'item':item['ebayItemId'],'asin':item['asin'],'result':'fresh_evaluation','opportunityId':op['opportunity_id'],'status':patch['status'],'normalPipelineStatus':scored['status'],'profit':scored['profit'],'roi':scored['roi_percent']}}));flush_pending()
    except ListingUnavailable as error:
     db.table('sourcing_ebay_candidates').update({'listing_status':'ended','available_quantity':0,'last_seen_at':fm.now()}).eq('candidate_id',c['candidate_id']).execute()
     if op:
