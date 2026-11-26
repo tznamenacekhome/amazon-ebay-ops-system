@@ -38,13 +38,16 @@ def unavailable_decision_patch(op, reason):
  diagnostics=enrich_sourcing_diagnostics(diagnostics,status='rejected',opportunity_type=op.get('opportunity_type'),profit=op.get('profit'),roi_percent=op.get('roi_percent'),listing_status='ended')
  return {'status':'rejected','matching_diagnostics_json':diagnostics}
 
+def write_checkpoint(path,value):
+ path.write_text(exact_json(value),encoding='utf-8')
+
 def main():
  p=argparse.ArgumentParser(description=__doc__);p.add_argument('--execute',action='store_true');p.add_argument('--max-seconds',type=int,default=600)
  args=p.parse_args();os.chdir(ROOT)
- manifest=json.loads(Path('docs/phase2_text_replay_manifest_2026-11-26.json').read_text())
+ manifest=json.loads(Path('docs/phase2_text_replay_manifest_2026-11-26.json').read_text(encoding='utf-8'))
  assert manifest['tabId']=='97fc964e-a4f2-43bb-a5ca-90381d1352b8' and 1<=len(manifest['rows'])<=50
  target_total=len(manifest['rows'])
- gate=json.loads(Path('docs/phase2_text_only_shadow_2026-11-26.json').read_text());assert gate['gate']=='PASS'
+ gate=json.loads(Path('docs/phase2_text_only_shadow_2026-11-26.json').read_text(encoding='utf-8'));assert gate['gate']=='PASS'
  for file,digest in gate['codeFileHashes'].items():assert hashlib.sha256(Path(file).read_bytes().replace(b'\r\n',b'\n')).hexdigest()==digest,file
  tag=hashlib.sha256(json.dumps(manifest,sort_keys=True).encode()).hexdigest();run_id=str(uuid.uuid5(NS,tag))
  root=Path('tmp/phase2-text-replay');root.mkdir(exist_ok=True);journal=root/'results.jsonl';statefile=root/'state.json';pending=root/'pending.json'
@@ -85,13 +88,13 @@ def main():
  requests.Session.request=tracked
  def usage():return db.table('ebay_api_usage').select('resource,job_name,day,attempts').in_('job_name',['import_flipmine.py','essential:import_flipmine.py']).execute().data
  if not (root/'usage-before.json').exists():(root/'usage-before.json').write_text(json.dumps(usage()))
- done={json.loads(line)['row']for line in journal.read_text().splitlines()}if journal.exists()else set()
+ done={json.loads(line)['row']for line in journal.read_text(encoding='utf-8').splitlines()}if journal.exists()else set()
  if len(done)==target_total:
   print('Saved checkpoint complete; no provider calls or new jobs.');return
  rpc=Rpc();worker=fm.FlipmineImporter(db,run_id,SimpleNamespace(spreadsheet_id=tab['spreadsheet_id']))
  original_rows={r['row_number']:r for r in rows};old_ops={}
  if statefile.exists():
-  state=json.loads(statefile.read_text());assert state['manifestHash']==tag;original_rows={r['row_number']:r for r in state['originalRows']};old_ops=state['oldOps']
+  state=json.loads(statefile.read_text(encoding='utf-8'));assert state['manifestHash']==tag;original_rows={r['row_number']:r for r in state['originalRows']};old_ops=state['oldOps']
  else:
   assert tab['status']=='completed'and tab['run_id']==manifest['originalRunId']
   for item in manifest['rows']:
@@ -122,7 +125,7 @@ def main():
   evaluation={**(evaluation or{}),'targetedReplay':{'manifestHash':tag,'archiveId':str(uuid.uuid5(NS,tag+':original:'+str(number)))}}
   worker.row_update(tab['tab_id'],dict(original_rows[number]),status=status,evaluation=evaluation,error=error)
  def flush_pending():
-  item=json.loads(pending.read_text());result=rpc('sourcing_closeout_write_batch',item['request'])[0]
+  item=json.loads(pending.read_text(encoding='utf-8'));result=rpc('sourcing_closeout_write_batch',item['request'])[0]
   if result['result']in ['written','already_written','already_applied']:
    save_source(item['summary']['row'],item.get('sourceStatus','evaluated'),item['diagnostics'],item.get('sourceError'))
   else:
@@ -189,7 +192,7 @@ def main():
      from sourcing_decision_trace import enrich_sourcing_diagnostics
      diagnostics=enrich_sourcing_diagnostics(diagnostics,status='rejected',opportunity_type=op.get('opportunity_type'),profit=op.get('profit'),roi_percent=op.get('roi_percent'))
      request={'p_allowed_ids':[op['opportunity_id']],'p_rows':[{'requestId':str(uuid.uuid5(NS,tag+':catalog-excluded:'+str(number))),'opportunityId':op['opportunity_id'],'state':capture['state'],'hash':capture['hash'],'patch':{'status':'rejected','matching_diagnostics_json':diagnostics}}]}
-     pending.write_text(exact_json({'request':request,'diagnostics':diagnostics,'sourceStatus':'excluded','sourceError':reason,'summary':{'row':number,'item':item['ebayItemId'],'asin':item['asin'],'result':'catalog_excluded','reason':reason,'opportunityId':op['opportunity_id']}}));flush_pending();continue
+     write_checkpoint(pending,{'request':request,'diagnostics':diagnostics,'sourceStatus':'excluded','sourceError':reason,'summary':{'row':number,'item':item['ebayItemId'],'asin':item['asin'],'result':'catalog_excluded','reason':reason,'opportunityId':op['opportunity_id']}});flush_pending();continue
     fresh={**fresh,'seed_id':s['seed_id'],'sourcing_run_id':s['sourcing_run_id'],'source_mode':s.get('source_mode') or fresh.get('source_mode')}
     if worker.token is None:worker.token=fm.get_access_token()
     payload=fm.fetch_listing(worker.token,item['ebayItemId'],worker.settings)
@@ -202,7 +205,7 @@ def main():
     scored=list(score_candidate_batches(db,[candidate],{fresh['seed_id']:fresh},worker.settings,fetch_keepa_price_context_by_asin(db,[item['asin']]),worker.history,worker.matching,fetch_owned_units_by_asin(db,[fresh])))[0];assert scored
     patch=mutable_decision_patch(scored);patch['matching_diagnostics_json']['targetedReplay']={'manifestHash':tag,'source':'authorized_fresh_phase2_text_pipeline'}
     request={'p_allowed_ids':[r['opportunityId']for r in manifest['rows']if r['opportunityId']],'p_rows':[{'requestId':str(uuid.uuid5(NS,tag+':decision:'+str(number))),'opportunityId':op['opportunity_id'],'state':capture['state'],'hash':capture['hash'],'patch':patch}]}
-    pending.write_text(exact_json({'request':request,'diagnostics':patch['matching_diagnostics_json'],'summary':{'row':number,'item':item['ebayItemId'],'asin':item['asin'],'result':'fresh_evaluation','opportunityId':op['opportunity_id'],'status':patch['status'],'normalPipelineStatus':scored['status'],'profit':scored['profit'],'roi':scored['roi_percent']}}));flush_pending()
+    write_checkpoint(pending,{'request':request,'diagnostics':patch['matching_diagnostics_json'],'summary':{'row':number,'item':item['ebayItemId'],'asin':item['asin'],'result':'fresh_evaluation','opportunityId':op['opportunity_id'],'status':patch['status'],'normalPipelineStatus':scored['status'],'profit':scored['profit'],'roi':scored['roi_percent']}});flush_pending()
    except ListingUnavailable as error:
     db.table('sourcing_ebay_candidates').update({'listing_status':'ended','available_quantity':0,'last_seen_at':fm.now()}).eq('candidate_id',c['candidate_id']).execute()
     if op:
@@ -211,7 +214,7 @@ def main():
       save_source(number,old['status'],old['evaluation'],old['error']);record({'row':number,'result':'protected_skip','reason':capture['protected']});continue
      patch=unavailable_decision_patch(op,fm.safe_error(error))
      request={'p_allowed_ids':[op['opportunity_id']],'p_rows':[{'requestId':str(uuid.uuid5(NS,tag+':ended:'+str(number))),'opportunityId':op['opportunity_id'],'state':capture['state'],'hash':capture['hash'],'patch':patch}]}
-     pending.write_text(exact_json({'request':request,'diagnostics':patch['matching_diagnostics_json'],'sourceStatus':'excluded','sourceError':fm.safe_error(error),'summary':{'row':number,'item':item['ebayItemId'],'asin':item['asin'],'result':'confirmed_unavailable','opportunityId':op['opportunity_id']}}));flush_pending()
+     write_checkpoint(pending,{'request':request,'diagnostics':patch['matching_diagnostics_json'],'sourceStatus':'excluded','sourceError':fm.safe_error(error),'summary':{'row':number,'item':item['ebayItemId'],'asin':item['asin'],'result':'confirmed_unavailable','opportunityId':op['opportunity_id']}});flush_pending()
     else:
      save_source(number,'excluded',{'availability':{'result':'blocked','reason':fm.safe_error(error)}},fm.safe_error(error));record({'row':number,'item':item['ebayItemId'],'asin':item['asin'],'result':'confirmed_unavailable'})
    if index%20==0:worker.progress(tab['tab_id'],[])
@@ -233,7 +236,7 @@ if __name__=='__main__':
   state=ROOT/'tmp/phase2-text-replay/state.json'
   if '--execute'in sys.argv and state.exists():
    try:
-    saved=json.loads(state.read_text());db=get_supabase_client()
+    saved=json.loads(state.read_text(encoding='utf-8'));db=get_supabase_client()
     db.table('sourcing_flipmine_tabs').update({'status':'partial','error_summary':fm.safe_error(error)}).eq('tab_id',saved['originalTab']['tab_id']).eq('run_id',saved['runId']).eq('status','running').execute()
     db.table('sourcing_flipmine_runs').update({'status':'partial','error_summary':fm.safe_error(error),'completed_at':fm.now()}).eq('run_id',saved['runId']).eq('status','running').execute()
    except Exception:pass
