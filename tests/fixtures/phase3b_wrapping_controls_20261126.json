@@ -1,0 +1,734 @@
+[
+  {
+    "label": "phase3b-wrap:minor-tear",
+    "candidate": {
+      "asin": "B0P3B00011",
+      "ebay_title": "Example Quest Standard Edition",
+      "ebay_item_id": "v1|990000000000|0",
+      "ebay_legacy_item_id": "990000000000",
+      "candidate_id": "phase3b-control-11",
+      "seed_id": "phase2-control-seed-0",
+      "sourcing_run_id": "phase2-offline-control",
+      "condition": "Brand New",
+      "condition_id": "1000",
+      "listing_status": "active",
+      "item_location_country": "US",
+      "price": 10,
+      "landed_cost": 10,
+      "shipping_cost": 0,
+      "buying_options": [
+        "FIXED_PRICE"
+      ],
+      "available_quantity": 1,
+      "raw_ebay_json": {
+        "localizedAspects": [
+          {
+            "name": "Game Name",
+            "value": "Example Quest Standard Edition"
+          },
+          {
+            "name": "Platform",
+            "value": "PC"
+          }
+        ],
+        "categories": [
+          {
+            "categoryId": "139973",
+            "categoryName": "Video Games"
+          }
+        ],
+        "description": "Small tear in shrink wrap."
+      }
+    },
+    "seed": {
+      "asin": "B0P3B00011",
+      "amazon_title": "Example Quest Standard Edition",
+      "system": "PC",
+      "target_sale_price": 100,
+      "inventory_need_level": "high",
+      "raw_context_json": {
+        "amazon_catalog_identity": {
+          "asin": "B0P3B00011",
+          "normalized_platform": "PC",
+          "normalized_edition": "Standard",
+          "relevant_attributes_json": {
+            "platform": "PC"
+          }
+        }
+      }
+    },
+    "synthetic": true,
+    "expectedCondition": "review"
+  },
+  {
+    "label": "phase3b-wrap:plural-cello",
+    "candidate": {
+      "asin": "B0P3B00011",
+      "ebay_title": "Example Quest Standard Edition",
+      "ebay_item_id": "v1|990000000001|0",
+      "ebay_legacy_item_id": "990000000001",
+      "candidate_id": "phase3b-control-11",
+      "seed_id": "phase2-control-seed-0",
+      "sourcing_run_id": "phase2-offline-control",
+      "condition": "Brand New",
+      "condition_id": "1000",
+      "listing_status": "active",
+      "item_location_country": "US",
+      "price": 10,
+      "landed_cost": 10,
+      "shipping_cost": 0,
+      "buying_options": [
+        "FIXED_PRICE"
+      ],
+      "available_quantity": 1,
+      "raw_ebay_json": {
+        "localizedAspects": [
+          {
+            "name": "Game Name",
+            "value": "Example Quest Standard Edition"
+          },
+          {
+            "name": "Platform",
+            "value": "PC"
+          }
+        ],
+        "categories": [
+          {
+            "categoryId": "139973",
+            "categoryName": "Video Games"
+          }
+        ],
+        "description": "Has some tears in the cello wrap."
+      }
+    },
+    "seed": {
+      "asin": "B0P3B00011",
+      "amazon_title": "Example Quest Standard Edition",
+      "system": "PC",
+      "target_sale_price": 100,
+      "inventory_need_level": "high",
+      "raw_context_json": {
+        "amazon_catalog_identity": {
+          "asin": "B0P3B00011",
+          "normalized_platform": "PC",
+          "normalized_edition": "Standard",
+          "relevant_attributes_json": {
+            "platform": "PC"
+          }
+        }
+      }
+    },
+    "synthetic": true,
+    "expectedCondition": "review"
+  },
+  {
+    "label": "phase3b-wrap:holes",
+    "candidate": {
+      "asin": "B0P3B00011",
+      "ebay_title": "Example Quest Standard Edition",
+      "ebay_item_id": "v1|990000000002|0",
+      "ebay_legacy_item_id": "990000000002",
+      "candidate_id": "phase3b-control-11",
+      "seed_id": "phase2-control-seed-0",
+      "sourcing_run_id": "phase2-offline-control",
+      "condition": "Brand New",
+      "condition_id": "1000",
+      "listing_status": "active",
+      "item_location_country": "US",
+      "price": 10,
+      "landed_cost": 10,
+      "shipping_cost": 0,
+      "buying_options": [
+        "FIXED_PRICE"
+      ],
+      "available_quantity": 1,
+      "raw_ebay_json": {
+        "localizedAspects": [
+          {
+            "name": "Game Name",
+            "value": "Example Quest Standard Edition"
+          },
+          {
+            "name": "Platform",
+            "value": "PC"
+          }
+        ],
+        "categories": [
+          {
+            "categoryId": "139973",
+            "categoryName": "Video Games"
+          }
+        ],
+        "description": "Has a few holes in seal as shown."
+      }
+    },
+    "seed": {
+      "asin": "B0P3B00011",
+      "amazon_title": "Example Quest Standard Edition",
+      "system": "PC",
+      "target_sale_price": 100,
+      "inventory_need_level": "high",
+      "raw_context_json": {
+        "amazon_catalog_identity": {
+          "asin": "B0P3B00011",
+          "normalized_platform": "PC",
+          "normalized_edition": "Standard",
+          "relevant_attributes_json": {
+            "platform": "PC"
+          }
+        }
+      }
+    },
+    "synthetic": true,
+    "expectedCondition": "review"
+  },
+  {
+    "label": "phase3b-wrap:puncture",
+    "candidate": {
+      "asin": "B0P3B00011",
+      "ebay_title": "Example Quest Standard Edition",
+      "ebay_item_id": "v1|990000000003|0",
+      "ebay_legacy_item_id": "990000000003",
+      "candidate_id": "phase3b-control-11",
+      "seed_id": "phase2-control-seed-0",
+      "sourcing_run_id": "phase2-offline-control",
+      "condition": "Brand New",
+      "condition_id": "1000",
+      "listing_status": "active",
+      "item_location_country": "US",
+      "price": 10,
+      "landed_cost": 10,
+      "shipping_cost": 0,
+      "buying_options": [
+        "FIXED_PRICE"
+      ],
+      "available_quantity": 1,
+      "raw_ebay_json": {
+        "localizedAspects": [
+          {
+            "name": "Game Name",
+            "value": "Example Quest Standard Edition"
+          },
+          {
+            "name": "Platform",
+            "value": "PC"
+          }
+        ],
+        "categories": [
+          {
+            "categoryId": "139973",
+            "categoryName": "Video Games"
+          }
+        ],
+        "description": "Punctures in cellophane wrap."
+      }
+    },
+    "seed": {
+      "asin": "B0P3B00011",
+      "amazon_title": "Example Quest Standard Edition",
+      "system": "PC",
+      "target_sale_price": 100,
+      "inventory_need_level": "high",
+      "raw_context_json": {
+        "amazon_catalog_identity": {
+          "asin": "B0P3B00011",
+          "normalized_platform": "PC",
+          "normalized_edition": "Standard",
+          "relevant_attributes_json": {
+            "platform": "PC"
+          }
+        }
+      }
+    },
+    "synthetic": true,
+    "expectedCondition": "review"
+  },
+  {
+    "label": "phase3b-wrap:vent",
+    "candidate": {
+      "asin": "B0P3B00011",
+      "ebay_title": "Example Quest Standard Edition",
+      "ebay_item_id": "v1|990000000004|0",
+      "ebay_legacy_item_id": "990000000004",
+      "candidate_id": "phase3b-control-11",
+      "seed_id": "phase2-control-seed-0",
+      "sourcing_run_id": "phase2-offline-control",
+      "condition": "Brand New",
+      "condition_id": "1000",
+      "listing_status": "active",
+      "item_location_country": "US",
+      "price": 10,
+      "landed_cost": 10,
+      "shipping_cost": 0,
+      "buying_options": [
+        "FIXED_PRICE"
+      ],
+      "available_quantity": 1,
+      "raw_ebay_json": {
+        "localizedAspects": [
+          {
+            "name": "Game Name",
+            "value": "Example Quest Standard Edition"
+          },
+          {
+            "name": "Platform",
+            "value": "PC"
+          }
+        ],
+        "categories": [
+          {
+            "categoryId": "139973",
+            "categoryName": "Video Games"
+          }
+        ],
+        "description": "Holes in seal are normal factory vents."
+      }
+    },
+    "seed": {
+      "asin": "B0P3B00011",
+      "amazon_title": "Example Quest Standard Edition",
+      "system": "PC",
+      "target_sale_price": 100,
+      "inventory_need_level": "high",
+      "raw_context_json": {
+        "amazon_catalog_identity": {
+          "asin": "B0P3B00011",
+          "normalized_platform": "PC",
+          "normalized_edition": "Standard",
+          "relevant_attributes_json": {
+            "platform": "PC"
+          }
+        }
+      }
+    },
+    "synthetic": true,
+    "expectedCondition": "pass"
+  },
+  {
+    "label": "phase3b-wrap:negative",
+    "candidate": {
+      "asin": "B0P3B00011",
+      "ebay_title": "Example Quest Standard Edition",
+      "ebay_item_id": "v1|990000000005|0",
+      "ebay_legacy_item_id": "990000000005",
+      "candidate_id": "phase3b-control-11",
+      "seed_id": "phase2-control-seed-0",
+      "sourcing_run_id": "phase2-offline-control",
+      "condition": "Brand New",
+      "condition_id": "1000",
+      "listing_status": "active",
+      "item_location_country": "US",
+      "price": 10,
+      "landed_cost": 10,
+      "shipping_cost": 0,
+      "buying_options": [
+        "FIXED_PRICE"
+      ],
+      "available_quantity": 1,
+      "raw_ebay_json": {
+        "localizedAspects": [
+          {
+            "name": "Game Name",
+            "value": "Example Quest Standard Edition"
+          },
+          {
+            "name": "Platform",
+            "value": "PC"
+          }
+        ],
+        "categories": [
+          {
+            "categoryId": "139973",
+            "categoryName": "Video Games"
+          }
+        ],
+        "description": "No tears or holes in seal."
+      }
+    },
+    "seed": {
+      "asin": "B0P3B00011",
+      "amazon_title": "Example Quest Standard Edition",
+      "system": "PC",
+      "target_sale_price": 100,
+      "inventory_need_level": "high",
+      "raw_context_json": {
+        "amazon_catalog_identity": {
+          "asin": "B0P3B00011",
+          "normalized_platform": "PC",
+          "normalized_edition": "Standard",
+          "relevant_attributes_json": {
+            "platform": "PC"
+          }
+        }
+      }
+    },
+    "synthetic": true,
+    "expectedCondition": "pass"
+  },
+  {
+    "label": "phase3b-wrap:hypothetical",
+    "candidate": {
+      "asin": "B0P3B00011",
+      "ebay_title": "Example Quest Standard Edition",
+      "ebay_item_id": "v1|990000000006|0",
+      "ebay_legacy_item_id": "990000000006",
+      "candidate_id": "phase3b-control-11",
+      "seed_id": "phase2-control-seed-0",
+      "sourcing_run_id": "phase2-offline-control",
+      "condition": "Brand New",
+      "condition_id": "1000",
+      "listing_status": "active",
+      "item_location_country": "US",
+      "price": 10,
+      "landed_cost": 10,
+      "shipping_cost": 0,
+      "buying_options": [
+        "FIXED_PRICE"
+      ],
+      "available_quantity": 1,
+      "raw_ebay_json": {
+        "localizedAspects": [
+          {
+            "name": "Game Name",
+            "value": "Example Quest Standard Edition"
+          },
+          {
+            "name": "Platform",
+            "value": "PC"
+          }
+        ],
+        "categories": [
+          {
+            "categoryId": "139973",
+            "categoryName": "Video Games"
+          }
+        ],
+        "description": "If tears in shrink wrap occur, contact us."
+      }
+    },
+    "seed": {
+      "asin": "B0P3B00011",
+      "amazon_title": "Example Quest Standard Edition",
+      "system": "PC",
+      "target_sale_price": 100,
+      "inventory_need_level": "high",
+      "raw_context_json": {
+        "amazon_catalog_identity": {
+          "asin": "B0P3B00011",
+          "normalized_platform": "PC",
+          "normalized_edition": "Standard",
+          "relevant_attributes_json": {
+            "platform": "PC"
+          }
+        }
+      }
+    },
+    "synthetic": true,
+    "expectedCondition": "pass"
+  },
+  {
+    "label": "phase3b-wrap:other",
+    "candidate": {
+      "asin": "B0P3B00011",
+      "ebay_title": "Example Quest Standard Edition",
+      "ebay_item_id": "v1|990000000007|0",
+      "ebay_legacy_item_id": "990000000007",
+      "candidate_id": "phase3b-control-11",
+      "seed_id": "phase2-control-seed-0",
+      "sourcing_run_id": "phase2-offline-control",
+      "condition": "Brand New",
+      "condition_id": "1000",
+      "listing_status": "active",
+      "item_location_country": "US",
+      "price": 10,
+      "landed_cost": 10,
+      "shipping_cost": 0,
+      "buying_options": [
+        "FIXED_PRICE"
+      ],
+      "available_quantity": 1,
+      "raw_ebay_json": {
+        "localizedAspects": [
+          {
+            "name": "Game Name",
+            "value": "Example Quest Standard Edition"
+          },
+          {
+            "name": "Platform",
+            "value": "PC"
+          }
+        ],
+        "categories": [
+          {
+            "categoryId": "139973",
+            "categoryName": "Video Games"
+          }
+        ],
+        "description": "Other items have tears in cello wrap."
+      }
+    },
+    "seed": {
+      "asin": "B0P3B00011",
+      "amazon_title": "Example Quest Standard Edition",
+      "system": "PC",
+      "target_sale_price": 100,
+      "inventory_need_level": "high",
+      "raw_context_json": {
+        "amazon_catalog_identity": {
+          "asin": "B0P3B00011",
+          "normalized_platform": "PC",
+          "normalized_edition": "Standard",
+          "relevant_attributes_json": {
+            "platform": "PC"
+          }
+        }
+      }
+    },
+    "synthetic": true,
+    "expectedCondition": "pass"
+  },
+  {
+    "label": "phase3b-wrap:testing",
+    "candidate": {
+      "asin": "B0P3B00011",
+      "ebay_title": "Example Quest Standard Edition",
+      "ebay_item_id": "v1|990000000008|0",
+      "ebay_legacy_item_id": "990000000008",
+      "candidate_id": "phase3b-control-11",
+      "seed_id": "phase2-control-seed-0",
+      "sourcing_run_id": "phase2-offline-control",
+      "condition": "Brand New",
+      "condition_id": "1000",
+      "listing_status": "active",
+      "item_location_country": "US",
+      "price": 10,
+      "landed_cost": 10,
+      "shipping_cost": 0,
+      "buying_options": [
+        "FIXED_PRICE"
+      ],
+      "available_quantity": 1,
+      "raw_ebay_json": {
+        "localizedAspects": [
+          {
+            "name": "Game Name",
+            "value": "Example Quest Standard Edition"
+          },
+          {
+            "name": "Platform",
+            "value": "PC"
+          }
+        ],
+        "categories": [
+          {
+            "categoryId": "139973",
+            "categoryName": "Video Games"
+          }
+        ],
+        "description": "All tested and working."
+      }
+    },
+    "seed": {
+      "asin": "B0P3B00011",
+      "amazon_title": "Example Quest Standard Edition",
+      "system": "PC",
+      "target_sale_price": 100,
+      "inventory_need_level": "high",
+      "raw_context_json": {
+        "amazon_catalog_identity": {
+          "asin": "B0P3B00011",
+          "normalized_platform": "PC",
+          "normalized_edition": "Standard",
+          "relevant_attributes_json": {
+            "platform": "PC"
+          }
+        }
+      }
+    },
+    "synthetic": true,
+    "expectedCondition": "pass"
+  },
+  {
+    "label": "phase3b-wrap:opened",
+    "candidate": {
+      "asin": "B0P3B00011",
+      "ebay_title": "Example Quest Standard Edition",
+      "ebay_item_id": "v1|990000000009|0",
+      "ebay_legacy_item_id": "990000000009",
+      "candidate_id": "phase3b-control-11",
+      "seed_id": "phase2-control-seed-0",
+      "sourcing_run_id": "phase2-offline-control",
+      "condition": "Brand New",
+      "condition_id": "1000",
+      "listing_status": "active",
+      "item_location_country": "US",
+      "price": 10,
+      "landed_cost": 10,
+      "shipping_cost": 0,
+      "buying_options": [
+        "FIXED_PRICE"
+      ],
+      "available_quantity": 1,
+      "raw_ebay_json": {
+        "localizedAspects": [
+          {
+            "name": "Game Name",
+            "value": "Example Quest Standard Edition"
+          },
+          {
+            "name": "Platform",
+            "value": "PC"
+          }
+        ],
+        "categories": [
+          {
+            "categoryId": "139973",
+            "categoryName": "Video Games"
+          }
+        ],
+        "description": "The game was opened to test it."
+      }
+    },
+    "seed": {
+      "asin": "B0P3B00011",
+      "amazon_title": "Example Quest Standard Edition",
+      "system": "PC",
+      "target_sale_price": 100,
+      "inventory_need_level": "high",
+      "raw_context_json": {
+        "amazon_catalog_identity": {
+          "asin": "B0P3B00011",
+          "normalized_platform": "PC",
+          "normalized_edition": "Standard",
+          "relevant_attributes_json": {
+            "platform": "PC"
+          }
+        }
+      }
+    },
+    "synthetic": true,
+    "expectedCondition": "blocked"
+  },
+  {
+    "label": "phase3b-wrap:cracked",
+    "candidate": {
+      "asin": "B0P3B00011",
+      "ebay_title": "Example Quest Standard Edition",
+      "ebay_item_id": "v1|990000000010|0",
+      "ebay_legacy_item_id": "990000000010",
+      "candidate_id": "phase3b-control-11",
+      "seed_id": "phase2-control-seed-0",
+      "sourcing_run_id": "phase2-offline-control",
+      "condition": "Brand New",
+      "condition_id": "1000",
+      "listing_status": "active",
+      "item_location_country": "US",
+      "price": 10,
+      "landed_cost": 10,
+      "shipping_cost": 0,
+      "buying_options": [
+        "FIXED_PRICE"
+      ],
+      "available_quantity": 1,
+      "raw_ebay_json": {
+        "localizedAspects": [
+          {
+            "name": "Game Name",
+            "value": "Example Quest Standard Edition"
+          },
+          {
+            "name": "Platform",
+            "value": "PC"
+          }
+        ],
+        "categories": [
+          {
+            "categoryId": "139973",
+            "categoryName": "Video Games"
+          }
+        ],
+        "description": "Visible cracks on case."
+      }
+    },
+    "seed": {
+      "asin": "B0P3B00011",
+      "amazon_title": "Example Quest Standard Edition",
+      "system": "PC",
+      "target_sale_price": 100,
+      "inventory_need_level": "high",
+      "raw_context_json": {
+        "amazon_catalog_identity": {
+          "asin": "B0P3B00011",
+          "normalized_platform": "PC",
+          "normalized_edition": "Standard",
+          "relevant_attributes_json": {
+            "platform": "PC"
+          }
+        }
+      }
+    },
+    "synthetic": true,
+    "expectedCondition": "blocked"
+  },
+  {
+    "label": "phase3b-wrap:missing",
+    "candidate": {
+      "asin": "B0P3B00011",
+      "ebay_title": "Example Quest Standard Edition",
+      "ebay_item_id": "v1|990000000011|0",
+      "ebay_legacy_item_id": "990000000011",
+      "candidate_id": "phase3b-control-11",
+      "seed_id": "phase2-control-seed-0",
+      "sourcing_run_id": "phase2-offline-control",
+      "condition": "Brand New",
+      "condition_id": "1000",
+      "listing_status": "active",
+      "item_location_country": "US",
+      "price": 10,
+      "landed_cost": 10,
+      "shipping_cost": 0,
+      "buying_options": [
+        "FIXED_PRICE"
+      ],
+      "available_quantity": 1,
+      "raw_ebay_json": {
+        "localizedAspects": [
+          {
+            "name": "Game Name",
+            "value": "Example Quest Standard Edition"
+          },
+          {
+            "name": "Platform",
+            "value": "PC"
+          }
+        ],
+        "categories": [
+          {
+            "categoryId": "139973",
+            "categoryName": "Video Games"
+          }
+        ],
+        "description": "Factory seal missing."
+      }
+    },
+    "seed": {
+      "asin": "B0P3B00011",
+      "amazon_title": "Example Quest Standard Edition",
+      "system": "PC",
+      "target_sale_price": 100,
+      "inventory_need_level": "high",
+      "raw_context_json": {
+        "amazon_catalog_identity": {
+          "asin": "B0P3B00011",
+          "normalized_platform": "PC",
+          "normalized_edition": "Standard",
+          "relevant_attributes_json": {
+            "platform": "PC"
+          }
+        }
+      }
+    },
+    "synthetic": true,
+    "expectedCondition": "blocked"
+  }
+]

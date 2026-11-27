@@ -1,0 +1,235 @@
+{
+  "version": "phase3b_evidence_scope_replay_v1",
+  "tabId": "97fc964e-a4f2-43bb-a5ca-90381d1352b8",
+  "sourceHash": "f60131aafdf2ccd6908fc2239f3942f0972166502f870ea26ba142eae4c1c13c",
+  "originalRunId": "33c2d3bb-6ffc-52af-855a-36e06e0f9bb6",
+  "initialImportRunId": "c7ba90ae-7cdd-4b87-a831-c2ff33682adf",
+  "originalSourcingRunId": "5f77ab0e-1e7f-4518-8aa3-1cf0ec748ebd",
+  "sourceTotal": 558,
+  "evaluationScope": "Text and structured evidence only; photographs are operator review and never an automated gate",
+  "frozenInputSha256": "184dce8ac1f591e310b8c6b57b07ab0be266ee673f8ecc94bb31a3911398f2db",
+  "rows": [
+    {
+      "rowNumber": 19,
+      "asin": "B0006J1DKG",
+      "ebayItemId": "377670942318",
+      "candidateId": "3eb05ddf-f023-50de-977f-4d9dfaa2ca88",
+      "opportunityId": "38e53fd4-5f46-452a-859d-aba483dc0e5e",
+      "reasons": [
+        "Direct corrected publisher/composite identity; reviewed text-only shadow; condition review retained for rows 50 and 63; complete normal pipeline required",
+        "refresh existing exact-pair decision; source link is preserved until normal bind"
+      ],
+      "policy": "pass",
+      "platforms": [
+        "PC"
+      ],
+      "sourceOpportunityId": null,
+      "protectedAtPlan": null
+    },
+    {
+      "rowNumber": 50,
+      "asin": "B0008EZDDM",
+      "ebayItemId": "128210994247",
+      "candidateId": "b3b81429-3828-5942-b36a-619aebd9ee1c",
+      "opportunityId": "6c255f43-0e0d-4347-a8b8-783cc252234f",
+      "reasons": [
+        "Direct corrected publisher/composite identity; reviewed text-only shadow; condition review retained for rows 50 and 63; complete normal pipeline required",
+        "refresh existing exact-pair decision; source link is preserved until normal bind"
+      ],
+      "policy": "pass",
+      "platforms": [
+        "PC"
+      ],
+      "sourceOpportunityId": null,
+      "protectedAtPlan": null
+    },
+    {
+      "rowNumber": 63,
+      "asin": "B00N3VNF32",
+      "ebayItemId": "880138368350",
+      "candidateId": "a7d42b80-ce20-549c-a78f-1e830b7d409d",
+      "opportunityId": "bac5e46c-99a6-4fce-b4d2-0070fe8dcef1",
+      "reasons": [
+        "Direct corrected publisher/composite identity; reviewed text-only shadow; condition review retained for rows 50 and 63; complete normal pipeline required",
+        "refresh existing exact-pair decision; source link is preserved until normal bind"
+      ],
+      "policy": "pass",
+      "platforms": [
+        "PS 3"
+      ],
+      "sourceOpportunityId": null,
+      "protectedAtPlan": null
+    },
+    {
+      "rowNumber": 88,
+      "asin": "B07DLTGW3X",
+      "ebayItemId": "117534792163",
+      "candidateId": "c17885e8-95fc-5c05-b25a-16bfff25966a",
+      "opportunityId": "ce527675-1f97-4860-8806-56d8e1d1dafc",
+      "reasons": [
+        "Direct corrected publisher/composite identity; reviewed text-only shadow; condition review retained for rows 50 and 63; complete normal pipeline required",
+        "refresh existing exact-pair decision; source link is preserved until normal bind"
+      ],
+      "policy": "pass",
+      "platforms": [
+        "Switch"
+      ],
+      "sourceOpportunityId": null,
+      "protectedAtPlan": null
+    },
+    {
+      "rowNumber": 101,
+      "asin": "B001DYXGUI",
+      "ebayItemId": "198811763973",
+      "candidateId": "4121e2da-780c-5827-8559-20aeebfe6dd7",
+      "opportunityId": "5ec4c4c9-3f79-495d-ae26-95462784d015",
+      "reasons": [
+        "Direct corrected publisher/composite identity; reviewed text-only shadow; condition review retained for rows 50 and 63; complete normal pipeline required",
+        "refresh existing exact-pair decision; source link is preserved until normal bind"
+      ],
+      "policy": "pass",
+      "platforms": [
+        "Xbox 360"
+      ],
+      "sourceOpportunityId": null,
+      "protectedAtPlan": null
+    },
+    {
+      "rowNumber": 173,
+      "asin": "B0019MRKNI",
+      "ebayItemId": "287739765470",
+      "candidateId": "7e3735f0-c22f-5c26-b8a1-f7c78251841a",
+      "opportunityId": "a6153830-32f7-49b7-9519-5b891eeea64c",
+      "reasons": [
+        "Direct corrected publisher/composite identity; reviewed text-only shadow; condition review retained for rows 50 and 63; complete normal pipeline required",
+        "refresh existing exact-pair decision; source link is preserved until normal bind"
+      ],
+      "policy": "pass",
+      "platforms": [
+        "Xbox 360"
+      ],
+      "sourceOpportunityId": null,
+      "protectedAtPlan": null
+    },
+    {
+      "rowNumber": 175,
+      "asin": "B00006JBS4",
+      "ebayItemId": "287739694904",
+      "candidateId": "9ad22331-8312-5883-90b8-382ea7670d78",
+      "opportunityId": "ba77d850-35f0-48eb-951d-1a6cdf7a88fc",
+      "reasons": [
+        "Direct corrected publisher/composite identity; reviewed text-only shadow; condition review retained for rows 50 and 63; complete normal pipeline required",
+        "refresh existing exact-pair decision; source link is preserved until normal bind"
+      ],
+      "policy": "pass",
+      "platforms": [
+        "PS 2"
+      ],
+      "sourceOpportunityId": null,
+      "protectedAtPlan": null
+    },
+    {
+      "rowNumber": 259,
+      "asin": "B00503EAG2",
+      "ebayItemId": "137937298074",
+      "candidateId": "badcbb15-6cdc-5735-be2c-ce010e2c7cf0",
+      "opportunityId": "2c344f85-2d80-40e2-a036-6139c76e6b4c",
+      "reasons": [
+        "Direct corrected publisher/composite identity; reviewed text-only shadow; condition review retained for rows 50 and 63; complete normal pipeline required",
+        "refresh existing exact-pair decision; source link is preserved until normal bind"
+      ],
+      "policy": "pass",
+      "platforms": [
+        "PC"
+      ],
+      "sourceOpportunityId": null,
+      "protectedAtPlan": null
+    },
+    {
+      "rowNumber": 425,
+      "asin": "B000196EN2",
+      "ebayItemId": "336887728055",
+      "candidateId": "52ccd7e9-ff40-5ecf-ba5f-5e6bd748c386",
+      "opportunityId": "260b1202-177d-43e9-bd9d-a3a3e522f8de",
+      "reasons": [
+        "Direct corrected publisher/composite identity; reviewed text-only shadow; condition review retained for rows 50 and 63; complete normal pipeline required",
+        "refresh existing exact-pair decision; source link is preserved until normal bind"
+      ],
+      "policy": "pass",
+      "platforms": [
+        "PC"
+      ],
+      "sourceOpportunityId": null,
+      "protectedAtPlan": null
+    },
+    {
+      "rowNumber": 470,
+      "asin": "B000CC5CHW",
+      "ebayItemId": "880089117994",
+      "candidateId": "0359a21c-a29f-58b1-86ec-88a9b17d2670",
+      "opportunityId": "fd91a880-fe2f-4e8a-9717-033b5131bdd9",
+      "reasons": [
+        "Direct corrected publisher/composite identity; reviewed text-only shadow; condition review retained for rows 50 and 63; complete normal pipeline required",
+        "refresh existing exact-pair decision; source link is preserved until normal bind"
+      ],
+      "policy": "pass",
+      "platforms": [
+        "PS 2"
+      ],
+      "sourceOpportunityId": null,
+      "protectedAtPlan": null
+    },
+    {
+      "rowNumber": 475,
+      "asin": "B0009PQCSU",
+      "ebayItemId": "860116884689",
+      "candidateId": "c32dde44-d9e4-5228-bfe7-545845d845ba",
+      "opportunityId": "c7864457-0895-4ce5-9525-718770fe1bf9",
+      "reasons": [
+        "Direct corrected publisher/composite identity; reviewed text-only shadow; condition review retained for rows 50 and 63; complete normal pipeline required",
+        "refresh existing exact-pair decision; source link is preserved until normal bind"
+      ],
+      "policy": "pass",
+      "platforms": [
+        "PC"
+      ],
+      "sourceOpportunityId": null,
+      "protectedAtPlan": null
+    },
+    {
+      "rowNumber": 484,
+      "asin": "B0007TYP50",
+      "ebayItemId": "137903669838",
+      "candidateId": "12392085-b074-5f7b-8733-04714faa63ba",
+      "opportunityId": "7169216c-aecc-4f96-8fc3-cb97dc342fd5",
+      "reasons": [
+        "Direct corrected publisher/composite identity; reviewed text-only shadow; condition review retained for rows 50 and 63; complete normal pipeline required",
+        "refresh existing exact-pair decision; source link is preserved until normal bind"
+      ],
+      "policy": "pass",
+      "platforms": [
+        "PC"
+      ],
+      "sourceOpportunityId": null,
+      "protectedAtPlan": null
+    },
+    {
+      "rowNumber": 520,
+      "asin": "B0007DGB4O",
+      "ebayItemId": "257833035632",
+      "candidateId": "663c604e-5f4b-51cf-901e-99a0b30c4bea",
+      "opportunityId": "c770884b-129f-4cce-a896-8c61d620a93c",
+      "reasons": [
+        "Direct corrected publisher/composite identity; reviewed text-only shadow; condition review retained for rows 50 and 63; complete normal pipeline required",
+        "refresh existing exact-pair decision; source link is preserved until normal bind"
+      ],
+      "policy": "pass",
+      "platforms": [
+        "Xbox"
+      ],
+      "sourceOpportunityId": null,
+      "protectedAtPlan": null
+    }
+  ],
+  "excludedBeforeEnrichment": []
+}

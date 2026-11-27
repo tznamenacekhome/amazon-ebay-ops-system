@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import re
 from copy import deepcopy
+from sourcing_wrap_condition import wrapping_disclosures
 from sourcing_listing_text import prepare_listing_description, readable_listing_text
 from typing import Any
 
@@ -751,7 +752,7 @@ def evaluate_static_match_rules(
                 "affirmatively_new" if str(candidate.get("condition_id") or raw_json.get("conditionId") or "") in NEW_CONDITION_IDS
                 or str(candidate.get("condition") or "").casefold() in NEW_CONDITION_VALUES
                 or re.search(r'\b(?:brand new|factory sealed|new and sealed|new sealed)\b', combined_text, re.I) else "missing"},
-        "condition_review": {"hits": condition_concerns, "result": "review" if condition_concerns else "pass", "reason": 'Condition review — ' + '; '.join(condition_concerns) if condition_concerns else ''},
+        "condition_review": {"evidence": wrapping_disclosures(title_text, description_text, condition_negated)["review"], "hits": condition_concerns, "result": "review" if condition_concerns else "pass", "reason": 'Condition review — ' + '; '.join(condition_concerns) if condition_concerns else ''},
         "purchase_unit": purchase_unit,
         "contents_review": {"result":"review" if contents_review else "pass", "reason":contents_reason if contents_review else ''},
         "incomplete_listing": effective_checks.get("completeness", {"hits": incomplete, "result": "blocked" if incomplete else "pass"}),
@@ -1297,7 +1298,9 @@ def used_condition_hits(title_text: str, description_text: str) -> list[str]:
     for match in re.finditer(opened, text):
         if not condition_negated(text, match):
             hits.append(match[0])
-    return hits
+    from sourcing_wrap_condition import wrapping_disclosures
+    hits.extend(row['text'] for row in wrapping_disclosures(title_text, description_text, condition_negated)['unacceptable'])
+    return list(dict.fromkeys(hits))
 
 
 def condition_negated(text, match):
@@ -1309,12 +1312,13 @@ def condition_negated(text, match):
 
 
 def condition_review_hits(title_text, description_text):
+    from sourcing_wrap_condition import wrapping_disclosures
+    disclosures = wrapping_disclosures(title_text, description_text, condition_negated)['review']
+    hits = ['wrapping disclosure: ' + row['text'] for row in disclosures]
     text = re.sub(r'<[^>]+>', ' ', f'{title_text}. {description_text}').casefold()
-    patterns = [
-        (r'\b(?:small\s+)?tear\s+(?:in|of)\s+(?:the\s+)?(?:plastic|shrink\s*wrap|wrap)\b', 'shrink-wrap damage'),
-        (r'\b(?:(?:shrink\s*)?wrap\s+(?:is\s+)?stretched|stretched\s+(?:shrink\s*)?wrap)\b', 'disclosed packaging flaws'),
-    ]
-    return list(dict.fromkeys(label for pattern,label in patterns for match in re.finditer(pattern,text) if not condition_negated(text,match)))
+    pattern = r'\b(?:(?:shrink\s*)?wrap\s+(?:is\s+)?stretched|stretched\s+(?:shrink\s*)?wrap)\b'
+    hits.extend('disclosed packaging flaws' for match in re.finditer(pattern, text) if not condition_negated(text,match))
+    return list(dict.fromkeys(hits))
 
 
 def incomplete_hits(title_text: str, description_text: str) -> list[str]:

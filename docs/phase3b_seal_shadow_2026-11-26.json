@@ -1,0 +1,73 @@
+{
+  "gate": "PASS",
+  "scope": "Text and structured evidence only; no photograph access",
+  "cohort": {
+    "original": 408,
+    "wrappingControls": 12,
+    "total": 420
+  },
+  "tests": {
+    "python": 441,
+    "frontendFiles": 16,
+    "disposablePostgreSQL": 39
+  },
+  "assertions": [
+    "408 unchanged raw material hashes",
+    "408 unchanged pre-seal identity verdicts",
+    "21 independently supported mismatches remain non-match",
+    "eligible prior Open and all protected lifecycles unchanged",
+    "no ineligible Open",
+    "both real wrapping disclosures review without condition hard block",
+    "12 focused wrapping controls"
+  ],
+  "identityOriginal": {
+    "non-match": 223,
+    "match": 140,
+    "needs_review": 45
+  },
+  "statusOriginal": {
+    "rejected": 319,
+    "open": 60,
+    "inventory_snoozed": 4,
+    "dismissed": 24,
+    "watching": 1
+  },
+  "identityFull": {
+    "non-match": 223,
+    "match": 152,
+    "needs_review": 45
+  },
+  "statusFull": {
+    "rejected": 326,
+    "open": 65,
+    "inventory_snoozed": 4,
+    "dismissed": 24,
+    "watching": 1
+  },
+  "codeFileHashes": {
+    "integrations/sourcing_decision_trace.py": "ccfce5959bd3f31106fd310e3e975fbad26c9de0a8c39a254a32c349aa1eba98",
+    "integrations/sourcing_listing_text.py": "4a28efa0b3ab7a088426d940115441a8fcd6eb564698cffd0d16d68c4fc6ebbe",
+    "integrations/sourcing_match_rules.py": "a7bb48dc32e7f0c84d281030c5b6c8e17d38e018da595342b646e39b19918156",
+    "integrations/video_game_identity.py": "02294dfa882d6cdf464274cead0eb2e0826df572d8ddbabf6762ed5407010d92",
+    "scripts/replay_flipmine_phase3a.py": "746e7858cae6b09f59b4972f5e67e5fe85623425afa67c1d83e3816fc4c3dd14",
+    "web/app/api/sourcing/opportunities/route.ts": "e4fba940e14011f926c63f7327a06142f29968d006cf4b6492dca64706904b3d",
+    "integrations/sourcing_wrap_condition.py": "74720b6a1c54f0a7436fdf1018f7400498579aa7591b928d2975c8b356d5185d",
+    "integrations/sourcing_identity_wording.py": "c0fbb09656751a1f1d77a24fb62e97090deafd4662d91faae3e60815fa0d0907",
+    "integrations/sourcing_contextual_keywords.py": "087ad570a5b9c141bc6a7ada6f6674585bf7f5631ee11c342b4b9be306813960",
+    "web/lib/sourcingPlatformPolicy.json": "a0b3e2ffe95e81d180de23bb7382aeb128820afd60d90f7cf4b62c4718d85fd9",
+    "web/lib/canonicalSystems.json": "500b21a67575d39f363500409b880e7a4c2948fe7a270499102813a6bd325e7f"
+  },
+  "newOpenRows": [
+    "flipmine:19",
+    "flipmine:88",
+    "flipmine:101",
+    "flipmine:173",
+    "flipmine:175",
+    "flipmine:259",
+    "flipmine:425",
+    "flipmine:470",
+    "flipmine:475",
+    "flipmine:484",
+    "flipmine:520"
+  ]
+}

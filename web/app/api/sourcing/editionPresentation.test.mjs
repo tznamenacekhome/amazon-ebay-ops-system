@@ -44,3 +44,14 @@ condition.businessEligibilityChecks[0].result='pass';
 condition.static_rules.condition_mismatch={result:'blocked'};
 assert(!editionNearMissAllowed(condition,'active'));
 console.log('Edition near misses require recorded economics/shipping, active listing and independent hold/seller/identity gates.');
+for(const disclosure of ['Has some tears in the cello wrap','Has a few holes in seal as shown.']){
+ const d=structuredClone(compactReview);d.decisionTrace=[];
+ d.presentationDecision.primaryReason={code:'condition_review',summary:'Condition review: '+disclosure};
+ assert(editionNearMissAllowed(d,'active','sourcing_edition_policy_v1'));
+ for(const gate of ['shipping','minimum_profit','minimum_roi']){
+  const bad=structuredClone(d);bad.businessEligibilityChecks.find(c=>c.code===gate).result='fail';
+  assert(!editionNearMissAllowed(bad,'active','sourcing_edition_policy_v1'));
+ }
+ d.static_rules.hard_blocks=['confirmed missing required contents'];
+ assert(!editionNearMissAllowed(d,'active','sourcing_edition_policy_v1'));
+}
