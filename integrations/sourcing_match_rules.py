@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import re
+from copy import deepcopy
+from sourcing_listing_text import prepare_listing_description, readable_listing_text
 from typing import Any
 
 from system_detection import SYSTEM_ALIASES, detect_system_from_title, normalize_system, resolve_seed_system
@@ -549,8 +551,16 @@ def evaluate_static_match_rules(
         candidate.get("condition"),
         candidate.get("condition_id") or raw_json.get("conditionId"),
     ) + used_condition_hits(title_text, description_text)
+    for block in evidence.get("description_preparation", {}).get("blocks", []):
+        if block['scope'] == 'seller_policy':
+            for match in re.finditer(r"\b(?:used|pre[- ]owned|opened|unsealed)\b", block['text'], re.I):
+                if (not condition_negated(block['text'].casefold(), match)
+                    and not re.search(r'\b(?:not|never)\s+(?:(?:been|previously)\s+)?$', block['text'][:match.start()], re.I)):
+                    condition_mismatch.append("categorical seller policy: " + block['text'])
     condition_mismatch = list(dict.fromkeys(condition_mismatch))
     condition_concerns = condition_review_hits(title_text, description_text)
+    if evidence.get("description_preparation", {}).get("incomplete_markup"):
+        condition_concerns.append("Description contains unterminated non-content markup; relevant disclosures may be unavailable.")
     from sourcing_purchase_unit import purchase_unit_evidence
     purchase_unit = purchase_unit_evidence(candidate, evidence, canonical)
     if purchase_unit['result'] == 'review':
@@ -706,6 +716,15 @@ def evaluate_static_match_rules(
     if not hard_blocks and not warnings and title_overlap.get("shared_tokens"):
         recommendation = "Probable Match"
 
+    # Raw source remains in the existing candidate/snapshots. The full legacy
+    # evidence is needed transiently for hash compatibility, not another DB copy.
+    persisted_evidence = {k: v for k, v in evidence.items()
+                          if k not in {"raw_material_evidence", "description_preparation"}}
+    prepared = evidence.get("description_preparation", {})
+    persisted_evidence["description_preparation"] = {
+        "version": prepared.get("version"), "incomplete_markup": prepared.get("incomplete_markup", False),
+        "omitted_blocks": [block for block in prepared.get("blocks", []) if block['scope'] == 'seller_advertising'],
+    }
     return {
         "recommendation": recommendation,
         "hard_blocks": hard_blocks,
@@ -728,7 +747,7 @@ def evaluate_static_match_rules(
         "incomplete_listing": effective_checks.get("completeness", {"hits": incomplete, "result": "blocked" if incomplete else "pass"}),
         "not_game": {"hits": not_game, "result": "blocked" if not_game else "pass"},
         "region": effective_checks.get("region", {"hits": region, "result": "blocked" if region else "pass"}),
-        "normalized_evidence": evidence,
+        "normalized_evidence": persisted_evidence,
         "game_name": game_name,
         "numeric_identity": numeric,
         "edition_version": edition,
@@ -759,7 +778,7 @@ def normalize_candidate_evidence(candidate: dict[str, Any]) -> dict[str, Any]:
         searchable_parts.append(name)
         searchable_parts.extend(values)
     searchable_text = " ".join(str(part or "") for part in searchable_parts).casefold()
-    return {
+    result = {
         "aspects": aspects,
         "seller_username": candidate.get('seller_username') or (raw_json.get('seller') or {}).get('username'),
         "platform_values": aspects.get("platform") or [],
@@ -779,6 +798,21 @@ def normalize_candidate_evidence(candidate: dict[str, Any]) -> dict[str, Any]:
         "image_urls": image_urls,
         "searchable_text": searchable_text,
     }
+
+    # Keep the exact pre-preparation evidence for existing material hashes and
+    # raw review scope. All purchasing evaluators receive the same derived text.
+    raw_material = deepcopy(result)
+    prepared = prepare_listing_description(short_description, description)
+    result["description"] = prepared["product_text"]
+    result["subtitle"] = readable_listing_text(subtitle)[0]
+    parts = [candidate.get("ebay_title"), candidate.get("condition"), result["subtitle"], result["description"]]
+    for name, values in aspects.items():
+        parts.extend([name, *values])
+    result["searchable_text"] = " ".join(str(part or "") for part in parts).casefold()
+    result["description_preparation"] = prepared
+    result["raw_material_evidence"] = raw_material
+    return result
+
 
 
 def derived_game_identity(
@@ -1249,7 +1283,7 @@ def used_condition_hits(title_text: str, description_text: str) -> list[str]:
             hits.append(match[0])
     from sourcing_case_condition import case_damage_hits
     hits.extend(case_damage_hits(title_text, description_text, condition_negated))
-    opened = r'\b(?:(?:this|the|offered)\s+(?:game|item|copy|disc)\s+(?:was|is|has been)\s+(?:opened|played|used|unsealed)|(?:i|we)\s+(?:have\s+)?opened\s+(?:this|the)\s+(?:game|copy|item)|opened\s+(?:it\s+)?(?:only\s+)?(?:to|for)\s+test(?:ing)?|(?:played|opened)\s+(?:once|twice))\b'
+    opened = r'\b(?:previously\s+(?:played|opened|used)\s+(?:game|copy|disc)|(?:this|the|offered)\s+(?:game|item|copy|disc)\s+(?:was|is|has been)\s+(?:opened|played|used|unsealed)|(?:i|we)\s+(?:have\s+)?opened\s+(?:this|the)\s+(?:game|copy|item)|opened\s+(?:it\s+)?(?:only\s+)?(?:to|for)\s+test(?:ing)?|(?:played|opened)\s+(?:once|twice))\b'
     for match in re.finditer(opened, text):
         if not condition_negated(text, match):
             hits.append(match[0])

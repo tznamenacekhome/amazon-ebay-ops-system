@@ -84,9 +84,9 @@ class EditionPolicyTests(unittest.TestCase):
    if change=='damage':c['raw_ebay_json']['description']='The seal is torn and case is cracked.'
    self.assertTrue(evaluate_static_match_rules(c,s,identity_policy='phase3_shadow')['hard_blocks'],change)
  def test_hash_and_provider_parity(self):
-  s,c=self.pair();r=self.compare(s,c);e=normalize_candidate_evidence(c);e.pop('seller_username',None)
+  s,c=self.pair();r=self.compare(s,c);e=normalize_candidate_evidence(c);e=e.get('raw_material_evidence',e);e.pop('seller_username',None)
   m={'system':s['system'],'raw_context_json':deepcopy(s['raw_context_json']),'catalog':s['raw_context_json']['amazon_catalog_identity']}
-  self.assertEqual(r['materialEvidenceHash'],evidence_hash({'asin':s['asin'],'amazonTitle':s['amazon_title'],'catalog':m['catalog'],'referenceMetadata':m,'ebayTitle':c['ebay_title'],'evidence':e}))
+  self.assertEqual(r['materialEvidenceHash'],evidence_hash({'asin':s['asin'],'amazonTitle':s['amazon_title'],'catalog':m['catalog'],'referenceMetadata':m,'ebayTitle':c['ebay_title'],'evidence':e.get('raw_material_evidence',e)}))
   for provider in ('browse','trading'):
    c['raw_ebay_json']['mbopEvidence']={'provider':provider};self.assertEqual(self.compare(s,c)['result'],'match')
  def test_economics_and_dismissal(self):

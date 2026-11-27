@@ -54,3 +54,20 @@ background; prefer the `docs/aws/` files for current state and operations.
   the Cognito-protected app at `https://mbop.midnightblueenterprises.com`.
 - For live data, use a future authenticated MBOP AI API only if available.
 - Do not expose secrets, tokens, service role keys, raw marketplace payloads, or unrestricted logs.
+
+## Permanent sourcing evaluation policy
+
+MBOP evaluates textual and structured marketplace evidence only: listing titles,
+descriptions, item specifics, identifiers, catalog identity, condition, contents,
+purchase unit, price/shipping, availability and the normal purchasing safeguards.
+
+Do not download, inspect or analyze listing photographs for matching, automated
+evaluation, development verification or release gates. Do not introduce photo
+analysis, visual authentication, photo-derived listing exceptions, or visual
+evidence/adjudication infrastructure. Preserve image URLs and normal image
+display. The operator personally reviews photographs before purchasing.
+
+A Buy List opportunity passes MBOP's supported automated checks; it is not
+physical-product visual authentication or a guaranteed purchasing recommendation.
+Preserve operator-entered manual decisions and holds. This policy supersedes
+historical reports that required photographic verification.

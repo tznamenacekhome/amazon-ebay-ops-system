@@ -1117,7 +1117,7 @@ def evaluated_identity(amazon_title, ebay_title, seed, evidence):
                            "catalogRejected": bool(catalog and not verified_catalog), "version": PHASE3_VERSION}
     # Seller attribution is material only for an audited stock-prefix correction.
     # Preserve existing review hashes for all unaffected listings.
-    hash_evidence = dict(evidence)
+    hash_evidence = dict(evidence.get("raw_material_evidence") or evidence)
     hash_evidence.pop("seller_username", None)
     if reconcile_seller_stock_prefix(ebay_title, evidence)[1]:
         hash_evidence["seller_username"] = evidence.get("seller_username")

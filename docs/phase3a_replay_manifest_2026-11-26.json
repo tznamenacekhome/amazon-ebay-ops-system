@@ -1,0 +1,110 @@
+{
+  "version": "phase3a_evidence_scope_replay_v1",
+  "tabId": "97fc964e-a4f2-43bb-a5ca-90381d1352b8",
+  "sourceHash": "f60131aafdf2ccd6908fc2239f3942f0972166502f870ea26ba142eae4c1c13c",
+  "originalRunId": "676e1386-3e22-57a8-a2fe-873d256df934",
+  "initialImportRunId": "c7ba90ae-7cdd-4b87-a831-c2ff33682adf",
+  "originalSourcingRunId": "5f77ab0e-1e7f-4518-8aa3-1cf0ec748ebd",
+  "sourceTotal": 558,
+  "evaluationScope": "Text and structured evidence only; photographs are operator review and never an automated gate",
+  "frozenInputSha256": "184dce8ac1f591e310b8c6b57b07ab0be266ee673f8ecc94bb31a3911398f2db",
+  "rows": [
+    {
+      "rowNumber": 109,
+      "asin": "B01M32FMUL",
+      "ebayItemId": "860162864711",
+      "candidateId": "af88f808-2543-5b30-a38e-29ddcb3220b6",
+      "opportunityId": "91c88d3d-4b5d-48be-8e43-169dc6de4fbc",
+      "reasons": [
+        "Direct removal of non-content HTML promo and generic pre-owned store advertising; complete normal pipeline required"
+      ],
+      "policy": "pass",
+      "platforms": [
+        "PS 4"
+      ],
+      "sourceOpportunityId": "91c88d3d-4b5d-48be-8e43-169dc6de4fbc",
+      "protectedAtPlan": null
+    },
+    {
+      "rowNumber": 121,
+      "asin": "B000H11F9M",
+      "ebayItemId": "920164926760",
+      "candidateId": "0a546271-5eb8-5d9b-9360-aeb103a71e51",
+      "opportunityId": "91a9d742-a19a-4ac3-8355-eb3d11336d4d",
+      "reasons": [
+        "Direct removal of non-content HTML promo and generic pre-owned store advertising; complete normal pipeline required"
+      ],
+      "policy": "pass",
+      "platforms": [
+        "PC"
+      ],
+      "sourceOpportunityId": "91a9d742-a19a-4ac3-8355-eb3d11336d4d",
+      "protectedAtPlan": null
+    },
+    {
+      "rowNumber": 236,
+      "asin": "B08MG5FYS6",
+      "ebayItemId": "366817233237",
+      "candidateId": "70493ad2-b0a6-5336-b9c0-7f4efd549611",
+      "opportunityId": "7ba3bee0-986a-4e3d-bfa3-899b41f50e18",
+      "reasons": [
+        "Direct removal of non-content HTML promo and generic pre-owned store advertising; complete normal pipeline required"
+      ],
+      "policy": "pass",
+      "platforms": [
+        "PS 5"
+      ],
+      "sourceOpportunityId": "7ba3bee0-986a-4e3d-bfa3-899b41f50e18",
+      "protectedAtPlan": null
+    },
+    {
+      "rowNumber": 275,
+      "asin": "B00009WAUY",
+      "ebayItemId": "307284831338",
+      "candidateId": "4ee080c4-27cf-55de-b7b9-99ab8111ea8b",
+      "opportunityId": "ff15b8fb-4c68-4cf9-9c91-2f8c70de5325",
+      "reasons": [
+        "Direct removal of non-content HTML promo and generic pre-owned store advertising; complete normal pipeline required"
+      ],
+      "policy": "pass",
+      "platforms": [
+        "PS 2"
+      ],
+      "sourceOpportunityId": "ff15b8fb-4c68-4cf9-9c91-2f8c70de5325",
+      "protectedAtPlan": null
+    },
+    {
+      "rowNumber": 326,
+      "asin": "B0081AWTZA",
+      "ebayItemId": "920140129422",
+      "candidateId": "34fb304f-e4af-52ce-8636-2985ce6e9ce8",
+      "opportunityId": "de9334dc-fc4d-4233-8eb0-dff41441b928",
+      "reasons": [
+        "Direct removal of non-content HTML promo and generic pre-owned store advertising; complete normal pipeline required"
+      ],
+      "policy": "pass",
+      "platforms": [
+        "Xbox 360"
+      ],
+      "sourceOpportunityId": "de9334dc-fc4d-4233-8eb0-dff41441b928",
+      "protectedAtPlan": null
+    },
+    {
+      "rowNumber": 346,
+      "asin": "B0000E3D8T",
+      "ebayItemId": "920136106354",
+      "candidateId": "4883fc99-39be-5027-a040-4661d0c84766",
+      "opportunityId": "93a75d0f-87bd-4399-8eea-2874224bf139",
+      "reasons": [
+        "Direct removal of non-content HTML promo and generic pre-owned store advertising; complete normal pipeline required"
+      ],
+      "policy": "pass",
+      "platforms": [
+        "PS 2"
+      ],
+      "sourceOpportunityId": "93a75d0f-87bd-4399-8eea-2874224bf139",
+      "protectedAtPlan": null
+    }
+  ],
+  "excludedBeforeEnrichment": []
+}
