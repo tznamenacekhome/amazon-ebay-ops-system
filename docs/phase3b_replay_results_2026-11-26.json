@@ -1,0 +1,1018 @@
+{
+  "gate": "PASS",
+  "deployedCommit": "d818acfe76f9",
+  "worker": 184,
+  "web": 239,
+  "replayRunId": "b767c095-4b34-5834-8af1-43464a28a585",
+  "archivesVerified": 13,
+  "preservedSourcePairs": 558,
+  "unchangedUnselectedSourceRows": 545,
+  "progress": {
+    "preservedSourcePairs": 558,
+    "unchangedUnselectedRows": 545,
+    "selectedRows": 13,
+    "progress": {
+      "rows": 558,
+      "failed": 0,
+      "invalid": 0,
+      "pending": 0,
+      "excluded": 397,
+      "evaluated": 156,
+      "duplicates": 5
+    },
+    "newOpportunityIds": [],
+    "initialSnapshotsCreated": 10,
+    "duplicates": 0,
+    "originalRunStatus": "completed"
+  },
+  "completion": {
+    "runId": "b767c095-4b34-5834-8af1-43464a28a585",
+    "status": "completed",
+    "summary": {
+      "rows": 558,
+      "failed": 0,
+      "invalid": 0,
+      "pending": 0,
+      "excluded": 397,
+      "evaluated": 156,
+      "duplicates": 5,
+      "buyList": 40,
+      "closestExcluded": 75,
+      "targetedReplay": {
+        "rows": 13,
+        "unselectedPreserved": 545,
+        "duplicates": 0,
+        "originalRunId": "c7ba90ae-7cdd-4b87-a831-c2ff33682adf"
+      }
+    }
+  },
+  "countsBefore": {
+    "buyList": 33,
+    "closestExcluded": 73
+  },
+  "countsPolicyOnly": {
+    "buyList": 31,
+    "closestExcluded": 73
+  },
+  "countsAfter": {
+    "buyList": 40,
+    "closestExcluded": 75
+  },
+  "newActionable": [
+    {
+      "opportunityId": "ce527675-1f97-4860-8806-56d8e1d1dafc",
+      "asin": "B07DLTGW3X",
+      "ebayLegacyItemId": "117534792163",
+      "amazonTitle": "FIFA 19 - Nintendo Switch",
+      "landedCost": 32.99,
+      "estimatedProfit": 34.04,
+      "estimatedRoiPercent": 103.2,
+      "opportunityType": "buy_now",
+      "shippingQuoteStatus": "known_free",
+      "quantityAvailable": 1,
+      "sourceTags": [
+        "flipmine"
+      ],
+      "suggestedOfferPrice": null
+    },
+    {
+      "opportunityId": "ba77d850-35f0-48eb-951d-1a6cdf7a88fc",
+      "asin": "B00006JBS4",
+      "ebayLegacyItemId": "287739694904",
+      "amazonTitle": "Legends of Wrestling II - PlayStation 2",
+      "landedCost": 50.54,
+      "estimatedProfit": 46.08,
+      "estimatedRoiPercent": 91.2,
+      "opportunityType": "best_offer",
+      "shippingQuoteStatus": "known_paid",
+      "quantityAvailable": 1,
+      "sourceTags": [
+        "flipmine"
+      ],
+      "suggestedOfferPrice": 37.99
+    },
+    {
+      "opportunityId": "a6153830-32f7-49b7-9519-5b891eeea64c",
+      "asin": "B0019MRKNI",
+      "ebayLegacyItemId": "287739765470",
+      "amazonTitle": "Viva Pi\u00f1ata: Trouble in Paradise",
+      "landedCost": 61.23,
+      "estimatedProfit": 49.4,
+      "estimatedRoiPercent": 80.7,
+      "opportunityType": "best_offer",
+      "shippingQuoteStatus": "known_paid",
+      "quantityAvailable": 1,
+      "sourceTags": [
+        "flipmine"
+      ],
+      "suggestedOfferPrice": 52.13
+    },
+    {
+      "opportunityId": "c770884b-129f-4cce-a896-8c61d620a93c",
+      "asin": "B0007DGB4O",
+      "ebayLegacyItemId": "257833035632",
+      "amazonTitle": "Myst IV: Revelation - Xbox",
+      "landedCost": 61.99,
+      "estimatedProfit": 165.26,
+      "estimatedRoiPercent": 266.6,
+      "opportunityType": "buy_now",
+      "shippingQuoteStatus": "known_free",
+      "quantityAvailable": 1,
+      "sourceTags": [
+        "flipmine"
+      ],
+      "suggestedOfferPrice": null
+    },
+    {
+      "opportunityId": "260b1202-177d-43e9-bd9d-a3a3e522f8de",
+      "asin": "B000196EN2",
+      "ebayLegacyItemId": "336887728055",
+      "amazonTitle": "COSMI Pool Shark ( Windows )",
+      "landedCost": 7.39,
+      "estimatedProfit": 47.1,
+      "estimatedRoiPercent": 637.3,
+      "opportunityType": "best_offer",
+      "shippingQuoteStatus": "known_paid",
+      "quantityAvailable": 1,
+      "sourceTags": [
+        "flipmine"
+      ],
+      "suggestedOfferPrice": 2.85
+    },
+    {
+      "opportunityId": "38e53fd4-5f46-452a-859d-aba483dc0e5e",
+      "asin": "B0006J1DKG",
+      "ebayLegacyItemId": "377670942318",
+      "amazonTitle": "Extreme Assault",
+      "landedCost": 24.1,
+      "estimatedProfit": 368.65,
+      "estimatedRoiPercent": 1529.7,
+      "opportunityType": "best_offer",
+      "shippingQuoteStatus": "known_paid",
+      "quantityAvailable": 1,
+      "sourceTags": [
+        "flipmine"
+      ],
+      "suggestedOfferPrice": 16.43
+    },
+    {
+      "opportunityId": "7169216c-aecc-4f96-8fc3-cb97dc342fd5",
+      "asin": "B0007TYP50",
+      "ebayLegacyItemId": "137903669838",
+      "amazonTitle": "Three Dirty Dwarves",
+      "landedCost": 39.38,
+      "estimatedProfit": 36.35,
+      "estimatedRoiPercent": 92.3,
+      "opportunityType": "buy_now",
+      "shippingQuoteStatus": "known_paid",
+      "quantityAvailable": 1,
+      "sourceTags": [
+        "flipmine"
+      ],
+      "suggestedOfferPrice": null
+    },
+    {
+      "opportunityId": "c7864457-0895-4ce5-9525-718770fe1bf9",
+      "asin": "B0009PQCSU",
+      "ebayLegacyItemId": "860116884689",
+      "amazonTitle": "Dungeon Siege 2 - PC",
+      "landedCost": 26.98,
+      "estimatedProfit": 11.78,
+      "estimatedRoiPercent": 43.7,
+      "opportunityType": "buy_now",
+      "shippingQuoteStatus": "known_paid",
+      "quantityAvailable": 1,
+      "sourceTags": [
+        "flipmine"
+      ],
+      "suggestedOfferPrice": null
+    },
+    {
+      "opportunityId": "fd91a880-fe2f-4e8a-9717-033b5131bdd9",
+      "asin": "B000CC5CHW",
+      "ebayLegacyItemId": "880089117994",
+      "amazonTitle": "Suikoden V",
+      "landedCost": 179.95,
+      "estimatedProfit": 53.15,
+      "estimatedRoiPercent": 29.5,
+      "opportunityType": "best_offer",
+      "shippingQuoteStatus": "known_free",
+      "quantityAvailable": 1,
+      "sourceTags": [
+        "flipmine"
+      ],
+      "suggestedOfferPrice": 166.5
+    },
+    {
+      "opportunityId": "2c344f85-2d80-40e2-a036-6139c76e6b4c",
+      "asin": "B00503EAG2",
+      "ebayLegacyItemId": "137937298074",
+      "amazonTitle": "Call of Duty: Modern Warfare 3 - PC",
+      "landedCost": 29.95,
+      "estimatedProfit": 0.35,
+      "estimatedRoiPercent": 1.2,
+      "opportunityType": "best_offer",
+      "shippingQuoteStatus": "known_free",
+      "quantityAvailable": 1,
+      "sourceTags": [
+        "flipmine"
+      ],
+      "suggestedOfferPrice": 21.64
+    }
+  ],
+  "newClosestExcluded": [
+    {
+      "asin": "B0008EZDDM",
+      "item": "128210994247",
+      "reason": {
+        "code": "condition_review",
+        "label": "Condition review",
+        "summary": "Condition review \u2014 wrapping disclosure: tears in the cello wrap",
+        "source": "matching_diagnostics",
+        "severity": "review_threshold",
+        "category": "review_threshold",
+        "diagnosticKeys": [
+          "condition_review"
+        ],
+        "eligible": false,
+        "finalRecommendation": "Review",
+        "finalStatus": "rejected",
+        "secondaryReasons": [
+          {
+            "code": "review_threshold",
+            "label": "Review threshold",
+            "summary": "Final matching recommendation required review and did not enter presentation.",
+            "source": "presentation_gate",
+            "severity": "review_threshold",
+            "category": "review_threshold",
+            "diagnosticKeys": [
+              "final_recommendation",
+              "confidence_summary"
+            ]
+          }
+        ],
+        "supportingSignals": [
+          "Condition review \u2014 wrapping disclosure: tears in the cello wrap",
+          "Final recommendation is Review.",
+          "Opportunity type is no_profitable_source_found."
+        ]
+      }
+    },
+    {
+      "asin": "B00N3VNF32",
+      "item": "880138368350",
+      "reason": {
+        "code": "condition_review",
+        "label": "Condition review",
+        "summary": "Condition review \u2014 wrapping disclosure: holes in seal",
+        "source": "matching_diagnostics",
+        "severity": "review_threshold",
+        "category": "review_threshold",
+        "diagnosticKeys": [
+          "condition_review"
+        ],
+        "eligible": false,
+        "finalRecommendation": "Review",
+        "finalStatus": "rejected",
+        "secondaryReasons": [
+          {
+            "code": "review_threshold",
+            "label": "Review threshold",
+            "summary": "Final matching recommendation required review and did not enter presentation.",
+            "source": "presentation_gate",
+            "severity": "review_threshold",
+            "category": "review_threshold",
+            "diagnosticKeys": [
+              "final_recommendation",
+              "confidence_summary"
+            ]
+          }
+        ],
+        "supportingSignals": [
+          "Condition review \u2014 wrapping disclosure: holes in seal",
+          "Final recommendation is Review.",
+          "Opportunity type is no_profitable_source_found."
+        ]
+      }
+    }
+  ],
+  "apiCallsMainProcessAllAttempts": {
+    "Amazon:OAuth": 1,
+    "Amazon:read": 13,
+    "eBay:OAuth": 2,
+    "eBay:Analytics": 1,
+    "eBay:Browse": 13
+  },
+  "apiUsageLedgerDeltas": [
+    {
+      "resource": "buy.browse",
+      "job": "import_flipmine.py",
+      "day": "2026-11-26",
+      "attempts": 13
+    },
+    {
+      "resource": "trading",
+      "job": "essential:import_flipmine.py",
+      "day": "2026-11-26",
+      "attempts": 6
+    }
+  ],
+  "rows": [
+    {
+      "row": 19,
+      "asin": "B0006J1DKG",
+      "item": "377670942318",
+      "sourceStatusBefore": "excluded",
+      "sourceStatus": "evaluated",
+      "opportunityStatusBefore": "rejected",
+      "opportunityStatus": "open",
+      "opportunityId": "38e53fd4-5f46-452a-859d-aba483dc0e5e",
+      "identity": "match",
+      "condition": {
+        "hits": [],
+        "result": "pass",
+        "evidenceState": "affirmatively_new"
+      },
+      "conditionReview": {
+        "hits": [],
+        "reason": "",
+        "result": "pass",
+        "evidence": []
+      },
+      "purchaseUnit": {
+        "kind": "ordinary_listing",
+        "reason": "No seller lot or selection ambiguity observed.",
+        "result": "pass",
+        "version": "purchase_unit_v1"
+      },
+      "contents": {
+        "reason": "",
+        "result": "pass"
+      },
+      "remainingReason": null,
+      "secondaryReasons": [],
+      "landedCost": 24.1,
+      "profit": 368.65,
+      "roi": 1529.7,
+      "scenario": "best_offer",
+      "maxOffer": 16.43,
+      "priceSource": "keepa_new_90d_avg",
+      "sourceTags": [
+        "flipmine"
+      ]
+    },
+    {
+      "row": 50,
+      "asin": "B0008EZDDM",
+      "item": "128210994247",
+      "sourceStatusBefore": "excluded",
+      "sourceStatus": "evaluated",
+      "opportunityStatusBefore": "rejected",
+      "opportunityStatus": "rejected",
+      "opportunityId": "6c255f43-0e0d-4347-a8b8-783cc252234f",
+      "identity": "match",
+      "condition": {
+        "hits": [],
+        "result": "pass",
+        "evidenceState": "requires_review"
+      },
+      "conditionReview": {
+        "hits": [
+          "wrapping disclosure: tears in the cello wrap"
+        ],
+        "reason": "Condition review \u2014 wrapping disclosure: tears in the cello wrap",
+        "result": "review",
+        "evidence": [
+          {
+            "text": "tears in the cello wrap",
+            "scope": "offered product or unresolved specific wrapping disclosure",
+            "source": "description",
+            "classification": "review"
+          }
+        ]
+      },
+      "purchaseUnit": {
+        "kind": "ordinary_listing",
+        "reason": "No seller lot or selection ambiguity observed.",
+        "result": "pass",
+        "version": "purchase_unit_v1"
+      },
+      "contents": {
+        "reason": "",
+        "result": "pass"
+      },
+      "remainingReason": "Condition review \u2014 wrapping disclosure: tears in the cello wrap",
+      "secondaryReasons": [
+        {
+          "code": "review_threshold",
+          "label": "Review threshold",
+          "source": "presentation_gate",
+          "summary": "Final matching recommendation required review and did not enter presentation.",
+          "category": "review_threshold",
+          "severity": "review_threshold",
+          "diagnosticKeys": [
+            "final_recommendation",
+            "confidence_summary"
+          ]
+        }
+      ],
+      "landedCost": 57.9,
+      "profit": 73.8,
+      "roi": 127.5,
+      "scenario": "no_profitable_source_found",
+      "maxOffer": null,
+      "priceSource": "keepa_new_90d_avg",
+      "sourceTags": [
+        "flipmine"
+      ]
+    },
+    {
+      "row": 63,
+      "asin": "B00N3VNF32",
+      "item": "880138368350",
+      "sourceStatusBefore": "excluded",
+      "sourceStatus": "evaluated",
+      "opportunityStatusBefore": "rejected",
+      "opportunityStatus": "rejected",
+      "opportunityId": "bac5e46c-99a6-4fce-b4d2-0070fe8dcef1",
+      "identity": "match",
+      "condition": {
+        "hits": [],
+        "result": "pass",
+        "evidenceState": "requires_review"
+      },
+      "conditionReview": {
+        "hits": [
+          "wrapping disclosure: holes in seal"
+        ],
+        "reason": "Condition review \u2014 wrapping disclosure: holes in seal",
+        "result": "review",
+        "evidence": [
+          {
+            "text": "holes in seal",
+            "scope": "offered product or unresolved specific wrapping disclosure",
+            "source": "description",
+            "classification": "review"
+          }
+        ]
+      },
+      "purchaseUnit": {
+        "kind": "ordinary_listing",
+        "reason": "No seller lot or selection ambiguity observed.",
+        "result": "pass",
+        "version": "purchase_unit_v1"
+      },
+      "contents": {
+        "reason": "",
+        "result": "pass"
+      },
+      "remainingReason": "Condition review \u2014 wrapping disclosure: holes in seal",
+      "secondaryReasons": [
+        {
+          "code": "review_threshold",
+          "label": "Review threshold",
+          "source": "presentation_gate",
+          "summary": "Final matching recommendation required review and did not enter presentation.",
+          "category": "review_threshold",
+          "severity": "review_threshold",
+          "diagnosticKeys": [
+            "final_recommendation",
+            "confidence_summary"
+          ]
+        }
+      ],
+      "landedCost": 18.99,
+      "profit": 17.96,
+      "roi": 94.6,
+      "scenario": "no_profitable_source_found",
+      "maxOffer": null,
+      "priceSource": "keepa_new_90d_avg",
+      "sourceTags": [
+        "flipmine"
+      ]
+    },
+    {
+      "row": 88,
+      "asin": "B07DLTGW3X",
+      "item": "117534792163",
+      "sourceStatusBefore": "excluded",
+      "sourceStatus": "evaluated",
+      "opportunityStatusBefore": "rejected",
+      "opportunityStatus": "open",
+      "opportunityId": "ce527675-1f97-4860-8806-56d8e1d1dafc",
+      "identity": "match",
+      "condition": {
+        "hits": [],
+        "result": "pass",
+        "evidenceState": "affirmatively_new"
+      },
+      "conditionReview": {
+        "hits": [],
+        "reason": "",
+        "result": "pass",
+        "evidence": []
+      },
+      "purchaseUnit": {
+        "kind": "ordinary_listing",
+        "reason": "No seller lot or selection ambiguity observed.",
+        "result": "pass",
+        "version": "purchase_unit_v1"
+      },
+      "contents": {
+        "reason": "",
+        "result": "pass"
+      },
+      "remainingReason": null,
+      "secondaryReasons": [],
+      "landedCost": 32.99,
+      "profit": 34.04,
+      "roi": 103.2,
+      "scenario": "buy_now",
+      "maxOffer": null,
+      "priceSource": "keepa_new_90d_avg",
+      "sourceTags": [
+        "flipmine"
+      ]
+    },
+    {
+      "row": 101,
+      "asin": "B001DYXGUI",
+      "item": "198811763973",
+      "sourceStatusBefore": "excluded",
+      "sourceStatus": "excluded",
+      "opportunityStatusBefore": "rejected",
+      "opportunityStatus": "rejected",
+      "opportunityId": "5ec4c4c9-3f79-495d-ae26-95462784d015",
+      "identity": "non-match",
+      "condition": {
+        "hits": [],
+        "result": "pass",
+        "evidenceState": "affirmatively_new"
+      },
+      "conditionReview": {
+        "hits": [],
+        "reason": "",
+        "result": "pass"
+      },
+      "purchaseUnit": null,
+      "contents": {
+        "reason": "",
+        "result": "pass"
+      },
+      "remainingReason": "ListingUnavailable: Listing ended or sold",
+      "secondaryReasons": [
+        {
+          "code": "unavailable_listing",
+          "label": "Unavailable listing",
+          "source": "availability",
+          "summary": "Stored listing evidence says the item is ended, sold out, or unavailable.",
+          "category": "availability",
+          "severity": "availability",
+          "diagnosticKeys": [
+            "opportunity_context",
+            "hard_blocks"
+          ]
+        },
+        {
+          "code": "edition_not_corroborated",
+          "label": "Edition not corroborated",
+          "source": "matching_diagnostics",
+          "summary": "Ordinary edition compatibility lacks sufficient corroboration.",
+          "category": "review_threshold",
+          "severity": "review_threshold",
+          "diagnosticKeys": [
+            "edition_version"
+          ]
+        },
+        {
+          "code": "review_threshold",
+          "label": "Review threshold",
+          "source": "presentation_gate",
+          "summary": "Final matching recommendation required review and did not enter presentation.",
+          "category": "review_threshold",
+          "severity": "review_threshold",
+          "diagnosticKeys": [
+            "final_recommendation",
+            "confidence_summary"
+          ]
+        }
+      ],
+      "landedCost": 43.0,
+      "profit": 18.25,
+      "roi": 42.4,
+      "scenario": "no_profitable_source_found",
+      "maxOffer": 33.25,
+      "priceSource": "keepa_new_90d_avg",
+      "sourceTags": [
+        "flipmine"
+      ]
+    },
+    {
+      "row": 173,
+      "asin": "B0019MRKNI",
+      "item": "287739765470",
+      "sourceStatusBefore": "excluded",
+      "sourceStatus": "evaluated",
+      "opportunityStatusBefore": "rejected",
+      "opportunityStatus": "open",
+      "opportunityId": "a6153830-32f7-49b7-9519-5b891eeea64c",
+      "identity": "match",
+      "condition": {
+        "hits": [],
+        "result": "pass",
+        "evidenceState": "affirmatively_new"
+      },
+      "conditionReview": {
+        "hits": [],
+        "reason": "",
+        "result": "pass",
+        "evidence": []
+      },
+      "purchaseUnit": {
+        "kind": "ordinary_listing",
+        "reason": "No seller lot or selection ambiguity observed.",
+        "result": "pass",
+        "version": "purchase_unit_v1"
+      },
+      "contents": {
+        "reason": "",
+        "result": "pass"
+      },
+      "remainingReason": null,
+      "secondaryReasons": [],
+      "landedCost": 61.23,
+      "profit": 49.4,
+      "roi": 80.7,
+      "scenario": "best_offer",
+      "maxOffer": 52.13,
+      "priceSource": "keepa_new_90d_avg",
+      "sourceTags": [
+        "flipmine"
+      ]
+    },
+    {
+      "row": 175,
+      "asin": "B00006JBS4",
+      "item": "287739694904",
+      "sourceStatusBefore": "excluded",
+      "sourceStatus": "evaluated",
+      "opportunityStatusBefore": "rejected",
+      "opportunityStatus": "open",
+      "opportunityId": "ba77d850-35f0-48eb-951d-1a6cdf7a88fc",
+      "identity": "match",
+      "condition": {
+        "hits": [],
+        "result": "pass",
+        "evidenceState": "affirmatively_new"
+      },
+      "conditionReview": {
+        "hits": [],
+        "reason": "",
+        "result": "pass",
+        "evidence": []
+      },
+      "purchaseUnit": {
+        "kind": "ordinary_listing",
+        "reason": "No seller lot or selection ambiguity observed.",
+        "result": "pass",
+        "version": "purchase_unit_v1"
+      },
+      "contents": {
+        "reason": "",
+        "result": "pass"
+      },
+      "remainingReason": null,
+      "secondaryReasons": [],
+      "landedCost": 50.54,
+      "profit": 46.08,
+      "roi": 91.2,
+      "scenario": "best_offer",
+      "maxOffer": 37.99,
+      "priceSource": "keepa_new_90d_avg",
+      "sourceTags": [
+        "flipmine"
+      ]
+    },
+    {
+      "row": 259,
+      "asin": "B00503EAG2",
+      "item": "137937298074",
+      "sourceStatusBefore": "excluded",
+      "sourceStatus": "evaluated",
+      "opportunityStatusBefore": "rejected",
+      "opportunityStatus": "open",
+      "opportunityId": "2c344f85-2d80-40e2-a036-6139c76e6b4c",
+      "identity": "match",
+      "condition": {
+        "hits": [],
+        "result": "pass",
+        "evidenceState": "affirmatively_new"
+      },
+      "conditionReview": {
+        "hits": [],
+        "reason": "",
+        "result": "pass",
+        "evidence": []
+      },
+      "purchaseUnit": {
+        "kind": "ordinary_listing",
+        "reason": "No seller lot or selection ambiguity observed.",
+        "result": "pass",
+        "version": "purchase_unit_v1"
+      },
+      "contents": {
+        "reason": "",
+        "result": "pass"
+      },
+      "remainingReason": null,
+      "secondaryReasons": [],
+      "landedCost": 29.95,
+      "profit": 0.35,
+      "roi": 1.2,
+      "scenario": "best_offer",
+      "maxOffer": 21.64,
+      "priceSource": "keepa_new_90d_avg",
+      "sourceTags": [
+        "flipmine"
+      ]
+    },
+    {
+      "row": 425,
+      "asin": "B000196EN2",
+      "item": "336887728055",
+      "sourceStatusBefore": "excluded",
+      "sourceStatus": "evaluated",
+      "opportunityStatusBefore": "rejected",
+      "opportunityStatus": "open",
+      "opportunityId": "260b1202-177d-43e9-bd9d-a3a3e522f8de",
+      "identity": "match",
+      "condition": {
+        "hits": [],
+        "result": "pass",
+        "evidenceState": "affirmatively_new"
+      },
+      "conditionReview": {
+        "hits": [],
+        "reason": "",
+        "result": "pass",
+        "evidence": []
+      },
+      "purchaseUnit": {
+        "kind": "ordinary_listing",
+        "reason": "No seller lot or selection ambiguity observed.",
+        "result": "pass",
+        "version": "purchase_unit_v1"
+      },
+      "contents": {
+        "reason": "",
+        "result": "pass"
+      },
+      "remainingReason": null,
+      "secondaryReasons": [],
+      "landedCost": 7.39,
+      "profit": 47.1,
+      "roi": 637.3,
+      "scenario": "best_offer",
+      "maxOffer": 2.85,
+      "priceSource": "keepa_new_90d_avg",
+      "sourceTags": [
+        "flipmine"
+      ]
+    },
+    {
+      "row": 470,
+      "asin": "B000CC5CHW",
+      "item": "880089117994",
+      "sourceStatusBefore": "excluded",
+      "sourceStatus": "evaluated",
+      "opportunityStatusBefore": "rejected",
+      "opportunityStatus": "open",
+      "opportunityId": "fd91a880-fe2f-4e8a-9717-033b5131bdd9",
+      "identity": "match",
+      "condition": {
+        "hits": [],
+        "result": "pass",
+        "evidenceState": "affirmatively_new"
+      },
+      "conditionReview": {
+        "hits": [],
+        "reason": "",
+        "result": "pass",
+        "evidence": []
+      },
+      "purchaseUnit": {
+        "kind": "ordinary_listing",
+        "reason": "No seller lot or selection ambiguity observed.",
+        "result": "pass",
+        "version": "purchase_unit_v1"
+      },
+      "contents": {
+        "reason": "",
+        "result": "pass"
+      },
+      "remainingReason": null,
+      "secondaryReasons": [],
+      "landedCost": 179.95,
+      "profit": 53.15,
+      "roi": 29.5,
+      "scenario": "best_offer",
+      "maxOffer": 166.5,
+      "priceSource": "keepa_new_90d_avg",
+      "sourceTags": [
+        "flipmine"
+      ]
+    },
+    {
+      "row": 475,
+      "asin": "B0009PQCSU",
+      "item": "860116884689",
+      "sourceStatusBefore": "excluded",
+      "sourceStatus": "evaluated",
+      "opportunityStatusBefore": "rejected",
+      "opportunityStatus": "open",
+      "opportunityId": "c7864457-0895-4ce5-9525-718770fe1bf9",
+      "identity": "match",
+      "condition": {
+        "hits": [],
+        "result": "pass",
+        "evidenceState": "affirmatively_new"
+      },
+      "conditionReview": {
+        "hits": [],
+        "reason": "",
+        "result": "pass",
+        "evidence": []
+      },
+      "purchaseUnit": {
+        "kind": "ordinary_listing",
+        "reason": "No seller lot or selection ambiguity observed.",
+        "result": "pass",
+        "version": "purchase_unit_v1"
+      },
+      "contents": {
+        "reason": "",
+        "result": "pass"
+      },
+      "remainingReason": null,
+      "secondaryReasons": [],
+      "landedCost": 26.98,
+      "profit": 11.78,
+      "roi": 43.7,
+      "scenario": "buy_now",
+      "maxOffer": null,
+      "priceSource": "keepa_new_90d_avg",
+      "sourceTags": [
+        "flipmine"
+      ]
+    },
+    {
+      "row": 484,
+      "asin": "B0007TYP50",
+      "item": "137903669838",
+      "sourceStatusBefore": "excluded",
+      "sourceStatus": "evaluated",
+      "opportunityStatusBefore": "rejected",
+      "opportunityStatus": "open",
+      "opportunityId": "7169216c-aecc-4f96-8fc3-cb97dc342fd5",
+      "identity": "match",
+      "condition": {
+        "hits": [],
+        "result": "pass",
+        "evidenceState": "affirmatively_new"
+      },
+      "conditionReview": {
+        "hits": [],
+        "reason": "",
+        "result": "pass",
+        "evidence": []
+      },
+      "purchaseUnit": {
+        "kind": "ordinary_listing",
+        "reason": "No seller lot or selection ambiguity observed.",
+        "result": "pass",
+        "version": "purchase_unit_v1"
+      },
+      "contents": {
+        "reason": "",
+        "result": "pass"
+      },
+      "remainingReason": null,
+      "secondaryReasons": [],
+      "landedCost": 39.38,
+      "profit": 36.35,
+      "roi": 92.3,
+      "scenario": "buy_now",
+      "maxOffer": null,
+      "priceSource": "keepa_new_90d_avg",
+      "sourceTags": [
+        "flipmine"
+      ]
+    },
+    {
+      "row": 520,
+      "asin": "B0007DGB4O",
+      "item": "257833035632",
+      "sourceStatusBefore": "excluded",
+      "sourceStatus": "evaluated",
+      "opportunityStatusBefore": "rejected",
+      "opportunityStatus": "open",
+      "opportunityId": "c770884b-129f-4cce-a896-8c61d620a93c",
+      "identity": "match",
+      "condition": {
+        "hits": [],
+        "result": "pass",
+        "evidenceState": "affirmatively_new"
+      },
+      "conditionReview": {
+        "hits": [],
+        "reason": "",
+        "result": "pass",
+        "evidence": []
+      },
+      "purchaseUnit": {
+        "kind": "ordinary_listing",
+        "reason": "No seller lot or selection ambiguity observed.",
+        "result": "pass",
+        "version": "purchase_unit_v1"
+      },
+      "contents": {
+        "reason": "",
+        "result": "pass"
+      },
+      "remainingReason": null,
+      "secondaryReasons": [],
+      "landedCost": 61.99,
+      "profit": 165.26,
+      "roi": 266.6,
+      "scenario": "buy_now",
+      "maxOffer": null,
+      "priceSource": "keepa_new_90d_avg",
+      "sourceTags": [
+        "flipmine"
+      ]
+    }
+  ],
+  "deployment": {
+    "web": 239,
+    "webCommit": "d818acfe76f9",
+    "worker": 184,
+    "workerCommit": "d818acfe76f9",
+    "rollout": "COMPLETED",
+    "running": 1,
+    "pending": 0,
+    "healthy": true,
+    "schedulesCompared": 21,
+    "onlyScheduleChange": "mbop-sourcing-catalog task revision183 ->184",
+    "webSettingsAndPermissionsPreserved": true,
+    "workerSmoke": "PHASE3B_WORKER184_PASS",
+    "browserVerification": "Blocked: browser tool trusted Node process exited unexpectedly; no authenticated browser claim"
+  },
+  "limitations": [
+    "Authenticated browser verification unavailable: browser tool kernel failed.",
+    "Historical shadow economics are not current purchasing clearance; replay uses full normal current pipeline.",
+    "No photograph requests or analysis; operator personally reviews normal displayed images before purchasing."
+  ],
+  "duplicateCloseout": {
+    "dismissedUnreviewedOpportunity": "1117d410-a333-4c42-8e94-95c8a6fe87ab",
+    "asin": "B000196EN2",
+    "keptOpportunity": "260b1202-177d-43e9-bd9d-a3a3e522f8de",
+    "snapshotId": "3d920bb8-3076-5c93-a045-be36f8d31510",
+    "originalEvaluationUnchanged": true,
+    "operatorActionsBefore": 0,
+    "normalAutomaticDuplicateAction": "57fbf596-bed6-486e-b8a0-839d64dc9ac3"
+  },
+  "productionCompactVerification": [
+    {
+      "row": 50,
+      "status": "rejected",
+      "code": "condition_review",
+      "summary": "Condition review \u2014 wrapping disclosure: tears in the cello wrap"
+    },
+    {
+      "row": 63,
+      "status": "rejected",
+      "code": "condition_review",
+      "summary": "Condition review \u2014 wrapping disclosure: holes in seal"
+    }
+  ],
+  "checkpointReplay": {
+    "result": "completed checkpoint no-op",
+    "providerCalls": 0,
+    "newJobs": 0,
+    "journalEntries": 13
+  },
+  "platformSuppression": {
+    "PS1": {
+      "buyList": 1,
+      "closestExcluded": 0
+    },
+    "Dreamcast": {
+      "buyList": 1,
+      "closestExcluded": 0
+    },
+    "SegaCD": {
+      "buyList": 0,
+      "closestExcluded": 0
+    }
+  }
+}
