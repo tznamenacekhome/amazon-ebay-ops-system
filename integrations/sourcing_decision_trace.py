@@ -42,6 +42,7 @@ REASON_META = {
 EDITION_REVIEW_CODES = {'edition_not_corroborated','contents_not_corroborated','condition_review','purchase_unit_review'}
 
 REASON_SUMMARIES = {
+    "condition_unacceptable": "Recorded condition evidence conflicts with New-condition requirements.",
     "historical_exact_negative": "Stored matching intelligence blocks this listing from prior negative feedback.",
     "game_name_conflict": "eBay evidence identifies a different game name from the Amazon product.",
     "numeric_installment_mismatch": "Numeric installment, sequel, or identity evidence conflicts.",
@@ -62,6 +63,7 @@ REASON_SUMMARIES = {
 }
 
 DIAGNOSTIC_KEYS = {
+    "condition_unacceptable": ["condition_mismatch", "static_rules.condition_mismatch", "hard_blocks"],
     "historical_exact_negative": ["confidence_summary", "hard_blocks", "warnings"],
     "game_name_conflict": ["game_name", "core_game_identity", "hard_blocks"],
     "numeric_installment_mismatch": ["installment_number", "hard_blocks"],
@@ -239,6 +241,11 @@ def build_decision_trace(
         trace.append(trace_row("Presentation gate", "opportunity_context", "fail", f"Opportunity status is {status or 'not available'}."))
     else:
         trace.append(trace_row("Presentation gate", "opportunity_context", "pass", "Opportunity is open and presentable."))
+    for check in diagnostics.get("businessEligibilityChecks", []):
+        if check.get("code") == "operator_history_status" and check.get("blocking") and check.get("result") == "fail":
+            trace.append(trace_row("Historical operator lifecycle", "businessEligibilityChecks.operator_history_status",
+                                   "fail", "Recorded historical lifecycle: " + str(check.get("actual") or "protected") +
+                                   "; existing operator decision remains authoritative.", "duplicate_history"))
     return trace
 
 
@@ -251,6 +258,10 @@ def reasons_from_trace(trace: list[dict[str, Any]], *, status: str | None, oppor
         if not code:
             continue
         detail = reason(str(code))
+        if code in {"condition_unacceptable", "duplicate_history"}:
+            detail.update(summary=("Recorded condition evidence: " + row["summary"] if code == "condition_unacceptable" else row["summary"]),
+                          diagnosticKeys=(["condition_mismatch", "static_rules.condition_mismatch", "hard_blocks"]
+                                          if code == "condition_unacceptable" else [row["diagnosticKey"], "normalPipelineLifecycleStatus"]))
         if code in EDITION_REVIEW_CODES:
             detail.update(summary=row['summary'], diagnosticKeys=['purchase_unit' if code == 'purchase_unit_review' else 'condition_review' if code == 'condition_review' else 'edition_version'])
         found.setdefault(str(code), detail)
