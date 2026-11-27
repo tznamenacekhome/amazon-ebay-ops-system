@@ -539,7 +539,9 @@ def evaluate_static_match_rules(
             flags.append(reason)
         return hits
 
-    digital = effective_hits("digitalPhysical", keyword_hits(combined_text, sorted(DIGITAL_BLOCK_TERMS)),
+    from sourcing_contextual_keywords import contextual_keyword_text
+    keyword_context = contextual_keyword_text(candidate, seed, evidence, canonical)
+    digital = effective_hits("digitalPhysical", keyword_hits(keyword_context['digital_text'], sorted(DIGITAL_BLOCK_TERMS)),
                              {"physical"}, {"digital"})
     if digital:
         hard_blocks.append(f"digital/download listing: {', '.join(digital[:3])}")
@@ -577,17 +579,24 @@ def evaluate_static_match_rules(
         score_adjustment -= 35
         recommendation = "Blocked"
 
-    incomplete = effective_hits("completeness", incomplete_hits(title_text, description_text),
+    raw_incomplete = incomplete_hits(title_text, description_text)
+    if re.search(r'\bcartirdge\s+only\b', title_text + ' ' + description_text, re.I):
+        raw_incomplete.append('cartirdge only (explicit cartridge-only disclosure)')
+    incomplete = effective_hits("completeness", raw_incomplete,
                                 {"complete"}, {"incomplete"})
     package_policy = (((((canonical or {}).get('comparisons') or {}).get('edition') or {}).get('policy') or {}).get('packagePolicy') or {})
     contents_review = package_policy.get('result')=='review'
+    contents_reason = package_policy.get('reason','')
+    if keyword_context['requires_kit_review'] and not (package_policy.get('requiredContents') and package_policy.get('result')=='match'):
+        contents_review = True
+        contents_reason = 'Exact-ASIN Toy-Con kit and required physical contents are not independently corroborated.' 
     if contents_review:
-        warnings.append(str(package_policy['reason']))
+        warnings.append(str(contents_reason))
         flags.append(warnings[-1])
         recommendation = lower_recommendation(recommendation, 'Review')
     if package_policy.get('configuration')=='software_only' and package_policy.get('result')=='match':
         incomplete = [hit for hit in incomplete if hit not in {'game only','software only'}]
-    not_game = keyword_hits(title_text, sorted(NOT_GAME_BLOCK_TERMS))
+    not_game = keyword_hits(keyword_context['accessory_title'], sorted(NOT_GAME_BLOCK_TERMS))
     structured_not_game = structured_not_game_hits(evidence)
     for hit in structured_not_game:
         if hit not in not_game:
@@ -735,6 +744,7 @@ def evaluate_static_match_rules(
         "sourcing_platform_policy": sourcing_platform,
         "title_overlap": title_overlap,
         "excluded_keywords": {"hits": excluded, "result": "blocked" if excluded else "pass"},
+        "contextual_keyword_roles": keyword_context["roles"],
         "digital_download": effective_checks.get("digitalPhysical", {"hits": digital, "result": "blocked" if digital else "pass"}),
         "condition_mismatch": {"hits": condition_mismatch, "result": "blocked" if condition_mismatch else "pass",
             "evidenceState": "confirmed_unacceptable" if condition_mismatch else "requires_review" if condition_concerns else
@@ -743,7 +753,7 @@ def evaluate_static_match_rules(
                 or re.search(r'\b(?:brand new|factory sealed|new and sealed|new sealed)\b', combined_text, re.I) else "missing"},
         "condition_review": {"hits": condition_concerns, "result": "review" if condition_concerns else "pass", "reason": 'Condition review — ' + '; '.join(condition_concerns) if condition_concerns else ''},
         "purchase_unit": purchase_unit,
-        "contents_review": {"result":"review" if contents_review else "pass", "reason":package_policy.get('reason','') if contents_review else ''},
+        "contents_review": {"result":"review" if contents_review else "pass", "reason":contents_reason if contents_review else ''},
         "incomplete_listing": effective_checks.get("completeness", {"hits": incomplete, "result": "blocked" if incomplete else "pass"}),
         "not_game": {"hits": not_game, "result": "blocked" if not_game else "pass"},
         "region": effective_checks.get("region", {"hits": region, "result": "blocked" if region else "pass"}),
