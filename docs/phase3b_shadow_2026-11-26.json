@@ -1,0 +1,2060 @@
+{
+  "gate": "FAIL",
+  "releaseStatus": "BLOCKED: stopped before push, deployment or production replay under operator stop rule.",
+  "baseline": {
+    "worker": 183,
+    "workerCommit": "8e37e5f7c68f",
+    "web": 238,
+    "webCommit": "07867ac1c8ef",
+    "buyList": 33,
+    "closestExcluded": 73,
+    "runtimeSourceComparison": "PASS; frozen baseline files equal worker reference"
+  },
+  "scope": "Text/structured evidence only. No photograph downloads, inspection or analysis.",
+  "cohort": {
+    "originalPhase3A": 395,
+    "additionalActualCaptures": 18,
+    "additionalActualIdenticalDeduplicated": 18,
+    "newSyntheticPlatformControls": 13,
+    "totalDistinct": 408
+  },
+  "blockingDefects": [
+    {
+      "row": 50,
+      "asin": "B0008EZDDM",
+      "ebayItemId": "128210994247",
+      "title": "Star Wars Galaxies: The Total Experience - PC",
+      "retainedDisclosure": "Has some tears in the cello wrap",
+      "conditionMismatch": {
+        "hits": [],
+        "result": "pass",
+        "evidenceState": "affirmatively_new"
+      },
+      "conditionReview": {
+        "hits": [],
+        "result": "pass",
+        "reason": ""
+      },
+      "baselineStatus": "rejected",
+      "proposedStatus": "open",
+      "requiredDisposition": "At least condition review; no automatic New recommendation from this disclosure.",
+      "cause": "Existing condition grammar misses the disclosed plural tears/cello-wrap or holes-in-seal wording; unrelated identity correction exposes that latent gap."
+    },
+    {
+      "row": 63,
+      "asin": "B00N3VNF32",
+      "ebayItemId": "880138368350",
+      "title": "Assassin's Creed Rogue - PlayStation 3",
+      "retainedDisclosure": "Has a few holes in seal as shown.",
+      "conditionMismatch": {
+        "hits": [],
+        "result": "pass",
+        "evidenceState": "affirmatively_new"
+      },
+      "conditionReview": {
+        "hits": [],
+        "result": "pass",
+        "reason": ""
+      },
+      "baselineStatus": "rejected",
+      "proposedStatus": "open",
+      "requiredDisposition": "At least condition review; no automatic New recommendation from this disclosure.",
+      "cause": "Existing condition grammar misses the disclosed plural tears/cello-wrap or holes-in-seal wording; unrelated identity correction exposes that latent gap."
+    }
+  ],
+  "assertions": {
+    "all408RawMaterialHashesStable": true,
+    "platformOnlyIdentityUnchanged": true,
+    "protectedLifecyclesAndPriorEligibleOpenRetained": true,
+    "ineligibleOpen": 0,
+    "confirmedMismatchControlsStillNonMatch": 21
+  },
+  "tests": {
+    "pythonTotal": 437,
+    "pythonPassed": 435,
+    "knownReleaseGuardFailures": 2,
+    "disposablePostgreSQLPassed": 39,
+    "frontendApiFilesPassed": 16,
+    "typeScriptNoEmit": "PASS",
+    "productionBuild": "Not attempted; gate failed"
+  },
+  "incrementalStages": {
+    "baseline": {
+      "all408": {
+        "identity": {
+          "non-match": 245,
+          "match": 120,
+          "needs_review": 43
+        },
+        "lifecycle": {
+          "rejected": 321,
+          "open": 58,
+          "inventory_snoozed": 4,
+          "dismissed": 24,
+          "watching": 1
+        }
+      },
+      "original395": {
+        "identity": {
+          "non-match": 245,
+          "match": 107,
+          "needs_review": 43
+        },
+        "lifecycle": {
+          "rejected": 319,
+          "open": 47,
+          "inventory_snoozed": 4,
+          "dismissed": 24,
+          "watching": 1
+        }
+      }
+    },
+    "platform": {
+      "all408": {
+        "identity": {
+          "non-match": 245,
+          "match": 120,
+          "needs_review": 43
+        },
+        "lifecycle": {
+          "rejected": 330,
+          "open": 49,
+          "inventory_snoozed": 4,
+          "dismissed": 24,
+          "watching": 1
+        }
+      },
+      "original395": {
+        "identity": {
+          "non-match": 245,
+          "match": 107,
+          "needs_review": 43
+        },
+        "lifecycle": {
+          "rejected": 323,
+          "open": 43,
+          "inventory_snoozed": 4,
+          "dismissed": 24,
+          "watching": 1
+        }
+      }
+    },
+    "publisher": {
+      "all408": {
+        "identity": {
+          "non-match": 240,
+          "match": 125,
+          "needs_review": 43
+        },
+        "lifecycle": {
+          "rejected": 325,
+          "open": 54,
+          "inventory_snoozed": 4,
+          "dismissed": 24,
+          "watching": 1
+        }
+      },
+      "original395": {
+        "identity": {
+          "non-match": 240,
+          "match": 112,
+          "needs_review": 43
+        },
+        "lifecycle": {
+          "rejected": 318,
+          "open": 48,
+          "inventory_snoozed": 4,
+          "dismissed": 24,
+          "watching": 1
+        }
+      }
+    },
+    "normalization": {
+      "all408": {
+        "identity": {
+          "non-match": 223,
+          "match": 140,
+          "needs_review": 45
+        },
+        "lifecycle": {
+          "rejected": 317,
+          "open": 62,
+          "inventory_snoozed": 4,
+          "dismissed": 24,
+          "watching": 1
+        }
+      },
+      "original395": {
+        "identity": {
+          "non-match": 223,
+          "match": 127,
+          "needs_review": 45
+        },
+        "lifecycle": {
+          "rejected": 310,
+          "open": 56,
+          "inventory_snoozed": 4,
+          "dismissed": 24,
+          "watching": 1
+        }
+      }
+    },
+    "keywords": {
+      "all408": {
+        "identity": {
+          "non-match": 223,
+          "match": 140,
+          "needs_review": 45
+        },
+        "lifecycle": {
+          "rejected": 317,
+          "open": 62,
+          "inventory_snoozed": 4,
+          "dismissed": 24,
+          "watching": 1
+        }
+      },
+      "original395": {
+        "identity": {
+          "non-match": 223,
+          "match": 127,
+          "needs_review": 45
+        },
+        "lifecycle": {
+          "rejected": 310,
+          "open": 56,
+          "inventory_snoozed": 4,
+          "dismissed": 24,
+          "watching": 1
+        }
+      }
+    },
+    "final": {
+      "all408": {
+        "identity": {
+          "non-match": 223,
+          "match": 140,
+          "needs_review": 45
+        },
+        "lifecycle": {
+          "rejected": 317,
+          "open": 62,
+          "inventory_snoozed": 4,
+          "dismissed": 24,
+          "watching": 1
+        }
+      },
+      "original395": {
+        "identity": {
+          "non-match": 223,
+          "match": 127,
+          "needs_review": 45
+        },
+        "lifecycle": {
+          "rejected": 310,
+          "open": 56,
+          "inventory_snoozed": 4,
+          "dismissed": 24,
+          "watching": 1
+        }
+      }
+    }
+  },
+  "policyOnlyProjection": {
+    "eligiblePriorAudit": [
+      {
+        "row": 19,
+        "asin": "B0006J1DKG",
+        "item": "377670942318",
+        "policy": {
+          "version": "sourcing_platform_policy_v3",
+          "result": "pass",
+          "reason": "Explicit operator platform preference; normal sourcing safeguards still apply.",
+          "platforms": [
+            "PC"
+          ],
+          "source": "shared sourcing platform business policy"
+        }
+      },
+      {
+        "row": 20,
+        "asin": "B008J16AG0",
+        "item": "880147323378",
+        "policy": {
+          "version": "sourcing_platform_policy_v3",
+          "result": "pass",
+          "reason": "Platform permitted; normal sourcing safeguards still apply.",
+          "platforms": [
+            "Wii"
+          ],
+          "source": "shared sourcing platform business policy"
+        }
+      },
+      {
+        "row": 50,
+        "asin": "B0008EZDDM",
+        "item": "128210994247",
+        "policy": {
+          "version": "sourcing_platform_policy_v3",
+          "result": "pass",
+          "reason": "Explicit operator platform preference; normal sourcing safeguards still apply.",
+          "platforms": [
+            "PC"
+          ],
+          "source": "shared sourcing platform business policy"
+        }
+      },
+      {
+        "row": 63,
+        "asin": "B00N3VNF32",
+        "item": "880138368350",
+        "policy": {
+          "version": "sourcing_platform_policy_v3",
+          "result": "pass",
+          "reason": "Platform permitted; normal sourcing safeguards still apply.",
+          "platforms": [
+            "PS 3"
+          ],
+          "source": "shared sourcing platform business policy"
+        }
+      },
+      {
+        "row": 78,
+        "asin": "B002I0EMUO",
+        "item": "137951390420",
+        "policy": {
+          "version": "sourcing_platform_policy_v3",
+          "result": "pass",
+          "reason": "Explicit operator platform preference; normal sourcing safeguards still apply.",
+          "platforms": [
+            "3DS"
+          ],
+          "source": "shared sourcing platform business policy"
+        }
+      },
+      {
+        "row": 81,
+        "asin": "B00L86B56I",
+        "item": "960227197859",
+        "policy": {
+          "version": "sourcing_platform_policy_v3",
+          "result": "pass",
+          "reason": "Explicit operator platform preference; normal sourcing safeguards still apply.",
+          "platforms": [
+            "3DS"
+          ],
+          "source": "shared sourcing platform business policy"
+        }
+      },
+      {
+        "row": 88,
+        "asin": "B07DLTGW3X",
+        "item": "117534792163",
+        "policy": {
+          "version": "sourcing_platform_policy_v3",
+          "result": "pass",
+          "reason": "Explicit operator platform preference; normal sourcing safeguards still apply.",
+          "platforms": [
+            "Switch"
+          ],
+          "source": "shared sourcing platform business policy"
+        }
+      },
+      {
+        "row": 101,
+        "asin": "B001DYXGUI",
+        "item": "198811763973",
+        "policy": {
+          "version": "sourcing_platform_policy_v3",
+          "result": "pass",
+          "reason": "Platform permitted; normal sourcing safeguards still apply.",
+          "platforms": [
+            "Xbox 360"
+          ],
+          "source": "shared sourcing platform business policy"
+        }
+      },
+      {
+        "row": 150,
+        "asin": "B000C4088I",
+        "item": "366822185298",
+        "policy": {
+          "version": "sourcing_platform_policy_v3",
+          "result": "pass",
+          "reason": "Platform permitted; normal sourcing safeguards still apply.",
+          "platforms": [
+            "PS 2"
+          ],
+          "source": "shared sourcing platform business policy"
+        }
+      },
+      {
+        "row": 158,
+        "asin": "B08GR2SCLF",
+        "item": "128203764584",
+        "policy": {
+          "version": "sourcing_platform_policy_v3",
+          "result": "pass",
+          "reason": "Platform permitted; normal sourcing safeguards still apply.",
+          "platforms": [
+            "PS 5"
+          ],
+          "source": "shared sourcing platform business policy"
+        }
+      },
+      {
+        "row": 173,
+        "asin": "B0019MRKNI",
+        "item": "287739765470",
+        "policy": {
+          "version": "sourcing_platform_policy_v3",
+          "result": "pass",
+          "reason": "Platform permitted; normal sourcing safeguards still apply.",
+          "platforms": [
+            "Xbox 360"
+          ],
+          "source": "shared sourcing platform business policy"
+        }
+      },
+      {
+        "row": 175,
+        "asin": "B00006JBS4",
+        "item": "287739694904",
+        "policy": {
+          "version": "sourcing_platform_policy_v3",
+          "result": "pass",
+          "reason": "Platform permitted; normal sourcing safeguards still apply.",
+          "platforms": [
+            "PS 2"
+          ],
+          "source": "shared sourcing platform business policy"
+        }
+      },
+      {
+        "row": 179,
+        "asin": "B000FDE062",
+        "item": "377656806800",
+        "policy": {
+          "version": "sourcing_platform_policy_v3",
+          "result": "pass",
+          "reason": "Explicit operator platform preference; normal sourcing safeguards still apply.",
+          "platforms": [
+            "PSP"
+          ],
+          "source": "shared sourcing platform business policy"
+        }
+      },
+      {
+        "row": 202,
+        "asin": "B000A3OP62",
+        "item": "287739040254",
+        "policy": {
+          "version": "sourcing_platform_policy_v3",
+          "result": "pass",
+          "reason": "Explicit operator platform preference; normal sourcing safeguards still apply.",
+          "platforms": [
+            "PC"
+          ],
+          "source": "shared sourcing platform business policy"
+        }
+      },
+      {
+        "row": 234,
+        "asin": "B00K2O4O5G",
+        "item": "860152631365",
+        "policy": {
+          "version": "sourcing_platform_policy_v3",
+          "result": "pass",
+          "reason": "Platform permitted; normal sourcing safeguards still apply.",
+          "platforms": [
+            "PS 3"
+          ],
+          "source": "shared sourcing platform business policy"
+        }
+      },
+      {
+        "row": 250,
+        "asin": "B00021KBKG",
+        "item": "198801161337",
+        "policy": {
+          "version": "sourcing_platform_policy_v3",
+          "result": "pass",
+          "reason": "Platform permitted; normal sourcing safeguards still apply.",
+          "platforms": [
+            "Xbox"
+          ],
+          "source": "shared sourcing platform business policy"
+        }
+      },
+      {
+        "row": 256,
+        "asin": "B08JDTJ9V5",
+        "item": "227617749352",
+        "policy": {
+          "version": "sourcing_platform_policy_v3",
+          "result": "pass",
+          "reason": "Explicit operator platform preference; normal sourcing safeguards still apply.",
+          "platforms": [
+            "Switch"
+          ],
+          "source": "shared sourcing platform business policy"
+        }
+      },
+      {
+        "row": 259,
+        "asin": "B00503EAG2",
+        "item": "137937298074",
+        "policy": {
+          "version": "sourcing_platform_policy_v3",
+          "result": "pass",
+          "reason": "Explicit operator platform preference; normal sourcing safeguards still apply.",
+          "platforms": [
+            "PC"
+          ],
+          "source": "shared sourcing platform business policy"
+        }
+      },
+      {
+        "row": 262,
+        "asin": "B002I0EMUO",
+        "item": "137937182173",
+        "policy": {
+          "version": "sourcing_platform_policy_v3",
+          "result": "pass",
+          "reason": "Explicit operator platform preference; normal sourcing safeguards still apply.",
+          "platforms": [
+            "3DS"
+          ],
+          "source": "shared sourcing platform business policy"
+        }
+      },
+      {
+        "row": 268,
+        "asin": "B004073SPI",
+        "item": "336900516962",
+        "policy": {
+          "version": "sourcing_platform_policy_v3",
+          "result": "pass",
+          "reason": "Explicit operator platform preference; normal sourcing safeguards still apply.",
+          "platforms": [
+            "PC"
+          ],
+          "source": "shared sourcing platform business policy"
+        }
+      },
+      {
+        "row": 271,
+        "asin": "B000OPOCFU",
+        "item": "800925258192",
+        "policy": {
+          "version": "sourcing_platform_policy_v3",
+          "result": "pass",
+          "reason": "Explicit operator platform preference; normal sourcing safeguards still apply.",
+          "platforms": [
+            "PC"
+          ],
+          "source": "shared sourcing platform business policy"
+        }
+      },
+      {
+        "row": 280,
+        "asin": "B000HKGD4A",
+        "item": "267844681306",
+        "policy": {
+          "version": "sourcing_platform_policy_v3",
+          "result": "pass",
+          "reason": "Explicit operator platform preference; normal sourcing safeguards still apply.",
+          "platforms": [
+            "PC"
+          ],
+          "source": "shared sourcing platform business policy"
+        }
+      },
+      {
+        "row": 303,
+        "asin": "B00004DITN",
+        "item": "940092940834",
+        "policy": {
+          "version": "sourcing_platform_policy_v3",
+          "result": "pass",
+          "reason": "Explicit operator platform preference; normal sourcing safeguards still apply.",
+          "platforms": [
+            "PC"
+          ],
+          "source": "shared sourcing platform business policy"
+        }
+      },
+      {
+        "row": 310,
+        "asin": "B07HN559YB",
+        "item": "920143097903",
+        "policy": {
+          "version": "sourcing_platform_policy_v3",
+          "result": "pass",
+          "reason": "Platform permitted; normal sourcing safeguards still apply.",
+          "platforms": [
+            "Xbox One"
+          ],
+          "source": "shared sourcing platform business policy"
+        }
+      },
+      {
+        "row": 314,
+        "asin": "B000227VV2",
+        "item": "960194925536",
+        "policy": {
+          "version": "sourcing_platform_policy_v3",
+          "result": "pass",
+          "reason": "Explicit operator platform preference; normal sourcing safeguards still apply.",
+          "platforms": [
+            "PC"
+          ],
+          "source": "shared sourcing platform business policy"
+        }
+      },
+      {
+        "row": 330,
+        "asin": "B0000D12XH",
+        "item": "267842652899",
+        "policy": {
+          "version": "sourcing_platform_policy_v3",
+          "result": "pass",
+          "reason": "Explicit operator platform preference; normal sourcing safeguards still apply.",
+          "platforms": [
+            "PC"
+          ],
+          "source": "shared sourcing platform business policy"
+        }
+      },
+      {
+        "row": 335,
+        "asin": "B08RMR6BBX",
+        "item": "287726096246",
+        "policy": {
+          "version": "sourcing_platform_policy_v3",
+          "result": "pass",
+          "reason": "Explicit operator platform preference; normal sourcing safeguards still apply.",
+          "platforms": [
+            "Switch"
+          ],
+          "source": "shared sourcing platform business policy"
+        }
+      },
+      {
+        "row": 342,
+        "asin": "B0B356GS5K",
+        "item": "800909766023",
+        "policy": {
+          "version": "sourcing_platform_policy_v3",
+          "result": "pass",
+          "reason": "Platform permitted; normal sourcing safeguards still apply.",
+          "platforms": [
+            "PS 5"
+          ],
+          "source": "shared sourcing platform business policy"
+        }
+      },
+      {
+        "row": 354,
+        "asin": "B000GM4JIQ",
+        "item": "198789975759",
+        "policy": {
+          "version": "sourcing_platform_policy_v3",
+          "result": "pass",
+          "reason": "Explicit operator platform preference; normal sourcing safeguards still apply.",
+          "platforms": [
+            "PC"
+          ],
+          "source": "shared sourcing platform business policy"
+        }
+      },
+      {
+        "row": 356,
+        "asin": "B00002SUV5",
+        "item": "257849050515",
+        "policy": {
+          "version": "sourcing_platform_policy_v3",
+          "result": "pass",
+          "reason": "Explicit operator platform preference; normal sourcing safeguards still apply.",
+          "platforms": [
+            "PC"
+          ],
+          "source": "shared sourcing platform business policy"
+        }
+      },
+      {
+        "row": 361,
+        "asin": "B07SNQNDDS",
+        "item": "267841177402",
+        "policy": {
+          "version": "sourcing_platform_policy_v3",
+          "result": "pass",
+          "reason": "Explicit operator platform preference; normal sourcing safeguards still apply.",
+          "platforms": [
+            "Switch"
+          ],
+          "source": "shared sourcing platform business policy"
+        }
+      },
+      {
+        "row": 363,
+        "asin": "B009LWQ0H0",
+        "item": "407356454558",
+        "policy": {
+          "version": "sourcing_platform_policy_v3",
+          "result": "pass",
+          "reason": "Explicit operator platform preference; normal sourcing safeguards still apply.",
+          "platforms": [
+            "PC"
+          ],
+          "source": "shared sourcing platform business policy"
+        }
+      },
+      {
+        "row": 400,
+        "asin": "B07BHGDR4L",
+        "item": "147674711265",
+        "policy": {
+          "version": "sourcing_platform_policy_v3",
+          "result": "pass",
+          "reason": "Explicit operator platform preference; normal sourcing safeguards still apply.",
+          "platforms": [
+            "Switch"
+          ],
+          "source": "shared sourcing platform business policy"
+        }
+      },
+      {
+        "row": 423,
+        "asin": "B0012GUAII",
+        "item": "267838258341",
+        "policy": {
+          "version": "sourcing_platform_policy_v3",
+          "result": "pass",
+          "reason": "Explicit operator platform preference; normal sourcing safeguards still apply.",
+          "platforms": [
+            "PC"
+          ],
+          "source": "shared sourcing platform business policy"
+        }
+      },
+      {
+        "row": 425,
+        "asin": "B000196EN2",
+        "item": "336887728055",
+        "policy": {
+          "version": "sourcing_platform_policy_v3",
+          "result": "pass",
+          "reason": "Explicit operator platform preference; normal sourcing safeguards still apply.",
+          "platforms": [
+            "PC"
+          ],
+          "source": "shared sourcing platform business policy"
+        }
+      },
+      {
+        "row": 426,
+        "asin": "B014LNTVGK",
+        "item": "960172708321",
+        "policy": {
+          "version": "sourcing_platform_policy_v3",
+          "result": "pass",
+          "reason": "Platform permitted; normal sourcing safeguards still apply.",
+          "platforms": [
+            "Wii U"
+          ],
+          "source": "shared sourcing platform business policy"
+        }
+      },
+      {
+        "row": 435,
+        "asin": "B000G67704",
+        "item": "327446722019",
+        "policy": {
+          "version": "sourcing_platform_policy_v3",
+          "result": "pass",
+          "reason": "Explicit operator platform preference; normal sourcing safeguards still apply.",
+          "platforms": [
+            "PC"
+          ],
+          "source": "shared sourcing platform business policy"
+        }
+      },
+      {
+        "row": 454,
+        "asin": "B00MUTAU18",
+        "item": "227602780052",
+        "policy": {
+          "version": "sourcing_platform_policy_v3",
+          "result": "pass",
+          "reason": "Explicit operator platform preference; normal sourcing safeguards still apply.",
+          "platforms": [
+            "PC"
+          ],
+          "source": "shared sourcing platform business policy"
+        }
+      },
+      {
+        "row": 468,
+        "asin": "B001ENOVP2",
+        "item": "336883948176",
+        "policy": {
+          "version": "sourcing_platform_policy_v3",
+          "result": "pass",
+          "reason": "Explicit operator platform preference; normal sourcing safeguards still apply.",
+          "platforms": [
+            "PC"
+          ],
+          "source": "shared sourcing platform business policy"
+        }
+      },
+      {
+        "row": 469,
+        "asin": "B007ZQJN1Y",
+        "item": "227601734749",
+        "policy": {
+          "version": "sourcing_platform_policy_v3",
+          "result": "pass",
+          "reason": "Platform permitted; normal sourcing safeguards still apply.",
+          "platforms": [
+            "Xbox 360"
+          ],
+          "source": "shared sourcing platform business policy"
+        }
+      },
+      {
+        "row": 470,
+        "asin": "B000CC5CHW",
+        "item": "880089117994",
+        "policy": {
+          "version": "sourcing_platform_policy_v3",
+          "result": "pass",
+          "reason": "Platform permitted; normal sourcing safeguards still apply.",
+          "platforms": [
+            "PS 2"
+          ],
+          "source": "shared sourcing platform business policy"
+        }
+      },
+      {
+        "row": 475,
+        "asin": "B0009PQCSU",
+        "item": "860116884689",
+        "policy": {
+          "version": "sourcing_platform_policy_v3",
+          "result": "pass",
+          "reason": "Explicit operator platform preference; normal sourcing safeguards still apply.",
+          "platforms": [
+            "PC"
+          ],
+          "source": "shared sourcing platform business policy"
+        }
+      },
+      {
+        "row": 476,
+        "asin": "B003UEREBQ",
+        "item": "198775501957",
+        "policy": {
+          "version": "sourcing_platform_policy_v3",
+          "result": "pass",
+          "reason": "Explicit operator platform preference; normal sourcing safeguards still apply.",
+          "platforms": [
+            "PC"
+          ],
+          "source": "shared sourcing platform business policy"
+        }
+      },
+      {
+        "row": 484,
+        "asin": "B0007TYP50",
+        "item": "137903669838",
+        "policy": {
+          "version": "sourcing_platform_policy_v3",
+          "result": "pass",
+          "reason": "Explicit operator platform preference; normal sourcing safeguards still apply.",
+          "platforms": [
+            "PC"
+          ],
+          "source": "shared sourcing platform business policy"
+        }
+      },
+      {
+        "row": 495,
+        "asin": "B00B2QL2Y4",
+        "item": "257835315697",
+        "policy": {
+          "version": "sourcing_platform_policy_v3",
+          "result": "pass",
+          "reason": "Platform permitted; normal sourcing safeguards still apply.",
+          "platforms": [
+            "Wii"
+          ],
+          "source": "shared sourcing platform business policy"
+        }
+      },
+      {
+        "row": 501,
+        "asin": "B0009IN2J4",
+        "item": "128175335738",
+        "policy": {
+          "version": "sourcing_platform_policy_v3",
+          "result": "pass",
+          "reason": "Platform permitted; normal sourcing safeguards still apply.",
+          "platforms": [
+            "Xbox"
+          ],
+          "source": "shared sourcing platform business policy"
+        }
+      },
+      {
+        "row": 516,
+        "asin": "B00000G16I",
+        "item": "206673827728",
+        "policy": {
+          "version": "sourcing_platform_policy_v3",
+          "result": "pass",
+          "reason": "Explicit operator platform preference; normal sourcing safeguards still apply.",
+          "platforms": [
+            "PC"
+          ],
+          "source": "shared sourcing platform business policy"
+        }
+      },
+      {
+        "row": 519,
+        "asin": "B0002GTFJ4",
+        "item": "407337739013",
+        "policy": {
+          "version": "sourcing_platform_policy_v3",
+          "result": "pass",
+          "reason": "Platform permitted; normal sourcing safeguards still apply.",
+          "platforms": [
+            "PS 2"
+          ],
+          "source": "shared sourcing platform business policy"
+        }
+      },
+      {
+        "row": 520,
+        "asin": "B0007DGB4O",
+        "item": "257833035632",
+        "policy": {
+          "version": "sourcing_platform_policy_v3",
+          "result": "pass",
+          "reason": "Platform permitted; normal sourcing safeguards still apply.",
+          "platforms": [
+            "Xbox"
+          ],
+          "source": "shared sourcing platform business policy"
+        }
+      },
+      {
+        "row": 525,
+        "asin": "B001E3ARJ6",
+        "item": "960150211823",
+        "policy": {
+          "version": "sourcing_platform_policy_v3",
+          "result": "pass",
+          "reason": "Explicit operator platform preference; normal sourcing safeguards still apply.",
+          "platforms": [
+            "PC"
+          ],
+          "source": "shared sourcing platform business policy"
+        }
+      },
+      {
+        "row": 529,
+        "asin": "B001AIR1F8",
+        "item": "920101007883",
+        "policy": {
+          "version": "sourcing_platform_policy_v3",
+          "result": "pass",
+          "reason": "Explicit operator platform preference; normal sourcing safeguards still apply.",
+          "platforms": [
+            "PC"
+          ],
+          "source": "shared sourcing platform business policy"
+        }
+      },
+      {
+        "row": 538,
+        "asin": "B00009V3KM",
+        "item": "940060932041",
+        "policy": {
+          "version": "sourcing_platform_policy_v3",
+          "result": "pass",
+          "reason": "Explicit operator platform preference; normal sourcing safeguards still apply.",
+          "platforms": [
+            "PC"
+          ],
+          "source": "shared sourcing platform business policy"
+        }
+      },
+      {
+        "row": 549,
+        "asin": "B00005BYKH",
+        "item": "366779226537",
+        "policy": {
+          "version": "sourcing_platform_policy_v3",
+          "result": "pass",
+          "reason": "Platform permitted; normal sourcing safeguards still apply.",
+          "platforms": [
+            "Xbox"
+          ],
+          "source": "shared sourcing platform business policy"
+        }
+      },
+      {
+        "row": 558,
+        "asin": "B0000690ZY",
+        "item": "287698458544",
+        "policy": {
+          "version": "sourcing_platform_policy_v3",
+          "result": "pass",
+          "reason": "Platform permitted; normal sourcing safeguards still apply.",
+          "platforms": [
+            "PS 2"
+          ],
+          "source": "shared sourcing platform business policy"
+        }
+      }
+    ],
+    "newlyOutOfCohort": [
+      {
+        "row": 153,
+        "asin": "B000007NJC",
+        "item": "137943952207",
+        "policy": {
+          "version": "sourcing_platform_policy_v3",
+          "result": "blocked",
+          "reason": "Platform excluded by operator sourcing preference.",
+          "platforms": [
+            "PS"
+          ],
+          "source": "shared sourcing platform business policy"
+        }
+      },
+      {
+        "row": 496,
+        "asin": "B00002STSW",
+        "item": "257835263656",
+        "policy": {
+          "version": "sourcing_platform_policy_v3",
+          "result": "blocked",
+          "reason": "Platform excluded by operator sourcing preference.",
+          "platforms": [
+            "PS"
+          ],
+          "source": "shared sourcing platform business policy"
+        }
+      }
+    ],
+    "policyOnlyCounts": {
+      "buyList": 31,
+      "closestExcluded": 73
+    },
+    "before": {
+      "buyList": 33,
+      "closestExcluded": 73
+    },
+    "suppressed": {
+      "all_open": [
+        {
+          "opportunityId": "7612c284-cec1-455c-a46b-ab5d76eb2d3a",
+          "asin": "B0000A1HVX",
+          "item": "820316741656",
+          "policy": {
+            "version": "sourcing_platform_policy_v3",
+            "result": "blocked",
+            "reason": "Platform excluded by operator sourcing preference.",
+            "platforms": [
+              "PS"
+            ],
+            "source": "shared sourcing platform business policy"
+          }
+        },
+        {
+          "opportunityId": "16c8ccdf-1d47-49da-bbd6-a98f0646adbe",
+          "asin": "B00004S99R",
+          "item": "880090923440",
+          "policy": {
+            "version": "sourcing_platform_policy_v3",
+            "result": "blocked",
+            "reason": "Platform excluded by operator sourcing preference.",
+            "platforms": [
+              "Dreamcast"
+            ],
+            "source": "shared sourcing platform business policy"
+          }
+        }
+      ],
+      "closest_excluded": []
+    }
+  },
+  "proposedPrimaryAuditCount": {
+    "beforeNewPlatformPolicy": 48,
+    "eligibleAfterPolicy": 46
+  },
+  "priorFullAuditCount": {
+    "beforeNewPlatformPolicy": 56,
+    "eligibleAfterPolicy": 54
+  },
+  "newIdentityMatchesEligible": 16,
+  "newOpenHistoricalShadowCaptures": 13,
+  "newlyActionableProduction": 0,
+  "productionReplayManifest": null,
+  "productionWrites": 0,
+  "apiCalls": {
+    "ebay": 0,
+    "amazon": 0,
+    "keepa": 0,
+    "photographs": 0
+  },
+  "productionImport": {
+    "status": "completed",
+    "run_id": "33c2d3bb-6ffc-52af-855a-36e06e0f9bb6",
+    "summary": {
+      "rows": 558,
+      "valid": 558,
+      "failed": 0,
+      "buyList": 33,
+      "invalid": 0,
+      "pending": 0,
+      "excluded": 409,
+      "evaluated": 144,
+      "duplicates": 5,
+      "targetedReplay": {
+        "rows": 6,
+        "duplicates": 0,
+        "originalRunId": "c7ba90ae-7cdd-4b87-a831-c2ff33682adf",
+        "unselectedPreserved": 552
+      },
+      "closestExcluded": 73
+    }
+  },
+  "codeFileHashes": {
+    "integrations/sourcing_identity_wording.py": "c0fbb09656751a1f1d77a24fb62e97090deafd4662d91faae3e60815fa0d0907",
+    "integrations/video_game_identity.py": "02294dfa882d6cdf464274cead0eb2e0826df572d8ddbabf6762ed5407010d92",
+    "integrations/sourcing_contextual_keywords.py": "087ad570a5b9c141bc6a7ada6f6674585bf7f5631ee11c342b4b9be306813960",
+    "integrations/sourcing_match_rules.py": "a5289052021635aca8accfa308122cbbc527cd307a6e07ae41c26b16e87a9899",
+    "web/lib/sourcingPlatformPolicy.json": "a0b3e2ffe95e81d180de23bb7382aeb128820afd60d90f7cf4b62c4718d85fd9",
+    "web/lib/canonicalSystems.json": "500b21a67575d39f363500409b880e7a4c2948fe7a270499102813a6bd325e7f"
+  },
+  "immutableInputSha256": "184dce8ac1f591e310b8c6b57b07ab0be266ee673f8ecc94bb31a3911398f2db",
+  "newlyMatchOrOpenReview": [
+    {
+      "label": "flipmine:19",
+      "asin": "B0006J1DKG",
+      "ebayItemId": "377670942318",
+      "amazonTitle": "Extreme Assault",
+      "ebayTitle": "Extreme Assault PC CD-Rom Computer Game Blue Byte 1997 - NEW",
+      "identity": "match",
+      "status": "open",
+      "landedCost": 24.14,
+      "historicalProfit": 368.61,
+      "historicalRoi": 1527.0,
+      "sourcingPolicy": {
+        "version": "sourcing_platform_policy_v3",
+        "result": "pass",
+        "reason": "Explicit operator platform preference; normal sourcing safeguards still apply.",
+        "platforms": [
+          "PC"
+        ],
+        "source": "shared sourcing platform business policy"
+      },
+      "condition": {
+        "hits": [],
+        "result": "pass",
+        "evidenceState": "affirmatively_new"
+      },
+      "conditionReview": {
+        "hits": [],
+        "result": "pass",
+        "reason": ""
+      },
+      "contentsReview": {
+        "result": "pass",
+        "reason": ""
+      },
+      "primaryReason": null,
+      "unsafePromotion": false
+    },
+    {
+      "label": "flipmine:20",
+      "asin": "B008J16AG0",
+      "ebayItemId": "880147323378",
+      "amazonTitle": "The Hip Hop Dance Experience - Nintendo Wii [video game]",
+      "ebayTitle": "The Hip Hop Dance Experience Nintendo Wii Ubisoft Dance Music Video Game NEW",
+      "identity": "match",
+      "status": "rejected",
+      "landedCost": null,
+      "historicalProfit": null,
+      "historicalRoi": null,
+      "sourcingPolicy": {
+        "version": "sourcing_platform_policy_v3",
+        "result": "pass",
+        "reason": "Platform permitted; normal sourcing safeguards still apply.",
+        "platforms": [
+          "Wii"
+        ],
+        "source": "shared sourcing platform business policy"
+      },
+      "condition": {
+        "hits": [],
+        "result": "pass",
+        "evidenceState": "affirmatively_new"
+      },
+      "conditionReview": {
+        "hits": [],
+        "result": "pass",
+        "reason": ""
+      },
+      "contentsReview": {
+        "result": "pass",
+        "reason": ""
+      },
+      "primaryReason": {
+        "code": "profitability",
+        "label": "Rejected by profitability",
+        "source": "profitability",
+        "severity": "profitability",
+        "summary": "Profit or ROI did not meet the configured sourcing threshold.",
+        "category": "profitability",
+        "diagnosticKeys": [
+          "opportunity_context",
+          "confidence_summary"
+        ]
+      },
+      "unsafePromotion": false
+    },
+    {
+      "label": "flipmine:50",
+      "asin": "B0008EZDDM",
+      "ebayItemId": "128210994247",
+      "amazonTitle": "Star Wars Galaxies: The Total Experience - PC",
+      "ebayTitle": "Star Wars Galaxies: The Total Experience PC Game Lucas Arts NEW Sealed",
+      "identity": "match",
+      "status": "open",
+      "landedCost": 57.9,
+      "historicalProfit": 73.8,
+      "historicalRoi": 127.5,
+      "sourcingPolicy": {
+        "version": "sourcing_platform_policy_v3",
+        "result": "pass",
+        "reason": "Explicit operator platform preference; normal sourcing safeguards still apply.",
+        "platforms": [
+          "PC"
+        ],
+        "source": "shared sourcing platform business policy"
+      },
+      "condition": {
+        "hits": [],
+        "result": "pass",
+        "evidenceState": "affirmatively_new"
+      },
+      "conditionReview": {
+        "hits": [],
+        "result": "pass",
+        "reason": ""
+      },
+      "contentsReview": {
+        "result": "pass",
+        "reason": ""
+      },
+      "primaryReason": null,
+      "unsafePromotion": true
+    },
+    {
+      "label": "flipmine:63",
+      "asin": "B00N3VNF32",
+      "ebayItemId": "880138368350",
+      "amazonTitle": "Assassin's Creed Rogue - PlayStation 3",
+      "ebayTitle": "Assassin's Creed: Rogue (Sony PlayStation 3, 2014) Brand New Sealed Game PS3",
+      "identity": "match",
+      "status": "open",
+      "landedCost": 18.99,
+      "historicalProfit": 17.96,
+      "historicalRoi": 94.6,
+      "sourcingPolicy": {
+        "version": "sourcing_platform_policy_v3",
+        "result": "pass",
+        "reason": "Platform permitted; normal sourcing safeguards still apply.",
+        "platforms": [
+          "PS 3"
+        ],
+        "source": "shared sourcing platform business policy"
+      },
+      "condition": {
+        "hits": [],
+        "result": "pass",
+        "evidenceState": "affirmatively_new"
+      },
+      "conditionReview": {
+        "hits": [],
+        "result": "pass",
+        "reason": ""
+      },
+      "contentsReview": {
+        "result": "pass",
+        "reason": ""
+      },
+      "primaryReason": null,
+      "unsafePromotion": true
+    },
+    {
+      "label": "flipmine:88",
+      "asin": "B07DLTGW3X",
+      "ebayItemId": "117534792163",
+      "amazonTitle": "FIFA 19 - Nintendo Switch",
+      "ebayTitle": "FIFA 19 (Nintendo Switch) EA Sports - NEW / SEALED, Free Shipping!",
+      "identity": "match",
+      "status": "open",
+      "landedCost": 32.99,
+      "historicalProfit": 34.04,
+      "historicalRoi": 103.2,
+      "sourcingPolicy": {
+        "version": "sourcing_platform_policy_v3",
+        "result": "pass",
+        "reason": "Explicit operator platform preference; normal sourcing safeguards still apply.",
+        "platforms": [
+          "Switch"
+        ],
+        "source": "shared sourcing platform business policy"
+      },
+      "condition": {
+        "hits": [],
+        "result": "pass",
+        "evidenceState": "affirmatively_new"
+      },
+      "conditionReview": {
+        "hits": [],
+        "result": "pass",
+        "reason": ""
+      },
+      "contentsReview": {
+        "result": "pass",
+        "reason": ""
+      },
+      "primaryReason": null,
+      "unsafePromotion": false
+    },
+    {
+      "label": "flipmine:101",
+      "asin": "B001DYXGUI",
+      "ebayItemId": "198811763973",
+      "amazonTitle": "Wanted: Weapons of Fate - Xbox 360",
+      "ebayTitle": "WANTED Weapons of Fate Xbox 360 Brand New Sealed Original ",
+      "identity": "match",
+      "status": "open",
+      "landedCost": 43.0,
+      "historicalProfit": 18.25,
+      "historicalRoi": 42.4,
+      "sourcingPolicy": {
+        "version": "sourcing_platform_policy_v3",
+        "result": "pass",
+        "reason": "Platform permitted; normal sourcing safeguards still apply.",
+        "platforms": [
+          "Xbox 360"
+        ],
+        "source": "shared sourcing platform business policy"
+      },
+      "condition": {
+        "hits": [],
+        "result": "pass",
+        "evidenceState": "affirmatively_new"
+      },
+      "conditionReview": {
+        "hits": [],
+        "result": "pass",
+        "reason": ""
+      },
+      "contentsReview": {
+        "result": "pass",
+        "reason": ""
+      },
+      "primaryReason": null,
+      "unsafePromotion": false
+    },
+    {
+      "label": "flipmine:150",
+      "asin": "B000C4088I",
+      "ebayItemId": "366822185298",
+      "amazonTitle": "Sonic Riders",
+      "ebayTitle": "Sonic Riders Greatest Hits (Sony PlayStation 2, 2006) SEGA Game New OEM Sealed",
+      "identity": "match",
+      "status": "rejected",
+      "landedCost": 79.98,
+      "historicalProfit": -37.19,
+      "historicalRoi": -46.5,
+      "sourcingPolicy": {
+        "version": "sourcing_platform_policy_v3",
+        "result": "pass",
+        "reason": "Platform permitted; normal sourcing safeguards still apply.",
+        "platforms": [
+          "PS 2"
+        ],
+        "source": "shared sourcing platform business policy"
+      },
+      "condition": {
+        "hits": [],
+        "result": "pass",
+        "evidenceState": "affirmatively_new"
+      },
+      "conditionReview": {
+        "hits": [],
+        "result": "pass",
+        "reason": ""
+      },
+      "contentsReview": {
+        "result": "pass",
+        "reason": ""
+      },
+      "primaryReason": {
+        "code": "profitability",
+        "label": "Rejected by profitability",
+        "source": "profitability",
+        "severity": "profitability",
+        "summary": "Profit or ROI did not meet the configured sourcing threshold.",
+        "category": "profitability",
+        "diagnosticKeys": [
+          "opportunity_context",
+          "confidence_summary"
+        ]
+      },
+      "unsafePromotion": false
+    },
+    {
+      "label": "flipmine:153",
+      "asin": "B000007NJC",
+      "ebayItemId": "137943952207",
+      "amazonTitle": "WWF Warzone",
+      "ebayTitle": "WWF War Zone - Sony PlayStation 1 PS1 - NEW SEALED USA Retail Release w/ Hangtab",
+      "identity": "match",
+      "status": "rejected",
+      "landedCost": 22.98,
+      "historicalProfit": 13.19,
+      "historicalRoi": 57.4,
+      "sourcingPolicy": {
+        "version": "sourcing_platform_policy_v3",
+        "result": "blocked",
+        "reason": "Platform excluded by operator sourcing preference.",
+        "platforms": [
+          "PS"
+        ],
+        "source": "shared sourcing platform business policy"
+      },
+      "condition": {
+        "hits": [],
+        "result": "pass",
+        "evidenceState": "affirmatively_new"
+      },
+      "conditionReview": {
+        "hits": [],
+        "result": "pass",
+        "reason": ""
+      },
+      "contentsReview": {
+        "result": "pass",
+        "reason": ""
+      },
+      "primaryReason": {
+        "code": "unsupported_platform",
+        "label": "Unsupported Platform",
+        "source": "sourcing_platform_policy",
+        "severity": "unsupported_platform",
+        "summary": "Platform excluded by operator sourcing preference.",
+        "category": "unsupported_platform",
+        "diagnosticKeys": [
+          "sourcing_platform_policy"
+        ]
+      },
+      "unsafePromotion": false
+    },
+    {
+      "label": "flipmine:173",
+      "asin": "B0019MRKNI",
+      "ebayItemId": "287739765470",
+      "amazonTitle": "Viva Pi\u00f1ata: Trouble in Paradise",
+      "ebayTitle": "Microsoft Viva Pi\u00f1ata Trouble in Paradise Xbox 360 Video Game Sealed Rare 2008",
+      "identity": "match",
+      "status": "open",
+      "landedCost": 61.34,
+      "historicalProfit": 49.29,
+      "historicalRoi": 80.4,
+      "sourcingPolicy": {
+        "version": "sourcing_platform_policy_v3",
+        "result": "pass",
+        "reason": "Platform permitted; normal sourcing safeguards still apply.",
+        "platforms": [
+          "Xbox 360"
+        ],
+        "source": "shared sourcing platform business policy"
+      },
+      "condition": {
+        "hits": [],
+        "result": "pass",
+        "evidenceState": "affirmatively_new"
+      },
+      "conditionReview": {
+        "hits": [],
+        "result": "pass",
+        "reason": ""
+      },
+      "contentsReview": {
+        "result": "pass",
+        "reason": ""
+      },
+      "primaryReason": null,
+      "unsafePromotion": false
+    },
+    {
+      "label": "flipmine:175",
+      "asin": "B00006JBS4",
+      "ebayItemId": "287739694904",
+      "amazonTitle": "Legends of Wrestling II - PlayStation 2",
+      "ebayTitle": "Accalim Legends of Wrestling II Playstation 2 Game Factory Sealed New",
+      "identity": "match",
+      "status": "open",
+      "landedCost": 50.56,
+      "historicalProfit": 46.06,
+      "historicalRoi": 91.1,
+      "sourcingPolicy": {
+        "version": "sourcing_platform_policy_v3",
+        "result": "pass",
+        "reason": "Platform permitted; normal sourcing safeguards still apply.",
+        "platforms": [
+          "PS 2"
+        ],
+        "source": "shared sourcing platform business policy"
+      },
+      "condition": {
+        "hits": [],
+        "result": "pass",
+        "evidenceState": "affirmatively_new"
+      },
+      "conditionReview": {
+        "hits": [],
+        "result": "pass",
+        "reason": ""
+      },
+      "contentsReview": {
+        "result": "pass",
+        "reason": ""
+      },
+      "primaryReason": null,
+      "unsafePromotion": false
+    },
+    {
+      "label": "flipmine:250",
+      "asin": "B00021KBKG",
+      "ebayItemId": "198801161337",
+      "amazonTitle": "Demon Stone - Xbox",
+      "ebayTitle": "Demon Stone (Microsoft Xbox, 2004) Atari Game Brand New Sealed",
+      "identity": "match",
+      "status": "rejected",
+      "landedCost": null,
+      "historicalProfit": null,
+      "historicalRoi": null,
+      "sourcingPolicy": {
+        "version": "sourcing_platform_policy_v3",
+        "result": "pass",
+        "reason": "Platform permitted; normal sourcing safeguards still apply.",
+        "platforms": [
+          "Xbox"
+        ],
+        "source": "shared sourcing platform business policy"
+      },
+      "condition": {
+        "hits": [],
+        "result": "pass",
+        "evidenceState": "affirmatively_new"
+      },
+      "conditionReview": {
+        "hits": [],
+        "result": "pass",
+        "reason": ""
+      },
+      "contentsReview": {
+        "result": "pass",
+        "reason": ""
+      },
+      "primaryReason": {
+        "code": "profitability",
+        "label": "Rejected by profitability",
+        "source": "profitability",
+        "severity": "profitability",
+        "summary": "Profit or ROI did not meet the configured sourcing threshold.",
+        "category": "profitability",
+        "diagnosticKeys": [
+          "opportunity_context",
+          "confidence_summary"
+        ]
+      },
+      "unsafePromotion": false
+    },
+    {
+      "label": "flipmine:259",
+      "asin": "B00503EAG2",
+      "ebayItemId": "137937298074",
+      "amazonTitle": "Call of Duty: Modern Warfare 3 - PC",
+      "ebayTitle": "Call of Duty: Modern Warfare 3 (Windows/PC, 2011) Brand New Factory Sealed Game",
+      "identity": "match",
+      "status": "open",
+      "landedCost": 29.95,
+      "historicalProfit": 0.35,
+      "historicalRoi": 1.2,
+      "sourcingPolicy": {
+        "version": "sourcing_platform_policy_v3",
+        "result": "pass",
+        "reason": "Explicit operator platform preference; normal sourcing safeguards still apply.",
+        "platforms": [
+          "PC"
+        ],
+        "source": "shared sourcing platform business policy"
+      },
+      "condition": {
+        "hits": [],
+        "result": "pass",
+        "evidenceState": "affirmatively_new"
+      },
+      "conditionReview": {
+        "hits": [],
+        "result": "pass",
+        "reason": ""
+      },
+      "contentsReview": {
+        "result": "pass",
+        "reason": ""
+      },
+      "primaryReason": null,
+      "unsafePromotion": false
+    },
+    {
+      "label": "flipmine:280",
+      "asin": "B000HKGD4A",
+      "ebayItemId": "267844681306",
+      "amazonTitle": "Rollercoaster Tycoon 3 Platinum - PC [Windows Me | Windows XP | Windows 2000 | Windows 98]",
+      "ebayTitle": "2006 Roller Coaster Tycoon 3 Platinum PC CD-Rom Video Game Complete Manual CIB",
+      "identity": "needs_review",
+      "status": "inventory_snoozed",
+      "landedCost": 14.41,
+      "historicalProfit": 13.22,
+      "historicalRoi": 91.7,
+      "sourcingPolicy": {
+        "version": "sourcing_platform_policy_v3",
+        "result": "pass",
+        "reason": "Explicit operator platform preference; normal sourcing safeguards still apply.",
+        "platforms": [
+          "PC"
+        ],
+        "source": "shared sourcing platform business policy"
+      },
+      "condition": {
+        "hits": [],
+        "result": "pass",
+        "evidenceState": "affirmatively_new"
+      },
+      "conditionReview": {
+        "hits": [],
+        "result": "pass",
+        "reason": ""
+      },
+      "contentsReview": {
+        "result": "pass",
+        "reason": ""
+      },
+      "primaryReason": {
+        "code": "review_threshold",
+        "label": "Review threshold",
+        "source": "presentation_gate",
+        "severity": "review_threshold",
+        "summary": "Final matching recommendation required review and did not enter presentation.",
+        "category": "review_threshold",
+        "diagnosticKeys": [
+          "final_recommendation",
+          "confidence_summary"
+        ]
+      },
+      "unsafePromotion": false
+    },
+    {
+      "label": "flipmine:401",
+      "asin": "B003LDKLNO",
+      "ebayItemId": "327449651496",
+      "amazonTitle": "Puzzle Time - Nintendo DS",
+      "ebayTitle": "Puzzle Time Nintendo DS, 2010 DS New",
+      "identity": "match",
+      "status": "rejected",
+      "landedCost": null,
+      "historicalProfit": null,
+      "historicalRoi": null,
+      "sourcingPolicy": {
+        "version": "sourcing_platform_policy_v3",
+        "result": "blocked",
+        "reason": "Cartridge-based platform excluded by sourcing policy.",
+        "platforms": [
+          "DS"
+        ],
+        "source": "shared sourcing platform business policy"
+      },
+      "condition": {
+        "hits": [
+          "used"
+        ],
+        "result": "blocked",
+        "evidenceState": "confirmed_unacceptable"
+      },
+      "conditionReview": {
+        "hits": [],
+        "result": "pass",
+        "reason": ""
+      },
+      "contentsReview": {
+        "result": "pass",
+        "reason": ""
+      },
+      "primaryReason": {
+        "code": "unsupported_platform",
+        "label": "Unsupported Platform",
+        "source": "sourcing_platform_policy",
+        "severity": "unsupported_platform",
+        "summary": "Cartridge-based platform excluded by sourcing policy.",
+        "category": "unsupported_platform",
+        "diagnosticKeys": [
+          "sourcing_platform_policy"
+        ]
+      },
+      "unsafePromotion": false
+    },
+    {
+      "label": "flipmine:425",
+      "asin": "B000196EN2",
+      "ebayItemId": "336887728055",
+      "amazonTitle": "COSMI Pool Shark ( Windows )",
+      "ebayTitle": "Pool Shark (PC, 2003)",
+      "identity": "match",
+      "status": "open",
+      "landedCost": 7.39,
+      "historicalProfit": 46.92,
+      "historicalRoi": 634.9,
+      "sourcingPolicy": {
+        "version": "sourcing_platform_policy_v3",
+        "result": "pass",
+        "reason": "Explicit operator platform preference; normal sourcing safeguards still apply.",
+        "platforms": [
+          "PC"
+        ],
+        "source": "shared sourcing platform business policy"
+      },
+      "condition": {
+        "hits": [],
+        "result": "pass",
+        "evidenceState": "affirmatively_new"
+      },
+      "conditionReview": {
+        "hits": [],
+        "result": "pass",
+        "reason": ""
+      },
+      "contentsReview": {
+        "result": "pass",
+        "reason": ""
+      },
+      "primaryReason": null,
+      "unsafePromotion": false
+    },
+    {
+      "label": "flipmine:437",
+      "asin": "B001PA0FC2",
+      "ebayItemId": "920119274802",
+      "amazonTitle": "History Great Empires: Rome - Nintendo DS",
+      "ebayTitle": "History Great Empires: Rome Nintendo DS, 2009 DS New",
+      "identity": "match",
+      "status": "rejected",
+      "landedCost": null,
+      "historicalProfit": null,
+      "historicalRoi": null,
+      "sourcingPolicy": {
+        "version": "sourcing_platform_policy_v3",
+        "result": "blocked",
+        "reason": "Cartridge-based platform excluded by sourcing policy.",
+        "platforms": [
+          "DS"
+        ],
+        "source": "shared sourcing platform business policy"
+      },
+      "condition": {
+        "hits": [
+          "used"
+        ],
+        "result": "blocked",
+        "evidenceState": "confirmed_unacceptable"
+      },
+      "conditionReview": {
+        "hits": [],
+        "result": "pass",
+        "reason": ""
+      },
+      "contentsReview": {
+        "result": "pass",
+        "reason": ""
+      },
+      "primaryReason": {
+        "code": "unsupported_platform",
+        "label": "Unsupported Platform",
+        "source": "sourcing_platform_policy",
+        "severity": "unsupported_platform",
+        "summary": "Cartridge-based platform excluded by sourcing policy.",
+        "category": "unsupported_platform",
+        "diagnosticKeys": [
+          "sourcing_platform_policy"
+        ]
+      },
+      "unsafePromotion": false
+    },
+    {
+      "label": "flipmine:470",
+      "asin": "B000CC5CHW",
+      "ebayItemId": "880089117994",
+      "amazonTitle": "Suikoden V",
+      "ebayTitle": "Suikoden V 5 (PS2 Playstation 2) Brand New & Factory Sealed Y-FOLD",
+      "identity": "match",
+      "status": "open",
+      "landedCost": 179.95,
+      "historicalProfit": 53.15,
+      "historicalRoi": 29.5,
+      "sourcingPolicy": {
+        "version": "sourcing_platform_policy_v3",
+        "result": "pass",
+        "reason": "Platform permitted; normal sourcing safeguards still apply.",
+        "platforms": [
+          "PS 2"
+        ],
+        "source": "shared sourcing platform business policy"
+      },
+      "condition": {
+        "hits": [],
+        "result": "pass",
+        "evidenceState": "affirmatively_new"
+      },
+      "conditionReview": {
+        "hits": [],
+        "result": "pass",
+        "reason": ""
+      },
+      "contentsReview": {
+        "result": "pass",
+        "reason": ""
+      },
+      "primaryReason": null,
+      "unsafePromotion": false
+    },
+    {
+      "label": "flipmine:475",
+      "asin": "B0009PQCSU",
+      "ebayItemId": "860116884689",
+      "amazonTitle": "Dungeon Siege 2 - PC",
+      "ebayTitle": "Dungeon Siege 2 II PC CD Rom Microsoft Windows Video Game New Sealed.",
+      "identity": "match",
+      "status": "open",
+      "landedCost": 26.98,
+      "historicalProfit": 11.78,
+      "historicalRoi": 43.7,
+      "sourcingPolicy": {
+        "version": "sourcing_platform_policy_v3",
+        "result": "pass",
+        "reason": "Explicit operator platform preference; normal sourcing safeguards still apply.",
+        "platforms": [
+          "PC"
+        ],
+        "source": "shared sourcing platform business policy"
+      },
+      "condition": {
+        "hits": [],
+        "result": "pass",
+        "evidenceState": "affirmatively_new"
+      },
+      "conditionReview": {
+        "hits": [],
+        "result": "pass",
+        "reason": ""
+      },
+      "contentsReview": {
+        "result": "pass",
+        "reason": ""
+      },
+      "primaryReason": null,
+      "unsafePromotion": false
+    },
+    {
+      "label": "flipmine:480",
+      "asin": "B000038IF8",
+      "ebayItemId": "287707217879",
+      "amazonTitle": "Championship Bass - PlayStation",
+      "ebayTitle": "Championship Bass For Sony PlayStation 1 PS1 BRAND NEW / FACTORY SEALED / CIB",
+      "identity": "match",
+      "status": "rejected",
+      "landedCost": null,
+      "historicalProfit": null,
+      "historicalRoi": null,
+      "sourcingPolicy": {
+        "version": "sourcing_platform_policy_v3",
+        "result": "blocked",
+        "reason": "Platform excluded by operator sourcing preference.",
+        "platforms": [
+          "PS"
+        ],
+        "source": "shared sourcing platform business policy"
+      },
+      "condition": {
+        "hits": [],
+        "result": "pass",
+        "evidenceState": "affirmatively_new"
+      },
+      "conditionReview": {
+        "hits": [],
+        "result": "pass",
+        "reason": ""
+      },
+      "contentsReview": {
+        "result": "pass",
+        "reason": ""
+      },
+      "primaryReason": {
+        "code": "unsupported_platform",
+        "label": "Unsupported Platform",
+        "source": "sourcing_platform_policy",
+        "severity": "unsupported_platform",
+        "summary": "Platform excluded by operator sourcing preference.",
+        "category": "unsupported_platform",
+        "diagnosticKeys": [
+          "sourcing_platform_policy"
+        ]
+      },
+      "unsafePromotion": false
+    },
+    {
+      "label": "flipmine:484",
+      "asin": "B0007TYP50",
+      "ebayItemId": "137903669838",
+      "amazonTitle": "Three Dirty Dwarves",
+      "ebayTitle": "New Three Dirty Dwarves Game CDROM Windows 95 PC CD-ROM SegaSoft",
+      "identity": "match",
+      "status": "open",
+      "landedCost": 33.78,
+      "historicalProfit": 41.95,
+      "historicalRoi": 124.2,
+      "sourcingPolicy": {
+        "version": "sourcing_platform_policy_v3",
+        "result": "pass",
+        "reason": "Explicit operator platform preference; normal sourcing safeguards still apply.",
+        "platforms": [
+          "PC"
+        ],
+        "source": "shared sourcing platform business policy"
+      },
+      "condition": {
+        "hits": [],
+        "result": "pass",
+        "evidenceState": "affirmatively_new"
+      },
+      "conditionReview": {
+        "hits": [],
+        "result": "pass",
+        "reason": ""
+      },
+      "contentsReview": {
+        "result": "pass",
+        "reason": ""
+      },
+      "primaryReason": null,
+      "unsafePromotion": false
+    },
+    {
+      "label": "flipmine:495",
+      "asin": "B00B2QL2Y4",
+      "ebayItemId": "257835315697",
+      "amazonTitle": "Pandora's Tower - Nintendo Wii",
+      "ebayTitle": "Pandora's Tower Nintendo Wii BRAND NEW FACTORY SEALED North American USA",
+      "identity": "needs_review",
+      "status": "rejected",
+      "landedCost": 188.13,
+      "historicalProfit": 73.94,
+      "historicalRoi": 39.3,
+      "sourcingPolicy": {
+        "version": "sourcing_platform_policy_v3",
+        "result": "pass",
+        "reason": "Platform permitted; normal sourcing safeguards still apply.",
+        "platforms": [
+          "Wii"
+        ],
+        "source": "shared sourcing platform business policy"
+      },
+      "condition": {
+        "hits": [],
+        "result": "pass",
+        "evidenceState": "affirmatively_new"
+      },
+      "conditionReview": {
+        "hits": [],
+        "result": "pass",
+        "reason": ""
+      },
+      "contentsReview": {
+        "result": "pass",
+        "reason": ""
+      },
+      "primaryReason": {
+        "code": "profitability",
+        "label": "Rejected by profitability",
+        "source": "profitability",
+        "severity": "profitability",
+        "summary": "Profit or ROI did not meet the configured sourcing threshold.",
+        "category": "profitability",
+        "diagnosticKeys": [
+          "opportunity_context",
+          "confidence_summary"
+        ]
+      },
+      "unsafePromotion": false
+    },
+    {
+      "label": "flipmine:520",
+      "asin": "B0007DGB4O",
+      "ebayItemId": "257833035632",
+      "amazonTitle": "Myst IV: Revelation - Xbox",
+      "ebayTitle": "Myst IV Revelation 4 (Microsoft Xbox) NEW Sealed",
+      "identity": "match",
+      "status": "open",
+      "landedCost": 61.99,
+      "historicalProfit": 165.26,
+      "historicalRoi": 266.6,
+      "sourcingPolicy": {
+        "version": "sourcing_platform_policy_v3",
+        "result": "pass",
+        "reason": "Platform permitted; normal sourcing safeguards still apply.",
+        "platforms": [
+          "Xbox"
+        ],
+        "source": "shared sourcing platform business policy"
+      },
+      "condition": {
+        "hits": [],
+        "result": "pass",
+        "evidenceState": "affirmatively_new"
+      },
+      "conditionReview": {
+        "hits": [],
+        "result": "pass",
+        "reason": ""
+      },
+      "contentsReview": {
+        "result": "pass",
+        "reason": ""
+      },
+      "primaryReason": null,
+      "unsafePromotion": false
+    }
+  ],
+  "nextStep": "Separately scope shared condition grammar/uncertainty handling for these disclosures with negation/factory-vent/boilerplate controls; rerun full frozen408 and all safeguards before any release or bounded replay."
+}

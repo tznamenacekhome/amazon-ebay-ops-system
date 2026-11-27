@@ -1,0 +1,782 @@
+[
+  {
+    "label": "phase3b-control:PS1",
+    "candidate": {
+      "asin": "B0P3B00000",
+      "ebay_title": "Example Quest Standard Edition",
+      "ebay_item_id": "v1|980000000000|0",
+      "ebay_legacy_item_id": "980000000000",
+      "candidate_id": "phase3b-control-0",
+      "seed_id": "phase2-control-seed-0",
+      "sourcing_run_id": "phase2-offline-control",
+      "condition": "Brand New",
+      "condition_id": "1000",
+      "listing_status": "active",
+      "item_location_country": "US",
+      "price": 10,
+      "landed_cost": 10,
+      "shipping_cost": 0,
+      "buying_options": [
+        "FIXED_PRICE"
+      ],
+      "available_quantity": 1,
+      "raw_ebay_json": {
+        "localizedAspects": [
+          {
+            "name": "Game Name",
+            "value": "Example Quest Standard Edition"
+          },
+          {
+            "name": "Platform",
+            "value": "PS1"
+          }
+        ],
+        "categories": [
+          {
+            "categoryId": "139973",
+            "categoryName": "Video Games"
+          }
+        ],
+        "description": "Brand new factory sealed retail game."
+      }
+    },
+    "seed": {
+      "asin": "B0P3B00000",
+      "amazon_title": "Example Quest Standard Edition",
+      "system": "PS1",
+      "target_sale_price": 100,
+      "inventory_need_level": "high",
+      "raw_context_json": {
+        "amazon_catalog_identity": {
+          "asin": "B0P3B00000",
+          "normalized_platform": "PS1",
+          "normalized_edition": "Standard",
+          "relevant_attributes_json": {
+            "platform": "PS1"
+          }
+        }
+      }
+    },
+    "synthetic": true
+  },
+  {
+    "label": "phase3b-control:PSX",
+    "candidate": {
+      "asin": "B0P3B00001",
+      "ebay_title": "Example Quest Standard Edition",
+      "ebay_item_id": "v1|980000000001|0",
+      "ebay_legacy_item_id": "980000000001",
+      "candidate_id": "phase3b-control-1",
+      "seed_id": "phase2-control-seed-0",
+      "sourcing_run_id": "phase2-offline-control",
+      "condition": "Brand New",
+      "condition_id": "1000",
+      "listing_status": "active",
+      "item_location_country": "US",
+      "price": 10,
+      "landed_cost": 10,
+      "shipping_cost": 0,
+      "buying_options": [
+        "FIXED_PRICE"
+      ],
+      "available_quantity": 1,
+      "raw_ebay_json": {
+        "localizedAspects": [
+          {
+            "name": "Game Name",
+            "value": "Example Quest Standard Edition"
+          },
+          {
+            "name": "Platform",
+            "value": "PSX"
+          }
+        ],
+        "categories": [
+          {
+            "categoryId": "139973",
+            "categoryName": "Video Games"
+          }
+        ],
+        "description": "Brand new factory sealed retail game."
+      }
+    },
+    "seed": {
+      "asin": "B0P3B00001",
+      "amazon_title": "Example Quest Standard Edition",
+      "system": "PSX",
+      "target_sale_price": 100,
+      "inventory_need_level": "high",
+      "raw_context_json": {
+        "amazon_catalog_identity": {
+          "asin": "B0P3B00001",
+          "normalized_platform": "PSX",
+          "normalized_edition": "Standard",
+          "relevant_attributes_json": {
+            "platform": "PSX"
+          }
+        }
+      }
+    },
+    "synthetic": true
+  },
+  {
+    "label": "phase3b-control:Original PlayStation",
+    "candidate": {
+      "asin": "B0P3B00002",
+      "ebay_title": "Example Quest Standard Edition",
+      "ebay_item_id": "v1|980000000002|0",
+      "ebay_legacy_item_id": "980000000002",
+      "candidate_id": "phase3b-control-2",
+      "seed_id": "phase2-control-seed-0",
+      "sourcing_run_id": "phase2-offline-control",
+      "condition": "Brand New",
+      "condition_id": "1000",
+      "listing_status": "active",
+      "item_location_country": "US",
+      "price": 10,
+      "landed_cost": 10,
+      "shipping_cost": 0,
+      "buying_options": [
+        "FIXED_PRICE"
+      ],
+      "available_quantity": 1,
+      "raw_ebay_json": {
+        "localizedAspects": [
+          {
+            "name": "Game Name",
+            "value": "Example Quest Standard Edition"
+          },
+          {
+            "name": "Platform",
+            "value": "Original PlayStation"
+          }
+        ],
+        "categories": [
+          {
+            "categoryId": "139973",
+            "categoryName": "Video Games"
+          }
+        ],
+        "description": "Brand new factory sealed retail game."
+      }
+    },
+    "seed": {
+      "asin": "B0P3B00002",
+      "amazon_title": "Example Quest Standard Edition",
+      "system": "Original PlayStation",
+      "target_sale_price": 100,
+      "inventory_need_level": "high",
+      "raw_context_json": {
+        "amazon_catalog_identity": {
+          "asin": "B0P3B00002",
+          "normalized_platform": "Original PlayStation",
+          "normalized_edition": "Standard",
+          "relevant_attributes_json": {
+            "platform": "Original PlayStation"
+          }
+        }
+      }
+    },
+    "synthetic": true
+  },
+  {
+    "label": "phase3b-control:Dreamcast",
+    "candidate": {
+      "asin": "B0P3B00003",
+      "ebay_title": "Example Quest Standard Edition",
+      "ebay_item_id": "v1|980000000003|0",
+      "ebay_legacy_item_id": "980000000003",
+      "candidate_id": "phase3b-control-3",
+      "seed_id": "phase2-control-seed-0",
+      "sourcing_run_id": "phase2-offline-control",
+      "condition": "Brand New",
+      "condition_id": "1000",
+      "listing_status": "active",
+      "item_location_country": "US",
+      "price": 10,
+      "landed_cost": 10,
+      "shipping_cost": 0,
+      "buying_options": [
+        "FIXED_PRICE"
+      ],
+      "available_quantity": 1,
+      "raw_ebay_json": {
+        "localizedAspects": [
+          {
+            "name": "Game Name",
+            "value": "Example Quest Standard Edition"
+          },
+          {
+            "name": "Platform",
+            "value": "Dreamcast"
+          }
+        ],
+        "categories": [
+          {
+            "categoryId": "139973",
+            "categoryName": "Video Games"
+          }
+        ],
+        "description": "Brand new factory sealed retail game."
+      }
+    },
+    "seed": {
+      "asin": "B0P3B00003",
+      "amazon_title": "Example Quest Standard Edition",
+      "system": "Dreamcast",
+      "target_sale_price": 100,
+      "inventory_need_level": "high",
+      "raw_context_json": {
+        "amazon_catalog_identity": {
+          "asin": "B0P3B00003",
+          "normalized_platform": "Dreamcast",
+          "normalized_edition": "Standard",
+          "relevant_attributes_json": {
+            "platform": "Dreamcast"
+          }
+        }
+      }
+    },
+    "synthetic": true
+  },
+  {
+    "label": "phase3b-control:Sega CD",
+    "candidate": {
+      "asin": "B0P3B00004",
+      "ebay_title": "Example Quest Standard Edition",
+      "ebay_item_id": "v1|980000000004|0",
+      "ebay_legacy_item_id": "980000000004",
+      "candidate_id": "phase3b-control-4",
+      "seed_id": "phase2-control-seed-0",
+      "sourcing_run_id": "phase2-offline-control",
+      "condition": "Brand New",
+      "condition_id": "1000",
+      "listing_status": "active",
+      "item_location_country": "US",
+      "price": 10,
+      "landed_cost": 10,
+      "shipping_cost": 0,
+      "buying_options": [
+        "FIXED_PRICE"
+      ],
+      "available_quantity": 1,
+      "raw_ebay_json": {
+        "localizedAspects": [
+          {
+            "name": "Game Name",
+            "value": "Example Quest Standard Edition"
+          },
+          {
+            "name": "Platform",
+            "value": "Sega CD"
+          }
+        ],
+        "categories": [
+          {
+            "categoryId": "139973",
+            "categoryName": "Video Games"
+          }
+        ],
+        "description": "Brand new factory sealed retail game."
+      }
+    },
+    "seed": {
+      "asin": "B0P3B00004",
+      "amazon_title": "Example Quest Standard Edition",
+      "system": "Sega CD",
+      "target_sale_price": 100,
+      "inventory_need_level": "high",
+      "raw_context_json": {
+        "amazon_catalog_identity": {
+          "asin": "B0P3B00004",
+          "normalized_platform": "Sega CD",
+          "normalized_edition": "Standard",
+          "relevant_attributes_json": {
+            "platform": "Sega CD"
+          }
+        }
+      }
+    },
+    "synthetic": true
+  },
+  {
+    "label": "phase3b-control:Mega-CD",
+    "candidate": {
+      "asin": "B0P3B00005",
+      "ebay_title": "Example Quest Standard Edition",
+      "ebay_item_id": "v1|980000000005|0",
+      "ebay_legacy_item_id": "980000000005",
+      "candidate_id": "phase3b-control-5",
+      "seed_id": "phase2-control-seed-0",
+      "sourcing_run_id": "phase2-offline-control",
+      "condition": "Brand New",
+      "condition_id": "1000",
+      "listing_status": "active",
+      "item_location_country": "US",
+      "price": 10,
+      "landed_cost": 10,
+      "shipping_cost": 0,
+      "buying_options": [
+        "FIXED_PRICE"
+      ],
+      "available_quantity": 1,
+      "raw_ebay_json": {
+        "localizedAspects": [
+          {
+            "name": "Game Name",
+            "value": "Example Quest Standard Edition"
+          },
+          {
+            "name": "Platform",
+            "value": "Mega-CD"
+          }
+        ],
+        "categories": [
+          {
+            "categoryId": "139973",
+            "categoryName": "Video Games"
+          }
+        ],
+        "description": "Brand new factory sealed retail game."
+      }
+    },
+    "seed": {
+      "asin": "B0P3B00005",
+      "amazon_title": "Example Quest Standard Edition",
+      "system": "Mega-CD",
+      "target_sale_price": 100,
+      "inventory_need_level": "high",
+      "raw_context_json": {
+        "amazon_catalog_identity": {
+          "asin": "B0P3B00005",
+          "normalized_platform": "Mega-CD",
+          "normalized_edition": "Standard",
+          "relevant_attributes_json": {
+            "platform": "Mega-CD"
+          }
+        }
+      }
+    },
+    "synthetic": true
+  },
+  {
+    "label": "phase3b-control:Mega CD",
+    "candidate": {
+      "asin": "B0P3B00006",
+      "ebay_title": "Example Quest Standard Edition",
+      "ebay_item_id": "v1|980000000006|0",
+      "ebay_legacy_item_id": "980000000006",
+      "candidate_id": "phase3b-control-6",
+      "seed_id": "phase2-control-seed-0",
+      "sourcing_run_id": "phase2-offline-control",
+      "condition": "Brand New",
+      "condition_id": "1000",
+      "listing_status": "active",
+      "item_location_country": "US",
+      "price": 10,
+      "landed_cost": 10,
+      "shipping_cost": 0,
+      "buying_options": [
+        "FIXED_PRICE"
+      ],
+      "available_quantity": 1,
+      "raw_ebay_json": {
+        "localizedAspects": [
+          {
+            "name": "Game Name",
+            "value": "Example Quest Standard Edition"
+          },
+          {
+            "name": "Platform",
+            "value": "Mega CD"
+          }
+        ],
+        "categories": [
+          {
+            "categoryId": "139973",
+            "categoryName": "Video Games"
+          }
+        ],
+        "description": "Brand new factory sealed retail game."
+      }
+    },
+    "seed": {
+      "asin": "B0P3B00006",
+      "amazon_title": "Example Quest Standard Edition",
+      "system": "Mega CD",
+      "target_sale_price": 100,
+      "inventory_need_level": "high",
+      "raw_context_json": {
+        "amazon_catalog_identity": {
+          "asin": "B0P3B00006",
+          "normalized_platform": "Mega CD",
+          "normalized_edition": "Standard",
+          "relevant_attributes_json": {
+            "platform": "Mega CD"
+          }
+        }
+      }
+    },
+    "synthetic": true
+  },
+  {
+    "label": "phase3b-control:PS 2",
+    "candidate": {
+      "asin": "B0P3B00007",
+      "ebay_title": "Example Quest Standard Edition",
+      "ebay_item_id": "v1|980000000007|0",
+      "ebay_legacy_item_id": "980000000007",
+      "candidate_id": "phase3b-control-7",
+      "seed_id": "phase2-control-seed-0",
+      "sourcing_run_id": "phase2-offline-control",
+      "condition": "Brand New",
+      "condition_id": "1000",
+      "listing_status": "active",
+      "item_location_country": "US",
+      "price": 10,
+      "landed_cost": 10,
+      "shipping_cost": 0,
+      "buying_options": [
+        "FIXED_PRICE"
+      ],
+      "available_quantity": 1,
+      "raw_ebay_json": {
+        "localizedAspects": [
+          {
+            "name": "Game Name",
+            "value": "Example Quest Standard Edition"
+          },
+          {
+            "name": "Platform",
+            "value": "PS 2"
+          }
+        ],
+        "categories": [
+          {
+            "categoryId": "139973",
+            "categoryName": "Video Games"
+          }
+        ],
+        "description": "Brand new factory sealed retail game."
+      }
+    },
+    "seed": {
+      "asin": "B0P3B00007",
+      "amazon_title": "Example Quest Standard Edition",
+      "system": "PS 2",
+      "target_sale_price": 100,
+      "inventory_need_level": "high",
+      "raw_context_json": {
+        "amazon_catalog_identity": {
+          "asin": "B0P3B00007",
+          "normalized_platform": "PS 2",
+          "normalized_edition": "Standard",
+          "relevant_attributes_json": {
+            "platform": "PS 2"
+          }
+        }
+      }
+    },
+    "synthetic": true
+  },
+  {
+    "label": "phase3b-control:PS 4",
+    "candidate": {
+      "asin": "B0P3B00008",
+      "ebay_title": "Example Quest Standard Edition",
+      "ebay_item_id": "v1|980000000008|0",
+      "ebay_legacy_item_id": "980000000008",
+      "candidate_id": "phase3b-control-8",
+      "seed_id": "phase2-control-seed-0",
+      "sourcing_run_id": "phase2-offline-control",
+      "condition": "Brand New",
+      "condition_id": "1000",
+      "listing_status": "active",
+      "item_location_country": "US",
+      "price": 10,
+      "landed_cost": 10,
+      "shipping_cost": 0,
+      "buying_options": [
+        "FIXED_PRICE"
+      ],
+      "available_quantity": 1,
+      "raw_ebay_json": {
+        "localizedAspects": [
+          {
+            "name": "Game Name",
+            "value": "Example Quest Standard Edition"
+          },
+          {
+            "name": "Platform",
+            "value": "PS 4"
+          }
+        ],
+        "categories": [
+          {
+            "categoryId": "139973",
+            "categoryName": "Video Games"
+          }
+        ],
+        "description": "Factory sealed PS4 release; historically released on original PlayStation and Dreamcast."
+      }
+    },
+    "seed": {
+      "asin": "B0P3B00008",
+      "amazon_title": "Example Quest Standard Edition",
+      "system": "PS 4",
+      "target_sale_price": 100,
+      "inventory_need_level": "high",
+      "raw_context_json": {
+        "amazon_catalog_identity": {
+          "asin": "B0P3B00008",
+          "normalized_platform": "PS 4",
+          "normalized_edition": "Standard",
+          "relevant_attributes_json": {
+            "platform": "PS 4"
+          }
+        }
+      }
+    },
+    "synthetic": true
+  },
+  {
+    "label": "phase3b-control:PSP",
+    "candidate": {
+      "asin": "B0P3B00009",
+      "ebay_title": "Example Quest Standard Edition",
+      "ebay_item_id": "v1|980000000009|0",
+      "ebay_legacy_item_id": "980000000009",
+      "candidate_id": "phase3b-control-9",
+      "seed_id": "phase2-control-seed-0",
+      "sourcing_run_id": "phase2-offline-control",
+      "condition": "Brand New",
+      "condition_id": "1000",
+      "listing_status": "active",
+      "item_location_country": "US",
+      "price": 10,
+      "landed_cost": 10,
+      "shipping_cost": 0,
+      "buying_options": [
+        "FIXED_PRICE"
+      ],
+      "available_quantity": 1,
+      "raw_ebay_json": {
+        "localizedAspects": [
+          {
+            "name": "Game Name",
+            "value": "Example Quest Standard Edition"
+          },
+          {
+            "name": "Platform",
+            "value": "PSP"
+          }
+        ],
+        "categories": [
+          {
+            "categoryId": "139973",
+            "categoryName": "Video Games"
+          }
+        ],
+        "description": "Brand new factory sealed retail game."
+      }
+    },
+    "seed": {
+      "asin": "B0P3B00009",
+      "amazon_title": "Example Quest Standard Edition",
+      "system": "PSP",
+      "target_sale_price": 100,
+      "inventory_need_level": "high",
+      "raw_context_json": {
+        "amazon_catalog_identity": {
+          "asin": "B0P3B00009",
+          "normalized_platform": "PSP",
+          "normalized_edition": "Standard",
+          "relevant_attributes_json": {
+            "platform": "PSP"
+          }
+        }
+      }
+    },
+    "synthetic": true
+  },
+  {
+    "label": "phase3b-control:PS Vita",
+    "candidate": {
+      "asin": "B0P3B00010",
+      "ebay_title": "Example Quest Standard Edition",
+      "ebay_item_id": "v1|980000000010|0",
+      "ebay_legacy_item_id": "980000000010",
+      "candidate_id": "phase3b-control-10",
+      "seed_id": "phase2-control-seed-0",
+      "sourcing_run_id": "phase2-offline-control",
+      "condition": "Brand New",
+      "condition_id": "1000",
+      "listing_status": "active",
+      "item_location_country": "US",
+      "price": 10,
+      "landed_cost": 10,
+      "shipping_cost": 0,
+      "buying_options": [
+        "FIXED_PRICE"
+      ],
+      "available_quantity": 1,
+      "raw_ebay_json": {
+        "localizedAspects": [
+          {
+            "name": "Game Name",
+            "value": "Example Quest Standard Edition"
+          },
+          {
+            "name": "Platform",
+            "value": "PS Vita"
+          }
+        ],
+        "categories": [
+          {
+            "categoryId": "139973",
+            "categoryName": "Video Games"
+          }
+        ],
+        "description": "Brand new factory sealed retail game."
+      }
+    },
+    "seed": {
+      "asin": "B0P3B00010",
+      "amazon_title": "Example Quest Standard Edition",
+      "system": "PS Vita",
+      "target_sale_price": 100,
+      "inventory_need_level": "high",
+      "raw_context_json": {
+        "amazon_catalog_identity": {
+          "asin": "B0P3B00010",
+          "normalized_platform": "PS Vita",
+          "normalized_edition": "Standard",
+          "relevant_attributes_json": {
+            "platform": "PS Vita"
+          }
+        }
+      }
+    },
+    "synthetic": true
+  },
+  {
+    "label": "phase3b-control:PC",
+    "candidate": {
+      "asin": "B0P3B00011",
+      "ebay_title": "Example Quest Standard Edition",
+      "ebay_item_id": "v1|980000000011|0",
+      "ebay_legacy_item_id": "980000000011",
+      "candidate_id": "phase3b-control-11",
+      "seed_id": "phase2-control-seed-0",
+      "sourcing_run_id": "phase2-offline-control",
+      "condition": "Brand New",
+      "condition_id": "1000",
+      "listing_status": "active",
+      "item_location_country": "US",
+      "price": 10,
+      "landed_cost": 10,
+      "shipping_cost": 0,
+      "buying_options": [
+        "FIXED_PRICE"
+      ],
+      "available_quantity": 1,
+      "raw_ebay_json": {
+        "localizedAspects": [
+          {
+            "name": "Game Name",
+            "value": "Example Quest Standard Edition"
+          },
+          {
+            "name": "Platform",
+            "value": "PC"
+          }
+        ],
+        "categories": [
+          {
+            "categoryId": "139973",
+            "categoryName": "Video Games"
+          }
+        ],
+        "description": "Factory sealed PC CD-ROM game."
+      }
+    },
+    "seed": {
+      "asin": "B0P3B00011",
+      "amazon_title": "Example Quest Standard Edition",
+      "system": "PC",
+      "target_sale_price": 100,
+      "inventory_need_level": "high",
+      "raw_context_json": {
+        "amazon_catalog_identity": {
+          "asin": "B0P3B00011",
+          "normalized_platform": "PC",
+          "normalized_edition": "Standard",
+          "relevant_attributes_json": {
+            "platform": "PC"
+          }
+        }
+      }
+    },
+    "synthetic": true
+  },
+  {
+    "label": "phase3b-control:Sega Saturn",
+    "candidate": {
+      "asin": "B0P3B00012",
+      "ebay_title": "Example Quest Standard Edition",
+      "ebay_item_id": "v1|980000000012|0",
+      "ebay_legacy_item_id": "980000000012",
+      "candidate_id": "phase3b-control-12",
+      "seed_id": "phase2-control-seed-0",
+      "sourcing_run_id": "phase2-offline-control",
+      "condition": "Brand New",
+      "condition_id": "1000",
+      "listing_status": "active",
+      "item_location_country": "US",
+      "price": 10,
+      "landed_cost": 10,
+      "shipping_cost": 0,
+      "buying_options": [
+        "FIXED_PRICE"
+      ],
+      "available_quantity": 1,
+      "raw_ebay_json": {
+        "localizedAspects": [
+          {
+            "name": "Game Name",
+            "value": "Example Quest Standard Edition"
+          },
+          {
+            "name": "Platform",
+            "value": "Sega Saturn"
+          }
+        ],
+        "categories": [
+          {
+            "categoryId": "139973",
+            "categoryName": "Video Games"
+          }
+        ],
+        "description": "Brand new factory sealed retail game."
+      }
+    },
+    "seed": {
+      "asin": "B0P3B00012",
+      "amazon_title": "Example Quest Standard Edition",
+      "system": "Sega Saturn",
+      "target_sale_price": 100,
+      "inventory_need_level": "high",
+      "raw_context_json": {
+        "amazon_catalog_identity": {
+          "asin": "B0P3B00012",
+          "normalized_platform": "Sega Saturn",
+          "normalized_edition": "Standard",
+          "relevant_attributes_json": {
+            "platform": "Sega Saturn"
+          }
+        }
+      }
+    },
+    "synthetic": true
+  }
+]

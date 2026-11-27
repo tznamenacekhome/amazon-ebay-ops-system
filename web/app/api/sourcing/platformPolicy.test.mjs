@@ -20,14 +20,15 @@ for(const system of ['Nintendo Game Boy Advance','Mega Drive','Nintendo 3DS / Ni
 assert.equal(eligibility(seed('Unknown')).result,'unresolved');
 const captures=JSON.parse(readFileSync(new URL('../../../../tests/fixtures/typed_metadata_phase1_20261125.json',import.meta.url),'utf8'));
 cases.push(...captures.map(r=>({seed:r.seed,candidate:r.candidate})));
+
+for(const system of ['PS1','PSX','Original PlayStation','PlayStation 1','Dreamcast','Sega CD','Mega-CD','Mega CD']){const s=seed(system);assert.equal(eligibility(s).result,'blocked',system);cases.push({seed:s});}
+for(const system of ['PS 2','PS 3','PS 4','PS 5','PSP','PS Vita','Sega Saturn','PC'])assert.equal(eligibility(seed(system)).result,'pass',system);
+const historical=seed('PS 4');historical.amazon_title='PS4 remake of original PlayStation release';assert.equal(eligibility(historical,{raw_ebay_json:{description:'A classic PS1 and Dreamcast game remade.',localizedAspects:[{name:'Platform',value:'PlayStation 4'}]}}).result,'pass');
+assert.equal(eligibility(seed('PC','CD-ROM')).result,'pass');
+
 const root=fileURLToPath(new URL('../../../../',import.meta.url));
 const run=spawnSync(resolve(root,'.venv/Scripts/python.exe'),['-c',`import sys,json;sys.path.insert(0,'integrations');from sourcing_platform_policy import platform_eligibility;print(json.dumps([platform_eligibility(r['seed'],r.get('candidate')) for r in json.load(sys.stdin)]))`],{cwd:root,input:JSON.stringify(cases),encoding:'utf8'});
 assert.equal(run.status,0,run.stderr);
 JSON.parse(run.stdout).forEach((expected,index)=>{const actual=eligibility(cases[index].seed,cases[index].candidate);assert.equal(actual.result,expected.result,JSON.stringify(cases[index]));assert.deepEqual([...actual.platforms].sort(),expected.platforms);});
 const mario=captures.find(r=>r.row===238);assert.equal(eligibility(mario.seed,mario.candidate).result,'blocked');
 console.log(`${cases.length} actual/synthetic Python-server policy parity checks passed; Switch/disc/UMD preserved, cartridge/unknown/mixed cases fail closed.`);
-
-for(const system of ['PS1','PSX','Original PlayStation','PlayStation 1','Dreamcast','Sega CD','Mega-CD','Mega CD']){const s=seed(system);assert.equal(eligibility(s).result,'blocked',system);cases.push({seed:s});}
-for(const system of ['PS 2','PS 3','PS 4','PS 5','PSP','PS Vita','Sega Saturn','PC'])assert.equal(eligibility(seed(system)).result,'pass',system);
-const historical=seed('PS 4');historical.amazon_title='PS4 remake of original PlayStation release';assert.equal(eligibility(historical,{raw_ebay_json:{description:'A classic PS1 and Dreamcast game remade.',localizedAspects:[{name:'Platform',value:'PlayStation 4'}]}}).result,'pass');
-assert.equal(eligibility(seed('PC','CD-ROM')).result,'pass');

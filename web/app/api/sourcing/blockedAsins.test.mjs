@@ -86,3 +86,14 @@ for(const actionType of ['watch','purchased','snooze_roi','inventory_snooze']){
  assert.equal(response.status,409);assert(response.body.error.includes('operator sourcing preference'));
 }
 console.log('Stale GameCube purchasing actions are blocked by explicit operator preference.');
+
+for(const system of ['PS1','PSX','Original PlayStation','Dreamcast','Sega CD','Mega-CD','Mega CD']){
+ currentOpportunity.sourcing_seed_asins.raw_context_json.inferred_system=system;
+ for(const actionType of ['watch','purchased','snooze_roi','inventory_snooze']){
+  const response=await actionExports.POST({json:async()=>({actionType})},{params:Promise.resolve({id:'stale-excluded-platform-row'})});
+  assert.equal(response.status,409,system+' '+actionType);
+ }
+ assert.equal((await actionExports.POST({json:async()=>({actionType:'mark_valid_match'})},{params:Promise.resolve({id:'stale-excluded-platform-row'})})).status,200);
+ assert.equal(currentOpportunity.status,'open','Read/action policy must not rewrite historical status');
+}
+console.log('PS1/PSX/Dreamcast/Mega-CD stale purchasing actions are suppressed without historical writes.');
