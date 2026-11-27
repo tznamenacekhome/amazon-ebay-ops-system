@@ -1,0 +1,503 @@
+{
+  "gate": "PASS",
+  "scope": "Text and structured evidence only; operator is responsible for photographs and final purchase review",
+  "deployedCommit": "8e37e5f7c68f",
+  "worker": 183,
+  "web": 238,
+  "replayRunId": "33c2d3bb-6ffc-52af-855a-36e06e0f9bb6",
+  "archivesVerified": 6,
+  "preservedSourcePairs": 558,
+  "unchangedUnselectedSourceRows": 552,
+  "progress": {
+    "preservedSourcePairs": 558,
+    "unchangedUnselectedRows": 552,
+    "selectedRows": 6,
+    "progress": {
+      "rows": 558,
+      "failed": 0,
+      "invalid": 0,
+      "pending": 0,
+      "excluded": 409,
+      "evaluated": 144,
+      "duplicates": 5
+    },
+    "newOpportunityIds": [],
+    "initialSnapshotsCreated": 2,
+    "duplicates": 0,
+    "originalRunStatus": "completed"
+  },
+  "completion": {
+    "runId": "33c2d3bb-6ffc-52af-855a-36e06e0f9bb6",
+    "status": "completed",
+    "summary": {
+      "rows": 558,
+      "failed": 0,
+      "invalid": 0,
+      "pending": 0,
+      "excluded": 409,
+      "evaluated": 144,
+      "duplicates": 5,
+      "buyList": 33,
+      "closestExcluded": 73,
+      "targetedReplay": {
+        "rows": 6,
+        "unselectedPreserved": 552,
+        "duplicates": 0,
+        "originalRunId": "c7ba90ae-7cdd-4b87-a831-c2ff33682adf"
+      }
+    }
+  },
+  "countsBefore": {
+    "buyList": 31,
+    "closestExcluded": 69
+  },
+  "countsPolicyOnly": {
+    "buyList": 31,
+    "closestExcluded": 69
+  },
+  "countsAfter": {
+    "buyList": 33,
+    "closestExcluded": 73
+  },
+  "newActionable": [
+    {
+      "opportunityId": "93a75d0f-87bd-4399-8eea-2874224bf139",
+      "asin": "B0000E3D8T",
+      "ebayLegacyItemId": "920136106354",
+      "amazonTitle": "Tokyo Xtreme Racer 3 - PlayStation 2",
+      "landedCost": 39.99,
+      "estimatedProfit": 76.31,
+      "estimatedRoiPercent": 190.8,
+      "opportunityType": "buy_now",
+      "shippingQuoteStatus": "known_free",
+      "quantityAvailable": 1,
+      "sourceTags": [
+        "flipmine"
+      ],
+      "suggestedOfferPrice": null
+    },
+    {
+      "opportunityId": "91a9d742-a19a-4ac3-8355-eb3d11336d4d",
+      "asin": "B000H11F9M",
+      "ebayLegacyItemId": "920164926760",
+      "amazonTitle": "Zoo Tycoon 2: Zookeeper Collection - PC",
+      "landedCost": 29.99,
+      "estimatedProfit": 19.31,
+      "estimatedRoiPercent": 64.4,
+      "opportunityType": "buy_now",
+      "shippingQuoteStatus": "known_free",
+      "quantityAvailable": 1,
+      "sourceTags": [
+        "flipmine"
+      ],
+      "suggestedOfferPrice": null
+    }
+  ],
+  "apiCallsMainProcessAllAttempts": {
+    "Amazon:OAuth": 1,
+    "Amazon:read": 6,
+    "eBay:OAuth": 2,
+    "eBay:Analytics": 1,
+    "eBay:Browse": 6
+  },
+  "apiUsageLedgerDeltas": [
+    {
+      "resource": "trading",
+      "job": "essential:import_flipmine.py",
+      "day": "2026-11-26",
+      "attempts": 6
+    },
+    {
+      "resource": "buy.browse",
+      "job": "import_flipmine.py",
+      "day": "2026-11-26",
+      "attempts": 6
+    }
+  ],
+  "rows": [
+    {
+      "row": 109,
+      "asin": "B01M32FMUL",
+      "item": "860162864711",
+      "platforms": [
+        "PS 4"
+      ],
+      "sourceStatusBefore": "evaluated",
+      "sourceStatus": "evaluated",
+      "opportunityStatusBefore": "rejected",
+      "opportunityStatus": "rejected",
+      "opportunityId": "91c88d3d-4b5d-48be-8e43-169dc6de4fbc",
+      "identity": "needs_review",
+      "identityReason": "Unresolved identity detail on one side: edition",
+      "condition": {
+        "hits": [],
+        "result": "pass",
+        "evidenceState": "affirmatively_new"
+      },
+      "purchaseUnit": {
+        "kind": "ordinary_listing",
+        "reason": "No seller lot or selection ambiguity observed.",
+        "result": "pass",
+        "version": "purchase_unit_v1"
+      },
+      "contents": {
+        "reason": "",
+        "result": "pass"
+      },
+      "normalPipelineLifecycleStatus": null,
+      "remainingReason": "1.5 + 2.5 Remix not corroborated.",
+      "protectedAtPlan": null,
+      "landedCost": 27.99,
+      "profit": 13.62,
+      "roi": 48.7,
+      "scenario": "no_profitable_source_found",
+      "maxOffer": null,
+      "priceSource": "keepa_new_90d_avg",
+      "sourceTags": [
+        "flipmine"
+      ]
+    },
+    {
+      "row": 121,
+      "asin": "B000H11F9M",
+      "item": "920164926760",
+      "platforms": [
+        "PC"
+      ],
+      "sourceStatusBefore": "evaluated",
+      "sourceStatus": "evaluated",
+      "opportunityStatusBefore": "rejected",
+      "opportunityStatus": "open",
+      "opportunityId": "91a9d742-a19a-4ac3-8355-eb3d11336d4d",
+      "identity": "match",
+      "identityReason": "Identity matched or unknown; unknown fields are not positive evidence.",
+      "condition": {
+        "hits": [],
+        "result": "pass",
+        "evidenceState": "affirmatively_new"
+      },
+      "purchaseUnit": {
+        "kind": "ordinary_listing",
+        "reason": "No seller lot or selection ambiguity observed.",
+        "result": "pass",
+        "version": "purchase_unit_v1"
+      },
+      "contents": {
+        "reason": "",
+        "result": "pass"
+      },
+      "normalPipelineLifecycleStatus": null,
+      "remainingReason": null,
+      "protectedAtPlan": null,
+      "landedCost": 29.99,
+      "profit": 19.31,
+      "roi": 64.4,
+      "scenario": "buy_now",
+      "maxOffer": null,
+      "priceSource": "keepa_new_90d_avg",
+      "sourceTags": [
+        "flipmine"
+      ]
+    },
+    {
+      "row": 236,
+      "asin": "B08MG5FYS6",
+      "item": "366817233237",
+      "platforms": [
+        "PS 5"
+      ],
+      "sourceStatusBefore": "evaluated",
+      "sourceStatus": "evaluated",
+      "opportunityStatusBefore": "rejected",
+      "opportunityStatus": "rejected",
+      "opportunityId": "7ba3bee0-986a-4e3d-bfa3-899b41f50e18",
+      "identity": "match",
+      "identityReason": "Identity matched or unknown; unknown fields are not positive evidence.",
+      "condition": {
+        "hits": [],
+        "result": "pass",
+        "evidenceState": "affirmatively_new"
+      },
+      "purchaseUnit": {
+        "kind": "ordinary_listing",
+        "reason": "No seller lot or selection ambiguity observed.",
+        "result": "pass",
+        "version": "purchase_unit_v1"
+      },
+      "contents": {
+        "reason": "",
+        "result": "pass"
+      },
+      "normalPipelineLifecycleStatus": null,
+      "remainingReason": "Profit or ROI did not meet the configured sourcing threshold.",
+      "protectedAtPlan": null,
+      "landedCost": 29.99,
+      "profit": 8.36,
+      "roi": 27.9,
+      "scenario": "no_profitable_source_found",
+      "maxOffer": null,
+      "priceSource": "most_recent_sale",
+      "sourceTags": [
+        "flipmine"
+      ]
+    },
+    {
+      "row": 275,
+      "asin": "B00009WAUY",
+      "item": "307284831338",
+      "platforms": [
+        "PS 2"
+      ],
+      "sourceStatusBefore": "evaluated",
+      "sourceStatus": "evaluated",
+      "opportunityStatusBefore": "rejected",
+      "opportunityStatus": "rejected",
+      "opportunityId": "ff15b8fb-4c68-4cf9-9c91-2f8c70de5325",
+      "identity": "match",
+      "identityReason": "Identity matched or unknown; unknown fields are not positive evidence.",
+      "condition": {
+        "hits": [],
+        "result": "pass",
+        "evidenceState": "affirmatively_new"
+      },
+      "purchaseUnit": {
+        "kind": "ordinary_listing",
+        "reason": "No seller lot or selection ambiguity observed.",
+        "result": "pass",
+        "version": "purchase_unit_v1"
+      },
+      "contents": {
+        "reason": "",
+        "result": "pass"
+      },
+      "normalPipelineLifecycleStatus": null,
+      "remainingReason": "Profit or ROI did not meet the configured sourcing threshold.",
+      "protectedAtPlan": null,
+      "landedCost": 22.99,
+      "profit": 7.38,
+      "roi": 32.1,
+      "scenario": "no_profitable_source_found",
+      "maxOffer": null,
+      "priceSource": "keepa_new_90d_avg",
+      "sourceTags": [
+        "flipmine"
+      ]
+    },
+    {
+      "row": 326,
+      "asin": "B0081AWTZA",
+      "item": "920140129422",
+      "platforms": [
+        "Xbox 360"
+      ],
+      "sourceStatusBefore": "evaluated",
+      "sourceStatus": "evaluated",
+      "opportunityStatusBefore": "rejected",
+      "opportunityStatus": "rejected",
+      "opportunityId": "de9334dc-fc4d-4233-8eb0-dff41441b928",
+      "identity": "needs_review",
+      "identityReason": "edition review: Amazon Greatest Hits, eBay Greatest Hits",
+      "condition": {
+        "hits": [],
+        "result": "pass",
+        "evidenceState": "affirmatively_new"
+      },
+      "purchaseUnit": {
+        "kind": "ordinary_listing",
+        "reason": "No seller lot or selection ambiguity observed.",
+        "result": "pass",
+        "version": "purchase_unit_v1"
+      },
+      "contents": {
+        "reason": "",
+        "result": "pass"
+      },
+      "normalPipelineLifecycleStatus": null,
+      "remainingReason": "Profit or ROI did not meet the configured sourcing threshold.",
+      "protectedAtPlan": null,
+      "landedCost": 24.99,
+      "profit": 7.65,
+      "roi": 30.6,
+      "scenario": "no_profitable_source_found",
+      "maxOffer": null,
+      "priceSource": "keepa_new_90d_avg",
+      "sourceTags": [
+        "flipmine"
+      ]
+    },
+    {
+      "row": 346,
+      "asin": "B0000E3D8T",
+      "item": "920136106354",
+      "platforms": [
+        "PS 2"
+      ],
+      "sourceStatusBefore": "evaluated",
+      "sourceStatus": "evaluated",
+      "opportunityStatusBefore": "rejected",
+      "opportunityStatus": "open",
+      "opportunityId": "93a75d0f-87bd-4399-8eea-2874224bf139",
+      "identity": "match",
+      "identityReason": "Identity matched or unknown; unknown fields are not positive evidence.",
+      "condition": {
+        "hits": [],
+        "result": "pass",
+        "evidenceState": "affirmatively_new"
+      },
+      "purchaseUnit": {
+        "kind": "ordinary_listing",
+        "reason": "No seller lot or selection ambiguity observed.",
+        "result": "pass",
+        "version": "purchase_unit_v1"
+      },
+      "contents": {
+        "reason": "",
+        "result": "pass"
+      },
+      "normalPipelineLifecycleStatus": null,
+      "remainingReason": null,
+      "protectedAtPlan": null,
+      "landedCost": 39.99,
+      "profit": 76.31,
+      "roi": 190.8,
+      "scenario": "buy_now",
+      "maxOffer": null,
+      "priceSource": "keepa_new_90d_avg",
+      "sourceTags": [
+        "flipmine"
+      ]
+    }
+  ],
+  "notes": [
+    "Preflight-only UTF8/BOM encoding error corrected before writes; no SQL guard or permission changes.",
+    "Prior image-only concerns are outside automated scope; no photo requests or analysis during this task.",
+    "No web runtime changes; web238 deployed with explanation-only API fallback. AWS health, worker smoke and normal production data builders verified."
+  ],
+  "deployment": {
+    "web": 238,
+    "webCommit": "07867ac1c8ef",
+    "worker": 183,
+    "workerCommit": "8e37e5f7c68f",
+    "rollout": "COMPLETED",
+    "running": 1,
+    "pending": 0,
+    "healthy": true,
+    "schedulesCompared": 21,
+    "onlyScheduleChange": "mbop-sourcing-catalog task revision182 ->183",
+    "webSettingsAndPermissionsPreserved": true,
+    "workerSmoke": "PHASE3A_WORKER183_PASS",
+    "browserVerification": "Blocked: CUA kernel CreateProcessWithLogonW failed2; no authenticated browser claim"
+  },
+  "productionCompactReasons": [
+    {
+      "row": 504,
+      "status": "rejected",
+      "code": "condition_unacceptable",
+      "summary": "Recorded condition evidence: condition mismatch hit: visible cracks on case",
+      "secondaryReasons": [
+        {
+          "code": "review_threshold",
+          "label": "Review threshold",
+          "summary": "Final matching recommendation required review and did not enter presentation.",
+          "source": "presentation_gate",
+          "severity": "review_threshold",
+          "category": "review_threshold",
+          "diagnosticKeys": [
+            "final_recommendation",
+            "confidence_summary"
+          ]
+        }
+      ]
+    },
+    {
+      "row": 68,
+      "status": "rejected",
+      "code": "duplicate_history",
+      "summary": "Recorded historical lifecycle: dismissed; existing operator decision remains authoritative.",
+      "secondaryReasons": []
+    },
+    {
+      "row": 236,
+      "status": "rejected",
+      "code": "profitability",
+      "summary": "Profit or ROI did not meet the configured sourcing threshold.",
+      "secondaryReasons": []
+    },
+    {
+      "row": 121,
+      "status": "open",
+      "reason": null
+    },
+    {
+      "row": 109,
+      "status": "rejected",
+      "code": "edition_not_corroborated",
+      "summary": "1.5 + 2.5 Remix not corroborated.",
+      "secondaryReasons": [
+        {
+          "code": "review_threshold",
+          "label": "Review threshold",
+          "summary": "Final matching recommendation required review and did not enter presentation.",
+          "source": "presentation_gate",
+          "severity": "review_threshold",
+          "category": "review_threshold",
+          "diagnosticKeys": [
+            "final_recommendation",
+            "confidence_summary"
+          ]
+        }
+      ]
+    },
+    {
+      "row": 346,
+      "status": "open",
+      "reason": null
+    },
+    {
+      "row": 326,
+      "status": "rejected",
+      "code": "profitability",
+      "summary": "Profit or ROI did not meet the configured sourcing threshold.",
+      "secondaryReasons": [
+        {
+          "code": "duplicate_history",
+          "label": "Historical operator status",
+          "summary": "Historical operator feedback requires caution.",
+          "source": "operator_history",
+          "severity": "duplicate_history",
+          "category": "duplicate_history",
+          "diagnosticKeys": [
+            "confidence_summary",
+            "normalPipelineLifecycleStatus"
+          ]
+        },
+        {
+          "code": "review_threshold",
+          "label": "Review threshold",
+          "summary": "Final matching recommendation required review and did not enter presentation.",
+          "source": "presentation_gate",
+          "severity": "review_threshold",
+          "category": "review_threshold",
+          "diagnosticKeys": [
+            "final_recommendation",
+            "confidence_summary"
+          ]
+        }
+      ]
+    },
+    {
+      "row": 275,
+      "status": "rejected",
+      "code": "profitability",
+      "summary": "Profit or ROI did not meet the configured sourcing threshold.",
+      "secondaryReasons": []
+    }
+  ],
+  "workerCommit": "8e37e5f7c68f",
+  "webCommit": "07867ac1c8ef",
+  "mappingCommit": "6c282fa",
+  "evidenceScopeCommit": "1eac70f",
+  "sourceArchivesRawDescriptionsVerified": 6,
+  "completedCheckpointReplay": "No provider calls, new jobs or opportunity writes",
+  "browserVerification": "Not performed: CUA kernel failed CreateProcessWithLogonW2"
+}
