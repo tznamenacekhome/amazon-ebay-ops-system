@@ -943,7 +943,7 @@ def phase3_side(title, side, evidence=None, catalog=None, platform=None, platfor
         row['_typed_legacy_platform'] = any(v.get('field') == 'platform' for v in metadata_spans)
         from sourcing_identity_wording import typed_identity_wording
         product_text, wording_spans = typed_identity_wording(product_text, source=row['source'],
-            side=side, evidence=evidence, fields=general_product_fields, reference_core=reference_core)
+            side=side, evidence=evidence, fields=general_product_fields, reference_core=reference_core, protected_franchise=known_franchise)
         assigned.extend(wording_spans)
         fields = general_product_fields(product_text, publishers)
         for key in ('coreGame', 'coreProduct'):
@@ -1111,6 +1111,8 @@ def evaluated_identity(amazon_title, ebay_title, seed, evidence):
                 "catalog": verified_catalog}
     # Rejected cross-ASIN catalog data remains provenance only, never parser input.
     amazon = deepcopy(_exact_reference(asin, str(amazon_title or ""), json.dumps(metadata, sort_keys=True)))
+    from sourcing_identity_wording import amazon_attribution
+    amazon = amazon_attribution(amazon, ebay_title, evidence, general_product_fields)
     ebay = phase3_side(ebay_title, "ebay", evidence=evidence, reference_core=amazon.get('coreGame'))
     result = phase3_comparison(amazon, ebay)
     result["reference"] = {"asin": asin or None, "catalogAccepted": bool(verified_catalog),

@@ -21,7 +21,7 @@ def orthographic_text(value):
     return text, spans
 
 
-def typed_identity_wording(text, *, source, side, evidence, fields, reference_core=None):
+def _phase2_identity_wording(text, *, source, side, evidence, fields, reference_core=None):
     """Only classify edge wording with a complete, consistent structured name.
 
     No arbitrary residue, inventory code, year, subtitle, or publisher alias is
@@ -106,3 +106,125 @@ def typed_identity_wording(text, *, source, side, evidence, fields, reference_co
         assigned.extend({**span, 'corroboration': span.get('corroboration', names)} for span in candidates)
         working = proposed
     return working, assigned
+
+
+# Audited corporate attribution relationships, not interchangeable game names.
+PUBLISHER_RELATIONSHIPS = (
+    ('electronic arts', 'ea sports'), ('lucasarts', 'lucas arts'),
+    ('blue byte', 'blue byte software'), ('microsoft', 'microsoft game studios'),
+    ('acclaim', 'acclaim entertainment', 'accalim'), ('cosmi',),
+)
+
+
+def publisher_key(value):
+    text = re.sub(r"[^\w]+", ' ', str(value or '').casefold()).strip()
+    return re.sub(r'\s+(?:inc|incorporated|corp|corporation|ltd|limited)$', '', text).strip()
+
+
+def publisher_variants(publishers):
+    keys = {publisher_key(v) for v in publishers if publisher_key(v)}
+    groups = []
+    for key in keys:
+        groups.append(next((set(group) for group in PUBLISHER_RELATIONSHIPS if key in group), {key}))
+    if not groups or any(not (group & groups[0]) for group in groups[1:]):
+        return []
+    return sorted(set.union(*groups), key=len, reverse=True)
+
+
+def complete_name_context(evidence, fields):
+    names = [orthographic_text(v)[0] for v in evidence.get('game_name_values', []) if not missing_game_name(v) and str(v).strip()]
+    if not names or any(';' in n or ',' in n for n in names):
+        return None
+    cores = {fields(n)['coreGame'] for n in names}
+    systems = {normalize_system(v) for v in evidence.get('platform_values', [])}
+    systems.discard(None)
+    if len(cores) != 1 or None in cores or len(systems) != 1:
+        return None
+    return names, next(iter(cores)), next(iter(systems))
+
+
+def core_pattern(core):
+    romans = {'2':'ii','3':'iii','4':'iv','5':'v','6':'vi','7':'vii','8':'viii','9':'ix','10':'x','11':'xi','12':'xii','13':'xiii','14':'xiv','15':'xv','16':'xvi'}
+    return r'(?<!\w)' + r'\W+'.join('(?:'+re.escape(t)+'|'+romans[t]+')' if t in romans else re.escape(t) for t in core.split()) + r'(?!\w)'
+
+
+def typed_identity_wording(text, *, source, side, evidence, fields, reference_core=None, protected_franchise=None):
+    base, assigned = _phase2_identity_wording(text, source=source, side=side, evidence=evidence, fields=fields, reference_core=reference_core)
+    context = complete_name_context(evidence, fields)
+    if re.search(r'\b(?:disney\s+infinity|ea\s+sports\s+fc|tom\s+clancy|microsoft\s+flight\s+simulator)\b', str(text), re.I):
+        return base, assigned
+    if side != 'ebay' or source != 'title' or not context or (reference_core and fields(base)['coreGame'] == reference_core):
+        return base, assigned
+    names, core, system = context
+    anchor = re.search(core_pattern(core), base, re.I)
+    if not anchor:
+        return base, assigned
+    proposed, additions = base, []
+    publishers = (evidence.get('aspects') or {}).get('publisher') or []
+    for variant in publisher_variants(publishers):
+        if protected_franchise and publisher_key(protected_franchise).startswith(variant + ' '):
+            continue
+        pattern = r'(?<!\w)' + r'\W+'.join(map(re.escape, variant.split())) + r'(?!\w)'
+        if any(re.search(pattern, name, re.I) for name in names):
+            continue
+        matches = [m for m in re.finditer(pattern, proposed, re.I) if m.end() <= anchor.start() or m.start() >= anchor.end()]
+        for match in reversed(matches):
+            additions.append({'text': match[0], 'field':'publisherAttribution', 'source':source,
+                'corroboration':{'publisher':publishers, 'gameName':names, 'platform':system},
+                'reason':'Audited corporate relationship at the edge of a complete corroborated named product; no game alias applied.'})
+            proposed = proposed[:match.start()] + ' ' + proposed[match.end():]
+        if matches:
+            break
+    proposed, roles = _phase2_identity_wording(proposed, source=source, side=side, evidence=evidence, fields=fields, reference_core=reference_core)
+    if additions and fields(proposed)['coreGame'] == core:
+        return proposed, [*assigned, *additions, *roles]
+    return base, assigned
+
+
+def amazon_attribution(amazon, ebay_title, evidence, fields):
+    """Cross-source corroboration classifies a catalog edge, never imports its name."""
+    context = complete_name_context(evidence, fields)
+    if not context:
+        return amazon
+    names, core, system = context
+    if fields(ebay_title)['coreGame'] != core or amazon.get('coreGame') == core:
+        return amazon
+    if normalize_system(amazon.get('platform')) != system:
+        return amazon
+    if any(amazon['fields'][key]['state'] == 'conflicting_sources' for key in ['coreGame', 'coreProduct']):
+        return amazon
+    publishers = (evidence.get('aspects') or {}).get('publisher') or []
+    variants = publisher_variants(publishers)
+    catalog = (amazon.get('referenceMetadata') or {}).get('catalog') or {}
+    attrs = catalog.get('relevant_attributes_json') or {}
+    catalog_publishers = [attrs.get(k) for k in ('publisher','manufacturer') if attrs.get(k)]
+    if any(publisher_key(value) not in variants for value in catalog_publishers):
+        return amazon
+    for variant in variants:
+        if amazon.get('franchise') and publisher_key(amazon['franchise']).startswith(variant + ' '):
+            continue
+        if re.search(r'\b(?:disney\s+infinity|ea\s+sports\s+fc|tom\s+clancy|microsoft\s+flight\s+simulator)\b', str(amazon.get('coreGame')), re.I):
+            continue
+        pattern = r'(?<!\w)' + r'\W+'.join(map(re.escape, variant.split())) + r'(?!\w)'
+        if any(re.search(pattern, name, re.I) for name in names):
+            continue
+        value = str(amazon.get('coreGame') or '')
+        for match in re.finditer(pattern, value, re.I):
+            if match.start() != 0 and match.end() != len(value):
+                continue
+            remainder = (value[:match.start()]+' '+value[match.end():]).strip()
+            if remainder != core:
+                continue
+            for key in ['coreGame','coreProduct']:
+                previous = amazon[key]
+                derived = fields(remainder)[key]
+                amazon[key] = derived
+                amazon['fields'][key]['value'] = derived
+                for source in amazon['fields'][key]['sources']:
+                    source['normalizedSpan'] = remainder
+                amazon['fields'][key]['sourceReconciliation'].append({'source':'ebay.publisher_and_complete_game_name','relation':'corroborated_catalog_publisher_attribution','originalValue':previous,'value':derived})
+            amazon['assignedMetadata'].append({'text':match[0],'field':'publisherAttribution','source':'amazon.title',
+                'corroboration':{'ebayPublisher':publishers,'ebayGameName':names,'platform':system},
+                'reason':'Catalog edge attribution corroborated by full offered named product, publisher and platform; original catalog sources retained.'})
+            return amazon
+    return amazon
