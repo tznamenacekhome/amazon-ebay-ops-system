@@ -123,7 +123,7 @@ def publisher_key(value):
 
 
 def publisher_variants(publishers):
-    keys = {publisher_key(v) for v in publishers if publisher_key(v)}
+    keys = {publisher_key(v) for v in publishers if publisher_key(v) and publisher_key(v) not in {'new','game','video','original','standard'}}
     groups = []
     for key in keys:
         groups.append(next((set(group) for group in PUBLISHER_RELATIONSHIPS if key in group), {key}))
@@ -152,7 +152,7 @@ def core_pattern(core):
 def typed_identity_wording(text, *, source, side, evidence, fields, reference_core=None, protected_franchise=None):
     base, assigned = _phase2_identity_wording(text, source=source, side=side, evidence=evidence, fields=fields, reference_core=reference_core)
     context = complete_name_context(evidence, fields)
-    if re.search(r'\b(?:disney\s+infinity|ea\s+sports\s+fc|tom\s+clancy|microsoft\s+flight\s+simulator)\b', str(text), re.I):
+    if re.search(r'\b(?:new\s+super\s+mario\s+bros|new\s+carnival\s+games|disney\s+infinity|ea\s+sports\s+fc|tom\s+clancy|microsoft\s+flight\s+simulator)\b', str(text), re.I):
         return base, assigned
     if side != 'ebay' or source != 'title' or not context or (reference_core and fields(base)['coreGame'] == reference_core):
         return base, assigned
@@ -246,7 +246,7 @@ def amazon_attribution(amazon, ebay_title, evidence, fields):
     for variant in variants:
         if amazon.get('franchise') and publisher_key(amazon['franchise']).startswith(variant + ' '):
             continue
-        if re.search(r'\b(?:disney\s+infinity|ea\s+sports\s+fc|tom\s+clancy|microsoft\s+flight\s+simulator)\b', str(amazon.get('coreGame')), re.I):
+        if re.search(r'\b(?:new\s+super\s+mario\s+bros|new\s+carnival\s+games|disney\s+infinity|ea\s+sports\s+fc|tom\s+clancy|microsoft\s+flight\s+simulator)\b', str(amazon.get('coreGame')), re.I):
             continue
         pattern = r'(?<!\w)' + r'\W+'.join(map(re.escape, variant.split())) + r'(?!\w)'
         if any(re.search(pattern, name, re.I) for name in names):
