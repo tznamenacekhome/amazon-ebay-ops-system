@@ -1,4 +1,4 @@
-﻿# Phase 3A: listing evidence cleanup and exclusion explanations
+# Phase 3A: listing evidence cleanup and exclusion explanations
 
 November 26, 2026. Reference runtime `974664d0bced`. Text and structured evidence only; no photographs downloaded, inspected or analyzed. Permanent operator policy remains in `docs/AI_README.md`. Unrelated working-tree files preserved.
 
@@ -14,7 +14,7 @@ No publisher alias, title spelling/alias, installment, platform preference, fina
 
 ## Validation and mandatory shadow
 
-- **414 Python tests passed**, including eight actual reason records, six actual store templates, non-content markup/entities/boundaries/malformed HTML, provider parity, preserved raw source/hash, categorical policies, product-specific condition, missing contents, demo/digital controls, mixed inventory, testing neutrality and no manufactured New evidence.
+- **418 Python tests passed**, including eight actual reason records, six actual store templates, non-content markup/entities/boundaries/malformed HTML, provider parity, preserved raw source/hash, categorical policies, product-specific condition, missing contents, demo/digital controls, mixed inventory, testing neutrality and no manufactured New evidence.
 - **39 fresh disposable PostgreSQL tests passed** (14 Flipmine, four progress, 21 shared quota); no production DB used for acceptance tests, no published DB ports.
 - **16 frontend/API test files passed**, including actual compact reason conversion and React rendering for all eight records. No frontend runtime changes; no web build/deploy required.
 - Original immutable 388-capture cohort plus eight fresh relevant captures, minus one identical Bejeweled snapshot = **395 distinct captures**. Materially different evidence revisions are preserved.
@@ -51,3 +51,5 @@ The directly demonstrated CSS `promo` contamination is corrected. Real promotion
 Recommend Phase3B first implement provenance-bearing publisher abbreviation/attribution and small identifier-corroborated normalization in separate audited changes. Keep alternate-release/package/source reconciliation separately reviewed. Do not replay the56 identity-audit cohort merely because Phase3A deployed.
 
 Deployment revision, fresh six-pair results, actual API consumption and final reconciliation follow after execution. The committed shadow receipt and replay manifest are adjacent JSON files. Authenticated browser behavior is not claimed from these backend tests; there is no web runtime change in this release.
+
+The initial operational replay dry run stopped before any write on a UTF-8/BOM source-copy error. The adapter was regenerated with explicit UTF-8 decoding; its four lifecycle/checkpoint regressions now run against the Phase3A adapter itself. No production state was changed by the failed dry run.

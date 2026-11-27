@@ -1,4 +1,4 @@
-ï»¿"""One reviewed, manifest-bound Phase 3A text-only replay. Dry-run default; existing Flipmine lease/writers only.
+"""One reviewed, manifest-bound Phase 3A text-only replay. Dry-run default; existing Flipmine lease/writers only.
 No sheet read, discovery, marketplace mutation or broad historical replay.
 Original source decisions are archived before a selected row can become pending.
 """
