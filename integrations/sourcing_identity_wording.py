@@ -10,7 +10,8 @@ def orthographic_text(value):
     # Possessive/apostrophe spelling, not removal of the possessive word.
     patterns = [(r"(?<=\w)['’]s\b", 's'),
                 (r'\bsmack\s*down\b', 'Smackdown'), (r'\bwar\s*zone\b', 'Warzone'),
-                (r'\bsteel\s*book\b', 'Steelbook'), (r'\bsim\s*city\b', 'Simcity')]
+                (r'\bsteel\s*book\b', 'Steelbook'), (r'\bsim\s*city\b', 'Simcity'),
+                (r'\broller\s*coaster(?=\s+tycoon\b)', 'Rollercoaster')]
     for pattern, replacement in patterns:
         def change(m):
             if m[0] != replacement:
@@ -175,6 +176,48 @@ def typed_identity_wording(text, *, source, side, evidence, fields, reference_co
             proposed = proposed[:match.start()] + ' ' + proposed[match.end():]
         if matches:
             break
+    # Each role is independently constrained; the final full-name equality is
+    # still mandatory. No unclassified word, code or extra product is discarded.
+    role_patterns = [
+        ('condition', r'\bbrand\s+new\s*(?:&|and)\s*(?:factory\s+)?sealed\b'),
+        ('sellerDescription', r'\b(?:computer game|video game|game|original)\b'),
+        ('packaging', r'\b(?:(?:and|&)\s+)?Y[- ]fold\b|\b(?:complete manual|CIB|with slipcover|w/\s*slipcover|retail release w/ ?hangtab|retail release w hangtab)\b'),
+    ]
+    if system == 'PC':
+        role_patterns += [('physicalMedia', r'\b(?:CD[- ]?ROM|DVD[- ]?ROM)\b'),
+                          ('operatingSystem', r'\b(?:Microsoft\s+)?Windows(?:\s+(?:95|98|2000|ME|XP|Vista|7|8|10|11|NT))?\b')]
+    regions = ' '.join(map(str, evidence.get('region_code_values') or []))
+    if re.search(r'NTSC[- ]U|US/Canada|North American', regions, re.I):
+        role_patterns.append(('region', r'\b(?:North American|USA|US retail release)\b'))
+    genre = ' '.join(map(str, (evidence.get('aspects') or {}).get('genre') or []))
+    if 'dance' in genre.casefold() and ('music' in genre.casefold() or re.search(r'\b\d+\s+hit\s+tracks\b', ' '.join(evidence.get('features_values') or []), re.I)):
+        role_patterns.append(('genre', r'\bdance music\b'))
+    edition_support = ' '.join(map(str, (evidence.get('aspects') or {}).get('edition') or [])) + ' ' + ' '.join(map(str, evidence.get('features_values') or []))
+    if re.search(r'greatest hits', edition_support, re.I):
+        role_patterns.append(('editionPackaging', r'\bGH\b'))
+    for year in evidence.get('release_year_values') or []:
+        if re.fullmatch(r'(?:19|20)\d{2}', str(year).strip()):
+            role_patterns.append(('releaseYear', r'(?<!\w)' + re.escape(str(year).strip()) + r'(?!\w)'))
+    for role, pattern in role_patterns:
+        anchor = re.search(core_pattern(core), proposed, re.I)
+        if not anchor:
+            return base, assigned
+        matches = [m for m in re.finditer(pattern, proposed, re.I) if m.end() <= anchor.start() or m.start() >= anchor.end()]
+        for match in reversed(matches):
+            additions.append({'text':match[0], 'field':role, 'source':source,
+                'corroboration':{'gameName':names,'platform':system},
+                'reason':'Bounded metadata outside a complete corroborated product name; original independent purchasing evidence retained.'})
+            proposed = proposed[:match.start()] + ' ' + proposed[match.end():]
+    # The same installment may be repeated after the complete subtitle, as in
+    # Myst IV Revelation4. No numeral can be removed from inside the named game.
+    anchor = re.search(core_pattern(core), proposed, re.I)
+    installment = fields(names[0]).get('installment')
+    if anchor and installment and len(set(re.findall(r'(?<!\w)\d+(?!\w)', core))) == 1:
+        repeat = re.match(r'\s+' + re.escape(str(installment)) + r'(?!\w)', proposed[anchor.end():])
+        if repeat:
+            additions.append({'text':repeat[0], 'field':'installment', 'source':source,
+                'corroboration':names,'reason':'Repeated equivalent installment after full named product/subtitle; complete name and same structured installment preserved.'})
+            proposed = proposed[:anchor.end()] + ' ' + proposed[anchor.end()+repeat.end():]
     proposed, roles = _phase2_identity_wording(proposed, source=source, side=side, evidence=evidence, fields=fields, reference_core=reference_core)
     if additions and fields(proposed)['coreGame'] == core:
         return proposed, [*assigned, *additions, *roles]
@@ -227,4 +270,30 @@ def amazon_attribution(amazon, ebay_title, evidence, fields):
                 'corroboration':{'ebayPublisher':publishers,'ebayGameName':names,'platform':system},
                 'reason':'Catalog edge attribution corroborated by full offered named product, publisher and platform; original catalog sources retained.'})
             return amazon
+    return amazon
+
+
+def amazon_operating_system_metadata(amazon, title, ebay, evidence, fields):
+    context = complete_name_context(evidence, fields)
+    if not context or context[2] != 'PC' or normalize_system(amazon.get('platform')) != 'PC':
+        return amazon
+    if ebay.get('coreGame') != context[1] or ebay['fields']['coreGame']['state'] != 'supported':
+        return amazon
+    match = re.search(r'\[\s*Windows\b[^]\n]+\]\s*$', str(title), re.I)
+    if not match:
+        return amazon
+    words = re.sub(r'\bWindows\b|[|,/\[\] ]', ' ', match[0], flags=re.I).split()
+    if not words or any(w.casefold() not in {'95','98','2000','me','xp','vista','7','8','10','11','nt'} for w in words):
+        return amazon
+    text = str(title)[:match.start()]
+    if fields(text)['coreGame'] != context[1]:
+        return amazon
+    for key in ['coreGame','coreProduct']:
+        amazon[key] = fields(text)[key]
+        amazon['fields'][key]['value'] = amazon[key]
+        for source in amazon['fields'][key]['sources']:
+            source['normalizedSpan'] = text
+    amazon['assignedMetadata'].append({'text':match[0],'source':'amazon.title','field':'operatingSystem',
+        'corroboration':{'platform':'PC','offeredGameName':context[0]},
+        'reason':'Explicit Windows compatibility bracket; complete catalog product and offered name agree independently.'})
     return amazon

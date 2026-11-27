@@ -1114,6 +1114,8 @@ def evaluated_identity(amazon_title, ebay_title, seed, evidence):
     from sourcing_identity_wording import amazon_attribution
     amazon = amazon_attribution(amazon, ebay_title, evidence, general_product_fields)
     ebay = phase3_side(ebay_title, "ebay", evidence=evidence, reference_core=amazon.get('coreGame'))
+    from sourcing_identity_wording import amazon_operating_system_metadata
+    amazon = amazon_operating_system_metadata(amazon, amazon_title, ebay, evidence, general_product_fields)
     result = phase3_comparison(amazon, ebay)
     result["reference"] = {"asin": asin or None, "catalogAccepted": bool(verified_catalog),
                            "catalogRejected": bool(catalog and not verified_catalog), "version": PHASE3_VERSION}
