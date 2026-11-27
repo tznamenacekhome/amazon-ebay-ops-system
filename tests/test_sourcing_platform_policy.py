@@ -65,7 +65,7 @@ class PlatformPolicyTests(unittest.TestCase):
         self.assertIn(POLICY['cartridgeReason'],rules['hard_blocks'])
 
     def test_known_ineligible_catalog_skips_every_provider(self):
-        for system in ['Game Boy Advance','Gamecube']:
+        for system in ['Game Boy Advance','Gamecube','PS','Dreamcast','Sega CD']:
             db=DB();db.rows['amazon_catalog_item_identity_snapshots'][0]['normalized_platform']=system
             ctx=SourcingContext(db,SETTINGS)
             with patch.object(SourcingContext,'amazon',new_callable=PropertyMock) as provider:

@@ -90,7 +90,9 @@
   "Sega CD": [
     "sega mega cd",
     "sega mega-cd",
-    "sega cd"
+    "sega cd",
+    "mega cd",
+    "mega-cd"
   ],
   "Nintendo 64": [
     "nintendo 64",
@@ -130,7 +132,11 @@
   "PS": [
     "playstation",
     "ps1",
-    "psx"
+    "psx",
+    "playstation 1",
+    "playstation1",
+    "original playstation",
+    "ps 1"
   ],
   "PSP": [
     "sony psp",

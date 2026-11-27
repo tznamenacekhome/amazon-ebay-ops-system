@@ -1,5 +1,5 @@
 {
-  "version": "sourcing_platform_policy_v2",
+  "version": "sourcing_platform_policy_v3",
   "excludedCartridgePlatforms": [
     "DS",
     "Game Boy",
@@ -35,7 +35,6 @@
     "Switch 2"
   ],
   "discOrComputerPlatforms": [
-    "PS",
     "PS 2",
     "PS 3",
     "PS 4",
@@ -48,15 +47,16 @@
     "Xbox Series S",
     "Wii",
     "Wii U",
-    "Dreamcast",
-    "Sega CD",
     "Sega Saturn",
     "PC"
   ],
   "cartridgeReason": "Cartridge-based platform excluded by sourcing policy.",
   "unresolvedReason": "Sourcing platform or physical format is unresolved; eligibility is not established.",
   "explicitExcludedPlatforms": [
-    "Gamecube"
+    "Gamecube",
+    "PS",
+    "Dreamcast",
+    "Sega CD"
   ],
   "explicitEligiblePlatforms": [
     "Switch",
