@@ -1409,14 +1409,43 @@ function persistedExclusionReason(diagnostics: Record<string, unknown>): Exclusi
     .filter((row) => row.result === "fail" || row.result === "warning")
     .map((row) => row.summary)
     .filter(Boolean);
+  // Explain older saved compact records without rewriting their decisions.
+  const recordedReason = recordedCompactReason(exclusionSummary(primary), diagnostics);
   return {
-    ...reviewReasonDetails(exclusionSummary(primary), diagnostics),
+    ...reviewReasonDetails(recordedReason, diagnostics),
     eligible: typeof decision.eligible === "boolean" ? decision.eligible : undefined,
     finalRecommendation: stringOrNull(decision.finalRecommendation),
     finalStatus: stringOrNull(decision.finalStatus),
     secondaryReasons,
     supportingSignals: [...new Set(traceSignals)].slice(0, 8),
   };
+}
+
+
+function recordedCompactReason(reason: ExclusionReasonSummary, diagnostics: Record<string, unknown>): ExclusionReasonSummary {
+  if (reason.summary !== "Status is rejected, but stored diagnostics do not include a mapped rule.") return reason;
+  if (reason.code === "condition_unacceptable") {
+    const evidence = persistedDecisionTrace(diagnostics).filter(row =>
+      row.diagnosticKey === "condition_mismatch" && row.result === "fail",
+    ).map(row => row.summary).filter(Boolean);
+    return {
+      ...reason,
+      summary: evidence.length ? `Recorded condition evidence: ${evidence.join("; ")}` : "Recorded condition evaluation conflicts with New-condition requirements; inspect condition diagnostics.",
+      diagnosticKeys: ["condition_mismatch", "static_rules.condition_mismatch", "hard_blocks"],
+    };
+  }
+  if (reason.code === "unknown_rejection" && Array.isArray(diagnostics.businessEligibilityChecks)) {
+    const history = diagnostics.businessEligibilityChecks.filter(isRecord).find(check =>
+      check.code === "operator_history_status" && check.result === "fail" && check.blocking === true,
+    );
+    if (history) return {
+      code: "duplicate_history", label: "Historical operator status", source: "operator_history",
+      severity: "duplicate_history", category: "duplicate_history",
+      summary: `Recorded historical lifecycle: ${String(history.actual ?? "protected")}; existing operator decision remains authoritative.`,
+      diagnosticKeys: ["businessEligibilityChecks.operator_history_status", "normalPipelineLifecycleStatus"],
+    };
+  }
+  return reason;
 }
 
 function exclusionSummary(value: Record<string, unknown>): ExclusionReasonSummary {

@@ -1,4 +1,4 @@
-﻿import assert from 'node:assert/strict';
+import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {resolve,dirname} from 'node:path';
 import {fileURLToPath} from 'node:url';
@@ -56,13 +56,20 @@ const python=resolve(root,'../../../../.venv/Scripts/python.exe');
 const payload=JSON.parse(execFileSync(python,['-c',`import json,sys;sys.path.insert(0,'integrations');from sourcing_decision_trace import enrich_sourcing_diagnostics
 cases=json.load(open('tests/fixtures/phase3a_exclusion_reasons_20261126.json'));out=[]
 for c in cases:
- d=enrich_sourcing_diagnostics(c['diagnostics'],status=c['status'],opportunity_type=c['opportunity_type'],profit=c['profit'],roi_percent=c['roi_percent']);out.append(dict(row=c['row'],presentationDecision=d['presentationDecision'],decisionTrace=d['decisionTrace']))
+ d=enrich_sourcing_diagnostics(c['diagnostics'],status=c['status'],opportunity_type=c['opportunity_type'],profit=c['profit'],roi_percent=c['roi_percent']);out.append(dict(row=c['row'],presentationDecision=d['presentationDecision'],decisionTrace=d['decisionTrace'],legacy={k:c['diagnostics'].get(k)for k in ['presentationDecision','decisionTrace','businessEligibilityChecks','normalPipelineLifecycleStatus']}))
 print(json.dumps(out))`],{cwd:resolve(root,'../../../..'),encoding:'utf8'}));
 const ui=readFileSync(resolve(root,'../../sourcing/page.tsx'),'utf8');
 const fragment=ui.slice(ui.indexOf('function ExcludedBecause('),ui.indexOf('function OpportunityTypeCell('));
 const out={};new Function('require','exports',ts.transpileModule(fragment+'\nexport {ExcludedBecause};',{compilerOptions:{module:ts.ModuleKind.CommonJS,jsx:ts.JsxEmit.ReactJSX}}).outputText)(require,out);
 const {renderToStaticMarkup}=require('react-dom/server');
 for(const c of payload){
+ const legacyCompact={presentationDecision:c.legacy.presentationDecision,decisionTrace:c.legacy.decisionTrace,businessEligibilityChecks:c.legacy.businessEligibilityChecks};
+ const legacyBefore=JSON.stringify(legacyCompact);
+ const legacyReason=route.persistedExclusionReason(legacyCompact);
+ assert.equal(legacyReason.code,c.row===68?'duplicate_history':'condition_unacceptable');
+ assert(!legacyReason.summary.includes('mapped rule'));
+ assert.equal(JSON.stringify(legacyCompact),legacyBefore,'Read-time fallback must not rewrite saved diagnostics');
+ assert(renderToStaticMarkup(out.ExcludedBecause({reason:legacyReason})).includes(c.row===68?'dismissed':c.row===504?'visible cracks on case':'pre-owned'));
  const compact={presentationDecision:c.presentationDecision,decisionTrace:c.decisionTrace};
  const reason=route.persistedExclusionReason(compact);
  assert.equal(reason.code,c.row===68?'duplicate_history':'condition_unacceptable');

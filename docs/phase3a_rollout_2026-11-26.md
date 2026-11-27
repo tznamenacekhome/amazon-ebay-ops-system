@@ -16,7 +16,7 @@ No publisher alias, title spelling/alias, installment, platform preference, fina
 
 - **418 Python tests passed**, including eight actual reason records, six actual store templates, non-content markup/entities/boundaries/malformed HTML, provider parity, preserved raw source/hash, categorical policies, product-specific condition, missing contents, demo/digital controls, mixed inventory, testing neutrality and no manufactured New evidence.
 - **39 fresh disposable PostgreSQL tests passed** (14 Flipmine, four progress, 21 shared quota); no production DB used for acceptance tests, no published DB ports.
-- **16 frontend/API test files passed**, including actual compact reason conversion and React rendering for all eight records. No frontend runtime changes; no web build/deploy required.
+- **16 frontend/API test files passed**, including actual compact reason conversion and React rendering for all eight records. The follow-up read-time legacy explanation fallback is covered by the same16 files and TypeScript noEmit; normal web deployment performs the production build.
 - Original immutable 388-capture cohort plus eight fresh relevant captures, minus one identical Bejeweled snapshot = **395 distinct captures**. Materially different evidence revisions are preserved.
 
 | Stage | Match / Review / Non-match | Open / Rejected / Dismissed / Inventory snoozed / Watching |
@@ -38,7 +38,7 @@ No publisher alias, title spelling/alias, installment, platform preference, fina
 
 ## Controlled release and replay scope
 
-Production preflight confirmed account 297464765814, web237 stable (1 running/0 pending/COMPLETED) and scheduler182. Only the affected sourcing worker will deploy. Web runtime is unchanged. Schedule commands, cadence, settings and permissions remain unchanged; only the affected sourcing target's image revision may advance.
+Production preflight confirmed account 297464765814, web237 stable (1 running/0 pending/COMPLETED) and scheduler182. The affected sourcing worker deploys first. A subsequent API-only web change explains legacy saved generic summaries without changing admission/status or writing diagnostics. Schedule commands, cadence, settings and permissions remain unchanged; only the affected sourcing target's image revision may advance.
 
 A bounded retained-evidence check covered all 448 original-tab rows that have persisted normalized candidate records; the other 110 have no candidate record and were not enriched. CSS/scope effects additionally occur in already-ended listings, excluded cartridge platforms, or rows retaining independent used/region/damage blockers. No reason-only outcome refresh or broad replay is authorized/needed for these. The deterministic guarded manifest selects exactly **six pairs: 109,121,236,275,326,346**. Preflight found all eligible and no protected active hold in the existing closeout capture; lifecycle/history is checked again by the normal scoring/writer guards.
 
@@ -50,6 +50,10 @@ The directly demonstrated CSS `promo` contamination is corrected. Real promotion
 
 Recommend Phase3B first implement provenance-bearing publisher abbreviation/attribution and small identifier-corroborated normalization in separate audited changes. Keep alternate-release/package/source reconciliation separately reviewed. Do not replay the56 identity-audit cohort merely because Phase3A deployed.
 
-Deployment revision, fresh six-pair results, actual API consumption and final reconciliation follow after execution. The committed shadow receipt and replay manifest are adjacent JSON files. Authenticated browser behavior is not claimed from these backend tests; there is no web runtime change in this release.
+Deployment revision, fresh six-pair results, actual API consumption and final reconciliation follow after execution. The committed shadow receipt and replay manifest are adjacent JSON files. Authenticated browser behavior is not claimed from these backend tests; the follow-up API-only web deployment must be verified separately.
 
 The initial operational replay dry run stopped before any write on a UTF-8/BOM source-copy error. The adapter was regenerated with explicit UTF-8 decoding; its four lifecycle/checkpoint regressions now run against the Phase3A adapter itself. No production state was changed by the failed dry run.
+
+### Legacy saved explanation completion
+
+Untouched historical rows retain their original stored diagnostics. A read-time API fallback now supplies the recorded condition-trace summary or failed historical-lifecycle explanation for the exact legacy generic message. It does not rewrite saved data, change status/eligibility, remove secondary reasons or trigger reevaluation. All eight original compact records and corrected Python records are tested through the actual API conversion and React renderer. Sixteen frontend/API files and TypeScript noEmit passed. This requires a web revision in addition to worker183; it is independently auditable from evidence processing.
